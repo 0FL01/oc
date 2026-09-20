@@ -1319,10 +1319,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "crossterm",
  "libc",
  "oc-adapters",
  "oc-core",
  "oc-tui",
+ "ratatui",
  "serde",
  "serde_json",
  "tempfile",

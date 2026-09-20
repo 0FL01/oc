@@ -6,6 +6,7 @@
 mod bootstrap;
 mod cli;
 mod headless;
+mod tui_cmd;
 
 use clap::Parser as _;
 

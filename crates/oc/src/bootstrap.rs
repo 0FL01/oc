@@ -45,6 +45,7 @@ pub async fn run(args: Args) -> ExitCode {
                 headless::list_to_writers(&data_dir, &mut out, &mut err)
             }
         },
+        Some(Command::Tui { session }) => crate::tui_cmd::run_tui(&data_dir, session).await,
     }
 }
 

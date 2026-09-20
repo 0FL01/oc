@@ -41,6 +41,12 @@ pub enum Command {
         #[command(subcommand)]
         action: SessionsAction,
     },
+    /// Launch the local interactive TUI.
+    Tui {
+        /// Session id; a fresh id is minted when absent.
+        #[arg(long)]
+        session: Option<String>,
+    },
 }
 
 /// Session subcommands.
