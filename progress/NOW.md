@@ -1,25 +1,25 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-20T18:42:40+00:00
+State updated: 2026-09-20T18:56:22+00:00
 Active: нет
 
 Сверить Git status/diff до выполнения команд.
 
-Последний срез: T16 [blocked]; сверить незакоммиченный diff.
+Последний срез: T22 [done]; сверить незакоммиченный diff.
 
 ## Result
-T16 blocked, task only. Live env names present (LUDKA2_API_URL, LUDKA2_API_KEY, values never read); executable offline-tested live text+tool harness missing from the tree.
+T22 daily TUI done. Model picker with retired action, paged history resume plus tool cards, single-generation workspace registry with primary selection and slash dispatch, D12 boundary. Evidence evidence/T22/report.md.
 ## Checks
-headless run is MockProvider-only (crates/oc/src/headless.rs run_inner); runtime provider+tools turn loop is T24/T25 (todo); T16 forbids adding product/harness code; no live request sent, no secret touched.
+fmt, clippy -D warnings, workspace 152, build locked, check_docs — all exit 0.
 ## Risks
-None to product; live track (T16, downstream T27) waits on runtime wiring, not on credentials.
+Agent/command definitions and D10 generation plumbing load in T24/T25; DCP panel in T23; PTY qualification in T26.
 ## Next
-Unblock after T24/T25 deliver the runtime turn loop; then run the bounded live campaign per docs/AGENT_RUNBOOK.md live envelope. Meanwhile T22 (daily TUI) is ready and independent.
+T23 (DCP TUI and commands) — depends T22/T19, both done.
 
 
 Следующий шаг: проверить зависимости и начать первую ready-задачу.
 
-Ready (до 5): T22
+Ready (до 5): T23, T24
 Blocked: T16
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.
