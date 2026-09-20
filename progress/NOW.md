@@ -1,25 +1,25 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-20T15:49:29+00:00
+State updated: 2026-09-20T16:08:53+00:00
 Active: нет
 
 Сверить Git status/diff до выполнения команд.
 
-Последний срез: T00 [done]; сверить незакоммиченный diff.
+Последний срез: T01 [done]; сверить незакоммиченный diff.
 
 ## Result
-T00 preflight and plan simplification completed. Implementation commit is 7d0b886df034b5720453034e357e738100a3a2ab; evidence is evidence/T00/report.md.
+T01 workspace done. 4 crates, toolchain 1.93.0, Cargo.lock committed. Impl 35c38e5, evidence evidence/T01/report.md.
 ## Checks
-ENV01, ENV02 and OPS05 PASS with actual-host metadata, 25 offline utility tests and documentation validation. No live/network/Docker action ran.
+cargo fmt --check, clippy -D warnings, test --workspace --locked (13 tests), build --locked/build, oc --help/--smoke — all exit 0. BUILD01 PASS offline.
 ## Risks
-No Rust workspace exists yet. Actual Rust 1.93.0 differs from the previously reported 1.98.1 candidate; T01 must pin the actual working toolchain or record a concrete dependency blocker.
+No product runtime yet; rmcp/reqwest only smoke-linked. Full license audit deferred to T29.
 ## Next
-Start T01 and establish the minimal Rust workspace, lockfile and dependency compile smoke.
+Start T02 and pin source/protocol/fixture contracts with provenance manifest.
 
 
 Следующий шаг: проверить зависимости и начать первую ready-задачу.
 
-Ready (до 5): T01
+Ready (до 5): T02, T03
 Blocked: нет
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.
