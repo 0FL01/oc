@@ -1,0 +1,32 @@
+{
+  "_provenance": {
+    "method": "source-derived",
+    "source_repo": "0FL01/openproxy",
+    "commit": "4ef76dbce2cdbb85206cbe5e59acbad9d96ae387",
+    "paths": ["contracts/lean-proxy.md", "src/server/api/mod.rs"],
+    "license": "unknown-no-copy; protocol reference only, no implementation copied",
+    "upstream_sha256": {
+      "lean-proxy.md": "c17dbc5497de11a811019c9d79e0c6528f0b34cd666febb3cf109e29d60a00a3",
+      "mod.rs": "894292e9ab9b747ef51133918f98410c9faf517ec71bebc5e33b71c1bc259490"
+    },
+    "normalization": "Keep generation URL rule and store:false/SSE defaults from docs/PROVIDER_OPENPROXY.md; drop proxy internals (account routing, retries, cache). Byte cap below observed proxy 32 MiB is our announced difference.",
+    "executable_baseline": "not-executed; wire spike deferred to T12"
+  },
+  "description": "Minimal native Responses request contract for oc generation.",
+  "generation_url": "<baseURL without trailing slash>/responses (prefix path preserved; no blind /v1 add/remove)",
+  "discovery_url": "<same base>/models",
+  "request": {
+    "method": "POST",
+    "auth": "Bearer <apiKey>",
+    "store": false,
+    "uses_previous_response_id": false,
+    "tool_type": "ordinary function schema, not provider-hosted apply_patch"
+  },
+  "options_preserved": {
+    "timeout_false_means_no_total_deadline": true,
+    "chunkTimeout_ms": 6000000,
+    "connect_timeout_separate": true
+  },
+  "stream": "bounded incremental SSE: arbitrary byte split, multiline/CRLF/comments/UTF-8, text/item/argument + usage; event cap enforced",
+  "request_body_bytes_cap": 25165824
+}

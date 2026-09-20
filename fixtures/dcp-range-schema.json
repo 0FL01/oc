@@ -1,0 +1,38 @@
+{
+  "_provenance": {
+    "method": "source-derived",
+    "source_repo": "Opencode-DCP/opencode-dynamic-context-pruning",
+    "commit": "11f6517780a502512a3467645074be447cb0369e",
+    "package": "@tarquinen/opencode-dcp@3.1.15",
+    "paths": ["lib/compress/types.ts", "package.json"],
+    "license": "AGPL-3.0-or-later",
+    "upstream_sha256": {
+      "types.ts": "168189bae540d0e181774717fb7985ed9da9f8e9c80877fdc9a572ad05125110",
+      "package.json": "8659a083229316d42833506878d8dadde740485d83e4ecef9e224a220cc318d5"
+    },
+    "normalization": "Keep public range tool args shape from types.ts CompressRangeEntry/CompressRangeToolArgs; drop TS internals (state, maps, message-mode). Message-mode shape explicitly excluded from range contract.",
+    "executable_baseline": "not-executed; range behavior deferred to T17-T19"
+  },
+  "description": "Minimal DCP range tool schema. topic/summary are non-empty bounded strings; content is a non-empty bounded array.",
+  "range_tool_args": {
+    "topic": "string (non-empty, bounded)",
+    "content": [
+      {
+        "startId": "string (stable message/block reference)",
+        "endId": "string",
+        "summary": "string (non-empty, bounded, model-authored)"
+      }
+    ]
+  },
+  "excluded": {
+    "message_mode_shape": "{topic, content:[{messageId, topic, summary}]} is a separate experimental mode, not range"
+  },
+  "dcp_defaults": {
+    "minContextLimit": 50000,
+    "maxContextLimit": 100000,
+    "nudgeFrequency": 5,
+    "iterationNudgeThreshold": 15,
+    "nudgeForce": "soft",
+    "summaryBuffer": true
+  }
+}

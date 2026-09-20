@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "locked_at": "2026-09-20",
+  "note": "T02 provenance manifest. Complements planning/baseline.lock.json with per-fixture revision/path/digest/license/normalization. No executable parity claimed.",
+  "sources": [
+    {
+      "repo": "anomalyco/opencode",
+      "commit": "b8cedc1a7a5e2916bbb65dc1d4b620729c261638",
+      "tag": "v2.0.10",
+      "license": "MIT",
+      "license_path": "LICENSE",
+      "license_sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+      "files": [
+        "packages/core/test/config/config.test.ts",
+        "packages/core/test/config/skill.test.ts",
+        "packages/core/test/config/agent.test.ts",
+        "packages/core/test/config/command.test.ts",
+        "packages/core/test/config/command-subagent.test.ts",
+        "packages/core/test/instruction-discovery.test.ts",
+        "packages/core/src/config.ts"
+      ]
+    },
+    {
+      "repo": "Opencode-DCP/opencode-dynamic-context-pruning",
+      "commit": "11f6517780a502512a3467645074be447cb0369e",
+      "package": "@tarquinen/opencode-dcp@3.1.15",
+      "license": "AGPL-3.0-or-later",
+      "license_note": "Full LICENSE bytes fetched to .local only; not copied into Git in T02 (no DCP code ported yet). Required before first DCP-code push per docs/DECISIONS.md D06.",
+      "files": ["lib/compress/types.ts", "package.json"]
+    },
+    {
+      "repo": "0FL01/openproxy",
+      "commit": "4ef76dbce2cdbb85206cbe5e59acbad9d96ae387",
+      "license": "unknown-no-copy",
+      "license_note": "GitHub metadata does not establish a license; protocol reference only, no implementation copied per docs/DECISIONS.md D06.",
+      "files": [
+        "contracts/lean-proxy.md",
+        "src/server/api/mod.rs",
+        "src/server/api/codex_web_mcp.rs",
+        "plugins/openproxy-models.js"
+      ]
+    },
+    {
+      "repo": "user-supplied",
+      "snapshot": "references/openproxy-models.user.mjs",
+      "sha256": "0f98ddad1660a991a400dbeba879df76ba2fc70b8e3fe530032976166939610c",
+      "authority": "user-supplied-script-over-repository-plugin"
+    }
+  ],
+  "fixtures": [
+    "fixtures/config-roots.order.json",
+    "fixtures/instructions.order.json",
+    "fixtures/definitions.order.json",
+    "fixtures/native-plugins.json",
+    "fixtures/discovery-oracle.json",
+    "fixtures/responses-wire.json",
+    "fixtures/mcp-wire.json",
+    "fixtures/dcp-range-schema.json"
+  ]
+}

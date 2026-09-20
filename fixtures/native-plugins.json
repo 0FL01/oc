@@ -1,0 +1,46 @@
+{
+  "_provenance": {
+    "method": "source-derived",
+    "source_repo": "anomalyco/opencode",
+    "commit": "b8cedc1a7a5e2916bbb65dc1d4b620729c261638",
+    "paths": [
+      "packages/core/src/config/plugin/source-directory.ts",
+      "packages/core/src/tool/plugin/skill.ts"
+    ],
+    "license": "MIT",
+    "normalization": "Keep exact identity classification from docs/CONFIG.md native plugin section; no JS execution. Source paths from SOURCES.md [O6-O8]; file bytes not copied.",
+    "executable_baseline": "not-executed"
+  },
+  "description": "Only exact identities classify to native modules before resolver/import/process/network. All else is UnsupportedPlugin.",
+  "admitted": [
+    {
+      "identity": "@tarquinen/opencode-dcp",
+      "maps_to": "compiled DCP module",
+      "executes_js": false
+    },
+    {
+      "identity": "@tarquinen/opencode-dcp@3.1.15",
+      "maps_to": "compiled DCP module (same instance, idempotent)",
+      "executes_js": false
+    },
+    {
+      "identity": "<effective-config-root>/plugin/openproxy-models.js",
+      "maps_to": "compiled OpenProxy discovery module",
+      "executes_js": false
+    },
+    {
+      "identity": "<effective-config-root>/plugins/openproxy-models.js",
+      "maps_to": "compiled OpenProxy discovery module (same instance, idempotent)",
+      "executes_js": false
+    }
+  ],
+  "unsupported_before_side_effects": [
+    "basename outside admitted root",
+    ".ts sources",
+    "URL/arbitrary paths",
+    "@latest/semver ranges",
+    "other versions/packages",
+    "unknown/lookalike JS/TS"
+  ],
+  "note": "Provider alias @ai-sdk/openai is a separate config domain, not a plugin identity."
+}
