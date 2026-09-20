@@ -85,12 +85,29 @@ pub struct ToolDef {
 pub enum StreamItem {
     /// Incremental model text.
     TextDelta(String),
+    /// A function-call item was announced (`output_item.added`).
+    ToolCallStarted {
+        /// Item id the following argument deltas attach to.
+        item_id: String,
+        /// Model-facing tool name.
+        name: String,
+    },
     /// Incremental function-call arguments for `item_id`.
     ArgDelta {
         /// Item id under construction.
         item_id: String,
         /// Argument JSON fragment.
         delta: String,
+    },
+    /// Incremental reasoning text (never opaque-UI-logged; see turn log).
+    ReasoningDelta(String),
+    /// Opaque provider item (e.g. encrypted reasoning): replayed verbatim
+    /// at the continuation boundary, never rendered or logged.
+    OpaqueItem {
+        /// Item id for boundary matching.
+        item_id: String,
+        /// Verbatim provider payload.
+        payload: serde_json::Value,
     },
     /// Terminal usage metadata.
     Usage {
@@ -324,6 +341,42 @@ fn map_event(value: &serde_json::Value) -> Option<StreamItem> {
                     delta: d.to_string(),
                 })
         }
+        Some("response.output_item.added") => {
+            let item = value.get("item")?;
+            if item.get("type").and_then(|t| t.as_str()) != Some("function_call") {
+                return None;
+            }
+            Some(StreamItem::ToolCallStarted {
+                item_id: item
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                name: item
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+            })
+        }
+        Some("response.reasoning.delta") => value
+            .get("delta")
+            .and_then(|d| d.as_str())
+            .map(|d| StreamItem::ReasoningDelta(d.to_string())),
+        Some("response.output_item.done") => {
+            let item = value.get("item")?;
+            match item.get("type").and_then(|t| t.as_str()) {
+                Some("reasoning") => Some(StreamItem::OpaqueItem {
+                    item_id: item
+                        .get("id")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                    payload: item.clone(),
+                }),
+                _ => None,
+            }
+        }
         Some("response.completed") => {
             let usage = value.pointer("/response/usage");
             let input = usage
@@ -517,13 +570,17 @@ async fn stream_attempt(
     for item in &items {
         match item {
             StreamItem::TextDelta(delta) => text.push_str(delta),
+            // First terminal marker wins; replayed `done` events never
+            // overwrite committed outcomes or re-execute anything.
             StreamItem::Usage {
                 input_tokens,
                 output_tokens,
             } => {
-                usage = Some((*input_tokens, *output_tokens));
+                if usage.is_none() {
+                    usage = Some((*input_tokens, *output_tokens));
+                }
             }
-            StreamItem::ArgDelta { .. } => {}
+            _ => {}
         }
     }
     Ok(Generation { items, text, usage })

@@ -257,6 +257,17 @@ impl Db {
         Ok(())
     }
 
+    /// Read a turn's terminal status and result JSON (turn-log replay).
+    pub fn turn_result(&self, turn: &str) -> Result<(String, Option<String>), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        conn.query_row(
+            "SELECT status, result FROM turns WHERE id = ?1",
+            params![turn],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
+        )
+        .map_err(StorageError::Sqlite)
+    }
+
     /// Record a tool intent (`started`) before the side effect.
     pub fn record_tool_intent(
         &self,
