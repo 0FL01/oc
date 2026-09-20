@@ -5,6 +5,7 @@
 //! dependency from `oc-core`.
 
 pub mod config;
+pub mod files;
 pub mod smoke;
 pub mod storage;
 
