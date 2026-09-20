@@ -1,10 +1,12 @@
-# Автономное исполнение в Codex CLI
+# Контракт compatible coding agent
 
 ## Старт без повторного опроса
 
-Прочитать bootstrap-набор AGENTS/GOAL/NOW/INDEX, сверить Git, затем T00. `/goal` существует в проверенной официальной CLI reference [W2]; полный текст ограничен 4000 символами, поэтому короткий goal ссылается на GOAL.md. Конкретный установленный Codex проверить через `codex --version`/`--help` и `/status`; неизвестные flags не выдумывать. Отсутствие slash feature в старой версии не блокирует код: тот же короткий objective можно передать обычным prompt, не обновляя host самовольно.
+Compatible agent читает bootstrap-набор `AGENTS.md`, `GOAL.md`, `progress/NOW.md`, `progress/INDEX.md`, сверяет Git и продолжает текущую задачу. Objective из `prompts/AGENT_GOAL.txt` можно передать через native prompt/task/job механизм конкретного runner; repository не требует конкретного slash command, CLI, flags, model или provider.
 
-Исполнитель GPT 5.6 Luna задаётся существующей конфигурацией владельца. Не извлекать его auth config в evidence и не переключать его на provider тестируемого oc. Product env и runner credentials — разные вещи.
+Модель, provider и credentials compatible agent принадлежат внешнему runner и не являются частью product config. Не извлекать runner auth config в evidence и не переключать authoring-agent на provider тестируемого `oc`. `OC_TEST_MODEL` выбирает только модель live-теста продукта; product env и runner credentials — разные вещи.
+
+Минимальная совместимость: agent умеет читать и изменять assigned worktree любым механизмом, запускать разрешённые shell-команды и тесты, фиксировать exit status/redacted evidence, проверять `git status`/`HEAD`/diff и вести progress checkpoint после interruption/resume. `apply_patch` — product-tool contract для модели `oc`, не обязательный интерфейс authoring-agent. Agent обязан соблюдать one mutation owner per worktree, OS/filesystem/network/secret/Git permissions и остановиться при неизвестном side effect или concurrent diff.
 
 ## Preflight T00
 
@@ -16,7 +18,7 @@
 
 Docker только при подтверждённом rootless context (security options rootless, user socket/контекст), без privileged, host PID/network и broad host mounts. Показанные владельцем overlay paths не являются проверкой будущего контекста. Rootful endpoint не использовать; отсутствие rootless не блокирует Cargo/offline fake tests. Нельзя `docker system prune`, останавливать чужой compose или менять OpenProxy deployment.
 
-Проверить наличие required env names, не выводя values и не вызывая network в docs validation. При missing live env выбрать offline задачи; blocker только для live gates. Не искать ключи в чужих HOME/браузерах/Codex state.
+Проверить наличие required env names, не выводя values и не вызывая network в docs validation. При missing live env выбрать offline задачи; blocker только для live gates. Не искать ключи в чужих HOME/браузерах или state внешнего runner.
 
 ## Один рабочий цикл
 
@@ -36,7 +38,7 @@ Commit code+tests+checkpoint вместе после slice, явно указы�
 
 Основные тесты offline. Live запуск — выделенный campaign в fixtures, не настоящий пользовательский repo. Допускается до 24 generation HTTP requests всего на campaign (включая retries), максимум 4 коротких MCP search, max output 2048 tokens на smoke и 8192 на coding turn, bounded total fixture input; без массового прогона всех моделей. Большую DCP threshold нагрузку тестировать fake provider; live DCP использовать небольшой fixture и явно сниженные test thresholds. Счётчики сохранять между restart, не обнулять автоматическим новым campaign ID.
 
-Это ограничивает тестируемое приложение, но НЕ фактическую стоимость Codex-исполнителя. Внешний USD/token/time hard cap владельцем не указан и этим пакетом не создаётся. Не утверждать, что бюджет неограничен или что Markdown его enforce-ит. Использовать существующие runner/proxy quotas, без массовых paid benchmarks; при quota/rate-limit сохранить checkpoint, не покупать/сбрасывать лимиты.
+Это ограничивает тестируемое приложение, но НЕ фактическую стоимость authoring-agent. Внешний USD/token/time hard cap владельцем не указан и этим пакетом не создаётся. Не утверждать, что бюджет неограничен или что Markdown его enforce-ит. Использовать существующие runner/proxy quotas, без массовых paid benchmarks; при quota/rate-limit сохранить checkpoint, не покупать/сбрасывать лимиты.
 
 ## Остановка
 

@@ -1,6 +1,8 @@
 # Изменения v3: configured workspace
 
-V3 делает обязательным daily-driver workflow, который v2 откладывал: global и Location-local `opencode.json/jsonc`, ordered `AGENTS.md`, `.opencode`, skills, selectable primary agents, current-session commands и exact native mappings DCP/OpenProxy discovery. Goal расширен до A13; acceptance registry — до 81 спецификации. Новых task IDs, dependency edges, crates и generic plugin abstractions нет.
+V3 делает обязательным daily-driver workflow, который v2 откладывал: global и Location-local `opencode.json/jsonc`, ordered `AGENTS.md`, `.opencode`, skills, selectable primary agents, current-session commands и exact native mappings DCP/OpenProxy discovery. Goal расширен до A13; исходный V3 acceptance registry содержал 81 спецификацию.
+
+Runner contract теперь agent-neutral: authoring model/provider/CLI не фиксируются, а compatible agent обязан только уметь работать с assigned worktree, shell/tests, Git и progress checkpoints. Добавлен `OPS05` к существующему T00 без нового task ID или DAG edge; acceptance registry содержит 82 спецификации. `apply_patch` остаётся product-tool contract, но не требованием интерфейса authoring-agent.
 
 T02 фиксирует source-derived fixtures и provenance без заявления executable parity. T07 строит bounded immutable catalogs, source/field provenance и diagnostics, выполняет trust/capability validation и exact plugin classification. T13 добавляет native `skill`; T14/T19 связывают exact markers с compiled modules; T22 показывает redacted catalogs/actions; T24 только оркестрирует prompt/generation/session lifecycle; T25 один раз квалифицирует полный configured-workspace E2E.
 

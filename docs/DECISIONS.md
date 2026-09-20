@@ -8,7 +8,7 @@ Q02 закрыт: DCP functional port обязателен, codex_web remote bea
 
 Q03/Q04 закрыты для daily-direct: read/file mutation/webfetch/shell, MCP, compress + reminders, исходный TUI product direction сохраняется. Один built-in apply_patch вместо write/edit для всех моделей. Это намеренное отличие, не ошибка parity.
 
-Q05 закрыт по runner/полномочиям: Codex CLI, GPT 5.6 Luna (заменяет ранее обсуждавшийся Sol), YOLO, non-root account на host, dev tools, rootless Docker, git commit/push разрешены. Конкретный monetary cap/время watchdog владелец не указал. Не выдавать отсутствие cap за unlimited budget approval или блокировать все offline работы из-за незаполненного старого вопросника.
+Q05 по runner/полномочиям уточнён: authoring-agent не привязан к GPT, модели, provider или CLI. Compatible agent работает в non-root account с dev tools; YOLO-подобные режимы, rootless Docker, git commit/push разрешены только в пределах runbook. Конкретный monetary cap/время watchdog владелец не указал. Не выдавать отсутствие cap за unlimited budget approval или блокировать все offline работы из-за незаполненного старого вопросника.
 
 Q06 закрыт по target: пользовательский report Debian 13.4 x86_64 GNU, 6 vCPU AMD EPYC, около 11.68 GiB RAM, ext4, kernel 6.12.86, active rustc/cargo 1.98.1. Это report владельца; он не доказывает фактическую среду будущего процесса. Проверяется preflight. Наличие root в показанном prompt и rootful overlay не отменяет заявленный будущий non-root/rootless запуск.
 
@@ -42,4 +42,4 @@ D11: known plugin compatibility — обычный exact enum/match по capabil
 
 ## Остаточные prerequisites, не новые Q
 
-Secrets/connectivity/наличие нужной live модели проверяются в T00/T16/T27. Missing → конкретный external blocker, не угадывание credentials. Exact versions Cargo dependencies/rmcp protocol/TLS проверяются compile spike. Реальная browser-служба требуется только для opt-in smoke. Monetary hard limit внешнего Codex runner не задан; документация его не исполняет. Semantic DCP качества проверяются fixtures/live task, а не декларацией.
+Secrets/connectivity/наличие нужной live модели проверяются в T00/T16/T27. Missing → конкретный external blocker, не угадывание credentials. Exact versions Cargo dependencies/rmcp protocol/TLS проверяются compile spike. Реальная browser-служба требуется только для opt-in smoke. Monetary hard limit внешнего authoring-agent не задан; документация его не исполняет. Semantic DCP качества проверяются fixtures/live task, а не декларацией.

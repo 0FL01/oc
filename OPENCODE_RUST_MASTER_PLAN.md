@@ -70,7 +70,7 @@ Permissions едины для local и будущих transports. DCP summary и
 
 Одна task за раз, один проверяемый slice за раз. После каждого — bounded factual checkpoint и commit; push своей ветки без force по runbook. В `progress/` маленькое активное резюме и дерево неизменяемых записей; no giant append-only log и no RAG service.
 
-После compaction восстанавливать контекст через NOW → текущий этап/task → последний leaf → реальный Git diff. Goal Codex и DCP тестируемого `oc` — две разные системы; DCP не управляет Codex-сессией исполнителя.
+После compaction восстанавливать контекст через NOW → текущий этап/task → последний leaf → реальный Git diff. Goal authoring-agent и DCP тестируемого `oc` — две разные системы; DCP не управляет compaction authoring-agent.
 
 ## Не делать
 

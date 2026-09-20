@@ -9,9 +9,10 @@
       "depends_on": [],
       "tests": [
         "ENV01",
-        "ENV02"
+        "ENV02",
+        "OPS05"
       ],
-      "work": "Проверить host/uid/origin, сохранить исходный diff и source lock; проверить journal utility, выделить own worktree paths. Не запускать paid requests.",
+      "work": "Проверить host/uid/origin и runner-neutral execution contract, сохранить исходный diff и source lock; проверить journal utility, выделить own worktree paths. Не запускать paid requests.",
       "evidence": "evidence/T00/report.md",
       "spec": "roadmap/M0.md"
     },

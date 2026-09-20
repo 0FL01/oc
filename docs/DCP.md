@@ -12,7 +12,7 @@ Experimental message compression, subagent integration и custom prompt override
 
 Raw session messages/parts не удаляются и не перезаписываются. DCP policy принимает bounded conversation view и выдаёт `ProjectionDelta`. Core валидирует anchors/generation/protections/call-result graph и транзакционно сохраняет план. Provider serializer работает над projection; TUI history показывает исходные данные с отметками compression. Fixed runtime/agent/AGENTS lanes собираются отдельно и не сжимаются/дублируются DCP. Loaded skill сохраняется как обычная call/result group. Не хранить вторую history в DCP JSON file/глобальном cache.
 
-Summary — model-authored payload инструмента, не автоматически вызванная вторая модель. Никаких скрытых платных summarizer requests. Процесс DCP не управляет compaction Codex CLI исполнителя; его продолжение обеспечивает `progress/`.
+Summary — model-authored payload инструмента, не автоматически вызванная вторая модель. Никаких скрытых платных summarizer requests. Процесс DCP не управляет compaction authoring-agent; его продолжение обеспечивает `progress/`.
 
 ## Модельный инструмент
 

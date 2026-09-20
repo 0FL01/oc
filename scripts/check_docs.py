@@ -13,7 +13,28 @@ from progress import Invalid, Journal
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_GATES = tuple(f"A{i:02}" for i in range(1, 14))
 EXPECTED_TASKS = 31
-EXPECTED_ACCEPTANCE = 81
+EXPECTED_ACCEPTANCE = 82
+RUNNER_SURFACES = (
+    "GOAL.md",
+    "README.md",
+    "AGENTS.md",
+    "OPENCODE_RUST_MASTER_PLAN.md",
+    "docs/AGENT_RUNBOOK.md",
+    "docs/DECISIONS.md",
+    "docs/CONTRACTS.md",
+    "docs/DCP.md",
+    "examples/oc-rs.toml",
+    "planning/host-profile.json",
+    "prompts/AGENT_GOAL.txt",
+    "evidence/PACKAGE_VALIDATION.md",
+)
+FORBIDDEN_RUNNER_MARKERS = (
+    re.compile(r"\bCodex\s+CLI\b", re.IGNORECASE),
+    re.compile(r"\bGPT\s*5(?:\.\d+)*\s+(?:Luna|Sol)\b", re.IGNORECASE),
+    re.compile(r"\bCODEX_GOAL\.txt\b", re.IGNORECASE),
+    re.compile(r"\brunner_model\b", re.IGNORECASE),
+    re.compile(r"(?<!\w)/goal\b", re.IGNORECASE),
+)
 
 
 def jsonc(text: str):
@@ -114,8 +135,12 @@ def validate(root: Path = ROOT) -> dict[str, int]:
         used.update(task["tests"])
         assert task["evidence"] == f"evidence/{task['id']}/report.md", "Unexpected evidence target"
     assert used == test_ids, f"Unassigned acceptance tests: {sorted(test_ids - used)}"
-    goal = (root / "prompts/CODEX_GOAL.txt").read_text()
-    assert goal.startswith("/goal ") and len(goal) < 4000, "Goal exceeds Codex limit"
+    objective = (root / "prompts/AGENT_GOAL.txt").read_text()
+    assert objective.strip(), "Agent objective must not be empty"
+    for relative in RUNNER_SURFACES:
+        text = (root / relative).read_text(encoding="utf-8")
+        for marker in FORBIDDEN_RUNNER_MARKERS:
+            assert not marker.search(text), f"Runner-specific authoring contract in {relative}"
     acceptance = (root / "GOAL.md").read_text()
     goal_gates = tuple(re.findall(r"^\*\*(A\d{2}) [^:]+:\*\*", acceptance, re.MULTILINE))
     assert goal_gates == EXPECTED_GATES, "GOAL must contain exact A01-A13 gate headings"
@@ -126,7 +151,7 @@ def validate(root: Path = ROOT) -> dict[str, int]:
     planned_ids = re.findall(r"^\*\*([A-Z0-9]+\d{2}) — ", test_plan, re.MULTILINE)
     assert len(planned_ids) == len(set(planned_ids)), "Duplicate TEST_PLAN scenario headings"
     assert set(planned_ids) == test_ids, "TEST_PLAN scenario headings differ from acceptance registry"
-    for path in ("prompts/CODEX_GOAL.txt", "docs/AGENT_RUNBOOK.md", "docs/ROADMAP.md", "roadmap/M6.md", "evidence/README.md"):
+    for path in ("docs/AGENT_RUNBOOK.md", "docs/ROADMAP.md", "roadmap/M6.md", "evidence/README.md"):
         assert "A01–A13" in (root / path).read_text(), f"Stale gate range in {path}"
     baseline = json.loads((root / "planning/baseline.lock.json").read_text())
     for project in ("opencode", "openproxy", "dcp"):
@@ -145,7 +170,7 @@ def validate(root: Path = ROOT) -> dict[str, int]:
     with journal.lock():
         state = journal.load()
         journal.check_views(state)
-    return {"tasks": len(tasks), "acceptance_specifications": len(tests), "goal_characters": len(goal)}
+    return {"tasks": len(tasks), "acceptance_specifications": len(tests), "goal_characters": len(objective)}
 
 
 if __name__ == "__main__":

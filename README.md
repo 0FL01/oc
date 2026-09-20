@@ -22,11 +22,11 @@ python3 -m unittest discover -s scripts -p 'test_*.py'
 python3 scripts/progress.py show
 ```
 
-Опционально, при наличии Node в dev-среде: `node --test scripts/test_discovery_reference.mjs`. Это offline oracle tests присланного JavaScript, а не runtime-зависимость Rust-продукта. Результаты проверки пакета: `evidence/PACKAGE_VALIDATION.md`. `SHA256SUMS` проверяет исходную поставку; после изменений агентом исходные хеши закономерно перестанут совпадать.
+Опционально, при наличии Node в dev-среде: `node --test scripts/test_discovery_reference.mjs`. Это offline oracle tests присланного JavaScript, а не runtime-зависимость Rust-продукта. Результаты проверки пакета: `evidence/PACKAGE_VALIDATION.md`. `SHA256SUMS` проверяет зафиксированный пакет; после изменений его нужно регенерировать.
 
-## Что передать Codex
+## Что передать compatible coding agent
 
-Открыть Codex в этом worktree, выбрать уже настроенную владельцем GPT 5.6 Luna; параметры подключения к модели-исполнителю не менять. Вставить строку из `prompts/CODEX_GOAL.txt` как `/goal`. Полные условия находятся в `GOAL.md`, поэтому сама команда короткая.
+Передать `prompts/AGENT_GOAL.txt` любому compatible coding agent через его native prompt/task/job механизм. Не требуется конкретная модель, provider, CLI, slash command или runner tool API. Полные условия находятся в `GOAL.md` и `docs/AGENT_RUNBOOK.md`.
 
 Первым действием агент читает `AGENTS.md`, `GOAL.md`, `progress/NOW.md`, `progress/INDEX.md`. На первом старте — мастер-план и архитектуру. Далее — только текущий этап и его профильные контракты. Не загружать всё дерево журнала.
 
@@ -38,7 +38,7 @@ python3 scripts/progress.py show
 
 Секреты приходят из уже настроенной среды: `LUDKA_API_URL`, `LUDKA_API_KEY`, `LUDKA2_API_URL`, `LUDKA2_API_KEY`. `LUDKA2_API_URL` — base API URL, обычно с `/v1`; код не должен добавлять `/v1` самовольно. Не записывать ключи в markdown, Git или командные аргументы. Не требовать все четыре переменные для выключенного/неиспользуемого provider.
 
-При отсутствии credentials агент продолжает offline задачи. Заключительный live gate остаётся `BLOCKED_EXTERNAL`, а не превращается в PASS. `OC_TEST_MODEL` позволяет явно выбрать `provider/model-id` для live теста; без него тестовый runner может выбрать подходящую опубликованную модель по детерминированному правилу из `docs/TEST_PLAN.md`. Продукт сам незаметно модель не выбирает.
+При отсутствии credentials compatible agent продолжает offline задачи. Заключительный live gate остаётся `BLOCKED_EXTERNAL`, а не превращается в PASS. `OC_TEST_MODEL` позволяет явно выбрать `provider/model-id` только для live-теста продукта; без него тестовый harness может выбрать подходящую опубликованную модель по детерминированному правилу из `docs/TEST_PLAN.md`. Это не выбирает модель authoring-agent и не является product default.
 
 ## Карта активных документов
 

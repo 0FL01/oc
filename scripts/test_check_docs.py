@@ -20,7 +20,7 @@ class DocumentationTests(unittest.TestCase):
     def test_valid_package(self):
         counts = validate(self.root)
         self.assertEqual(counts["tasks"], 31)
-        self.assertEqual(counts["acceptance_specifications"], 81)
+        self.assertEqual(counts["acceptance_specifications"], 82)
 
     def test_jsonc_preserves_urls_and_comment_text_in_strings(self):
         value = jsonc('{"url":"https://example.invalid/a//b",/* hi */"text":"/* literal */",}')
@@ -42,15 +42,21 @@ class DocumentationTests(unittest.TestCase):
         acceptance_path.write_text(json.dumps(acceptance))
         tasks_path = self.root / "planning/tasks.json"
         tasks = json.loads(tasks_path.read_text())
-        t29 = next(task for task in tasks["tasks"] if task["id"] == "T29")
-        t29["tests"].remove("OPS04")
+        t00 = next(task for task in tasks["tasks"] if task["id"] == "T00")
+        t00["tests"].remove("OPS05")
         tasks_path.write_text(json.dumps(tasks))
         with self.assertRaisesRegex(AssertionError, "Unassigned"):
             validate(self.root)
 
-    def test_goal_character_limit(self):
-        (self.root / "prompts/CODEX_GOAL.txt").write_text("/goal " + "x" * 4000)
-        with self.assertRaisesRegex(AssertionError, "Goal exceeds"):
+    def test_generic_objective_has_no_codex_size_cap(self):
+        path = self.root / "prompts/AGENT_GOAL.txt"
+        path.write_text("x" * 4001)
+        self.assertEqual(validate(self.root)["goal_characters"], 4001)
+
+    def test_runner_specific_active_surface_rejected(self):
+        path = self.root / "GOAL.md"
+        path.write_text(path.read_text() + "\nCodex CLI must run this repository.\n")
+        with self.assertRaisesRegex(AssertionError, "Runner-specific"):
             validate(self.root)
 
     def test_missing_a13_goal_gate_rejected(self):

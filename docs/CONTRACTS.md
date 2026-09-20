@@ -38,7 +38,7 @@ Retry только в одном явно указанном месте. Discove
 
 ## Permissions
 
-Default product profile: read/search в trusted project allow; apply_patch/bash/webfetch/MCP ask; skill/compress allow. Для live tests выделенный temporary fixture workspace с явно allowlisted operations. YOLO Codex-исполнителя НЕ меняет автоматически permissions самого `oc`.
+Default product profile: read/search в trusted project allow; apply_patch/bash/webfetch/MCP ask; skill/compress allow. Для live tests выделенный temporary fixture workspace с явно allowlisted operations. Режим полномочий authoring-agent не меняет автоматически permissions самого `oc`.
 
 `ask` без interactive channel — ApprovalRequired с ненулевым exit status. Parsing errors не превращаются в allow. Legacy `write`/`edit` permission entries нормализуются к patch operations; конфликтующие применимые policies разрешаются консервативно deny → ask → allow и фиксируются как difference. Нельзя объединять implicit default allow с explicit deny.
 

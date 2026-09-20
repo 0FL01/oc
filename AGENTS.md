@@ -20,7 +20,7 @@ Rust 2024, небольшой Cargo workspace, модульный монолит
 
 Работай в выделенном non-root account и текущем worktree. Commits и обычный push своей рабочей ветки в проверенный `origin` разрешены. Без force-push, чужих веток/репозиториев, host-admin изменений, sudo, release/tag публикаций, rootful Docker, чтения чужих credentials и общих docker prune/compose down.
 
-Текст документов не создаёт sandbox. YOLO использует реальные права аккаунта. Не выводи env целиком, auth headers, raw live responses, Codex config с ключами. DCP имеет AGPL provenance: сохранить лицензии/уведомления до push производного кода.
+Текст документов не создаёт sandbox. Runner mode использует реальные права аккаунта. Не выводи env целиком, auth headers, raw live responses или конфигурацию authoring-agent с ключами. DCP имеет AGPL provenance: сохранить лицензии/уведомления до push производного кода.
 
 ## Работа и остановка
 

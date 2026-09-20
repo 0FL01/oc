@@ -1,12 +1,12 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-20T14:36:48+00:00",
+  "updated_at": "2026-09-20T15:11:54+00:00",
   "current": "T00",
   "tasks": {
     "T00": {
       "status": "active",
-      "last_seq": 2,
-      "latest": "progress/M0/T00/0002.md",
+      "last_seq": 5,
+      "latest": "progress/M0/T00/0005.md",
       "evidence": null,
       "reopen_reason": null
     },

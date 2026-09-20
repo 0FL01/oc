@@ -487,6 +487,12 @@
       "title": "Fresh restart",
       "expected": "new test HOME/XDG/data, built oc starts without upstream/Node, examples read-only, new sessions persist; no migration/release code.",
       "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
+    },
+    {
+      "id": "OPS05",
+      "title": "Agent-neutral execution",
+      "expected": "package checks and progress utility run without Codex executable, /goal, GPT/Luna configuration or a required agent tool API; generic objective is nonempty, active execution surfaces have no fixed runner identity, and OC_TEST_MODEL remains product-test-only.",
+      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
     }
   ]
 }

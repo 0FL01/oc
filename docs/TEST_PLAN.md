@@ -230,3 +230,5 @@ Mock-provider tests проверяют протокол/state machine, а не �
 **OPS03 — Goal handoff.** A01–A13 independent status, command exits/commit/live blockers; READY only required live passes; delivery status separate.
 
 **OPS04 — Fresh restart.** new test HOME/XDG/data, built oc starts without upstream/Node, examples read-only, new sessions persist; no migration/release code.
+
+**OPS05 — Agent-neutral execution.** package checks and progress utility run without Codex executable, `/goal`, GPT/Luna configuration or a required agent tool API; generic objective is nonempty, active execution surfaces have no fixed runner identity, and `OC_TEST_MODEL` remains product-test-only.

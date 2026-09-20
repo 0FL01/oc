@@ -38,7 +38,7 @@ default_output_tokens = 16384
 unknown_model_context_tokens = 32768
 context_safety_margin_tokens = 4096
 
-# Permission policy for the product oc is separate from Codex --yolo.
+# Permission policy for the product oc is separate from authoring-agent mode.
 [permissions]
 read = "allow"
 glob = "allow"
