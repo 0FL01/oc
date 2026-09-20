@@ -6,9 +6,11 @@
 //! `oc-adapters` / `oc-tui` / `oc`.
 
 pub mod application;
+pub mod core_app;
 pub mod domain;
 pub mod ports;
 pub mod runtime;
+pub mod session;
 
 /// Crate identity used by smoke tests and diagnostics.
 pub const CORE_NAME: &str = "oc-core";
