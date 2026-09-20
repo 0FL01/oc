@@ -1,25 +1,25 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-20T16:42:07+00:00
+State updated: 2026-09-20T16:47:02+00:00
 Active: нет
 
 Сверить Git status/diff до выполнения команд.
 
-Последний срез: T07 [done]; сверить незакоммиченный diff.
+Последний срез: T08 [done]; сверить незакоммиченный diff.
 
 ## Result
-T07 config done. JSONC/trust/permissions/catalog/plugins. Impl c8c97b0, evidence evidence/T07/report.md.
+T08 files done. Bounded read/glob/grep + data-root refusal. Impl fc483d4, evidence evidence/T08/report.md.
 ## Checks
-fmt, clippy -D warnings, adapters config 8/8, workspace 44 tests, build locked, check_docs — all exit 0.
+fmt, clippy -D warnings, files 5/5, workspace 49 tests, build locked, check_docs — all exit 0.
 ## Risks
-File-root walk and full catalog listing reuse this core in follow-ups; no execution here by design.
+Regex grep refused by design until vetted engine; tool registry wiring later.
 ## Next
-Start T08 and build read/search tools on trusted roots.
+Start T09 and build unified apply_patch with preimage/partial semantics.
 
 
 Следующий шаг: проверить зависимости и начать первую ready-задачу.
 
-Ready (до 5): T08, T10, T11, T12
+Ready (до 5): T09, T10, T11, T12
 Blocked: нет
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.
