@@ -34,11 +34,12 @@ pub fn render_test(state: &TuiState, width: u16, height: u16) -> Vec<String> {
                 ])
                 .split(area);
             let visible = state.viewport().join("\n");
-            let history = Paragraph::new(visible).block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(format!("oc {:?}", state.status)),
-            );
+            let title = match state.dcp.notice() {
+                Some(notice) => format!("oc {:?} — {notice}", state.status),
+                None => format!("oc {:?}", state.status),
+            };
+            let history =
+                Paragraph::new(visible).block(Block::default().borders(Borders::ALL).title(title));
             frame.render_widget(history, chunks[0]);
             if panel_height > 0 {
                 let panel_widget = Paragraph::new(panel.join("\n"))
@@ -98,9 +99,15 @@ pub fn panel_lines(state: &TuiState) -> Vec<String> {
             Some(topic) => vec![format!("help | {topic}"), help_topic(topic)],
             None => vec![
                 "help | commands".to_string(),
-                "/model /sessions /skills /help /quit".to_string(),
+                "/model /sessions /skills /dcp-compress /help /quit".to_string(),
             ],
         },
+        TuiPanel::Dcp => {
+            let mut out =
+                vec!["dcp | /dcp-compress [focus] requests, runtime executes".to_string()];
+            out.extend(state.dcp.panel_rows());
+            out
+        }
     }
 }
 
@@ -179,5 +186,39 @@ mod tests {
 
         state.close_panel();
         assert!(panel_lines(&state).is_empty());
+    }
+
+    #[tokio::test]
+    async fn dcp_panel_renders_snapshot_and_notice() {
+        use crate::dcp_panel::{DcpContextSnapshot, DcpOutcome};
+
+        let (app, _guard) = CoreApp::spawn(MockProvider::echo());
+        std::mem::forget(_guard);
+        let sid = SessionId::new("s-d").expect("id");
+        app.create_session(sid.clone()).await.expect("create");
+        let mut state = TuiState::new(app, sid);
+        state.dcp.set_snapshot(DcpContextSnapshot {
+            estimated_tokens: 900,
+            max_context: 1000,
+            turns_since_compress: 3,
+            blocks: 2,
+            compressions: 1,
+            nudges: 4,
+            prunes: 0,
+        });
+        state.dcp.request_compress("draft").expect("request");
+        state.panel = TuiPanel::Dcp;
+        let lines = panel_lines(&state);
+        assert!(lines.iter().any(|l| l.contains("900/1000")), "{lines:?}");
+        assert!(
+            lines.iter().any(|l| l.contains("pending focus: draft")),
+            "{lines:?}"
+        );
+
+        state.notify_dcp(DcpOutcome::Failed {
+            reason: "span open".to_string(),
+        });
+        let frame = render_test(&state, 70, 24).join("\n");
+        assert!(frame.contains("dcp failed: span open"), "notice in title");
     }
 }

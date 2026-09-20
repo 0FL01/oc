@@ -7,6 +7,7 @@
 
 pub mod app;
 pub mod commands;
+pub mod dcp_panel;
 pub mod events;
 pub mod history;
 pub mod picker;

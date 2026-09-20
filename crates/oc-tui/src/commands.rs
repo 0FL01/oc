@@ -23,6 +23,11 @@ pub enum CommandAction {
     OpenSkills,
     /// Help, optionally for one topic.
     Help(Option<String>),
+    /// Manual DCP compress with bounded focus (UI04).
+    DcpCompress {
+        /// Focus instruction (possibly empty).
+        focus: String,
+    },
 }
 
 /// Parse input; `None` when it is not a slash command.
@@ -41,6 +46,9 @@ pub fn dispatch(input: &str) -> Option<CommandAction> {
         "model" => Some(CommandAction::OpenModelPicker),
         "sessions" => Some(CommandAction::OpenSessions),
         "skills" => Some(CommandAction::OpenSkills),
+        "dcp-compress" => Some(CommandAction::DcpCompress {
+            focus: args.to_string(),
+        }),
         "help" => Some(CommandAction::Help(if args.is_empty() {
             None
         } else {
@@ -51,7 +59,14 @@ pub fn dispatch(input: &str) -> Option<CommandAction> {
 }
 
 /// Built-in command names for completion (exact table, sorted).
-pub const BUILTINS: [&str; 5] = ["help", "model", "quit", "sessions", "skills"];
+pub const BUILTINS: [&str; 6] = [
+    "dcp-compress",
+    "help",
+    "model",
+    "quit",
+    "sessions",
+    "skills",
+];
 
 /// Complete a `/prefix` against the built-in table.
 pub fn complete(prefix: &str) -> Vec<&'static str> {
@@ -78,14 +93,34 @@ mod tests {
         );
         assert_eq!(dispatch("hello"), None);
         assert_eq!(dispatch("/unknown"), Some(CommandAction::Help(None)));
+        assert_eq!(
+            dispatch("/dcp-compress draft span"),
+            Some(CommandAction::DcpCompress {
+                focus: "draft span".to_string()
+            })
+        );
+        assert_eq!(
+            dispatch("/dcp-compress"),
+            Some(CommandAction::DcpCompress {
+                focus: String::new()
+            })
+        );
     }
 
     #[test]
     fn completes_prefix() {
         assert_eq!(complete("/s"), ["sessions", "skills"]);
+        assert_eq!(complete("/d"), ["dcp-compress"]);
         assert_eq!(
             complete("/"),
-            ["help", "model", "quit", "sessions", "skills"]
+            [
+                "dcp-compress",
+                "help",
+                "model",
+                "quit",
+                "sessions",
+                "skills"
+            ]
         );
     }
 }

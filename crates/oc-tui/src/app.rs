@@ -11,6 +11,7 @@ use oc_core::domain::SessionId;
 use oc_core::session::CoreError;
 
 use crate::commands::{CommandAction, dispatch};
+use crate::dcp_panel::{DcpOutcome, DcpPanelState};
 use crate::events::KeyAction;
 use crate::history::HistoryPager;
 use crate::picker::ModelPicker;
@@ -47,6 +48,8 @@ pub enum TuiPanel {
     Skills,
     /// Help, optionally for one topic.
     Help(Option<String>),
+    /// DCP context panel (UI04).
+    Dcp,
 }
 
 /// Minimal chat state bound to one session on the shared handle.
@@ -75,6 +78,8 @@ pub struct TuiState {
     pub sessions_cursor: usize,
     /// Single-generation workspace registry wired by the binary (UI06).
     pub workspace: Option<WorkspaceRegistry>,
+    /// DCP panel state: snapshot in, request out, transient outcome (UI04).
+    pub dcp: DcpPanelState,
 }
 
 impl TuiState {
@@ -95,6 +100,7 @@ impl TuiState {
             sessions: Vec::new(),
             sessions_cursor: 0,
             workspace: None,
+            dcp: DcpPanelState::default(),
         }
     }
 
@@ -185,7 +191,19 @@ impl TuiState {
                 self.panel = TuiPanel::Help(topic);
                 None
             }
+            CommandAction::DcpCompress { focus } => match self.dcp.request_compress(&focus) {
+                Ok(()) => {
+                    self.panel = TuiPanel::Dcp;
+                    None
+                }
+                Err(e) => Some(e),
+            },
         }
+    }
+
+    /// Report a runtime DCP outcome: transient notice, never chat history.
+    pub fn notify_dcp(&mut self, outcome: DcpOutcome) {
+        self.dcp.set_outcome(outcome);
     }
     /// Open the model picker over a fresh catalog (UI02).
     pub fn open_picker(
@@ -356,6 +374,7 @@ impl TuiState {
                         self.lines.push(format!("you: {text}"));
                         self.input.clear();
                         self.scroll = 0;
+                        self.dcp.clear_notice();
                         None
                     }
                     Err(CoreError::TurnBusy) => Some("turn busy".to_string()),
@@ -714,5 +733,38 @@ mod tests {
         type_text(&mut state, "/quit").await;
         state.handle_key(KeyAction::Enter).await;
         assert_eq!(state.status, TuiStatus::Quit);
+    }
+
+    #[tokio::test]
+    async fn dcp_compress_request_and_transient_notice() {
+        use crate::dcp_panel::DcpOutcome;
+
+        let (app, guard) = CoreApp::spawn(MockProvider::echo());
+        std::mem::forget(guard);
+        app.create_session(sid("s-d")).await.expect("s");
+        let mut state = TuiState::new(app, sid("s-d"));
+        let mut driver = ScriptDriver::attach(&state.app);
+        type_text(&mut state, "/dcp-compress draft span").await;
+        state.handle_key(KeyAction::Enter).await;
+        assert_eq!(state.panel, TuiPanel::Dcp);
+        let pending = state.dcp.pending().expect("pending");
+        assert_eq!(pending.focus, "draft span");
+
+        let history_len = state.lines.len();
+        state.notify_dcp(DcpOutcome::Done { saved_tokens: 128 });
+        assert_eq!(state.lines.len(), history_len, "notice is not history");
+        assert!(
+            state.dcp.notice().expect("notice").contains("128"),
+            "outcome visible"
+        );
+
+        // Next submit clears the transient notice and chats normally.
+        type_text(&mut state, "hi").await;
+        state.handle_key(KeyAction::Enter).await;
+        let outcome = driver
+            .pump_until_idle(&mut state, Duration::from_secs(5))
+            .await;
+        assert_eq!(outcome, PumpOutcome::Finished("echo: hi".to_string()));
+        assert!(state.dcp.notice().is_none());
     }
 }
