@@ -6,6 +6,7 @@
 //! `oc-adapters` / `oc-tui` / `oc`.
 
 pub mod application;
+pub mod context_plan;
 pub mod core_app;
 pub mod domain;
 pub mod ports;

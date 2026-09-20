@@ -63,6 +63,25 @@ pub struct Db {
     conn: Mutex<Connection>,
 }
 
+/// Durable compression block row with ordered membership (T17).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompressionBlockRow {
+    /// Block id (`b0001`, … per session).
+    pub id: String,
+    /// Owning session.
+    pub session: String,
+    /// Range topic.
+    pub topic: String,
+    /// Model-authored summary.
+    pub summary: String,
+    /// Covered start message id.
+    pub start_msg: String,
+    /// Covered end message id.
+    pub end_msg: String,
+    /// Covered message ids in order (references only, never text).
+    pub members: Vec<String>,
+}
+
 impl Db {
     /// Open (or create) a data root with default quota.
     pub fn open(root: &Path) -> Result<Self, StorageError> {
@@ -266,6 +285,133 @@ impl Db {
             |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
         )
         .map_err(StorageError::Sqlite)
+    }
+
+    /// Apply the DCP v2 schema migration (idempotent, additive only).
+    pub fn apply_dcp_schema(&self) -> Result<(), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS compression_blocks(
+               id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id),
+               topic TEXT NOT NULL, summary TEXT NOT NULL,
+               start_msg TEXT NOT NULL, end_msg TEXT NOT NULL,
+               created_at TEXT NOT NULL);
+             CREATE TABLE IF NOT EXISTS compression_members(
+               block_id TEXT NOT NULL REFERENCES compression_blocks(id),
+               message_id TEXT NOT NULL,
+               PRIMARY KEY(block_id, message_id));
+             CREATE TABLE IF NOT EXISTS prune_marks(
+               session_id TEXT PRIMARY KEY REFERENCES sessions(id),
+               up_to_msg TEXT NOT NULL, created_at TEXT NOT NULL);
+             INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (2, 't17');",
+        )?;
+        Ok(())
+    }
+
+    /// Persist one compression block with explicit membership rows.
+    ///
+    /// Returns the block id (`b0001`, … per session). Raw message text is
+    /// never copied: members reference stable message ids only.
+    #[allow(clippy::too_many_arguments)]
+    pub fn save_compression_block(
+        &self,
+        session: &str,
+        topic: &str,
+        summary: &str,
+        start_msg: &str,
+        end_msg: &str,
+        members: &[String],
+    ) -> Result<String, StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        let count: i64 = tx.query_row(
+            "SELECT COUNT(*) FROM compression_blocks WHERE session_id = ?1",
+            params![session],
+            |row| row.get(0),
+        )?;
+        let id = format!("b{:04}", count + 1);
+        let now = now_rfc3339();
+        tx.execute(
+            "INSERT INTO compression_blocks(id, session_id, topic, summary, start_msg, end_msg, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![id, session, topic, summary, start_msg, end_msg, now],
+        )?;
+        for message_id in members {
+            tx.execute(
+                "INSERT INTO compression_members(block_id, message_id) VALUES (?1, ?2)",
+                params![id, message_id],
+            )?;
+        }
+        tx.commit()?;
+        Ok(id)
+    }
+
+    /// Load a session's blocks in id order with ordered membership rows.
+    pub fn load_compression_blocks(
+        &self,
+        session: &str,
+    ) -> Result<Vec<CompressionBlockRow>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let mut stmt = conn.prepare_cached(
+            "SELECT id, topic, summary, start_msg, end_msg FROM compression_blocks
+             WHERE session_id = ?1 ORDER BY id ASC",
+        )?;
+        let blocks = stmt.query_map(params![session], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+            ))
+        })?;
+        let mut out = Vec::new();
+        for block in blocks {
+            let (id, topic, summary, start_msg, end_msg) = block?;
+            let mut members = conn.prepare_cached(
+                "SELECT message_id FROM compression_members WHERE block_id = ?1 ORDER BY message_id ASC",
+            )?;
+            let rows = members.query_map(params![id], |row| row.get::<_, String>(0))?;
+            let mut member_ids = Vec::new();
+            for row in rows {
+                member_ids.push(row?);
+            }
+            out.push(CompressionBlockRow {
+                id,
+                session: session.to_string(),
+                topic,
+                summary,
+                start_msg,
+                end_msg,
+                members: member_ids,
+            });
+        }
+        Ok(out)
+    }
+
+    /// Record a prune mark: outbound context drops the prefix through `up_to`.
+    pub fn save_prune_mark(&self, session: &str, up_to: &str) -> Result<(), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        conn.prepare_cached(
+            "INSERT INTO prune_marks(session_id, up_to_msg, created_at) VALUES (?1, ?2, ?3)
+             ON CONFLICT(session_id) DO UPDATE SET up_to_msg = ?2, created_at = ?3",
+        )?
+        .execute(params![session, up_to, now_rfc3339()])?;
+        Ok(())
+    }
+
+    /// Read the prune mark, if any.
+    pub fn load_prune_mark(&self, session: &str) -> Result<Option<String>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        match conn.query_row(
+            "SELECT up_to_msg FROM prune_marks WHERE session_id = ?1",
+            params![session],
+            |row| row.get::<_, String>(0),
+        ) {
+            Ok(value) => Ok(Some(value)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(StorageError::Sqlite(e)),
+        }
     }
 
     /// Record a tool intent (`started`) before the side effect.

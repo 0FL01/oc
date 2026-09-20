@@ -6,6 +6,7 @@
 
 pub mod attachments;
 pub mod config;
+pub mod dcp;
 pub mod discovery;
 pub mod files;
 pub mod models;
