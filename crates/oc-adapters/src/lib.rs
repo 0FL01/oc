@@ -7,6 +7,7 @@
 pub mod config;
 pub mod files;
 pub mod patch;
+pub mod provider;
 pub mod shell;
 pub mod smoke;
 pub mod storage;
