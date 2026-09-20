@@ -10,6 +10,7 @@ pub mod dcp;
 pub mod dcp_auto;
 pub mod discovery;
 pub mod files;
+pub mod mcp_remote;
 pub mod models;
 pub mod patch;
 pub mod provider;
