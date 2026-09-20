@@ -1,6 +1,6 @@
 # T00 — Preflight и продолжимый журнал
 
-Status: active
+Status: done
 Spec: ../../../roadmap/M0.md
 
 Последние 12 записей; остальные доступны по номеру/targeted search.
@@ -10,3 +10,4 @@ Spec: ../../../roadmap/M0.md
 - [0003](0003.md)
 - [0004](0004.md)
 - [0005](0005.md)
+- [0006](0006.md)

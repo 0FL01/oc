@@ -1,13 +1,13 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-20T15:11:54+00:00",
-  "current": "T00",
+  "updated_at": "2026-09-20T15:49:29+00:00",
+  "current": null,
   "tasks": {
     "T00": {
-      "status": "active",
-      "last_seq": 5,
-      "latest": "progress/M0/T00/0005.md",
-      "evidence": null,
+      "status": "done",
+      "last_seq": 6,
+      "latest": "progress/M0/T00/0006.md",
+      "evidence": "evidence/T00/report.md",
       "reopen_reason": null
     },
     "T01": {
