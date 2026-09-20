@@ -6,6 +6,7 @@
 
 pub mod attachments;
 pub mod config;
+pub mod discovery;
 pub mod files;
 pub mod patch;
 pub mod provider;
