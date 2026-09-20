@@ -1,25 +1,25 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-20T16:13:24+00:00
+State updated: 2026-09-20T16:18:20+00:00
 Active: нет
 
 Сверить Git status/diff до выполнения команд.
 
-Последний срез: T02 [done]; сверить незакоммиченный diff.
+Последний срез: T03 [done]; сверить незакоммиченный diff.
 
 ## Result
-T02 contracts done. 8 fixtures + provenance manifest. Impl 443555b, evidence evidence/T02/report.md.
+T03 core slice done. Worker + MockProvider + cancel + bounded channels. Impl 3261fda, evidence evidence/T03/report.md.
 ## Checks
-JSON load OK; node oracle 15/15 PASS; check_docs PASS; cargo test workspace 13 PASS. No secrets in fixtures.
+fmt, clippy -D warnings, core 13 tests, workspace 20 tests, build locked/unlocked, oc --help — all exit 0.
 ## Risks
-Fixtures are documentary, not executable parity. OpenProxy license unknown; DCP LICENSE deferred to code-push per D06.
+In-memory only; single global turn. SQLite/headless/TUI deferred to T04-T06.
 ## Next
-Start T03 and build typed core + MockProvider vertical slice.
+Start T04 and add SQLite worker with durable events and crash semantics.
 
 
 Следующий шаг: проверить зависимости и начать первую ready-задачу.
 
-Ready (до 5): T03
+Ready (до 5): T04
 Blocked: нет
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.
