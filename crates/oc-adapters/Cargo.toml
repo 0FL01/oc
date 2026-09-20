@@ -1,0 +1,22 @@
+[package]
+name = "oc-adapters"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Adapter implementations for oc-core ports: storage, providers, tools, mcp, dcp"
+
+[dependencies]
+oc-core = { path = "../oc-core" }
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+rusqlite.workspace = true
+reqwest.workspace = true
+rmcp.workspace = true
+
+[lints]
+workspace = true

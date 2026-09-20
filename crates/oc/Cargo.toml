@@ -1,0 +1,26 @@
+[package]
+name = "oc"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Native oc binary: local TUI and headless coding session"
+
+[[bin]]
+name = "oc"
+path = "src/main.rs"
+
+[dependencies]
+oc-core = { path = "../oc-core" }
+oc-adapters = { path = "../oc-adapters" }
+oc-tui = { path = "../oc-tui" }
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+
+[lints]
+workspace = true

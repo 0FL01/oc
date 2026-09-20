@@ -1,0 +1,41 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/oc-core",
+    "crates/oc-adapters",
+    "crates/oc-tui",
+    "crates/oc",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.93"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/0FL01/oc"
+homepage = "https://github.com/0FL01/oc"
+
+[workspace.dependencies]
+tokio = { version = "1.47", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }
+thiserror = { version = "2.0" }
+anyhow = { version = "1.0" }
+clap = { version = "4.5", features = ["derive", "std", "help", "usage"] }
+ratatui = { version = "0.30", default-features = false, features = ["crossterm", "all-widgets"] }
+crossterm = { version = "0.29" }
+rusqlite = { version = "0.40", features = ["bundled"] }
+reqwest = { version = "0.13", default-features = true, features = ["json", "stream"] }
+rmcp = { version = "3.4", default-features = false, features = ["client", "transport-child-process"] }
+
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1
+opt-level = "z"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+undocumented_unsafe_blocks = "warn"
+multiple_unsafe_ops_per_block = "warn"
