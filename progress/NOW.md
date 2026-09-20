@@ -1,25 +1,25 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-20T16:08:53+00:00
+State updated: 2026-09-20T16:13:24+00:00
 Active: нет
 
 Сверить Git status/diff до выполнения команд.
 
-Последний срез: T01 [done]; сверить незакоммиченный diff.
+Последний срез: T02 [done]; сверить незакоммиченный diff.
 
 ## Result
-T01 workspace done. 4 crates, toolchain 1.93.0, Cargo.lock committed. Impl 35c38e5, evidence evidence/T01/report.md.
+T02 contracts done. 8 fixtures + provenance manifest. Impl 443555b, evidence evidence/T02/report.md.
 ## Checks
-cargo fmt --check, clippy -D warnings, test --workspace --locked (13 tests), build --locked/build, oc --help/--smoke — all exit 0. BUILD01 PASS offline.
+JSON load OK; node oracle 15/15 PASS; check_docs PASS; cargo test workspace 13 PASS. No secrets in fixtures.
 ## Risks
-No product runtime yet; rmcp/reqwest only smoke-linked. Full license audit deferred to T29.
+Fixtures are documentary, not executable parity. OpenProxy license unknown; DCP LICENSE deferred to code-push per D06.
 ## Next
-Start T02 and pin source/protocol/fixture contracts with provenance manifest.
+Start T03 and build typed core + MockProvider vertical slice.
 
 
 Следующий шаг: проверить зависимости и начать первую ready-задачу.
 
-Ready (до 5): T02, T03
+Ready (до 5): T03
 Blocked: нет
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.
