@@ -10,7 +10,7 @@
 
 use std::fs::{self, File, OpenOptions};
 use std::io::Write as _;
-use std::os::unix::fs::{MetadataExt as _, PermissionsExt as _};
+use std::os::unix::fs::PermissionsExt as _;
 use std::path::{Component, Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{Duration, SystemTime};
@@ -72,18 +72,16 @@ impl Db {
     /// Open with explicit blob quota (tests use small quotas).
     pub fn open_with_quota(root: &Path, quota_bytes: u64) -> Result<Self, StorageError> {
         let root = validate_root(root)?;
-        // Existing roots are validated as-is (no silent chmod); only fresh
-        // roots are created restrictive. This keeps STORE02 permission
-        // validation meaningful instead of auto-repairing 0777 to 0700.
-        let existed = root.exists();
         fs::create_dir_all(&root)?;
+        // Ownership first (refuse foreign dirs); then enforce 0700 on both
+        // fresh and existing roots so a normal 0755 --data-dir is secured
+        // rather than refused. Symlink/owner failures stay hard errors.
+        check_owner(&root)?;
         #[cfg(unix)]
         {
-            if !existed {
-                fs::set_permissions(&root, fs::Permissions::from_mode(0o700))?;
-            }
+            fs::set_permissions(&root, fs::Permissions::from_mode(0o700))?;
         }
-        check_owned_restrictive(&root)?;
+        check_restrictive(&root)?;
         let blob_dir = root.join("blobs");
         fs::create_dir_all(&blob_dir)?;
         #[cfg(unix)]
@@ -473,22 +471,32 @@ fn validate_root(root: &Path) -> Result<PathBuf, StorageError> {
     Ok(root.to_path_buf())
 }
 
-fn check_owned_restrictive(path: &Path) -> Result<(), StorageError> {
+fn check_owner(path: &Path) -> Result<(), StorageError> {
     #[cfg(unix)]
     {
+        use std::os::unix::fs::MetadataExt as _;
         let meta = fs::metadata(path)?;
-        let mode = meta.permissions().mode() & 0o777;
-        if mode & 0o077 != 0 {
-            return Err(StorageError::UnsafeRoot(
-                "permissive data root mode".to_string(),
-            ));
-        }
         let uid = meta.uid();
         // SAFETY: getuid has no failure mode and does not touch Rust memory.
         let me: u32 = unsafe { libc::getuid() };
         if uid != me {
             return Err(StorageError::UnsafeRoot(
                 "foreign data root owner".to_string(),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn check_restrictive(path: &Path) -> Result<(), StorageError> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        let meta = fs::metadata(path)?;
+        let mode = meta.permissions().mode() & 0o777;
+        if mode & 0o077 != 0 {
+            return Err(StorageError::UnsafeRoot(
+                "permissive data root mode".to_string(),
             ));
         }
     }
@@ -666,12 +674,18 @@ mod tests {
         let err = db.write_blob(b"234567890").expect_err("over quota");
         assert!(matches!(err, StorageError::StorageFull));
 
-        // Permissive existing root is refused on next open (drop lock first).
+        // Permissive existing root is secured to 0700 on next open.
         let root2 = tmp.path().join("loose");
         {
             let _db = Db::open(&root2).expect("open loose");
         }
         fs::set_permissions(&root2, fs::Permissions::from_mode(0o777)).expect("chmod");
-        assert!(matches!(Db::open(&root2), Err(StorageError::UnsafeRoot(_))));
+        let _db = Db::open(&root2).expect("reopen secures");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            let mode = fs::metadata(&root2).expect("meta").permissions().mode() & 0o777;
+            assert_eq!(mode, 0o700);
+        }
     }
 }

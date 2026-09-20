@@ -1,29 +1,64 @@
-//! Minimal bootstrap wiring all workspace crates.
+//! Dispatch for the `oc` binary.
 
-use crate::cli::Args;
-use anyhow::Result;
+use std::io::{stderr, stdout};
+use std::process::ExitCode;
 
-/// Run the smoke binary: touch each library crate without network/side effects.
-pub fn run(args: Args) -> Result<()> {
-    let app = oc_core::application::AppHandle::smoke();
-    let _adapter = oc_adapters::adapter_name();
-    let _tui = oc_tui::tui_name();
+use crate::cli::{Args, Command, SessionsAction};
+use crate::headless;
 
-    // Exercise each adapter smoke path offline.
-    let _ = oc_adapters::smoke_memory_db()?;
-    let _ = oc_adapters::build_smoke_client()?;
-    let _ = oc_adapters::rmcp_smoke_marker();
-    let _frame = oc_tui::render_smoke_frame(&app);
-
-    if args.smoke {
-        println!(
-            "oc smoke core={} adapter={} tui={}",
-            oc_core::core_name(),
-            _adapter,
-            _tui
-        );
-    } else {
-        println!("oc T01 smoke: use --help for usage, --smoke for linked crates");
+/// Run the parsed CLI; never mixes diagnostics into stdout payloads.
+pub async fn run(args: Args) -> ExitCode {
+    if args.smoke && args.command.is_none() {
+        return legacy_smoke();
     }
-    Ok(())
+    let data_dir = args
+        .data_dir
+        .clone()
+        .unwrap_or_else(headless::default_data_dir);
+    match args.command {
+        None => {
+            eprintln!("usage: oc [--data-dir PATH] <run|sessions> | oc --smoke");
+            ExitCode::from(2)
+        }
+        Some(Command::Run {
+            prompt,
+            session,
+            json,
+        }) => {
+            let mut out = stdout().lock();
+            let mut err = stderr().lock();
+            headless::run_once_to_writers(
+                prompt,
+                session,
+                json,
+                &data_dir,
+                oc_core::core_app::MockProvider::echo(),
+                &mut out,
+                &mut err,
+            )
+            .await
+        }
+        Some(Command::Sessions { action }) => match action {
+            SessionsAction::List => {
+                let mut out = stdout().lock();
+                let mut err = stderr().lock();
+                headless::list_to_writers(&data_dir, &mut out, &mut err)
+            }
+        },
+    }
+}
+
+fn legacy_smoke() -> ExitCode {
+    let app = oc_core::application::AppHandle::smoke();
+    let _ = oc_adapters::smoke_memory_db().unwrap_or(0);
+    let _ = oc_adapters::build_smoke_client();
+    let _ = oc_adapters::rmcp_smoke_marker();
+    let _ = oc_tui::render_smoke_frame(&app);
+    println!(
+        "oc smoke core={} adapter={} tui={}",
+        oc_core::core_name(),
+        oc_adapters::adapter_name(),
+        oc_tui::tui_name()
+    );
+    ExitCode::SUCCESS
 }

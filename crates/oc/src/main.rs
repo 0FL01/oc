@@ -1,16 +1,16 @@
-//! `oc` binary entrypoint: thin wiring over core/adapters/tui.
+//! Binary wiring: legacy `--smoke`, headless `run`, `sessions list`.
 //!
-//! The full headless/TUI runtime arrives in M1 (T05/T06). For T01 this only
-//! proves the binary links all three library crates, parses `--help` via
-//! Clap, and can run offline without Node/Bun/upstream.
+//! Stdout carries only the answer (text or NDJSON); diagnostics go to
+//! stderr. Exit codes: 0 success, 1 error/usage, 130 interrupted.
 
 mod bootstrap;
 mod cli;
+mod headless;
 
-use anyhow::Result;
 use clap::Parser as _;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> std::process::ExitCode {
     let args = cli::Args::parse();
-    bootstrap::run(args)
+    bootstrap::run(args).await
 }
