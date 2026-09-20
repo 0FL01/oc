@@ -8,6 +8,7 @@ pub mod attachments;
 pub mod config;
 pub mod dcp;
 pub mod dcp_auto;
+pub mod defs;
 pub mod discovery;
 pub mod files;
 pub mod mcp_remote;

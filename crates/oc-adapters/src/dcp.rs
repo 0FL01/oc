@@ -392,6 +392,64 @@ pub fn expand_block(
     Ok(text)
 }
 
+/// Project full history through compression blocks and the prune mark.
+///
+/// Covered member messages collapse into one
+/// `[compressed {id}] {summary}` system entry at the position of the
+/// first covered message; uncovered messages pass through verbatim in
+/// order. Summaries expand nested placeholders under cycle/depth/byte
+/// guards (raw summary on failure). A prune mark drops the prefix
+/// through the marked message id; an unknown mark id is ignored, never
+/// applied blindly. History rows are never mutated; stale member ids
+/// (compacted elsewhere) are skipped, never fatal.
+pub fn project_history(
+    history: &[(String, String, String)],
+    blocks: &[CompressionBlock],
+    prune_up_to: Option<&str>,
+) -> Vec<(String, String)> {
+    let by_id: std::collections::BTreeMap<String, CompressionBlock> = blocks
+        .iter()
+        .map(|block| (block.id.clone(), block.clone()))
+        .collect();
+    let mut member_of: std::collections::HashMap<&str, &str> = std::collections::HashMap::new();
+    for block in blocks {
+        for member in &block.members {
+            member_of
+                .entry(member.as_str())
+                .or_insert(block.id.as_str());
+        }
+    }
+    let mut start = 0usize;
+    if let Some(mark) = prune_up_to
+        && let Some(pos) = history.iter().position(|(id, _, _)| id == mark)
+    {
+        start = pos + 1;
+    }
+    let mut out = Vec::new();
+    let mut emitted: Vec<String> = Vec::new();
+    for (id, role, text) in &history[start..] {
+        match member_of.get(id.as_str()) {
+            Some(block_id) if !emitted.contains(&block_id.to_string()) => {
+                emitted.push(block_id.to_string());
+                let summary = by_id
+                    .get(*block_id)
+                    .map(|block| {
+                        expand_block(&by_id, block_id, 0, &mut Vec::new())
+                            .unwrap_or_else(|_| block.summary.clone())
+                    })
+                    .unwrap_or_default();
+                out.push((
+                    "system".to_string(),
+                    format!("[compressed {block_id}] {summary}"),
+                ));
+            }
+            Some(_) => {}
+            None => out.push((role.clone(), text.clone())),
+        }
+    }
+    out
+}
+
 /// Patch protection: every affected path is checked against protected globs.
 ///
 /// `apply_patch` counts as a protected mutation equivalent: any violation
@@ -700,6 +758,61 @@ mod tests {
             ),
             Err(super::DcpError::InvalidArgs { .. })
         ));
+    }
+
+    #[test]
+    fn projection_collapses_prunes_and_expands() {
+        let block = |id: &str, summary: &str, members: &[&str]| super::CompressionBlock {
+            id: id.to_string(),
+            session: "s".to_string(),
+            topic: "t".to_string(),
+            summary: summary.to_string(),
+            start_msg: members.first().unwrap_or(&"").to_string(),
+            end_msg: members.last().unwrap_or(&"").to_string(),
+            members: members.iter().map(|m| m.to_string()).collect(),
+        };
+        let history = vec![
+            ("m0001".to_string(), "user".to_string(), "first".to_string()),
+            (
+                "m0002".to_string(),
+                "assistant".to_string(),
+                "second".to_string(),
+            ),
+            ("m0003".to_string(), "user".to_string(), "third".to_string()),
+            (
+                "m0004".to_string(),
+                "assistant".to_string(),
+                "fourth".to_string(),
+            ),
+        ];
+        // Collapse keeps position of first covered message; stale ids skip.
+        let blocks = vec![
+            block("b0001", "early work", &["m0001", "m0002", "gone"]),
+            block("b0002", "wraps (b1)", &["m0003"]),
+        ];
+        let projected = super::project_history(&history, &blocks, None);
+        assert_eq!(projected.len(), 3);
+        assert_eq!(projected[0].0, "system");
+        assert!(projected[0].1.contains("[compressed b0001]"));
+        assert!(projected[0].1.contains("early work"));
+        assert!(projected[1].1.contains("[compressed b0002]"));
+        assert!(
+            projected[1].1.contains("early work"),
+            "nested placeholder expands"
+        );
+        assert_eq!(
+            projected[2],
+            ("assistant".to_string(), "fourth".to_string())
+        );
+        // Prune mark drops the prefix; unknown mark is ignored.
+        let pruned = super::project_history(&history, &blocks, Some("m0002"));
+        assert_eq!(pruned.len(), 2);
+        assert!(pruned[0].1.contains("[compressed b0002]"));
+        let ignored = super::project_history(&history, &blocks, Some("nope"));
+        assert_eq!(ignored.len(), 3);
+        // Empty blocks pass through verbatim.
+        let plain = super::project_history(&history, &[], None);
+        assert_eq!(plain.len(), 4);
     }
 
     #[test]

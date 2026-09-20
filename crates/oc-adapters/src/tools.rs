@@ -1111,6 +1111,8 @@ mod tests {
         // Turn 1: model emits two tool calls in order.
         let first = stream_generation(
             &provider_config(&server.base),
+            "m",
+            None,
             "read the note",
             &[],
             &NO_CANCEL,
@@ -1141,6 +1143,8 @@ mod tests {
         let _ = input; // Shape asserted; wire below carries it.
         let second = stream_generation(
             &provider_config(&server.base),
+            "m",
+            None,
             "roundtrip-marker function_call_output",
             &[],
             &NO_CANCEL,

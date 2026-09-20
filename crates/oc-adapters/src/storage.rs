@@ -199,8 +199,11 @@ impl Db {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         let seq: i64 = tx.query_row(
-            "SELECT COALESCE(MAX(seq), 0) + 1 FROM messages WHERE session_id = ?1",
-            params![session],
+            // Global sequence: message ids are unique across sessions
+            // (the PRIMARY KEY is global); per-session order still holds
+            // because the sequence is monotonic.
+            "SELECT COALESCE(MAX(seq), 0) + 1 FROM messages",
+            params![],
             |row| row.get(0),
         )?;
         if tx

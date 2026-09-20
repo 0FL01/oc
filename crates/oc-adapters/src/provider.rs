@@ -18,6 +18,8 @@ use std::time::Duration;
 use sha2::{Digest as _, Sha256};
 use thiserror::Error;
 
+use crate::models::SelectedVariant;
+
 /// Idle budget between SSE bytes (6 000 000 ms = 100 min, not 6 s).
 pub const CHUNK_TIMEOUT_MS: u64 = 6_000_000;
 /// Max SSE events decoded per response.
@@ -186,10 +188,19 @@ pub fn prompt_cache_key(prompt: &str, tools: &[ToolDef]) -> String {
     format!("{:x}", Sha256::digest(canonical.to_string().as_bytes()))
 }
 
-/// Request body: `store:false`, input message, ordinary function tools.
-pub fn request_body(prompt: &str, tools: &[ToolDef]) -> serde_json::Value {
-    serde_json::json!({
+/// Request body: exact selected `model`, `store:false`, input message,
+/// ordinary function tools. The variant contributes only an explicit
+/// `reasoning.effort`; nothing is guessed from the model name.
+pub fn request_body(
+    model: &str,
+    variant: Option<&SelectedVariant>,
+    prompt: &str,
+    tools: &[ToolDef],
+) -> serde_json::Value {
+    let mut body = serde_json::json!({
+        "model": model,
         "store": false,
+        "stream": true,
         "input": [{"role": "user", "content": prompt}],
         "tools": tools.iter().map(|t| serde_json::json!({
             "type": "function",
@@ -198,7 +209,11 @@ pub fn request_body(prompt: &str, tools: &[ToolDef]) -> serde_json::Value {
             "parameters": t.parameters,
         })).collect::<Vec<_>>(),
         "prompt_cache_key": prompt_cache_key(prompt, tools),
-    })
+    });
+    if let Some(effort) = variant.and_then(|v| v.reasoning_effort.as_deref()) {
+        body["reasoning"] = serde_json::json!({"effort": effort});
+    }
+    body
 }
 
 /// Incremental SSE decoder over an arbitrary byte stream.
@@ -403,6 +418,8 @@ fn map_event(value: &serde_json::Value) -> Option<StreamItem> {
 /// reports [`ProviderError::Cancelled`].
 pub async fn stream_generation(
     config: &ResponsesConfig,
+    model: &str,
+    variant: Option<&SelectedVariant>,
     prompt: &str,
     tools: &[ToolDef],
     cancel: &AtomicBool,
@@ -410,7 +427,7 @@ pub async fn stream_generation(
 ) -> Result<Generation, ProviderError> {
     let url = config.generation_url()?;
     guard_private_url(&url, config.allow_private).await?;
-    let body = request_body(prompt, tools);
+    let body = request_body(model, variant, prompt, tools);
     let chunk_timeout = chunk_timeout.unwrap_or(Duration::from_millis(CHUNK_TIMEOUT_MS));
 
     let builder = reqwest::Client::builder()
@@ -429,9 +446,16 @@ pub async fn stream_generation(
         match stream_attempt(&client, &url, &config.api_key, &body, cancel, chunk_timeout).await {
             Ok(generation) => return Ok(generation),
             Err((error, committed)) => {
+                // Retryable pre-commit only: truncated/idle streams are
+                // transient transport faults; nothing executed yet, so a
+                // fresh attempt cannot double-apply tool effects.
                 let retryable = matches!(
                     error,
-                    ProviderError::RateLimited | ProviderError::Server | ProviderError::Transport
+                    ProviderError::RateLimited
+                        | ProviderError::Server
+                        | ProviderError::Transport
+                        | ProviderError::Incomplete
+                        | ProviderError::IdleTimeout
                 );
                 if retryable && !committed && attempts < MAX_ATTEMPTS {
                     continue;
@@ -564,6 +588,10 @@ async fn stream_attempt(
     }
     let tail = parser.finish().map_err(|e| (e, committed))?;
     items.extend(tail);
+    if items.is_empty() {
+        // An eventless EOF is a truncated stream, never an empty success.
+        return Err((ProviderError::Incomplete, false));
+    }
 
     let mut text = String::new();
     let mut usage = None;
@@ -803,7 +831,7 @@ mod tests {
             base_url: format!("{}/v1", server.base),
             ..test_config(&server.base)
         };
-        let generation = stream_generation(&config, "hi", &tools(), &NO_CANCEL, None)
+        let generation = stream_generation(&config, "m", None, "hi", &tools(), &NO_CANCEL, None)
             .await
             .expect("stream");
         assert_eq!(generation.text, "hi");
@@ -835,7 +863,7 @@ mod tests {
             base_url: server2.base.clone(),
             ..test_config(&server2.base)
         };
-        stream_generation(&config2, "hi", &tools(), &NO_CANCEL, None)
+        stream_generation(&config2, "m", None, "hi", &tools(), &NO_CANCEL, None)
             .await
             .expect("s2");
         let body2: serde_json::Value =
@@ -931,7 +959,7 @@ mod tests {
             }))
             .await;
             let config = test_config(&server.base);
-            let err = stream_generation(&config, "x", &[], &NO_CANCEL, None)
+            let err = stream_generation(&config, "m", None, "x", &[], &NO_CANCEL, None)
                 .await
                 .expect_err("err");
             assert_eq!(err, error);
@@ -957,9 +985,51 @@ mod tests {
             }
         }))
         .await;
-        let generation = stream_generation(&test_config(&server.base), "x", &[], &NO_CANCEL, None)
-            .await
-            .expect("retry ok");
+        let generation = stream_generation(
+            &test_config(&server.base),
+            "m",
+            None,
+            "x",
+            &[],
+            &NO_CANCEL,
+            None,
+        )
+        .await
+        .expect("retry ok");
+        assert_eq!(generation.text, "ok");
+        assert_eq!(server.attempts.load(Ordering::SeqCst), 2);
+        server.shutdown();
+        // Truncated stream (EOF, no events) then success: pre-commit
+        // Incomplete retries once; a committed truncation never retries.
+        let server = TestServer::spawn(Arc::new(|n| {
+            if n == 0 {
+                Action {
+                    status: "200 OK",
+                    headers: vec![("Content-Type", "text/event-stream".to_string())],
+                    chunks: vec![],
+                    abort_after: None,
+                }
+            } else {
+                Action {
+                    status: "200 OK",
+                    headers: vec![("Content-Type", "text/event-stream".to_string())],
+                    chunks: vec![(sse_delta("ok"), 0)],
+                    abort_after: None,
+                }
+            }
+        }))
+        .await;
+        let generation = stream_generation(
+            &test_config(&server.base),
+            "m",
+            None,
+            "x",
+            &[],
+            &NO_CANCEL,
+            None,
+        )
+        .await
+        .expect("incomplete retry ok");
         assert_eq!(generation.text, "ok");
         assert_eq!(server.attempts.load(Ordering::SeqCst), 2);
         server.shutdown();
@@ -971,9 +1041,17 @@ mod tests {
             abort_after: None,
         }))
         .await;
-        let err = stream_generation(&test_config(&server.base), "x", &[], &NO_CANCEL, None)
-            .await
-            .expect_err("500");
+        let err = stream_generation(
+            &test_config(&server.base),
+            "m",
+            None,
+            "x",
+            &[],
+            &NO_CANCEL,
+            None,
+        )
+        .await
+        .expect_err("500");
         assert_eq!(err, ProviderError::Server);
         assert_eq!(server.attempts.load(Ordering::SeqCst), 2);
         server.shutdown();
@@ -988,9 +1066,17 @@ mod tests {
             abort_after: Some(2),
         }))
         .await;
-        let err = stream_generation(&test_config(&server.base), "x", &[], &NO_CANCEL, None)
-            .await
-            .expect_err("partial");
+        let err = stream_generation(
+            &test_config(&server.base),
+            "m",
+            None,
+            "x",
+            &[],
+            &NO_CANCEL,
+            None,
+        )
+        .await
+        .expect_err("partial");
         assert_eq!(err, ProviderError::Incomplete);
         assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
         server.shutdown();
@@ -1010,6 +1096,8 @@ mod tests {
         .await;
         let err = stream_generation(
             &test_config(&server.base),
+            "m",
+            None,
             "x",
             &[],
             &NO_CANCEL,
@@ -1035,8 +1123,16 @@ mod tests {
             tokio::time::sleep(Duration::from_millis(300)).await;
             flag.store(true, Ordering::Relaxed);
         });
-        let outcome =
-            stream_generation(&config, "x", &[], &cancel, Some(Duration::from_secs(30))).await;
+        let outcome = stream_generation(
+            &config,
+            "m",
+            None,
+            "x",
+            &[],
+            &cancel,
+            Some(Duration::from_secs(30)),
+        )
+        .await;
         assert_eq!(outcome, Err(ProviderError::Cancelled));
         server.shutdown();
         // Closed port with private allowance: fast transport error, no hang.
@@ -1044,7 +1140,7 @@ mod tests {
         closed.base_url = "http://127.0.0.1:9".to_string();
         closed.connect_timeout = Duration::from_millis(500);
         let start = std::time::Instant::now();
-        let err = stream_generation(&closed, "x", &[], &NO_CANCEL, None)
+        let err = stream_generation(&closed, "m", None, "x", &[], &NO_CANCEL, None)
             .await
             .expect_err("closed");
         assert_eq!(err, ProviderError::Transport);
@@ -1053,15 +1149,18 @@ mod tests {
         let mut bad = test_config("http://127.0.0.1:9");
         bad.timeout = Some(true);
         assert_eq!(
-            stream_generation(&bad, "x", &[], &NO_CANCEL, None).await,
+            stream_generation(&bad, "m", None, "x", &[], &NO_CANCEL, None).await,
             Err(ProviderError::InvalidConfig)
         );
     }
 
     #[test]
     fn units_request_shape() {
-        let body = request_body("hi", &tools());
+        let body = request_body("m", None, "hi", &tools());
+        assert_eq!(body["model"], "m");
         assert_eq!(body["store"], false);
+        assert_eq!(body["stream"], true);
+        assert!(body.get("reasoning").is_none(), "no guessed effort");
         assert!(body["prompt_cache_key"].as_str().is_some());
         let debug = format!("{:?}", test_config("https://x.invalid"));
         assert!(!debug.contains("test-key"));

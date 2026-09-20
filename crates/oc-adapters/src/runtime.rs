@@ -178,7 +178,8 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
     vec![
         ToolDef {
             name: "read".to_string(),
-            description: "Read a project file slice".to_string(),
+            description: "Read a project file slice. `path` is relative to the project root; `offset` is the 1-based first line, `limit` caps lines (default 50)."
+                .to_string(),
             parameters: schema(
                 serde_json::json!({
                     "path": {"type": "string"},
@@ -190,12 +191,14 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "apply_patch".to_string(),
-            description: "Apply a unified patch to the project".to_string(),
+            description: "Apply a patch to project files. `patch` must start with `*** Begin Patch` and end with `*** End Patch`; update hunks look like `*** Update File: <relative path>` then `@@` then lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Paths stay inside the project root."
+                .to_string(),
             parameters: schema(serde_json::json!({"patch": {"type": "string"}}), &["patch"]),
         },
         ToolDef {
             name: "bash".to_string(),
-            description: "Run a supervised command".to_string(),
+            description: "Run a supervised command. `argv` is the exact executable plus args (no shell); omit `cwd` to run in the project root — any `cwd` must stay inside the project root. `timeout_ms` caps the run (default 30000)."
+                .to_string(),
             parameters: schema(
                 serde_json::json!({
                     "argv": {"type": "array", "items": {"type": "string"}},
@@ -437,9 +440,10 @@ pub struct Runtime<'a> {
     roots: ToolRoots,
     webfetch_auth: Option<String>,
     webfetch_allow_private: bool,
-    dcp_config: RwLock<DcpConfig>,
+    dcp_config: RwLock<crate::dcp_auto::DcpConfig>,
+    skills: RwLock<Vec<(String, String)>>,
     nudge_state: Mutex<NudgeState>,
-    stats: Mutex<DcpStats>,
+    stats: Mutex<crate::dcp_auto::DcpStats>,
 }
 
 impl<'a> Runtime<'a> {
@@ -461,6 +465,9 @@ impl<'a> Runtime<'a> {
         if location.trim().is_empty() {
             return Err(RuntimeError::InvalidArgs("empty location".to_string()));
         }
+        // Outbound projection reads compression tables: ensure the
+        // additive idempotent DCP schema before the first turn.
+        crate::dcp::apply_dcp_schema(db).map_err(|_| RuntimeError::Storage)?;
         Ok(Self {
             db,
             location: location.to_string(),
@@ -477,6 +484,7 @@ impl<'a> Runtime<'a> {
             webfetch_auth,
             webfetch_allow_private,
             dcp_config: RwLock::new(dcp_config),
+            skills: RwLock::new(Vec::new()),
             nudge_state: Mutex::new(NudgeState::default()),
             stats: Mutex::new(DcpStats::default()),
         })
@@ -513,6 +521,18 @@ impl<'a> Runtime<'a> {
             return Err(RuntimeError::TurnActive);
         }
         *self.dcp_config.write().expect("dcp lock") = config;
+        Ok(())
+    }
+
+    /// Publish pinned skill `(id, SKILL.md)` files between turns.
+    ///
+    /// The next turn snapshots these for the native `skill` tool;
+    /// invalid entries stay out so calls fail visibly as unknown.
+    pub fn publish_skills(&self, files: Vec<(String, String)>) -> Result<(), RuntimeError> {
+        if self.active.load(Ordering::Relaxed) {
+            return Err(RuntimeError::TurnActive);
+        }
+        *self.skills.write().expect("skills lock") = files;
         Ok(())
     }
 
@@ -664,8 +684,17 @@ impl<'a> Runtime<'a> {
                 });
             }
         }
-        // Nudge evaluation on the runtime counters (transient hint only).
-        let history = self.db.read_history(&params.session)?;
+        // Outbound context honors compression blocks + prune mark: covered
+        // members collapse to summaries, raw history is never rewritten.
+        let full = self.db.read_history_full(&params.session)?;
+        let sblocks =
+            crate::dcp::load_blocks(self.db, &params.session).map_err(|_| RuntimeError::Storage)?;
+        let prune = self
+            .db
+            .load_prune_mark(&params.session)
+            .map_err(|_| RuntimeError::Storage)?;
+        let history: Vec<(String, String)> =
+            crate::dcp::project_history(&full, &sblocks, prune.as_deref());
         let nudge_hint = {
             let mut state = self.nudge_state.lock().expect("nudge lock");
             state.on_turn();
@@ -690,7 +719,10 @@ impl<'a> Runtime<'a> {
             .begin_turn(&turn_id, &params.session, &params.prompt)?;
         let user_text = params.invocation.as_deref().unwrap_or(&params.prompt);
         self.db.append_message(&params.session, "user", user_text)?;
-        let snapshot = SkillSnapshot::build(&[]).0;
+        let snapshot = {
+            let skills = self.skills.read().expect("skills lock");
+            SkillSnapshot::build(&skills).0
+        };
         let policy = RuntimePolicy::new(&published.config.permissions);
         let ctx = ToolContext {
             files: &self.files,
@@ -728,6 +760,8 @@ impl<'a> Runtime<'a> {
             let prompt = assemble_turn_input(&history, &params.prompt, &prior);
             let generation = match crate::provider::stream_generation(
                 &params.provider,
+                &selection.id,
+                selection.variant.as_ref(),
                 &prompt,
                 &tool_defs,
                 params.cancel,

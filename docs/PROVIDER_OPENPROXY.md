@@ -63,3 +63,17 @@ Stream parser incremental: bounded SSE buffer, multiline data/CRLF/UTF-8 fragmen
 Изображения — ограниченные локальные attachments с MIME validation и controlled inline encoding. Не fetch произвольный model-supplied image URL с credentials; webfetch отдельный path. Advertised modality и реально квалифицированная совместимость — разные статусы.
 
 Live verification подтверждает конкретный proxy deployment/model/variant. Не распространять один успешный run на все модели из /models.
+
+## Live test credentials (боевые тестовые, проверяемы)
+
+Владелец выдал тестовые credentials для live-проверок (T16/T27): файл `.local/live.env` (gitignored, в индекс не попадает):
+
+```sh
+source .local/live.env   # LUDKA2_API_URL, LUDKA2_API_KEY, OC_TEST_MODEL
+cargo test -p oc-adapters --test e2e_live -- --ignored --nocapture
+```
+
+Опционально: `OC_TEST_VARIANT`, `LUDKA2_MCP_URL` (exact codex_web URL, тот же ключ как bearer).
+Проверенные deployment/models: `https://ludka2.bash8.de/v1`, `ocg/muse-spark-1.3-contributor`, `cx/gpt-5.6-luna` (39 IDs в /models на момент проверки).
+
+Правила: сам ключ — только в `.local/live.env`, никогда в docs/evidence/логи/diff; в отчётах фиксировать только факт presence, deployment, model/variant, счётчики и sanitized статусы. Отсутствие env — `BUILD_READY_LIVE_BLOCKED` для live-части, не PASS и не провал офлайна.
