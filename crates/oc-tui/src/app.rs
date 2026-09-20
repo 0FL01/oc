@@ -384,6 +384,57 @@ impl TuiState {
         }
     }
 
+    /// Apply a worker text delta to the live line (turn-scoped: deltas for
+    /// a stale turn are ignored, so a late event can never corrupt the view).
+    pub fn apply_delta(&mut self, turn: &WorkerTurnId, delta: &str) {
+        if Some(turn) != self.active_turn.as_ref() {
+            return;
+        }
+        self.live_text.push_str(delta);
+        if let Some(last) = self.lines.last_mut()
+            && last.starts_with("ai: ")
+        {
+            last.push_str(delta);
+            return;
+        }
+        self.lines.push(format!("ai: {delta}"));
+    }
+
+    /// Apply a worker turn-finished event: replace the live line with the
+    /// final text and release the turn (the loop accepts submits again).
+    pub fn apply_finished(&mut self, turn: &WorkerTurnId, text: &str) {
+        if Some(turn) != self.active_turn.as_ref() {
+            return;
+        }
+        self.active_turn = None;
+        self.status = TuiStatus::Idle;
+        self.live_text.clear();
+        if let Some(last) = self.lines.last_mut()
+            && last.starts_with("ai: ")
+        {
+            *last = format!("ai: {text}");
+            return;
+        }
+        self.lines.push(format!("ai: {text}"));
+    }
+
+    /// Apply a worker turn-interrupted event: drop the live line, mark the
+    /// turn cancelled, and release the turn.
+    pub fn apply_interrupted(&mut self, turn: &WorkerTurnId) {
+        if Some(turn) != self.active_turn.as_ref() {
+            return;
+        }
+        self.active_turn = None;
+        self.status = TuiStatus::Cancelled;
+        self.live_text.clear();
+        if let Some(last) = self.lines.last()
+            && last.starts_with("ai: ")
+        {
+            self.lines.pop();
+        }
+        self.lines.push("(cancelled)".to_string());
+    }
+
     /// Drain one worker event into view state. Returns true when a turn
     /// reached a terminal event.
     pub async fn poll_event(&mut self) -> bool {
@@ -632,6 +683,58 @@ mod tests {
             .pump_until_idle(&mut state, Duration::from_secs(5))
             .await;
         assert_eq!(state.status, TuiStatus::Idle);
+    }
+
+    #[tokio::test]
+    async fn apply_events_are_turn_scoped_and_release() {
+        use oc_core::core_app::{CoreEvent, WorkerTurnId};
+
+        let (app, guard) = CoreApp::spawn(MockProvider::echo());
+        std::mem::forget(guard);
+        app.create_session(sid("s-ev")).await.expect("s");
+        let mut state = TuiState::new(app.clone(), sid("s-ev"));
+        let mut rx = app.subscribe();
+        for c in "go".chars() {
+            state.handle_key(KeyAction::Char(c)).await;
+        }
+        state.handle_key(KeyAction::Enter).await;
+        assert_eq!(state.status, TuiStatus::Streaming);
+        let stale = WorkerTurnId("t-stale".to_string());
+        // Stale-turn events never touch the view.
+        state.apply_delta(&stale, "junk");
+        state.apply_finished(&stale, "junk");
+        state.apply_interrupted(&stale);
+        assert_eq!(state.status, TuiStatus::Streaming);
+        assert!(!state.lines.iter().any(|line| line.contains("junk")));
+        // Binary-style drain with real ids: finish releases the turn (T26
+        // PTY find: the drain must reset, or every later submit stays busy).
+        loop {
+            let event = tokio::time::timeout(Duration::from_secs(5), rx.recv())
+                .await
+                .expect("event")
+                .expect("open");
+            match event {
+                CoreEvent::TurnStarted { .. } => {}
+                CoreEvent::TextDelta { turn, delta, .. } => state.apply_delta(&turn, &delta),
+                CoreEvent::TurnFinished { turn, text, .. } => {
+                    state.apply_finished(&turn, &text);
+                    break;
+                }
+                CoreEvent::TurnInterrupted { turn, .. } => {
+                    state.apply_interrupted(&turn);
+                    break;
+                }
+            }
+        }
+        assert_eq!(state.status, TuiStatus::Idle);
+        assert!(state.lines.contains(&"ai: echo: go".to_string()));
+        // A fresh submit is accepted right after the finish.
+        for c in "go2".chars() {
+            state.handle_key(KeyAction::Char(c)).await;
+        }
+        let busy = state.handle_key(KeyAction::Enter).await;
+        assert_eq!(busy, None);
+        assert_eq!(state.status, TuiStatus::Streaming);
     }
 
     #[tokio::test]

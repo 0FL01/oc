@@ -12,6 +12,7 @@ pub mod events;
 pub mod history;
 pub mod picker;
 pub mod smoke;
+pub mod terminal;
 pub mod views;
 pub mod workspace;
 
