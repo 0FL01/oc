@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-20T22:18:46+00:00",
+  "updated_at": "2026-09-20T22:43:45+00:00",
   "current": null,
   "tasks": {
     "T00": {
@@ -116,10 +116,10 @@
       "reopen_reason": null
     },
     "T16": {
-      "status": "blocked",
-      "last_seq": 1,
-      "latest": "progress/M3/T16/0001.md",
-      "evidence": null,
+      "status": "done",
+      "last_seq": 2,
+      "latest": "progress/M3/T16/0002.md",
+      "evidence": "evidence/T16/report.md",
       "reopen_reason": null
     },
     "T17": {
@@ -221,5 +221,5 @@
       "reopen_reason": null
     }
   },
-  "last_checkpoint_task": "T26"
+  "last_checkpoint_task": "T16"
 }
