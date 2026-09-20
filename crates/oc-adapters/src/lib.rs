@@ -4,6 +4,7 @@
 //! using Tokio + rusqlite (bundled) + reqwest + rmcp, with no reverse
 //! dependency from `oc-core`.
 
+pub mod config;
 pub mod smoke;
 pub mod storage;
 
