@@ -6,6 +6,7 @@
 
 pub mod config;
 pub mod files;
+pub mod patch;
 pub mod smoke;
 pub mod storage;
 

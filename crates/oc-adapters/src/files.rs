@@ -215,10 +215,18 @@ impl Files {
         Ok(hits)
     }
 
-    /// Resolve a model-supplied path: lexical walk from the project root so
-    /// `..` recursion keeps its real landing (data root → `OwnDataRoot`,
-    /// elsewhere outside → `OutsideRoot`), no-follow symlink refusal, and
-    /// own-data-root rejection for direct and symlink-escape landings.
+    /// Public path resolution for sibling tools (e.g. `apply_patch`).
+    ///
+    /// Same rules: lexical walk, no-follow symlink refusal, data-root and
+    /// outside-root rejection.
+    pub fn resolve_path(&self, path: &str) -> Result<PathBuf, FileToolError> {
+        self.resolve(path)
+    }
+
+    /// Lexical walk from the project root so `..` recursion keeps its real
+    /// landing (data root → `OwnDataRoot`, elsewhere outside → `OutsideRoot`),
+    /// no-follow symlink refusal, and own-data-root rejection for direct and
+    /// symlink-escape landings.
     fn resolve(&self, path: &str) -> Result<PathBuf, FileToolError> {
         if path.is_empty() {
             return Err(FileToolError::NotFound);
@@ -337,7 +345,7 @@ impl Files {
 }
 
 /// Minimal glob matcher supporting `*`, `?` and `**` (slash-aware).
-fn glob_match(pattern: &str, path: &str) -> bool {
+pub(crate) fn glob_match(pattern: &str, path: &str) -> bool {
     let pat_segs: Vec<&str> = pattern.split('/').collect();
     let path_segs: Vec<&str> = path.split('/').collect();
     match_segments(&pat_segs, &path_segs)
