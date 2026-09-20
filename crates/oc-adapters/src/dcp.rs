@@ -42,6 +42,31 @@ pub enum DcpError {
         /// Missing id.
         id: String,
     },
+    /// Protected payload too large to preserve verbatim: compression is
+    /// visibly impossible, never silently lossy.
+    #[error("compression impossible: {reason}")]
+    Impossible {
+        /// Human reason.
+        reason: String,
+    },
+    /// Nested block reference cycle.
+    #[error("block reference cycle at {id}")]
+    Cycle {
+        /// Block id closing the cycle.
+        id: String,
+    },
+    /// Nested expansion over depth/byte limits.
+    #[error("nested expansion too large: {reason}")]
+    NestedTooLarge {
+        /// Human reason.
+        reason: String,
+    },
+    /// Patch touches protected paths.
+    #[error("protected patch paths")]
+    PatchProtected {
+        /// Violating paths.
+        paths: Vec<String>,
+    },
     /// Storage failure (kind only).
     #[error("storage error")]
     Storage,
@@ -190,6 +215,299 @@ pub fn load_prune_mark(db: &crate::storage::Db, session: &str) -> Result<Option<
     db.load_prune_mark(session).map_err(|_| DcpError::Storage)
 }
 
+/// Protected payload bound: a covered protected message larger than this
+/// makes compression visibly impossible instead of silently lossy.
+pub const PROTECTED_BYTES_CAP: usize = 65536;
+/// Nested expansion depth cap (cycle/size guards fire first).
+pub const NESTED_DEPTH_CAP: usize = 8;
+/// Nested expansion byte cap.
+pub const NESTED_BYTES_CAP: usize = 65536;
+
+/// Compress validated ranges: plan (disjoint, stable ids, tail refused),
+/// append protected content verbatim (upstream-exact headings), persist
+/// blocks durably, and return block ids in ascending order.
+///
+/// Raw history is never mutated; callers assert the checksum around this.
+pub fn compress_ranges(
+    db: &crate::storage::Db,
+    session: &str,
+    history: &[oc_core::session::Message],
+    validated: &[ValidatedRange],
+    spec: &oc_core::context_plan::ProtectedSpec,
+) -> Result<Vec<String>, DcpError> {
+    use oc_core::context_plan::{covered_protected, plan_ranges_protected};
+    let specs: Vec<(String, String)> = validated
+        .iter()
+        .map(|range| (range.start_id.clone(), range.end_id.clone()))
+        .collect();
+    let ranges = plan_ranges_protected(history, &specs).map_err(|e| DcpError::InvalidArgs {
+        reason: e.to_string(),
+    })?;
+    // Protected bytes must fit the verbatim budget, else visible impossibility.
+    for message in covered_protected(history, &ranges, spec) {
+        if message.text.len() > PROTECTED_BYTES_CAP {
+            return Err(DcpError::Impossible {
+                reason: "protected content exceeds verbatim budget".to_string(),
+            });
+        }
+    }
+    let protected = covered_protected(history, &ranges, spec);
+    let mut user_texts = Vec::new();
+    let mut tag_texts = Vec::new();
+    for message in &protected {
+        if matches!(message.role, oc_core::session::Role::User) {
+            user_texts.push(message.text.clone());
+        }
+        tag_texts
+            .extend(oc_core::context_plan::extract_protect_tags(&message.text).map(String::from));
+    }
+    let mut ids = Vec::with_capacity(validated.len());
+    for (range, resolved) in validated.iter().zip(ranges.iter()) {
+        let mut summary = range.summary.clone();
+        summary = append_protected_user_messages(&summary, &user_texts);
+        summary = append_protected_tags(&summary, &tag_texts);
+        let members: Vec<String> = history
+            [resolved.start..=resolved.end.min(history.len().saturating_sub(1))]
+            .iter()
+            .map(|message| message.id.0.clone())
+            .collect();
+        ids.push(save_block(
+            db,
+            session,
+            &range.topic,
+            &summary,
+            &range.start_id,
+            &range.end_id,
+            &members,
+        )?);
+    }
+    Ok(ids)
+}
+
+/// Append covered user messages verbatim (upstream-exact heading).
+pub fn append_protected_user_messages(summary: &str, user_texts: &[String]) -> String {
+    if user_texts.is_empty() {
+        return summary.to_string();
+    }
+    let heading = "\n\nThe following user messages were sent in this conversation verbatim:";
+    let body: String = user_texts.iter().map(|text| format!("\n{text}")).collect();
+    format!("{summary}{heading}{body}")
+}
+
+/// Append covered `<protect>` extracts verbatim (upstream-exact heading).
+pub fn append_protected_tags(summary: &str, tag_texts: &[String]) -> String {
+    if tag_texts.is_empty() {
+        return summary.to_string();
+    }
+    let heading = "\n\nThe following protected prompt information was included in this conversation verbatim:";
+    let body: String = tag_texts.iter().map(|text| format!("\n{text}")).collect();
+    format!("{summary}{heading}{body}")
+}
+
+/// Parsed block placeholder (`(bN)` or `{block_N}`) inside a summary.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BlockPlaceholder {
+    /// Raw matched text.
+    pub raw: String,
+    /// Numeric block id.
+    pub block_id: String,
+    /// Byte offset of the match.
+    pub start: usize,
+}
+
+/// Parse `(bN)` / `{block_N}` references out of a summary.
+pub fn parse_block_placeholders(summary: &str) -> Vec<BlockPlaceholder> {
+    /// Match one placeholder at `i`: (prefix, open_len, closer).
+    fn at(
+        summary: &str,
+        i: usize,
+        prefix: &str,
+        closer: char,
+    ) -> Option<(BlockPlaceholder, usize)> {
+        let rest = summary.get(i..)?.strip_prefix(prefix)?;
+        let end = rest.find(closer)?;
+        let inner = &rest[..end];
+        if inner.is_empty() || !inner.bytes().all(|b| b.is_ascii_digit()) {
+            return None;
+        }
+        Some((
+            BlockPlaceholder {
+                raw: summary[i..i + prefix.len() + end + 1].to_string(),
+                block_id: format!("b{inner:0>4}"),
+                start: i,
+            },
+            i + prefix.len() + end + 1,
+        ))
+    }
+
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < summary.len() {
+        if let Some((placeholder, next)) =
+            at(summary, i, "(b", ')').or_else(|| at(summary, i, "{block_", '}'))
+        {
+            out.push(placeholder);
+            i = next;
+        } else {
+            i += 1;
+        }
+    }
+    out
+}
+
+/// Expand a block's nested references with cycle/depth/byte limits.
+///
+/// Summaries link older blocks; expansion materializes full text for
+/// effectiveness accounting. A complex nested block is never replaced by a
+/// lossy stub: over-limit expansion is a visible error, not a silent cut.
+pub fn expand_block(
+    blocks: &std::collections::BTreeMap<String, CompressionBlock>,
+    id: &str,
+    depth: usize,
+    seen: &mut Vec<String>,
+) -> Result<String, DcpError> {
+    if seen.contains(&id.to_string()) {
+        return Err(DcpError::Cycle { id: id.to_string() });
+    }
+    if depth > NESTED_DEPTH_CAP {
+        return Err(DcpError::NestedTooLarge {
+            reason: "depth cap".to_string(),
+        });
+    }
+    let block = blocks
+        .get(id)
+        .ok_or_else(|| DcpError::UnknownMessage { id: id.to_string() })?;
+    seen.push(id.to_string());
+    let mut text = block.summary.clone();
+    for placeholder in parse_block_placeholders(&block.summary) {
+        let nested = expand_block(blocks, &placeholder.block_id, depth + 1, seen)?;
+        text = text.replacen(placeholder.raw.as_str(), nested.as_str(), 1);
+        if text.len() > NESTED_BYTES_CAP {
+            return Err(DcpError::NestedTooLarge {
+                reason: "byte cap".to_string(),
+            });
+        }
+    }
+    seen.pop();
+    Ok(text)
+}
+
+/// Patch protection: every affected path is checked against protected globs.
+///
+/// `apply_patch` counts as a protected mutation equivalent: any violation
+/// fails visibly before execution (the executor additionally enforces its
+/// own policy). Returns the affected paths when clean.
+pub fn check_patch_protected(
+    patch_text: &str,
+    protected_globs: &[String],
+) -> Result<Vec<String>, DcpError> {
+    let paths = crate::patch::affected_paths(patch_text).map_err(|e| DcpError::InvalidArgs {
+        reason: e.to_string(),
+    })?;
+    let mut violations = Vec::new();
+    for path in &paths {
+        if protected_globs
+            .iter()
+            .any(|pattern| glob_match(pattern, path))
+        {
+            violations.push(path.clone());
+        }
+    }
+    if violations.is_empty() {
+        Ok(paths)
+    } else {
+        Err(DcpError::PatchProtected { paths: violations })
+    }
+}
+
+fn glob_match(pattern: &str, text: &str) -> bool {
+    fn segment(pat: &[u8], text: &[u8]) -> bool {
+        let (mut p, mut t) = (pat, text);
+        let mut star: Option<&[u8]> = None;
+        let mut mark: &[u8] = b"";
+        loop {
+            match (p.first(), t.first()) {
+                (Some(b'*'), _) => {
+                    star = Some(&p[1..]);
+                    mark = t;
+                    p = &p[1..];
+                }
+                (Some(b'?'), Some(_)) => {
+                    p = &p[1..];
+                    t = &t[1..];
+                }
+                (Some(a), Some(b)) if a == b => {
+                    p = &p[1..];
+                    t = &t[1..];
+                }
+                _ => {
+                    if let Some(rest) = star {
+                        if mark.is_empty() {
+                            return false;
+                        }
+                        mark = &mark[1..];
+                        t = mark;
+                        p = rest;
+                    } else {
+                        return p.is_empty() && t.is_empty();
+                    }
+                }
+            }
+            if p.is_empty() && t.is_empty() {
+                return true;
+            }
+            if p.is_empty() && star.is_none() {
+                return false;
+            }
+        }
+    }
+
+    fn segments(pat: &[&str], path: &[&str]) -> bool {
+        if pat.is_empty() {
+            return path.is_empty();
+        }
+        if pat[0] == "**" {
+            return (0..=path.len()).any(|i| segments(&pat[1..], &path[i..]));
+        }
+        if path.is_empty() {
+            return false;
+        }
+        segment(pat[0].as_bytes(), path[0].as_bytes()) && segments(&pat[1..], &path[1..])
+    }
+
+    segments(
+        &pattern.split('/').collect::<Vec<_>>(),
+        &text.split('/').collect::<Vec<_>>(),
+    )
+}
+
+/// Single-shot compress outcome: either a smaller projection or a visible
+/// no-gain result that keeps the original. Callers must not loop on no-gain.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CompressOutcome {
+    /// Projection shrank; use it.
+    Compressed {
+        /// Saved rough tokens.
+        saved_tokens: u64,
+    },
+    /// No gain: original projection stands, try another selection instead.
+    NoGain {
+        /// Human reason.
+        reason: String,
+    },
+}
+
+/// Decide the outcome from measured savings (bounded, never a loop).
+pub fn decide_outcome(saved_tokens: u64) -> CompressOutcome {
+    if saved_tokens > 0 {
+        CompressOutcome::Compressed { saved_tokens }
+    } else {
+        CompressOutcome::NoGain {
+            reason: "summary does not shrink the projection".to_string(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -288,5 +606,268 @@ mod tests {
             projection.raw_checksum,
             oc_core::context_plan::raw_checksum(&history)
         );
+    }
+
+    use oc_core::context_plan::ProtectedSpec;
+    use oc_core::session::{Message, MessageId, Role};
+    use std::collections::BTreeMap;
+
+    fn message(id: &str, role: Role, text: &str) -> Message {
+        Message {
+            id: MessageId(id.to_string()),
+            role,
+            text: text.to_string(),
+        }
+    }
+
+    fn history5() -> Vec<Message> {
+        vec![
+            message("m0001", Role::User, "first question"),
+            message("m0002", Role::Assistant, "first answer"),
+            message(
+                "m0003",
+                Role::User,
+                "second <protect>secret-token</protect> question",
+            ),
+            message("m0004", Role::Assistant, "second answer"),
+            message("m0005", Role::User, "live tail"),
+        ]
+    }
+
+    fn validated(topic: &str, start: &str, end: &str, summary: &str) -> super::ValidatedRange {
+        super::ValidatedRange {
+            topic: topic.to_string(),
+            start_id: start.to_string(),
+            end_id: end.to_string(),
+            summary: summary.to_string(),
+        }
+    }
+
+    #[test]
+    fn dcp02_ids_stable_across_restart_and_stale_rejected() {
+        let tmp = tempfile::tempdir().expect("temp");
+        let root = tmp.path().join("data");
+        let history = history5();
+        let before = oc_core::context_plan::raw_checksum(&history);
+        let spec = ProtectedSpec::default();
+        let ranges = vec![validated("t", "m0001", "m0002", "early work")];
+        let ids = {
+            let db = crate::storage::Db::open(&root).expect("open");
+            super::apply_dcp_schema(&db).expect("migrate");
+            db.create_session("s-1").expect("session");
+            super::compress_ranges(&db, "s-1", &history, &ranges, &spec).expect("compress")
+        };
+        assert_eq!(ids, vec!["b0001".to_string()]);
+        // Restart: same dir reopens identical blocks; ids still resolve.
+        {
+            let db = crate::storage::Db::open(&root).expect("reopen");
+            let blocks = super::load_blocks(&db, "s-1").expect("load");
+            assert_eq!(blocks.len(), 1);
+            assert_eq!(blocks[0].id, "b0001");
+            assert_eq!(
+                blocks[0].members,
+                vec!["m0001".to_string(), "m0002".to_string()]
+            );
+            let planned = oc_core::context_plan::plan_ranges(
+                &history,
+                &[("m0001".to_string(), "m0002".to_string())],
+            )
+            .expect("still resolves");
+            assert_eq!((planned[0].start, planned[0].end), (0, 1));
+        }
+        assert_eq!(oc_core::context_plan::raw_checksum(&history), before);
+        // Stale / cross-session ids (valid elsewhere, unknown here).
+        let other = vec![message("m0001", Role::User, "other session")];
+        assert!(
+            super::compress_ranges(
+                &crate::storage::Db::open(&tmp.path().join("d2")).expect("db"),
+                "s-2",
+                &other,
+                &[validated("t", "m0002", "m0002", "stale")],
+                &spec,
+            )
+            .is_err()
+        );
+        // Unfinished tail coverage refused.
+        let db = crate::storage::Db::open(&tmp.path().join("d3")).expect("db");
+        assert!(matches!(
+            super::compress_ranges(
+                &db,
+                "s-3",
+                &history,
+                &[validated("t", "m0004", "m0005", "tail")],
+                &spec
+            ),
+            Err(super::DcpError::InvalidArgs { .. })
+        ));
+    }
+
+    #[test]
+    fn dcp03_nested_placeholders_cycles_and_verbatim() {
+        // Placeholder forms from the upstream fixture contract.
+        let found = super::parse_block_placeholders("see (b2) and {block_12} done");
+        assert_eq!(found.len(), 2);
+        assert_eq!(found[0].block_id, "b0002");
+        assert_eq!(found[1].block_id, "b0012");
+        // Nested chain expands; cycle is a visible error, never a stub.
+        let mut blocks = BTreeMap::new();
+        let block = |id: &str, summary: &str| super::CompressionBlock {
+            id: id.to_string(),
+            session: "s".to_string(),
+            topic: "t".to_string(),
+            summary: summary.to_string(),
+            start_msg: "m0001".to_string(),
+            end_msg: "m0001".to_string(),
+            members: vec!["m0001".to_string()],
+        };
+        blocks.insert("b0001".to_string(), block("b0001", "base facts"));
+        blocks.insert("b0002".to_string(), block("b0002", "wraps (b1) plus"));
+        let expanded = super::expand_block(&blocks, "b0002", 0, &mut Vec::new()).expect("expand");
+        assert!(expanded.contains("base facts"));
+        blocks.insert("b0003".to_string(), block("b0003", "loop (b4)"));
+        blocks.insert("b0004".to_string(), block("b0004", "loop (b3)"));
+        assert!(matches!(
+            super::expand_block(&blocks, "b0003", 0, &mut Vec::new()),
+            Err(super::DcpError::Cycle { .. })
+        ));
+        // Protected user text + protect tags appended verbatim upstream-style.
+        let history = history5();
+        let tmp = tempfile::tempdir().expect("temp");
+        let db = crate::storage::Db::open(&tmp.path().join("data")).expect("db");
+        super::apply_dcp_schema(&db).expect("migrate");
+        db.create_session("s-p").expect("session");
+        let spec = ProtectedSpec {
+            protect_user_messages: true,
+            protect_tags: true,
+            file_globs: vec![],
+        };
+        super::compress_ranges(
+            &db,
+            "s-p",
+            &history,
+            &[validated("t", "m0001", "m0003", "work done")],
+            &spec,
+        )
+        .expect("compress");
+        let blocks = super::load_blocks(&db, "s-p").expect("load");
+        let summary = &blocks[0].summary;
+        assert!(
+            summary
+                .contains("The following user messages were sent in this conversation verbatim:")
+        );
+        assert!(summary.contains("first question"));
+        assert!(summary.contains(
+            "The following protected prompt information was included in this conversation verbatim:"
+        ));
+        assert!(summary.contains("secret-token"));
+    }
+
+    #[test]
+    fn dcp04_patch_affected_paths_and_protection() {
+        // Every affected path parses out: op paths plus rename targets.
+        let patch = concat!(
+            "*** Begin Patch\n",
+            "*** Add File: new.txt\ncontent\n",
+            "*** Update File: old.txt\n@@\n-a\n+b\n",
+            "*** Move to: renamed.txt\n",
+            "*** Delete File: gone.txt\n",
+            "*** End Patch\n",
+        );
+        assert_eq!(
+            crate::patch::affected_paths(patch).expect("paths"),
+            vec![
+                "gone.txt".to_string(),
+                "new.txt".to_string(),
+                "old.txt".to_string(),
+                "renamed.txt".to_string()
+            ]
+        );
+        // Protected globs fail visibly with the violating paths listed.
+        let err =
+            super::check_patch_protected(patch, &["*.txt".to_string()]).expect_err("protected");
+        match err {
+            super::DcpError::PatchProtected { paths } => assert_eq!(paths.len(), 4),
+            other => panic!("wrong error: {other:?}"),
+        }
+        assert!(super::check_patch_protected(patch, &["*.md".to_string()]).is_ok());
+        // Oversized protected content makes compression visibly impossible.
+        let big = "x".repeat(super::PROTECTED_BYTES_CAP + 1);
+        let history = vec![
+            message("m0001", Role::User, &big),
+            message("m0002", Role::Assistant, "ok"),
+            message("m0003", Role::User, "tail"),
+        ];
+        let tmp = tempfile::tempdir().expect("temp");
+        let db = crate::storage::Db::open(&tmp.path().join("data")).expect("db");
+        let spec = ProtectedSpec {
+            protect_user_messages: true,
+            protect_tags: false,
+            file_globs: vec![],
+        };
+        assert!(matches!(
+            super::compress_ranges(
+                &db,
+                "s",
+                &history,
+                &[validated("t", "m0001", "m0002", "s")],
+                &spec
+            ),
+            Err(super::DcpError::Impossible { .. })
+        ));
+    }
+
+    #[test]
+    fn dcp09_effectiveness_and_no_gain_bound() {
+        use oc_core::context_plan::{plan_ranges, project, serialized_size, total_saved};
+        // Synthetic large closed span: 200 verbose messages + live tail.
+        let mut history: Vec<Message> = (0..200)
+            .map(|i| {
+                let role = if i % 2 == 0 {
+                    Role::User
+                } else {
+                    Role::Assistant
+                };
+                message(
+                    &format!("m{i:04}"),
+                    role,
+                    &format!("verbose payload line {i} with required fact ALPHA-{i}"),
+                )
+            })
+            .collect();
+        history.push(message("m0200", Role::User, "live tail"));
+        let full = project(&history, &[], None);
+        let full_size = serialized_size(&full);
+        let ranges =
+            plan_ranges(&history, &[("m0000".to_string(), "m0199".to_string())]).expect("plan");
+        let factful: Vec<(oc_core::context_plan::ResolvedRange, String, String)> = vec![(
+            ranges[0].clone(),
+            "bulk".to_string(),
+            "ALPHA facts 0..199 preserved in compressed span".to_string(),
+        )];
+        let small = project(&history, &factful, None);
+        assert!(serialized_size(&small) < full_size);
+        assert!(total_saved(&small) > 0);
+        let flat = serde_json::to_string(&small).expect("json");
+        assert!(flat.contains("ALPHA facts"));
+        assert_eq!(small.raw_checksum, full.raw_checksum);
+        // No gain: a summary as large as the raw span keeps the original.
+        let tiny = vec![
+            message("m0000", Role::User, "hi"),
+            message("m0001", Role::Assistant, "yo"),
+            message("m0002", Role::User, "tail"),
+        ];
+        let ranges =
+            plan_ranges(&tiny, &[("m0000".to_string(), "m0001".to_string())]).expect("plan");
+        let huge_summary = "s".repeat(200);
+        let candidate = project(
+            &tiny,
+            &[(ranges[0].clone(), "t".to_string(), huge_summary)],
+            None,
+        );
+        let outcome = super::decide_outcome(total_saved(&candidate));
+        assert!(matches!(outcome, super::CompressOutcome::NoGain { .. }));
+        // Original stands: single-shot guard, no loop.
+        let original = project(&tiny, &[], None);
+        assert!(serialized_size(&original) < serialized_size(&candidate));
     }
 }

@@ -209,6 +209,22 @@ impl FileOp {
     }
 }
 
+/// Affected paths parsed from `patchText` before execution (DCP04).
+///
+/// Sorted deduplicated op paths plus rename targets. Used by protection
+/// checks so every touched path is verified, not just a `filePath` param.
+pub fn affected_paths(patch_text: &str) -> Result<Vec<String>, PatchError> {
+    let ops = parse_plan(patch_text).map_err(|failure| failure.error)?;
+    let mut paths = std::collections::BTreeSet::new();
+    for op in &ops {
+        paths.insert(op.path().to_string());
+        if let Some(target) = op.move_to() {
+            paths.insert(target.to_string());
+        }
+    }
+    Ok(paths.into_iter().collect())
+}
+
 /// Parse `patchText` into an execution plan (no filesystem access).
 fn parse_plan(text: &str) -> Result<Vec<FileOp>, ApplyFailure> {
     if text.len() > PATCH_BYTES_CAP {

@@ -11,7 +11,6 @@ use sha2::{Digest as _, Sha256};
 use thiserror::Error;
 
 use crate::session::{Message, MessageId};
-
 /// Rough token estimate: 4 chars per token, minimum 1 per message.
 pub fn estimate_tokens(text: &str) -> u64 {
     (text.chars().count() as u64 / 4).max(1)
@@ -112,7 +111,7 @@ pub fn plan_ranges(
 }
 
 /// One outbound projection block: retained message or replacement summary.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub enum ProjectedBlock {
     /// Retained transcript message (reference to history content).
     Retained {
@@ -138,7 +137,7 @@ pub enum ProjectedBlock {
 
 /// Outbound projection: summaries plus retained messages, with the raw
 /// checksum it was computed from. The input slice is never mutated.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct Projection {
     /// Ordered outbound blocks.
     pub blocks: Vec<ProjectedBlock>,
@@ -205,6 +204,200 @@ fn push_retained(blocks: &mut Vec<ProjectedBlock>, tokens: &mut u64, message: &M
         },
         text: message.text.clone(),
     });
+}
+
+/// Total rough saved tokens across summary blocks (effectiveness signal).
+pub fn total_saved(projection: &Projection) -> u64 {
+    projection
+        .blocks
+        .iter()
+        .map(|block| match block {
+            ProjectedBlock::Summary { saved_tokens, .. } => *saved_tokens,
+            ProjectedBlock::Retained { .. } => 0,
+        })
+        .sum()
+}
+
+/// Serialized outbound size in bytes (effectiveness signal).
+pub fn serialized_size(projection: &Projection) -> usize {
+    serde_json::to_string(projection)
+        .map(|s| s.len())
+        .unwrap_or(usize::MAX)
+}
+
+/// Protection specification for range planning.
+///
+/// Until tool call/result parts land in the message model, protection
+/// applies to user messages, `<protect>` tag spans and file-glob mentions;
+/// tool-name/file-path part hooks (`isToolNameProtected`,
+/// `isFilePathProtected`, `getFilePathsFromParameters` upstream) attach at
+/// the turn-loop layer (documented deferral, exact names referenced).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ProtectedSpec {
+    /// Keep user messages verbatim (appended to summaries, never dropped).
+    pub protect_user_messages: bool,
+    /// Honor `<protect>` tag spans.
+    pub protect_tags: bool,
+    /// File glob patterns matched against whitespace-delimited text tokens.
+    pub file_globs: Vec<String>,
+}
+
+/// True when a message carries protected content under `spec`.
+pub fn message_protected(spec: &ProtectedSpec, message: &Message) -> bool {
+    if spec.protect_user_messages && matches!(message.role, crate::session::Role::User) {
+        return true;
+    }
+    if spec.protect_tags && extract_protect_tags(&message.text).next().is_some() {
+        return true;
+    }
+    if !spec.file_globs.is_empty() {
+        for token in message.text.split_whitespace() {
+            if spec
+                .file_globs
+                .iter()
+                .any(|pattern| glob_match(pattern, token))
+            {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Iterate `<protect>…</protect>` spans (case-insensitive, non-greedy).
+pub fn extract_protect_tags(text: &str) -> impl Iterator<Item = &str> {
+    let lower = text.to_lowercase();
+    let mut spans = Vec::new();
+    let mut cursor = 0;
+    while let Some(open) = lower[cursor..].find("<protect>") {
+        let start = cursor + open + "<protect>".len();
+        let Some(close) = lower[start..].find("</protect>") else {
+            break;
+        };
+        let body = text[start..start + close].trim();
+        if !body.is_empty() {
+            spans.push(body);
+        }
+        cursor = start + close + "</protect>".len();
+    }
+    spans.into_iter()
+}
+
+/// Minimal glob matcher (`*`/`?` segments; `**` crosses slashes).
+fn glob_match(pattern: &str, text: &str) -> bool {
+    fn segment(pat: &[u8], text: &[u8]) -> bool {
+        let (mut p, mut t) = (pat, text);
+        let mut star: Option<&[u8]> = None;
+        let mut mark: &[u8] = b"";
+        loop {
+            match (p.first(), t.first()) {
+                (Some(b'*'), _) => {
+                    star = Some(&p[1..]);
+                    mark = t;
+                    p = &p[1..];
+                }
+                (Some(b'?'), Some(_)) => {
+                    p = &p[1..];
+                    t = &t[1..];
+                }
+                (Some(a), Some(b)) if a == b => {
+                    p = &p[1..];
+                    t = &t[1..];
+                }
+                _ => {
+                    if let Some(rest) = star {
+                        if mark.is_empty() {
+                            return false;
+                        }
+                        mark = &mark[1..];
+                        t = mark;
+                        p = rest;
+                    } else {
+                        return p.is_empty() && t.is_empty();
+                    }
+                }
+            }
+            if p.is_empty() && t.is_empty() {
+                return true;
+            }
+            if p.is_empty() && star.is_none() {
+                return false;
+            }
+        }
+    }
+
+    fn segments(pat: &[&str], path: &[&str]) -> bool {
+        if pat.is_empty() {
+            return path.is_empty();
+        }
+        if pat[0] == "**" {
+            return (0..=path.len()).any(|i| segments(&pat[1..], &path[i..]));
+        }
+        if path.is_empty() {
+            return false;
+        }
+        segment(pat[0].as_bytes(), path[0].as_bytes()) && segments(&pat[1..], &path[1..])
+    }
+
+    segments(
+        &pattern.split('/').collect::<Vec<_>>(),
+        &text.split('/').collect::<Vec<_>>(),
+    )
+}
+
+/// Plan errors extended with unfinished-tail protection.
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+pub enum ProtectedPlanError {
+    /// Underlying range plan failure.
+    #[error("invalid range plan")]
+    Invalid,
+    /// Range covers the live tail message (unfinished batch lives there
+    /// until the turn loop exposes batch state; narrow safe rule).
+    #[error("range covers the unfinished tail")]
+    UnfinishedTail,
+}
+
+/// Plan ranges with tail protection: disjoint ordered spans that never cover
+/// the live tail message.
+///
+/// Protected content never blocks planning (upstream appends it verbatim via
+/// [`covered_protected`]); only the unfinished tail is refused.
+pub fn plan_ranges_protected(
+    history: &[Message],
+    specs: &[(String, String)],
+) -> Result<Vec<ResolvedRange>, ProtectedPlanError> {
+    let ranges = plan_ranges(history, specs).map_err(|_| ProtectedPlanError::Invalid)?;
+    if let Some(last) = history.last() {
+        let tail = last.id.0.clone();
+        for range in &ranges {
+            let covers_tail = history
+                .iter()
+                .position(|m| m.id.0 == tail)
+                .is_some_and(|tail_idx| range.start <= tail_idx && tail_idx <= range.end);
+            if covers_tail {
+                return Err(ProtectedPlanError::UnfinishedTail);
+            }
+        }
+    }
+    Ok(ranges)
+}
+
+/// Protected messages covered by planned ranges (verbatim-appended at
+/// compress time, never dropped).
+pub fn covered_protected<'a>(
+    history: &'a [Message],
+    ranges: &[ResolvedRange],
+    spec: &ProtectedSpec,
+) -> Vec<&'a Message> {
+    let mut out = Vec::new();
+    for range in ranges {
+        for message in history.iter().take(range.end + 1).skip(range.start) {
+            if message_protected(spec, message) {
+                out.push(message);
+            }
+        }
+    }
+    out
 }
 
 #[cfg(test)]
