@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-20T16:34:58+00:00",
+  "updated_at": "2026-09-20T16:42:07+00:00",
   "current": null,
   "tasks": {
     "T00": {
@@ -53,10 +53,10 @@
       "reopen_reason": null
     },
     "T07": {
-      "status": "todo",
-      "last_seq": 0,
-      "latest": null,
-      "evidence": null,
+      "status": "done",
+      "last_seq": 1,
+      "latest": "progress/M2/T07/0001.md",
+      "evidence": "evidence/T07/report.md",
       "reopen_reason": null
     },
     "T08": {
@@ -221,5 +221,5 @@
       "reopen_reason": null
     }
   },
-  "last_checkpoint_task": "T06"
+  "last_checkpoint_task": "T07"
 }
