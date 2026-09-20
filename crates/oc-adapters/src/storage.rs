@@ -351,6 +351,41 @@ impl Db {
         Ok(out)
     }
 
+    /// Read committed history with stable ids in seq order (DCP ranges).
+    pub fn read_history_full(
+        &self,
+        session: &str,
+    ) -> Result<Vec<(String, String, String)>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let mut stmt = conn.prepare_cached(
+            "SELECT id, role, text FROM messages WHERE session_id = ?1 ORDER BY seq ASC",
+        )?;
+        let rows = stmt.query_map(params![session], |row| {
+            let id: String = row.get(0)?;
+            let role: String = row.get(1)?;
+            let text: String = row.get(2)?;
+            Ok((id, role, text))
+        })?;
+        let mut out = Vec::new();
+        for row in rows {
+            out.push(row?);
+        }
+        if out.is_empty() {
+            Self::require_session(&conn, session)?;
+        }
+        Ok(out)
+    }
+
+    /// Delete a compression block with its membership (compensation only).
+    pub fn delete_compression_block(&self, block: &str) -> Result<(), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        conn.prepare_cached("DELETE FROM compression_members WHERE block_id = ?1")?
+            .execute(params![block])?;
+        conn.prepare_cached("DELETE FROM compression_blocks WHERE id = ?1")?
+            .execute(params![block])?;
+        Ok(())
+    }
+
     /// Upsert a namespaced UI preference (callers use `tui.*` keys).
     pub fn set_pref(&self, key: &str, value: &str) -> Result<(), StorageError> {
         let conn = self.conn.lock().expect("db mutex");

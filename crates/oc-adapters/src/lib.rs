@@ -15,6 +15,7 @@ pub mod mcp_stdio;
 pub mod models;
 pub mod patch;
 pub mod provider;
+pub mod runtime;
 pub mod shell;
 pub mod smoke;
 pub mod storage;
