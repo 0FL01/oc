@@ -102,10 +102,14 @@ class JournalTests(unittest.TestCase):
 
     def test_block_resume_retains_checkpoint(self):
         self.start()
+        work = self.root / "work.txt"
+        work.write_text("uncommitted user work\n")
         self.journal.checkpoint(self.state(), "note.md", "block")
         self.assertIsNone(self.state()["current"])
-        self.start()
-        self.assertEqual(self.state()["tasks"]["T00"]["last_seq"], 1)
+        resumed = Journal(self.root)
+        resumed.start(resumed.load(), "T00")
+        self.assertEqual(resumed.load()["tasks"]["T00"]["last_seq"], 1)
+        self.assertEqual(work.read_text(), "uncommitted user work\n")
 
     def test_orphan_is_detected_not_deleted(self):
         self.start()

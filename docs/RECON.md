@@ -14,7 +14,7 @@ OpenProxy pinned к `4ef76dbce2cdbb85206cbe5e59acbad9d96ae387`; source routes с
 
 В публичной CLI reference подтверждены `/goal`, предел objective 4000 chars и `--yolo` semantics. Это не проверка установленного CLI пользователя. Rust 1.98.1/Debian13.4/11.68GiB — предоставленные user observations, проверка host предстоит.
 
-Не выполнялись: сборка Rust oc, upstream runner, Rust port tests, обращения с credentials к OpenProxy/MCP, browser smoke, benchmarks на host. Пакет содержит specs, не результаты этих проверок. Собственные Python utility checks, offline tests присланного discovery JavaScript и структура архива проверены отдельно в `evidence/PACKAGE_VALIDATION.md`.
+Не выполнялись: сборка Rust oc, upstream runner, Rust port tests, обращения с credentials к OpenProxy/MCP, browser smoke, benchmarks на host. Этот датированный recon содержит source findings, не результаты product acceptance; актуальные проверки фиксируются только в task reports и `evidence/FINAL.md`.
 
 ## Входные материалы, не переносить их смысл скрыто
 

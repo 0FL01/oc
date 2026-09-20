@@ -1,6 +1,6 @@
 # Roadmap v3
 
-31 задача с ограниченным объёмом, один active task, зависимости вместо обещания закончить за два дня. `planning/tasks.json` — канонические definitions; progress/STATE.json — только текущее исполнение.
+Один active task и зависимости вместо календарных обещаний. `planning/tasks.json` — единственные task definitions и acceptance ownership; `progress/STATE.json` — только текущее исполнение. Число задач не является product invariant.
 
 **M0: Контракт и foundation.** См. `roadmap/M0.md`.
 

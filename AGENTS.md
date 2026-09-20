@@ -4,9 +4,9 @@
 
 ## Продолжение работы
 
-На старте и после compaction: прочитай `GOAL.md`, `progress/NOW.md`, `progress/INDEX.md`; выполни `git status --short` и `python3 scripts/progress.py show`. Сверь фактический HEAD/diff с checkpoint. Затем открой только текущую задачу, её stage-файл и последний journal leaf. Не читай рекурсивно `progress/`, `.local/`, архивы или весь upstream.
+На старте и после compaction: прочитай `GOAL.md` и `progress/NOW.md`, затем сверь фактический HEAD/status/diff с handoff. Git является источником истины о файлах и delivery. Открой текущую задачу и только нужные ей контракты; indices, старые leaves, `.local/`, архивы и upstream читай только targeted.
 
-Веди один активный task из `planning/tasks.json`. Перед изменениями `progress.py start ID`, после каждого проверяемого среза — `checkpoint`, при завершении — `finish`. Это не автоматический оркестратор: utility проверяет структуру и ссылки, а не истинность тестов.
+Веди один активный task из `planning/tasks.json`. Если active task отсутствует, перед изменениями выполни `progress.py start ID`. `checkpoint` нужен перед interruption/non-idempotent external action, при blocker или существенном незакоммиченном handoff; обычный проверенный slice сохраняет Git commit. При завершении task используй `finish`. Utility проверяет структуру и ссылки, а не истинность тестов.
 
 ## Инварианты
 
@@ -24,10 +24,10 @@ Rust 2024, небольшой Cargo workspace, модульный монолит
 
 ## Работа и остановка
 
-Детализируй только текущую задачу. Test → минимальная реализация → targeted tests → применимые workspace checks → factual checkpoint → commit. После трёх неуспешных попыток одного blocker не крути бесконечный цикл; фиксируй blocker и переходи только к независимой ready-задаче.
+Детализируй только текущую задачу. Test → минимальная реализация → targeted tests → только применимые workspace checks → review → commit. При task finish добавь factual report и journal transition. После трёх неуспешных попыток одного blocker не крути бесконечный цикл; фиксируй blocker и переходи только к независимой ready-задаче.
 
 Не менять GOAL, обязательные gates, baseline или tests ради зелёного результата. Допустимые локальные технические решения фиксировать в journal; изменение архитектурной границы — отдельная запись decision с последствиями, а не переписывание старой истории.
 
 При внешнем blocker (credentials/network/unsupported SDK protocol) сохрани handoff. Не запрашивай заново Q01–Q07. Не повторяй неизвестный внешний side effect после crash.
 
-Каждый checkpoint: что реально изменено; проверка и exit status; оставшийся риск; точный следующий шаг; изменённые файлы/HEAD. Не записывать внутренний ход мыслей, сырые диалоги или огромные логи.
+Checkpoint: что реально изменено; проверка и exit status; оставшийся риск; точный инженерный следующий шаг; изменённые файлы/HEAD. Не создавать checkpoint только ради staging/commit/push и не записывать внутренний ход мыслей, сырые диалоги или огромные логи.

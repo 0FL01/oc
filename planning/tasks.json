@@ -38,7 +38,6 @@
         "T01"
       ],
       "tests": [
-        "OPS01"
       ],
       "work": "Проверить pinned sources/licenses; зафиксировать Responses wire, MCP strict version, DCP range schema, user discovery oracle и configured-workspace source paths/tests. Получить representative source-derived fixtures для root/instruction/definition order, frontmatter и exact plugin identities с provenance; executable baseline failures фиксировать, не выдавать fixtures за executed parity.",
       "evidence": "evidence/T02/report.md",
@@ -52,7 +51,6 @@
         "T01"
       ],
       "tests": [
-        "STORE01"
       ],
       "work": "Typed commands/queries, session worker, scripted provider, cancellation path и bounded channels. Вертикальный input→response без real network.",
       "evidence": "evidence/T03/report.md",
@@ -82,9 +80,10 @@
         "T04"
       ],
       "tests": [
+        "STORE01",
         "UI05"
       ],
-      "work": "run/sessions/--help, NDJSON, exit codes, saved resume; diagnostics stderr. Не блокировать Cancel на долгом stream.",
+      "work": "run/sessions/--help, NDJSON, exit codes и полный input→mock stream→persist→resume через тот же application runtime; diagnostics stderr. Не блокировать Cancel на долгом stream.",
       "evidence": "evidence/T05/report.md",
       "spec": "roadmap/M1.md"
     },
@@ -96,8 +95,6 @@
         "T05"
       ],
       "tests": [
-        "UI01",
-        "STORE05"
       ],
       "work": "Prompt/stream/history/cancel/exit в Ratatui, limited viewport, PTY test; тот же application handle.",
       "evidence": "evidence/T06/report.md",
@@ -119,10 +116,9 @@
         "CFG05",
         "CFG06",
         "CFG07",
-        "CFG08",
-        "TOOL09"
+        "CFG08"
       ],
-      "work": "Parser/provenance/native profile, selected-only credentials и central permissions; global/Location roots, ordered AGENTS, bounded immutable skill/primary-agent/command catalogs, domain merge и exact native-plugin classification. Unknown/unsupported отклонять до side effects; не исполнять commands/plugins и не активировать будущие modules в этом task.",
+      "work": "Parser/provenance/native profile, explicit Location trust до substitutions/resource reads/side effects, selected-only credentials и central permission policy; global/Location roots, ordered AGENTS, bounded immutable skill/primary-agent/command catalogs, domain merge и exact native-plugin classification. Unknown/unsupported отклонять до side effects; не исполнять commands/plugins и не активировать будущие modules в этом task.",
       "evidence": "evidence/T07/report.md",
       "spec": "roadmap/M2.md"
     },
@@ -136,7 +132,7 @@
       "tests": [
         "TOOL01"
       ],
-      "work": "read/glob/grep, stable sorting/pagination, bounded bytes и safe location resolution; source fixtures.",
+      "work": "read/glob/grep, stable sorting/pagination, bounded bytes, safe location resolution и полный отказ model-facing file tools от own data root; source fixtures.",
       "evidence": "evidence/T08/report.md",
       "spec": "roadmap/M2.md"
     },
@@ -168,7 +164,7 @@
         "TOOL05",
         "TOOL06"
       ],
-      "work": "Process group/cwd/env policy, concurrent drains, bounded retained output, deadline/cancel/kill/reap. Не persistent shell manager.",
+      "work": "Process group/cwd/minimal child env без provider/MCP credentials, concurrent drains, bounded retained output, deadline/cancel/kill/reap. Не persistent shell manager и не sandbox claim.",
       "evidence": "evidence/T10/report.md",
       "spec": "roadmap/M2.md"
     },
@@ -221,7 +217,7 @@
         "TOOL10",
         "TOOL11"
       ],
-      "work": "Complete tool batch and IDs, native tool execution включая skill из pinned generation snapshot, continuation items, usage/image encoding и generation-bound projection.",
+      "work": "Complete tool batch and IDs, native tool execution включая skill из pinned generation snapshot, continuation items, usage/image encoding, generation-bound projection и offline-tested live wire harness.",
       "evidence": "evidence/T13/report.md",
       "spec": "roadmap/M3.md"
     },
@@ -257,7 +253,6 @@
         "T14"
       ],
       "tests": [
-        "UI02"
       ],
       "work": "Effective model selection/variant validation, unknown metadata diagnostics, context+output admission and explain; no production automatic model fallback.",
       "evidence": "evidence/T15/report.md",
@@ -273,7 +268,7 @@
       "tests": [
         "PROV08"
       ],
-      "work": "Проверить credentials presence без logging; bounded live text+tool loop на выбранной модели, записать exact deployment/model/variant. Missing env → block только этот task.",
+      "work": "Явно opt-in выполнить уже offline-tested live harness; проверить credentials presence без logging, durable counters/watchdog и bounded text+tool loop, записать exact deployment/model/variant. Missing env → block только этот task; product/harness code здесь не добавлять.",
       "evidence": "evidence/T16/report.md",
       "spec": "roadmap/M3.md"
     },
@@ -287,8 +282,7 @@
         "T13"
       ],
       "tests": [
-        "DCP01",
-        "DCP08"
+        "DCP01"
       ],
       "work": "Core context plan и durable compression generation, DCP policy module, bounded history references; immutable raw transcript.",
       "evidence": "evidence/T17/report.md",
@@ -343,7 +337,7 @@
         "MCP02",
         "MCP03"
       ],
-      "work": "rmcp remote client, exact 2025-11-25 POST/JSON path and no-session mode, registry mapping/errors/cancel; fake server mandatory before live.",
+      "work": "rmcp remote client, exact configured URL и 2025-11-25 POST/JSON path/no-session mode, registry mapping/errors/cancel; fake server и reusable live search harness mandatory before live.",
       "evidence": "evidence/T20/report.md",
       "spec": "roadmap/M4.md"
     },
@@ -359,7 +353,7 @@
         "MCP04",
         "MCP05"
       ],
-      "work": "Child lifecycle/stdout/stderr, enabled:false no spawn, argv retained; pinned fake server. Не включать browser/Node автоматически.",
+      "work": "Child lifecycle/stdout/stderr и minimal child env без provider/MCP credentials, enabled:false no spawn, argv retained; pinned fake server. Не включать browser/Node автоматически.",
       "evidence": "evidence/T21/report.md",
       "spec": "roadmap/M4.md"
     },
@@ -407,9 +401,10 @@
       ],
       "tests": [
         "STORE05",
+        "TOOL09",
         "DCP08"
       ],
-      "work": "Full runtime turn loop; один prompt assembler; command expansion через durable SubmitInput; atomic immutable config-generation publication; Location-scoped sessions; MCP/DCP/reasoning cleanup и reload только между turns. Не парсить definitions и не владеть configured-workspace E2E.",
+      "work": "Full runtime turn loop и authoritative STORE05/TOOL09/DCP08 integration; один prompt assembler; command expansion через durable SubmitInput; atomic immutable config-generation publication; Location-scoped sessions; MCP/DCP/reasoning cleanup и reload только между turns. Не парсить definitions и не владеть configured-workspace E2E.",
       "evidence": "evidence/T24/report.md",
       "spec": "roadmap/M5.md"
     },
@@ -426,7 +421,7 @@
         "E2E03",
         "E2E05"
       ],
-      "work": "Ordered checkpoints: configured-workspace A→B offline E2E с native aliases; затем seeded Rust coding E2E; затем compression/restart E2E. Scripted provider, no network/JS runtime/external payment.",
+      "work": "Один ordered configured-workspace A→B, seeded Rust coding и compression/restart offline E2E; подготовить reusable live workflow harness. Scripted provider, no network/JS runtime/external payment.",
       "evidence": "evidence/T25/report.md",
       "spec": "roadmap/M5.md"
     },
@@ -439,10 +434,7 @@
         "T25"
       ],
       "tests": [
-        "UI01",
-        "UI03",
-        "UI04",
-        "UI05"
+        "UI01"
       ],
       "work": "PTY paste/resize/Unicode/cancel/panic restoration, slow consumer и long-history paging; inspect actual behavior not only render snapshot.",
       "evidence": "evidence/T26/report.md",
@@ -459,11 +451,10 @@
       ],
       "tests": [
         "E2E02",
-        "E2E03",
         "E2E04",
         "MCP06"
       ],
-      "work": "Bounded real coding task, compress/resume, webfetch and codex_web search; optional browser smoke only explicit opt-in. Report remaining models unqualified.",
+      "work": "Явно opt-in выполнить готовый bounded live campaign: coding без edits вне fixture, reopen/next command, compress/resume, webfetch и codex_web search с counters/watchdog; optional browser smoke only explicit opt-in. Product/harness code здесь не добавлять; report remaining models unqualified.",
       "evidence": "evidence/T27/report.md",
       "spec": "roadmap/M5.md"
     },
@@ -479,11 +470,9 @@
         "LOAD01",
         "LOAD02",
         "LOAD03",
-        "LOAD04",
-        "STORE03",
-        "STORE04"
+        "LOAD04"
       ],
-      "work": "Fixed synthetic long-session workload, outputs/history/queue/caches/MCP lifecycle, crash injection; measure actual host baseline and regression bounds.",
+      "work": "Сначала измерить короткий host baseline, затем зафиксировать достаточно длинный synthetic workload до qualification; outputs/history/scroll/queue/caches/MCP lifecycle, crash injection и no-linear-growth bounds.",
       "evidence": "evidence/T28/report.md",
       "spec": "roadmap/M6.md"
     },
@@ -499,10 +488,9 @@
         "BUILD02",
         "BUILD03",
         "OPS01",
-        "OPS02",
         "OPS04"
       ],
-      "work": "Clean new HOME/XDG/no Node/Bun runtime test включая configured workspace, fmt/clippy/tests/build, source/license/secret/compat audit. No importer/release.",
+      "work": "Clean new HOME/XDG/no Node/Bun runtime test включая configured workspace, fmt/clippy/tests/build и dependency/source/license/compat audit. Проверить source tree на secrets; final staged report/delivery scan остаётся T30. No importer/release.",
       "evidence": "evidence/T29/report.md",
       "spec": "roadmap/M6.md"
     },
@@ -514,9 +502,10 @@
         "T29"
       ],
       "tests": [
+        "OPS02",
         "OPS03"
       ],
-      "work": "Заполнить FINAL по A01–A13 и связать authoritative executable evidence без полного перезапуска suites. Live blockers не скрывать: task отчёта можно закрыть с BUILD_READY_LIVE_BLOCKED, но goal не READY. Reviewed own-branch push и отдельный delivery status.",
+      "work": "Заполнить FINAL по A01–A13 и связать authoritative executable evidence без полного перезапуска suites. При missing mandatory live evidence записать BUILD_READY_LIVE_BLOCKED и block T30; после T16/T27 resume и finish. Выполнить final staged secret review, reviewed own-branch push и отдельный delivery status.",
       "evidence": "evidence/T30/report.md",
       "spec": "roadmap/M6.md"
     }

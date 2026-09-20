@@ -15,7 +15,7 @@ progress/
       0002.md
 ```
 
-`planning/tasks.json` — task definitions/dependencies, не журнал. `STATE.json` — их statuses/current/latest refs и указатель на последний checkpoint, без transcript. `NOW/INDEX` — generated views, не независимые competing sources of truth. Journal leaf immutable, factual, не chain-of-thought. Полные command logs — `.local/evidence/`, вне Git; в `evidence/` маленькие sanitized reports.
+`planning/tasks.json` — task definitions/dependencies, не журнал. `STATE.json` — их statuses/current/latest refs и указатель на последний checkpoint, без transcript. `NOW/INDEX` — generated views, не независимые competing sources of truth. Git определяет фактические файлы/commits/delivery; journal хранит только recovery handoff. Journal leaf immutable, factual, не chain-of-thought. Полные command logs — `.local/evidence/`, вне Git; в `evidence/` маленькие sanitized reports.
 
 Ограничения utility: note ≤6144 UTF-8 bytes; NOW ≤8192; каждый INDEX ≤8192; note содержит четыре headings Result/Checks/Risks/Next. Размер измеряется bytes, не якобы точными токенами. После 12 записей task index показывает последние 12; старые файлы остаются на диске и ищутся targeted `rg -l`/по имени. Root/phase indices не растут на каждый checkpoint. Общая история может быть большой, resume-набор от этого не растёт.
 
@@ -36,7 +36,7 @@ python3 scripts/progress.py check
 
 `finish` требует active task, выполненные зависимости, непустой report внутри evidence/ и допустимый note. Это структурная проверка, НЕ независимое доказательство корректности кода или PASS тестов. Tests выполняет агент/CI; report должен честно указывать commands/exits и measured/source-derived/synthetic метод.
 
-`start` может возобновить blocked task после устранения причины; не может перескочить dependencies или открыть второго active task. `checkpoint` сохраняет работу и оставляет task active, `block` освобождает active slot. `finish` переводит task в done. Для повторного исправления completed task использовать `reopen ID --reason ...`; utility снимает done только с указанной задачи, запрещает reopen при завершённых зависимых tasks — в таком случае оформляется новый исправляющий task/явный пересмотр графа, а не скрытая инвалидность.
+`start` может возобновить blocked task после устранения причины; не может перескочить dependencies или открыть второго active task. `checkpoint` нужен при interruption/non-idempotent external action/существенном незакоммиченном handoff и оставляет task active; `block` освобождает active slot. `finish` переводит task в done. Для повторного исправления completed task использовать `reopen ID --reason ...`; utility снимает done только с указанной задачи, запрещает reopen при завершённых зависимых tasks — в таком случае оформляется новый исправляющий task/явный пересмотр графа, а не скрытая инвалидность.
 
 ## Шаблон записи
 
@@ -51,7 +51,7 @@ cargo test -p oc-adapters sse — exit 0; 8 tests. Это offline fake-wire test
 Добавить fixture split UTF-8 внутри tool arguments и выполнить cargo test -p oc-adapters sse.
 ```
 
-Не писать «работает» вместо проверяемого evidence. Не повторять plan по кругу; указывать один точный следующий шаг, краткие риски и полезные pointers. Log files не копировать в note даже при неудаче; оставить error category и path к redacted excerpt.
+Не писать «работает» вместо проверяемого evidence. Не создавать note только после validator/staging/push. Указывать один точный инженерный следующий шаг, краткие риски и полезные pointers. Log files не копировать в note даже при неудаче; оставить error category и path к redacted excerpt.
 
 ## Crash consistency
 
@@ -65,7 +65,7 @@ Utility использует short-lived OS file lock, сначала атома
 
 ## Resume read budget
 
-AGENTS + GOAL + NOW + root INDEX → current phase section → latest task leaf при необходимости → targeted source/test files. Старые phases и upstream README не перечитываются без причины. `progress.py show` выводит текущую task и не более 5 ready candidates. Постоянные архитектурные решения остаются в docs, важная локальная находка — в task leaf, ближайшее действие — в NOW.
+AGENTS + GOAL + NOW + фактический Git → current task → targeted contracts/source/tests. Root/phase indices и latest leaf уже отражены в NOW и открываются отдельно только для recovery. Старые phases и upstream README не перечитываются без причины. Постоянные архитектурные решения остаются в docs, важная локальная находка — в task leaf, ближайшее действие — в NOW.
 
 ## Изменение графа при настоящем blocker
 

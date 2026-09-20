@@ -2,497 +2,87 @@
   "schema_version": 2,
   "kind": "test-specifications-not-results",
   "tests": [
-    {
-      "id": "ENV01",
-      "title": "Actual host",
-      "expected": "non-root uid; verified worktree/origin; supplied Rust target/toolchain; rootless Docker checked separately, no secrets in report.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "ENV02",
-      "title": "Recovery utility",
-      "expected": "start/checkpoint/finish/block/resume; bounded indices; orphan detection; dirty Git reconciliation; no reset on resume.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "BUILD01",
-      "title": "Workspace",
-      "expected": "edition 2024/resolver3; dependency directions; mock slice compiles; Cargo.lock and exact toolchain checked in.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "BUILD02",
-      "title": "Quality",
-      "expected": "cargo fmt --all -- --check; cargo clippy --workspace --all-targets -- -D warnings; cargo test --workspace --locked; no ignored required tests.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "BUILD03",
-      "title": "Standalone",
-      "expected": "cargo build --locked and cargo build; target/debug/oc --help; core app runs with PATH without node/bun/upstream, external MCP disabled.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "CFG01",
-      "title": "User forms",
-      "expected": "JSONC fragments assembled into valid config; native TOML separate; ludka static/ludka2 discovery; timeout:false and chunkTimeout preserved.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "CFG02",
-      "title": "Substitution/merge",
-      "expected": "baseline source-derived env/file escaping, precedence and permission merge; source/field diagnostics; original configs byte-unchanged.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "CFG03",
-      "title": "Capability failures",
-      "expected": "unknown npm, explicit codemode:true, OAuth:true or unsupported DCP mode give actionable errors; not silent acceptance.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "CFG04",
-      "title": "Secrets/disabled",
-      "expected": "missing env on unselected provider does not block selected one; disabled MCP launches nothing; config explain/logs redacted.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "CFG05",
-      "title": "Config roots",
-      "expected": "source-derived global/Location JSON/JSONC and .opencode order, canonical dedup and field provenance are deterministic; explicit config and separate cli.json behavior remain intact; inputs byte-unchanged.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "CFG06",
-      "title": "Instructions",
-      "expected": "global and applicable Location AGENTS sentinels enter provider instructions once in pinned order with provenance; unreadable/disappeared files are diagnosed and candidate generation retains no stale text.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "CFG07",
-      "title": "Definitions",
-      "expected": "singular/plural skill/agent/command roots, supported frontmatter and domain collisions are deterministic; invalid definition reports path/field/reason while valid siblings survive; selected/default invalid and subagent/reserved behavior fail explicitly.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "CFG08",
-      "title": "Native plugins",
-      "expected": "only exact bare/pinned DCP identities and admitted openproxy-models.js markers classify idempotently; unknown/lookalike/version/JS/TS sources fail before resolver/import/process/network and no plugin code executes.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "STORE01",
-      "title": "Vertical session",
-      "expected": "input→mock stream→persist→resume, identical application behavior local/headless.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "STORE02",
-      "title": "Lock/atomicity",
-      "expected": "second data root owner refused; state and event transactional; durable ack only after commit.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "STORE03",
-      "title": "Crash operations",
-      "expected": "kill after intent before/after side effect; recover unknown/partial, never autoreplay mutation.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "STORE04",
-      "title": "Blob failures",
-      "expected": "disk-full/read-only/blob-before-DB orphan behavior; no referenced blob deletion; quotas enforced.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "STORE05",
-      "title": "Cancel/shutdown",
-      "expected": "worker responsive during streaming; DB drained, terminal restored, own children reaped; no tasks retained per past session.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "TOOL01",
-      "title": "Read/search",
-      "expected": "bounded file chunks, glob/grep stable sorted results, pagination, binary/large file diagnostics, no own data dir recursion.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "TOOL02",
-      "title": "Patch create",
-      "expected": "new/empty file, append to existing empty file, Unicode/CRLF/end newline; exact patch grammar fixtures.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "TOOL03",
-      "title": "Patch edit/delete/move",
-      "expected": "targeted hunks/full text replacement/delete/move supported; no write/edit in model registry.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "TOOL04",
-      "title": "Patch conflicts",
-      "expected": "Add existing, stale preimage, invalid later entry, protected/outside/symlink path; no success on partial; per-file result.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "TOOL05",
-      "title": "Shell output",
-      "expected": "interleaved stdout/stderr >caps; no deadlock/unbounded accumulation; correct exit status/truncation.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "TOOL06",
-      "title": "Shell cancel",
-      "expected": "timeout/TERM-resistant child/grandchild; KILL/wait/reap; elapsed bound; unknown versus cancelled outcomes.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "TOOL07",
-      "title": "Web text",
-      "expected": "GET text/HTML/JSON, status/content type/original URL, bounded readable output and redirects.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "TOOL08",
-      "title": "Web safety",
-      "expected": "private/link-local/loopback, DNS rebinding, IPv6 mapped address, redirect-to-private, large body, deadline; auth not inherited.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "TOOL09",
-      "title": "Permissions",
-      "expected": "same path for all tools incl MCP/compress; ask headless fails; invalid config never allows; patch legacy deny wins.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "TOOL10",
-      "title": "Tool graph",
-      "expected": "unknown tool/invalid JSON/duplicate call IDs/replayed done event do not execute; results match original call IDs.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "TOOL11",
-      "title": "Skill loading",
-      "expected": "model sees bounded id/name/description without bodies; skill uses central permission and pinned bounded generation snapshot; unknown/removed/oversized/unreadable/stale calls fail visibly with a valid durable tool graph.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DISC01",
-      "title": "Basic dynamic",
-      "expected": "unknown/new model IDs including slash, source suffix once, name formatting; no code changes/model list fallback.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DISC02",
-      "title": "Metadata",
-      "expected": "JS safe integer/null-object/booleans/modalities validation; one invalid row leaves whole old catalog unchanged.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DISC03",
-      "title": "Authority",
-      "expected": "ignore remote URL/npm/auth/options fields; credentials remain original; redirect:error.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DISC04",
-      "title": "Merge",
-      "expected": "original local snapshot only; shallow nested limit/variants; explicit local override wins; local-only IDs removed on success.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DISC05",
-      "title": "Limits",
-      "expected": "discovery context/input capped 500000; output unchanged; missing context/output removes limit; static ludka 628000 unaffected.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DISC06",
-      "title": "Variants",
-      "expected": "remote allowlist disables missing standard names; custom names/effort retained; disabled hidden; local explicit override works.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DISC07",
-      "title": "Timing",
-      "expected": "fake clock: each attempt ≤15000ms, total ≤30000ms incl body, ≤4 attempts and clipped 250/750/1500 delays; cancellation cleanup.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DISC08",
-      "title": "Retry classes",
-      "expected": "408/425/429/5xx/network/invalid JSON/empty retry; auth/bad shape/invalid row terminal; no retry layer multiplication.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DISC09",
-      "title": "Publication",
-      "expected": "empty cold list never clears configured models; success removes retired IDs; duplicate ID last wins; bounded size failures atomic.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DISC10",
-      "title": "Isolation",
-      "expected": "disabled provider no fetch; two provider/config generations independent; failed refresh never turns remote data into local overrides.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "PROV01",
-      "title": "Request",
-      "expected": "exact base prefix+/responses, Bearer, store:false, input/tool schemas and stable prompt_cache_key; no OAuth or API fallback.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "PROV02",
-      "title": "SSE",
-      "expected": "arbitrary byte split, multiline/CRLF/comments/UTF8, text/item/argument stream incremental; event cap enforced.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "PROV03",
-      "title": "Tool roundtrip",
-      "expected": "complete arguments→native tool→function_call_output→next response; multi-call order and ID validity.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "PROV04",
-      "title": "Reasoning",
-      "expected": "opaque/reasoning items persisted/replayed at correct boundary; model/provider switch does not reuse alien state; no opaque UI logging.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "PROV05",
-      "title": "Images",
-      "expected": "advertised text/image accepts bounded verified attachment; encoded request cap, unsupported audio/video/pdf visible.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "PROV06",
-      "title": "Errors",
-      "expected": "401/403/429/5xx, incomplete/EOF, failure after delta; one retry owner, never repeat committed generation/tool.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "PROV07",
-      "title": "Timeouts",
-      "expected": "timeout:false no total deadline; chunkTimeout 6000000 not 6000; explicit cancel still closes request; connect separately bounded.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "PROV08",
-      "title": "Live wire",
-      "expected": "real proxy published model text+tool roundtrip; record actual model/variant/deployment evidence; not infer all-model parity.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DCP01",
-      "title": "Projection",
-      "expected": "raw history checksum stable; durable compression/prune state changes only outbound context; no second history copy.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DCP02",
-      "title": "Range schema",
-      "expected": "topic/content/startId/endId/summary; upstream reference parsing, invalid/stale/cross-session IDs and unfinished groups rejected.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DCP03",
-      "title": "Nested/protected",
-      "expected": "upstream-derived overlapping/nested summaries, cycle/size checks; protected tool/file/tag/user bytes preserved.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DCP04",
-      "title": "Patch protection",
-      "expected": "all affected paths parsed from patch; apply_patch treated as protected mutation equivalent; large protected content visible failure not loss.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DCP05",
-      "title": "Nudges",
-      "expected": "threshold/percent/per-model, summary buffer, frequency/iteration/turn reset; no accumulating prompt-message copies.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DCP06",
-      "title": "Prune timing",
-      "expected": "dedup and error input purge recalc at compression; latest required output and error text retained; protected/manual policy tested.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DCP07",
-      "title": "Config/control",
-      "expected": "DCP precedence/read-only files, range permission and manual mode, notifications/stats; unsupported experimental options explicit.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DCP08",
-      "title": "Recovery",
-      "expected": "cancel/stale generation/transaction failure cannot half-apply projection; restart reproduces same effective context and continuation.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "DCP09",
-      "title": "Effectiveness",
-      "expected": "synthetic large closed span yields smaller outbound serialized context, required facts retained; no-gain compression bounded, not loop.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "MCP01",
-      "title": "Remote JSON",
-      "expected": "2025-11-25 initialize/headers, bearer, POST/JSON, no session ID/GET dependency; observed OpenProxy shape supported.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "MCP02",
-      "title": "Remote lifecycle",
-      "expected": "JSON/SSE adapter paths, 405 optional GET, auth/timeout/invalid replies, cancellation and list update; no reconnect storm.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "MCP03",
-      "title": "Registry",
-      "expected": "namespaced collision-safe names map exact server/tool, paginated bounded schema/catalog, isError surfaced.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "MCP04",
-      "title": "Stdio",
-      "expected": "fake child JSON-RPC stdout + bounded stderr, kill/reap, restart config generation, no cross-auth/cwd sharing.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "MCP05",
-      "title": "Disabled browser",
-      "expected": "exact npx argv preserved; enabled:false zero process/browser probe and no Node requirement; true explicitly selected fake/real smoke.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "MCP06",
-      "title": "Live search",
-      "expected": "real codex_web search returns non-fabricated content/result; actual errors propagate; no auto OAuth or unknown-effect retry.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "UI01",
-      "title": "Basic PTY",
-      "expected": "input/paste/Unicode/resize, streamed response and Ctrl-C, terminal restoration on error/panic/exit.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "UI02",
-      "title": "Model picker",
-      "expected": "dynamic catalog/variants/refresh status, user choice persisted, retired model actionable, no automatic silent fallback.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "UI03",
-      "title": "History/diff",
-      "expected": "pagination/session switch/resume/tool cards/diff without whole-history rendering/backing-store growth.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "UI04",
-      "title": "DCP panel",
-      "expected": "context/stats/manual controls, /dcp-compress focus becomes bounded instruction, notification not duplicate history.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "UI05",
-      "title": "Headless JSON",
-      "expected": "NDJSON only stdout; errors stderr; bounded slow consumer; interrupted exit code non-success.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "UI06",
-      "title": "Workspace definitions",
-      "expected": "primary-agent selection, slash completion/invocation, skill catalog/tool card, redacted provenance/diagnostic and Location switch use one current-generation registry; stale actions fail and old local entries disappear.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "E2E01",
-      "title": "Offline coding",
-      "expected": "scripted provider fixes seeded Rust bug through read/apply_patch/bash; fixture tests pass; no edits outside fixture.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "E2E02",
-      "title": "Live coding",
-      "expected": "published model solves same small fixture with actual tool use; API/facts/tests verified, bounded requests; semantic output not exact text match.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "E2E03",
-      "title": "Compress then resume",
-      "expected": "model calls compress then uses retained fact to patch/test; restart and next prompt succeed; output context reduced.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "E2E04",
-      "title": "Web workflow",
-      "expected": "webfetch tool and codex_web search preserve source info; browser smoke conditional on explicit opt-in, never claimed if not run.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "E2E05",
-      "title": "Configured workspace",
-      "expected": "offline scripted provider consumes global plus Location A instructions/agent/command/skill with skill body absent until call and both native aliases wired; switch to B retains global, removes A-local and uses no JS/Node/Bun/network.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "LOAD01",
-      "title": "Soak",
-      "expected": "10000 scripted turns over bounded active context, ≥100 sessions/switches, periodic compress/cancel/MCP error, stable resource counters.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "LOAD02",
-      "title": "Output pressure",
-      "expected": "large shell/provider/tool outputs, slow UI, queue cap, blob quota, cancellation under load; no hidden second transcript.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "LOAD03",
-      "title": "Measurements",
-      "expected": "baseline/peak/post-idle RSS/PSS plus task/process/queue/cache/DB/WAL metrics; allocator RSS alone not leak conclusion.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "LOAD04",
-      "title": "Regression",
-      "expected": "fixed workload/seeds/toolchain/machine; adopt baseline-derived caps, compare no linear retained-history slope; clean shutdown checked.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "OPS01",
-      "title": "Provenance",
-      "expected": "DCP/OpenCode borrowed code/prompts/tests have pinned source/license/notices; no unsupported license claims for OpenProxy copied code.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "OPS02",
-      "title": "Secrets Git",
-      "expected": "review staged tracked content/fixtures/reports; no keys/URL credentials/raw payload/DB/.local; push normal own branch only.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "OPS03",
-      "title": "Goal handoff",
-      "expected": "A01–A13 independent status, command exits/commit/live blockers; READY only required live passes; delivery status separate.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "OPS04",
-      "title": "Fresh restart",
-      "expected": "new test HOME/XDG/data, built oc starts without upstream/Node, examples read-only, new sessions persist; no migration/release code.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    },
-    {
-      "id": "OPS05",
-      "title": "Agent-neutral execution",
-      "expected": "package checks and progress utility run without Codex executable, /goal, GPT/Luna configuration or a required agent tool API; generic objective is nonempty, active execution surfaces have no fixed runner identity, and OC_TEST_MODEL remains product-test-only.",
-      "implementation_status": "NOT_IMPLEMENTED_BY_THIS_KIT"
-    }
+    {"id": "ENV01", "title": "Actual host", "expected": "non-root uid; verified worktree/origin/one mutation owner; actual immediate resources and Rust toolchain recorded without secrets; Docker is NOT_USED unless a task actually invokes it."},
+    {"id": "ENV02", "title": "Recovery utility", "expected": "start/checkpoint/finish/block/resume; bounded indices and orphan detection; forced interruption preserves dirty Git state and resumes without reset."},
+    {"id": "BUILD01", "title": "Workspace", "expected": "edition 2024/resolver3 workspace and dependency directions compile; Cargo.lock and exact toolchain checked in; direct dependency sources/features/licenses and unexpected build scripts reviewed."},
+    {"id": "BUILD02", "title": "Quality", "expected": "cargo fmt --all -- --check; cargo clippy --workspace --all-targets -- -D warnings; cargo test --workspace --locked; no ignored required tests."},
+    {"id": "BUILD03", "title": "Standalone", "expected": "cargo build --locked and cargo build; target/debug/oc --help; core app runs with PATH without node/bun/upstream, external MCP disabled."},
+    {"id": "CFG01", "title": "User forms", "expected": "JSONC fragments assembled into valid config; native TOML separate; ludka static/ludka2 discovery; timeout:false and chunkTimeout preserved."},
+    {"id": "CFG02", "title": "Substitution/merge", "expected": "baseline source-derived env/file escaping, precedence and permission merge; source/field diagnostics; original configs byte-unchanged."},
+    {"id": "CFG03", "title": "Capability failures", "expected": "unknown npm, explicit codemode:true, OAuth:true or unsupported DCP mode give actionable errors; not silent acceptance."},
+    {"id": "CFG04", "title": "Trust/secrets/disabled", "expected": "Location trust precedes substitutions/resource reads; lower-trust endpoint or command cannot use higher-trust credentials; untrusted/disabled candidates launch no network/process; selected-only credentials and explain/logs are redacted."},
+    {"id": "CFG05", "title": "Config roots", "expected": "source-derived global/Location JSON/JSONC and .opencode order, canonical dedup and field provenance are deterministic; explicit config and separate cli.json behavior remain intact; inputs byte-unchanged."},
+    {"id": "CFG06", "title": "Instructions", "expected": "global and applicable Location AGENTS sentinels enter provider instructions once in pinned order with provenance; unreadable/disappeared files are diagnosed and candidate generation retains no stale text."},
+    {"id": "CFG07", "title": "Definitions", "expected": "singular/plural skill/agent/command roots, supported frontmatter and domain collisions are deterministic; invalid definition reports path/field/reason while valid siblings survive; selected/default invalid and subagent/reserved behavior fail explicitly."},
+    {"id": "CFG08", "title": "Native plugins", "expected": "only exact bare/pinned DCP identities and admitted openproxy-models.js markers classify idempotently; unknown/lookalike/version/JS/TS sources fail before resolver/import/process/network and no plugin code executes."},
+    {"id": "STORE01", "title": "Vertical session", "expected": "input→mock stream→persist→resume, identical application behavior local/headless."},
+    {"id": "STORE02", "title": "Lock/atomicity", "expected": "second data root owner refused; owned no-follow root and restrictive permissions validated; state/event transactional and durable ack only after commit."},
+    {"id": "STORE03", "title": "Crash operations", "expected": "kill after intent before/after side effect; recover unknown/partial, never autoreplay mutation."},
+    {"id": "STORE04", "title": "Blob/root failures", "expected": "disk-full/read-only/blob-before-DB orphan behavior; unsafe custom data root and cleanup escape refused; no referenced blob deletion; quotas enforced."},
+    {"id": "STORE05", "title": "Cancel/shutdown", "expected": "worker responsive during streaming; DB drained, terminal restored, own children reaped; no tasks retained per past session."},
+    {"id": "TOOL01", "title": "Read/search", "expected": "bounded file chunks, glob/grep stable sorted results, pagination, binary/large diagnostics; own data root rejected by direct path, recursion and symlink escape."},
+    {"id": "TOOL02", "title": "Patch create", "expected": "new/empty file, append to existing empty file, Unicode/CRLF/end newline; exact patch grammar fixtures."},
+    {"id": "TOOL03", "title": "Patch edit/delete/move", "expected": "targeted hunks/full text replacement/delete/move supported; no write/edit in model registry."},
+    {"id": "TOOL04", "title": "Patch conflicts", "expected": "Add existing, stale preimage, invalid later entry, protected/outside/data-root/symlink path; no success on partial; per-file result."},
+    {"id": "TOOL05", "title": "Shell output/environment", "expected": "interleaved stdout/stderr >caps; no deadlock/unbounded accumulation; correct exit/truncation; documented child env excludes provider/MCP/runner credentials."},
+    {"id": "TOOL06", "title": "Shell cancel", "expected": "timeout/TERM-resistant child/grandchild; KILL/wait/reap; elapsed bound; unknown versus cancelled outcomes."},
+    {"id": "TOOL07", "title": "Web text", "expected": "GET text/HTML/JSON, status/content type/original URL, bounded readable output and redirects."},
+    {"id": "TOOL08", "title": "Web safety", "expected": "private/link-local/loopback, DNS rebinding, IPv6 mapped address, redirect-to-private, large body, deadline; auth not inherited."},
+    {"id": "TOOL09", "title": "Permissions", "expected": "same runtime permission path for built-ins, MCP and compress; ask headless fails; invalid/untrusted config never allows; patch legacy deny wins."},
+    {"id": "TOOL10", "title": "Tool graph", "expected": "unknown tool/invalid JSON/duplicate call IDs/replayed done event do not execute; results match original call IDs."},
+    {"id": "TOOL11", "title": "Skill loading", "expected": "model sees bounded id/name/description without bodies; skill uses central permission and pinned bounded generation snapshot; unknown/removed/oversized/unreadable/stale calls fail visibly with a valid durable tool graph."},
+    {"id": "DISC01", "title": "Basic dynamic", "expected": "unknown/new model IDs including slash, source suffix once, name formatting; no code changes/model list fallback."},
+    {"id": "DISC02", "title": "Metadata", "expected": "JS safe integer/null-object/booleans/modalities validation; one invalid row leaves whole old catalog unchanged."},
+    {"id": "DISC03", "title": "Authority", "expected": "ignore remote URL/npm/auth/options fields; credentials remain original; redirect:error."},
+    {"id": "DISC04", "title": "Merge", "expected": "original local snapshot only; shallow nested limit/variants; explicit local override wins; local-only IDs removed on success."},
+    {"id": "DISC05", "title": "Limits", "expected": "discovery context/input capped 500000; output unchanged; missing context/output removes limit; static ludka 628000 unaffected."},
+    {"id": "DISC06", "title": "Variants", "expected": "remote allowlist disables missing standard names; custom names/effort retained; disabled hidden; local explicit override works."},
+    {"id": "DISC07", "title": "Timing", "expected": "fake clock: each attempt ≤15000ms, total ≤30000ms incl body, ≤4 attempts and clipped 250/750/1500 delays; cancellation cleanup."},
+    {"id": "DISC08", "title": "Retry classes", "expected": "408/425/429/5xx/network/invalid JSON/empty retry; auth/bad shape/invalid row terminal; no retry layer multiplication."},
+    {"id": "DISC09", "title": "Publication", "expected": "empty cold list never clears configured models; success removes retired IDs; duplicate ID last wins; bounded size failures atomic."},
+    {"id": "DISC10", "title": "Isolation", "expected": "disabled provider no fetch; two provider/config generations independent; failed refresh never turns remote data into local overrides."},
+    {"id": "PROV01", "title": "Request", "expected": "exact base prefix+/responses, Bearer, store:false, input/tool schemas and stable prompt_cache_key; no OAuth or API fallback."},
+    {"id": "PROV02", "title": "SSE/usage", "expected": "arbitrary byte split, multiline/CRLF/comments/UTF8, text/item/argument stream and response usage metadata parsed incrementally; event cap enforced."},
+    {"id": "PROV03", "title": "Tool roundtrip", "expected": "complete arguments→native tool→function_call_output→next response; multi-call order and ID validity."},
+    {"id": "PROV04", "title": "Reasoning", "expected": "opaque/reasoning items persisted/replayed at correct boundary; model/provider switch does not reuse alien state; no opaque UI logging."},
+    {"id": "PROV05", "title": "Images", "expected": "advertised text/image accepts bounded verified attachment; encoded request cap, unsupported audio/video/pdf visible."},
+    {"id": "PROV06", "title": "Errors", "expected": "401/403/429/5xx, incomplete/EOF, failure after delta; one retry owner, never repeat committed generation/tool."},
+    {"id": "PROV07", "title": "Timeouts", "expected": "timeout:false no total deadline; chunkTimeout 6000000 not 6000; explicit cancel still closes request; connect separately bounded."},
+    {"id": "PROV08", "title": "Live wire", "expected": "explicit opt-in real proxy published-model text+tool roundtrip through offline-tested harness; exact deployment/model/variant, request/input/output/time counters and watchdog/cancel outcome recorded; no all-model parity inference."},
+    {"id": "DCP01", "title": "Projection", "expected": "raw history checksum stable; durable compression/prune changes only outbound context; no second history copy and no config/provider credentials enter projection."},
+    {"id": "DCP02", "title": "Range schema", "expected": "topic/content/startId/endId/summary; stable IDs survive persistence/restart; invalid/stale/cross-session IDs and unfinished groups rejected."},
+    {"id": "DCP03", "title": "Nested/protected", "expected": "upstream-derived overlapping/nested summaries, cycle/size checks; complete tool-call/result groups and protected file/tag/user bytes preserved."},
+    {"id": "DCP04", "title": "Patch protection", "expected": "all affected paths parsed from patch; apply_patch treated as protected mutation equivalent; large protected content visible failure not loss."},
+    {"id": "DCP05", "title": "Nudges", "expected": "threshold/percent/per-model, summary buffer, frequency/iteration/turn reset; no accumulating prompt-message copies."},
+    {"id": "DCP06", "title": "Prune timing", "expected": "dedup and error input purge recalc at compression; latest required output and error text retained; protected/manual policy tested."},
+    {"id": "DCP07", "title": "Config/control", "expected": "DCP precedence/read-only files, range permission and manual mode, notifications/stats; unsupported experimental options explicit."},
+    {"id": "DCP08", "title": "Recovery", "expected": "cancel/stale generation/transaction failure cannot half-apply projection; restart reproduces stable IDs, same effective context and continuation without credential disclosure."},
+    {"id": "DCP09", "title": "Effectiveness", "expected": "synthetic large closed span yields smaller outbound serialized context, required facts retained; no-gain compression bounded, not loop."},
+    {"id": "MCP01", "title": "Remote JSON", "expected": "exact configured URL and 2025-11-25 initialize/headers, bearer, POST/JSON, no session ID/GET dependency; no URL probing/rewrite; observed OpenProxy shape supported."},
+    {"id": "MCP02", "title": "Remote lifecycle", "expected": "JSON/SSE adapter paths, 405 optional GET, auth/timeout/invalid replies, cancellation and list update; no reconnect storm."},
+    {"id": "MCP03", "title": "Registry", "expected": "namespaced collision-safe names map exact server/tool, paginated bounded schema/catalog, isError surfaced."},
+    {"id": "MCP04", "title": "Stdio", "expected": "fake child JSON-RPC stdout + bounded stderr, kill/reap, restart config generation, no cross-auth/cwd sharing; child env excludes provider/MCP/runner credentials."},
+    {"id": "MCP05", "title": "Disabled browser", "expected": "exact npx argv preserved; enabled:false zero process/browser probe and no Node requirement; true explicitly selected fake/real smoke."},
+    {"id": "MCP06", "title": "Live search", "expected": "explicit opt-in real codex_web search returns non-fabricated result; actual errors propagate; no auto OAuth/unknown-effect retry; search/time counters and watchdog outcome recorded."},
+    {"id": "UI01", "title": "PTY qualification", "expected": "input/paste/Unicode/resize, stream/Ctrl-C and terminal restoration on error/panic/exit under local and SSH-like PTY conditions."},
+    {"id": "UI02", "title": "Model picker", "expected": "dynamic catalog/variants/refresh status, user choice persisted, retired model actionable, no automatic silent fallback."},
+    {"id": "UI03", "title": "History/diff", "expected": "pagination/session switch/resume/tool cards/diff without whole-history rendering/backing-store growth."},
+    {"id": "UI04", "title": "DCP panel", "expected": "context/stats/manual controls, /dcp-compress focus becomes bounded instruction, notification not duplicate history."},
+    {"id": "UI05", "title": "Headless JSON", "expected": "NDJSON only stdout; errors stderr; bounded slow consumer; interrupted exit code non-success."},
+    {"id": "UI06", "title": "Workspace definitions", "expected": "primary-agent selection, slash completion/invocation, skill catalog/tool card, redacted provenance/diagnostic and Location switch use one current-generation registry; stale actions fail and old local entries disappear."},
+    {"id": "E2E01", "title": "Offline coding", "expected": "scripted provider fixes seeded Rust bug through read/apply_patch/bash; fixture tests pass; no edits outside fixture."},
+    {"id": "E2E02", "title": "Live coding", "expected": "explicit opt-in published model fixes the fixture with actual tools, no edits outside fixture, bounded campaign counters; reopened session and next command succeed; API/facts/tests verified without exact-text matching."},
+    {"id": "E2E03", "title": "Compress then resume", "expected": "model calls compress then uses retained fact to patch/test; restart and next prompt succeed; output context reduced."},
+    {"id": "E2E04", "title": "Web workflow", "expected": "webfetch tool and codex_web search preserve source info; browser smoke conditional on explicit opt-in, never claimed if not run."},
+    {"id": "E2E05", "title": "Configured workspace", "expected": "offline scripted provider consumes global plus Location A instructions/agent/command/skill with skill body absent until call and both native aliases wired; switch to B retains global, removes A-local and uses no JS/Node/Bun/network."},
+    {"id": "LOAD01", "title": "Soak", "expected": "baseline-derived fixed synthetic workload over bounded active context exercises many sessions/switches, periodic compress/cancel/MCP errors and stable resource counters; workload is frozen before qualification."},
+    {"id": "LOAD02", "title": "Output pressure", "expected": "large shell/provider/tool outputs, slow UI scroll/paging, queue cap, blob quota and cancellation under load; no hidden second transcript."},
+    {"id": "LOAD03", "title": "Measurements", "expected": "baseline/peak/post-idle RSS/PSS plus task/process/queue/cache/DB/WAL metrics; allocator RSS alone not leak conclusion."},
+    {"id": "LOAD04", "title": "Regression", "expected": "fixed workload/seeds/toolchain/machine; adopt baseline-derived caps, compare no linear retained-history slope; clean shutdown checked."},
+    {"id": "OPS01", "title": "Provenance", "expected": "DCP/OpenCode borrowed code/prompts/tests have pinned source/path/digest/license/notices and normalization recipe; no unsupported license claims for OpenProxy copied code."},
+    {"id": "OPS02", "title": "Secrets Git", "expected": "final staged tracked content/fixtures/reports reviewed; no keys/URL credentials/raw payload/DB/.local; push normal own branch only."},
+    {"id": "OPS03", "title": "Goal handoff", "expected": "A01–A13 independent allowed status with authoritative scenarios/evidence; exact commands/commit/live blockers, launch, supported differences and known limitations; READY only mandatory live passes, no full parity claim, delivery separate; missing live keeps T30 blocked."},
+    {"id": "OPS04", "title": "Fresh restart", "expected": "new test HOME/XDG/data, built oc starts without upstream/Node, examples read-only, new sessions persist; no migration/release code."},
+    {"id": "OPS05", "title": "Agent-neutral execution", "expected": "package checks and progress utility run without Codex executable, /goal, GPT/Luna configuration or a required agent tool API; generic objective is nonempty, active execution surfaces have no fixed runner identity, and OC_TEST_MODEL remains product-test-only."}
   ]
 }

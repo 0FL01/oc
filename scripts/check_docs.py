@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
 import re
 import sys
@@ -12,8 +13,14 @@ from progress import Invalid, Journal
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_GATES = tuple(f"A{i:02}" for i in range(1, 14))
-EXPECTED_TASKS = 31
-EXPECTED_ACCEPTANCE = 82
+JSON_INPUTS = (
+    "planning/acceptance.json",
+    "planning/baseline.lock.json",
+    "planning/host-profile.json",
+    "planning/tasks.json",
+    "progress/STATE.json",
+    "examples/static-models.user.json",
+)
 RUNNER_SURFACES = (
     "GOAL.md",
     "README.md",
@@ -26,7 +33,6 @@ RUNNER_SURFACES = (
     "examples/oc-rs.toml",
     "planning/host-profile.json",
     "prompts/AGENT_GOAL.txt",
-    "evidence/PACKAGE_VALIDATION.md",
 )
 FORBIDDEN_RUNNER_MARKERS = (
     re.compile(r"\bCodex\s+CLI\b", re.IGNORECASE),
@@ -95,9 +101,8 @@ def jsonc(text: str):
 
 
 def validate(root: Path = ROOT) -> dict[str, int]:
-    for path in root.rglob("*.json"):
-        if ".local" not in path.parts:
-            json.loads(path.read_text(encoding="utf-8"))
+    for relative in JSON_INPUTS:
+        json.loads((root / relative).read_text(encoding="utf-8"))
     for path in (root / "examples").glob("*.jsonc"):
         jsonc(path.read_text(encoding="utf-8"))
     for path in (root / "examples").glob("*.toml"):
@@ -107,10 +112,8 @@ def validate(root: Path = ROOT) -> dict[str, int]:
     by_id, test_ids = {t["id"]: t for t in tasks}, {t["id"] for t in tests}
     assert len(by_id) == len(tasks), "Duplicate task IDs"
     assert len(test_ids) == len(tests), "Duplicate test IDs"
-    assert len(tasks) == EXPECTED_TASKS, f"Expected {EXPECTED_TASKS} tasks"
-    assert len(tests) == EXPECTED_ACCEPTANCE, f"Expected {EXPECTED_ACCEPTANCE} acceptance specifications"
     for test in tests:
-        for field in ("id", "title", "expected", "implementation_status"):
+        for field in ("id", "title", "expected"):
             assert isinstance(test.get(field), str) and test[field].strip(), f"Missing acceptance field: {field}"
     visited, visiting = set(), set()
 
@@ -125,16 +128,18 @@ def validate(root: Path = ROOT) -> dict[str, int]:
         visiting.remove(tid)
         visited.add(tid)
 
-    used = set()
+    owners = {test_id: [] for test_id in test_ids}
     for task in tasks:
         visit(task["id"])
         spec = root / task["spec"]
         assert spec.is_file(), f"Missing specification: {spec}"
-        assert task["id"] in spec.read_text(), "Task not mentioned in phase specification"
         assert set(task["tests"]) <= test_ids, f"Unknown test referenced by {task['id']}"
-        used.update(task["tests"])
+        for test_id in task["tests"]:
+            owners[test_id].append(task["id"])
         assert task["evidence"] == f"evidence/{task['id']}/report.md", "Unexpected evidence target"
-    assert used == test_ids, f"Unassigned acceptance tests: {sorted(test_ids - used)}"
+    assert all(owners.values()), f"Unassigned acceptance tests: {sorted(t for t, owner in owners.items() if not owner)}"
+    duplicated = {test_id: owner for test_id, owner in owners.items() if len(owner) > 1}
+    assert not duplicated, f"Acceptance tests need one owner: {duplicated}"
     objective = (root / "prompts/AGENT_GOAL.txt").read_text()
     assert objective.strip(), "Agent objective must not be empty"
     for relative in RUNNER_SURFACES:
@@ -147,18 +152,16 @@ def validate(root: Path = ROOT) -> dict[str, int]:
     final_template = (root / "evidence/FINAL.template.md").read_text()
     final_gates = tuple(re.findall(r"^## (A\d{2})$", final_template, re.MULTILINE))
     assert final_gates == EXPECTED_GATES, "FINAL template must contain exact A01-A13 sections"
-    test_plan = (root / "docs/TEST_PLAN.md").read_text()
-    planned_ids = re.findall(r"^\*\*([A-Z0-9]+\d{2}) — ", test_plan, re.MULTILINE)
-    assert len(planned_ids) == len(set(planned_ids)), "Duplicate TEST_PLAN scenario headings"
-    assert set(planned_ids) == test_ids, "TEST_PLAN scenario headings differ from acceptance registry"
     for path in ("docs/AGENT_RUNBOOK.md", "docs/ROADMAP.md", "roadmap/M6.md", "evidence/README.md"):
         assert "A01–A13" in (root / path).read_text(), f"Stale gate range in {path}"
     baseline = json.loads((root / "planning/baseline.lock.json").read_text())
     for project in ("opencode", "openproxy", "dcp"):
         assert re.fullmatch(r"[0-9a-f]{40}", baseline[project]["commit"])
     assert baseline["dcp"]["license"] == "AGPL-3.0-or-later"
-    assert (root / baseline["discovery"]["snapshot"]).is_file()
-    reference = (root / baseline["discovery"]["snapshot"]).read_text()
+    snapshot = root / baseline["discovery"]["snapshot"]
+    assert snapshot.is_file()
+    assert hashlib.sha256(snapshot.read_bytes()).hexdigest() == baseline["discovery"]["sha256"]
+    reference = snapshot.read_text()
     assert "DISCOVERY_ATTEMPT_TIMEOUT_MS = 15000" in reference
     assert "DISCOVERY_TOTAL_TIMEOUT_MS = 30000" in reference
     sample = jsonc((root / "examples/opencode.jsonc").read_text())

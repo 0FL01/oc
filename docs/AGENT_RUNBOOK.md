@@ -2,7 +2,7 @@
 
 ## Старт без повторного опроса
 
-Compatible agent читает bootstrap-набор `AGENTS.md`, `GOAL.md`, `progress/NOW.md`, `progress/INDEX.md`, сверяет Git и продолжает текущую задачу. Objective из `prompts/AGENT_GOAL.txt` можно передать через native prompt/task/job механизм конкретного runner; repository не требует конкретного slash command, CLI, flags, model или provider.
+Compatible agent читает `AGENTS.md`, `GOAL.md`, `progress/NOW.md`, сверяет реальный Git HEAD/status/diff и продолжает текущую задачу. Indices и старые leaves открываются только при targeted recovery. Objective из `prompts/AGENT_GOAL.txt` можно передать через native prompt/task/job механизм конкретного runner; repository не требует конкретного slash command, CLI, flags, model или provider.
 
 Модель, provider и credentials compatible agent принадлежат внешнему runner и не являются частью product config. Не извлекать runner auth config в evidence и не переключать authoring-agent на provider тестируемого `oc`. `OC_TEST_MODEL` выбирает только модель live-теста продукта; product env и runner credentials — разные вещи.
 
@@ -12,25 +12,25 @@ Compatible agent читает bootstrap-набор `AGENTS.md`, `GOAL.md`, `prog
 
 Проверить `id -u` (root запрещён для этого запуска), repo root/текущий branch/HEAD/dirty files, origin canonical owner/name = 0FL01/oc. Не печатать URL с embedded credentials; сравнение нормализовать локально. Существующие изменения не reset/stash без необходимости; включать только свои reviewed files. Рабочая ветка default `agent/oc-rust-port`; при конфликте чужого branch использовать отдельную worktree/согласованный новый suffix, recorded once.
 
-Проверить actual rustc/cargo/rustup, compiler linker, pkg-config при необходимости, Python3 для utility, git, locale/TERM, свободную память/диск. Пользовательская 1.98.1 — toolchain candidate; pin фактический совпавший toolchain, не `stable` moving target. Если не совпадает, фиксировать discrepancy; не менять edition или тайно скачивать nightly. Trunk не нужен CLI/TUI. Системный sqlite3 version не определяет bundled SQLite проекта.
+В T00 проверить только identity/repository/origin, one mutation owner и ресурсы для ближайшего действия. Rustc/cargo/rustup и linker проверить непосредственно перед T01; pkg-config — только если его потребует выбранная dependency; locale/TERM — перед PTY/TUI; live env names — перед T16/T27. Пользовательская 1.98.1 — toolchain candidate; pin фактический совпавший toolchain, не `stable` moving target. Если не совпадает, фиксировать discrepancy; не менять edition или тайно скачивать nightly. Trunk не нужен CLI/TUI. Системный sqlite3 version не определяет bundled SQLite проекта.
 
 `CARGO_BUILD_JOBS=2`, `RUST_TEST_THREADS=2`; `CARGO_TARGET_DIR` не переопределять либо задать абсолютный `<worktree>/target`, чтобы бинарник оставался `target/debug/oc`. `TMPDIR=<worktree>/.local/tmp` на ext4, не `/tmp` tmpfs; создать эту owned directory заранее. Defaults можно снижать при memory pressure; нельзя повышать performance acceptance threshold для скрытия leak. Capture environment metadata без secret values. При менее 2 GiB MemAvailable или менее 10 GiB свободного worktree disk не запускать тяжёлый build/soak; документировать resource blocker/работать над разрешённой лёгкой задачей. Это operational safety defaults, не гарантии peak memory.
 
-Docker только при подтверждённом rootless context (security options rootless, user socket/контекст), без privileged, host PID/network и broad host mounts. Показанные владельцем overlay paths не являются проверкой будущего контекста. Rootful endpoint не использовать; отсутствие rootless не блокирует Cargo/offline fake tests. Нельзя `docker system prune`, останавливать чужой compose или менять OpenProxy deployment.
+Docker проверять только непосредственно перед первым реальным Docker-вызовом. Тогда разрешён лишь подтверждённый rootless context без privileged, host PID/network и broad host mounts. Если Docker не нужен, T00 фиксирует `NOT_USED`; отсутствие rootless не блокирует Cargo/offline fake tests. Нельзя `docker system prune`, останавливать чужой compose или менять OpenProxy deployment.
 
-Проверить наличие required env names, не выводя values и не вызывая network в docs validation. При missing live env выбрать offline задачи; blocker только для live gates. Не искать ключи в чужих HOME/браузерах или state внешнего runner.
+Наличие required live env names проверять перед T16/T27, не выводя values. При missing live env выбрать offline задачи; blocker только для live gates. Не искать ключи в чужих HOME/браузерах или state внешнего runner.
 
 ## Один рабочий цикл
 
-`progress.py start Txx` → прочитать stage task/профильный контракт → добавить failing targeted test → минимальная реализация → targeted checks → применимые cargo checks → factual note → `checkpoint`/`finish` → reviewed git diff → commit. После одного slice разрешено продолжать ту же задачу; один task не обязан быть одним огромным commit.
+Если нет active task: `progress.py start Txx` → прочитать task и профильный контракт → failing targeted test → минимальная реализация → targeted checks → только применимые cargo checks → review diff → commit. При продолжении той же task административный checkpoint не нужен. При task completion implementation commit уже существует: добавить evidence report, выполнить `finish`, review и сделать один closeout commit.
 
-Срез — небольшая независимо проверяемая единица: API+test, parser case, adapter roundtrip, UI action. Не «переписал весь provider и DCP». Создавать checkpoint до ожидаемого context exhaustion и перед длительным soak/network operation. Compaction может произойти неожиданно, поэтому не откладывать журнал до конца этапа.
+Срез — небольшая независимо проверяемая единица: API+test, parser case, adapter roundtrip, UI action. Не «переписал весь provider и DCP». Создавать checkpoint до ожидаемого context exhaustion, перед non-idempotent external operation, при blocker или существенном незакоммиченном handoff. Semantic `Next` не должен быть только «stage/commit/push».
 
 Test failure → записать конкретную причину/следующий experiment. После 3 unsuccessful attempts одного blocker: block task, продолжить independent ready tasks. Не three attempts на весь проект; не маскировать retry тем, что каждый раз переименована та же проблема. Не отключать lint/assertion или marked test ради completion.
 
 ## Git и delivery
 
-Commit code+tests+checkpoint вместе после slice, явно указывая проверенное. Checkpoint может ссылаться на parent/code HEAD и dirty diff: self-referential hash собственного commit невозможен; не переписывать commit до бесконечности ради совпадения. Следующий checkpoint/FINAL укажет уже существующий implementation commit.
+Commit code+tests после проверенного slice. Finish report ссылается на уже существующий implementation commit; generated progress state и report идут одним closeout commit. Не создавать новый checkpoint только для фиксации SHA или результата обычного push: Git tracking divergence уже различает uncommitted, committed и delivered состояния.
 
 Перед push: review staged filenames/diff, убедиться в отсутствии secrets/raw live payloads/target/DB, preserve licenses. Push только свою ветку в verified origin, обычный fast-forward. Не force, не менять default branch protection/remote, не публиковать release/tags. Push failure не откатывает локальный код. Все commits сохраняются; статус delivery записать следующим leaf/FINAL без бесконечного «commit о push предыдущего commit».
 

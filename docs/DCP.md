@@ -63,6 +63,6 @@ Config source order фиксируется отдельной source-derived fix
 
 Нужны upstream-derived fixture groups: range boundaries/nested IDs/protections, strategy timing, nudges/counters, config merge, cancelled/failed compress, restart projection и compression-before-tools continuation. Test method фиксируется: source-derived / differential executed / synthetic, никогда один под видом другого.
 
-Fake-model scenario заставляет вызвать compress на большом закрытом span, затем потребовать fact из summary и выполнить patch/test. Assert immutable raw history checksum, уменьшенная serialized projection, preserved facts/protected bytes, valid tool graph и restart consistency. Live regression проверяет реальный endpoint, но не обещает универсальную semantic losslessness.
+Fake-model scenario заставляет вызвать compress на большом закрытом span, затем потребовать fact из summary и выполнить patch/test. Assert immutable raw history checksum, stable IDs после restart, уменьшенную serialized projection, preserved facts/полные tool-call-result groups/protected bytes, отсутствие config/provider credentials, valid tool graph и restart consistency. Live regression проверяет реальный endpoint, но не обещает универсальную semantic losslessness.
 
 До переноса кода/prompts/tests сохранить license/notices/provenance. Rust перевод не удаляет лицензирование источника. Не копировать unrelated OpenProxy code с неустановленной лицензией.

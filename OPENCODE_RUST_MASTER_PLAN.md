@@ -68,7 +68,7 @@ Permissions едины для local и будущих transports. DCP summary и
 
 ## Исполнение и журнал
 
-Одна task за раз, один проверяемый slice за раз. После каждого — bounded factual checkpoint и commit; push своей ветки без force по runbook. В `progress/` маленькое активное резюме и дерево неизменяемых записей; no giant append-only log и no RAG service.
+Одна task за раз, один проверяемый slice за раз. Проверенный slice сохраняется commit; factual checkpoint нужен при handoff/block/task finish, а не после каждого запуска теста. Push своей ветки без force по runbook. В `progress/` маленькое активное резюме и bounded recovery records; no giant append-only log и no RAG service.
 
 После compaction восстанавливать контекст через NOW → текущий этап/task → последний leaf → реальный Git diff. Goal authoring-agent и DCP тестируемого `oc` — две разные системы; DCP не управляет compaction authoring-agent.
 

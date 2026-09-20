@@ -23,7 +23,8 @@
   },
   "discovery": {
     "authority": "user-supplied-script-over-repository-plugin",
-    "snapshot": "references/openproxy-models.user.mjs"
+    "snapshot": "references/openproxy-models.user.mjs",
+    "sha256": "0f98ddad1660a991a400dbeba879df76ba2fc70b8e3fe530032976166939610c"
   },
   "executable_baseline_verified": false
 }

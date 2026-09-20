@@ -4,7 +4,7 @@ Product tool list является явным выбранным подмнож�
 
 ## Built-ins
 
-`read`: bounded чтение файла/диапазона строк с path/offset/limit, явные truncated/next cursor и blob reference при необходимости. Директории и binary contents обрабатываются явно; не грузить весь репозиторий. `glob` и `grep`: stable sorted paginated matches, bounded files/bytes/time, исключение own data dir и symlink escapes. Plain literal/regex режимы явно различимы; не писать custom regex engine.
+`read`: bounded чтение файла/диапазона строк с path/offset/limit, явные truncated/next cursor и blob reference при необходимости. Директории и binary contents обрабатываются явно; не грузить весь репозиторий. `read`, `glob`, `grep` и `apply_patch` отклоняют own data root, включая direct path и symlink escape. `glob`/`grep` дают stable sorted paginated matches с bounded files/bytes/time. Plain literal/regex режимы явно различимы; не писать custom regex engine.
 
 `apply_patch`: один JSON argument `patchText` с upstream-style `*** Begin Patch` / Add File / Update File / Delete File / Move to / End Patch. Не смешивать с provider-hosted Responses `apply_patch` schema. В M2 сохранить parser fixtures выбранного OpenCode baseline; политика unsafe paths — наша.
 
@@ -14,7 +14,7 @@ Product tool list является явным выбранным подмнож�
 
 Для удаления/rename сохранять достаточную operation metadata в own storage; не превращать это в snapshot/undo subsystem. Не запускать `git reset`, не делать auto-rollback на пользовательские файлы. Модель получает concise diff/status; полный diff в bounded blob.
 
-`bash`: process group, explicit cwd = trusted project, executable shell из проверенной настройки, command bounded, stdin protocol documented. Concurrent drain stdout/stderr предотвращает deadlock. Preview отдельно от bounded retained output; после output cap продолжать drain/discard со счётчиком, а не держать growing string. Exit code/signal/timeout/cancel различаются. TERM→grace→KILL→wait. Noninteractive tool не поддерживает скрытый бесконечный terminal session; долгие процессы получают явный timeout/outcome.
+`bash`: process group, explicit cwd = trusted project, executable shell из проверенной настройки, command bounded, stdin protocol documented. Child получает минимальный documented environment для build tools, но не provider keys/MCP bearer/runner credentials по умолчанию; это не устраняет same-UID filesystem/network risk. Concurrent drain stdout/stderr предотвращает deadlock. Preview отдельно от bounded retained output; после output cap продолжать drain/discard со счётчиком, а не держать growing string. Exit code/signal/timeout/cancel различаются. TERM→grace→KILL→wait. Noninteractive tool не поддерживает скрытый бесконечный terminal session; долгие процессы получают явный timeout/outcome.
 
 `webfetch`: read-only GET, http/https, text/HTML/JSON response; bounded download и redirect count, понятное преобразование HTML→text, исходный URL/status/content type и source references в результате. Не browser automation и не OpenProxy private admin fetch. Private/link-local/loopback targets запрещены по умолчанию; DNS resolution, фактический dial и каждый redirect проверяются вместе. Explicit trusted endpoint exception для provider/MCP НЕ распространяется на модельный webfetch. Credential headers не наследуются; proxy env не должен обходить egress policy. Для test fixtures использовать отдельный explicit loopback allowlist. No arbitrary methods/upload/cookies.
 
@@ -34,7 +34,7 @@ Product tool list является явным выбранным подмнож�
 
 HTTP client умеет JSON и SSE ответы там, где transport их предлагает. У OpenProxy stateless JSON mode отсутствие session ID или GET event stream не должно порождать reconnect loop. Если SDK optional GET получает 405 — не считать это отказом исправного POST path; соответствие спецификации и поведение SDK проверить. Отправлять нужный `MCP-Protocol-Version` после initialize; no OAuth auto-discovery при oauth:false. Remote service timeout может быть меньше нашего клиентского 60s — сохранять исходный error, не ложно ждать/повторять операцию.
 
-Local `chrome-devtools`: argv точно из config, без shell splitting/rewrite. `enabled:false` означает: не launch npx, не probe browser, не требовать Node, не делать install. При true — stdio JSON-RPC, stdout только protocol, stderr в ограниченный redacted log, process group lifecycle. Нужны runtime и уже доступный browser-url; `oc` не запускает Chrome с произвольным профилем пользователя.
+Local `chrome-devtools`: argv точно из trusted config, без shell splitting/rewrite. `enabled:false` означает: не launch npx, не probe browser, не требовать Node, не делать install. При true — stdio JSON-RPC, stdout только protocol, stderr в ограниченный redacted log, process group lifecycle и минимальный child environment без provider/MCP credentials. Нужны runtime и уже доступный browser-url; `oc` не запускает Chrome с произвольным профилем пользователя.
 
 `chrome-devtools-mcp@latest` — явная пользовательская команда; её не подменять pinned silently. Core adapter acceptance — pinned fake stdio server. Optional real-browser smoke записывает фактически разрешённую версию/digest в evidence; это не воспроизводимость `@latest` навсегда.
 
