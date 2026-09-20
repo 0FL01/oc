@@ -5,5 +5,6 @@
 //! dependency from `oc-core`.
 
 pub mod smoke;
+pub mod storage;
 
 pub use smoke::{adapter_name, build_smoke_client, rmcp_smoke_marker, smoke_memory_db};
