@@ -1,0 +1,22 @@
+{
+  "source": "user report, verify during T00",
+  "target": "x86_64-unknown-linux-gnu",
+  "os": "Debian GNU/Linux 13.4 (trixie)",
+  "kernel": "6.12.86+deb13-amd64",
+  "vcpus": 6,
+  "ram_gib": 11.68,
+  "filesystem": "ext4",
+  "reported_toolchain": "1.98.1",
+  "execution_account": "non-root, actual uid checked on host",
+  "runner_model": "GPT 5.6 Luna",
+  "runner": "Codex CLI already configured by owner",
+  "git_commit": true,
+  "git_push": "own work branch to verified 0FL01/oc origin, no force",
+  "docker": "rootless only, verify actual context",
+  "migration": false,
+  "publish_release": false,
+  "monetary_hard_limit_usd": null,
+  "monetary_limit_enforced_by_docs": false,
+  "build_jobs_default": 2,
+  "test_threads_default": 2
+}

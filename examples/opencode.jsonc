@@ -1,0 +1,44 @@
+{
+  // Ready-to-start choice: use discovery provider; enable ludka explicitly when needed.
+  "enabled_providers": ["ludka2"],
+  "provider": {
+    "ludka": {
+      "npm": "@ai-sdk/openai",
+      "name": "ludka",
+      "options": {
+        "baseURL": "{env:LUDKA_API_URL}",
+        "apiKey": "{env:LUDKA_API_KEY}",
+        "timeout": false,
+        "setCacheKey": true,
+        "chunkTimeout": 6000000
+      },
+      "models": {}
+    },
+    "ludka2": {
+      "npm": "@ai-sdk/openai",
+      "name": "ludka2",
+      "options": {
+        "baseURL": "{env:LUDKA2_API_URL}",
+        "apiKey": "{env:LUDKA2_API_KEY}",
+        "timeout": false,
+        "setCacheKey": true,
+        "chunkTimeout": 6000000
+      }
+    }
+  },
+  "mcp": {
+    "codex_web": {
+      "type": "remote",
+      "url": "{env:LUDKA2_API_URL}/mcp",
+      "enabled": true,
+      "oauth": false,
+      "headers": {"Authorization": "Bearer {env:LUDKA2_API_KEY}"},
+      "timeout": 60000
+    },
+    "chrome-devtools": {
+      "type": "local",
+      "command": ["npx", "-y", "chrome-devtools-mcp@latest", "--browser-url", "http://127.0.0.1:9222"],
+      "enabled": false
+    }
+  }
+}

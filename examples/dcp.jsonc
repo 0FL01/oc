@@ -1,0 +1,30 @@
+{
+  "enabled": true,
+  "autoUpdate": false,
+  "debug": false,
+  "pruneNotification": "detailed",
+  "pruneNotificationType": "chat",
+  "commands": {"enabled": true, "protectedTools": ["apply_patch"]},
+  "manualMode": {"enabled": false, "automaticStrategies": true},
+  "turnProtection": {"enabled": false, "turns": 4},
+  "experimental": {"allowSubAgents": false, "customPrompts": false},
+  "protectedFilePatterns": [],
+  "compress": {
+    "mode": "range",
+    "permission": "allow",
+    "showCompression": false,
+    "summaryBuffer": true,
+    "maxContextLimit": 100000,
+    "minContextLimit": 50000,
+    "nudgeFrequency": 5,
+    "iterationNudgeThreshold": 15,
+    "nudgeForce": "soft",
+    "protectedTools": ["apply_patch"],
+    "protectTags": false,
+    "protectUserMessages": false
+  },
+  "strategies": {
+    "deduplication": {"enabled": true, "protectedTools": ["apply_patch"]},
+    "purgeErrors": {"enabled": true, "turns": 4, "protectedTools": ["apply_patch"]}
+  }
+}

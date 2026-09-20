@@ -1,0 +1,15 @@
+/target/
+/.local/
+/evidence/raw/
+/progress/.lock
+.env
+.env.*
+!.env.example
+/oc-rs.local.toml
+/opencode.local.json
+/opencode.local.jsonc
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+__pycache__/
+*.pyc

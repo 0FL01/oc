@@ -1,0 +1,50 @@
+# Proposed native oc config, NOT an upstream OpenCode config.
+# Initial safety defaults, not measured performance guarantees.
+profile = "daily-direct"
+tool_exposure = "direct"
+
+[extensions]
+dcp = true
+
+[providers.ludka2]
+model_discovery = true
+
+[providers.ludka]
+model_discovery = false
+
+[limits]
+connect_timeout_ms = 15000
+sse_event_bytes = 4194304
+tool_argument_bytes = 2097152
+request_body_bytes = 25165824
+discovery_body_bytes = 8388608
+discovery_rows = 10000
+queue_bytes = 8388608
+queue_items = 256
+preview_bytes = 65536
+tool_output_bytes = 16777216
+blob_quota_bytes = 2147483648
+attachment_bytes = 8388608
+attachments_total_bytes = 16777216
+shell_timeout_ms = 120000
+shell_max_timeout_ms = 1800000
+child_term_grace_ms = 2000
+shutdown_grace_ms = 10000
+webfetch_timeout_ms = 30000
+webfetch_body_bytes = 4194304
+webfetch_redirects = 5
+max_turn_steps = 128
+default_output_tokens = 16384
+unknown_model_context_tokens = 32768
+context_safety_margin_tokens = 4096
+
+# Permission policy for the product oc is separate from Codex --yolo.
+[permissions]
+read = "allow"
+glob = "allow"
+grep = "allow"
+apply_patch = "ask"
+bash = "ask"
+webfetch = "ask"
+mcp = "ask"
+compress = "allow"

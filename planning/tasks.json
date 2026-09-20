@@ -1,0 +1,523 @@
+{
+  "schema_version": 2,
+  "policy": "one-active-task; task-done-is-not-goal-ready",
+  "tasks": [
+    {
+      "id": "T00",
+      "phase": "M0",
+      "title": "Preflight и продолжимый журнал",
+      "depends_on": [],
+      "tests": [
+        "ENV01",
+        "ENV02"
+      ],
+      "work": "Проверить host/uid/origin, сохранить исходный diff и source lock; проверить journal utility, выделить own worktree paths. Не запускать paid requests.",
+      "evidence": "evidence/T00/report.md",
+      "spec": "roadmap/M0.md"
+    },
+    {
+      "id": "T01",
+      "phase": "M0",
+      "title": "Workspace и зависимости",
+      "depends_on": [
+        "T00"
+      ],
+      "tests": [
+        "BUILD01"
+      ],
+      "work": "Создать четыре packages, pin actual toolchain, lockfile, minimal Tokio/Ratatui/rusqlite/reqwest/rmcp compile smoke. Не добавлять ORM/DI/HTTP daemon.",
+      "evidence": "evidence/T01/report.md",
+      "spec": "roadmap/M0.md"
+    },
+    {
+      "id": "T02",
+      "phase": "M0",
+      "title": "Минимальный source contract",
+      "depends_on": [
+        "T01"
+      ],
+      "tests": [
+        "OPS01"
+      ],
+      "work": "Проверить pinned sources/licenses; зафиксировать Responses wire, MCP strict version, DCP range schema, user discovery oracle и configured-workspace source paths/tests. Получить representative source-derived fixtures для root/instruction/definition order, frontmatter и exact plugin identities с provenance; executable baseline failures фиксировать, не выдавать fixtures за executed parity.",
+      "evidence": "evidence/T02/report.md",
+      "spec": "roadmap/M0.md"
+    },
+    {
+      "id": "T03",
+      "phase": "M1",
+      "title": "Core и MockProvider",
+      "depends_on": [
+        "T01"
+      ],
+      "tests": [
+        "STORE01"
+      ],
+      "work": "Typed commands/queries, session worker, scripted provider, cancellation path и bounded channels. Вертикальный input→response без real network.",
+      "evidence": "evidence/T03/report.md",
+      "spec": "roadmap/M1.md"
+    },
+    {
+      "id": "T04",
+      "phase": "M1",
+      "title": "SQLite и outputs",
+      "depends_on": [
+        "T03"
+      ],
+      "tests": [
+        "STORE02",
+        "STORE03",
+        "STORE04"
+      ],
+      "work": "DB worker, own data-root lock, durable input/turn/tools/events, bounded blobs и crash cases. Никакой upstream DB migration.",
+      "evidence": "evidence/T04/report.md",
+      "spec": "roadmap/M1.md"
+    },
+    {
+      "id": "T05",
+      "phase": "M1",
+      "title": "Headless CLI",
+      "depends_on": [
+        "T04"
+      ],
+      "tests": [
+        "UI05"
+      ],
+      "work": "run/sessions/--help, NDJSON, exit codes, saved resume; diagnostics stderr. Не блокировать Cancel на долгом stream.",
+      "evidence": "evidence/T05/report.md",
+      "spec": "roadmap/M1.md"
+    },
+    {
+      "id": "T06",
+      "phase": "M1",
+      "title": "Минимальный Rust TUI",
+      "depends_on": [
+        "T05"
+      ],
+      "tests": [
+        "UI01",
+        "STORE05"
+      ],
+      "work": "Prompt/stream/history/cancel/exit в Ratatui, limited viewport, PTY test; тот же application handle.",
+      "evidence": "evidence/T06/report.md",
+      "spec": "roadmap/M1.md"
+    },
+    {
+      "id": "T07",
+      "phase": "M2",
+      "title": "User config и permissions",
+      "depends_on": [
+        "T02",
+        "T05"
+      ],
+      "tests": [
+        "CFG01",
+        "CFG02",
+        "CFG03",
+        "CFG04",
+        "CFG05",
+        "CFG06",
+        "CFG07",
+        "CFG08",
+        "TOOL09"
+      ],
+      "work": "Parser/provenance/native profile, selected-only credentials и central permissions; global/Location roots, ordered AGENTS, bounded immutable skill/primary-agent/command catalogs, domain merge и exact native-plugin classification. Unknown/unsupported отклонять до side effects; не исполнять commands/plugins и не активировать будущие modules в этом task.",
+      "evidence": "evidence/T07/report.md",
+      "spec": "roadmap/M2.md"
+    },
+    {
+      "id": "T08",
+      "phase": "M2",
+      "title": "Read и search",
+      "depends_on": [
+        "T07"
+      ],
+      "tests": [
+        "TOOL01"
+      ],
+      "work": "read/glob/grep, stable sorting/pagination, bounded bytes и safe location resolution; source fixtures.",
+      "evidence": "evidence/T08/report.md",
+      "spec": "roadmap/M2.md"
+    },
+    {
+      "id": "T09",
+      "phase": "M2",
+      "title": "Единый apply_patch",
+      "depends_on": [
+        "T08"
+      ],
+      "tests": [
+        "TOOL02",
+        "TOOL03",
+        "TOOL04"
+      ],
+      "work": "Parser Add/Update/Delete/Move включая empty files, preflight/permissions/preimages, per-file commits/partial outcome; no write/edit registry entries.",
+      "evidence": "evidence/T09/report.md",
+      "spec": "roadmap/M2.md"
+    },
+    {
+      "id": "T10",
+      "phase": "M2",
+      "title": "Shell supervisor",
+      "depends_on": [
+        "T07",
+        "T04"
+      ],
+      "tests": [
+        "TOOL05",
+        "TOOL06"
+      ],
+      "work": "Process group/cwd/env policy, concurrent drains, bounded retained output, deadline/cancel/kill/reap. Не persistent shell manager.",
+      "evidence": "evidence/T10/report.md",
+      "spec": "roadmap/M2.md"
+    },
+    {
+      "id": "T11",
+      "phase": "M2",
+      "title": "Webfetch",
+      "depends_on": [
+        "T07"
+      ],
+      "tests": [
+        "TOOL07",
+        "TOOL08"
+      ],
+      "work": "GET/text extraction, SSRF actual-dial/redirect guards, timeout/size limits, metadata sources и explicit test loopback exception.",
+      "evidence": "evidence/T11/report.md",
+      "spec": "roadmap/M2.md"
+    },
+    {
+      "id": "T12",
+      "phase": "M3",
+      "title": "Native Responses stream",
+      "depends_on": [
+        "T02",
+        "T07"
+      ],
+      "tests": [
+        "PROV01",
+        "PROV02",
+        "PROV06",
+        "PROV07"
+      ],
+      "work": "OpenProxy transport и bounded incremental SSE; exact options/base URL; ошибки/EOF/retries/cancel без OAuth/fallback.",
+      "evidence": "evidence/T12/report.md",
+      "spec": "roadmap/M3.md"
+    },
+    {
+      "id": "T13",
+      "phase": "M3",
+      "title": "Tools, reasoning и images",
+      "depends_on": [
+        "T12",
+        "T09",
+        "T10"
+      ],
+      "tests": [
+        "PROV03",
+        "PROV04",
+        "PROV05",
+        "TOOL10",
+        "TOOL11"
+      ],
+      "work": "Complete tool batch and IDs, native tool execution включая skill из pinned generation snapshot, continuation items, usage/image encoding и generation-bound projection.",
+      "evidence": "evidence/T13/report.md",
+      "spec": "roadmap/M3.md"
+    },
+    {
+      "id": "T14",
+      "phase": "M3",
+      "title": "Native discovery user plugin",
+      "depends_on": [
+        "T12"
+      ],
+      "tests": [
+        "DISC01",
+        "DISC02",
+        "DISC03",
+        "DISC04",
+        "DISC05",
+        "DISC06",
+        "DISC07",
+        "DISC08",
+        "DISC09",
+        "DISC10"
+      ],
+      "work": "Перенести user reference semantics; fake-clock retries и all-or-nothing publication; local snapshot/variants/clamp/source/retired IDs. Связать exact admitted openproxy-models.js marker с compiled discovery без исполнения JS. No model hardcode.",
+      "evidence": "evidence/T14/report.md",
+      "spec": "roadmap/M3.md"
+    },
+    {
+      "id": "T15",
+      "phase": "M3",
+      "title": "Models, variants и admission",
+      "depends_on": [
+        "T13",
+        "T14"
+      ],
+      "tests": [
+        "UI02"
+      ],
+      "work": "Effective model selection/variant validation, unknown metadata diagnostics, context+output admission and explain; no production automatic model fallback.",
+      "evidence": "evidence/T15/report.md",
+      "spec": "roadmap/M3.md"
+    },
+    {
+      "id": "T16",
+      "phase": "M3",
+      "title": "Первый live OpenProxy gate",
+      "depends_on": [
+        "T15"
+      ],
+      "tests": [
+        "PROV08"
+      ],
+      "work": "Проверить credentials presence без logging; bounded live text+tool loop на выбранной модели, записать exact deployment/model/variant. Missing env → block только этот task.",
+      "evidence": "evidence/T16/report.md",
+      "spec": "roadmap/M3.md"
+    },
+    {
+      "id": "T17",
+      "phase": "M4",
+      "title": "DCP projection и storage",
+      "depends_on": [
+        "T02",
+        "T04",
+        "T13"
+      ],
+      "tests": [
+        "DCP01",
+        "DCP08"
+      ],
+      "work": "Core context plan и durable compression generation, DCP policy module, bounded history references; immutable raw transcript.",
+      "evidence": "evidence/T17/report.md",
+      "spec": "roadmap/M4.md"
+    },
+    {
+      "id": "T18",
+      "phase": "M4",
+      "title": "Compress range и protections",
+      "depends_on": [
+        "T17",
+        "T09"
+      ],
+      "tests": [
+        "DCP02",
+        "DCP03",
+        "DCP04",
+        "DCP09"
+      ],
+      "work": "Actual range schema, nested block preservation, anchors/protected paths/tools/users, no-gain guard; upstream-derived regression fixtures.",
+      "evidence": "evidence/T18/report.md",
+      "spec": "roadmap/M4.md"
+    },
+    {
+      "id": "T19",
+      "phase": "M4",
+      "title": "Nudges и auto-pruning",
+      "depends_on": [
+        "T18",
+        "T07"
+      ],
+      "tests": [
+        "DCP05",
+        "DCP06",
+        "DCP07"
+      ],
+      "work": "DCP config/nudge timing/counters/manual mode; dedup и purge error inputs at compress; exact bare/pinned DCP aliases связывают один compiled module. No generic summarizer or JS hooks.",
+      "evidence": "evidence/T19/report.md",
+      "spec": "roadmap/M4.md"
+    },
+    {
+      "id": "T20",
+      "phase": "M4",
+      "title": "Remote MCP codex_web",
+      "depends_on": [
+        "T02",
+        "T07",
+        "T13"
+      ],
+      "tests": [
+        "MCP01",
+        "MCP02",
+        "MCP03"
+      ],
+      "work": "rmcp remote client, exact 2025-11-25 POST/JSON path and no-session mode, registry mapping/errors/cancel; fake server mandatory before live.",
+      "evidence": "evidence/T20/report.md",
+      "spec": "roadmap/M4.md"
+    },
+    {
+      "id": "T21",
+      "phase": "M4",
+      "title": "Local MCP stdio",
+      "depends_on": [
+        "T20",
+        "T10"
+      ],
+      "tests": [
+        "MCP04",
+        "MCP05"
+      ],
+      "work": "Child lifecycle/stdout/stderr, enabled:false no spawn, argv retained; pinned fake server. Не включать browser/Node автоматически.",
+      "evidence": "evidence/T21/report.md",
+      "spec": "roadmap/M4.md"
+    },
+    {
+      "id": "T22",
+      "phase": "M5",
+      "title": "Ежедневный TUI",
+      "depends_on": [
+        "T06",
+        "T15"
+      ],
+      "tests": [
+        "UI02",
+        "UI03",
+        "UI06"
+      ],
+      "work": "Dynamic models/variants, paged sessions/resume, prompt UX, tool cards/diff and bounded view state; redacted workspace catalogs, primary-agent selection, command dispatch, skill card и Location/session switch action без второго registry.",
+      "evidence": "evidence/T22/report.md",
+      "spec": "roadmap/M5.md"
+    },
+    {
+      "id": "T23",
+      "phase": "M5",
+      "title": "DCP TUI и команды",
+      "depends_on": [
+        "T22",
+        "T19"
+      ],
+      "tests": [
+        "UI04"
+      ],
+      "work": "Context/stats/manual controls и /dcp-compress [focus], outcome notification, counters from runtime, not duplicate state.",
+      "evidence": "evidence/T23/report.md",
+      "spec": "roadmap/M5.md"
+    },
+    {
+      "id": "T24",
+      "phase": "M5",
+      "title": "Интеграция lifecycle",
+      "depends_on": [
+        "T19",
+        "T20",
+        "T21",
+        "T22"
+      ],
+      "tests": [
+        "STORE05",
+        "DCP08"
+      ],
+      "work": "Full runtime turn loop; один prompt assembler; command expansion через durable SubmitInput; atomic immutable config-generation publication; Location-scoped sessions; MCP/DCP/reasoning cleanup и reload только между turns. Не парсить definitions и не владеть configured-workspace E2E.",
+      "evidence": "evidence/T24/report.md",
+      "spec": "roadmap/M5.md"
+    },
+    {
+      "id": "T25",
+      "phase": "M5",
+      "title": "Offline coding/compaction E2E",
+      "depends_on": [
+        "T24",
+        "T11"
+      ],
+      "tests": [
+        "E2E01",
+        "E2E03",
+        "E2E05"
+      ],
+      "work": "Ordered checkpoints: configured-workspace A→B offline E2E с native aliases; затем seeded Rust coding E2E; затем compression/restart E2E. Scripted provider, no network/JS runtime/external payment.",
+      "evidence": "evidence/T25/report.md",
+      "spec": "roadmap/M5.md"
+    },
+    {
+      "id": "T26",
+      "phase": "M5",
+      "title": "PTY и UX qualification",
+      "depends_on": [
+        "T23",
+        "T25"
+      ],
+      "tests": [
+        "UI01",
+        "UI03",
+        "UI04",
+        "UI05"
+      ],
+      "work": "PTY paste/resize/Unicode/cancel/panic restoration, slow consumer и long-history paging; inspect actual behavior not only render snapshot.",
+      "evidence": "evidence/T26/report.md",
+      "spec": "roadmap/M5.md"
+    },
+    {
+      "id": "T27",
+      "phase": "M5",
+      "title": "Live пользовательский workflow",
+      "depends_on": [
+        "T16",
+        "T25",
+        "T26"
+      ],
+      "tests": [
+        "E2E02",
+        "E2E03",
+        "E2E04",
+        "MCP06"
+      ],
+      "work": "Bounded real coding task, compress/resume, webfetch and codex_web search; optional browser smoke only explicit opt-in. Report remaining models unqualified.",
+      "evidence": "evidence/T27/report.md",
+      "spec": "roadmap/M5.md"
+    },
+    {
+      "id": "T28",
+      "phase": "M6",
+      "title": "Soak и ресурсы",
+      "depends_on": [
+        "T25",
+        "T26"
+      ],
+      "tests": [
+        "LOAD01",
+        "LOAD02",
+        "LOAD03",
+        "LOAD04",
+        "STORE03",
+        "STORE04"
+      ],
+      "work": "Fixed synthetic long-session workload, outputs/history/queue/caches/MCP lifecycle, crash injection; measure actual host baseline and regression bounds.",
+      "evidence": "evidence/T28/report.md",
+      "spec": "roadmap/M6.md"
+    },
+    {
+      "id": "T29",
+      "phase": "M6",
+      "title": "Clean build и audit",
+      "depends_on": [
+        "T28",
+        "T02"
+      ],
+      "tests": [
+        "BUILD02",
+        "BUILD03",
+        "OPS01",
+        "OPS02",
+        "OPS04"
+      ],
+      "work": "Clean new HOME/XDG/no Node/Bun runtime test включая configured workspace, fmt/clippy/tests/build, source/license/secret/compat audit. No importer/release.",
+      "evidence": "evidence/T29/report.md",
+      "spec": "roadmap/M6.md"
+    },
+    {
+      "id": "T30",
+      "phase": "M6",
+      "title": "Final handoff и delivery",
+      "depends_on": [
+        "T29"
+      ],
+      "tests": [
+        "OPS03"
+      ],
+      "work": "Заполнить FINAL по A01–A13 и связать authoritative executable evidence без полного перезапуска suites. Live blockers не скрывать: task отчёта можно закрыть с BUILD_READY_LIVE_BLOCKED, но goal не READY. Reviewed own-branch push и отдельный delivery status.",
+      "evidence": "evidence/T30/report.md",
+      "spec": "roadmap/M6.md"
+    }
+  ]
+}
