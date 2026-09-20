@@ -283,12 +283,16 @@ impl SseParser {
 
     fn consume_text(&mut self, text: &str) -> Result<Vec<StreamItem>, ProviderError> {
         let mut out = Vec::new();
-        // Retain a trailing partial line for the next push.
+        // Retain a trailing partial line for the next push. A post-terminator
+        // residue after a final `\n` is not a line: dispatching on it would
+        // fire a data-less event when a flush splits `event:` from `data:`.
         let mut lines: Vec<&str> = text.split('\n').collect();
-        let tail = if text.ends_with('\n') {
-            None
-        } else {
-            lines.pop()
+        let tail = match lines.pop() {
+            Some(last) if text.ends_with('\n') => {
+                debug_assert!(last.is_empty());
+                None
+            }
+            last => last,
         };
         for line in lines {
             let line = line.strip_suffix('\r').unwrap_or(line);
@@ -942,6 +946,34 @@ mod tests {
             let _ = items.expect("parse");
         }
         assert!(over);
+    }
+
+    #[test]
+    fn sse_event_data_flush_split() {
+        // Live gateways flush `event:` and `data:` in separate chunks; a
+        // chunk ending right after an `event:` line must not dispatch a
+        // data-less event (T16 live finding: spurious Incomplete).
+        let mut parser = SseParser::default();
+        let first = parser
+            .push(b"event: response.output_text.delta\n")
+            .expect("event flush");
+        assert!(first.is_empty(), "no data-less dispatch");
+        let second = parser
+            .push(b"data: {\"type\":\"response.output_text.delta\",\"delta\":\"hi\"}\n\n")
+            .expect("data flush");
+        assert_eq!(second, vec![StreamItem::TextDelta("hi".to_string())]);
+        let tail = parser.finish().expect("finish");
+        assert!(tail.is_empty());
+
+        // Same bytes one-per-chunk stay identical.
+        let wire = b"event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"hi\"}\n\n";
+        let mut split = SseParser::default();
+        let mut got = Vec::new();
+        for chunk in wire.chunks(1) {
+            got.append(&mut split.push(chunk).expect("byte"));
+        }
+        got.append(&mut split.finish().expect("finish"));
+        assert_eq!(got, vec![StreamItem::TextDelta("hi".to_string())]);
     }
 
     #[tokio::test]
