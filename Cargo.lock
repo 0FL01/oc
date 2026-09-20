@@ -1371,6 +1371,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "crossterm",
+ "oc-adapters",
  "oc-core",
  "ratatui",
  "serde",

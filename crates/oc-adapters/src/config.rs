@@ -138,7 +138,7 @@ fn default_true() -> bool {
 }
 
 /// Effective immutable generation (T07 subset).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Generation {
     /// Providers by id in sorted order.
     pub providers: BTreeMap<String, ProviderEntry>,

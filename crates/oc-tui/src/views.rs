@@ -12,7 +12,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
 };
 
-use crate::app::TuiState;
+use crate::app::{TuiPanel, TuiState};
 
 /// Render state to a test backend; returns text lines for assertions.
 pub fn render_test(state: &TuiState, width: u16, height: u16) -> Vec<String> {
@@ -21,9 +21,17 @@ pub fn render_test(state: &TuiState, width: u16, height: u16) -> Vec<String> {
     terminal
         .draw(|frame| {
             let area = frame.area();
+            let panel = panel_lines(state);
+            // +2 for the panel block borders; zero height hides the panel.
+            let panel_height = ((panel.len() + 2) as u16).min(12);
+            let panel_height = if panel.is_empty() { 0 } else { panel_height };
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints([Constraint::Min(1), Constraint::Length(3)])
+                .constraints([
+                    Constraint::Min(1),
+                    Constraint::Length(panel_height),
+                    Constraint::Length(3),
+                ])
                 .split(area);
             let visible = state.viewport().join("\n");
             let history = Paragraph::new(visible).block(
@@ -32,9 +40,14 @@ pub fn render_test(state: &TuiState, width: u16, height: u16) -> Vec<String> {
                     .title(format!("oc {:?}", state.status)),
             );
             frame.render_widget(history, chunks[0]);
+            if panel_height > 0 {
+                let panel_widget = Paragraph::new(panel.join("\n"))
+                    .block(Block::default().borders(Borders::ALL).title("panel"));
+                frame.render_widget(panel_widget, chunks[1]);
+            }
             let prompt = Paragraph::new(state.input.as_str())
                 .block(Block::default().borders(Borders::ALL).title("prompt"));
-            frame.render_widget(prompt, chunks[1]);
+            frame.render_widget(prompt, chunks[2]);
         })
         .expect("draw");
     let buffer = terminal.backend().buffer().clone();
@@ -47,12 +60,73 @@ pub fn render_test(state: &TuiState, width: u16, height: u16) -> Vec<String> {
         .collect()
 }
 
+/// Bounded panel lines for the active panel (empty when no panel).
+pub fn panel_lines(state: &TuiState) -> Vec<String> {
+    const ROWS: usize = 8;
+    match &state.panel {
+        TuiPanel::None => Vec::new(),
+        TuiPanel::Model => match &state.picker {
+            Some(picker) => {
+                let mut out = vec![format!("model | {}", picker.status_line())];
+                out.extend(picker.window().into_iter().take(ROWS));
+                if let Some(error) = picker.last_error() {
+                    out.push(format!("note: {error}"));
+                }
+                out
+            }
+            None => vec!["model | loading catalog…".to_string()],
+        },
+        TuiPanel::Sessions => {
+            let mut out = vec!["sessions | enter resumes, esc closes".to_string()];
+            for (i, id) in state.sessions.iter().take(ROWS).enumerate() {
+                let mark = if i == state.sessions_cursor { ">" } else { " " };
+                out.push(format!("{mark} {id}"));
+            }
+            out
+        }
+        TuiPanel::Skills => match &state.workspace {
+            Some(workspace) => {
+                let mut out = vec!["skills | bodies stay behind the native tool".to_string()];
+                for (id, name, description) in workspace.skill_cards().into_iter().take(ROWS) {
+                    out.push(format!("{id} — {name}: {description}"));
+                }
+                out
+            }
+            None => vec!["skills | no workspace registry".to_string()],
+        },
+        TuiPanel::Help(topic) => match topic {
+            Some(topic) => vec![format!("help | {topic}"), help_topic(topic)],
+            None => vec![
+                "help | commands".to_string(),
+                "/model /sessions /skills /help /quit".to_string(),
+            ],
+        },
+    }
+}
+
+fn help_topic(topic: &str) -> String {
+    match topic {
+        "model" => "pick the exact model id; retired ids never fall back".to_string(),
+        "sessions" => "switch session; history pages load oldest-first".to_string(),
+        "skills" => "catalog cards only; bodies load via the skill tool".to_string(),
+        _ => "unknown topic".to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::render_test;
-    use crate::app::TuiState;
+    use super::{panel_lines, render_test};
+    use crate::app::{TuiPanel, TuiState};
+    use oc_adapters::models::ModelCatalog;
+    use oc_adapters::storage::Db;
     use oc_core::core_app::{CoreApp, MockProvider};
     use oc_core::domain::SessionId;
+
+    fn test_db(name: &str) -> Db {
+        let root = std::env::temp_dir().join(format!("oc-tui-views-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        Db::open(&root).expect("db")
+    }
 
     #[tokio::test]
     async fn render_is_bounded_with_unicode() {
@@ -71,5 +145,39 @@ mod tests {
         assert!(joined.contains("prompt"), "input pane: {joined}");
         // Viewport constant is the product contract for T06.
         assert_eq!(crate::app::VIEWPORT_LINES, 20);
+    }
+
+    #[tokio::test]
+    async fn panels_render_bounded() {
+        let (app, _guard) = CoreApp::spawn(MockProvider::echo());
+        std::mem::forget(_guard);
+        let sid = SessionId::new("s-p").expect("id");
+        app.create_session(sid.clone()).await.expect("create");
+        let db = test_db("panels");
+        let mut state = TuiState::new(app, sid);
+
+        let catalog = ModelCatalog {
+            provider: "ludka2".to_string(),
+            models: [("a".to_string(), serde_json::json!({}))]
+                .into_iter()
+                .collect(),
+        };
+        state.open_picker(catalog, &db).expect("picker");
+        let lines = panel_lines(&state);
+        assert!(lines.iter().any(|l| l.contains("model |")), "{lines:?}");
+        assert!(lines.iter().any(|l| l == "a"), "{lines:?}");
+        let frame = render_test(&state, 60, 24);
+        assert!(frame.join("\n").contains("model |"), "panel pane renders");
+
+        state.open_sessions(vec!["s-p".to_string(), "s-q".to_string()]);
+        let lines = panel_lines(&state);
+        assert!(lines.iter().any(|l| l.contains("> s-p")), "{lines:?}");
+
+        state.panel = TuiPanel::Help(None);
+        let lines = panel_lines(&state);
+        assert!(lines.iter().any(|l| l.contains("/model")), "{lines:?}");
+
+        state.close_panel();
+        assert!(panel_lines(&state).is_empty());
     }
 }

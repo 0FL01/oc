@@ -5,10 +5,11 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Local terminal UI for oc, bound to oc-core application API only"
+description = "Local terminal UI for oc, bound to oc-core application API plus oc-adapters read-side domain (D12)"
 
 [dependencies]
 oc-core = { path = "../oc-core" }
+oc-adapters = { path = "../oc-adapters" }
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true

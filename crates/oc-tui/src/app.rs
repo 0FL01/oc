@@ -10,7 +10,11 @@ use oc_core::core_app::{CoreApp, CoreEvent, WorkerTurnId};
 use oc_core::domain::SessionId;
 use oc_core::session::CoreError;
 
+use crate::commands::{CommandAction, dispatch};
 use crate::events::KeyAction;
+use crate::history::HistoryPager;
+use crate::picker::ModelPicker;
+use crate::workspace::WorkspaceRegistry;
 
 /// Visible lines kept in the viewport (scroll window).
 pub const VIEWPORT_LINES: usize = 20;
@@ -30,6 +34,21 @@ pub enum TuiStatus {
     Quit,
 }
 
+/// Open TUI panel (bounded view state; one at a time).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TuiPanel {
+    /// No panel (chat view).
+    None,
+    /// Model picker (UI02).
+    Model,
+    /// Session list with resume (UI03).
+    Sessions,
+    /// Skill catalog (UI06).
+    Skills,
+    /// Help, optionally for one topic.
+    Help(Option<String>),
+}
+
 /// Minimal chat state bound to one session on the shared handle.
 pub struct TuiState {
     app: CoreApp,
@@ -44,6 +63,18 @@ pub struct TuiState {
     pub status: TuiStatus,
     active_turn: Option<WorkerTurnId>,
     live_text: String,
+    /// Open panel, if any.
+    pub panel: TuiPanel,
+    /// Model picker (present while the Model panel lives).
+    pub picker: Option<ModelPicker>,
+    /// Session pager for the attached session (UI03, newest pages on demand).
+    pub pager: Option<HistoryPager>,
+    /// Session ids for the Sessions panel (bounded snapshot from the binary).
+    pub sessions: Vec<String>,
+    /// Sessions cursor.
+    pub sessions_cursor: usize,
+    /// Single-generation workspace registry wired by the binary (UI06).
+    pub workspace: Option<WorkspaceRegistry>,
 }
 
 impl TuiState {
@@ -58,6 +89,209 @@ impl TuiState {
             status: TuiStatus::Idle,
             active_turn: None,
             live_text: String::new(),
+            panel: TuiPanel::None,
+            picker: None,
+            pager: None,
+            sessions: Vec::new(),
+            sessions_cursor: 0,
+            workspace: None,
+        }
+    }
+
+    /// Attached session id.
+    pub fn session(&self) -> &SessionId {
+        &self.session
+    }
+
+    /// Attach the binary-wired workspace registry (UI06, one generation).
+    pub fn set_workspace(&mut self, workspace: WorkspaceRegistry) {
+        self.workspace = Some(workspace);
+    }
+
+    /// Switch to another session: re-point, clear view state, drop the
+    /// pager (the binary re-opens it). The target must exist on the
+    /// handle; storage resume is loaded explicitly via `resume_session`.
+    pub fn switch_session(&mut self, session: SessionId) {
+        self.session = session;
+        self.input.clear();
+        self.lines.clear();
+        self.scroll = 0;
+        self.live_text.clear();
+        self.active_turn = None;
+        if self.status != TuiStatus::Quit {
+            self.status = TuiStatus::Idle;
+        }
+        self.pager = None;
+        self.panel = TuiPanel::None;
+    }
+
+    /// Resume committed history into the view (first page, oldest-first).
+    pub fn resume_session(
+        &mut self,
+        db: &oc_adapters::storage::Db,
+        limit: usize,
+    ) -> Result<usize, String> {
+        let mut pager = HistoryPager::open(db, &self.session.0).map_err(|e| e.to_string())?;
+        let added = pager.load_older(db, limit).map_err(|e| e.to_string())?;
+        self.lines = pager
+            .rows()
+            .iter()
+            .map(|row| format!("{}: {}", row.role, row.text))
+            .collect();
+        self.scroll = 0;
+        self.pager = Some(pager);
+        Ok(added)
+    }
+
+    /// Load the next older history page into the top of the view.
+    pub fn history_older(
+        &mut self,
+        db: &oc_adapters::storage::Db,
+        limit: usize,
+    ) -> Result<usize, String> {
+        let pager = self.pager.as_mut().ok_or_else(|| "no pager".to_string())?;
+        let added = pager.load_older(db, limit).map_err(|e| e.to_string())?;
+        self.lines = pager
+            .rows()
+            .iter()
+            .map(|row| format!("{}: {}", row.role, row.text))
+            .collect();
+        Ok(added)
+    }
+
+    /// Run a dispatched slash command (panel routing only; snapshots load next).
+    fn run_command(&mut self, action: CommandAction) -> Option<String> {
+        match action {
+            CommandAction::Quit => {
+                self.status = TuiStatus::Quit;
+                None
+            }
+            CommandAction::OpenModelPicker => {
+                self.panel = TuiPanel::Model;
+                None
+            }
+            CommandAction::OpenSessions => {
+                self.open_sessions(Vec::new());
+                None
+            }
+            CommandAction::OpenSkills => {
+                if self.workspace.is_none() {
+                    return Some("no workspace registry".to_string());
+                }
+                self.open_skills();
+                None
+            }
+            CommandAction::Help(topic) => {
+                self.panel = TuiPanel::Help(topic);
+                None
+            }
+        }
+    }
+    /// Open the model picker over a fresh catalog (UI02).
+    pub fn open_picker(
+        &mut self,
+        catalog: oc_adapters::models::ModelCatalog,
+        db: &oc_adapters::storage::Db,
+    ) -> Result<(), String> {
+        let mut picker = ModelPicker::new(catalog);
+        picker.load_persisted(db).map_err(|e| e.to_string())?;
+        self.picker = Some(picker);
+        self.panel = TuiPanel::Model;
+        Ok(())
+    }
+
+    /// Open the session list snapshot (UI03).
+    pub fn open_sessions(&mut self, sessions: Vec<String>) {
+        self.sessions_cursor = 0;
+        self.sessions = sessions;
+        self.panel = TuiPanel::Sessions;
+    }
+
+    /// Open the skill catalog panel (UI06).
+    pub fn open_skills(&mut self) {
+        self.panel = TuiPanel::Skills;
+    }
+
+    /// Close any open panel.
+    pub fn close_panel(&mut self) {
+        self.panel = TuiPanel::None;
+    }
+
+    /// Panel navigation: Up/Down move the panel cursor, Enter chooses,
+    /// Esc closes. Returns an optional status message.
+    pub fn handle_panel_key(
+        &mut self,
+        action: KeyAction,
+        db: &oc_adapters::storage::Db,
+    ) -> Option<String> {
+        match action {
+            KeyAction::Cancel => {
+                self.close_panel();
+                None
+            }
+            KeyAction::Up => {
+                match self.panel {
+                    TuiPanel::Model => {
+                        if let Some(picker) = self.picker.as_mut() {
+                            picker.move_cursor(-1);
+                        }
+                    }
+                    TuiPanel::Sessions => {
+                        self.sessions_cursor = self.sessions_cursor.saturating_sub(1);
+                    }
+                    _ => {}
+                }
+                None
+            }
+            KeyAction::Down => {
+                match self.panel {
+                    TuiPanel::Model => {
+                        if let Some(picker) = self.picker.as_mut() {
+                            picker.move_cursor(1);
+                        }
+                    }
+                    TuiPanel::Sessions => {
+                        if !self.sessions.is_empty() {
+                            self.sessions_cursor =
+                                (self.sessions_cursor + 1).min(self.sessions.len() - 1);
+                        }
+                    }
+                    _ => {}
+                }
+                None
+            }
+            KeyAction::Enter => match self.panel {
+                TuiPanel::Model => {
+                    let Some(picker) = self.picker.as_mut() else {
+                        return Some("no picker".to_string());
+                    };
+                    match picker.choose_cursor(db) {
+                        Ok(()) => {
+                            self.close_panel();
+                            None
+                        }
+                        Err(e) => Some(e),
+                    }
+                }
+                TuiPanel::Sessions => {
+                    if let Some(id) = self.sessions.get(self.sessions_cursor).cloned() {
+                        match SessionId::new(id) {
+                            Some(session) => {
+                                self.switch_session(session);
+                                None
+                            }
+                            None => Some("bad session id".to_string()),
+                        }
+                    } else {
+                        Some("empty session list".to_string())
+                    }
+                }
+                _ => {
+                    self.close_panel();
+                    None
+                }
+            },
+            _ => None,
         }
     }
 
@@ -105,10 +339,11 @@ impl TuiState {
                 if text.is_empty() {
                     return None;
                 }
-                if text == "/quit" {
-                    self.status = TuiStatus::Quit;
+                // Slash commands drive panels (UI06); the binary fills
+                // catalog/session snapshots after dispatch.
+                if let Some(action) = dispatch(&text) {
                     self.input.clear();
-                    return None;
+                    return self.run_command(action);
                 }
                 if self.active_turn.is_some() {
                     return Some("turn busy".to_string());
@@ -253,14 +488,60 @@ pub enum PumpOutcome {
 
 #[cfg(test)]
 mod tests {
-    use super::{PumpOutcome, ScriptDriver, TuiState, TuiStatus, VIEWPORT_LINES};
+    use super::{PumpOutcome, ScriptDriver, TuiPanel, TuiState, TuiStatus, VIEWPORT_LINES};
     use crate::events::KeyAction;
+    use oc_adapters::models::ModelCatalog;
+    use oc_adapters::storage::Db;
     use oc_core::core_app::{CoreApp, MockProvider};
     use oc_core::domain::SessionId;
     use std::time::Duration;
 
     fn sid(raw: &str) -> SessionId {
         SessionId::new(raw).expect("id")
+    }
+
+    fn test_db(name: &str) -> Db {
+        let root = std::env::temp_dir().join(format!("oc-tui-app-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        Db::open(&root).expect("db")
+    }
+
+    async fn type_text(state: &mut TuiState, text: &str) -> Option<String> {
+        let mut out = None;
+        for c in text.chars() {
+            out = state.handle_key(KeyAction::Char(c)).await;
+        }
+        out
+    }
+
+    #[tokio::test]
+    async fn slash_sessions_switch_and_resume_pages() {
+        let (app, guard) = CoreApp::spawn(MockProvider::echo());
+        std::mem::forget(guard);
+        app.create_session(sid("s1")).await.expect("s1");
+        app.create_session(sid("s2")).await.expect("s2");
+        let db = test_db("switch");
+        db.create_session("s2").expect("db session");
+        for (i, role) in ["user", "assistant", "user"].iter().enumerate() {
+            db.append_message("s2", role, &format!("m{i}"))
+                .expect("msg");
+        }
+        let mut state = TuiState::new(app, sid("s1"));
+        type_text(&mut state, "/sessions").await;
+        state.handle_key(KeyAction::Enter).await;
+        assert_eq!(state.panel, TuiPanel::Sessions);
+        state.open_sessions(db.list_sessions().expect("list"));
+        state.handle_panel_key(KeyAction::Down, &db);
+        state.handle_panel_key(KeyAction::Enter, &db);
+        assert_eq!(state.session().0, "s2");
+        assert!(state.lines.is_empty(), "view cleared on switch");
+
+        let added = state.resume_session(&db, 2).expect("resume");
+        assert_eq!(added, 2);
+        assert_eq!(state.lines, ["assistant: m1", "user: m2"].map(String::from));
+        let added = state.history_older(&db, 10).expect("older");
+        assert_eq!(added, 1);
+        assert_eq!(state.lines[0], "user: m0");
     }
 
     async fn setup() -> (TuiState, ScriptDriver) {
@@ -349,5 +630,89 @@ mod tests {
         let view = state.viewport();
         assert_eq!(view.len(), VIEWPORT_LINES);
         assert_eq!(view[0], format!("line {}", 50 - VIEWPORT_LINES - 5));
+    }
+
+    fn catalog() -> ModelCatalog {
+        ModelCatalog {
+            provider: "ludka2".to_string(),
+            models: [
+                ("a".to_string(), serde_json::json!({})),
+                ("b".to_string(), serde_json::json!({})),
+            ]
+            .into_iter()
+            .collect(),
+        }
+    }
+
+    #[tokio::test]
+    async fn picker_choose_flow_through_panel() {
+        let (app, guard) = CoreApp::spawn(MockProvider::echo());
+        std::mem::forget(guard);
+        app.create_session(sid("s-p")).await.expect("s");
+        let db = test_db("picker");
+        let mut state = TuiState::new(app, sid("s-p"));
+        state.open_picker(catalog(), &db).expect("open");
+        assert_eq!(state.panel, TuiPanel::Model);
+        state.handle_panel_key(KeyAction::Down, &db);
+        state.handle_panel_key(KeyAction::Enter, &db);
+        assert_eq!(state.panel, TuiPanel::None);
+        let selection = state
+            .picker
+            .as_ref()
+            .expect("picker")
+            .selection()
+            .expect("choice");
+        assert_eq!(selection.id, "b");
+        // Persisted: a fresh picker resolves without interaction.
+        let mut reopened = TuiState::new(state.app.clone(), sid("s-p"));
+        reopened.open_picker(catalog(), &db).expect("reopen");
+        let selection = reopened
+            .picker
+            .as_ref()
+            .expect("picker")
+            .selection()
+            .expect("choice");
+        assert_eq!(selection.id, "b");
+    }
+
+    #[tokio::test]
+    async fn slash_skills_needs_workspace() {
+        let (app, guard) = CoreApp::spawn(MockProvider::echo());
+        std::mem::forget(guard);
+        app.create_session(sid("s-k")).await.expect("s");
+        let mut state = TuiState::new(app, sid("s-k"));
+        type_text(&mut state, "/skills").await;
+        let message = state.handle_key(KeyAction::Enter).await;
+        assert_eq!(message.as_deref(), Some("no workspace registry"));
+        assert_eq!(state.panel, TuiPanel::None);
+
+        let workspace = crate::workspace::WorkspaceRegistry::bind(
+            1,
+            "work",
+            &oc_adapters::config::Generation::default(),
+            Vec::new(),
+            vec![oc_adapters::config::SkillMeta {
+                id: "s1".to_string(),
+                name: "S1".to_string(),
+                description: "does things".to_string(),
+            }],
+        );
+        state.set_workspace(workspace);
+        type_text(&mut state, "/skills").await;
+        assert!(state.handle_key(KeyAction::Enter).await.is_none());
+        assert_eq!(state.panel, TuiPanel::Skills);
+        state.handle_panel_key(KeyAction::Cancel, &test_db("unused"));
+        assert_eq!(state.panel, TuiPanel::None);
+    }
+
+    #[tokio::test]
+    async fn slash_quit_still_quits() {
+        let (app, guard) = CoreApp::spawn(MockProvider::echo());
+        std::mem::forget(guard);
+        app.create_session(sid("s-q")).await.expect("s");
+        let mut state = TuiState::new(app, sid("s-q"));
+        type_text(&mut state, "/quit").await;
+        state.handle_key(KeyAction::Enter).await;
+        assert_eq!(state.status, TuiStatus::Quit);
     }
 }

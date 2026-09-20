@@ -40,6 +40,8 @@ D10: одна immutable config generation на turn. Skills snapshot-ятся bo
 
 D11: known plugin compatibility — обычный exact enum/match по capability kind, не generic registry. T07 классифицирует и отклоняет unknown до side effects; T14/T19 связывают marker с compiled discovery/DCP. Exact marker не исполняет JS-файл и не меняет authority пользовательского discovery snapshot.
 
+D12: `oc-tui` зависит от read-side `oc-adapters` (models select/admit, config explain/skills, storage paged reads + `tui.*` prefs). DAG сохраняется: `core <- adapters <- tui <- oc`; TUI не порождает network/process, storage writes только pref-ключи, Db handle lifecycle остаётся в binary. Чистый `core`-only TUI не может показать picker/history/workspace без дублирования доменной логики.
+
 ## Остаточные prerequisites, не новые Q
 
 Secrets/connectivity/наличие нужной live модели проверяются just-in-time в T16/T27, не в T00. Missing → конкретный external blocker, не угадывание credentials. Docker проверяется только перед первым использованием и иначе `NOT_USED`. Exact versions Cargo dependencies/rmcp protocol/TLS проверяются compile spike. Реальная browser-служба требуется только для opt-in smoke. Monetary hard limit внешнего authoring-agent не задан; документация его не исполняет. Semantic DCP качества проверяются fixtures/live task, а не декларацией.

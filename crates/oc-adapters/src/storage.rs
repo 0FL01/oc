@@ -16,7 +16,7 @@ use std::sync::Mutex;
 use std::time::{Duration, SystemTime};
 
 use fs2::FileExt as _;
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension as _, params};
 use sha2::{Digest as _, Sha256};
 use thiserror::Error;
 
@@ -62,6 +62,28 @@ pub struct Db {
     _lock: File,
     conn: Mutex<Connection>,
 }
+
+/// One tool operation row for TUI tool cards (T22).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToolOpRow {
+    /// Operation id.
+    pub op: String,
+    /// Owning turn, if any.
+    pub turn: Option<String>,
+    /// Tool name.
+    pub name: String,
+    /// `started` / `completed` / `failed` / `unknown`.
+    pub state: String,
+    /// Bounded input snapshot.
+    pub input: Option<String>,
+    /// Bounded output snapshot.
+    pub output: Option<String>,
+}
+
+/// Max rows per history page (UI03 bounds the backing store).
+pub const HISTORY_PAGE_MAX: usize = 100;
+/// Max tool operations listed per session (UI03 cards).
+pub const TOOL_OPS_MAX: usize = 200;
 
 /// Durable compression block row with ordered membership (T17).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -243,6 +265,114 @@ impl Db {
             out.push(row?);
         }
         Ok(out)
+    }
+
+    /// Count committed messages (UI03 pager total).
+    pub fn history_len(&self, session: &str) -> Result<usize, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let count: Option<i64> = conn
+            .query_row(
+                "SELECT COUNT(*) FROM messages WHERE session_id = ?1",
+                params![session],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let count = count.unwrap_or(0).max(0) as usize;
+        if count == 0 {
+            Self::require_session(&conn, session)?;
+        }
+        Ok(count)
+    }
+
+    /// Read one newest-first page: `(seq, role, text)` with `seq` below
+    /// `before_seq` when given. Never renders the whole history.
+    pub fn read_history_page(
+        &self,
+        session: &str,
+        limit: usize,
+        before_seq: Option<i64>,
+    ) -> Result<Vec<(i64, String, String)>, StorageError> {
+        let limit = (limit.min(HISTORY_PAGE_MAX) as i64).max(0);
+        let conn = self.conn.lock().expect("db mutex");
+        let mut stmt = conn.prepare_cached(
+            "SELECT seq, role, text FROM messages
+             WHERE session_id = ?1 AND (?2 IS NULL OR seq < ?2)
+             ORDER BY seq DESC LIMIT ?3",
+        )?;
+        let rows = stmt.query_map(params![session, before_seq, limit], |row| {
+            let seq: i64 = row.get(0)?;
+            let role: String = row.get(1)?;
+            let text: String = row.get(2)?;
+            Ok((seq, role, text))
+        })?;
+        let mut out = Vec::new();
+        for row in rows {
+            out.push(row?);
+        }
+        if out.is_empty() {
+            Self::require_session(&conn, session)?;
+        }
+        Ok(out)
+    }
+
+    fn require_session(conn: &Connection, session: &str) -> Result<(), StorageError> {
+        conn.query_row(
+            "SELECT 1 FROM sessions WHERE id = ?1",
+            params![session],
+            |_| Ok(()),
+        )
+        .map_err(|_| StorageError::SessionNotFound)
+    }
+
+    /// List tool operations in row order, bounded (UI03 cards).
+    pub fn list_tool_ops(&self, session: &str) -> Result<Vec<ToolOpRow>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let mut stmt = conn.prepare_cached(
+            "SELECT id, turn_id, name, state, input, output FROM tool_operations
+             WHERE session_id = ?1 ORDER BY rowid ASC LIMIT ?2",
+        )?;
+        let rows = stmt.query_map(params![session, TOOL_OPS_MAX as i64], |row| {
+            Ok(ToolOpRow {
+                op: row.get(0)?,
+                turn: row.get(1)?,
+                name: row.get(2)?,
+                state: row.get(3)?,
+                input: row.get(4)?,
+                output: row.get(5)?,
+            })
+        })?;
+        let mut out = Vec::new();
+        for row in rows {
+            out.push(row?);
+        }
+        if out.is_empty() {
+            Self::require_session(&conn, session)?;
+        }
+        Ok(out)
+    }
+
+    /// Upsert a namespaced UI preference (callers use `tui.*` keys).
+    pub fn set_pref(&self, key: &str, value: &str) -> Result<(), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        conn.prepare_cached(
+            "INSERT INTO prefs(key, value, updated_at) VALUES (?1, ?2, ?3)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )?
+        .execute(params![key, value, now_rfc3339()])?;
+        Ok(())
+    }
+
+    /// Read a UI preference, if set.
+    pub fn get_pref(&self, key: &str) -> Result<Option<String>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let value: Option<String> = conn
+            .query_row(
+                "SELECT value FROM prefs WHERE key = ?1",
+                params![key],
+                |row| row.get(0),
+            )
+            .optional()?;
+        Ok(value)
     }
 
     /// Begin a turn (durable intent before any side effect).
@@ -692,6 +822,7 @@ fn apply_schema(conn: &Connection) -> Result<(), StorageError> {
            seq INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
            kind TEXT NOT NULL, payload TEXT NOT NULL);
          CREATE TABLE IF NOT EXISTS blobs(digest TEXT PRIMARY KEY, size INTEGER NOT NULL, path TEXT NOT NULL);
+         CREATE TABLE IF NOT EXISTS prefs(key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL);
          INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (1, 't04');",
     )?;
     Ok(())
@@ -844,5 +975,54 @@ mod tests {
             let mode = fs::metadata(&root2).expect("meta").permissions().mode() & 0o777;
             assert_eq!(mode, 0o700);
         }
+    }
+
+    #[test]
+    fn history_pages_and_tool_ops_are_bounded() {
+        let tmp = tmp_root("tui22");
+        let db = Db::open(&tmp.path().join("data")).expect("open");
+        assert!(db.read_history_page("ghost", 10, None).is_err());
+        assert!(db.list_tool_ops("ghost").is_err());
+        db.create_session("s").expect("session");
+        assert_eq!(db.history_len("s").expect("len"), 0);
+        for i in 0..5 {
+            db.append_message("s", "user", &format!("m{i}"))
+                .expect("msg");
+        }
+        assert_eq!(db.history_len("s").expect("len"), 5);
+        let page = db.read_history_page("s", 2, None).expect("page");
+        assert_eq!(page.len(), 2);
+        assert_eq!(page[0].0, 5);
+        assert_eq!(page[1].2, "m3");
+        let rest = db
+            .read_history_page("s", 100, Some(page[1].0))
+            .expect("rest");
+        assert_eq!(rest.len(), 3);
+        // Over-limit requests clamp instead of growing the store.
+        let clamped = db.read_history_page("s", 10_000, None).expect("clamp");
+        assert_eq!(clamped.len(), 5);
+
+        db.record_tool_intent("op1", "s", None, "read", "{}")
+            .expect("intent");
+        db.record_tool_outcome("op1", "completed", Some("ok"))
+            .expect("outcome");
+        let ops = db.list_tool_ops("s").expect("ops");
+        assert_eq!(ops.len(), 1);
+        assert_eq!(ops[0].name, "read");
+        assert_eq!(ops[0].state, "completed");
+    }
+
+    #[test]
+    fn prefs_roundtrip() {
+        let tmp = tmp_root("prefs");
+        let db = Db::open(&tmp.path().join("data")).expect("open");
+        assert_eq!(db.get_pref("tui.x").expect("get"), None);
+        db.set_pref("tui.x", "{\"a\":1}").expect("set");
+        assert_eq!(
+            db.get_pref("tui.x").expect("get"),
+            Some("{\"a\":1}".to_string())
+        );
+        db.set_pref("tui.x", "v2").expect("overwrite");
+        assert_eq!(db.get_pref("tui.x").expect("get"), Some("v2".to_string()));
     }
 }
