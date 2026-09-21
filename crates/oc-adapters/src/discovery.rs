@@ -11,6 +11,7 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderName, HeaderValue};
 use thiserror::Error;
 
 /// Provider id this discovery serves.
@@ -126,7 +127,7 @@ pub trait DiscoveryClient {
     fn get(
         &self,
         url: &str,
-        headers: &BTreeMap<String, String>,
+        headers: &HeaderMap,
         attempt_timeout: Duration,
     ) -> impl std::future::Future<Output = Result<(u16, Vec<u8>), DiscoveryError>> + Send;
 }
@@ -157,13 +158,14 @@ impl DiscoveryClient for ReqwestDiscoveryClient {
     async fn get(
         &self,
         url: &str,
-        headers: &BTreeMap<String, String>,
+        headers: &HeaderMap,
         attempt_timeout: Duration,
     ) -> Result<(u16, Vec<u8>), DiscoveryError> {
-        let mut req = self.client.get(url).timeout(attempt_timeout);
-        for (key, value) in headers {
-            req = req.header(key.as_str(), value.as_str());
-        }
+        let req = self
+            .client
+            .get(url)
+            .headers(headers.clone())
+            .timeout(attempt_timeout);
         let _ = self.connect_timeout;
         let resp = req.send().await.map_err(|_| DiscoveryError::Network)?;
         let status = resp.status().as_u16();
@@ -192,13 +194,18 @@ pub fn should_retry_status(status: u16) -> bool {
 
 /// Safe positive integer (JS `Number.isSafeInteger` + `> 0`).
 fn positive_integer(value: &serde_json::Value) -> bool {
-    value.as_i64().map(|v| v > 0).unwrap_or(false)
-        && value.as_u64().is_some_and(|v| v <= (1u64 << 53))
+    const MAX_SAFE_INTEGER: u64 = (1u64 << 53) - 1;
+    if let Some(number) = value.as_u64() {
+        return (1..=MAX_SAFE_INTEGER).contains(&number);
+    }
+    value.as_f64().is_some_and(|number| {
+        number.is_finite() && number > 0.0 && number < (1u64 << 53) as f64 && number.fract() == 0.0
+    })
 }
 
 /// Human display name derived from any model id (slashes preserved).
 pub fn pretty_model_name(id: &str) -> String {
-    let model_id = id.split('/').next_back().unwrap_or(id);
+    let model_id = id.split_once('/').map_or(id, |(_, suffix)| suffix);
     let mut words: Vec<String> = model_id
         .split(['-', '_'])
         .filter(|w| !w.is_empty())
@@ -263,7 +270,7 @@ fn explicit_model_name(name: &serde_json::Value, id: &str) -> Option<String> {
     if name.trim().is_empty() {
         return None;
     }
-    let without_prefix = id.split('/').next_back().unwrap_or(id);
+    let without_prefix = id.split_once('/').map_or(id, |(_, suffix)| suffix);
     if name.trim() == id || name.trim() == without_prefix {
         return None;
     }
@@ -444,7 +451,7 @@ pub async fn fetch_models<C: Clock, D: DiscoveryClient>(
     clock: &C,
     client: &D,
     url: &str,
-    headers: &BTreeMap<String, String>,
+    headers: &HeaderMap,
     cancel: &AtomicBool,
 ) -> Result<(Vec<serde_json::Value>, usize), DiscoveryError> {
     let start = clock.now_ms();
@@ -463,15 +470,15 @@ pub async fn fetch_models<C: Clock, D: DiscoveryClient>(
         let timeout =
             Duration::from_millis(remaining_budget(deadline, now).min(ATTEMPT_TIMEOUT_MS));
         match client.get(url, headers, timeout).await {
-            Err(e) => {
+            Err(DiscoveryError::Network) => {
                 last_failure = DiscoveryError::Network;
-                let _ = e;
                 if attempts > RETRY_DELAYS_MS.len() {
                     return Err(last_failure);
                 }
             }
+            Err(error) => return Err(error),
             Ok((status, body)) => {
-                if status != 200 {
+                if !(200..300).contains(&status) {
                     last_failure = DiscoveryError::Http { status };
                     if !should_retry_status(status) || attempts > RETRY_DELAYS_MS.len() {
                         return Err(last_failure);
@@ -530,34 +537,38 @@ pub async fn fetch_models<C: Clock, D: DiscoveryClient>(
 /// Build the discovery URL: trimmed prefix + `/models`, rejecting
 /// credential-bearing or non-http(s) bases before any network use.
 pub fn discovery_url(base_url: &str) -> Result<String, DiscoveryError> {
-    if base_url.trim().is_empty() {
-        return Err(DiscoveryError::InvalidConfig);
-    }
-    let (scheme, rest) = base_url
-        .split_once("://")
-        .ok_or(DiscoveryError::InvalidConfig)?;
-    if scheme != "http" && scheme != "https" {
-        return Err(DiscoveryError::InvalidConfig);
-    }
-    if rest.is_empty() {
-        return Err(DiscoveryError::InvalidConfig);
-    }
-    let (authority, path) = match rest.find('/') {
-        Some(i) => (&rest[..i], &rest[i..]),
-        None => (rest, "/"),
-    };
-    if authority.is_empty()
-        || authority.contains('@')
-        || path.contains('?')
-        || path.contains('#')
-        || base_url.contains(' ')
+    let mut url = reqwest::Url::parse(base_url).map_err(|_| DiscoveryError::InvalidConfig)?;
+    if !matches!(url.scheme(), "http" | "https")
+        || url.host_str().is_none()
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.query().is_some()
+        || url.fragment().is_some()
     {
         return Err(DiscoveryError::InvalidConfig);
     }
-    Ok(format!(
-        "{scheme}://{authority}{}/models",
-        path.trim_end_matches('/')
-    ))
+    let path = format!("{}/models", url.path().trim_end_matches('/'));
+    url.set_path(&path);
+    Ok(url.into())
+}
+
+fn discovery_headers(
+    configured: &BTreeMap<String, String>,
+    api_key: &str,
+) -> Result<HeaderMap, DiscoveryError> {
+    let mut headers = HeaderMap::new();
+    for (name, value) in configured {
+        let name =
+            HeaderName::from_bytes(name.as_bytes()).map_err(|_| DiscoveryError::InvalidConfig)?;
+        let value = HeaderValue::from_str(value).map_err(|_| DiscoveryError::InvalidConfig)?;
+        headers.insert(name, value);
+    }
+    let mut authorization = HeaderValue::from_str(&format!("Bearer {api_key}"))
+        .map_err(|_| DiscoveryError::InvalidConfig)?;
+    authorization.set_sensitive(true);
+    headers.insert(AUTHORIZATION, authorization);
+    headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
+    Ok(headers)
 }
 
 /// Provider gating: disabled wins, then an enabled-selection must include us.
@@ -616,10 +627,17 @@ pub async fn refresh<C: Clock, D: DiscoveryClient>(
             return failed(warnings);
         }
     };
-    // Configured headers survive; Authorization is always replaced.
-    let mut headers = configured_headers.clone();
-    headers.insert("Authorization".to_string(), format!("Bearer {api_key}"));
-    headers.insert("Accept".to_string(), "application/json".to_string());
+    // HeaderMap replacement is case-insensitive, matching the oracle's Headers.set.
+    let headers = match discovery_headers(configured_headers, api_key) {
+        Ok(headers) => headers,
+        Err(_) => {
+            warnings.push(
+                "[openproxy-models] invalid provider URL or credentials; keeping configured models."
+                    .to_string(),
+            );
+            return failed(warnings);
+        }
+    };
 
     let (rows, attempts) = match fetch_models(clock, client, &url, &headers, cancel).await {
         Ok(ok) => ok,
@@ -717,11 +735,13 @@ fn merge_model(remote: &RemoteModel, local: &serde_json::Value) -> serde_json::V
             }
         }
         for key in ["context", "input"] {
-            if let Some(value) = limit.get(key).and_then(|v| v.as_u64()) {
-                limit.insert(
-                    key.to_string(),
-                    serde_json::Value::from(value.min(MAX_CONTEXT_TOKENS)),
-                );
+            if let Some(value) = limit.get(key)
+                && positive_integer(value)
+                && value
+                    .as_f64()
+                    .is_some_and(|value| value > MAX_CONTEXT_TOKENS as f64)
+            {
+                limit.insert(key.to_string(), serde_json::Value::from(MAX_CONTEXT_TOKENS));
             }
         }
         let complete = ["context", "output"]
@@ -756,6 +776,7 @@ mod tests {
         RecordedRequest, Scripted, fetch_models, model_config, pretty_model_name,
         should_retry_status, should_run,
     };
+    use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue};
     use std::collections::{BTreeMap, VecDeque};
     use std::sync::{Arc, Mutex};
     use std::time::Duration;
@@ -792,6 +813,7 @@ mod tests {
     struct FakeClient {
         script: Mutex<VecDeque<Scripted>>,
         requests: Mutex<Vec<RecordedRequest>>,
+        sent_headers: Mutex<Vec<HeaderMap>>,
         latency_ms: u64,
         clock: Option<Arc<FakeClock>>,
         on_request: Option<Arc<dyn Fn() + Send + Sync>>,
@@ -803,6 +825,7 @@ mod tests {
             Self {
                 script: Mutex::new(script.into()),
                 requests: Mutex::new(Vec::new()),
+                sent_headers: Mutex::new(Vec::new()),
                 latency_ms: 0,
                 clock: None,
                 on_request: None,
@@ -821,7 +844,7 @@ mod tests {
         async fn get(
             &self,
             url: &str,
-            headers: &BTreeMap<String, String>,
+            headers: &HeaderMap,
             _attempt_timeout: Duration,
         ) -> Result<(u16, Vec<u8>), DiscoveryError> {
             let n = {
@@ -834,14 +857,27 @@ mod tests {
                 let _ = n;
                 hook();
             }
+            self.sent_headers
+                .lock()
+                .expect("sent headers")
+                .push(headers.clone());
             self.requests
                 .lock()
                 .expect("requests")
                 .push(RecordedRequest {
                     url: url.to_string(),
-                    auth: headers.get("Authorization").cloned(),
-                    accept: headers.get("Accept").cloned(),
-                    custom: headers.get("x-fixture").cloned(),
+                    auth: headers
+                        .get(AUTHORIZATION)
+                        .and_then(|value| value.to_str().ok())
+                        .map(str::to_string),
+                    accept: headers
+                        .get(ACCEPT)
+                        .and_then(|value| value.to_str().ok())
+                        .map(str::to_string),
+                    custom: headers
+                        .get("x-fixture")
+                        .and_then(|value| value.to_str().ok())
+                        .map(str::to_string),
                 });
             if self.latency_ms > 0
                 && let Some(clock) = &self.clock
@@ -875,14 +911,14 @@ mod tests {
         })
     }
 
-    fn headers() -> BTreeMap<String, String> {
-        let mut headers = BTreeMap::new();
+    fn headers() -> HeaderMap {
+        let mut headers = HeaderMap::new();
         headers.insert(
-            "Authorization".to_string(),
-            "Bearer unit-test-placeholder".to_string(),
+            AUTHORIZATION,
+            HeaderValue::from_static("Bearer unit-test-placeholder"),
         );
-        headers.insert("Accept".to_string(), "application/json".to_string());
-        headers.insert("x-fixture".to_string(), "yes".to_string());
+        headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
+        headers.insert("x-fixture", HeaderValue::from_static("yes"));
         headers
     }
 
@@ -1013,6 +1049,272 @@ mod tests {
         );
         assert!(super::discovery_url("https://user:password@example.invalid/v1").is_err());
         assert!(super::discovery_url("ftp://example.invalid").is_err());
+    }
+
+    #[test]
+    fn aud18_safe_integer_boundary_and_local_preclamp_validation() {
+        let safe = serde_json::json!({
+            "id": "safe",
+            "context_length": 9_007_199_254_740_991_u64,
+            "max_completion_tokens": 16,
+        });
+        assert!(model_config(&safe).is_ok(), "2^53 - 1 is safe");
+
+        let unsafe_remote = serde_json::json!({
+            "id": "unsafe",
+            "context_length": 9_007_199_254_740_992_u64,
+            "max_completion_tokens": 16,
+        });
+        assert!(model_config(&unsafe_remote).is_err(), "2^53 is unsafe");
+
+        let remote = model_config(&serde_json::json!({
+            "id": "local-boundary",
+            "context_length": 1024,
+            "max_completion_tokens": 16,
+        }))
+        .expect("remote");
+        let safe_local = super::merge_model(
+            &remote,
+            &serde_json::json!({
+                "limit": {"context": 9_007_199_254_740_991_u64, "output": 16},
+            }),
+        );
+        assert_eq!(safe_local["limit"]["context"], MAX_CONTEXT_TOKENS);
+        let unsafe_local = super::merge_model(
+            &remote,
+            &serde_json::json!({
+                "limit": {"context": 9_007_199_254_740_992_u64, "output": 16},
+            }),
+        );
+        assert_eq!(unsafe_local.get("limit"), None, "validate before clamp");
+    }
+
+    #[test]
+    fn aud18_names_strip_only_the_first_slash_and_remote_connection_fields_are_ignored() {
+        assert_eq!(pretty_model_name("vendor/route/model-x"), "Route/model X");
+        let row = serde_json::json!({
+            "id": "vendor/route/model-x",
+            "npm": "remote-package",
+            "options": {"baseURL": "https://override.invalid", "apiKey": "remote-key"},
+            "headers": {"Authorization": "remote-auth"},
+            "opencode": {
+                "name": "route/model-x",
+                "options": {"baseURL": "https://nested.invalid"},
+                "headers": {"Accept": "text/plain"},
+            },
+        });
+        let remote = model_config(&row).expect("metadata-only row");
+        assert_eq!(remote.config["name"], "Route/model X");
+        let serialized = remote.config.to_string();
+        for forbidden in [
+            "remote-package",
+            "override.invalid",
+            "remote-key",
+            "remote-auth",
+            "nested.invalid",
+            "text/plain",
+        ] {
+            assert!(!serialized.contains(forbidden), "leaked {forbidden}");
+        }
+    }
+
+    #[test]
+    fn aud18_reqwest_url_validation_rejects_userinfo_query_fragment_and_malformed() {
+        assert_eq!(
+            super::discovery_url("https://example.invalid/proxy/v1///").expect("valid"),
+            "https://example.invalid/proxy/v1/models"
+        );
+        for invalid in [
+            "https://user:password@example.invalid/v1",
+            "https://example.invalid?query=yes",
+            "https://example.invalid#fragment",
+            "https://example.invalid:bad/v1",
+            "https://[::1",
+            "not a URL",
+        ] {
+            assert!(
+                super::discovery_url(invalid).is_err(),
+                "accepted invalid URL {invalid}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn aud18_headers_replace_reserved_case_insensitively_once_and_preserve_custom() {
+        let clock = FakeClock::new();
+        let client = FakeClient::new(vec![Scripted::Status {
+            status: 200,
+            body: list(serde_json::json!([model("fresh")])),
+        }]);
+        let configured = BTreeMap::from([
+            (
+                "authorization".to_string(),
+                "Bearer stale-lower".to_string(),
+            ),
+            (
+                "AUTHORIZATION".to_string(),
+                "Bearer stale-upper".to_string(),
+            ),
+            ("accept".to_string(), "text/plain".to_string()),
+            ("AcCePt".to_string(), "application/xml".to_string()),
+            ("x-fixture".to_string(), "preserved".to_string()),
+        ]);
+        let outcome = super::refresh(
+            &clock,
+            &client,
+            "https://example.invalid/v1",
+            "fresh-key",
+            &configured,
+            &BTreeMap::new(),
+            &NO_CANCEL,
+        )
+        .await;
+        assert!(outcome.replaced);
+        let sent = client.sent_headers.lock().expect("headers");
+        let sent = &sent[0];
+        let authorization: Vec<_> = sent
+            .iter()
+            .filter(|(name, _)| name.as_str() == "authorization")
+            .collect();
+        let accept: Vec<_> = sent
+            .iter()
+            .filter(|(name, _)| name.as_str() == "accept")
+            .collect();
+        assert_eq!(authorization.len(), 1);
+        assert_eq!(
+            authorization[0].1.to_str().expect("authorization"),
+            "Bearer fresh-key"
+        );
+        assert_eq!(accept.len(), 1);
+        assert_eq!(accept[0].1.to_str().expect("accept"), "application/json");
+        assert_eq!(
+            sent.get("x-fixture").and_then(|value| value.to_str().ok()),
+            Some("preserved")
+        );
+    }
+
+    struct TerminalInvalidClient {
+        requests: Mutex<usize>,
+    }
+
+    impl DiscoveryClient for TerminalInvalidClient {
+        async fn get(
+            &self,
+            _url: &str,
+            _headers: &HeaderMap,
+            _attempt_timeout: Duration,
+        ) -> Result<(u16, Vec<u8>), DiscoveryError> {
+            *self.requests.lock().expect("requests") += 1;
+            Err(DiscoveryError::InvalidResponse)
+        }
+    }
+
+    #[tokio::test]
+    async fn aud18_any_2xx_succeeds_and_body_cap_invalid_response_is_terminal() {
+        for status in [200, 201, 204, 206, 299] {
+            let clock = FakeClock::new();
+            let client = FakeClient::new(vec![Scripted::Status {
+                status,
+                body: list(serde_json::json!([model("success")])),
+            }]);
+            let (_, attempts) = fetch_models(
+                &clock,
+                &client,
+                "https://example.invalid/models",
+                &headers(),
+                &NO_CANCEL,
+            )
+            .await
+            .unwrap_or_else(|error| panic!("status {status} failed: {error}"));
+            assert_eq!(attempts, 1);
+        }
+
+        let client = TerminalInvalidClient {
+            requests: Mutex::new(0),
+        };
+        let error = fetch_models(
+            &FakeClock::new(),
+            &client,
+            "https://example.invalid/models",
+            &headers(),
+            &NO_CANCEL,
+        )
+        .await
+        .expect_err("terminal body cap");
+        assert_eq!(error, DiscoveryError::InvalidResponse);
+        assert_eq!(*client.requests.lock().expect("requests"), 1);
+    }
+
+    #[tokio::test]
+    async fn aud18_missing_credentials_zero_requests_and_persistent_empty_is_bounded() {
+        let clock = FakeClock::new();
+        let client = FakeClient::new(vec![]);
+        let local = BTreeMap::from([("kept".to_string(), serde_json::json!({"name": "Kept"}))]);
+        let outcome = super::refresh(
+            &clock,
+            &client,
+            "https://example.invalid/v1",
+            "   ",
+            &BTreeMap::new(),
+            &local,
+            &NO_CANCEL,
+        )
+        .await;
+        assert!(!outcome.replaced);
+        assert_eq!(outcome.models, local);
+        assert!(client.requests.lock().expect("requests").is_empty());
+
+        let empty =
+            serde_json::to_vec(&serde_json::json!({"object": "list", "data": []})).expect("empty");
+        let client = FakeClient::new(
+            (0..4)
+                .map(|_| Scripted::Status {
+                    status: 200,
+                    body: empty.clone(),
+                })
+                .collect(),
+        );
+        let error = fetch_models(
+            &clock,
+            &client,
+            "https://example.invalid/models",
+            &headers(),
+            &NO_CANCEL,
+        )
+        .await
+        .expect_err("persistent empty");
+        assert_eq!(error, DiscoveryError::EmptyResponse);
+        assert_eq!(client.requests.lock().expect("requests").len(), 4);
+    }
+
+    #[tokio::test]
+    async fn aud18_successful_refresh_removes_absent_ids() {
+        let local = BTreeMap::from([
+            (
+                "removed".to_string(),
+                serde_json::json!({"name": "Removed"}),
+            ),
+            (
+                "kept".to_string(),
+                serde_json::json!({"name": "Local name"}),
+            ),
+        ]);
+        let outcome = super::refresh(
+            &FakeClock::new(),
+            &FakeClient::new(vec![Scripted::Status {
+                status: 200,
+                body: list(serde_json::json!([model("kept")])),
+            }]),
+            "https://example.invalid/v1",
+            "fixture-key",
+            &BTreeMap::new(),
+            &local,
+            &NO_CANCEL,
+        )
+        .await;
+        assert!(outcome.replaced);
+        assert_eq!(outcome.models.keys().collect::<Vec<_>>(), vec!["kept"]);
+        assert_eq!(outcome.models["kept"]["name"], "Local name");
     }
 
     #[tokio::test]

@@ -3,12 +3,12 @@
 //! The supplied project is the admitted Location boundary. This baseline
 //! composes existing adapters; broader config/Location support belongs to T35.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
-use crate::{config, discovery, models, provider};
+use crate::{config, defs, discovery, models, provider};
 
 /// Fully built application configuration. Contains credentials and must not be logged.
 pub struct Composition {
@@ -24,6 +24,24 @@ pub struct Composition {
     pub project: PathBuf,
     /// Environment snapshot for substitutions and child processes.
     pub parent_env: BTreeMap<String, String>,
+    /// Ordered global + Location instructions for a fixed request lane.
+    pub instructions: String,
+    /// Selected primary-agent prompt, if configured.
+    pub agent_prompt: Option<String>,
+    /// Digest of the selected primary profile.
+    pub agent_digest: Option<String>,
+    /// Selected primary-agent variant.
+    pub variant: Option<String>,
+    /// Pinned skill source bytes, loaded once for the application generation.
+    pub skills: Vec<(String, String)>,
+    /// Invalid skill ids and precise generation diagnostics.
+    pub skill_errors: BTreeMap<String, String>,
+    /// Literal custom command templates.
+    pub commands: BTreeMap<String, String>,
+    /// Exact compiled native modules activated by plugin markers.
+    pub native_modules: BTreeSet<String>,
+    /// Non-fatal definition diagnostics for frontend display.
+    pub diagnostics: Vec<String>,
 }
 
 /// Load ordered user config and resolve an explicitly selected model.
@@ -55,7 +73,7 @@ async fn load_with_env(
         .or_else(|| nonempty_env("HOME").map(|p| Path::new(p).join(".config/opencode")));
     // CONFIG.md / config-roots.order.json: JSON before JSONC in each root,
     // one global layer, then direct Location config, then .opencode config.
-    let mut roots: Vec<PathBuf> = global.into_iter().collect();
+    let mut roots: Vec<PathBuf> = global.clone().into_iter().collect();
     roots.push(project.clone());
     roots.push(project.join(".opencode"));
     let mut sources = Vec::new();
@@ -75,7 +93,7 @@ async fn load_with_env(
                 sources.push(config::Source {
                     path: canonical.to_string_lossy().into_owned(),
                     text,
-                    trusted: false,
+                    trusted: true,
                 });
             }
         }
@@ -85,8 +103,11 @@ async fn load_with_env(
     }
 
     let mut selected = None;
+    let mut default_agent = None;
     let mut enabled = None;
     let mut disabled = Vec::new();
+    let mut native_modules = BTreeSet::new();
+    let mut plugin_diagnostics = Vec::new();
     for source in &sources {
         let value = config::parse_jsonc(&source.text, &source.path).map_err(|e| e.to_string())?;
         if let Some(model) = value.get("model") {
@@ -96,6 +117,17 @@ async fn load_with_env(
             selected = Some(
                 config::substitute(model, &source.path, false, &parent_env)
                     .map_err(|e| e.to_string())?,
+            );
+        }
+        if let Some(agent) = value.get("default_agent") {
+            default_agent = Some(
+                agent
+                    .as_str()
+                    .filter(|id| !id.trim().is_empty())
+                    .ok_or_else(|| {
+                        format!("{}: default_agent must be a nonempty string", source.path)
+                    })?
+                    .to_string(),
             );
         }
         if let Some(list) = value.get("enabled_providers") {
@@ -108,20 +140,98 @@ async fn load_with_env(
             let plugins = provider_ids(plugins, "plugin", &source.path)?;
             for identity in plugins {
                 // Exact compiled aliases only. No plugin is opened or executed.
-                let admitted = roots.iter().any(|root| {
+                let module = roots.iter().find_map(|root| {
                     let root = root.canonicalize().unwrap_or_else(|_| root.clone());
-                    config::classify_plugin(&identity, &root.to_string_lossy()).is_ok()
+                    config::classify_plugin(&identity, &root.to_string_lossy()).ok()
                 });
-                if !admitted {
-                    return Err(format!("{}: unsupported plugin {identity}", source.path));
+                let module = module.ok_or_else(|| {
+                    format!(
+                        "{}: UnsupportedPlugin: unsupported plugin {identity}",
+                        source.path
+                    )
+                })?;
+                if module == "ignored-authoring-goal" {
+                    plugin_diagnostics.push(format!(
+                        "{}: authoring-only plugin {identity} ignored; no package code was loaded",
+                        source.path
+                    ));
                 }
+                native_modules.insert(module.to_string());
             }
         }
     }
+
+    // Definitions are merged at their exact source precedence points: config
+    // inline domains first, then Markdown from the same admitted root.
+    let mut loaded_defs = defs::LoadedDefs::default();
+    if let Some(global) = global.as_ref() {
+        let global = global.canonicalize().unwrap_or_else(|_| global.clone());
+        merge_config_sources(&mut loaded_defs, &sources, &global)?;
+        defs::merge_definition_root(
+            &mut loaded_defs,
+            &defs::DefRoot {
+                dir: global.clone(),
+                origin: global.to_string_lossy().into_owned(),
+            },
+        );
+    }
+    merge_config_sources(&mut loaded_defs, &sources, &project)?;
+    let local_defs = project.join(".opencode");
+    let local_defs = local_defs
+        .canonicalize()
+        .unwrap_or_else(|_| project.join(".opencode"));
+    merge_config_sources(&mut loaded_defs, &sources, &local_defs)?;
+    defs::merge_definition_root(
+        &mut loaded_defs,
+        &defs::DefRoot {
+            dir: local_defs.clone(),
+            origin: local_defs.to_string_lossy().into_owned(),
+        },
+    );
+
+    let mut instruction_files = Vec::new();
+    if let Some(global) = global.as_ref() {
+        let file = global.join("AGENTS.md");
+        if file.exists() {
+            instruction_files.push((file.to_string_lossy().into_owned(), file));
+        }
+    }
+    let local_agents = project.join("AGENTS.md");
+    if local_agents.exists() {
+        instruction_files.push((local_agents.to_string_lossy().into_owned(), local_agents));
+    }
+    let (instructions, instruction_diagnostics) = defs::load_instructions(&instruction_files);
+
+    let selected_agent = match default_agent.as_deref() {
+        Some(id) => match loaded_defs.agents.get(id) {
+            Some(agent) => Some(agent.clone()),
+            None => {
+                let diagnostic = loaded_defs.diagnostics.iter().find(|diagnostic| {
+                    diagnostic.field == format!("agent.{id}")
+                        || Path::new(&diagnostic.path)
+                            .file_stem()
+                            .is_some_and(|stem| stem == id)
+                });
+                return Err(match diagnostic {
+                    Some(diagnostic) => format!(
+                        "selected agent {id} is invalid: {}: {}",
+                        diagnostic.path, diagnostic.reason
+                    ),
+                    None => format!("unknown selected agent {id}"),
+                });
+            }
+        },
+        None => None,
+    };
+
     let selected = selected.ok_or_else(|| {
         "model required: set top-level model to provider/model-id in opencode.json/jsonc"
             .to_string()
     })?;
+    let selected = selected_agent
+        .as_ref()
+        .and_then(|agent| agent.model.clone())
+        .unwrap_or(selected);
     let (provider_id, model_id) = selected
         .split_once('/')
         .filter(|(p, m)| !p.trim().is_empty() && !m.trim().is_empty())
@@ -140,6 +250,23 @@ async fn load_with_env(
     let selected_providers = HashSet::from([provider_id.to_string()]);
     let mut generation = config::assemble(&sources, &parent_env, Some(&selected_providers))
         .map_err(|e| e.to_string())?;
+    if let Some(agent) = &selected_agent {
+        for (tool, level) in &agent.permissions {
+            generation
+                .permissions
+                .entry(tool.clone())
+                .and_modify(|current| {
+                    if permission_rank(*level) > permission_rank(*current) {
+                        *current = *level;
+                    }
+                })
+                .or_insert(*level);
+            generation.provenance.insert(
+                format!("permissions.{tool}"),
+                format!("agent.{}@{}", agent.id, agent.origin),
+            );
+        }
+    }
     let entry = generation.providers.get(provider_id).ok_or_else(|| {
         format!("selected provider {provider_id} is not configured; add provider.{provider_id}")
     })?;
@@ -184,7 +311,7 @@ async fn load_with_env(
             &client,
             &provider.base_url,
             &provider.api_key,
-            &BTreeMap::new(),
+            &provider.headers,
             &catalog.models,
             &AtomicBool::new(false),
         )
@@ -198,6 +325,50 @@ async fn load_with_env(
             "{e}; configure provider.{provider_id}.models or check native discovery. {warnings}"
         )
     })?;
+    let skills = loaded_defs
+        .skills
+        .values()
+        .map(|skill| (skill.id.clone(), skill.body.clone()))
+        .collect();
+    let commands = loaded_defs
+        .commands
+        .values()
+        .map(|command| (command.id.clone(), command.body.clone()))
+        .collect();
+    let mut diagnostics: Vec<String> = loaded_defs
+        .diagnostics
+        .iter()
+        .map(|diagnostic| {
+            format!(
+                "{}: {}: {}",
+                diagnostic.path, diagnostic.field, diagnostic.reason
+            )
+        })
+        .collect();
+    diagnostics.extend(plugin_diagnostics);
+    diagnostics.extend(instruction_diagnostics.iter().map(|diagnostic| {
+        format!(
+            "{}: {}: {}",
+            diagnostic.path, diagnostic.field, diagnostic.reason
+        )
+    }));
+    let mut skill_errors = BTreeMap::new();
+    for diagnostic in &loaded_defs.diagnostics {
+        if diagnostic.field == "skill"
+            && let Some(id) = Path::new(&diagnostic.path)
+                .parent()
+                .and_then(Path::file_name)
+                .and_then(|id| id.to_str())
+        {
+            skill_errors.insert(
+                id.to_string(),
+                format!(
+                    "malformed skill {id}: {}: {}",
+                    diagnostic.path, diagnostic.reason
+                ),
+            );
+        }
+    }
     Ok(Composition {
         generation,
         catalog,
@@ -205,7 +376,39 @@ async fn load_with_env(
         provider,
         project,
         parent_env,
+        instructions,
+        agent_prompt: selected_agent.as_ref().map(|agent| agent.body.clone()),
+        agent_digest: selected_agent.as_ref().map(defs::agent_digest),
+        variant: selected_agent.and_then(|agent| agent.variant),
+        skills,
+        skill_errors,
+        commands,
+        native_modules,
+        diagnostics,
     })
+}
+
+fn permission_rank(level: config::Permission) -> u8 {
+    match level {
+        config::Permission::Allow => 0,
+        config::Permission::Ask => 1,
+        config::Permission::Deny => 2,
+    }
+}
+
+fn merge_config_sources(
+    definitions: &mut defs::LoadedDefs,
+    sources: &[config::Source],
+    parent: &Path,
+) -> Result<(), String> {
+    for source in sources {
+        if Path::new(&source.path).parent() == Some(parent) {
+            let value = config::parse_jsonc(&source.text, &source.path)
+                .map_err(|error| error.to_string())?;
+            defs::merge_config_definitions(definitions, &value, &source.path);
+        }
+    }
+    Ok(())
 }
 
 fn provider_ids(
@@ -221,6 +424,7 @@ fn provider_ids(
 mod tests {
     use super::load_with_env;
     use std::collections::BTreeMap;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     #[tokio::test]
     async fn ordered_sources_select_exact_model_and_selected_credentials() {
@@ -311,5 +515,120 @@ mod tests {
             .map(|_| ())
             .expect_err("missing model");
         assert!(error.contains("model required"));
+    }
+
+    #[tokio::test]
+    async fn aud18_static_ludka_context_above_discovery_cap_is_unchanged() {
+        let dir = tempfile::tempdir().expect("fixture");
+        std::fs::write(
+            dir.path().join("opencode.json"),
+            r#"{
+                "model": "ludka/org/static",
+                "provider": {"ludka": {
+                    "options": {
+                        "baseURL": "https://example.invalid/v1",
+                        "apiKey": "fixture-key"
+                    },
+                    "models": {"org/static": {
+                        "name": "Static",
+                        "limit": {"context": 700000, "output": 32000}
+                    }}
+                }}
+            }"#,
+        )
+        .expect("config");
+        let loaded = load_with_env(dir.path(), BTreeMap::new())
+            .await
+            .expect("static composition");
+        assert_eq!(
+            loaded.catalog.models["org/static"]["limit"]["context"],
+            700_000
+        );
+    }
+
+    #[tokio::test]
+    async fn aud18_composition_sends_configured_discovery_headers() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("listener");
+        let address = listener.local_addr().expect("address");
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.expect("accept");
+            let mut request = Vec::new();
+            let mut chunk = [0u8; 1024];
+            while !request.windows(4).any(|window| window == b"\r\n\r\n") {
+                let read = stream.read(&mut chunk).await.expect("read");
+                assert_ne!(read, 0, "request ended before headers");
+                request.extend_from_slice(&chunk[..read]);
+            }
+            let body = serde_json::to_vec(&serde_json::json!({
+                "object": "list",
+                "data": [{
+                    "id": "org/dynamic",
+                    "context_length": 1000,
+                    "max_completion_tokens": 100,
+                }],
+            }))
+            .expect("body");
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                body.len()
+            );
+            stream
+                .write_all(response.as_bytes())
+                .await
+                .expect("response");
+            stream.write_all(&body).await.expect("body");
+            String::from_utf8(request).expect("request text")
+        });
+
+        let dir = tempfile::tempdir().expect("fixture");
+        std::fs::write(
+            dir.path().join("opencode.json"),
+            format!(
+                r#"{{
+                    "model": "ludka2/org/dynamic",
+                    "provider": {{"ludka2": {{"options": {{
+                        "baseURL": "http://{address}/v1",
+                        "apiKey": "fresh-key",
+                        "headers": {{
+                            "authorization": "Bearer stale-lower",
+                            "AUTHORIZATION": "Bearer stale-upper",
+                            "accept": "text/plain",
+                            "AcCePt": "application/xml",
+                            "x-configured": "preserved"
+                        }}
+                    }}}}}}
+                }}"#
+            ),
+        )
+        .expect("config");
+        let loaded = load_with_env(dir.path(), BTreeMap::new())
+            .await
+            .expect("composition");
+        assert!(loaded.catalog.models.contains_key("org/dynamic"));
+
+        let request = server.await.expect("server");
+        assert!(request.starts_with("GET /v1/models HTTP/1.1\r\n"));
+        let headers: Vec<_> = request
+            .lines()
+            .skip(1)
+            .take_while(|line| !line.is_empty())
+            .filter_map(|line| line.split_once(':'))
+            .map(|(name, value)| (name, value.trim()))
+            .collect();
+        let authorization: Vec<_> = headers
+            .iter()
+            .filter(|(name, _)| name.eq_ignore_ascii_case("authorization"))
+            .collect();
+        let accept: Vec<_> = headers
+            .iter()
+            .filter(|(name, _)| name.eq_ignore_ascii_case("accept"))
+            .collect();
+        assert_eq!(authorization, vec![&("authorization", "Bearer fresh-key")]);
+        assert_eq!(accept, vec![&("accept", "application/json")]);
+        assert!(headers.iter().any(|(name, value)| {
+            name.eq_ignore_ascii_case("x-configured") && *value == "preserved"
+        }));
     }
 }

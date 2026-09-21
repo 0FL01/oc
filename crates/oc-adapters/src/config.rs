@@ -6,8 +6,13 @@
 //! plugin code are never executed here; future modules are not activated.
 
 use std::collections::{BTreeMap, HashSet};
-use std::fs;
-use std::path::Path;
+use std::ffi::{CString, OsStr};
+use std::fs::{File, OpenOptions};
+use std::io::Read;
+use std::os::fd::{AsRawFd, FromRawFd};
+use std::os::unix::ffi::OsStrExt;
+use std::os::unix::fs::OpenOptionsExt;
+use std::path::{Component, Path};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -69,6 +74,7 @@ pub enum Permission {
 
 /// Provider options with exact upstream semantics preserved.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ProviderOptions {
     /// Base URL template (may contain `{env:..}` before substitution).
     #[serde(rename = "baseURL", default)]
@@ -92,6 +98,7 @@ pub struct ProviderOptions {
 
 /// Single provider entry.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ProviderEntry {
     /// Package alias; native family uses `@ai-sdk/openai`.
     #[serde(default)]
@@ -109,6 +116,7 @@ pub struct ProviderEntry {
 
 /// Single MCP entry (trusted-shape subset for T07).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct McpEntry {
     /// `remote` or `local`.
     #[serde(rename = "type", default)]
@@ -317,27 +325,90 @@ pub fn substitute(
     Ok(out)
 }
 
-fn read_trusted_file(path: &str, source: &str) -> Result<String, ConfigError> {
-    let fs_path = Path::new(path);
-    let meta = fs::symlink_metadata(fs_path).map_err(|_| ConfigError::Untrusted {
-        origin: source.to_string(),
-        reason: "unreadable file reference".to_string(),
-    })?;
-    if meta.file_type().is_symlink() {
-        return Err(ConfigError::Untrusted {
-            origin: source.to_string(),
-            reason: "symlink file reference".to_string(),
-        });
+fn component_name(value: &OsStr) -> Result<CString, ConfigError> {
+    CString::new(value.as_bytes()).map_err(|_| ConfigError::Invalid {
+        field: "file".to_string(),
+        reason: "invalid file reference".to_string(),
+    })
+}
+
+fn open_relative(dir: &File, name: &CString, flags: i32) -> std::io::Result<File> {
+    // SAFETY: the borrowed directory fd and NUL-terminated name remain valid.
+    let fd = unsafe {
+        libc::openat(
+            dir.as_raw_fd(),
+            name.as_ptr(),
+            flags | libc::O_CLOEXEC | libc::O_NOFOLLOW,
+            0,
+        )
+    };
+    if fd < 0 {
+        return Err(std::io::Error::last_os_error());
     }
-    if meta.len() > 65536 {
+    // SAFETY: openat returned a new owned descriptor.
+    Ok(unsafe { File::from_raw_fd(fd) })
+}
+
+fn read_trusted_file(path: &str, source: &str) -> Result<String, ConfigError> {
+    const FILE_CAP: usize = 64 * 1024;
+
+    let refused = || ConfigError::Untrusted {
+        origin: source.to_string(),
+        reason: "file reference must be a regular no-follow path inside the config directory"
+            .to_string(),
+    };
+    let mut parts = Vec::new();
+    for part in Path::new(path).components() {
+        match part {
+            Component::Normal(part) => parts.push(component_name(part)?),
+            Component::CurDir => {}
+            Component::Prefix(_) | Component::RootDir | Component::ParentDir => {
+                return Err(refused());
+            }
+        }
+    }
+    let Some((file_name, directories)) = parts.split_last() else {
+        return Err(refused());
+    };
+    let source_dir = Path::new(source)
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let mut dir = OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open(source_dir)
+        .map_err(|_| refused())?;
+    for part in directories {
+        dir =
+            open_relative(&dir, part, libc::O_RDONLY | libc::O_DIRECTORY).map_err(|_| refused())?;
+    }
+    let mut file =
+        open_relative(&dir, file_name, libc::O_RDONLY | libc::O_NONBLOCK).map_err(|_| refused())?;
+    let meta = file.metadata().map_err(|_| refused())?;
+    if !meta.is_file() {
+        return Err(refused());
+    }
+    if meta.len() > FILE_CAP as u64 {
         return Err(ConfigError::Invalid {
             field: "file".to_string(),
             reason: "file reference too large".to_string(),
         });
     }
-    std::fs::read_to_string(fs_path).map_err(|_| ConfigError::Untrusted {
-        origin: source.to_string(),
-        reason: "unreadable file reference".to_string(),
+    let mut bytes = Vec::new();
+    Read::by_ref(&mut file)
+        .take(FILE_CAP as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| refused())?;
+    if bytes.len() > FILE_CAP {
+        return Err(ConfigError::Invalid {
+            field: "file".to_string(),
+            reason: "file reference too large".to_string(),
+        });
+    }
+    String::from_utf8(bytes).map_err(|_| ConfigError::Invalid {
+        field: "file".to_string(),
+        reason: "file reference is not UTF-8".to_string(),
     })
 }
 
@@ -413,11 +484,13 @@ pub fn assemble(
             })?;
             for (key, raw) in map {
                 let level = normalize_permission(key, raw)?;
+                let key = legacy_key(key).to_string();
                 permissions
-                    .entry(key.clone())
-                    .and_modify(|(old, _)| {
-                        if more_restrictive(level, *old) {
+                    .entry(key)
+                    .and_modify(|(old, origin)| {
+                        if level == *old || more_restrictive(level, *old) {
                             *old = level;
+                            *origin = source.path.clone();
                         }
                     })
                     .or_insert((level, source.path.clone()));
@@ -459,16 +532,17 @@ pub fn assemble(
     for (id, (entry, path)) in &mcp {
         let trusted = sources.iter().any(|s| s.path == *path && s.trusted);
         let mut entry = entry.clone();
-        if let Some(url) = &entry.url {
-            entry.url = Some(substitute(url, path, trusted, env)?);
-        }
-        for (k, v) in entry.headers.clone() {
-            entry.headers.insert(k, substitute(&v, path, trusted, env)?);
-        }
-        // Disabled entries never require credentials and never launch.
         if entry.enabled {
-            let _ = trusted;
+            if let Some(url) = &entry.url {
+                entry.url = Some(substitute(url, path, trusted, env)?);
+            }
+            for (key, value) in entry.headers.clone() {
+                entry
+                    .headers
+                    .insert(key, substitute(&value, path, trusted, env)?);
+            }
         }
+        // Disabled entries keep inert templates: no secret/file read and no launch.
         out_mcp.insert(id.clone(), entry);
         provenance.insert(format!("mcp.{id}"), path.clone());
     }
@@ -628,13 +702,22 @@ pub fn explain_redacted(generation: &Generation) -> serde_json::Value {
 
 /// Exact native plugin classification (no JS execution).
 ///
-/// Admitted: bare `@tarquinen/opencode-dcp`, pinned
-/// `@tarquinen/opencode-dcp@3.1.15`, and canonical
+/// Admitted: bare `@tarquinen/opencode-dcp`, pinned/latest aliases, and canonical
 /// `<root>/{plugin,plugins}/openproxy-models.js`. Everything else is
 /// `UnsupportedPlugin` before resolver/import/process/network.
 pub fn classify_plugin(identity: &str, config_root: &str) -> Result<&'static str, ConfigError> {
-    if identity == "@tarquinen/opencode-dcp" || identity == "@tarquinen/opencode-dcp@3.1.15" {
+    if matches!(
+        identity,
+        "@tarquinen/opencode-dcp"
+            | "@tarquinen/opencode-dcp@3.1.15"
+            | "@tarquinen/opencode-dcp@latest"
+    ) {
         return Ok("dcp");
+    }
+    // Exact authoring-only compatibility marker from the user's shared global
+    // OpenCode config. It is never loaded or executed and grants no capability.
+    if identity == "@prevalentware/opencode-goal-plugin@0.1.49" {
+        return Ok("ignored-authoring-goal");
     }
     let root = config_root.trim_end_matches('/');
     if identity == format!("{root}/plugin/openproxy-models.js")
@@ -665,6 +748,12 @@ pub struct SkillMeta {
 /// unreadable files fail visibly; body bytes are never returned here (the
 /// native `skill` tool serves bounded snapshots at call time).
 pub fn parse_skill(id: &str, text: &str) -> Result<SkillMeta, ConfigError> {
+    if text.len() > 65536 {
+        return Err(ConfigError::Invalid {
+            field: format!("skill.{id}.body"),
+            reason: "skill file too large".to_string(),
+        });
+    }
     let mut lines = text.lines();
     if lines.next() != Some("---") {
         return Err(ConfigError::Invalid {
@@ -674,21 +763,52 @@ pub fn parse_skill(id: &str, text: &str) -> Result<SkillMeta, ConfigError> {
     }
     let mut name: Option<String> = None;
     let mut description: Option<String> = None;
-    for line in &mut lines {
+    let mut closed = false;
+    for (index, line) in (&mut lines).enumerate() {
         if line == "---" {
+            closed = true;
             break;
         }
-        if line.len() > 1024 {
+        if index >= 64 || line.len() > 1024 {
             return Err(ConfigError::Invalid {
                 field: format!("skill.{id}.frontmatter"),
-                reason: "line too long".to_string(),
+                reason: "frontmatter too large".to_string(),
             });
         }
         if let Some(rest) = line.strip_prefix("name:") {
+            if name.is_some() {
+                return Err(ConfigError::Invalid {
+                    field: format!("skill.{id}.name"),
+                    reason: "duplicate field".to_string(),
+                });
+            }
             name = Some(rest.trim().trim_matches('"').to_string());
         } else if let Some(rest) = line.strip_prefix("description:") {
+            if description.is_some() {
+                return Err(ConfigError::Invalid {
+                    field: format!("skill.{id}.description"),
+                    reason: "duplicate field".to_string(),
+                });
+            }
             description = Some(rest.trim().trim_matches('"').to_string());
+        } else if !line.trim().is_empty() {
+            let Some((field, _)) = line.split_once(':') else {
+                return Err(ConfigError::Invalid {
+                    field: format!("skill.{id}.frontmatter"),
+                    reason: "malformed frontmatter field".to_string(),
+                });
+            };
+            return Err(ConfigError::Invalid {
+                field: format!("skill.{id}.frontmatter.{}", field.trim()),
+                reason: "unknown frontmatter field".to_string(),
+            });
         }
+    }
+    if !closed {
+        return Err(ConfigError::Invalid {
+            field: format!("skill.{id}.frontmatter"),
+            reason: "missing closing ---".to_string(),
+        });
     }
     let name = name
         .filter(|s| !s.is_empty())
@@ -707,12 +827,6 @@ pub fn parse_skill(id: &str, text: &str) -> Result<SkillMeta, ConfigError> {
         return Err(ConfigError::Invalid {
             field: format!("skill.{id}.frontmatter"),
             reason: "field too large".to_string(),
-        });
-    }
-    if text.len() > 65536 {
-        return Err(ConfigError::Invalid {
-            field: format!("skill.{id}.body"),
-            reason: "skill file too large".to_string(),
         });
     }
     Ok(SkillMeta {
@@ -889,6 +1003,69 @@ mod tests {
         let err = substitute("{file:/etc/hostname}", "P/opencode.json", false, &env(&[]))
             .expect_err("untrusted");
         assert!(matches!(err, ConfigError::Untrusted { .. }));
+        let temp = tempfile::tempdir().expect("tempdir");
+        let config_dir = temp.path().join("config");
+        std::fs::create_dir_all(config_dir.join("secrets")).expect("dirs");
+        let source = config_dir.join("opencode.json");
+        std::fs::write(&source, "{}").expect("config");
+        std::fs::write(config_dir.join("secrets/key"), "relative-secret").expect("secret");
+        assert_eq!(
+            substitute(
+                "Bearer {file:secrets/key}",
+                &source.to_string_lossy(),
+                true,
+                &env(&[]),
+            )
+            .expect("relative file"),
+            "Bearer relative-secret"
+        );
+        std::fs::write(temp.path().join("outside"), "outside").expect("outside");
+        assert!(
+            substitute(
+                "{file:../outside}",
+                &source.to_string_lossy(),
+                true,
+                &env(&[]),
+            )
+            .is_err()
+        );
+        assert!(
+            substitute(
+                "{file:/etc/hostname}",
+                &source.to_string_lossy(),
+                true,
+                &env(&[]),
+            )
+            .is_err()
+        );
+        std::fs::write(config_dir.join("secrets/large"), vec![b'x'; 65_537])
+            .expect("large fixture");
+        assert!(
+            substitute(
+                "{file:secrets/large}",
+                &source.to_string_lossy(),
+                true,
+                &env(&[]),
+            )
+            .is_err()
+        );
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(
+                temp.path().join("outside"),
+                config_dir.join("secrets/link"),
+            )
+            .expect("symlink");
+            assert!(
+                substitute(
+                    "{file:secrets/link}",
+                    &source.to_string_lossy(),
+                    true,
+                    &env(&[]),
+                )
+                .is_err()
+            );
+        }
         // Disabled MCP launches nothing and needs no credential.
         let text = r#"{"mcp": {"chrome-devtools": {"type": "local",
             "command": ["npx", "-y", "chrome-devtools-mcp@latest"], "enabled": false}}}"#;
@@ -969,17 +1146,30 @@ mod tests {
         assert_eq!(legacy_key("write"), "apply_patch");
         assert_eq!(legacy_key("read"), "read");
         assert!(parse_skill("x", "no frontmatter").is_err());
+        assert!(parse_skill("x", "---\nname: x\ndescription: x\nbody").is_err());
+        assert!(
+            parse_skill(
+                "x",
+                "---\nname: x\ndescription: x\nunknown: rejected\n---\nbody",
+            )
+            .is_err()
+        );
         // Permissions merge most-restrictive across sources.
         let generation = assemble(
             &[
                 src(
                     "G/opencode.json",
-                    r#"{"permissions": {"bash": "allow"}}"#,
+                    r#"{"permissions": {"bash": "allow", "apply_patch": "allow"}}"#,
                     true,
                 ),
                 src(
                     "P/opencode.json",
-                    r#"{"permissions": {"bash": "deny"}}"#,
+                    r#"{"permissions": {"bash": "deny", "write": "deny"}}"#,
+                    true,
+                ),
+                src(
+                    "L/opencode.json",
+                    r#"{"permissions": {"edit": "allow", "bash": "deny"}}"#,
                     true,
                 ),
             ],
@@ -988,6 +1178,14 @@ mod tests {
         )
         .expect("perm");
         assert_eq!(generation.permissions["bash"], Permission::Deny);
+        assert_eq!(generation.provenance["permissions.bash"], "L/opencode.json");
+        assert_eq!(generation.permissions["apply_patch"], Permission::Deny);
+        assert!(!generation.permissions.contains_key("write"));
+        assert!(!generation.permissions.contains_key("edit"));
+        assert_eq!(
+            generation.provenance["permissions.apply_patch"],
+            "P/opencode.json"
+        );
     }
 
     #[test]
@@ -1001,10 +1199,14 @@ mod tests {
             "dcp"
         );
         assert_eq!(
+            classify_plugin("@tarquinen/opencode-dcp@latest", "/r").expect("latest"),
+            "dcp"
+        );
+        assert_eq!(
             classify_plugin("/r/plugins/openproxy-models.js", "/r").expect("disc"),
             "discovery"
         );
-        assert!(classify_plugin("@tarquinen/opencode-dcp@latest", "/r").is_err());
+        assert!(classify_plugin("@tarquinen/opencode-dcp@3.1.14", "/r").is_err());
         assert!(classify_plugin("/other/openproxy-models.js", "/r").is_err());
         assert!(classify_plugin("https://x.invalid/p.js", "/r").is_err());
         let _ = HashSet::<String>::new();

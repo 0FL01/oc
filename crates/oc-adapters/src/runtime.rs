@@ -240,14 +240,36 @@ pub fn expand_command(body: &str, args: &[String]) -> Result<String, RuntimeErro
             "command args too large".to_string(),
         ));
     }
-    let mut out = body.replace("$ARGUMENTS", &args.join(" "));
-    for (i, arg) in args.iter().take(9).enumerate() {
-        out = out.replace(&format!("${}", i + 1), arg);
-    }
-    if out.len() > COMMAND_BYTES_CAP {
-        return Err(RuntimeError::InvalidArgs(
-            "expanded command too large".to_string(),
-        ));
+    let all = args.join(" ");
+    let mut out = String::with_capacity(body.len().saturating_add(all.len()));
+    let mut rest = body;
+    while !rest.is_empty() {
+        if let Some(after) = rest.strip_prefix("$ARGUMENTS") {
+            out.push_str(&all);
+            rest = after;
+        } else if rest.starts_with('$') && rest.as_bytes().get(1).is_some_and(u8::is_ascii_digit) {
+            let index = usize::from(rest.as_bytes()[1] - b'0');
+            if index > 0 {
+                if let Some(arg) = args.get(index - 1) {
+                    out.push_str(arg);
+                } else {
+                    out.push_str(&rest[..2]);
+                }
+                rest = &rest[2..];
+            } else {
+                out.push('$');
+                rest = &rest[1..];
+            }
+        } else {
+            let character = rest.chars().next().expect("nonempty");
+            out.push(character);
+            rest = &rest[character.len_utf8()..];
+        }
+        if out.len() > COMMAND_BYTES_CAP {
+            return Err(RuntimeError::InvalidArgs(
+                "expanded command too large".to_string(),
+            ));
+        }
     }
     Ok(out)
 }
@@ -383,6 +405,13 @@ pub struct TurnParams<'c> {
     pub max_rounds: u32,
 }
 
+#[derive(Clone, Default)]
+struct RuntimeWorkspace {
+    fixed_input: Vec<InputItem>,
+    skills: SkillSnapshot,
+    agent_digest: Option<String>,
+}
+
 /// Authoritative runtime: Location + published generation + DCP counters.
 ///
 /// Single-flight: one active turn at a time (mirrors the single-turn
@@ -400,7 +429,7 @@ pub struct Runtime<'a> {
     webfetch_auth: Option<String>,
     webfetch_allow_private: bool,
     dcp_config: RwLock<crate::dcp_auto::DcpConfig>,
-    skills: RwLock<Vec<(String, String)>>,
+    workspace: RwLock<RuntimeWorkspace>,
     nudge_state: Mutex<NudgeState>,
     stats: Mutex<crate::dcp_auto::DcpStats>,
 }
@@ -443,7 +472,7 @@ impl<'a> Runtime<'a> {
             webfetch_auth,
             webfetch_allow_private,
             dcp_config: RwLock::new(dcp_config),
-            skills: RwLock::new(Vec::new()),
+            workspace: RwLock::new(RuntimeWorkspace::default()),
             nudge_state: Mutex::new(NudgeState::default()),
             stats: Mutex::new(DcpStats::default()),
         })
@@ -491,7 +520,50 @@ impl<'a> Runtime<'a> {
         if self.active.load(Ordering::Relaxed) {
             return Err(RuntimeError::TurnActive);
         }
-        *self.skills.write().expect("skills lock") = files;
+        let snapshot = SkillSnapshot::build(&files).0;
+        self.workspace.write().expect("workspace lock").skills = snapshot;
+        Ok(())
+    }
+
+    /// Publish fixed instructions, primary prompt and pinned skills together.
+    pub fn publish_workspace(
+        &self,
+        agent_prompt: Option<&str>,
+        instructions: &str,
+        files: Vec<(String, String)>,
+        skill_errors: BTreeMap<String, String>,
+        agent_digest: Option<String>,
+    ) -> Result<(), RuntimeError> {
+        if self.active.load(Ordering::Relaxed) {
+            return Err(RuntimeError::TurnActive);
+        }
+        let (mut skills, warnings) = SkillSnapshot::build(&files);
+        if !warnings.is_empty() {
+            return Err(RuntimeError::InvalidArgs(warnings.join("; ")));
+        }
+        skills.errors = skill_errors;
+        let mut fixed_input = Vec::new();
+        if let Some(prompt) = agent_prompt.filter(|prompt| !prompt.trim().is_empty()) {
+            fixed_input.push(InputItem::message(InputRole::Developer, prompt));
+        }
+        if !instructions.trim().is_empty() {
+            fixed_input.push(InputItem::message(InputRole::Developer, instructions));
+        }
+        let projection = skills.projection();
+        if !projection.is_empty() {
+            let catalog = serde_json::to_string(&projection).map_err(|_| RuntimeError::Storage)?;
+            fixed_input.push(InputItem::message(
+                InputRole::Developer,
+                format!(
+                    "Available native skills (metadata only; call skill by id for body): {catalog}"
+                ),
+            ));
+        }
+        *self.workspace.write().expect("workspace lock") = RuntimeWorkspace {
+            fixed_input,
+            skills,
+            agent_digest,
+        };
         Ok(())
     }
 
@@ -666,6 +738,7 @@ impl<'a> Runtime<'a> {
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
         let selection = models::select_variant(&base, params.variant.as_deref())
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+        let workspace = self.workspace.read().expect("workspace lock").clone();
         // Outbound context honors compression blocks + prune mark: covered
         // members collapse to summaries, raw history is never rewritten.
         let full = self.db.read_history_full(&params.session)?;
@@ -681,13 +754,15 @@ impl<'a> Runtime<'a> {
             &projected,
             &selection.id,
             &params.catalog.provider,
+            workspace.agent_digest.as_deref(),
         )?;
         let nudge_hint = {
             let mut state = self.nudge_state.lock().expect("nudge lock");
             state.on_turn();
             let config = self.dcp_config.read().expect("dcp lock").clone();
             let estimate = estimate_tokens(
-                &serde_json::to_string(&history).map_err(|_| RuntimeError::Storage)?,
+                &serde_json::to_string(&(workspace.fixed_input.as_slice(), history.as_slice()))
+                    .map_err(|_| RuntimeError::Storage)?,
             ) + estimate_tokens(&params.prompt);
             let hint =
                 evaluate(&config, &mut state, &selection.id, estimate).map(|nudge| nudge.text);
@@ -697,9 +772,10 @@ impl<'a> Runtime<'a> {
             hint
         };
         // Admission against the entry limits with the assembled estimate.
-        let assembled_estimate =
-            estimate_tokens(&serde_json::to_string(&history).map_err(|_| RuntimeError::Storage)?)
-                + estimate_tokens(&params.prompt);
+        let assembled_estimate = estimate_tokens(
+            &serde_json::to_string(&(workspace.fixed_input.as_slice(), history.as_slice()))
+                .map_err(|_| RuntimeError::Storage)?,
+        ) + estimate_tokens(&params.prompt);
         models::admit(&selection, assembled_estimate, params.max_output)
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
         // Durable intent before any side effect.
@@ -719,10 +795,7 @@ impl<'a> Runtime<'a> {
                 });
             }
         }
-        let snapshot = {
-            let skills = self.skills.read().expect("skills lock");
-            SkillSnapshot::build(&skills).0
-        };
+        let snapshot = workspace.skills;
         let policy = RuntimePolicy::new(&published.config.permissions);
         let ctx = ToolContext {
             files: &self.files,
@@ -739,6 +812,7 @@ impl<'a> Runtime<'a> {
         let mut usage = None;
         let mut calls = Vec::new();
         let mut turn_log = TurnLog::new(&turn_id, &selection.id, &params.catalog.provider);
+        turn_log.agent_digest = workspace.agent_digest.clone();
         turn_log.user_message = Some(user_message);
         turn_log
             .input
@@ -762,7 +836,13 @@ impl<'a> Runtime<'a> {
                     &published,
                 );
             }
-            let input: Vec<InputItem> = history.iter().chain(&turn_log.input).cloned().collect();
+            let input: Vec<InputItem> = workspace
+                .fixed_input
+                .iter()
+                .chain(&history)
+                .chain(&turn_log.input)
+                .cloned()
+                .collect();
             let generation = match crate::provider::stream_input_observed(
                 &params.provider,
                 &selection.id,
@@ -970,6 +1050,7 @@ impl<'a> Runtime<'a> {
         projected: &[(String, String, String)],
         model: &str,
         provider: &str,
+        agent_digest: Option<&str>,
     ) -> Result<Vec<InputItem>, RuntimeError> {
         let mut turns = BTreeMap::new();
         let mut represented = std::collections::BTreeSet::new();
@@ -987,6 +1068,11 @@ impl<'a> Runtime<'a> {
                 return Err(RuntimeError::InvalidArgs(
                     "session wire history belongs to a different provider/model".to_string(),
                 ));
+            }
+            if log.agent_digest.as_deref() != agent_digest {
+                // Agent behavior changed: start a fresh provider causality lane
+                // from immutable raw messages, never replay old opaque/tool state.
+                continue;
             }
             if let Some(id) = value["assistant_message"].as_str() {
                 represented.insert(id.to_string());

@@ -3,23 +3,20 @@
 //! Disk discovery for admitted `.opencode` roots only: skills
 //! (`{skill,skills}/<id>/SKILL.md`), agents (`{agent,agents}/<id>.md`),
 //! commands (`{command,commands}/<id>.md`). Singular roots load before
-//! plural within one source directory; inline `<kind>.json`/`.jsonc`
-//! declarations load before Markdown of the same root; later sources
-//! replace duplicates with shadowing provenance. Order never depends on
-//! filesystem enumeration (entries are sorted). Invalid files produce
-//! path/field/reason diagnostics while valid siblings survive; skill
-//! bodies stay out of the model projection (served bounded by the native
-//! `skill` tool from the pinned snapshot). Nothing here executes.
-//!
-//! Assumption: inline JSON lives at `<root>/<kind>.json` (singular kind
-//! name, e.g. `.opencode/commands.json`); upstream pins only the
-//! before-Markdown order, not the filename.
+//! plural within one source directory; later sources replace duplicates
+//! with shadowing provenance. Authoritative inline definitions come from
+//! top-level config `agent`/`command` domains through
+//! [`merge_config_definitions`], never invented sibling files. Order never
+//! depends on filesystem enumeration (entries are sorted). Invalid entries
+//! produce path/field/reason diagnostics while valid siblings survive;
+//! skill bodies stay out of the model projection (served bounded by the
+//! native `skill` tool from the pinned snapshot). Nothing here executes.
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
-use crate::config::parse_skill;
+use crate::config::{Permission, legacy_key, normalize_permission, parse_skill};
 use thiserror::Error;
 
 /// Max admitted definition roots per load.
@@ -74,7 +71,7 @@ pub struct SkillDef {
     pub origin: String,
 }
 
-/// Selectable primary-agent profile (Markdown body is local-only).
+/// Selectable primary-agent profile.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AgentDef {
     /// File id.
@@ -85,6 +82,12 @@ pub struct AgentDef {
     pub model: Option<String>,
     /// Optional pinned variant.
     pub variant: Option<String>,
+    /// Literal primary-agent prompt/body.
+    pub body: String,
+    /// Agent-specific permission narrowing, normalized to runtime tool names.
+    pub permissions: BTreeMap<String, Permission>,
+    /// Admitted mode (`primary`) when explicitly configured.
+    pub mode: Option<String>,
     /// Winning source origin.
     pub origin: String,
 }
@@ -169,41 +172,96 @@ fn read_plain(path: &Path, expected_dir: &Path, cap: usize) -> Result<String, St
     std::fs::read_to_string(path).map_err(|_| "unreadable".to_string())
 }
 
-/// Split optional leading `---` frontmatter; returns (fields, body).
-///
-/// Unclosed or overlong headers are treated as plain body (no partial
-/// field extraction).
-fn split_frontmatter(text: &str) -> (BTreeMap<String, String>, &str) {
-    let mut fields = BTreeMap::new();
+#[derive(Default)]
+struct Frontmatter {
+    fields: BTreeMap<String, String>,
+    permissions: BTreeMap<String, Permission>,
+}
+
+/// Split and strictly parse the bounded Markdown YAML subset.
+fn split_frontmatter(text: &str) -> Result<(Frontmatter, &str), String> {
+    let mut parsed = Frontmatter::default();
     let after = match text
         .strip_prefix("---\n")
         .or_else(|| text.strip_prefix("---\r\n"))
     {
         Some(after) => after,
-        None => return (fields, text),
+        None => return Ok((parsed, text)),
     };
     let mut offset = 0usize;
     let mut lines = 0usize;
+    let mut permission_section = false;
     for line in after.split_inclusive('\n') {
         lines += 1;
         let trimmed = line.trim_end_matches(['\n', '\r']);
+        let next_offset = offset + line.len();
         if trimmed == "---" {
-            offset += line.len();
-            return (fields, &after[offset..]);
+            return Ok((parsed, &after[next_offset..]));
         }
-        if lines > 64 {
-            return (BTreeMap::new(), text);
+        offset = next_offset;
+        if lines > 64 || line.len() > 1024 {
+            return Err("frontmatter too large".to_string());
         }
-        if line.len() <= 1024
-            && let Some((key, value)) = trimmed.split_once(':')
-        {
-            let key = key.trim();
-            if matches!(key, "description" | "model" | "variant" | "mode" | "name") {
-                fields.insert(key.to_string(), value.trim().trim_matches('"').to_string());
+        if trimmed.trim().is_empty() {
+            continue;
+        }
+        if let Some(nested) = trimmed.strip_prefix("  ") {
+            if !permission_section || nested.starts_with(char::is_whitespace) {
+                return Err("unsupported nested frontmatter".to_string());
             }
+            let (key, value) = nested
+                .split_once(':')
+                .ok_or_else(|| "malformed permission entry".to_string())?;
+            let key = key.trim();
+            if !valid_id(key) {
+                return Err("invalid permission key".to_string());
+            }
+            let raw = serde_json::Value::String(value.trim().trim_matches('"').to_string());
+            let level = normalize_permission(key, &raw).map_err(|e| e.to_string())?;
+            let key = legacy_key(key).to_string();
+            parsed
+                .permissions
+                .entry(key)
+                .and_modify(|old| {
+                    if permission_rank(level) > permission_rank(*old) {
+                        *old = level;
+                    }
+                })
+                .or_insert(level);
+            continue;
+        }
+        if trimmed.starts_with(char::is_whitespace) {
+            return Err("unsupported frontmatter indentation".to_string());
+        }
+        let (key, value) = trimmed
+            .split_once(':')
+            .ok_or_else(|| "malformed frontmatter field".to_string())?;
+        let key = key.trim();
+        let value = value.trim();
+        permission_section = key == "permission";
+        if permission_section {
+            if !value.is_empty() {
+                return Err("permission must be a mapping".to_string());
+            }
+            continue;
+        }
+        if parsed
+            .fields
+            .insert(key.to_string(), value.trim_matches('"').to_string())
+            .is_some()
+        {
+            return Err(format!("duplicate frontmatter field {key}"));
         }
     }
-    (BTreeMap::new(), text)
+    Err("missing closing frontmatter ---".to_string())
+}
+
+fn permission_rank(level: Permission) -> u8 {
+    match level {
+        Permission::Allow => 0,
+        Permission::Ask => 1,
+        Permission::Deny => 2,
+    }
 }
 
 struct Collector {
@@ -271,21 +329,262 @@ const RESERVED_COMMANDS: &[&str] = &[
 /// Later roots replace same-kind/same-id definitions whole; diagnostics
 /// never stop sibling loading.
 pub fn load_definitions(roots: &[DefRoot]) -> LoadedDefs {
-    let mut out = Collector {
-        defs: LoadedDefs::default(),
-        total_bytes: 0,
-    };
+    let mut defs = LoadedDefs::default();
     for root in roots.iter().take(MAX_DEF_ROOTS) {
-        load_root(&mut out, root);
+        merge_definition_root(&mut defs, root);
     }
     if roots.len() > MAX_DEF_ROOTS {
-        out.defs.diagnostics.push(Diagnostic {
+        defs.diagnostics.push(Diagnostic {
             path: String::new(),
             field: "roots".to_string(),
             reason: format!("too many roots (max {MAX_DEF_ROOTS})"),
         });
     }
-    out.defs
+    defs
+}
+
+/// Merge one admitted Markdown definition root at this exact precedence point.
+pub fn merge_definition_root(defs: &mut LoadedDefs, root: &DefRoot) {
+    let total_bytes = existing_definition_bytes(defs);
+    let mut out = Collector {
+        defs: std::mem::take(defs),
+        total_bytes,
+    };
+    load_root(&mut out, root);
+    *defs = out.defs;
+}
+
+fn existing_definition_bytes(defs: &LoadedDefs) -> usize {
+    defs.skills
+        .values()
+        .map(|def| def.body.len())
+        .chain(defs.agents.values().map(|def| def.body.len()))
+        .chain(defs.commands.values().map(|def| def.body.len()))
+        .fold(0usize, usize::saturating_add)
+}
+
+fn optional_string(
+    object: &serde_json::Map<String, serde_json::Value>,
+    key: &str,
+) -> Result<Option<String>, String> {
+    object
+        .get(key)
+        .map(|value| {
+            value
+                .as_str()
+                .map(str::to_string)
+                .ok_or_else(|| "must be a string".to_string())
+        })
+        .transpose()
+}
+
+fn inline_body(
+    object: &serde_json::Map<String, serde_json::Value>,
+    first: &str,
+    second: &str,
+) -> Result<String, String> {
+    let first_value = optional_string(object, first)?;
+    let second_value = optional_string(object, second)?;
+    if first_value.is_some() && second_value.is_some() {
+        return Err(format!("{first} and {second} are mutually exclusive"));
+    }
+    Ok(first_value.or(second_value).unwrap_or_default())
+}
+
+fn inline_permissions(
+    value: Option<&serde_json::Value>,
+) -> Result<BTreeMap<String, Permission>, String> {
+    let Some(value) = value else {
+        return Ok(BTreeMap::new());
+    };
+    let object = value
+        .as_object()
+        .ok_or_else(|| "must be an object".to_string())?;
+    let mut permissions = BTreeMap::new();
+    for (key, raw) in object {
+        if !valid_id(key) {
+            return Err(format!("invalid permission key {key}"));
+        }
+        let level = normalize_permission(key, raw).map_err(|error| error.to_string())?;
+        let key = legacy_key(key).to_string();
+        permissions
+            .entry(key)
+            .and_modify(|old| {
+                if permission_rank(level) > permission_rank(*old) {
+                    *old = level;
+                }
+            })
+            .or_insert(level);
+    }
+    Ok(permissions)
+}
+
+/// Merge authoritative top-level config `agent` and `command` domains.
+///
+/// Call once per parsed config source in the caller's low-to-high precedence
+/// order. Each valid later definition replaces the previous definition whole;
+/// an invalid sibling emits a diagnostic and does not disturb valid siblings.
+pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Value, source: &str) {
+    let source_path = Path::new(source);
+    let Some(config) = config.as_object() else {
+        defs.diagnostics
+            .push(diag(source_path, "config", "must be an object"));
+        return;
+    };
+    let total_bytes = existing_definition_bytes(defs);
+    let mut out = Collector {
+        defs: std::mem::take(defs),
+        total_bytes,
+    };
+    let root = DefRoot {
+        dir: PathBuf::new(),
+        origin: source.to_string(),
+    };
+
+    if let Some(raw_agents) = config.get("agent") {
+        if let Some(agents) = raw_agents.as_object() {
+            for (id, raw) in agents {
+                if !valid_id(id) {
+                    out.defs.diagnostics.push(diag(
+                        source_path,
+                        &format!("agent.{id}"),
+                        "invalid id",
+                    ));
+                    continue;
+                }
+                let Some(object) = raw.as_object() else {
+                    out.defs.diagnostics.push(diag(
+                        source_path,
+                        &format!("agent.{id}"),
+                        "must be an object",
+                    ));
+                    continue;
+                };
+                let allowed = [
+                    "prompt",
+                    "body",
+                    "description",
+                    "model",
+                    "variant",
+                    "permission",
+                    "mode",
+                ];
+                if let Some(field) = object.keys().find(|key| !allowed.contains(&key.as_str())) {
+                    out.defs.diagnostics.push(diag(
+                        source_path,
+                        &format!("agent.{id}.{field}"),
+                        "unsupported field",
+                    ));
+                    continue;
+                }
+                let parsed = (|| {
+                    let body = inline_body(object, "prompt", "body")?;
+                    let description = optional_string(object, "description")?
+                        .or_else(|| {
+                            body.lines()
+                                .map(str::trim)
+                                .find(|line| !line.is_empty())
+                                .map(str::to_string)
+                        })
+                        .unwrap_or_default();
+                    let model = optional_string(object, "model")?;
+                    let variant = optional_string(object, "variant")?;
+                    let mode = primary_mode(optional_string(object, "mode")?)?;
+                    let permissions = inline_permissions(object.get("permission"))?;
+                    Ok::<_, String>((description, model, variant, body, permissions, mode))
+                })();
+                match parsed {
+                    Ok((description, model, variant, body, permissions, mode)) => insert_agent(
+                        &mut out,
+                        &root,
+                        AgentInput {
+                            id: id.clone(),
+                            description,
+                            model,
+                            variant,
+                            body,
+                            permissions,
+                            mode,
+                        },
+                        source_path,
+                    ),
+                    Err(reason) => out.defs.diagnostics.push(diag(
+                        source_path,
+                        &format!("agent.{id}"),
+                        &reason,
+                    )),
+                }
+            }
+        } else {
+            out.defs
+                .diagnostics
+                .push(diag(source_path, "agent", "must be an object"));
+        }
+    }
+
+    if let Some(raw_commands) = config.get("command") {
+        if let Some(commands) = raw_commands.as_object() {
+            for (id, raw) in commands {
+                if !valid_id(id) {
+                    out.defs.diagnostics.push(diag(
+                        source_path,
+                        &format!("command.{id}"),
+                        "invalid id",
+                    ));
+                    continue;
+                }
+                let Some(object) = raw.as_object() else {
+                    out.defs.diagnostics.push(diag(
+                        source_path,
+                        &format!("command.{id}"),
+                        "must be an object",
+                    ));
+                    continue;
+                };
+                let allowed = ["template", "body", "description"];
+                if let Some(field) = object.keys().find(|key| !allowed.contains(&key.as_str())) {
+                    let reason = if matches!(field.as_str(), "agent" | "subtask") {
+                        "command execution field unsupported"
+                    } else {
+                        "unsupported field"
+                    };
+                    out.defs.diagnostics.push(diag(
+                        source_path,
+                        &format!("command.{id}.{field}"),
+                        reason,
+                    ));
+                    continue;
+                }
+                let parsed = (|| {
+                    let body = inline_body(object, "template", "body")?;
+                    let description = optional_string(object, "description")?
+                        .or_else(|| {
+                            body.lines()
+                                .map(str::trim)
+                                .find(|line| !line.is_empty())
+                                .map(str::to_string)
+                        })
+                        .unwrap_or_default();
+                    Ok::<_, String>((description, body))
+                })();
+                match parsed {
+                    Ok((description, body)) => {
+                        insert_command(&mut out, &root, id.clone(), description, body, source_path)
+                    }
+                    Err(reason) => out.defs.diagnostics.push(diag(
+                        source_path,
+                        &format!("command.{id}"),
+                        &reason,
+                    )),
+                }
+            }
+        } else {
+            out.defs
+                .diagnostics
+                .push(diag(source_path, "command", "must be an object"));
+        }
+    }
+    *defs = out.defs;
 }
 
 fn load_root(out: &mut Collector, root: &DefRoot) {
@@ -295,15 +594,6 @@ fn load_root(out: &mut Collector, root: &DefRoot) {
 }
 
 fn load_kind(out: &mut Collector, root: &DefRoot, kind: &str, subs: &[&str]) {
-    // Inline JSON/JSONC declaration before Markdown of this root.
-    let inline = root.dir.join(format!("{kind}.json"));
-    if inline.is_file() {
-        load_inline(out, root, kind, &inline, false);
-    }
-    let inline_c = root.dir.join(format!("{kind}.jsonc"));
-    if inline_c.is_file() {
-        load_inline(out, root, kind, &inline_c, true);
-    }
     for sub in subs {
         let dir = root.dir.join(sub);
         let Ok(entries) = std::fs::read_dir(&dir) else {
@@ -322,76 +612,6 @@ fn load_kind(out: &mut Collector, root: &DefRoot, kind: &str, subs: &[&str]) {
                 return;
             }
             load_entry(out, root, kind, &dir, &name);
-        }
-    }
-}
-
-fn load_inline(out: &mut Collector, root: &DefRoot, kind: &str, path: &Path, jsonc: bool) {
-    let text = match read_plain(path, &root.dir, MAX_DEF_BODY) {
-        Ok(text) => text,
-        Err(reason) => {
-            out.defs.diagnostics.push(diag(path, kind, &reason));
-            return;
-        }
-    };
-    let clean = if jsonc {
-        match crate::config::strip_jsonc(&text) {
-            Ok(clean) => clean,
-            Err(e) => {
-                out.defs.diagnostics.push(diag(path, kind, &e.to_string()));
-                return;
-            }
-        }
-    } else {
-        text
-    };
-    let value: BTreeMap<String, serde_json::Value> = match serde_json::from_str(&clean) {
-        Ok(map) => map,
-        Err(e) => {
-            out.defs
-                .diagnostics
-                .push(diag(path, kind, &format!("json: {e}")));
-            return;
-        }
-    };
-    for (id, raw) in value {
-        if !valid_id(&id) {
-            out.defs.diagnostics.push(diag(path, kind, "invalid id"));
-            continue;
-        }
-        let obj = raw.as_object().cloned().unwrap_or_default();
-        let description = obj
-            .get("description")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string();
-        let body = obj
-            .get("body")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string();
-        match kind {
-            "skill" => {
-                if body.is_empty() {
-                    out.defs
-                        .diagnostics
-                        .push(diag(path, kind, "inline skill needs a body"));
-                    continue;
-                }
-                insert_skill_text(out, root, id, description, body, path);
-            }
-            "agent" => {
-                let model = obj
-                    .get("model")
-                    .and_then(|v| v.as_str())
-                    .map(str::to_string);
-                let variant = obj
-                    .get("variant")
-                    .and_then(|v| v.as_str())
-                    .map(str::to_string);
-                insert_agent(out, root, id, description, model, variant, path);
-            }
-            _ => insert_command(out, root, id, description, body, path),
         }
     }
 }
@@ -416,9 +636,20 @@ fn insert_skill_text(
             .push(diag(path, "skill", "skill file too large"));
         return;
     }
+    let previous = out.defs.skills.get(&id).map_or(0, |def| def.body.len());
+    let next_total = out
+        .total_bytes
+        .saturating_sub(previous)
+        .saturating_add(text.len());
+    if next_total > MAX_TOTAL_BYTES {
+        out.defs
+            .diagnostics
+            .push(diag(path, "skill", "total definitions budget exceeded"));
+        return;
+    }
     match parse_skill(&id, &text) {
         Ok(meta) => {
-            out.total_bytes += text.len();
+            out.total_bytes = next_total;
             let description = if meta.description.is_empty() {
                 hint
             } else {
@@ -442,33 +673,60 @@ fn insert_skill_text(
     }
 }
 
-fn insert_agent(
-    out: &mut Collector,
-    root: &DefRoot,
+struct AgentInput {
     id: String,
     description: String,
     model: Option<String>,
     variant: Option<String>,
-    path: &Path,
-) {
-    if out.defs.agents.len() >= MAX_DEFS_PER_KIND {
+    body: String,
+    permissions: BTreeMap<String, Permission>,
+    mode: Option<String>,
+}
+
+fn insert_agent(out: &mut Collector, root: &DefRoot, input: AgentInput, path: &Path) {
+    if out.defs.agents.len() >= MAX_DEFS_PER_KIND && !out.defs.agents.contains_key(&input.id) {
         out.defs
             .diagnostics
             .push(diag(path, "agent", "too many agents"));
         return;
     }
-    if description.len() > 1024 {
+    if input.description.len() > 1024 {
         out.defs
             .diagnostics
             .push(diag(path, "agent", "description too large"));
         return;
     }
+    if input.body.len() > MAX_DEF_BODY {
+        out.defs
+            .diagnostics
+            .push(diag(path, "agent", "body too large"));
+        return;
+    }
+    let previous = out
+        .defs
+        .agents
+        .get(&input.id)
+        .map_or(0, |def| def.body.len());
+    let next_total = out
+        .total_bytes
+        .saturating_sub(previous)
+        .saturating_add(input.body.len());
+    if next_total > MAX_TOTAL_BYTES {
+        out.defs
+            .diagnostics
+            .push(diag(path, "agent", "total definitions budget exceeded"));
+        return;
+    }
+    out.total_bytes = next_total;
     out.put_agent(
         AgentDef {
-            id: id.clone(),
-            description,
-            model: model.filter(|s| !s.is_empty()),
-            variant: variant.filter(|s| !s.is_empty()),
+            id: input.id.clone(),
+            description: input.description,
+            model: input.model.filter(|s| !s.is_empty()),
+            variant: input.variant.filter(|s| !s.is_empty()),
+            body: input.body,
+            permissions: input.permissions,
+            mode: input.mode,
             origin: root.origin.clone(),
         },
         &root.origin.clone(),
@@ -483,7 +741,7 @@ fn insert_command(
     body: String,
     path: &Path,
 ) {
-    if out.defs.commands.len() >= MAX_DEFS_PER_KIND {
+    if out.defs.commands.len() >= MAX_DEFS_PER_KIND && !out.defs.commands.contains_key(&id) {
         out.defs
             .diagnostics
             .push(diag(path, "command", "too many commands"));
@@ -502,20 +760,18 @@ fn insert_command(
             .push(diag(path, "command", "body too large"));
         return;
     }
-    let lower = body.to_lowercase();
-    if lower.contains("subagent") || lower.contains("subtask") {
+    let previous = out.defs.commands.get(&id).map_or(0, |def| def.body.len());
+    let next_total = out
+        .total_bytes
+        .saturating_sub(previous)
+        .saturating_add(body.len());
+    if next_total > MAX_TOTAL_BYTES {
         out.defs
             .diagnostics
-            .push(diag(path, "command", "subagent behavior unsupported"));
+            .push(diag(path, "command", "total definitions budget exceeded"));
         return;
     }
-    if body.contains("$(") || body.contains('`') {
-        out.defs
-            .diagnostics
-            .push(diag(path, "command", "shell interpolation unsupported"));
-        return;
-    }
-    out.total_bytes += body.len();
+    out.total_bytes = next_total;
     out.put_command(
         CommandDef {
             id: id.clone(),
@@ -527,13 +783,26 @@ fn insert_command(
     );
 }
 
+fn unsupported_field(fields: &BTreeMap<String, String>, allowed: &[&str]) -> Option<String> {
+    fields
+        .keys()
+        .find(|key| !allowed.contains(&key.as_str()))
+        .cloned()
+}
+
+fn primary_mode(mode: Option<String>) -> Result<Option<String>, String> {
+    match mode.as_deref() {
+        None | Some("") => Ok(None),
+        Some("primary") => Ok(mode),
+        Some("subagent" | "all") => Err("subagent mode unsupported".to_string()),
+        Some(_) => Err("unknown agent mode".to_string()),
+    }
+}
+
 fn load_entry(out: &mut Collector, root: &DefRoot, kind: &str, dir: &Path, name: &str) {
     let path = dir.join(name);
     match kind {
         "skill" => {
-            if name == "skill.json" || name == "skill.jsonc" {
-                return; // handled as inline declaration
-            }
             let meta = std::fs::symlink_metadata(&path);
             match meta {
                 Ok(m) if m.is_dir() && !m.file_type().is_symlink() => {}
@@ -564,7 +833,7 @@ fn load_entry(out: &mut Collector, root: &DefRoot, kind: &str, dir: &Path, name:
         }
         "agent" | "command" => {
             if !(name.ends_with(".md") && name.len() > 3) {
-                return; // ignore foreign files (inline JSON handled above)
+                return; // Ignore foreign files; config domains merge explicitly.
             }
             let id = name.trim_end_matches(".md").to_string();
             if !valid_id(&id) {
@@ -578,7 +847,15 @@ fn load_entry(out: &mut Collector, root: &DefRoot, kind: &str, dir: &Path, name:
                     return;
                 }
             };
-            let (fields, body) = split_frontmatter(&text);
+            let (frontmatter, body) = match split_frontmatter(&text) {
+                Ok(parsed) => parsed,
+                Err(reason) => {
+                    out.defs
+                        .diagnostics
+                        .push(diag(&path, "frontmatter", &reason));
+                    return;
+                }
+            };
             if body.len() > MAX_DEF_BODY {
                 out.defs
                     .diagnostics
@@ -586,15 +863,28 @@ fn load_entry(out: &mut Collector, root: &DefRoot, kind: &str, dir: &Path, name:
                 return;
             }
             if kind == "agent" {
-                if let Some(mode) = fields.get("mode")
-                    && (mode == "subagent" || mode == "all")
-                {
-                    out.defs
-                        .diagnostics
-                        .push(diag(&path, kind, "subagent mode unsupported"));
+                if let Some(field) = unsupported_field(
+                    &frontmatter.fields,
+                    &["description", "model", "variant", "mode"],
+                ) {
+                    out.defs.diagnostics.push(diag(
+                        &path,
+                        &format!("agent.{field}"),
+                        "unsupported field",
+                    ));
                     return;
                 }
-                let description = fields
+                let mode = match primary_mode(frontmatter.fields.get("mode").cloned()) {
+                    Ok(mode) => mode,
+                    Err(reason) => {
+                        out.defs
+                            .diagnostics
+                            .push(diag(&path, "agent.mode", &reason));
+                        return;
+                    }
+                };
+                let description = frontmatter
+                    .fields
                     .get("description")
                     .cloned()
                     .or_else(|| {
@@ -604,11 +894,44 @@ fn load_entry(out: &mut Collector, root: &DefRoot, kind: &str, dir: &Path, name:
                             .map(str::to_string)
                     })
                     .unwrap_or_default();
-                let model = fields.get("model").cloned();
-                let variant = fields.get("variant").cloned();
-                insert_agent(out, root, id, description, model, variant, &path);
+                let model = frontmatter.fields.get("model").cloned();
+                let variant = frontmatter.fields.get("variant").cloned();
+                insert_agent(
+                    out,
+                    root,
+                    AgentInput {
+                        id,
+                        description,
+                        model,
+                        variant,
+                        body: body.to_string(),
+                        permissions: frontmatter.permissions,
+                        mode,
+                    },
+                    &path,
+                );
             } else {
-                let description = fields
+                if let Some(field) = unsupported_field(&frontmatter.fields, &["description"]) {
+                    let reason = if matches!(field.as_str(), "agent" | "subtask") {
+                        "command execution field unsupported"
+                    } else {
+                        "unsupported field"
+                    };
+                    out.defs
+                        .diagnostics
+                        .push(diag(&path, &format!("command.{field}"), reason));
+                    return;
+                }
+                if !frontmatter.permissions.is_empty() {
+                    out.defs.diagnostics.push(diag(
+                        &path,
+                        "command.permission",
+                        "unsupported field",
+                    ));
+                    return;
+                }
+                let description = frontmatter
+                    .fields
                     .get("description")
                     .cloned()
                     .or_else(|| {
@@ -648,18 +971,29 @@ pub fn select_primary(defs: &LoadedDefs, id: &str) -> Result<String, DefError> {
 /// Stable digest binding the selected profile to the turn.
 pub fn agent_digest(agent: &AgentDef) -> String {
     let mut hash: u64 = 0xcbf29ce484222325;
-    for byte in agent
-        .id
-        .bytes()
-        .chain([0])
-        .chain(agent.description.bytes())
-        .chain([0])
-        .chain(agent.model.as_deref().unwrap_or("").bytes())
-        .chain([0])
-        .chain(agent.variant.as_deref().unwrap_or("").bytes())
-    {
-        hash ^= u64::from(byte);
-        hash = hash.wrapping_mul(0x100000001b3);
+    let mut hash_bytes = |bytes: &[u8]| {
+        for byte in bytes.iter().copied().chain([0]) {
+            hash ^= u64::from(byte);
+            hash = hash.wrapping_mul(0x100000001b3);
+        }
+    };
+    for field in [
+        agent.id.as_str(),
+        agent.description.as_str(),
+        agent.model.as_deref().unwrap_or(""),
+        agent.variant.as_deref().unwrap_or(""),
+        agent.mode.as_deref().unwrap_or(""),
+        agent.body.as_str(),
+    ] {
+        hash_bytes(field.as_bytes());
+    }
+    for (tool, level) in &agent.permissions {
+        hash_bytes(tool.as_bytes());
+        hash_bytes(match level {
+            Permission::Allow => b"allow",
+            Permission::Ask => b"ask",
+            Permission::Deny => b"deny",
+        });
     }
     let mut out = String::with_capacity(16);
     let _ = write!(out, "{hash:016x}");
@@ -807,14 +1141,39 @@ mod tests {
         );
         write(
             &opencode.join("agents/ok.md"),
-            "---\ndescription: ok agent\nmodel: m\n---\nbody\n",
+            "---\ndescription: ok agent\nmodel: m\nmode: primary\npermission:\n  apply_patch: allow\n  write: deny\n---\nbody\n",
+        );
+        write(
+            &opencode.join("agents/all.md"),
+            "---\ndescription: all\nmode: all\n---\nbody\n",
+        );
+        write(
+            &opencode.join("agents/danger.md"),
+            "---\ndescription: danger\ntools: true\n---\nbody\n",
         );
         write(&opencode.join("commands/quit.md"), "nope\n");
-        write(&opencode.join("commands/deploy.md"), "run $(evil) now\n");
+        write(
+            &opencode.join("commands/deploy.md"),
+            "Explain `cargo test`, $(literal), and the word subagent.\n```sh\ncargo test\n```\n",
+        );
+        write(
+            &opencode.join("commands/delegate.md"),
+            "---\ndescription: no\nsubtask: true\n---\nbody\n",
+        );
+        write(
+            &opencode.join("commands/delegate-agent.md"),
+            "---\ndescription: no\nagent: helper\n---\nbody\n",
+        );
         write(&opencode.join("commands/ship.md"), "cargo test $1\n");
         let loaded = load_definitions(&[root(&opencode, "P")]);
         assert_eq!(loaded.agents.len(), 1);
         assert_eq!(loaded.agents["ok"].model.as_deref(), Some("m"));
+        assert_eq!(loaded.agents["ok"].mode.as_deref(), Some("primary"));
+        assert_eq!(loaded.agents["ok"].body, "body\n");
+        assert_eq!(
+            loaded.agents["ok"].permissions["apply_patch"],
+            Permission::Deny
+        );
         assert!(
             loaded
                 .diagnostics
@@ -831,8 +1190,22 @@ mod tests {
             loaded
                 .diagnostics
                 .iter()
-                .any(|d| d.reason.contains("interpolation"))
+                .any(|d| d.field.contains("tools") && d.reason.contains("unsupported"))
         );
+        assert!(
+            loaded
+                .diagnostics
+                .iter()
+                .any(|d| d.field.contains("subtask"))
+        );
+        assert!(
+            loaded
+                .diagnostics
+                .iter()
+                .any(|d| d.field == "command.agent")
+        );
+        assert!(loaded.commands["deploy"].body.contains("`cargo test`"));
+        assert!(loaded.commands["deploy"].body.contains("subagent"));
         assert!(loaded.commands.contains_key("ship"));
         let digest = select_primary(&loaded, "ok").expect("select");
         assert_eq!(digest, agent_digest(&loaded.agents["ok"]));
@@ -868,19 +1241,105 @@ mod tests {
     }
 
     #[test]
-    fn inline_json_precedes_markdown_in_same_root() {
+    fn config_domains_merge_in_caller_order_without_invented_files() {
         let base = tempfile::tempdir().expect("tmp");
         let opencode = base.path().join(".opencode");
         write(
             &opencode.join("commands.json"),
             r#"{"run": {"description": "inline", "body": "echo inline"}}"#,
         );
+        let mut loaded = load_definitions(&[root(&opencode, "P")]);
+        assert!(loaded.commands.is_empty());
+
+        merge_config_definitions(
+            &mut loaded,
+            &serde_json::json!({
+                "agent": {
+                    "review": {
+                        "description": "same",
+                        "prompt": "global prompt",
+                        "model": "old",
+                        "permission": {"write": "allow"},
+                        "mode": "primary"
+                    },
+                    "bad": {"prompt": "bad", "hooks": {"x": true}}
+                },
+                "command": {
+                    "run": {"description": "global", "template": "Explain `cargo test` to $1"},
+                    "bad": {"template": "delegate", "agent": "review"}
+                }
+            }),
+            "G/opencode.json",
+        );
+        merge_config_definitions(
+            &mut loaded,
+            &serde_json::json!({
+                "agent": {
+                    "review": {
+                        "description": "same",
+                        "body": "local prompt",
+                        "variant": "high",
+                        "permission": {"edit": "deny"}
+                    }
+                },
+                "command": {
+                    "run": {"body": "literal subagent in a code fence:\n```sh\ncargo test\n```"},
+                    "ok": {"template": "valid sibling"}
+                }
+            }),
+            "P/opencode.jsonc",
+        );
+        let agent = &loaded.agents["review"];
+        assert_eq!(agent.origin, "P/opencode.jsonc");
+        assert_eq!(agent.body, "local prompt");
+        assert_eq!(agent.model, None, "later definitions replace whole");
+        assert_eq!(agent.variant.as_deref(), Some("high"));
+        assert_eq!(agent.permissions["apply_patch"], Permission::Deny);
+        assert_eq!(loaded.commands["run"].origin, "P/opencode.jsonc");
+        assert!(loaded.commands["run"].body.contains("```sh"));
+        assert!(loaded.commands.contains_key("ok"));
+        assert!(!loaded.agents.contains_key("bad"));
+        assert!(!loaded.commands.contains_key("bad"));
+        assert!(
+            loaded
+                .diagnostics
+                .iter()
+                .any(|d| d.field.ends_with("hooks"))
+        );
+        assert!(
+            loaded
+                .diagnostics
+                .iter()
+                .any(|d| d.field.ends_with("agent"))
+        );
+        assert_eq!(
+            loaded.shadowed,
+            vec![
+                "agent.review: G/opencode.json -> P/opencode.jsonc",
+                "command.run: G/opencode.json -> P/opencode.jsonc"
+            ]
+        );
+    }
+
+    #[test]
+    fn agent_digest_covers_body_and_permissions() {
+        let base = tempfile::tempdir().expect("tmp");
+        let opencode = base.path().join(".opencode");
         write(
-            &opencode.join("commands/run.md"),
-            "---\ndescription: markdown\n---\necho md\n",
+            &opencode.join("agents/review.md"),
+            "---\ndescription: review\npermission:\n  apply_patch: deny\n---\npolicy A\n",
         );
         let loaded = load_definitions(&[root(&opencode, "P")]);
-        assert_eq!(loaded.commands["run"].description, "markdown");
+        let agent = &loaded.agents["review"];
+        let original = agent_digest(agent);
+        let mut changed_body = agent.clone();
+        changed_body.body = "policy B\n".to_string();
+        assert_ne!(original, agent_digest(&changed_body));
+        let mut changed_permission = agent.clone();
+        changed_permission
+            .permissions
+            .insert("apply_patch".to_string(), Permission::Ask);
+        assert_ne!(original, agent_digest(&changed_permission));
     }
 
     #[test]

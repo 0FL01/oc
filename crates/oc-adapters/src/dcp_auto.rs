@@ -3,7 +3,7 @@
 //! Soft-limit nudge state machine (frequency/iteration/turn resets, no
 //! accumulating reminder copies), compress-time dedup/purgeErrors strategies,
 //! layered DCP config (defaults < `dcp.jsonc` < per-model overrides, sources
-//! read-only), manual-mode gating, stats/notifications, and exact bare/pinned
+//! read-only), manual-mode gating, stats/notifications, and exact bare/pinned/latest
 //! alias binding to one compiled module instance. No generic summarizer and
 //! no JS hooks live here.
 
@@ -428,7 +428,7 @@ pub fn purge_errors(
         .collect()
 }
 
-/// Compiled module identity: both admitted aliases bind one instance.
+/// Compiled module identity: all admitted aliases bind one instance.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DcpModuleId {
     /// Visible resolved revision.
@@ -437,7 +437,12 @@ pub struct DcpModuleId {
 
 /// Resolve a plugin identity to the single compiled DCP module.
 pub fn resolve_dcp_module(identity: &str) -> Result<DcpModuleId, DcpAutoError> {
-    if identity == "@tarquinen/opencode-dcp" || identity == "@tarquinen/opencode-dcp@3.1.15" {
+    if matches!(
+        identity,
+        "@tarquinen/opencode-dcp"
+            | "@tarquinen/opencode-dcp@3.1.15"
+            | "@tarquinen/opencode-dcp@latest"
+    ) {
         return Ok(DcpModuleId {
             revision: DCP_MODULE_REVISION.to_string(),
         });
@@ -576,12 +581,14 @@ mod tests {
             load_config(&serde_json::json!({"experimental": {"allowSubAgents": true}})),
             Err(DcpAutoError::UnsupportedOption { .. })
         ));
-        // Bare and pinned aliases bind one compiled instance, visibly revised.
+        // Bare, pinned, and the user-required latest alias bind one compiled instance.
         let bare = resolve_dcp_module("@tarquinen/opencode-dcp").expect("bare");
         let pinned = resolve_dcp_module("@tarquinen/opencode-dcp@3.1.15").expect("pinned");
+        let latest = resolve_dcp_module("@tarquinen/opencode-dcp@latest").expect("latest");
         assert_eq!(bare, pinned);
+        assert_eq!(bare, latest);
         assert!(!bare.revision.is_empty());
-        assert!(resolve_dcp_module("@tarquinen/opencode-dcp@latest").is_err());
+        assert!(resolve_dcp_module("@tarquinen/opencode-dcp@3.1.14").is_err());
         assert!(resolve_dcp_module("https://x.invalid/p.js").is_err());
         // Stats/debug carry counts only.
         let stats = DcpStats {

@@ -44,7 +44,10 @@ async fn run_inner(data_dir: &Path, session_opt: Option<String>) -> Result<ExitC
         Some(raw) => SessionId::new(raw).ok_or_else(|| "invalid session id".to_string())?,
         None => SessionId::new(format!("s-tui-{}", nanos())).ok_or("id".to_string())?,
     };
-    let (app, guard) = oc_adapters::application::spawn(&project, data_dir).await?;
+    let (app, guard, diagnostics) = oc_adapters::application::spawn(&project, data_dir).await?;
+    for diagnostic in diagnostics {
+        eprintln!("warning: {diagnostic}");
+    }
     let result = drive_ui(&app, session).await;
     let _ = app.shutdown().await;
     guard

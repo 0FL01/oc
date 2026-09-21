@@ -236,6 +236,8 @@ pub fn to_input_items(outputs: &[FunctionCallOutput]) -> serde_json::Value {
 pub struct SkillSnapshot {
     /// Pinned entries.
     pub entries: BTreeMap<String, SkillEntry>,
+    /// Invalid discovered ids with precise pinned diagnostics.
+    pub errors: BTreeMap<String, String>,
 }
 
 /// One pinned skill entry (body snapshot included).
@@ -285,7 +287,13 @@ impl SkillSnapshot {
                 Err(e) => warnings.push(format!("skill {id}: {e}")),
             }
         }
-        (Self { entries }, warnings)
+        (
+            Self {
+                entries,
+                errors: BTreeMap::new(),
+            },
+            warnings,
+        )
     }
 
     /// Model projection: bounded id/name/description without bodies.
@@ -631,7 +639,10 @@ fn tool_skill(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
     }
     match ctx.snapshot.entries.get(id) {
         Some(entry) => entry.body.clone(),
-        None => format!("error: unknown skill {id} (not in pinned snapshot)"),
+        None => match ctx.snapshot.errors.get(id) {
+            Some(error) => format!("error: {error}"),
+            None => format!("error: unknown skill {id} (not in pinned snapshot)"),
+        },
     }
 }
 
@@ -656,6 +667,8 @@ pub struct TurnLog {
     pub user_message: Option<String>,
     /// Completed Responses items and durable tool results, never UI text parsing.
     pub input: Vec<crate::provider::InputItem>,
+    /// Primary-agent behavior digest pinned for this turn.
+    pub agent_digest: Option<String>,
 }
 
 impl TurnLog {
@@ -669,6 +682,7 @@ impl TurnLog {
             usage: None,
             user_message: None,
             input: Vec::new(),
+            agent_digest: None,
         }
     }
 
@@ -698,6 +712,7 @@ impl TurnLog {
             "usage": self.usage.map(|(i, o)| serde_json::json!([i, o])),
             "user_message": self.user_message,
             "input": self.input,
+            "agent_digest": self.agent_digest,
         })
     }
 
@@ -715,6 +730,10 @@ impl TurnLog {
                     .unwrap_or_else(|| serde_json::json!([])),
             )
             .map_err(|_| "invalid wire input")?,
+            agent_digest: value
+                .get("agent_digest")
+                .and_then(|value| value.as_str())
+                .map(str::to_owned),
             turn_id: value
                 .get("turn_id")
                 .and_then(|v| v.as_str())

@@ -41,7 +41,10 @@ pub async fn run_once_to_writers(
         let project = std::env::current_dir().map_err(|e| e.to_string())?;
         let session = SessionId::new(session_opt.unwrap_or_else(|| format!("s-{}", nanos())))
             .ok_or_else(|| "invalid session id".to_string())?;
-        let (app, guard) = oc_adapters::application::spawn(&project, data_dir).await?;
+        let (app, guard, diagnostics) = oc_adapters::application::spawn(&project, data_dir).await?;
+        for diagnostic in diagnostics {
+            writeln!(err, "warning: {diagnostic}").map_err(|e| e.to_string())?;
+        }
         let outcome = async {
             app.create_session(session.clone())
                 .await

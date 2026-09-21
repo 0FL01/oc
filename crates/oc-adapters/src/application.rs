@@ -13,8 +13,12 @@ use crate::runtime::{Runtime, RuntimeError, TurnParams, TurnStatus};
 use crate::storage::Db;
 
 /// Compose and start one application. Both frontends use this entry point.
-pub async fn spawn(project: &Path, data: &Path) -> Result<(CoreApp, WorkerGuard), String> {
+pub async fn spawn(
+    project: &Path,
+    data: &Path,
+) -> Result<(CoreApp, WorkerGuard, Vec<String>), String> {
     let composition = composition::load(project).await?;
+    let diagnostics = composition.diagnostics.clone();
     let db = Db::open(data).map_err(|e| format!("storage: {e}"))?;
     db.recover_interrupted_tools()
         .map_err(|e| format!("recovery: {e}"))?;
@@ -48,6 +52,16 @@ pub async fn spawn(project: &Path, data: &Path) -> Result<(CoreApp, WorkerGuard)
                 let _ = ready.send(Err(error.to_string()));
             }
             Ok(runtime) => {
+                if let Err(error) = runtime.publish_workspace(
+                    composition.agent_prompt.as_deref(),
+                    &composition.instructions,
+                    composition.skills.clone(),
+                    composition.skill_errors.clone(),
+                    composition.agent_digest.clone(),
+                ) {
+                    let _ = ready.send(Err(error.to_string()));
+                    return;
+                }
                 if ready.send(Ok(())).is_ok() {
                     worker(&runtime, &db, &composition, inbox, events).await;
                 }
@@ -56,7 +70,7 @@ pub async fn spawn(project: &Path, data: &Path) -> Result<(CoreApp, WorkerGuard)
     });
     let guard = WorkerGuard::from_task(handle);
     match ready_rx.await {
-        Ok(Ok(())) => Ok((app, guard)),
+        Ok(Ok(())) => Ok((app, guard, diagnostics)),
         result => {
             let _ = guard.join().await;
             Err(match result {
@@ -131,6 +145,13 @@ async fn worker(
                     let _ = ack.send(Err(app_error("empty prompt")));
                     continue;
                 }
+                let (prompt, invocation) = match resolve_submission(composition, text) {
+                    Ok(resolved) => resolved,
+                    Err(error) => {
+                        let _ = ack.send(Err(app_error(error)));
+                        continue;
+                    }
+                };
                 let cancel = AtomicBool::new(false);
                 let max_output = composition.catalog.models[&composition.model_id]
                     .pointer("/limit/output")
@@ -138,11 +159,11 @@ async fn worker(
                     .unwrap_or(0);
                 let params = TurnParams {
                     session: session.0.clone(),
-                    prompt: text,
-                    invocation: None,
+                    prompt,
+                    invocation,
                     catalog: &composition.catalog,
                     model_id: composition.model_id.clone(),
-                    variant: None,
+                    variant: composition.variant.clone(),
                     max_output,
                     provider: composition.provider.clone(),
                     cancel: &cancel,
@@ -247,4 +268,25 @@ async fn worker(
             message => query(db, runtime, message),
         }
     }
+}
+
+fn resolve_submission(
+    composition: &Composition,
+    text: String,
+) -> Result<(String, Option<String>), RuntimeError> {
+    let Some(command) = text.strip_prefix('/') else {
+        return Ok((text, None));
+    };
+    let split = command.find(char::is_whitespace).unwrap_or(command.len());
+    let id = &command[..split];
+    let Some(template) = composition.commands.get(id) else {
+        return Ok((text, None));
+    };
+    let remainder = command[split..].trim();
+    let args = remainder
+        .split_whitespace()
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+    let expanded = crate::runtime::expand_command(template, &args)?;
+    Ok((expanded, Some(text)))
 }

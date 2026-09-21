@@ -24,6 +24,16 @@
       "executes_js": false
     },
     {
+      "identity": "@tarquinen/opencode-dcp@latest",
+      "maps_to": "compiled DCP module at the repository-pinned revision (same instance; no registry resolution)",
+      "executes_js": false
+    },
+    {
+      "identity": "@prevalentware/opencode-goal-plugin@0.1.49",
+      "maps_to": "authoring-only compatibility marker; warning and no runtime capability",
+      "executes_js": false
+    },
+    {
       "identity": "<effective-config-root>/plugin/openproxy-models.js",
       "maps_to": "compiled OpenProxy discovery module",
       "executes_js": false
@@ -38,9 +48,9 @@
     "basename outside admitted root",
     ".ts sources",
     "URL/arbitrary paths",
-    "@latest/semver ranges",
+    "other @latest/semver ranges",
     "other versions/packages",
     "unknown/lookalike JS/TS"
   ],
-  "note": "Provider alias @ai-sdk/openai is a separate config domain, not a plugin identity."
+  "note": "Provider alias @ai-sdk/openai is a separate config domain. The exact DCP @latest spelling is a user-required compatibility alias for the pinned compiled revision, not registry resolution. The exact goal-plugin marker is ignored because it configures the authoring OpenCode process, not this runtime."
 }

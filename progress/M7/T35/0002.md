@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-21T10:50:39+00:00
-Active: T35
-
-Сверить Git status/diff до выполнения команд.
-Task: T35 — Configured workspace и точный discovery
-Spec: audit/repairs/T35.md
-Evidence target: evidence/T35/report.md
-
-Закрыть F08, F09, F17 по audit/repairs/T35.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 ## Result
 
 T35 implementation verified on base 9daa55c, awaiting commit/finish. Actual-binary configured-workspace regressions
@@ -42,9 +28,3 @@ Commit the verified implementation/tests/docs/evidence, record its hash in the
 report, finish T35 through progress.py, then start T36 without pausing. Current
 changes include production code, configured_workspace.rs, docs/fixtures, evidence
 and generated T35 progress; Git status is authoritative. No push/live call.
-
-
-Ready (до 5): нет
-Blocked: T27
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.
