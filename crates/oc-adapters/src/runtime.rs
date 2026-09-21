@@ -572,6 +572,16 @@ impl<'a> Runtime<'a> {
 
     /// Run one generation-guarded turn to durable records.
     pub async fn run_turn(&self, params: TurnParams<'_>) -> Result<TurnReport, RuntimeError> {
+        self.run_turn_with_events(params, |_| {}, |_, _| {}).await
+    }
+
+    /// Notify the application only after validated input is durably accepted.
+    pub async fn run_turn_with_events(
+        &self,
+        params: TurnParams<'_>,
+        mut accepted: impl FnMut(&str) + Send,
+        mut text_delta: impl FnMut(&str, &str) + Send,
+    ) -> Result<TurnReport, RuntimeError> {
         if self.active.swap(true, Ordering::SeqCst) {
             return Err(RuntimeError::TurnActive);
         }
@@ -583,7 +593,9 @@ impl<'a> Runtime<'a> {
                 return Err(error);
             }
         };
-        let result = self.run_turn_inner(params, &attachment.servers).await;
+        let result = self
+            .run_turn_inner(params, &attachment.servers, &mut accepted, &mut text_delta)
+            .await;
         // Reap own children on every path (STORE05); remote drops close.
         attachment.close().await;
         self.active.store(false, Ordering::SeqCst);
@@ -665,6 +677,8 @@ impl<'a> Runtime<'a> {
         &self,
         params: TurnParams<'_>,
         attached: &[AttachedMcp],
+        accepted: &mut (dyn FnMut(&str) + Send),
+        text_delta: &mut (dyn FnMut(&str, &str) + Send),
     ) -> Result<TurnReport, RuntimeError> {
         let published = self.current.read().expect("generation lock").clone();
         self.open_session(&params.session)?;
@@ -719,6 +733,7 @@ impl<'a> Runtime<'a> {
             .begin_turn(&turn_id, &params.session, &params.prompt)?;
         let user_text = params.invocation.as_deref().unwrap_or(&params.prompt);
         self.db.append_message(&params.session, "user", user_text)?;
+        accepted(&turn_id);
         let snapshot = {
             let skills = self.skills.read().expect("skills lock");
             SkillSnapshot::build(&skills).0
@@ -758,7 +773,7 @@ impl<'a> Runtime<'a> {
                 );
             }
             let prompt = assemble_turn_input(&history, &params.prompt, &prior);
-            let generation = match crate::provider::stream_generation(
+            let generation = match crate::provider::stream_generation_observed(
                 &params.provider,
                 &selection.id,
                 selection.variant.as_ref(),
@@ -766,6 +781,11 @@ impl<'a> Runtime<'a> {
                 &tool_defs,
                 params.cancel,
                 None,
+                &mut |item| {
+                    if let crate::provider::StreamItem::TextDelta(delta) = item {
+                        text_delta(&turn_id, delta);
+                    }
+                },
             )
             .await
             {

@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-21T07:42:56+00:00
-Active: T31
-
-Сверить Git status/diff до выполнения команд.
-Task: T31 — Подключить реальный application path
-Spec: audit/repairs/T31.md
-Evidence target: evidence/T31/report.md
-
-Закрыть F01 по audit/repairs/T31.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 ## Result
 
 T31 runtime slice implemented and verified over `e4c7036`. CLI and TUI now call
@@ -47,9 +33,3 @@ Changed runtime: adapters application/composition/provider/runtime/storage/tools
 core command/events, headless/TUI consumers; binary application/PTy regressions.
 Tracker source remains progress/STATE.json; initial checkpoint 0001 is immutable.
 HEAD before implementation commit: e4c7036. No registry fragments need re-merge.
-
-
-Ready (до 5): нет
-Blocked: T27
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

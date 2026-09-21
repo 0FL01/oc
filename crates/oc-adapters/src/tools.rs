@@ -80,7 +80,7 @@ pub enum BatchError {
 }
 
 /// Central permission hook (the product policy plugs in here).
-pub trait ToolPolicy {
+pub trait ToolPolicy: Sync {
     /// Authorize a tool invocation or deny it.
     fn check(&self, tool: &str) -> Result<(), ToolError>;
 }

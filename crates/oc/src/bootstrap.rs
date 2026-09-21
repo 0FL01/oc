@@ -11,10 +11,18 @@ pub async fn run(args: Args) -> ExitCode {
     if args.smoke && args.command.is_none() {
         return legacy_smoke();
     }
-    let data_dir = args
+    let data_dir = match args
         .data_dir
         .clone()
-        .unwrap_or_else(headless::default_data_dir);
+        .map(Ok)
+        .unwrap_or_else(headless::default_data_dir)
+    {
+        Ok(path) => path,
+        Err(error) => {
+            eprintln!("error: {error}");
+            return ExitCode::from(1);
+        }
+    };
     match args.command {
         None => {
             eprintln!("usage: oc [--data-dir PATH] <run|sessions> | oc --smoke");
@@ -27,16 +35,8 @@ pub async fn run(args: Args) -> ExitCode {
         }) => {
             let mut out = stdout().lock();
             let mut err = stderr().lock();
-            headless::run_once_to_writers(
-                prompt,
-                session,
-                json,
-                &data_dir,
-                oc_core::core_app::MockProvider::echo(),
-                &mut out,
-                &mut err,
-            )
-            .await
+            headless::run_once_to_writers(prompt, session, json, &data_dir, &mut out, &mut err)
+                .await
         }
         Some(Command::Sessions { action }) => match action {
             SessionsAction::List => {

@@ -1,0 +1,227 @@
+//! Single native application owner behind the core command/event interface.
+
+use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use oc_core::core_app::{CoreApp, CoreEvent, InboxMsg, WorkerGuard, WorkerTurnId};
+use oc_core::domain::SessionId;
+use oc_core::session::{CoreError, MAX_QUEUE_ITEMS, Message, MessageId, Role};
+use tokio::sync::{broadcast, mpsc, oneshot};
+
+use crate::composition::{self, Composition};
+use crate::runtime::{Runtime, RuntimeError, TurnParams, TurnStatus};
+use crate::storage::Db;
+
+/// Compose and start one application. Both frontends use this entry point.
+pub async fn spawn(project: &Path, data: &Path) -> Result<(CoreApp, WorkerGuard), String> {
+    let composition = composition::load(project).await?;
+    let db = Db::open(data).map_err(|e| format!("storage: {e}"))?;
+    let files = crate::files::Files::new(&composition.project, db.root())
+        .map_err(|e| format!("files: {e}"))?;
+    let shell =
+        crate::shell::Shell::new(&composition.project).map_err(|e| format!("shell: {e}"))?;
+    let (app, inbox, events) = CoreApp::channel(MAX_QUEUE_ITEMS);
+    let (ready, ready_rx) = oneshot::channel();
+    let handle = tokio::spawn(async move {
+        let runtime = Runtime::new(
+            &db,
+            &composition.project.to_string_lossy(),
+            composition.generation.clone(),
+            crate::patch::ProtectedGlobs {
+                patterns: Vec::new(),
+            },
+            files,
+            shell,
+            composition.parent_env.clone(),
+            crate::tools::ToolRoots {
+                project: composition.project.clone(),
+                data: db.root().to_path_buf(),
+            },
+            None,
+            false,
+            crate::dcp_auto::DcpConfig::default(),
+        );
+        match runtime {
+            Err(error) => {
+                let _ = ready.send(Err(error.to_string()));
+            }
+            Ok(runtime) => {
+                if ready.send(Ok(())).is_ok() {
+                    worker(&runtime, &db, &composition, inbox, events).await;
+                }
+            }
+        }
+    });
+    let guard = WorkerGuard::from_task(handle);
+    match ready_rx.await {
+        Ok(Ok(())) => Ok((app, guard)),
+        result => {
+            let _ = guard.join().await;
+            Err(match result {
+                Ok(Err(error)) => error,
+                _ => "application worker closed".to_string(),
+            })
+        }
+    }
+}
+
+fn app_error(error: impl std::fmt::Display) -> CoreError {
+    CoreError::Application(error.to_string())
+}
+
+fn query(db: &Db, runtime: &Runtime<'_>, message: InboxMsg) {
+    match message {
+        InboxMsg::Create { id, ack } => {
+            let _ = ack.send(runtime.create_session(&id.0).map_err(app_error));
+        }
+        InboxMsg::List { ack } => {
+            let _ = ack.send(
+                db.list_sessions()
+                    .map(|ids| ids.into_iter().map(SessionId).collect())
+                    .map_err(app_error),
+            );
+        }
+        InboxMsg::Read { session, ack } => {
+            let result = runtime
+                .open_session(&session.0)
+                .map_err(app_error)
+                .and_then(|()| {
+                    db.read_history_full(&session.0)
+                        .map_err(app_error)
+                        .map(|rows| {
+                            rows.into_iter()
+                                .map(|(id, role, text)| Message {
+                                    id: MessageId(id),
+                                    role: if role == "user" {
+                                        Role::User
+                                    } else {
+                                        Role::Assistant
+                                    },
+                                    text,
+                                })
+                                .collect()
+                        })
+                });
+            let _ = ack.send(result);
+        }
+        InboxMsg::Cancel { ack, .. } => {
+            let _ = ack.send(Err(CoreError::TurnNotActive));
+        }
+        InboxMsg::Submit { ack, .. } => {
+            let _ = ack.send(Err(CoreError::TurnBusy));
+        }
+        InboxMsg::Shutdown => {}
+    }
+}
+
+async fn worker(
+    runtime: &Runtime<'_>,
+    db: &Db,
+    composition: &Composition,
+    mut inbox: mpsc::Receiver<InboxMsg>,
+    events: broadcast::Sender<CoreEvent>,
+) {
+    while let Some(message) = inbox.recv().await {
+        match message {
+            InboxMsg::Shutdown => break,
+            InboxMsg::Submit { session, text, ack } => {
+                if text.trim().is_empty() {
+                    let _ = ack.send(Err(app_error("empty prompt")));
+                    continue;
+                }
+                let cancel = AtomicBool::new(false);
+                let max_output = composition.catalog.models[&composition.model_id]
+                    .pointer("/limit/output")
+                    .and_then(serde_json::Value::as_u64)
+                    .unwrap_or(0);
+                let params = TurnParams {
+                    session: session.0.clone(),
+                    prompt: text,
+                    invocation: None,
+                    catalog: &composition.catalog,
+                    model_id: composition.model_id.clone(),
+                    variant: None,
+                    max_output,
+                    provider: composition.provider.clone(),
+                    cancel: &cancel,
+                    max_rounds: crate::runtime::MAX_ROUNDS,
+                };
+                let mut ack = Some(ack);
+                let mut turn = None;
+                let mut shutdown = false;
+                let result;
+                {
+                    let operation = runtime.run_turn_with_events(
+                        params,
+                        |id| {
+                            let id = WorkerTurnId(id.to_string());
+                            turn = Some(id.clone());
+                            let _ = events.send(CoreEvent::TurnStarted {
+                                session: session.clone(),
+                                turn: id.clone(),
+                            });
+                            if let Some(ack) = ack.take() {
+                                let _ = ack.send(Ok(id));
+                            }
+                        },
+                        |id, delta| {
+                            let _ = events.send(CoreEvent::TextDelta {
+                                session: session.clone(),
+                                turn: WorkerTurnId(id.to_string()),
+                                delta: delta.to_string(),
+                            });
+                        },
+                    );
+                    tokio::pin!(operation);
+                    result = loop {
+                        tokio::select! {
+                            result = &mut operation => break result,
+                            command = inbox.recv(), if !shutdown => match command {
+                                None | Some(InboxMsg::Shutdown) => {
+                                    shutdown = true;
+                                    cancel.store(true, Ordering::Relaxed);
+                                }
+                                Some(InboxMsg::Cancel { session: target, ack }) if target == session => {
+                                    cancel.store(true, Ordering::Relaxed);
+                                    let _ = ack.send(Ok(()));
+                                }
+                                Some(command) => query(db, runtime, command),
+                            }
+                        }
+                    };
+                }
+                if let Some(ack) = ack {
+                    let error = result.err().unwrap_or(RuntimeError::Storage);
+                    let _ = ack.send(Err(app_error(error)));
+                } else if let Some(turn) = turn {
+                    let event = match result {
+                        Ok(report) if report.status == TurnStatus::Completed => {
+                            CoreEvent::TurnFinished {
+                                session: session.clone(),
+                                turn,
+                                text: report.text,
+                            }
+                        }
+                        Ok(report) if report.status == TurnStatus::Cancelled => {
+                            CoreEvent::TurnInterrupted {
+                                session: session.clone(),
+                                turn,
+                                partial: report.text,
+                            }
+                        }
+                        result => CoreEvent::TurnFailed {
+                            session: session.clone(),
+                            turn,
+                            error: app_error(result.err().unwrap_or(RuntimeError::Provider)),
+                        },
+                    };
+                    let _ = events.send(event);
+                }
+                if shutdown {
+                    break;
+                }
+            }
+            message => query(db, runtime, message),
+        }
+    }
+}

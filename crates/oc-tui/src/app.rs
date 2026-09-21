@@ -435,6 +435,17 @@ impl TuiState {
         self.lines.push("(cancelled)".to_string());
     }
 
+    /// Release a failed turn and show its error, never a successful answer.
+    pub fn apply_failed(&mut self, turn: &WorkerTurnId, error: &CoreError) {
+        if Some(turn) != self.active_turn.as_ref() {
+            return;
+        }
+        self.active_turn = None;
+        self.live_text.clear();
+        self.status = TuiStatus::Idle;
+        self.lines.push(format!("(error: {error})"));
+    }
+
     /// Drain one worker event into view state. Returns true when a turn
     /// reached a terminal event.
     pub async fn poll_event(&mut self) -> bool {
@@ -485,6 +496,10 @@ impl ScriptDriver {
                 Err(_) => return PumpOutcome::Timeout,
                 Ok(Err(_)) => return PumpOutcome::Closed,
                 Ok(Ok(CoreEvent::TurnStarted { .. })) => {}
+                Ok(Ok(CoreEvent::TurnFailed { turn, error, .. })) => {
+                    state.apply_failed(&turn, &error);
+                    return PumpOutcome::Closed;
+                }
                 Ok(Ok(CoreEvent::TextDelta { turn, delta, .. })) => {
                     if Some(&turn) == state.active_turn.as_ref() {
                         state.live_text.push_str(&delta);
@@ -715,6 +730,7 @@ mod tests {
                 .expect("open");
             match event {
                 CoreEvent::TurnStarted { .. } => {}
+                CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
                 CoreEvent::TextDelta { turn, delta, .. } => state.apply_delta(&turn, &delta),
                 CoreEvent::TurnFinished { turn, text, .. } => {
                     state.apply_finished(&turn, &text);

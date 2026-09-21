@@ -6,9 +6,11 @@
 //! slave termios state — not render snapshots.
 
 use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -17,6 +19,229 @@ const POLL: Duration = Duration::from_millis(25);
 const DEADLINE: Duration = Duration::from_secs(15);
 /// Alternate-screen leave sequence: proof the terminal was restored.
 const ALT_LEAVE: &[u8] = b"\x1b[?1049l";
+const FIXTURE_MODEL: &str = "pty-unseen-model";
+
+/// Real native Responses traffic, isolated from authoring-agent configuration.
+/// Echo is scripted by this HTTP peer, never by a product mock provider.
+struct Fixture {
+    root: tempfile::TempDir,
+    requests: Arc<Mutex<Vec<serde_json::Value>>>,
+    stop: Arc<AtomicBool>,
+    server: Option<std::thread::JoinHandle<()>>,
+}
+
+impl Fixture {
+    fn new(root: tempfile::TempDir) -> Arc<Self> {
+        let home = root.path().join("home");
+        let config = home.join("config/opencode");
+        std::fs::create_dir_all(&config).expect("isolated config");
+        std::fs::create_dir_all(root.path().join("project")).expect("isolated project");
+        let listener = TcpListener::bind("127.0.0.1:0").expect("fake endpoint");
+        listener.set_nonblocking(true).expect("nonblocking");
+        let addr = listener.local_addr().expect("endpoint address");
+        let configuration = serde_json::json!({
+            "model": format!("fixture/{FIXTURE_MODEL}"),
+            "provider": {"fixture": {
+                "npm": "@ai-sdk/openai",
+                "options": {"baseURL": format!("http://{addr}/proxy/v1"),
+                            "apiKey": "{env:OC_FIXTURE_KEY}"},
+                "models": {FIXTURE_MODEL: {"name": "PTY fixture", "limit": {
+                    "context": 32768, "output": 4096
+                }}}
+            }}
+        });
+        std::fs::write(config.join("opencode.json"), configuration.to_string())
+            .expect("fixture config");
+        let requests = Arc::new(Mutex::new(Vec::new()));
+        let captured = requests.clone();
+        let stop = Arc::new(AtomicBool::new(false));
+        let stopping = stop.clone();
+        let server = std::thread::spawn(move || {
+            while !stopping.load(Ordering::Relaxed) {
+                match listener.accept() {
+                    Ok((mut socket, _)) => {
+                        socket
+                            .set_read_timeout(Some(DEADLINE))
+                            .expect("read timeout");
+                        socket
+                            .set_write_timeout(Some(DEADLINE))
+                            .expect("write timeout");
+                        let body = read_request(&mut socket);
+                        assert_eq!(body["model"], FIXTURE_MODEL);
+                        assert_eq!(body["stream"], true);
+                        let input = body["input"][0]["content"].as_str().expect("input");
+                        let prompt = input.rsplit("user: ").next().expect("last prompt");
+                        let answer = match prompt {
+                            "CLI durable seed" => "first configured answer".to_string(),
+                            "PTY durable followup" => "second configured answer".to_string(),
+                            "CLI durable restart" => "third configured answer".to_string(),
+                            _ => format!("echo: {prompt}"),
+                        };
+                        let slow = prompt == "cancel heartbeat probe";
+                        captured.lock().expect("requests").push(body);
+                        // Cancellation currently polls between received chunks. Heartbeats
+                        // allow that path to run; this does not qualify silent-stream cancel
+                        // cancellation during a silent stream (T34).
+                        let _ = respond(&mut socket, &answer, slow, &stopping);
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                        std::thread::sleep(POLL);
+                    }
+                    Err(error) => panic!("accept: {error}"),
+                }
+            }
+        });
+        Arc::new(Self {
+            root,
+            requests,
+            stop,
+            server: Some(server),
+        })
+    }
+
+    fn data_dir(&self) -> PathBuf {
+        self.root.path().join("home/data/oc")
+    }
+
+    fn command(&self) -> Command {
+        let home = self.root.path().join("home");
+        let mut command = Command::new(BIN);
+        command
+            .env_clear()
+            .env("HOME", &home)
+            .env("XDG_CONFIG_HOME", home.join("config"))
+            .env("XDG_DATA_HOME", home.join("data"))
+            .env("XDG_CACHE_HOME", home.join("cache"))
+            .env("XDG_STATE_HOME", home.join("state"))
+            .env("OC_FIXTURE_KEY", "fixture-not-a-secret")
+            .env("OC_TEST_ALLOW_LOOPBACK", "1")
+            .current_dir(self.root.path().join("project"));
+        command
+    }
+
+    fn wait_requests(&self, count: usize) -> Vec<serde_json::Value> {
+        let start = Instant::now();
+        loop {
+            let requests = self.requests.lock().expect("requests").clone();
+            if requests.len() >= count {
+                return requests;
+            }
+            assert!(
+                start.elapsed() < DEADLINE,
+                "missing configured HTTP request {count}"
+            );
+            std::thread::sleep(POLL);
+        }
+    }
+
+    fn run(&self, session: &str, prompt: &str) -> std::process::Output {
+        let mut child = self
+            .command()
+            .args(["run", "--session", session, prompt])
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("CLI process");
+        let start = Instant::now();
+        while child.try_wait().expect("CLI wait").is_none() {
+            if start.elapsed() > DEADLINE {
+                let _ = child.kill();
+                let _ = child.wait();
+                panic!("CLI timeout");
+            }
+            std::thread::sleep(POLL);
+        }
+        let output = child.wait_with_output().expect("CLI output");
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        output
+    }
+}
+
+impl Drop for Fixture {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::Relaxed);
+        if let Some(server) = self.server.take() {
+            let result = server.join();
+            if !std::thread::panicking() {
+                result.expect("fake endpoint assertions");
+            }
+        }
+    }
+}
+
+fn read_request(socket: &mut TcpStream) -> serde_json::Value {
+    let mut bytes = Vec::new();
+    let mut chunk = [0; 4096];
+    let header_end = loop {
+        let n = socket.read(&mut chunk).expect("HTTP headers");
+        assert_ne!(n, 0, "early EOF");
+        bytes.extend_from_slice(&chunk[..n]);
+        if let Some(pos) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
+            break pos + 4;
+        }
+        assert!(bytes.len() < 65_536, "bounded headers");
+    };
+    let headers = String::from_utf8(bytes[..header_end].to_vec()).expect("headers");
+    assert!(headers.starts_with("POST /proxy/v1/responses HTTP/1.1\r\n"));
+    assert!(
+        headers
+            .to_ascii_lowercase()
+            .contains("authorization: bearer fixture-not-a-secret\r\n")
+    );
+    let length: usize = headers
+        .lines()
+        .find_map(|line| {
+            let (key, value) = line.split_once(':')?;
+            key.eq_ignore_ascii_case("content-length")
+                .then(|| value.trim().parse().expect("length"))
+        })
+        .expect("content length");
+    assert!(length < 262_144, "bounded request");
+    while bytes.len() < header_end + length {
+        let n = socket.read(&mut chunk).expect("HTTP body");
+        assert_ne!(n, 0, "early body EOF");
+        bytes.extend_from_slice(&chunk[..n]);
+    }
+    serde_json::from_slice(&bytes[header_end..header_end + length]).expect("request JSON")
+}
+
+fn respond(
+    socket: &mut TcpStream,
+    answer: &str,
+    slow: bool,
+    stop: &AtomicBool,
+) -> std::io::Result<()> {
+    write!(
+        socket,
+        "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: close\r\n\r\n"
+    )?;
+    if slow {
+        socket.write_all(
+            b"data: {\"type\":\"response.output_text.delta\",\"delta\":\"partial\"}\n\n",
+        )?;
+        socket.flush()?;
+    }
+    for _ in 0..if slow { 100 } else { 2 } {
+        if stop.load(Ordering::Relaxed) {
+            return Ok(());
+        }
+        socket.write_all(b": heartbeat\n\n")?;
+        socket.flush()?;
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    let delta = serde_json::json!({"type": "response.output_text.delta", "delta": answer});
+    let completed = serde_json::json!({"type": "response.completed", "response": {
+        "status": "completed", "output": [{"type": "message", "role": "assistant",
+            "content": [{"type": "output_text", "text": answer}]}]
+    }});
+    write!(socket, "data: {delta}\n\ndata: {completed}\n\n")?;
+    socket.flush()
+}
 
 fn openpty_pair(cols: u16, rows: u16) -> (OwnedFd, OwnedFd) {
     let winsize = libc::winsize {
@@ -60,7 +285,8 @@ struct PtySession {
     master: std::fs::File,
     child: Child,
     output: Arc<Mutex<Vec<u8>>>,
-    _data_dir: tempfile::TempDir,
+    fixture: Arc<Fixture>,
+    data_dir: PathBuf,
 }
 
 impl PtySession {
@@ -79,12 +305,30 @@ impl PtySession {
         argv_extra: &[&str],
         env_extra: Option<(&str, &str)>,
     ) -> Self {
+        Self::spawn_configured(
+            cols,
+            rows,
+            term,
+            with_reader,
+            Fixture::new(data_dir),
+            argv_extra,
+            env_extra,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn spawn_configured(
+        cols: u16,
+        rows: u16,
+        term: Option<&str>,
+        with_reader: bool,
+        fixture: Arc<Fixture>,
+        argv_extra: &[&str],
+        env_extra: Option<(&str, &str)>,
+    ) -> Self {
         let (master, slave) = openpty_pair(cols, rows);
-        let bin = PathBuf::from(BIN);
-        let mut cmd = Command::new(&bin);
-        cmd.arg("--data-dir")
-            .arg(data_dir.path())
-            .arg("tui")
+        let mut cmd = fixture.command();
+        cmd.arg("tui")
             .args(argv_extra)
             .stdin(Stdio::from(dup_fd(&slave)))
             .stdout(Stdio::from(dup_fd(&slave)))
@@ -127,7 +371,8 @@ impl PtySession {
             master: master_file,
             child,
             output,
-            _data_dir: data_dir,
+            data_dir: fixture.data_dir(),
+            fixture,
         }
     }
 
@@ -137,7 +382,7 @@ impl PtySession {
 
     /// Data dir owned by this session (for Db assertions after exit).
     fn data_dir(&self) -> &Path {
-        self._data_dir.path()
+        &self.data_dir
     }
 
     fn send(&mut self, bytes: &[u8]) {
@@ -325,13 +570,29 @@ fn norm_needle(text: &str) -> Vec<u8> {
 
 fn data_dir_with_history(messages: usize) -> tempfile::TempDir {
     let dir = tempfile::TempDir::new().expect("tempdir");
-    seed_history(dir.path(), "s-long", messages);
+    let project = dir.path().join("project");
+    std::fs::create_dir_all(&project).expect("project");
+    seed_history(
+        &dir.path().join("home/data/oc"),
+        &project,
+        "s-long",
+        messages,
+    );
     dir
 }
 
-fn seed_history(data_dir: &Path, session: &str, messages: usize) {
+fn seed_history(data_dir: &Path, project: &Path, session: &str, messages: usize) {
     let db = oc_adapters::storage::Db::open(data_dir).expect("db");
     db.create_session(session).expect("session");
+    // Runtime sessions are Location-bound; the old mock-only seed lacked this.
+    db.set_pref(
+        &format!("{}{session}", oc_adapters::runtime::SESSION_LOCATION_PREFIX),
+        &project
+            .canonicalize()
+            .expect("project path")
+            .to_string_lossy(),
+    )
+    .expect("session Location");
     for i in 0..messages {
         let role = if i % 2 == 0 { "user" } else { "assistant" };
         db.append_message(session, role, &seed_row(i)).expect("msg");
@@ -539,7 +800,7 @@ fn wait_screen_row(pty: &PtySession, needle: &str, timeout: Duration) {
             return;
         }
         if start.elapsed() > timeout {
-            panic!("timeout waiting for screen row {needle:?}");
+            panic!("timeout waiting for screen row {needle:?}; screen: {rows:?}");
         }
         std::thread::sleep(POLL);
     }
@@ -833,10 +1094,9 @@ fn pty_slow_consumer_stall_then_drain() {
 #[test]
 fn tui_without_tty_is_usage_error() {
     // No PTY here: piped stdin must refuse before touching the terminal.
-    let dir = tempfile::TempDir::new().expect("tempdir");
-    let out = Command::new(BIN)
-        .arg("--data-dir")
-        .arg(dir.path())
+    let fixture = Fixture::new(tempfile::TempDir::new().expect("tempdir"));
+    let out = fixture
+        .command()
         .arg("tui")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -846,4 +1106,176 @@ fn tui_without_tty_is_usage_error() {
     assert!(!out.status.success(), "no-tty refuses");
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(err.contains("no TTY"), "message: {err:?}");
+}
+
+#[test]
+fn aud02_store01_persist_resume_across_restart() {
+    let fixture = Fixture::new(tempfile::tempdir().expect("fixture"));
+    let session = "s-aud02";
+    let first = fixture.run(session, "CLI durable seed");
+    assert_eq!(
+        String::from_utf8_lossy(&first.stdout).trim(),
+        "first configured answer"
+    );
+    assert!(
+        fixture.data_dir().is_dir(),
+        "own default XDG data namespace"
+    );
+
+    let mut pty = PtySession::spawn_configured(
+        100,
+        24,
+        Some("xterm-256color"),
+        true,
+        fixture.clone(),
+        &["--session", session],
+        None,
+    );
+    wait_screen_row(&pty, "user: CLI durable seed", DEADLINE);
+    wait_screen_row(&pty, "assistant: first configured answer", DEADLINE);
+    submit_turn(&mut pty, "PTY durable followup");
+    wait_screen_row(&pty, "second configured answer", DEADLINE);
+    quit_clean(&mut pty);
+    drop(pty);
+
+    let third = fixture.run(session, "CLI durable restart");
+    assert_eq!(
+        String::from_utf8_lossy(&third.stdout).trim(),
+        "third configured answer"
+    );
+    let requests = fixture.wait_requests(3);
+    assert_eq!(requests.len(), 3, "one real request per process turn");
+    for (index, expected) in [
+        vec!["user: CLI durable seed"],
+        vec![
+            "user: CLI durable seed",
+            "assistant: first configured answer",
+            "user: PTY durable followup",
+        ],
+        vec![
+            "user: CLI durable seed",
+            "assistant: first configured answer",
+            "user: PTY durable followup",
+            "assistant: second configured answer",
+            "user: CLI durable restart",
+        ],
+    ]
+    .iter()
+    .enumerate()
+    {
+        let input = requests[index]["input"][0]["content"]
+            .as_str()
+            .expect("outbound input");
+        assert_eq!(
+            input,
+            expected.join("\n\n"),
+            "durable request history at turn {index}"
+        );
+    }
+    assert_eq!(
+        persisted(&fixture.data_dir(), session),
+        vec![
+            ("user".into(), "CLI durable seed".into()),
+            ("assistant".into(), "first configured answer".into()),
+            ("user".into(), "PTY durable followup".into()),
+            ("assistant".into(), "second configured answer".into()),
+            ("user".into(), "CLI durable restart".into()),
+            ("assistant".into(), "third configured answer".into()),
+        ]
+    );
+}
+
+#[test]
+fn pty_escape_cancels_heartbeat_request() {
+    let mut pty = spawn_session("s-cancel");
+    pty.wait_visible("Idle", DEADLINE);
+    submit_turn(&mut pty, "cancel heartbeat probe");
+    pty.fixture.wait_requests(1);
+    wait_screen_row(&pty, "ai: partial", DEADLINE);
+    pty.send(b"rejected busy input\r");
+    wait_screen_row(&pty, "turn busy", DEADLINE);
+    // Rejected input stays in the editor; remove it before issuing /quit.
+    pty.send(&[127; 19]);
+    pty.send(b"\x1b"); // Esc cancels; Ctrl-C always quits in the existing key map.
+    wait_screen_row(&pty, "Cancelled", DEADLINE);
+    quit_clean(&mut pty);
+    assert_eq!(
+        persisted(pty.data_dir(), "s-cancel"),
+        vec![("user".to_string(), "cancel heartbeat probe".to_string())],
+        "cancelled turn preserves input without a completed assistant answer"
+    );
+}
+
+#[test]
+fn ui05_ndjson_stdout_only_and_slow_consumer() {
+    let fixture = Fixture::new(tempfile::tempdir().expect("fixture"));
+    let mut child = fixture
+        .command()
+        .args(["run", "--json", "json-probe"])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("run");
+    let stdout = child.stdout.take().expect("stdout");
+    use std::io::{BufRead, BufReader};
+    let mut lines = Vec::new();
+    for line in BufReader::new(stdout).lines() {
+        std::thread::sleep(Duration::from_millis(5));
+        let value: serde_json::Value = serde_json::from_str(&line.expect("line")).expect("NDJSON");
+        assert!(value.get("type").is_some());
+        lines.push(value);
+    }
+    let output = child.wait_with_output().expect("output");
+    assert!(output.status.success());
+    assert!(!output.stderr.is_empty());
+    assert_eq!(lines.last().expect("done")["type"], "done");
+    assert_eq!(lines.last().expect("answer")["text"], "echo: json-probe");
+}
+
+#[test]
+fn ui05_interrupted_exit_is_nonsuccess() {
+    let fixture = Fixture::new(tempfile::tempdir().expect("fixture"));
+    let mut child = fixture
+        .command()
+        .args([
+            "run",
+            "--json",
+            "--session",
+            "s-int",
+            "cancel heartbeat probe",
+        ])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("run");
+    fixture.wait_requests(1);
+    use std::io::{BufRead, BufReader};
+    let mut stdout = BufReader::new(child.stdout.take().expect("stdout"));
+    let mut line = String::new();
+    stdout
+        .read_line(&mut line)
+        .expect("first delta before cancel");
+    let delta: serde_json::Value = serde_json::from_str(&line).expect("NDJSON delta");
+    assert_eq!(delta["type"], "delta");
+    assert_eq!(delta["delta"], "partial");
+    assert_eq!(
+        // SAFETY: signal only the child owned by this test, while it is alive.
+        unsafe { libc::kill(child.id() as libc::pid_t, libc::SIGINT) },
+        0
+    );
+    let deadline = Instant::now() + DEADLINE;
+    while child.try_wait().expect("wait").is_none() {
+        if Instant::now() > deadline {
+            child.kill().expect("kill timed-out child");
+            let _ = child.wait();
+            panic!("cancel timeout");
+        }
+        std::thread::sleep(POLL);
+    }
+    let output = child.wait_with_output().expect("output");
+    assert_eq!(output.status.code(), Some(130));
+    assert_eq!(
+        persisted(&fixture.data_dir(), "s-int"),
+        vec![("user".into(), "cancel heartbeat probe".into())]
+    );
 }

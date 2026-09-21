@@ -43,6 +43,9 @@ pub enum StorageError {
     /// Session id is unknown.
     #[error("session not found")]
     SessionNotFound,
+    /// The exact session primary key already exists.
+    #[error("session already exists")]
+    SessionAlreadyExists,
     /// Underlying SQLite failure.
     #[error("sqlite: {0}")]
     Sqlite(#[from] rusqlite::Error),
@@ -173,9 +176,7 @@ impl Db {
             Err(rusqlite::Error::SqliteFailure(err, _))
                 if err.extended_code == rusqlite::ffi::SQLITE_CONSTRAINT_PRIMARYKEY =>
             {
-                return Err(StorageError::Sqlite(rusqlite::Error::SqliteFailure(
-                    err, None,
-                )));
+                return Err(StorageError::SessionAlreadyExists);
             }
             Err(other) => return Err(StorageError::Sqlite(other)),
         }

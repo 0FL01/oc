@@ -429,6 +429,31 @@ pub async fn stream_generation(
     cancel: &AtomicBool,
     chunk_timeout: Option<Duration>,
 ) -> Result<Generation, ProviderError> {
+    stream_generation_observed(
+        config,
+        model,
+        variant,
+        prompt,
+        tools,
+        cancel,
+        chunk_timeout,
+        &mut |_| {},
+    )
+    .await
+}
+
+/// Stream to the application as items arrive, in addition to the turn report.
+#[allow(clippy::too_many_arguments)]
+pub async fn stream_generation_observed(
+    config: &ResponsesConfig,
+    model: &str,
+    variant: Option<&SelectedVariant>,
+    prompt: &str,
+    tools: &[ToolDef],
+    cancel: &AtomicBool,
+    chunk_timeout: Option<Duration>,
+    observe: &mut (dyn FnMut(&StreamItem) + Send),
+) -> Result<Generation, ProviderError> {
     let url = config.generation_url()?;
     guard_private_url(&url, config.allow_private).await?;
     let body = request_body(model, variant, prompt, tools);
@@ -447,7 +472,17 @@ pub async fn stream_generation(
     let mut attempts = 0usize;
     loop {
         attempts += 1;
-        match stream_attempt(&client, &url, &config.api_key, &body, cancel, chunk_timeout).await {
+        match stream_attempt(
+            &client,
+            &url,
+            &config.api_key,
+            &body,
+            cancel,
+            chunk_timeout,
+            observe,
+        )
+        .await
+        {
             Ok(generation) => return Ok(generation),
             Err((error, committed)) => {
                 // Retryable pre-commit only: truncated/idle streams are
@@ -512,6 +547,7 @@ async fn stream_attempt(
     body: &serde_json::Value,
     cancel: &AtomicBool,
     chunk_timeout: Duration,
+    observe: &mut (dyn FnMut(&StreamItem) + Send),
 ) -> Result<Generation, (ProviderError, bool)> {
     let resp = client
         .post(url)
@@ -586,11 +622,17 @@ async fn stream_attempt(
                 if !fresh.is_empty() {
                     committed = true;
                 }
+                for item in &fresh {
+                    observe(item);
+                }
                 items.append(&mut fresh);
             }
         }
     }
     let tail = parser.finish().map_err(|e| (e, committed))?;
+    for item in &tail {
+        observe(item);
+    }
     items.extend(tail);
     if items.is_empty() {
         // An eventless EOF is a truncated stream, never an empty success.

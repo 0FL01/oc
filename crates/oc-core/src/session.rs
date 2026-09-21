@@ -86,6 +86,9 @@ pub enum CoreError {
     /// Provider failure (scripted only in T03).
     #[error("provider: {0}")]
     Provider(String),
+    /// Native application/storage error; no secrets or provider payloads.
+    #[error("application: {0}")]
+    Application(String),
 }
 
 /// Initial smoke caps for T03 (see `examples/oc-rs.toml` for product caps).

@@ -55,6 +55,15 @@ pub enum CoreEvent {
         /// Accumulated text at cancel time (not stored).
         partial: String,
     },
+    /// Accepted turn failed; never present this as a completed answer.
+    TurnFailed {
+        /// Session that owns the turn.
+        session: SessionId,
+        /// Failed turn id.
+        turn: WorkerTurnId,
+        /// Sanitized application error.
+        error: CoreError,
+    },
 }
 
 /// Scripted provider for offline tests.
@@ -93,27 +102,44 @@ impl MockProvider {
     }
 }
 
-enum InboxMsg {
+/// Commands consumed by the single application owner (native or scripted).
+pub enum InboxMsg {
+    /// Create or open a session according to the owner's storage contract.
     Create {
+        /// Session id.
         id: SessionId,
+        /// Acceptance after the operation succeeds.
         ack: oneshot::Sender<Result<(), CoreError>>,
     },
+    /// Accept input and start a turn.
     Submit {
+        /// Owning session.
         session: SessionId,
+        /// Input text.
         text: String,
+        /// Durable acceptance or rejection.
         ack: oneshot::Sender<Result<WorkerTurnId, CoreError>>,
     },
+    /// Cancel the active turn.
     Cancel {
+        /// Owning session.
         session: SessionId,
+        /// Cancellation acknowledgement.
         ack: oneshot::Sender<Result<(), CoreError>>,
     },
+    /// List sessions.
     List {
-        ack: oneshot::Sender<Vec<SessionId>>,
+        /// Query result; storage errors are not an empty list.
+        ack: oneshot::Sender<Result<Vec<SessionId>, CoreError>>,
     },
+    /// Read committed history.
     Read {
+        /// Owning session.
         session: SessionId,
+        /// Query result.
         ack: oneshot::Sender<Result<Vec<Message>, CoreError>>,
     },
+    /// Cancel/drain active work and close the owner.
     Shutdown,
 }
 
@@ -162,6 +188,22 @@ pub struct WorkerGuard {
 }
 
 impl CoreApp {
+    /// Build the existing application boundary for an adapter-owned worker.
+    pub fn channel(
+        capacity: usize,
+    ) -> (Self, mpsc::Receiver<InboxMsg>, broadcast::Sender<CoreEvent>) {
+        let (inbox, receiver) = mpsc::channel(capacity);
+        let (events, _) = broadcast::channel(256);
+        (
+            Self {
+                inbox,
+                events: events.clone(),
+            },
+            receiver,
+            events,
+        )
+    }
+
     /// Spawn a worker with default bounded capacity.
     pub fn spawn(provider: MockProvider) -> (Self, WorkerGuard) {
         Self::spawn_with_capacity(provider, MAX_QUEUE_ITEMS)
@@ -169,12 +211,7 @@ impl CoreApp {
 
     /// Spawn a worker with explicit inbox capacity (tests use small caps).
     pub fn spawn_with_capacity(provider: MockProvider, capacity: usize) -> (Self, WorkerGuard) {
-        let (inbox_tx, inbox_rx) = mpsc::channel(capacity);
-        let (event_tx, _) = broadcast::channel(256);
-        let app = Self {
-            inbox: inbox_tx,
-            events: event_tx.clone(),
-        };
+        let (app, inbox_rx, event_tx) = Self::channel(capacity);
         let handle = tokio::spawn(worker_loop(provider, inbox_rx, event_tx));
         (
             app,
@@ -260,7 +297,7 @@ impl CoreApp {
             .send(InboxMsg::List { ack: ack_tx })
             .await
             .map_err(|_| CoreError::Shutdown)?;
-        ack_rx.await.map_err(|_| CoreError::Shutdown)
+        ack_rx.await.map_err(|_| CoreError::Shutdown)?
     }
 
     /// Read committed history (user + finished assistant messages only).
@@ -287,6 +324,13 @@ impl CoreApp {
 }
 
 impl WorkerGuard {
+    /// Own the native application task using the same shutdown/join contract.
+    pub fn from_task(handle: tokio::task::JoinHandle<()>) -> Self {
+        Self {
+            handle: Some(handle),
+        }
+    }
+
     /// Wait for the worker task to finish.
     pub async fn join(mut self) -> Result<(), tokio::task::JoinError> {
         if let Some(handle) = self.handle.take() {
@@ -354,7 +398,7 @@ async fn worker_loop(
                             let mut ids: Vec<SessionId> =
                                 sessions.values().map(|s| s.id.clone()).collect();
                             ids.sort_by(|a, b| a.0.cmp(&b.0));
-                            let _ = ack.send(ids);
+                            let _ = ack.send(Ok(ids));
                         }
                         Some(InboxMsg::Read { session, ack }) => {
                             let res = sessions
@@ -438,7 +482,7 @@ async fn worker_loop(
                 Some(InboxMsg::List { ack }) => {
                     let mut ids: Vec<SessionId> = sessions.values().map(|s| s.id.clone()).collect();
                     ids.sort_by(|a, b| a.0.cmp(&b.0));
-                    let _ = ack.send(ids);
+                    let _ = ack.send(Ok(ids));
                 }
                 Some(InboxMsg::Read { session, ack }) => {
                     let res = sessions
@@ -480,6 +524,7 @@ mod tests {
                     panic!("unexpected interrupt partial={partial}")
                 }
                 CoreEvent::TurnStarted { .. } => {}
+                CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             }
         }
     }
@@ -560,6 +605,7 @@ mod tests {
                     panic!("cancel must not finish text={text}")
                 }
                 CoreEvent::TextDelta { .. } | CoreEvent::TurnStarted { .. } => {}
+                CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             }
         }
 

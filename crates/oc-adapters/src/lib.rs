@@ -4,7 +4,9 @@
 //! using Tokio + rusqlite (bundled) + reqwest + rmcp, with no reverse
 //! dependency from `oc-core`.
 
+pub mod application;
 pub mod attachments;
+pub mod composition;
 pub mod config;
 pub mod dcp;
 pub mod dcp_auto;
