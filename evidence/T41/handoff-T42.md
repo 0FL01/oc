@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-21T18:10:11+00:00
-Active: T42
-
-Сверить Git status/diff до выполнения команд.
-Task: T42 — Повторная qualification и честный handoff
-Spec: audit/repairs/T42.md
-Evidence target: evidence/T42/report.md
-
-Закрыть F18 по audit/repairs/T42.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 ## Result
 
 T40 (F15) and T41 (F18) are closed, committed and pushed. This checkpoint
@@ -55,9 +41,3 @@ closeout). Working tree clean; origin/agent/oc-rust-port is up to date.
    `checkpoint`/`finish` as usual.
 3. Reuse the T40/T41 harnesses: `context_bounds.rs`, `memory_bounds.rs`,
    `golden_binary.rs`, `live_bounded.rs` (dry run) and the PTY suites.
-
-
-Ready (до 5): нет
-Blocked: T27
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.
