@@ -23,6 +23,7 @@ pub mod shell;
 pub mod smoke;
 pub mod storage;
 pub mod tools;
+pub mod tui_workspace;
 pub mod webfetch;
 
 pub use smoke::{adapter_name, build_smoke_client, rmcp_smoke_marker, smoke_memory_db};

@@ -3,32 +3,16 @@
 //! notifications that never duplicate history.
 //!
 //! The panel owns no authoritative counters: snapshots arrive from the
-//! runtime (`NudgeState`/`DcpStats`/storage), requests go back out for the
-//! runtime to execute (T24), outcomes return as transient notices.
+//! runtime as [`DcpContextSnapshot`], requests go back out for the runtime
+//! to execute, outcomes return as transient notices.
+
+/// Context/stats snapshot fed by the runtime (counts only, no transcript).
+pub use oc_core::queries::DcpSnapshot as DcpContextSnapshot;
 
 /// Max focus instruction bytes (`/dcp-compress` focus is bounded).
 pub const FOCUS_MAX: usize = 256;
 /// Max notice bytes shown in the status area.
 pub const NOTICE_MAX: usize = 120;
-
-/// Context/stats snapshot fed by the runtime (counts only, no transcript).
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct DcpContextSnapshot {
-    /// Estimated context tokens.
-    pub estimated_tokens: u64,
-    /// Effective max context tokens.
-    pub max_context: u64,
-    /// Turns since the last successful compression.
-    pub turns_since_compress: u64,
-    /// Stored compression blocks for the session.
-    pub blocks: usize,
-    /// Successful compressions (runtime counter).
-    pub compressions: u64,
-    /// Emitted nudges (runtime counter).
-    pub nudges: u64,
-    /// Recorded prune marks (runtime counter).
-    pub prunes: u64,
-}
 
 /// Manual compress request: bounded focus instruction for the runtime.
 #[derive(Debug, Clone, PartialEq, Eq)]

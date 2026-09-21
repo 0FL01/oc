@@ -17,10 +17,14 @@ pub enum CommandAction {
     Quit,
     /// Open the model picker.
     OpenModelPicker,
+    /// Open the primary agent selector.
+    OpenAgents,
     /// Open the session list.
     OpenSessions,
     /// Open the skill catalog.
     OpenSkills,
+    /// Open the tool-card list.
+    OpenCards,
     /// Help, optionally for one topic.
     Help(Option<String>),
     /// Manual DCP compress with bounded focus (UI04).
@@ -44,8 +48,10 @@ pub fn dispatch(input: &str) -> Option<CommandAction> {
     match name {
         "quit" => Some(CommandAction::Quit),
         "model" => Some(CommandAction::OpenModelPicker),
+        "agents" => Some(CommandAction::OpenAgents),
         "sessions" => Some(CommandAction::OpenSessions),
         "skills" => Some(CommandAction::OpenSkills),
+        "cards" => Some(CommandAction::OpenCards),
         "dcp-compress" => Some(CommandAction::DcpCompress {
             focus: args.to_string(),
         }),
@@ -59,7 +65,8 @@ pub fn dispatch(input: &str) -> Option<CommandAction> {
 }
 
 /// Built-in command names for completion (exact table, sorted).
-pub const BUILTINS: [&str; 6] = [
+pub const BUILTINS: [&str; 7] = [
+    "agents",
     "dcp-compress",
     "help",
     "model",
@@ -85,6 +92,7 @@ mod tests {
     fn routes_builtins() {
         assert_eq!(dispatch("/quit"), Some(CommandAction::Quit));
         assert_eq!(dispatch("/model"), Some(CommandAction::OpenModelPicker));
+        assert_eq!(dispatch("/agents"), Some(CommandAction::OpenAgents));
         assert_eq!(dispatch("/sessions"), Some(CommandAction::OpenSessions));
         assert_eq!(dispatch("/skills"), Some(CommandAction::OpenSkills));
         assert_eq!(
@@ -110,10 +118,12 @@ mod tests {
     #[test]
     fn completes_prefix() {
         assert_eq!(complete("/s"), ["sessions", "skills"]);
+        assert_eq!(complete("/a"), ["agents"]);
         assert_eq!(complete("/d"), ["dcp-compress"]);
         assert_eq!(
             complete("/"),
             [
+                "agents",
                 "dcp-compress",
                 "help",
                 "model",

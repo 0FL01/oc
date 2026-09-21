@@ -9,11 +9,11 @@
 
 use std::collections::BTreeMap;
 
-use oc_adapters::config::{Generation, SkillMeta, explain_redacted};
-use oc_adapters::storage::Db;
+use crate::config::{Generation, SkillMeta, explain_redacted};
+use crate::storage::Db;
 
 /// Prefs key holding the persisted primary agent JSON.
-pub const PREF_PRIMARY_AGENT: &str = "tui.primary_agent";
+pub const PREF_PRIMARY_AGENT: &str = oc_core::queries::PREF_PRIMARY_AGENT;
 
 /// One selectable agent profile (populated by the workspace loader).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -218,8 +218,8 @@ impl WorkspaceRegistry {
 #[cfg(test)]
 mod tests {
     use super::{AgentEntry, WorkspaceError, WorkspaceRegistry};
-    use oc_adapters::config::{Generation, SkillMeta};
-    use oc_adapters::storage::Db;
+    use crate::config::{Generation, SkillMeta};
+    use crate::storage::Db;
 
     fn agent(id: &str) -> AgentEntry {
         AgentEntry {

@@ -2,16 +2,17 @@
 //! persisted choice, retired-model action, no silent fallback.
 //!
 //! Pure state over [`oc_adapters::models`]: exact-id selection, variant
-//! validation, and re-resolution on catalog refresh. The persisted choice
-//! lives in data-root prefs (`tui.model_selection`); disappearance of the
-//! persisted id surfaces `Retired` with the actionable available list and
-//! never silently falls back to another model.
+//! validation, and re-resolution on catalog refresh. Persistence stays
+//! outside this crate: the caller feeds the stored record with
+//! [`ModelPicker::load_persisted_raw`] and reads the record to save with
+//! [`ModelPicker::persisted_record`]. Disappearance of the persisted id
+//! surfaces `Retired` with the actionable available list and never silently
+//! falls back to another model.
 
 use oc_adapters::models::{self, ModelCatalog, Selection};
-use oc_adapters::storage::{Db, StorageError};
 
 /// Prefs key holding the persisted selection JSON.
-pub const PREF_MODEL: &str = "tui.model_selection";
+pub const PREF_MODEL: &str = oc_core::queries::PREF_MODEL_SELECTION;
 /// Bounded browse window (view state, not the catalog).
 pub const PICKER_WINDOW: usize = 10;
 
@@ -57,10 +58,13 @@ pub struct ModelPicker {
     refresh: RefreshStatus,
     refresh_count: u64,
     last_error: Option<String>,
+    /// Explicit variant cycle position (0 = model default).
+    variant_cursor: usize,
 }
 
 impl ModelPicker {
-    /// Bind to a catalog; persisted choice loads separately via `load_persisted`.
+    /// Bind to a catalog; a stored record loads separately via
+    /// [`ModelPicker::load_persisted_raw`].
     pub fn new(catalog: ModelCatalog) -> Self {
         Self {
             catalog,
@@ -70,6 +74,7 @@ impl ModelPicker {
             refresh: RefreshStatus::Fresh(0),
             refresh_count: 0,
             last_error: None,
+            variant_cursor: 0,
         }
     }
 
@@ -126,6 +131,70 @@ impl ModelPicker {
             .collect()
     }
 
+    /// Exact id under the browse cursor, if the catalog is non-empty.
+    pub fn cursor_id(&self) -> Option<String> {
+        self.sorted_ids()
+            .get(self.cursor)
+            .map(|id| (*id).to_string())
+    }
+
+    /// Park the browse cursor on an exact id; false when it is unknown.
+    pub fn focus_id(&mut self, id: &str) -> bool {
+        match self
+            .sorted_ids()
+            .iter()
+            .position(|candidate| *candidate == id)
+        {
+            Some(position) => {
+                self.cursor = position;
+                self.variant_cursor = 0;
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// Enabled variant names (sorted) of the model under the cursor.
+    pub fn variants(&self) -> Vec<String> {
+        let Some(id) = self.cursor_id() else {
+            return Vec::new();
+        };
+        let Some(entry) = self.catalog.models.get(&id) else {
+            return Vec::new();
+        };
+        let mut names: Vec<String> = entry
+            .get("variants")
+            .and_then(|value| value.as_object())
+            .map(|variants| {
+                variants
+                    .iter()
+                    .filter(|(_, variant)| {
+                        variant.get("disabled") != Some(&serde_json::Value::Bool(true))
+                    })
+                    .map(|(name, _)| name.clone())
+                    .collect()
+            })
+            .unwrap_or_default();
+        names.sort();
+        names
+    }
+
+    /// Pending explicit variant choice (None = model default).
+    pub fn pending_variant(&self) -> Option<String> {
+        if self.variant_cursor == 0 {
+            return None;
+        }
+        self.variants().get(self.variant_cursor - 1).cloned()
+    }
+
+    /// Cycle the pending variant of the model under the cursor:
+    /// default -> variant 1 -> … -> variant N -> default.
+    pub fn cycle_variant(&mut self, delta: isize) {
+        let count = self.variants().len() + 1;
+        let next = self.variant_cursor as isize + delta;
+        self.variant_cursor = next.rem_euclid(count as isize) as usize;
+    }
+
     /// Move the browse cursor (clamped, never wraps silently past the end).
     pub fn move_cursor(&mut self, delta: isize) {
         let len = self.sorted_ids().len();
@@ -135,20 +204,22 @@ impl ModelPicker {
         }
         let next = self.cursor as isize + delta;
         self.cursor = next.clamp(0, len as isize - 1) as usize;
+        self.variant_cursor = 0;
     }
 
-    /// Choose the model under the cursor by exact id and persist it.
-    pub fn choose_cursor(&mut self, db: &Db) -> Result<(), String> {
+    /// Choose the model under the cursor by exact id. Persisting the
+    /// resulting [`ModelPicker::persisted_record`] is the caller's job.
+    pub fn choose_cursor(&mut self) -> Result<(), String> {
         let id = self
             .sorted_ids()
             .get(self.cursor)
             .ok_or_else(|| "empty catalog".to_string())?
             .to_string();
-        self.choose_id(&id, None, db)
+        self.choose_id(&id, None)
     }
 
-    /// Choose an exact model id with an optional variant and persist it.
-    pub fn choose_id(&mut self, id: &str, variant: Option<&str>, db: &Db) -> Result<(), String> {
+    /// Choose an exact model id with an optional variant.
+    pub fn choose_id(&mut self, id: &str, variant: Option<&str>) -> Result<(), String> {
         let base = models::select_model(&self.catalog, id).map_err(|e| e.to_string())?;
         let selection = models::select_variant(&base, variant).map_err(|e| e.to_string())?;
         self.selected = Some(selection);
@@ -158,7 +229,6 @@ impl ModelPicker {
             variant: variant.map(str::to_string),
         });
         self.last_error = None;
-        self.persist(db).map_err(|e| format!("persist: {e}"))?;
         Ok(())
     }
 
@@ -180,13 +250,23 @@ impl ModelPicker {
         self.refresh = RefreshStatus::Failed(reason);
     }
 
-    /// Load the persisted choice and resolve it against the catalog.
-    pub fn load_persisted(&mut self, db: &Db) -> Result<(), StorageError> {
-        self.persisted = db
-            .get_pref(PREF_MODEL)?
-            .and_then(|raw| parse_persisted(&raw));
+    /// Load a stored selection record and resolve it against the catalog.
+    pub fn load_persisted_raw(&mut self, raw: Option<&str>) {
+        self.persisted = raw.and_then(parse_persisted);
         self.reresolve();
-        Ok(())
+    }
+
+    /// Stored selection record for the caller to persist, if any.
+    pub fn persisted_record(&self) -> Option<String> {
+        let persisted = self.persisted.as_ref()?;
+        Some(
+            serde_json::json!({
+                "provider": persisted.provider,
+                "id": persisted.id,
+                "variant": persisted.variant,
+            })
+            .to_string(),
+        )
     }
 
     fn reresolve(&mut self) {
@@ -214,6 +294,17 @@ impl ModelPicker {
                 self.selected = None;
             }
         }
+        self.focus_selected();
+    }
+
+    /// Park the browse cursor on the resolved selection, if any.
+    fn focus_selected(&mut self) {
+        let Some(selection) = &self.selected else {
+            return;
+        };
+        if let Some(index) = self.sorted_ids().iter().position(|id| *id == selection.id) {
+            self.cursor = index;
+        }
     }
 
     fn retired(&self) -> Option<PickerState> {
@@ -228,18 +319,6 @@ impl ModelPicker {
             wanted: wanted.id.clone(),
             available: self.sorted_ids().join(", "),
         })
-    }
-
-    fn persist(&self, db: &Db) -> Result<(), StorageError> {
-        let Some(persisted) = &self.persisted else {
-            return Ok(());
-        };
-        let raw = serde_json::json!({
-            "provider": persisted.provider,
-            "id": persisted.id,
-            "variant": persisted.variant,
-        });
-        db.set_pref(PREF_MODEL, &raw.to_string())
     }
 
     fn sorted_ids(&self) -> Vec<&str> {
@@ -265,7 +344,6 @@ fn parse_persisted(raw: &str) -> Option<Persisted> {
 mod tests {
     use super::{ModelPicker, PICKER_WINDOW, PickerState};
     use oc_adapters::models::ModelCatalog;
-    use oc_adapters::storage::Db;
     use serde_json::json;
 
     fn catalog() -> ModelCatalog {
@@ -288,32 +366,45 @@ mod tests {
         }
     }
 
-    fn test_db(name: &str) -> Db {
-        let root =
-            std::env::temp_dir().join(format!("oc-tui-picker-{name}-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&root);
-        Db::open(&root).expect("db")
-    }
-
     #[test]
-    fn choose_persists_and_reloads() {
-        let db = test_db("roundtrip");
+    fn choose_roundtrips_through_the_stored_record() {
         let mut picker = ModelPicker::new(catalog());
-        picker.choose_id("b", Some("low"), &db).expect("choose");
+        picker.choose_id("b", Some("low")).expect("choose");
         assert_eq!(picker.state(), PickerState::Selected);
         assert!(picker.status_line().contains("b:low"));
+        let raw = picker.persisted_record().expect("record");
+        let value: serde_json::Value = serde_json::from_str(&raw).expect("json");
+        assert_eq!(value["provider"], "ludka2");
+        assert_eq!(value["id"], "b");
+        assert_eq!(value["variant"], "low");
 
         let mut reloaded = ModelPicker::new(catalog());
-        reloaded.load_persisted(&db).expect("load");
+        reloaded.load_persisted_raw(Some(&raw));
         assert_eq!(reloaded.state(), PickerState::Selected);
         assert!(reloaded.status_line().contains("b:low"));
     }
 
     #[test]
-    fn unknown_id_never_falls_back() {
-        let db = test_db("unknown");
+    fn no_record_browses_and_foreign_records_are_ignored() {
         let mut picker = ModelPicker::new(catalog());
-        let error = picker.choose_id("zzz", None, &db).expect_err("unknown");
+        picker.load_persisted_raw(None);
+        assert_eq!(picker.state(), PickerState::Browsing);
+        assert!(picker.selection().is_none());
+
+        picker.load_persisted_raw(Some(
+            &json!({"provider": "other", "id": "b", "variant": null}).to_string(),
+        ));
+        assert_eq!(picker.state(), PickerState::Browsing);
+        assert!(picker.persisted_record().is_some());
+        // A later exact choice stays explicit.
+        picker.choose_id("a", None).expect("choose");
+        assert_eq!(picker.state(), PickerState::Selected);
+    }
+
+    #[test]
+    fn unknown_id_never_falls_back() {
+        let mut picker = ModelPicker::new(catalog());
+        let error = picker.choose_id("zzz", None).expect_err("unknown");
         assert!(error.contains("unknown model"), "{error}");
         assert_eq!(picker.state(), PickerState::Browsing);
         assert!(picker.selection().is_none());
@@ -321,9 +412,8 @@ mod tests {
 
     #[test]
     fn retired_model_is_actionable() {
-        let db = test_db("retired");
         let mut picker = ModelPicker::new(catalog());
-        picker.choose_id("b", None, &db).expect("choose");
+        picker.choose_id("b", None).expect("choose");
 
         let mut next = catalog();
         next.models.remove("b");
@@ -337,8 +427,20 @@ mod tests {
             other => panic!("must retire, got {other:?}"),
         }
         // Choosing the visible alternative recovers explicitly.
-        picker.choose_id("a", None, &db).expect("choose a");
+        picker.choose_id("a", None).expect("choose a");
         assert_eq!(picker.state(), PickerState::Selected);
+    }
+
+    #[test]
+    fn retired_variant_keeps_model_and_surfaces_note() {
+        let mut picker = ModelPicker::new(catalog());
+        picker.choose_id("b", Some("low")).expect("choose");
+        picker.load_persisted_raw(Some(
+            &json!({"provider": "ludka2", "id": "b", "variant": "gone"}).to_string(),
+        ));
+        assert_eq!(picker.state(), PickerState::Selected);
+        assert!(picker.selection().expect("model").variant.is_none());
+        assert!(picker.last_error().is_some(), "visible note");
     }
 
     #[test]

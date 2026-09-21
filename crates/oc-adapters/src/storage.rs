@@ -96,6 +96,8 @@ pub struct ToolOpRow {
     pub input: Option<String>,
     /// Bounded output snapshot.
     pub output: Option<String>,
+    /// Insertion order cursor (newest-first paging).
+    pub rowid: i64,
 }
 
 /// Max rows per history page (UI03 bounds the backing store).
@@ -370,6 +372,125 @@ impl Db {
         Ok(out)
     }
 
+    /// Read one oldest-first page of rows newer than `after_seq`.
+    pub fn read_history_after(
+        &self,
+        session: &str,
+        limit: usize,
+        after_seq: i64,
+    ) -> Result<Vec<(i64, String, String)>, StorageError> {
+        let limit = (limit.min(HISTORY_PAGE_MAX) as i64).max(0);
+        let conn = self.conn.lock().expect("db mutex");
+        let mut stmt = conn.prepare_cached(
+            "SELECT seq, role, text FROM messages
+             WHERE session_id = ?1 AND seq > ?2
+             ORDER BY seq ASC LIMIT ?3",
+        )?;
+        let rows = stmt.query_map(params![session, after_seq, limit], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+        })?;
+        let mut out = Vec::new();
+        for row in rows {
+            out.push(row?);
+        }
+        if out.is_empty() {
+            Self::require_session(&conn, session)?;
+        }
+        Ok(out)
+    }
+
+    /// Committed message seq bounds `(min, max)`; `None` for an empty session.
+    pub fn history_bounds(
+        &self,
+        session: &str,
+    ) -> Result<(Option<i64>, Option<i64>), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let bounds: Option<(Option<i64>, Option<i64>)> = conn
+            .query_row(
+                "SELECT MIN(seq), MAX(seq) FROM messages WHERE session_id = ?1",
+                params![session],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        let (min, max) = bounds.unwrap_or((None, None));
+        if min.is_none() {
+            Self::require_session(&conn, session)?;
+        }
+        Ok((min, max))
+    }
+
+    /// Read one newest-first tool-operation page below `before_rowid`.
+    pub fn list_tool_ops_page(
+        &self,
+        session: &str,
+        limit: usize,
+        before_rowid: Option<i64>,
+    ) -> Result<Vec<ToolOpRow>, StorageError> {
+        let limit = (limit.min(TOOL_OPS_MAX) as i64).max(0);
+        let conn = self.conn.lock().expect("db mutex");
+        let mut stmt = conn.prepare_cached(
+            "SELECT id, turn_id, name, state, input, output, rowid FROM tool_operations
+             WHERE session_id = ?1 AND (?2 IS NULL OR rowid < ?2)
+             ORDER BY rowid DESC LIMIT ?3",
+        )?;
+        let rows = stmt.query_map(params![session, before_rowid, limit], |row| {
+            Ok(ToolOpRow {
+                op: row.get(0)?,
+                turn: row.get(1)?,
+                name: row.get(2)?,
+                state: row.get(3)?,
+                input: row.get(4)?,
+                output: row.get(5)?,
+                rowid: row.get(6)?,
+            })
+        })?;
+        let mut out = Vec::new();
+        for row in rows {
+            out.push(row?);
+        }
+        if out.is_empty() {
+            Self::require_session(&conn, session)?;
+        }
+        Ok(out)
+    }
+
+    /// Recorded tool-operation rowid bounds `(min, max)`; `None` when empty.
+    pub fn tool_ops_bounds(
+        &self,
+        session: &str,
+    ) -> Result<(Option<i64>, Option<i64>), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let bounds: Option<(Option<i64>, Option<i64>)> = conn
+            .query_row(
+                "SELECT MIN(rowid), MAX(rowid) FROM tool_operations WHERE session_id = ?1",
+                params![session],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        let (min, max) = bounds.unwrap_or((None, None));
+        if min.is_none() {
+            Self::require_session(&conn, session)?;
+        }
+        Ok((min, max))
+    }
+
+    /// Total recorded tool operations for a session.
+    pub fn tool_ops_len(&self, session: &str) -> Result<usize, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let count: Option<i64> = conn
+            .query_row(
+                "SELECT COUNT(*) FROM tool_operations WHERE session_id = ?1",
+                params![session],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let count = count.unwrap_or(0).max(0) as usize;
+        if count == 0 {
+            Self::require_session(&conn, session)?;
+        }
+        Ok(count)
+    }
+
     fn require_session(conn: &Connection, session: &str) -> Result<(), StorageError> {
         conn.query_row(
             "SELECT 1 FROM sessions WHERE id = ?1",
@@ -384,7 +505,7 @@ impl Db {
     pub fn list_tool_ops(&self, session: &str) -> Result<Vec<ToolOpRow>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let mut stmt = conn.prepare_cached(
-            "SELECT id, turn_id, name, state, input, output FROM tool_operations
+            "SELECT id, turn_id, name, state, input, output, rowid FROM tool_operations
              WHERE session_id = ?1 ORDER BY rowid ASC LIMIT ?2",
         )?;
         let rows = stmt.query_map(params![session, TOOL_OPS_MAX as i64], |row| {
@@ -395,6 +516,7 @@ impl Db {
                 state: row.get(3)?,
                 input: row.get(4)?,
                 output: row.get(5)?,
+                rowid: row.get(6)?,
             })
         })?;
         let mut out = Vec::new();

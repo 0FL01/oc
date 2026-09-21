@@ -10,6 +10,7 @@ pub mod context_plan;
 pub mod core_app;
 pub mod domain;
 pub mod ports;
+pub mod queries;
 pub mod runtime;
 pub mod session;
 

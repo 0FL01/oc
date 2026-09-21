@@ -1,16 +1,34 @@
 //! Single native application owner behind the core command/event interface.
+//!
+//! The worker owns storage, the runtime and the effective model/variant/agent
+//! selection. Frontends query bounded view snapshots and send actions; they
+//! never open the database or duplicate config/persistence logic (T39).
 
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use oc_core::core_app::{CoreApp, CoreEvent, InboxMsg, WorkerGuard, WorkerTurnId};
 use oc_core::domain::SessionId;
-use oc_core::session::{CoreError, MAX_QUEUE_ITEMS, Message, MessageId, Role};
+use oc_core::queries::{
+    AgentEntry, CatalogSnapshot, DcpSnapshot, HistoryMessage, HistoryPage, ModelEntry, SkillCard,
+    ToolOpPage, ToolOpView, VariantEntry,
+};
+use oc_core::session::{CoreError, MAX_QUEUE_ITEMS, MessageId, Role};
 use tokio::sync::{broadcast, mpsc, oneshot};
 
 use crate::composition::{self, Composition};
 use crate::runtime::{Runtime, RuntimeError, TurnParams, TurnStatus};
 use crate::storage::Db;
+use crate::tui_workspace::{AgentEntry as WorkspaceAgent, WorkspaceError, WorkspaceRegistry};
+
+/// Bounded focus bytes accepted for a manual compress request.
+pub const COMPRESS_FOCUS_MAX: usize = 256;
+/// Bounded rows served per history page.
+pub const HISTORY_PAGE_LIMIT: usize = 100;
+/// Bounded rows served per tool-operation page.
+pub const TOOL_OPS_PAGE_LIMIT: usize = 100;
+/// Byte cap for the DCP token estimate input.
+const ESTIMATE_BYTES: usize = 4 * 1024 * 1024;
 
 /// Compose and start one application. Both frontends use this entry point.
 pub async fn spawn(
@@ -18,7 +36,7 @@ pub async fn spawn(
     data: &Path,
 ) -> Result<(CoreApp, WorkerGuard, Vec<String>), String> {
     let composition = composition::load(project).await?;
-    let diagnostics = composition.diagnostics.clone();
+    let mut diagnostics = composition.diagnostics.clone();
     let db = Db::open(data).map_err(|e| format!("storage: {e}"))?;
     db.recover_interrupted_tools()
         .map_err(|e| format!("recovery: {e}"))?;
@@ -39,13 +57,179 @@ pub async fn spawn(
     ));
     let guard = WorkerGuard::from_task(handle);
     match ready_rx.await {
-        Ok(Ok(())) => Ok((app, guard, diagnostics)),
+        Ok(Ok(worker_diagnostics)) => {
+            diagnostics.extend(worker_diagnostics);
+            Ok((app, guard, diagnostics))
+        }
         result => {
             let _ = guard.join().await;
             Err(match result {
                 Ok(Err(error)) => error,
                 _ => "application worker closed".to_string(),
             })
+        }
+    }
+}
+
+/// Effective model/variant/agent selection for the next turn.
+struct Effective {
+    model_id: String,
+    variant: Option<String>,
+    agent_id: Option<String>,
+    agent_prompt: Option<String>,
+    agent_digest: Option<String>,
+}
+
+impl Effective {
+    fn from_composition(composition: &Composition) -> Self {
+        Self {
+            model_id: composition.model_id.clone(),
+            variant: composition.variant.clone(),
+            agent_id: composition.default_agent.clone(),
+            agent_prompt: composition.agent_prompt.clone(),
+            agent_digest: composition.agent_digest.clone(),
+        }
+    }
+
+    /// Apply the persisted frontend model choice; retired ids stay visible
+    /// and never silently fall back.
+    fn apply_persisted_model(&mut self, db: &Db, composition: &Composition) -> Vec<String> {
+        let raw = match db.get_pref(oc_core::queries::PREF_MODEL_SELECTION) {
+            Ok(Some(raw)) => raw,
+            Ok(None) => return Vec::new(),
+            Err(error) => return vec![format!("model selection unreadable: {error}")],
+        };
+        let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else {
+            return vec!["model selection record is malformed".to_string()];
+        };
+        if value.get("provider").and_then(|v| v.as_str())
+            != Some(composition.catalog.provider.as_str())
+        {
+            return Vec::new();
+        }
+        let Some(id) = value.get("id").and_then(|v| v.as_str()) else {
+            return vec!["model selection record has no id".to_string()];
+        };
+        let variant = value.get("variant").and_then(|v| v.as_str());
+        match crate::models::select_model(&composition.catalog, id)
+            .and_then(|base| crate::models::select_variant(&base, variant))
+        {
+            Ok(selection) => {
+                self.model_id = selection.id.clone();
+                self.variant = selection.variant.map(|variant| variant.name);
+                Vec::new()
+            }
+            Err(error) => vec![format!("selected model {id} is unavailable: {error}")],
+        }
+    }
+
+    /// Apply the persisted primary agent for this generation.
+    fn apply_persisted_agent(
+        &mut self,
+        db: &Db,
+        composition: &Composition,
+        registry: &mut WorkspaceRegistry,
+    ) -> Vec<String> {
+        match registry.load_primary(db) {
+            Ok(id) => {
+                if let Err(error) = self.set_agent(composition, &id) {
+                    return vec![error.to_string()];
+                }
+                Vec::new()
+            }
+            Err(WorkspaceError::NoPrimaryAgent) => Vec::new(),
+            Err(error) => vec![format!("primary agent: {error}")],
+        }
+    }
+
+    /// Switch the effective agent; a pinned model must resolve exactly.
+    fn set_agent(&mut self, composition: &Composition, id: &str) -> Result<(), CoreError> {
+        let agent = composition.agents.get(id).ok_or_else(|| {
+            app_error(format!(
+                "unknown agent {id}; available: {}",
+                composition
+                    .agents
+                    .keys()
+                    .map(String::as_str)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ))
+        })?;
+        if let Some(model) = agent.model.as_deref() {
+            crate::models::select_model(&composition.catalog, model)
+                .map_err(|error| app_error(format!("agent {id}: {error}")))?;
+            self.model_id = model.to_string();
+            self.variant = agent.variant.clone();
+        } else if agent.variant.is_some() {
+            let base = crate::models::select_model(&composition.catalog, &self.model_id)
+                .map_err(|error| app_error(error.to_string()))?;
+            crate::models::select_variant(&base, agent.variant.as_deref())
+                .map_err(|error| app_error(format!("agent {id}: {error}")))?;
+            self.variant = agent.variant.clone();
+        }
+        self.agent_id = Some(id.to_string());
+        self.agent_prompt = Some(agent.body.clone());
+        self.agent_digest = Some(crate::defs::agent_digest(agent));
+        Ok(())
+    }
+
+    /// Catalog plus this effective selection.
+    fn snapshot(&self, composition: &Composition) -> CatalogSnapshot {
+        let mut models: Vec<ModelEntry> = composition
+            .catalog
+            .models
+            .iter()
+            .map(|(id, spec)| ModelEntry {
+                id: id.clone(),
+                variants: spec
+                    .get("variants")
+                    .and_then(|value| value.as_object())
+                    .map(|variants| {
+                        variants
+                            .iter()
+                            .map(|(name, value)| VariantEntry {
+                                name: name.clone(),
+                                disabled: value
+                                    .get("disabled")
+                                    .and_then(|flag| flag.as_bool())
+                                    .unwrap_or(false),
+                                reasoning_effort: value
+                                    .get("reasoningEffort")
+                                    .and_then(|effort| effort.as_str())
+                                    .map(str::to_string),
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+                context: spec
+                    .pointer("/limit/context")
+                    .and_then(serde_json::Value::as_u64)
+                    .unwrap_or(0),
+                output: spec
+                    .pointer("/limit/output")
+                    .and_then(serde_json::Value::as_u64)
+                    .unwrap_or(0),
+            })
+            .collect();
+        models.sort_by(|a, b| a.id.cmp(&b.id));
+        let agents = composition
+            .agents
+            .values()
+            .map(|agent| AgentEntry {
+                id: agent.id.clone(),
+                description: agent.description.clone(),
+                model: agent.model.clone(),
+                variant: agent.variant.clone(),
+            })
+            .collect();
+        CatalogSnapshot {
+            provider: composition.catalog.provider.clone(),
+            models,
+            model_id: self.model_id.clone(),
+            variant: self.variant.clone(),
+            agents,
+            agent_id: self.agent_id.clone(),
+            commands: composition.commands.keys().cloned().collect(),
         }
     }
 }
@@ -60,7 +244,7 @@ async fn start_worker(
     shell: crate::shell::Shell,
     inbox: mpsc::Receiver<InboxMsg>,
     events: broadcast::Sender<CoreEvent>,
-    ready: oneshot::Sender<Result<(), String>>,
+    ready: oneshot::Sender<Result<Vec<String>, String>>,
 ) -> Result<(), String> {
     let runtime = Runtime::new(
         &db,
@@ -91,27 +275,117 @@ async fn start_worker(
         let _ = ready.send(Err(error.to_string()));
         return Ok(());
     }
-    if let Err(error) = runtime.publish_workspace(
-        composition.agent_prompt.as_deref(),
-        &composition.instructions,
-        composition.skills.clone(),
-        composition.skill_errors.clone(),
-        composition.agent_digest.clone(),
-    ) {
+    let mut effective = Effective::from_composition(&composition);
+    let mut registry = WorkspaceRegistry::bind(
+        runtime.generation_id(),
+        runtime.location(),
+        &composition.generation,
+        workspace_agents(&composition),
+        skill_metas(&composition),
+    );
+    let mut diagnostics = effective.apply_persisted_model(&db, &composition);
+    diagnostics.extend(effective.apply_persisted_agent(&db, &composition, &mut registry));
+    if let Err(error) = publish_workspace(&runtime, &composition, &effective) {
         let _ = ready.send(Err(error.to_string()));
         return Ok(());
     }
-    if ready.send(Ok(())).is_err() {
+    if ready.send(Ok(diagnostics)).is_err() {
         return Ok(());
     }
-    worker(&runtime, &db, &composition, inbox, events).await
+    worker(
+        &runtime,
+        &db,
+        &composition,
+        effective,
+        registry,
+        inbox,
+        events,
+    )
+    .await
+}
+
+/// Publish the agent prompt, instructions and pinned skills for the next turn.
+fn publish_workspace(
+    runtime: &Runtime<'_>,
+    composition: &Composition,
+    effective: &Effective,
+) -> Result<(), RuntimeError> {
+    runtime.publish_workspace(
+        effective.agent_prompt.as_deref(),
+        &composition.instructions,
+        composition.skills.clone(),
+        composition.skill_errors.clone(),
+        effective.agent_digest.clone(),
+    )
+}
+
+fn workspace_agents(composition: &Composition) -> Vec<WorkspaceAgent> {
+    composition
+        .agents
+        .values()
+        .map(|agent| WorkspaceAgent {
+            id: agent.id.clone(),
+            description: agent.description.clone(),
+            model: agent.model.clone().unwrap_or_default(),
+            variant: agent.variant.clone(),
+        })
+        .collect()
+}
+
+fn skill_metas(composition: &Composition) -> Vec<crate::config::SkillMeta> {
+    composition
+        .skills
+        .iter()
+        .filter_map(|(id, body)| crate::config::parse_skill(id, body).ok())
+        .collect()
+}
+
+fn skill_cards(composition: &Composition) -> Vec<SkillCard> {
+    skill_metas(composition)
+        .into_iter()
+        .map(|meta| SkillCard {
+            id: meta.id,
+            name: meta.name,
+            description: meta.description,
+        })
+        .collect()
 }
 
 fn app_error(error: impl std::fmt::Display) -> CoreError {
     CoreError::Application(error.to_string())
 }
 
-fn query(db: &Db, runtime: &Runtime<'_>, message: InboxMsg) {
+/// Prompt for a manual `/dcp-compress` request: the model drives the
+/// compress tool over the closed span, exactly like an automatic nudge.
+fn compress_prompt(focus: &str) -> String {
+    let focus = focus.trim();
+    let focus = if focus.len() > COMPRESS_FOCUS_MAX {
+        &focus[..focus.floor_char_boundary(COMPRESS_FOCUS_MAX)]
+    } else {
+        focus
+    };
+    let focus = if focus.is_empty() {
+        "no extra focus: compress the earliest closed span".to_string()
+    } else {
+        format!("focus: {focus}")
+    };
+    format!(
+        "Manual context compression request. Call the compress tool to replace the \
+         earliest closed span of this conversation with a durable summary that keeps \
+         the facts needed to continue, then reply with the stored block ids. {focus}."
+    )
+}
+
+/// Handle one owner-only query or action. Never runs while a turn streams
+/// except for read-only snapshots.
+fn query(
+    db: &Db,
+    runtime: &Runtime<'_>,
+    composition: &Composition,
+    effective: &mut Effective,
+    registry: &mut WorkspaceRegistry,
+    message: InboxMsg,
+) {
     match message {
         InboxMsg::Create { id, ack } => {
             let _ = ack.send(runtime.create_session(&id.0).map_err(app_error));
@@ -132,7 +406,7 @@ fn query(db: &Db, runtime: &Runtime<'_>, message: InboxMsg) {
                         .map_err(app_error)
                         .map(|rows| {
                             rows.into_iter()
-                                .map(|(id, role, text)| Message {
+                                .map(|(id, role, text)| oc_core::session::Message {
                                     id: MessageId(id),
                                     role: if role == "user" {
                                         Role::User
@@ -146,24 +420,223 @@ fn query(db: &Db, runtime: &Runtime<'_>, message: InboxMsg) {
                 });
             let _ = ack.send(result);
         }
+        InboxMsg::History {
+            session,
+            before_seq,
+            after_seq,
+            limit,
+            ack,
+        } => {
+            let result = (|| -> Result<HistoryPage, CoreError> {
+                runtime.open_session(&session.0).map_err(app_error)?;
+                let (min, max) = db.history_bounds(&session.0).map_err(app_error)?;
+                let total = db.history_len(&session.0).map_err(app_error)?;
+                let limit = limit.min(HISTORY_PAGE_LIMIT);
+                let (mut page, ascending) = match after_seq {
+                    Some(after) => (
+                        db.read_history_after(&session.0, limit, after)
+                            .map_err(app_error)?,
+                        true,
+                    ),
+                    None => (
+                        db.read_history_page(&session.0, limit, before_seq)
+                            .map_err(app_error)?,
+                        false,
+                    ),
+                };
+                let has_newer = if ascending {
+                    matches!((page.last(), max), (Some((seq, ..)), Some(max)) if *seq < max)
+                } else {
+                    matches!((page.first(), max), (Some((seq, ..)), Some(max)) if *seq < max)
+                };
+                let has_older = if ascending {
+                    matches!((page.first(), min), (Some((seq, ..)), Some(min)) if *seq > min)
+                } else {
+                    matches!((page.last(), min), (Some((seq, ..)), Some(min)) if *seq > min)
+                };
+                if !ascending {
+                    page.reverse();
+                }
+                let rows = page
+                    .into_iter()
+                    .map(|(seq, role, text)| HistoryMessage {
+                        seq,
+                        role: if role == "user" {
+                            Role::User
+                        } else {
+                            Role::Assistant
+                        },
+                        text,
+                    })
+                    .collect();
+                Ok(HistoryPage {
+                    rows,
+                    total,
+                    has_older,
+                    has_newer,
+                })
+            })();
+            let _ = ack.send(result);
+        }
+        InboxMsg::ToolOps {
+            session,
+            before_rowid,
+            limit,
+            ack,
+        } => {
+            let result = (|| -> Result<ToolOpPage, CoreError> {
+                runtime.open_session(&session.0).map_err(app_error)?;
+                let total = db.tool_ops_len(&session.0).map_err(app_error)?;
+                let page = db
+                    .list_tool_ops_page(&session.0, limit.min(TOOL_OPS_PAGE_LIMIT), before_rowid)
+                    .map_err(app_error)?;
+                let has_older = match (
+                    page.last(),
+                    db.tool_ops_bounds(&session.0).map_err(app_error)?.0,
+                ) {
+                    (Some(row), Some(min)) => row.rowid > min,
+                    _ => false,
+                };
+                let rows = page
+                    .into_iter()
+                    .map(|row| ToolOpView {
+                        op: row.op,
+                        rowid: row.rowid,
+                        name: row.name,
+                        state: row.state,
+                        input: row.input,
+                        output: row.output,
+                    })
+                    .collect();
+                Ok(ToolOpPage {
+                    rows,
+                    total,
+                    has_older,
+                })
+            })();
+            let _ = ack.send(result);
+        }
+        InboxMsg::Catalog { ack } => {
+            let _ = ack.send(Ok(effective.snapshot(composition)));
+        }
+        InboxMsg::Skills { ack } => {
+            let _ = ack.send(Ok(skill_cards(composition)));
+        }
+        InboxMsg::SelectModel { id, variant, ack } => {
+            let result = (|| -> Result<CatalogSnapshot, CoreError> {
+                if runtime.turn_active() {
+                    return Err(CoreError::TurnBusy);
+                }
+                let base = crate::models::select_model(&composition.catalog, &id)
+                    .map_err(|error| app_error(error.to_string()))?;
+                let selection = crate::models::select_variant(&base, variant.as_deref())
+                    .map_err(|error| app_error(error.to_string()))?;
+                let record = serde_json::json!({
+                    "provider": composition.catalog.provider,
+                    "id": selection.id,
+                    "variant": selection.variant.as_ref().map(|variant| variant.name.clone()),
+                });
+                db.set_pref(oc_core::queries::PREF_MODEL_SELECTION, &record.to_string())
+                    .map_err(app_error)?;
+                effective.model_id = selection.id.clone();
+                effective.variant = selection.variant.map(|variant| variant.name);
+                Ok(effective.snapshot(composition))
+            })();
+            let _ = ack.send(result);
+        }
+        InboxMsg::SelectAgent { id, ack } => {
+            let result = (|| -> Result<CatalogSnapshot, CoreError> {
+                if runtime.turn_active() {
+                    return Err(CoreError::TurnBusy);
+                }
+                registry
+                    .select_primary(&id, runtime.generation_id(), db)
+                    .map_err(|error| app_error(error.to_string()))?;
+                effective.set_agent(composition, &id)?;
+                publish_workspace(runtime, composition, effective).map_err(app_error)?;
+                Ok(effective.snapshot(composition))
+            })();
+            let _ = ack.send(result);
+        }
+        InboxMsg::Dcp { session, ack } => {
+            let result = (|| -> Result<DcpSnapshot, CoreError> {
+                runtime.open_session(&session.0).map_err(app_error)?;
+                let stats = runtime.dcp_stats();
+                let blocks = crate::dcp::load_blocks(db, &session.0)
+                    .map_err(|error| app_error(error.to_string()))?
+                    .len();
+                let turns_since_compress = runtime
+                    .dcp_turn_state(&session.0)
+                    .map(|state| state.turns_since_compress)
+                    .unwrap_or(0);
+                let history = db.read_history_full(&session.0).map_err(app_error)?;
+                let mut text = String::new();
+                for (_, _, body) in &history {
+                    if text.len() >= ESTIMATE_BYTES {
+                        break;
+                    }
+                    text.push_str(body);
+                }
+                let model_context = composition
+                    .catalog
+                    .models
+                    .get(&effective.model_id)
+                    .and_then(|spec| spec.pointer("/limit/context"))
+                    .and_then(serde_json::Value::as_u64)
+                    .unwrap_or(0);
+                let thresholds = composition
+                    .dcp_config
+                    .effective_for_context(&effective.model_id, model_context);
+                Ok(DcpSnapshot {
+                    estimated_tokens: crate::runtime::estimate_tokens(&text),
+                    max_context: thresholds.max_context,
+                    turns_since_compress,
+                    blocks,
+                    compressions: stats.compressions,
+                    nudges: stats.nudges_emitted,
+                    prunes: stats.prunes,
+                })
+            })();
+            let _ = ack.send(result);
+        }
         InboxMsg::Cancel { ack, .. } => {
             let _ = ack.send(Err(CoreError::TurnNotActive));
         }
         InboxMsg::Submit { ack, .. } => {
             let _ = ack.send(Err(CoreError::TurnBusy));
         }
+        InboxMsg::Compress { ack, .. } => {
+            let _ = ack.send(Err(CoreError::TurnBusy));
+        }
         InboxMsg::Shutdown => {}
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn worker(
     runtime: &Runtime<'_>,
     db: &Db,
     composition: &Composition,
+    mut effective: Effective,
+    mut registry: WorkspaceRegistry,
     mut inbox: mpsc::Receiver<InboxMsg>,
     events: broadcast::Sender<CoreEvent>,
 ) -> Result<(), String> {
     while let Some(message) = inbox.recv().await {
+        // A manual compress request is a real turn: the model drives the
+        // compress tool exactly like an automatic nudge.
+        let message = match message {
+            InboxMsg::Compress {
+                session,
+                focus,
+                ack,
+            } => InboxMsg::Submit {
+                session,
+                text: compress_prompt(&focus),
+                ack,
+            },
+            other => other,
+        };
         match message {
             InboxMsg::Shutdown => break,
             InboxMsg::Submit { session, text, ack } => {
@@ -179,8 +652,11 @@ async fn worker(
                     }
                 };
                 let cancel = AtomicBool::new(false);
-                let max_output = composition.catalog.models[&composition.model_id]
-                    .pointer("/limit/output")
+                let max_output = composition
+                    .catalog
+                    .models
+                    .get(&effective.model_id)
+                    .and_then(|spec| spec.pointer("/limit/output"))
                     .and_then(serde_json::Value::as_u64)
                     .unwrap_or(0);
                 let params = TurnParams {
@@ -188,8 +664,8 @@ async fn worker(
                     prompt,
                     invocation,
                     catalog: &composition.catalog,
-                    model_id: composition.model_id.clone(),
-                    variant: composition.variant.clone(),
+                    model_id: effective.model_id.clone(),
+                    variant: effective.variant.clone(),
                     max_output,
                     provider: composition.provider.clone(),
                     cancel: &cancel,
@@ -234,7 +710,14 @@ async fn worker(
                                     cancel.store(true, Ordering::Relaxed);
                                     let _ = ack.send(Ok(()));
                                 }
-                                Some(command) => query(db, runtime, command),
+                                Some(command) => query(
+                                    db,
+                                    runtime,
+                                    composition,
+                                    &mut effective,
+                                    &mut registry,
+                                    command,
+                                ),
                             }
                         }
                     };
@@ -291,7 +774,14 @@ async fn worker(
                     break;
                 }
             }
-            message => query(db, runtime, message),
+            message => query(
+                db,
+                runtime,
+                composition,
+                &mut effective,
+                &mut registry,
+                message,
+            ),
         }
     }
     runtime

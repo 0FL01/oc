@@ -784,6 +784,22 @@ impl<'a> Runtime<'a> {
         self.stats.lock().expect("stats lock").clone()
     }
 
+    /// True while a turn holds the single-flight lease.
+    pub fn turn_active(&self) -> bool {
+        self.active.load(Ordering::Relaxed)
+    }
+
+    /// Per-session DCP turn counters, if the session ever ran a turn.
+    pub fn dcp_turn_state(&self, session: &str) -> Option<NudgeState> {
+        let prefix = format!("dcp.nudge.{session}\0");
+        self.nudge_state
+            .lock()
+            .expect("nudge lock")
+            .iter()
+            .find(|(key, _)| key.starts_with(&prefix))
+            .map(|(_, state)| state.clone())
+    }
+
     /// Create a Location-scoped session (idempotent for the same Location).
     pub fn create_session(&self, id: &str) -> Result<(), RuntimeError> {
         let key = session_location_key(id);

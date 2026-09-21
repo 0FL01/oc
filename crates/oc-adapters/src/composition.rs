@@ -34,6 +34,10 @@ pub struct Composition {
     pub agent_digest: Option<String>,
     /// Selected primary-agent variant.
     pub variant: Option<String>,
+    /// Primary-eligible agent profiles for this generation (picker source).
+    pub agents: BTreeMap<String, defs::AgentDef>,
+    /// Explicitly configured default agent id, if any.
+    pub default_agent: Option<String>,
     /// Pinned skill source bytes, loaded once for the application generation.
     pub skills: Vec<(String, String)>,
     /// Invalid skill ids and precise generation diagnostics.
@@ -450,6 +454,12 @@ async fn load_with_env(
         agent_prompt: selected_agent.as_ref().map(|agent| agent.body.clone()),
         agent_digest: selected_agent.as_ref().map(defs::agent_digest),
         variant: selected_agent.and_then(|agent| agent.variant),
+        agents: loaded_defs
+            .agents
+            .into_iter()
+            .filter(|(_, agent)| agent.mode.as_deref().is_none_or(|mode| mode == "primary"))
+            .collect(),
+        default_agent,
         skills,
         skill_errors,
         commands,

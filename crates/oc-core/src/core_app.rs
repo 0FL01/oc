@@ -12,6 +12,7 @@ use std::time::Duration;
 use tokio::sync::{broadcast, mpsc, oneshot};
 
 use crate::domain::SessionId;
+use crate::queries::{CatalogSnapshot, DcpSnapshot, HistoryPage, SkillCard, ToolOpPage};
 use crate::session::{CoreError, MAX_INPUT_BYTES, MAX_QUEUE_ITEMS, Message, MessageId, Role};
 
 /// Opaque turn id for the worker (monotonic `t0001`, …).
@@ -138,6 +139,73 @@ pub enum InboxMsg {
         session: SessionId,
         /// Query result.
         ack: oneshot::Sender<Result<Vec<Message>, CoreError>>,
+    },
+    /// Read one bounded history page (newest-first cursor, `before_seq`).
+    History {
+        /// Owning session.
+        session: SessionId,
+        /// Upper bound: rows with a smaller seq (older). `None` = newest page.
+        before_seq: Option<i64>,
+        /// Lower bound: rows with a larger seq (newer), oldest-first. Exactly
+        /// one of `before_seq`/`after_seq` is set by the caller.
+        after_seq: Option<i64>,
+        /// Requested rows (clamped by the owner).
+        limit: usize,
+        /// Query result.
+        ack: oneshot::Sender<Result<HistoryPage, CoreError>>,
+    },
+    /// Read one bounded tool-operation page (newest-first cursor).
+    ToolOps {
+        /// Owning session.
+        session: SessionId,
+        /// Upper bound: rows recorded before this rowid.
+        before_rowid: Option<i64>,
+        /// Requested rows (clamped by the owner).
+        limit: usize,
+        /// Query result.
+        ack: oneshot::Sender<Result<ToolOpPage, CoreError>>,
+    },
+    /// Model catalog plus the effective model/variant/agent selection.
+    Catalog {
+        /// Query result.
+        ack: oneshot::Sender<Result<CatalogSnapshot, CoreError>>,
+    },
+    /// Skill catalog cards (metadata only).
+    Skills {
+        /// Query result.
+        ack: oneshot::Sender<Result<Vec<SkillCard>, CoreError>>,
+    },
+    /// Select the effective model (and optional variant) for later turns.
+    SelectModel {
+        /// Exact model id.
+        id: String,
+        /// Optional variant name.
+        variant: Option<String>,
+        /// Resulting snapshot after acceptance.
+        ack: oneshot::Sender<Result<CatalogSnapshot, CoreError>>,
+    },
+    /// Select the effective primary agent for later turns.
+    SelectAgent {
+        /// Agent profile id.
+        id: String,
+        /// Resulting snapshot after acceptance.
+        ack: oneshot::Sender<Result<CatalogSnapshot, CoreError>>,
+    },
+    /// DCP context/stats snapshot for a session.
+    Dcp {
+        /// Owning session.
+        session: SessionId,
+        /// Query result.
+        ack: oneshot::Sender<Result<DcpSnapshot, CoreError>>,
+    },
+    /// Manual DCP compress request (focus instruction, executed by the owner).
+    Compress {
+        /// Owning session.
+        session: SessionId,
+        /// Bounded focus instruction.
+        focus: String,
+        /// Accepted turn id, or a typed refusal.
+        ack: oneshot::Sender<Result<WorkerTurnId, CoreError>>,
     },
     /// Cancel/drain active work and close the owner.
     Shutdown,
@@ -320,6 +388,127 @@ impl CoreApp {
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// Read one bounded history page (newest-first cursor).
+    pub async fn history_page(
+        &self,
+        session: SessionId,
+        before_seq: Option<i64>,
+        after_seq: Option<i64>,
+        limit: usize,
+    ) -> Result<HistoryPage, CoreError> {
+        let (ack_tx, ack_rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::History {
+                session,
+                before_seq,
+                after_seq,
+                limit,
+                ack: ack_tx,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Read one bounded tool-operation page (newest-first cursor).
+    pub async fn tool_ops_page(
+        &self,
+        session: SessionId,
+        before_rowid: Option<i64>,
+        limit: usize,
+    ) -> Result<ToolOpPage, CoreError> {
+        let (ack_tx, ack_rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ToolOps {
+                session,
+                before_rowid,
+                limit,
+                ack: ack_tx,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Model catalog plus the effective model/variant/agent selection.
+    pub async fn catalog(&self) -> Result<CatalogSnapshot, CoreError> {
+        let (ack_tx, ack_rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::Catalog { ack: ack_tx })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Skill catalog cards (metadata only).
+    pub async fn skills(&self) -> Result<Vec<SkillCard>, CoreError> {
+        let (ack_tx, ack_rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::Skills { ack: ack_tx })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Select the effective model (and optional variant) for later turns.
+    pub async fn select_model(
+        &self,
+        id: String,
+        variant: Option<String>,
+    ) -> Result<CatalogSnapshot, CoreError> {
+        let (ack_tx, ack_rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::SelectModel {
+                id,
+                variant,
+                ack: ack_tx,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Select the effective primary agent for later turns.
+    pub async fn select_agent(&self, id: String) -> Result<CatalogSnapshot, CoreError> {
+        let (ack_tx, ack_rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::SelectAgent { id, ack: ack_tx })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// DCP context/stats snapshot for a session.
+    pub async fn dcp_snapshot(&self, session: SessionId) -> Result<DcpSnapshot, CoreError> {
+        let (ack_tx, ack_rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::Dcp {
+                session,
+                ack: ack_tx,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Manual DCP compress request; returns the accepted turn id.
+    pub async fn compress(
+        &self,
+        session: SessionId,
+        focus: String,
+    ) -> Result<WorkerTurnId, CoreError> {
+        let (ack_tx, ack_rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::Compress {
+                session,
+                focus,
+                ack: ack_tx,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Request clean shutdown; worker finishes without orphan tasks.
     pub async fn shutdown(&self) -> Result<(), CoreError> {
         self.inbox
@@ -416,6 +605,7 @@ async fn worker_loop(
                                 .ok_or(CoreError::SessionNotFound);
                             let _ = ack.send(res);
                         }
+                        Some(other) => scripted_unsupported(other),
                     }
                 }
                 _ = tokio::time::sleep(delay) => {
@@ -500,8 +690,46 @@ async fn worker_loop(
                         .ok_or(CoreError::SessionNotFound);
                     let _ = ack.send(res);
                 }
+                Some(other) => scripted_unsupported(other),
             }
         }
+    }
+}
+
+/// Scripted worker answer for owner-only queries: typed, never silent.
+fn scripted_unsupported(message: InboxMsg) {
+    let error = || CoreError::Application("query unsupported by scripted worker".to_string());
+    match message {
+        InboxMsg::History { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::ToolOps { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::Catalog { ack } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::Skills { ack } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::SelectModel { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::SelectAgent { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::Dcp { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::Compress { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::Create { .. }
+        | InboxMsg::Submit { .. }
+        | InboxMsg::Cancel { .. }
+        | InboxMsg::List { .. }
+        | InboxMsg::Read { .. }
+        | InboxMsg::Shutdown => {}
     }
 }
 

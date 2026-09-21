@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-21T17:03:46+00:00
-Active: T39
-
-Сверить Git status/diff до выполнения команд.
-Task: T39 — Довести TUI до подключённого daily workflow
-Spec: audit/repairs/T39.md
-Evidence target: evidence/T39/report.md
-
-Закрыть F14 по audit/repairs/T39.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 ## Result
 T39 (F14/AUD29-AUD31) implemented and verified: oc-tui is a storage-free bounded view-model driven by typed intents, the application owner serves catalog/skills/paged history/tool cards/DCP snapshots and applies model/variant/agent selection, and the binary runs the real loop with panels, paste/resize handling, compress turns and terminal recovery.
 
@@ -23,9 +9,3 @@ PTY qualification is Linux-specific (openpty/termios/flock). The metrics probe i
 
 ## Next
 Commit T39 implementation and evidence, close the task, start T40 (archive/queue/lifetime bounds).
-
-
-Ready (до 5): нет
-Blocked: T27
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

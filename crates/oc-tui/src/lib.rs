@@ -1,9 +1,10 @@
-//! Local TUI smoke for T01.
+//! Local TUI view-model for `oc`.
 //!
 //! Dependency rule (D12): `oc-tui` depends on the public application API of
-//! `oc-core` plus `oc-adapters` read-side domain (models/config/storage
-//! reads and `tui.*` prefs). It never spawns network/process and leaves Db
-//! handle lifecycle to the binary.
+//! `oc-core` plus the read-only domain helpers of `oc-adapters`
+//! (`models`, `config`, `patch`). It never opens storage, never persists
+//! preferences itself and never spawns network/process: persistence and
+//! intent application stay in the `oc` binary.
 
 pub mod app;
 pub mod commands;
@@ -14,6 +15,17 @@ pub mod picker;
 pub mod smoke;
 pub mod terminal;
 pub mod views;
-pub mod workspace;
 
 pub use smoke::{render_smoke_frame, tui_name};
+
+/// Truncate `text` to at most `max` bytes on a UTF-8 char boundary.
+pub(crate) fn truncate_utf8(text: &str, max: usize) -> &str {
+    if text.len() <= max {
+        return text;
+    }
+    let mut end = max;
+    while end > 0 && !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    &text[..end]
+}

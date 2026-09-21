@@ -1,13 +1,20 @@
-//! Session history pager and tool cards (UI03).
+//! Bounded history window and tool cards (UI03).
 //!
-//! Newest-first pages from [`Db`] keep the backing store bounded: the view
-//! never renders the whole history. Tool cards pair recorded intents with
-//! outcomes; `apply_patch` cards additionally list affected paths parsed
-//! from the recorded input (parse failures show no files, never invented
-//! ones).
+//! Pages arrive as application DTOs ([`HistoryPage`]); the view never holds
+//! a storage handle and never renders the whole transcript.
+//! [`HistoryWindow`] enforces both row and byte caps on every insertion, so
+//! retained bytes stay bounded no matter how many pages are pushed. Tool
+//! cards pair recorded intents with outcomes; `apply_patch` cards
+//! additionally list affected paths parsed from the recorded `patchText`
+//! (parse failures show no files, never invented ones).
 
-use oc_adapters::storage::{Db, StorageError};
+use oc_core::queries::{HistoryMessage, HistoryPage, ToolOpView};
+use oc_core::session::Role;
 
+/// Max rows retained by the window.
+pub const WINDOW_ROWS: usize = 240;
+/// Max retained bytes (`role.len() + text.len()`) in the window.
+pub const WINDOW_BYTES: usize = 256 * 1024;
 /// Max preview chars per card field.
 pub const CARD_PREVIEW: usize = 512;
 /// Max files listed on a patch card.
@@ -16,74 +23,158 @@ pub const CARD_FILES: usize = 5;
 /// One history row with its durable sequence number.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HistoryRow {
-    /// Message sequence (ordering key for paging).
+    /// Message sequence (ordering key for paging); `i64::MAX` for synthetic
+    /// rows that are not committed yet.
     pub seq: i64,
-    /// `user` / `assistant`.
+    /// Render prefix (`user` / `assistant` for committed rows).
     pub role: String,
     /// Message text.
     pub text: String,
 }
 
-/// Newest-first pager over one session.
-pub struct HistoryPager {
-    session: String,
-    /// Total committed messages.
-    pub total: usize,
-    /// Loaded rows, oldest-first (render order).
-    loaded: Vec<HistoryRow>,
-    exhausted: bool,
+/// Which end of the deque is dropped when a cap is exceeded.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Evict {
+    /// Drop the oldest retained row.
+    Oldest,
+    /// Drop the newest retained row.
+    Newest,
 }
 
-impl HistoryPager {
-    /// Open a pager; unknown sessions fail instead of showing empty.
-    pub fn open(db: &Db, session: &str) -> Result<Self, StorageError> {
-        let total = db.history_len(session)?;
-        Ok(Self {
-            session: session.to_string(),
-            total,
-            loaded: Vec::new(),
-            exhausted: false,
-        })
+/// Bounded, oldest-first window over one session history.
+#[derive(Debug, Clone, Default)]
+pub struct HistoryWindow {
+    rows: Vec<HistoryRow>,
+    total: usize,
+    has_older: bool,
+    has_newer: bool,
+}
+
+impl HistoryWindow {
+    /// Empty window.
+    pub fn new() -> Self {
+        Self::default()
     }
 
-    /// Session id this pager reads.
-    pub fn session(&self) -> &str {
-        &self.session
+    /// Newest page becomes the whole window.
+    pub fn reset(&mut self, page: &HistoryPage) {
+        self.rows = page.rows.iter().map(row_from_page).collect();
+        self.total = page.total;
+        self.has_older = page.has_older;
+        self.has_newer = page.has_newer;
+        if self.enforce(Evict::Oldest) {
+            self.has_older = true;
+        }
     }
 
-    /// Loaded rows in render order (oldest first).
+    /// Add an older page at the front; returns rows added. Evicts newest
+    /// rows while over a cap and flags `has_newer` when it does.
+    pub fn prepend_older(&mut self, page: &HistoryPage) -> usize {
+        let added = page.rows.len();
+        let mut combined: Vec<HistoryRow> = page.rows.iter().map(row_from_page).collect();
+        combined.append(&mut self.rows);
+        self.rows = combined;
+        self.total = page.total;
+        self.has_older = page.has_older;
+        if self.enforce(Evict::Newest) {
+            self.has_newer = true;
+        }
+        added
+    }
+
+    /// Add a newer page at the back; returns rows added. Evicts oldest rows
+    /// while over a cap and flags `has_older` when it does.
+    pub fn append_newer(&mut self, page: &HistoryPage) -> usize {
+        let added = page.rows.len();
+        self.rows.extend(page.rows.iter().map(row_from_page));
+        self.total = page.total;
+        self.has_newer = page.has_newer;
+        if self.enforce(Evict::Oldest) {
+            self.has_older = true;
+        }
+        added
+    }
+
+    /// Rows in render order (oldest first).
     pub fn rows(&self) -> &[HistoryRow] {
-        &self.loaded
+        &self.rows
     }
 
-    /// True when every committed message is loaded.
-    pub fn exhausted(&self) -> bool {
-        self.exhausted
+    /// Retained row count.
+    pub fn len(&self) -> usize {
+        self.rows.len()
     }
 
-    /// Load the next older page; returns rows added.
-    pub fn load_older(&mut self, db: &Db, limit: usize) -> Result<usize, StorageError> {
-        if self.exhausted {
-            return Ok(0);
+    /// True when no row is retained.
+    pub fn is_empty(&self) -> bool {
+        self.rows.is_empty()
+    }
+
+    /// Sum of `role.len() + text.len()` over retained rows.
+    pub fn retained_bytes(&self) -> usize {
+        self.rows
+            .iter()
+            .map(|row| row.role.len() + row.text.len())
+            .sum()
+    }
+
+    /// Total committed messages in the session (as reported by pages).
+    pub fn total(&self) -> usize {
+        self.total
+    }
+
+    /// Older committed rows exist before the window.
+    pub fn has_older(&self) -> bool {
+        self.has_older
+    }
+
+    /// Newer committed rows exist after the window.
+    pub fn has_newer(&self) -> bool {
+        self.has_newer
+    }
+
+    /// Append one locally produced row (prompt echo, live answer, notice):
+    /// never a committed history row. The window becomes the newest tail
+    /// again; oldest rows are evicted while a cap is exceeded.
+    pub(crate) fn push_synthetic(&mut self, role: &str, text: &str) {
+        self.rows.push(HistoryRow {
+            seq: i64::MAX,
+            role: role.to_string(),
+            text: text.to_string(),
+        });
+        self.has_newer = false;
+        if self.enforce(Evict::Oldest) {
+            self.has_older = true;
         }
-        let before = self.loaded.first().map(|row| row.seq);
-        let page = db.read_history_page(&self.session, limit, before)?;
-        if page.is_empty() {
-            self.exhausted = true;
-            return Ok(0);
+    }
+
+    /// Drop rows from `side` until both caps hold; returns true when any row
+    /// was evicted.
+    fn enforce(&mut self, side: Evict) -> bool {
+        let mut evicted = false;
+        while self.rows.len() > WINDOW_ROWS || self.retained_bytes() > WINDOW_BYTES {
+            match side {
+                Evict::Oldest => {
+                    self.rows.remove(0);
+                }
+                Evict::Newest => {
+                    self.rows.pop();
+                }
+            }
+            evicted = true;
         }
-        let mut rows: Vec<HistoryRow> = page
-            .into_iter()
-            .map(|(seq, role, text)| HistoryRow { seq, role, text })
-            .collect();
-        rows.reverse(); // oldest-first for rendering
-        let added = rows.len();
-        rows.append(&mut self.loaded);
-        self.loaded = rows;
-        if self.loaded.len() >= self.total {
-            self.exhausted = true;
-        }
-        Ok(added)
+        evicted
+    }
+}
+
+fn row_from_page(row: &HistoryMessage) -> HistoryRow {
+    HistoryRow {
+        seq: row.seq,
+        role: match row.role {
+            Role::User => "user".to_string(),
+            Role::Assistant => "assistant".to_string(),
+        },
+        text: row.text.clone(),
     }
 }
 
@@ -106,23 +197,24 @@ pub struct ToolCard {
     pub files_truncated: bool,
 }
 
-/// Load tool cards for a session (bounded by storage).
-pub fn tool_cards(db: &Db, session: &str) -> Result<Vec<ToolCard>, StorageError> {
-    let mut cards = Vec::new();
-    for row in db.list_tool_ops(session)? {
-        let files = patch_files(&row.name, row.input.as_deref());
-        let files_truncated = files.len() > CARD_FILES;
-        cards.push(ToolCard {
-            op: row.op,
-            name: row.name,
-            state: row.state,
-            input_preview: preview(row.input.as_deref()),
-            output_preview: preview(row.output.as_deref()),
-            files: files.into_iter().take(CARD_FILES).collect(),
-            files_truncated,
-        });
+/// Build one bounded card from a recorded tool operation.
+pub fn card_from_row(row: &ToolOpView) -> ToolCard {
+    let files = patch_files(&row.name, row.input.as_deref());
+    let files_truncated = files.len() > CARD_FILES;
+    ToolCard {
+        op: row.op.clone(),
+        name: row.name.clone(),
+        state: row.state.clone(),
+        input_preview: preview(row.input.as_deref()),
+        output_preview: preview(row.output.as_deref()),
+        files: files.into_iter().take(CARD_FILES).collect(),
+        files_truncated,
     }
-    Ok(cards)
+}
+
+/// Build bounded cards for a page of recorded tool operations.
+pub fn cards_from_rows(rows: &[ToolOpView]) -> Vec<ToolCard> {
+    rows.iter().map(card_from_row).collect()
 }
 
 fn patch_files(tool: &str, input: Option<&str>) -> Vec<String> {
@@ -146,99 +238,228 @@ fn preview(value: Option<&str>) -> String {
     if text.len() <= CARD_PREVIEW {
         return text.to_string();
     }
-    format!("{}…[+{}]", &text[..CARD_PREVIEW], text.len() - CARD_PREVIEW)
+    let cut = crate::truncate_utf8(text, CARD_PREVIEW).len();
+    format!("{}…[+{}]", &text[..cut], text.len() - cut)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{CARD_PREVIEW, HistoryPager, tool_cards};
-    use oc_adapters::storage::Db;
+    use super::{
+        CARD_FILES, CARD_PREVIEW, HistoryWindow, WINDOW_BYTES, WINDOW_ROWS, card_from_row,
+        cards_from_rows,
+    };
+    use oc_core::queries::{HistoryMessage, HistoryPage, ToolOpView};
+    use oc_core::session::Role;
 
-    fn test_db(name: &str) -> Db {
-        let root =
-            std::env::temp_dir().join(format!("oc-tui-history-{name}-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&root);
-        Db::open(&root).expect("db")
+    fn row(seq: i64, role: Role, text: &str) -> HistoryMessage {
+        HistoryMessage {
+            seq,
+            role,
+            text: text.to_string(),
+        }
     }
 
-    fn seed(session: &str, db: &Db, n: i64) {
-        db.create_session(session).expect("session");
-        for i in 0..n {
-            let role = if i % 2 == 0 { "user" } else { "assistant" };
-            db.append_message(session, role, &format!("m{i}"))
-                .expect("msg");
+    fn page(rows: Vec<HistoryMessage>, total: usize, older: bool, newer: bool) -> HistoryPage {
+        HistoryPage {
+            rows,
+            total,
+            has_older: older,
+            has_newer: newer,
         }
     }
 
     #[test]
-    fn pages_newest_first_without_whole_history() {
-        let db = test_db("pages");
-        seed("s", &db, 7);
-        let mut pager = HistoryPager::open(&db, "s").expect("open");
-        assert_eq!(pager.total, 7);
-        assert_eq!(pager.load_older(&db, 3).expect("page1"), 3);
-        assert_eq!(pager.rows().last().expect("last").text, "m6");
-        assert!(!pager.exhausted());
-        assert_eq!(pager.load_older(&db, 3).expect("page2"), 3);
-        assert_eq!(pager.load_older(&db, 3).expect("page3"), 1);
-        assert_eq!(pager.rows().first().expect("first").text, "m0");
-        assert!(pager.exhausted());
-        assert_eq!(pager.load_older(&db, 3).expect("empty"), 0);
-    }
+    fn paging_newest_first_sets_flags() {
+        let mut window = HistoryWindow::new();
+        // Newest page (m3, m4): older rows exist, nothing newer.
+        window.reset(&page(
+            vec![row(3, Role::User, "m3"), row(4, Role::Assistant, "m4")],
+            5,
+            true,
+            false,
+        ));
+        assert_eq!(window.len(), 2);
+        assert_eq!(window.total(), 5);
+        assert!(window.has_older());
+        assert!(!window.has_newer());
+        assert_eq!(window.rows()[0].text, "m3");
+        assert_eq!(window.rows()[1].role, "assistant");
 
-    #[test]
-    fn unknown_session_fails() {
-        let db = test_db("unknown");
-        assert!(HistoryPager::open(&db, "nope").is_err());
-    }
-
-    #[test]
-    fn patch_cards_use_only_patch_text_and_include_move_target() {
-        let patch = "*** Begin Patch\n*** Add File: added.txt\n+hello\n*** Update File: old.txt\n*** Move to: new.txt\n@@\n-old\n+new\n*** End Patch\n";
+        // One older page: window keeps the newest rows, has_newer stays false.
         assert_eq!(
-            super::patch_files(
-                "apply_patch",
-                Some(&serde_json::json!({"patchText": patch}).to_string())
-            ),
-            vec!["added.txt", "new.txt", "old.txt"]
+            window.prepend_older(&page(vec![row(2, Role::Assistant, "m2")], 5, true, true)),
+            1
         );
-        for alias in ["patch", "text"] {
-            assert!(
-                super::patch_files(
-                    "apply_patch",
-                    Some(&serde_json::json!({(alias): patch}).to_string())
-                )
-                .is_empty()
-            );
-        }
+        assert!(window.has_older());
+        assert!(!window.has_newer());
+        assert_eq!(window.rows().first().expect("first").text, "m2");
+
+        // Oldest page: no older rows remain.
+        window.prepend_older(&page(vec![row(1, Role::User, "m1")], 5, false, true));
+        assert!(!window.has_older());
+        assert_eq!(window.rows().len(), 4);
+
+        // Newer append makes the window live at the tail again.
+        window.append_newer(&page(vec![row(5, Role::User, "m5")], 5, false, false));
+        assert!(!window.has_newer());
+        assert_eq!(window.rows().last().expect("last").text, "m5");
+        assert_eq!(window.total(), 5);
     }
 
     #[test]
-    fn cards_pair_intent_outcome_and_patch_files() {
-        let db = test_db("cards");
-        db.create_session("s").expect("session");
-        db.record_tool_intent(
-            "op1",
-            "s",
-            Some("t1"),
-            "apply_patch",
-            &serde_json::json!({"patchText": "*** Begin Patch\n*** Update File: a.txt\n@@\n-x\n+y\n*** End Patch"}).to_string(),
-        )
-        .expect("intent");
-        db.record_tool_outcome("op1", "completed", Some("ok"))
-            .expect("outcome");
-        db.record_tool_intent("op2", "s", Some("t1"), "read", &"x".repeat(2000))
-            .expect("intent2");
-        let cards = tool_cards(&db, "s").expect("cards");
-        assert_eq!(cards.len(), 2);
-        assert_eq!(cards[0].state, "completed");
-        assert_eq!(cards[0].output_preview, "ok");
+    fn reset_evicts_over_row_cap() {
+        let rows: Vec<HistoryMessage> = (0..WINDOW_ROWS + 10)
+            .map(|i| row(i as i64, Role::User, "x"))
+            .collect();
+        let mut window = HistoryWindow::new();
+        window.reset(&page(rows, WINDOW_ROWS + 10, false, false));
+        assert_eq!(window.len(), WINDOW_ROWS);
+        assert!(window.has_older(), "evicted rows must stay reachable");
+    }
+
+    #[test]
+    fn prepend_evicts_newest_and_flags_it() {
+        let mut window = HistoryWindow::new();
+        window.reset(&page(vec![row(9, Role::Assistant, "live")], 9, true, false));
+        let bulk: Vec<HistoryMessage> = (0..WINDOW_ROWS + 5)
+            .map(|i| row(i as i64, Role::User, "older"))
+            .collect();
+        let added = window.prepend_older(&page(bulk, 500, true, true));
+        assert_eq!(added, WINDOW_ROWS + 5);
+        assert_eq!(window.len(), WINDOW_ROWS);
+        assert!(window.has_newer(), "newest rows were evicted");
         assert!(
-            cards[0].files.contains(&"a.txt".to_string()),
-            "{:?}",
-            cards[0].files
+            !window.rows().iter().any(|r| r.text == "live"),
+            "evicted newest row must be gone"
         );
-        assert!(cards[1].input_preview.len() <= CARD_PREVIEW + 16);
-        assert!(cards[1].files.is_empty());
+    }
+
+    #[test]
+    fn append_evicts_oldest_and_flags_it() {
+        let mut window = HistoryWindow::new();
+        window.reset(&page(vec![row(1, Role::User, "start")], 2, false, true));
+        let bulk: Vec<HistoryMessage> = (0..WINDOW_ROWS + 5)
+            .map(|i| row(10 + i as i64, Role::Assistant, "newer"))
+            .collect();
+        window.append_newer(&page(bulk, 500, true, false));
+        assert_eq!(window.len(), WINDOW_ROWS);
+        assert!(window.has_older(), "oldest rows were evicted");
+        assert!(!window.has_newer());
+    }
+
+    #[test]
+    fn byte_cap_is_enforced_on_every_insertion() {
+        let blob = "y".repeat(4096);
+        let mut window = HistoryWindow::new();
+        for round in 0..40 {
+            let rows: Vec<HistoryMessage> = (0..8)
+                .map(|i| row(round * 8 + i, Role::Assistant, &blob))
+                .collect();
+            window.append_newer(&page(rows, 1000, true, round < 39));
+            assert!(
+                window.retained_bytes() <= WINDOW_BYTES,
+                "round {round}: {} bytes retained",
+                window.retained_bytes()
+            );
+            assert!(window.len() <= WINDOW_ROWS);
+        }
+        assert!(window.has_older());
+    }
+
+    #[test]
+    fn card_from_row_bounds_previews_and_parses_patch_text_only() {
+        let patch = "*** Begin Patch\n*** Add File: added.txt\n+hello\n*** Update File: old.txt\n*** Move to: new.txt\n@@\n-old\n+new\n*** End Patch\n";
+        let card = card_from_row(&ToolOpView {
+            rowid: 0,
+            op: "op1".to_string(),
+            name: "apply_patch".to_string(),
+            state: "completed".to_string(),
+            input: Some(serde_json::json!({ "patchText": patch }).to_string()),
+            output: Some("ok".to_string()),
+        });
+        assert_eq!(card.op, "op1");
+        assert_eq!(card.state, "completed");
+        assert_eq!(card.output_preview, "ok");
+        assert_eq!(card.files, ["added.txt", "new.txt", "old.txt"]);
+        assert!(!card.files_truncated);
+
+        // Alias keys are never consulted, parse failures invent nothing.
+        for alias in ["patch", "text"] {
+            let card = card_from_row(&ToolOpView {
+                rowid: 0,
+                op: "op".to_string(),
+                name: "apply_patch".to_string(),
+                state: "started".to_string(),
+                input: Some(serde_json::json!({ (alias): patch }).to_string()),
+                output: None,
+            });
+            assert!(card.files.is_empty(), "alias {alias} must be ignored");
+        }
+        let card = card_from_row(&ToolOpView {
+            rowid: 0,
+            op: "op".to_string(),
+            name: "apply_patch".to_string(),
+            state: "started".to_string(),
+            input: Some("not json".to_string()),
+            output: None,
+        });
+        assert!(card.files.is_empty());
+        assert!(card.output_preview.is_empty());
+
+        // Non-apply_patch ops never list files, long fields are bounded.
+        let long = "z".repeat(CARD_PREVIEW * 4);
+        let card = card_from_row(&ToolOpView {
+            rowid: 0,
+            op: "op".to_string(),
+            name: "read".to_string(),
+            state: "started".to_string(),
+            input: Some(serde_json::json!({ "patchText": patch }).to_string()),
+            output: Some(long),
+        });
+        assert!(card.files.is_empty());
+        assert!(card.input_preview.len() <= CARD_PREVIEW + 16);
+        assert!(card.output_preview.len() <= CARD_PREVIEW + 16);
+
+        // At most CARD_FILES + a truncation flag.
+        let mut files = String::new();
+        for i in 0..CARD_FILES + 3 {
+            files.push_str(&format!("*** Add File: f{i}.txt\n+x\n"));
+        }
+        let patch = format!("*** Begin Patch\n{files}*** End Patch\n");
+        let card = card_from_row(&ToolOpView {
+            rowid: 0,
+            op: "op".to_string(),
+            name: "apply_patch".to_string(),
+            state: "started".to_string(),
+            input: Some(serde_json::json!({ "patchText": patch }).to_string()),
+            output: None,
+        });
+        assert_eq!(card.files.len(), CARD_FILES);
+        assert!(card.files_truncated);
+    }
+
+    #[test]
+    fn cards_from_rows_maps_every_row() {
+        let rows = vec![
+            ToolOpView {
+                rowid: 0,
+                op: "a".to_string(),
+                name: "read".to_string(),
+                state: "started".to_string(),
+                input: None,
+                output: None,
+            },
+            ToolOpView {
+                rowid: 0,
+                op: "b".to_string(),
+                name: "bash".to_string(),
+                state: "failed".to_string(),
+                input: Some("{}".to_string()),
+                output: Some("boom".to_string()),
+            },
+        ];
+        let cards = cards_from_rows(&rows);
+        assert_eq!(cards.len(), 2);
+        assert_eq!(cards[1].output_preview, "boom");
     }
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-21T16:06:30+00:00",
+  "updated_at": "2026-09-21T17:03:46+00:00",
   "current": "T39",
   "tasks": {
     "T00": {
@@ -278,8 +278,8 @@
     },
     "T39": {
       "status": "active",
-      "last_seq": 0,
-      "latest": null,
+      "last_seq": 1,
+      "latest": "progress/M7/T39/0001.md",
       "evidence": null,
       "reopen_reason": null
     },
@@ -305,5 +305,5 @@
       "reopen_reason": null
     }
   },
-  "last_checkpoint_task": "T38"
+  "last_checkpoint_task": "T39"
 }
