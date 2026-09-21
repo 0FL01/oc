@@ -285,6 +285,228 @@ fn params<'c>(
 static NO_CANCEL: AtomicBool = AtomicBool::new(false);
 
 #[tokio::test]
+async fn aud06_intent_failure_prevents_patch() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s").unwrap();
+    let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    sql.execute_batch("CREATE TRIGGER fail_intent BEFORE INSERT ON tool_operations BEGIN SELECT RAISE(ABORT, 'injected intent failure'); END;").unwrap();
+    let tool = sse_tool_call(
+        "call-patch",
+        "apply_patch",
+        &serde_json::json!({"patchText": "*** Begin Patch\n*** Add File: sentinel\n+must not exist\n*** End Patch"}),
+    );
+    let (base, _) = Fake::start(vec![tool + &sse_completed()], Duration::ZERO);
+    let result = runtime
+        .run_turn(params(
+            "s",
+            "patch",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await;
+    assert_eq!(
+        result.unwrap_err(),
+        oc_adapters::runtime::RuntimeError::Storage
+    );
+    assert!(
+        !harness._project.path().join("sentinel").exists(),
+        "mutation ran before durable intent"
+    );
+}
+
+#[tokio::test]
+async fn aud07_rejected_input_has_no_turn_or_event() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s").unwrap();
+    let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    sql.execute_batch("CREATE TRIGGER fail_input BEFORE INSERT ON messages BEGIN SELECT RAISE(ABORT, 'injected input failure'); END;").unwrap();
+    let result = runtime
+        .run_turn_with_events(
+            params(
+                "s",
+                "input",
+                &harness,
+                provider_of("http://127.0.0.1:9"),
+                &NO_CANCEL,
+            ),
+            |_| panic!("rejected input acknowledged"),
+            |_, _| {},
+        )
+        .await;
+    assert_eq!(
+        result.unwrap_err(),
+        oc_adapters::runtime::RuntimeError::Storage
+    );
+    let turns: i64 = sql
+        .query_row("SELECT COUNT(*) FROM turns", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(turns, 0, "unaccepted input left a started turn");
+    let events: i64 = sql
+        .query_row(
+            "SELECT COUNT(*) FROM events WHERE kind != 'session_created'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(events, 0);
+    assert!(harness.db.read_history("s").unwrap().is_empty());
+    drop(runtime);
+    drop(harness.db);
+    let reopened = Db::open(harness._data.path()).unwrap();
+    assert!(reopened.read_history("s").unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn aud07_terminal_failure_does_not_commit_assistant() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s").unwrap();
+    let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    sql.execute_batch("CREATE TRIGGER fail_terminal BEFORE UPDATE ON turns BEGIN SELECT RAISE(ABORT, 'injected terminal failure'); END;").unwrap();
+    let (base, _) = Fake::start(
+        vec![sse_delta("must not commit") + &sse_completed()],
+        Duration::ZERO,
+    );
+    let result = runtime
+        .run_turn(params(
+            "s",
+            "input",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await;
+    assert_eq!(
+        result.unwrap_err(),
+        oc_adapters::runtime::RuntimeError::Storage
+    );
+    assert_eq!(
+        harness.db.read_history("s").unwrap(),
+        [("user".to_string(), "input".to_string())]
+    );
+    let terminal: i64 = sql
+        .query_row(
+            "SELECT COUNT(*) FROM events WHERE kind = 'turn_finished'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(terminal, 0);
+    drop(runtime);
+    drop(harness.db);
+    let reopened = Db::open(harness._data.path()).unwrap();
+    assert_eq!(
+        reopened.read_history("s").unwrap(),
+        [("user".to_string(), "input".to_string())]
+    );
+}
+
+#[tokio::test]
+async fn aud07_mixed_order_and_mcp_storage_failures() {
+    let (harness, mut generation) = make_harness(allow_all());
+    let script = harness._project.path().join("mcp.py");
+    let order = harness._project.path().join("order");
+    std::fs::write(&script, r#"import json, sys
+for line in sys.stdin:
+    r = json.loads(line)
+    method = r.get('method')
+    if method == 'initialize':
+        result = {'protocolVersion': '2025-11-25', 'capabilities': {'tools': {}}, 'serverInfo': {'name': 'fixture', 'version': '1'}}
+    elif method == 'tools/list':
+        result = {'tools': [{'name': 'mark', 'description': 'mark', 'inputSchema': {'type': 'object'}}]}
+    elif method == 'tools/call':
+        with open(sys.argv[1], 'a') as f: f.write('M\n')
+        result = {'content': [{'type': 'text', 'text': 'marked'}], 'isError': False}
+    else:
+        continue
+    print(json.dumps({'jsonrpc': '2.0', 'id': r['id'], 'result': result}), flush=True)
+"#).unwrap();
+    generation
+        .permissions
+        .insert("fixture__mark".to_string(), Permission::Allow);
+    generation.mcp.insert(
+        "fixture".to_string(),
+        McpEntry {
+            kind: "local".to_string(),
+            url: None,
+            enabled: true,
+            oauth: false,
+            headers: BTreeMap::new(),
+            command: vec![
+                "/usr/bin/python3".to_string(),
+                script.to_string_lossy().into_owned(),
+                order.to_string_lossy().into_owned(),
+            ],
+            timeout: Some(2000),
+            codemode: None,
+        },
+    );
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s").unwrap();
+    let first = sse_tool_call(
+        "builtin-first",
+        "bash",
+        &serde_json::json!({"argv": ["/bin/sh", "-c", "printf 'B1\\n' >> order"]}),
+    );
+    let middle = sse_tool_call("mcp-middle", "fixture__mark", &serde_json::json!({}));
+    let last = sse_tool_call(
+        "builtin-last",
+        "bash",
+        &serde_json::json!({"argv": ["/bin/sh", "-c", "printf 'B2\\n' >> order"]}),
+    );
+    let (base, _) = Fake::start(
+        vec![first + &middle + &last + &sse_completed()],
+        Duration::ZERO,
+    );
+    let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    for fault in ["", "intent", "outcome"] {
+        std::fs::write(&order, "").unwrap();
+        match fault {
+            "intent" => sql.execute_batch("CREATE TRIGGER fail_mcp BEFORE INSERT ON tool_operations WHEN NEW.name = 'fixture__mark' BEGIN SELECT RAISE(ABORT, 'injected MCP intent'); END;").unwrap(),
+            "outcome" => sql.execute_batch("CREATE TRIGGER fail_mcp BEFORE UPDATE ON tool_operations WHEN NEW.name = 'fixture__mark' BEGIN SELECT RAISE(ABORT, 'injected MCP outcome'); END;").unwrap(),
+            _ => {},
+        }
+        let mut p = params(
+            "s",
+            "ordered tools",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        );
+        p.max_rounds = 1;
+        let result = runtime.run_turn(p).await;
+        if fault.is_empty() {
+            let report = result.unwrap();
+            assert_eq!(
+                report
+                    .calls
+                    .iter()
+                    .map(|c| c.name.as_str())
+                    .collect::<Vec<_>>(),
+                ["bash", "fixture__mark", "bash"]
+            );
+            assert_eq!(std::fs::read_to_string(&order).unwrap(), "B1\nM\nB2\n");
+            let ops = harness.db.list_tool_ops("s").unwrap();
+            assert!(ops[1].op.ends_with("mcp-middle"));
+            assert_eq!(ops[1].turn.as_deref(), Some(report.turn_id.as_str()));
+        } else {
+            assert_eq!(
+                result.unwrap_err(),
+                oc_adapters::runtime::RuntimeError::Storage
+            );
+            assert_eq!(
+                std::fs::read_to_string(&order).unwrap(),
+                if fault == "intent" { "B1\n" } else { "B1\nM\n" }
+            );
+            sql.execute_batch("DROP TRIGGER fail_mcp").unwrap();
+        }
+    }
+}
+
+#[tokio::test]
 async fn text_turn_completes_and_drains() {
     let (harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation, Vec::new());
@@ -624,6 +846,15 @@ async fn compress_blocks_compensate_and_stabilize() {
         "topic": "t",
         "content": [{"startId": ids[0].0, "endId": ids[1].0, "summary": "first"}],
     });
+    let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    sql.execute_batch("CREATE TRIGGER fail_compress_intent BEFORE INSERT ON tool_operations BEGIN SELECT RAISE(ABORT, 'injected compress intent'); END;").unwrap();
+    assert_eq!(
+        runtime.run_compress("s", &args, &spec).unwrap_err(),
+        oc_adapters::runtime::RuntimeError::Storage
+    );
+    assert!(harness.db.load_compression_blocks("s").unwrap().is_empty());
+    sql.execute_batch("DROP TRIGGER fail_compress_intent")
+        .unwrap();
     let report = runtime.run_compress("s", &args, &spec).expect("compress");
     assert_eq!(report.blocks, ["b0001".to_string()]);
     assert!(report.shrank);

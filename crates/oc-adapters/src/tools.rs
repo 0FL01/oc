@@ -393,6 +393,38 @@ async fn execute_call(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
     }
 }
 
+/// Required argument shape before the runtime commits an execution intent.
+/// Filesystem, URL and command-policy checks remain with their owning tools.
+pub(crate) fn validate_call(call: &ToolCall) -> Result<(), String> {
+    let args = &call.arguments;
+    let nonempty = |key| {
+        args.get(key)
+            .and_then(|v| v.as_str())
+            .is_some_and(|s| !s.is_empty())
+    };
+    let valid = match call.name.as_str() {
+        "read" => nonempty("path"),
+        "apply_patch" => args.as_object().is_some_and(|a| a.len() == 1) && nonempty("patchText"),
+        "bash" => args
+            .get("argv")
+            .and_then(|v| v.as_array())
+            .is_some_and(|a| !a.is_empty() && a.iter().all(|v| v.is_string())),
+        "webfetch" => {
+            nonempty("url")
+                && !["auth", "authorization", "headers", "apiKey", "api_key"]
+                    .iter()
+                    .any(|key| args.get(key).is_some())
+        }
+        "skill" => nonempty("id"),
+        _ => false,
+    };
+    if valid {
+        Ok(())
+    } else {
+        Err(format!("invalid arguments for {}", call.name))
+    }
+}
+
 fn tool_read(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
     let path = call
         .arguments

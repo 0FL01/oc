@@ -16,6 +16,8 @@ use crate::storage::Db;
 pub async fn spawn(project: &Path, data: &Path) -> Result<(CoreApp, WorkerGuard), String> {
     let composition = composition::load(project).await?;
     let db = Db::open(data).map_err(|e| format!("storage: {e}"))?;
+    db.recover_interrupted_tools()
+        .map_err(|e| format!("recovery: {e}"))?;
     let files = crate::files::Files::new(&composition.project, db.root())
         .map_err(|e| format!("files: {e}"))?;
     let shell =

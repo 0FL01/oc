@@ -199,7 +199,19 @@ impl Db {
     ) -> Result<String, StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let seq: i64 = tx.query_row(
+        let id = Self::insert_message(&tx, session, role, text)?;
+        tx.commit()?;
+        Ok(id)
+    }
+
+    fn insert_message(
+        conn: &Connection,
+        session: &str,
+        role: &str,
+        text: &str,
+    ) -> Result<String, StorageError> {
+        Self::require_session(conn, session)?;
+        let seq: i64 = conn.query_row(
             // Global sequence: message ids are unique across sessions
             // (the PRIMARY KEY is global); per-session order still holds
             // because the sequence is monotonic.
@@ -207,26 +219,15 @@ impl Db {
             params![],
             |row| row.get(0),
         )?;
-        if tx
-            .query_row(
-                "SELECT 1 FROM sessions WHERE id = ?1",
-                params![session],
-                |_| Ok(()),
-            )
-            .is_err()
-        {
-            return Err(StorageError::SessionNotFound);
-        }
         let id = format!("m{seq:04}");
-        tx.execute(
+        conn.execute(
             "INSERT INTO messages(id, session_id, seq, role, text) VALUES (?1, ?2, ?3, ?4, ?5)",
             params![id, session, seq, role, text],
         )?;
-        tx.execute(
+        conn.execute(
             "INSERT INTO events(session_id, kind, payload) VALUES (?1, 'message', ?2)",
             params![session, id],
         )?;
-        tx.commit()?;
         Ok(id)
     }
 
@@ -325,7 +326,8 @@ impl Db {
             params![session],
             |_| Ok(()),
         )
-        .map_err(|_| StorageError::SessionNotFound)
+        .optional()?
+        .ok_or(StorageError::SessionNotFound)
     }
 
     /// List tool operations in row order, bounded (UI03 cards).
@@ -416,7 +418,35 @@ impl Db {
 
     /// Begin a turn (durable intent before any side effect).
     pub fn begin_turn(&self, turn: &str, session: &str, prompt: &str) -> Result<(), StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        Self::insert_turn(&tx, turn, session, prompt)?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// Input acceptance, state transition and both events form one durable ack.
+    pub(crate) fn accept_turn(
+        &self,
+        turn: &str,
+        session: &str,
+        prompt: &str,
+        user_text: &str,
+    ) -> Result<(), StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        Self::insert_turn(&tx, turn, session, prompt)?;
+        Self::insert_message(&tx, session, "user", user_text)?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    fn insert_turn(
+        conn: &Connection,
+        turn: &str,
+        session: &str,
+        prompt: &str,
+    ) -> Result<(), StorageError> {
         conn.prepare_cached(
             "INSERT INTO turns(id, session_id, status, prompt, result) VALUES (?1, ?2, 'started', ?3, NULL)",
         )?
@@ -435,13 +465,37 @@ impl Db {
         status: &str,
         result: Option<&str>,
     ) -> Result<(), StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
-        let n = conn
+        self.commit_turn(turn, status, result, None)
+    }
+
+    /// Commit terminal state, event and optional assistant message atomically.
+    pub(crate) fn commit_turn(
+        &self,
+        turn: &str,
+        status: &str,
+        result: Option<&str>,
+        assistant: Option<&str>,
+    ) -> Result<(), StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        let session: String =
+            tx.query_row("SELECT session_id FROM turns WHERE id = ?1", [turn], |r| {
+                r.get(0)
+            })?;
+        if let Some(text) = assistant {
+            Self::insert_message(&tx, &session, "assistant", text)?;
+        }
+        let n = tx
             .prepare_cached("UPDATE turns SET status = ?1, result = ?2 WHERE id = ?3")?
             .execute(params![status, result, turn])?;
         if n == 0 {
             return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
         }
+        tx.execute(
+            "INSERT INTO events(session_id, kind, payload) VALUES (?1, 'turn_finished', ?2)",
+            params![session, turn],
+        )?;
+        tx.commit()?;
         Ok(())
     }
 
@@ -620,15 +674,22 @@ impl Db {
         Ok(())
     }
 
-    /// Crash recovery: mark `started` operations as `unknown`.
+    /// Crash recovery: mark `started` operations and turns as `unknown`.
     ///
     /// Never replays the mutation; a new explicit attempt must use a new
     /// operation id. Returns the number of marked rows.
     pub fn recover_interrupted_tools(&self) -> Result<usize, StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
-        let n = conn
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        let n = tx
             .prepare_cached("UPDATE tool_operations SET state = 'unknown' WHERE state = 'started'")?
             .execute([])?;
+        tx.execute("INSERT INTO events(session_id, kind, payload) SELECT session_id, 'turn_unknown', id FROM turns WHERE status = 'started'", [])?;
+        tx.execute(
+            "UPDATE turns SET status = 'unknown' WHERE status = 'started'",
+            [],
+        )?;
+        tx.commit()?;
         Ok(n)
     }
 
@@ -645,63 +706,108 @@ impl Db {
 
     /// Store bytes as a content-addressed blob.
     ///
-    /// Order: quota check → atomic temp/write/fsync/rename → durable DB row.
+    /// Order: quota check → atomic temp/write/fsync/rename → directory fsync
+    /// → durable DB row. Quota includes regular orphan/temp files on disk.
     /// A crash between file and row leaves a safe unreferenced orphan that
     /// [`Db::gc_orphans`] collects after a grace period; referenced blobs are
     /// never deleted.
     pub fn write_blob(&self, data: &[u8]) -> Result<String, StorageError> {
         let digest = hex_digest(data);
         let target = self.blob_path(&digest)?;
-        if target.exists() {
-            return Ok(digest);
+        // Keep publication and GC under the same lock, including filesystem I/O.
+        let conn = self.conn.lock().expect("db mutex");
+        let existing = match fs::symlink_metadata(&target) {
+            Ok(meta) if meta.is_file() => {
+                if fs::read(&target)? != data {
+                    return Err(invalid_blob());
+                }
+                true
+            }
+            Ok(_) => return Err(invalid_blob()),
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => false,
+            Err(err) => return Err(err.into()),
+        };
+        let mut used = data.len() as u64;
+        for entry in fs::read_dir(&self.blob_dir)? {
+            let entry = entry?;
+            let meta = fs::symlink_metadata(entry.path())?;
+            if meta.is_file() && entry.path() != target {
+                used = used.saturating_add(meta.len());
+            }
         }
-        let used: i64 = self.conn.lock().expect("db mutex").query_row(
-            "SELECT COALESCE(SUM(size), 0) FROM blobs",
-            [],
-            |row| row.get(0),
-        )?;
-        if (used as u64).saturating_add(data.len() as u64) > self.quota_bytes {
+        if used > self.quota_bytes {
             return Err(StorageError::StorageFull);
         }
-        // Temp file in the same directory for atomic rename.
-        let tmp_name = format!(".tmp-{}-{}", std::process::id(), &digest[..16]);
-        let tmp_path = self.blob_dir.join(tmp_name);
-        {
-            let mut tmp = OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(&tmp_path)?;
+        if existing {
+            // An orphan may have been left before file/directory sync completed.
+            File::open(&target)?.sync_all()?;
+        } else {
+            self.publish_blob(&target, &digest, data)?;
+        }
+        File::open(&self.blob_dir)?.sync_all()?;
+        // Also persist the blob-directory entry when the data root is fresh.
+        File::open(&self.root)?.sync_all()?;
+        let size = i64::try_from(data.len()).map_err(|_| StorageError::StorageFull)?;
+        // File existence alone is insufficient: repair absent/stale metadata.
+        conn.execute(
+            "INSERT INTO blobs(digest, size, path) VALUES (?1, ?2, ?1)
+             ON CONFLICT(digest) DO UPDATE SET size = excluded.size, path = excluded.path",
+            params![digest, size],
+        )?;
+        Ok(digest)
+    }
+
+    fn publish_blob(&self, target: &Path, digest: &str, data: &[u8]) -> Result<(), StorageError> {
+        // Unique create_new names allow retries despite abandoned crash temps.
+        static NEXT_TEMP: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let (tmp_path, mut tmp) = loop {
+            let serial = NEXT_TEMP.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            let path = self.blob_dir.join(format!(
+                ".tmp-{}-{}-{serial}",
+                std::process::id(),
+                &digest[..16]
+            ));
+            match OpenOptions::new().write(true).create_new(true).open(&path) {
+                Ok(file) => break (path, file),
+                Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(err) => return Err(err.into()),
+            }
+        };
+        let result = (|| {
             tmp.write_all(data)?;
             tmp.sync_all()?;
+            fs::rename(&tmp_path, target)
+        })();
+        if result.is_err() {
+            // Only remove the temporary file this invocation actually created.
+            fs::remove_file(&tmp_path)?;
+            File::open(&self.blob_dir)?.sync_all()?;
         }
-        fs::rename(&tmp_path, &target)?;
-        // Durable DB reference after the file is durable.
-        self.conn
-            .lock()
-            .expect("db mutex")
-            .prepare_cached("INSERT OR IGNORE INTO blobs(digest, size, path) VALUES (?1, ?2, ?3)")?
-            .execute(params![digest, data.len() as i64, digest])?;
-        Ok(digest)
+        result.map_err(StorageError::from)
     }
 
     /// Read blob bytes by digest.
     pub fn read_blob(&self, digest: &str) -> Result<Vec<u8>, StorageError> {
-        if digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_hexdigit()) {
-            return Err(StorageError::BlobNotFound);
-        }
-        let conn = self.conn.lock().expect("db mutex");
-        let exists: bool = conn
-            .query_row(
-                "SELECT 1 FROM blobs WHERE digest = ?1",
-                params![digest],
-                |_| Ok(()),
-            )
-            .is_ok();
-        if !exists {
-            return Err(StorageError::BlobNotFound);
-        }
         let path = self.blob_path(digest)?;
-        Ok(fs::read(path)?)
+        let conn = self.conn.lock().expect("db mutex");
+        let metadata: Option<(i64, String)> = conn
+            .query_row(
+                "SELECT size, path FROM blobs WHERE digest = ?1",
+                params![digest],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        let (size, stored_path) = metadata.ok_or(StorageError::BlobNotFound)?;
+        let meta = fs::symlink_metadata(&path)?;
+        if stored_path != digest || u64::try_from(size).ok() != Some(meta.len()) || !meta.is_file()
+        {
+            return Err(invalid_blob());
+        }
+        let bytes = fs::read(path)?;
+        if hex_digest(&bytes) != digest {
+            return Err(invalid_blob());
+        }
+        Ok(bytes)
     }
 
     /// Collect unreferenced blob files older than `grace`.
@@ -709,8 +815,8 @@ impl Db {
     /// Never deletes referenced blobs. Never follows symlinks outside the
     /// blob dir and never deletes outside it (cleanup-escape refusal).
     pub fn gc_orphans(&self, grace: Duration) -> Result<usize, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
         let referenced: std::collections::HashSet<String> = {
-            let conn = self.conn.lock().expect("db mutex");
             let mut stmt = conn.prepare_cached("SELECT digest FROM blobs")?;
             let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
             let mut set = std::collections::HashSet::new();
@@ -725,26 +831,19 @@ impl Db {
             let path = entry.path();
             // Never follow symlinks; never touch anything outside blob_dir.
             let meta = fs::symlink_metadata(&path)?;
-            if meta.file_type().is_symlink() {
+            if !meta.is_file() {
                 continue;
             }
             if !path.starts_with(&self.blob_dir) {
                 continue;
             }
             let name = entry.file_name().to_string_lossy().into_owned();
-            if name.starts_with(".tmp-") {
-                // Crash temp older than grace is safe to remove.
-                if is_older_than(&path, grace)? {
-                    fs::remove_file(&path)?;
-                    removed += 1;
-                }
-                continue;
-            }
             if referenced.contains(&name) {
                 continue;
             }
             if is_older_than(&path, grace)? {
                 fs::remove_file(&path)?;
+                File::open(&self.blob_dir)?.sync_all()?;
                 removed += 1;
             }
         }
@@ -767,6 +866,14 @@ fn hex_digest(data: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(data);
     format!("{:x}", hasher.finalize())
+}
+
+fn invalid_blob() -> StorageError {
+    std::io::Error::new(
+        std::io::ErrorKind::InvalidData,
+        "invalid blob content or metadata",
+    )
+    .into()
 }
 
 fn now_rfc3339() -> String {

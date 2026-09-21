@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-21T08:10:14+00:00",
-  "current": null,
+  "updated_at": "2026-09-21T08:36:20+00:00",
+  "current": "T33",
   "tasks": {
     "T00": {
       "status": "done",
@@ -235,9 +235,9 @@
       "reopen_reason": null
     },
     "T33": {
-      "status": "todo",
-      "last_seq": 0,
-      "latest": null,
+      "status": "active",
+      "last_seq": 2,
+      "latest": "progress/M7/T33/0002.md",
       "evidence": null,
       "reopen_reason": null
     },
@@ -305,5 +305,5 @@
       "reopen_reason": null
     }
   },
-  "last_checkpoint_task": "T32"
+  "last_checkpoint_task": "T33"
 }

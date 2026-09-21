@@ -28,8 +28,8 @@ use crate::patch::ProtectedGlobs;
 use crate::provider::{ResponsesConfig, ToolDef};
 use crate::storage::{Db, StorageError};
 use crate::tools::{
-    Assembled, CallFailure, FunctionCallOutput, SkillSnapshot, ToolContext, ToolError, ToolPolicy,
-    ToolRoots, TurnLog, assemble_calls, execute_batch,
+    Assembled, CallFailure, SkillSnapshot, ToolContext, ToolError, ToolPolicy, ToolRoots, TurnLog,
+    assemble_calls, execute_batch,
 };
 
 /// Max tool rounds per turn (bounded agent loop).
@@ -633,25 +633,36 @@ impl<'a> Runtime<'a> {
             .into_iter()
             .map(|block| block.id)
             .collect();
+        let op = format!(
+            "compress-{session}-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        );
+        self.db
+            .record_tool_intent(&op, session, None, COMPRESS_TOOL, &args.to_string())?;
         let blocks = match crate::dcp::compress_ranges(self.db, session, &messages, &ranges, spec) {
             Ok(blocks) => blocks,
             Err(error) => {
                 // Compensate: remove blocks this attempt stored before failing.
-                if let Ok(after) = self.db.load_compression_blocks(session) {
-                    for block in after {
-                        if !before.contains(&block.id) {
-                            let _ = self.db.delete_compression_block(&block.id);
-                        }
+                for block in self.db.load_compression_blocks(session)? {
+                    if !before.contains(&block.id) {
+                        self.db.delete_compression_block(&block.id)?;
                     }
                 }
+                self.db
+                    .record_tool_outcome(&op, "failed", Some(&error.to_string()))?;
                 return Err(RuntimeError::Compress(error.to_string()));
             }
         };
         if self.generation_id() != published.id {
             // Superseded mid-apply: roll back this attempt, never half-apply.
             for block in &blocks {
-                let _ = self.db.delete_compression_block(block);
+                self.db.delete_compression_block(block)?;
             }
+            self.db
+                .record_tool_outcome(&op, "failed", Some("stale generation"))?;
             return Err(RuntimeError::StaleGeneration {
                 want: published.id,
                 got: self.generation_id(),
@@ -663,6 +674,11 @@ impl<'a> Runtime<'a> {
         let saved_tokens = (history_bytes as u64 / 4).saturating_sub(summary_bytes as u64 / 4);
         let outcome = crate::dcp::decide_outcome(saved_tokens);
         let shrank = matches!(outcome, crate::dcp::CompressOutcome::Compressed { .. });
+        self.db.record_tool_outcome(
+            &op,
+            "completed",
+            Some(&serde_json::json!({"blocks": blocks}).to_string()),
+        )?;
         {
             let mut stats = self.stats.lock().expect("stats lock");
             stats.compressions += 1;
@@ -734,10 +750,9 @@ impl<'a> Runtime<'a> {
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
         // Durable intent before any side effect.
         let turn_id = format!("t{}-{}", params.session, millis());
-        self.db
-            .begin_turn(&turn_id, &params.session, &params.prompt)?;
         let user_text = params.invocation.as_deref().unwrap_or(&params.prompt);
-        self.db.append_message(&params.session, "user", user_text)?;
+        self.db
+            .accept_turn(&turn_id, &params.session, &params.prompt, user_text)?;
         accepted(&turn_id);
         let snapshot = {
             let skills = self.skills.read().expect("skills lock");
@@ -903,7 +918,7 @@ impl<'a> Runtime<'a> {
         &self,
         turn_log: &TurnLog,
         turn_id: String,
-        session: &str,
+        _session: &str,
         status: TurnStatus,
         text: String,
         rounds: u32,
@@ -913,20 +928,21 @@ impl<'a> Runtime<'a> {
         published: &PublishedGeneration,
     ) -> Result<TurnReport, RuntimeError> {
         if self.generation_id() != published.id {
-            let _ = self
-                .db
-                .finish_turn(&turn_id, TurnStatus::Interrupted.as_str(), None);
+            self.db
+                .finish_turn(&turn_id, TurnStatus::Interrupted.as_str(), None)?;
             return Err(RuntimeError::StaleGeneration {
                 want: published.id,
                 got: self.generation_id(),
             });
         }
-        if status == TurnStatus::Completed && !text.is_empty() {
-            self.db.append_message(session, "assistant", &text)?;
-        }
-        turn_log
-            .save(self.db, status.as_str())
-            .map_err(|_| RuntimeError::Storage)?;
+        let assistant =
+            (status == TurnStatus::Completed && !text.is_empty()).then_some(text.as_str());
+        self.db.commit_turn(
+            &turn_id,
+            status.as_str(),
+            Some(&turn_log.to_json().to_string()),
+            assistant,
+        )?;
         Ok(TurnReport {
             turn_id,
             status,
@@ -954,73 +970,59 @@ impl<'a> Runtime<'a> {
         round: u32,
     ) -> Result<Vec<CallRecord>, RuntimeError> {
         let mut records = Vec::new();
-        let mut builtin_units = Vec::new();
-        // Partition first: builtins run through the executor, MCP direct.
-        for unit in units {
-            if matches!(unit, Assembled::Call(call) if is_builtin(&call.name)) {
-                builtin_units.push(unit.clone());
-            }
-        }
-        let builtin_outputs: Vec<FunctionCallOutput> = if builtin_units.is_empty() {
-            Vec::new()
-        } else {
-            // Legacy patch deny wins before the executor runs.
-            let mut guarded = Vec::with_capacity(builtin_units.len());
-            for unit in builtin_units {
-                guarded.push(self.guard_patch(unit));
-            }
-            execute_batch(ctx, guarded).await
-        };
-        let mut builtin_cursor = 0;
         for (i, unit) in units.iter().enumerate() {
-            let op = format!("{turn_id}-r{round}-c{i}");
-            match unit {
-                Assembled::Call(call) if is_builtin(&call.name) => {
-                    let output = builtin_outputs
-                        .get(builtin_cursor)
-                        .map(|out| out.output.clone())
-                        .unwrap_or_else(|| "error: missing output".to_string());
-                    builtin_cursor += 1;
-                    let state = output_state(&output).to_string();
-                    self.record_call(
-                        &op,
-                        session,
-                        Some(turn_id),
-                        &call.name,
-                        &call.arguments,
-                        &output,
-                        &state,
-                    )?;
-                    records.push(CallRecord {
-                        name: call.name.clone(),
-                        state,
-                        output: truncate(&output, REPORT_OUTPUT_CAP),
-                    });
+            let (id, name, input) = match unit {
+                Assembled::Call(call) => (&call.id, call.name.as_str(), call.arguments.to_string()),
+                Assembled::Failed(failure) => (&failure.id, "unknown", "{}".to_string()),
+            };
+            // Keep the original provider identifier in the durable operation id.
+            let op = format!("{turn_id}-r{round}-c{i}-{id}");
+            let guarded = self.guard_patch(unit.clone());
+            let rejection = match &guarded {
+                Assembled::Failed(failure) => Some(("failed", format!("error: {}", failure.error))),
+                Assembled::Call(call)
+                    if is_builtin(&call.name) && crate::tools::validate_call(call).is_err() =>
+                {
+                    Some((
+                        "failed",
+                        format!("error: invalid arguments for {}", call.name),
+                    ))
                 }
-                Assembled::Call(call) => {
-                    let record = self
-                        .execute_mcp(&op, session, Some(turn_id), call, policy, attached, cancel)
-                        .await;
-                    records.push(record);
+                Assembled::Call(call) if policy.check(&call.name).is_err() => {
+                    let state = if is_builtin(&call.name) {
+                        "failed"
+                    } else {
+                        "denied"
+                    };
+                    Some((state, format!("error: denied {}", call.name)))
                 }
-                Assembled::Failed(failure) => {
-                    let output = format!(
-                        "error: assembly failed for {}: {}",
-                        failure.id, failure.error
-                    );
-                    self.db
-                        .record_tool_intent(&op, session, Some(turn_id), "unknown", "{}")
-                        .map_err(|_| RuntimeError::Storage)?;
-                    self.db
-                        .record_tool_outcome(&op, "failed", Some(&output))
-                        .map_err(|_| RuntimeError::Storage)?;
-                    records.push(CallRecord {
-                        name: "unknown".to_string(),
-                        state: "failed".to_string(),
-                        output: truncate(&output, REPORT_OUTPUT_CAP),
-                    });
+                _ if cancel.load(Ordering::Relaxed) => {
+                    Some(("cancelled", "error: cancelled".to_string()))
                 }
-            }
+                _ => None,
+            };
+            // Fail closed. No built-in or MCP dispatch can precede this commit.
+            self.db
+                .record_tool_intent(&op, session, Some(turn_id), name, &input)?;
+            let (state, output) = if let Some(rejection) = rejection {
+                rejection
+            } else {
+                match unit {
+                    Assembled::Call(call) if is_builtin(&call.name) => {
+                        let output = execute_batch(ctx, vec![guarded]).await.remove(0).output;
+                        (output_state(&output), output)
+                    }
+                    Assembled::Call(call) => Self::execute_mcp(call, attached, cancel).await,
+                    Assembled::Failed(_) => unreachable!("assembly failure rejected above"),
+                }
+            };
+            // Failure here leaves started/unknown; never continue the batch.
+            self.db.record_tool_outcome(&op, state, Some(&output))?;
+            records.push(CallRecord {
+                name: name.to_string(),
+                state: state.to_string(),
+                output: truncate(&output, REPORT_OUTPUT_CAP),
+            });
         }
         Ok(records)
     }
@@ -1048,58 +1050,24 @@ impl<'a> Runtime<'a> {
         }
     }
 
-    /// Execute one MCP call under the same policy object.
-    #[allow(clippy::too_many_arguments)]
+    /// Dispatch only after the common permission and durable intent path.
     async fn execute_mcp(
-        &self,
-        op: &str,
-        session: &str,
-        turn: Option<&str>,
         call: &crate::tools::ToolCall,
-        policy: &RuntimePolicy<'_>,
         attached: &[AttachedMcp],
         cancel: &AtomicBool,
-    ) -> CallRecord {
+    ) -> (&'static str, String) {
         let (server_id, tool) = match call.name.split_once("__") {
             Some((server, tool)) => (server, tool),
             None => {
-                let output = format!("error: unknown tool {}", call.name);
-                let _ = self
-                    .db
-                    .record_tool_intent(op, session, turn, &call.name, "{}");
-                let _ = self.db.record_tool_outcome(op, "failed", Some(&output));
-                return CallRecord {
-                    name: call.name.clone(),
-                    state: "failed".to_string(),
-                    output,
-                };
+                return ("failed", format!("error: unknown tool {}", call.name));
             }
         };
         let server = attached.iter().find(|server| server.server_id == server_id);
         let Some(server) = server else {
-            let output = format!("error: unknown mcp server {server_id}");
-            let _ = self
-                .db
-                .record_tool_intent(op, session, turn, &call.name, "{}");
-            let _ = self.db.record_tool_outcome(op, "failed", Some(&output));
-            return CallRecord {
-                name: call.name.clone(),
-                state: "failed".to_string(),
-                output,
-            };
+            return ("failed", format!("error: unknown mcp server {server_id}"));
         };
-        let input = call.arguments.to_string();
-        let _ = self
-            .db
-            .record_tool_intent(op, session, turn, &call.name, &input);
-        if policy.check(&call.name).is_err() {
-            let output = format!("error: denied {}", call.name);
-            let _ = self.db.record_tool_outcome(op, "denied", Some(&output));
-            return CallRecord {
-                name: call.name.clone(),
-                state: "denied".to_string(),
-                output,
-            };
+        if !server.entries.iter().any(|entry| entry.tool == tool) {
+            return ("failed", format!("error: unknown mcp tool {}", call.name));
         }
         let result = match &server.client {
             AttachedServer::Remote(client) => client
@@ -1111,39 +1079,13 @@ impl<'a> Runtime<'a> {
                 .await
                 .map_err(|e| e.to_string()),
         };
-        let (state, output) = match result {
+        match result {
             Ok(text) => ("completed", text),
             Err(_) if cancel.load(Ordering::Relaxed) => {
                 ("cancelled", "error: cancelled".to_string())
             }
             Err(_) => ("failed", "error: mcp call failed".to_string()),
-        };
-        let _ = self.db.record_tool_outcome(op, state, Some(&output));
-        CallRecord {
-            name: call.name.clone(),
-            state: state.to_string(),
-            output: truncate(&output, REPORT_OUTPUT_CAP),
         }
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn record_call(
-        &self,
-        op: &str,
-        session: &str,
-        turn: Option<&str>,
-        name: &str,
-        arguments: &serde_json::Value,
-        output: &str,
-        state: &str,
-    ) -> Result<(), RuntimeError> {
-        self.db
-            .record_tool_intent(op, session, turn, name, &arguments.to_string())
-            .map_err(|_| RuntimeError::Storage)?;
-        self.db
-            .record_tool_outcome(op, state, Some(output))
-            .map_err(|_| RuntimeError::Storage)?;
-        Ok(())
     }
 
     /// Attach enabled MCP servers for the current generation (fail fast).

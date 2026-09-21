@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-21T08:36:20+00:00
-Active: T33
-
-Сверить Git status/diff до выполнения команд.
-Task: T33 — Durable tool execution и recovery
-Spec: audit/repairs/T33.md
-Evidence target: evidence/T33/report.md
-
-Закрыть F06, F16 по audit/repairs/T33.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 ## Result
 
 T33 verified implementation slice on base 18b0792. Initial regressions
@@ -46,9 +32,3 @@ Runtime diff reviewed; commit verified slice, write evidence/T33/report.md,
 then finish T33. Current runtime edits: application.rs, runtime.rs,
 storage.rs, tools.rs; tests: adapters runtime/blob_audit and oc durability.
 HEAD remains 18b0792; worktree intentionally uncommitted pending delivery.
-
-
-Ready (до 5): нет
-Blocked: T27
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.
