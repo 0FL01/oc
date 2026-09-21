@@ -96,6 +96,24 @@ pub struct AgentDef {
     pub origin: String,
 }
 
+impl AgentDef {
+    /// Whether this profile may be selected as a primary agent.
+    ///
+    /// An absent mode is `all` (upstream default); only `subagent` is
+    /// primary-ineligible.
+    pub fn primary_capable(&self) -> bool {
+        self.mode.as_deref() != Some("subagent")
+    }
+
+    /// Whether this profile may be spawned as a subagent.
+    ///
+    /// An absent mode is `all` (upstream default); only `primary` is
+    /// subagent-ineligible.
+    pub fn subagent_capable(&self) -> bool {
+        self.mode.as_deref() != Some("primary")
+    }
+}
+
 /// Non-executable command (literal expansion only, via `expand_command`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommandDef {

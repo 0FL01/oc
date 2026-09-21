@@ -34,10 +34,12 @@ pub struct Composition {
     pub agent_digest: Option<String>,
     /// Selected primary-agent variant.
     pub variant: Option<String>,
-    /// Primary-eligible agent profiles for this generation (picker source).
+    /// All admitted agent profiles for this generation (primary and subagent).
     pub agents: BTreeMap<String, defs::AgentDef>,
     /// Explicitly configured default agent id, if any.
     pub default_agent: Option<String>,
+    /// Maximum subagent nesting depth (`experimental.subagent_depth`, default 1).
+    pub subagent_depth: u32,
     /// Pinned skill source bytes, loaded once for the application generation.
     pub skills: Vec<(String, String)>,
     /// Invalid skill ids and precise generation diagnostics.
@@ -190,6 +192,7 @@ async fn load_with_env(
 
     let mut selected = None;
     let mut default_agent = None;
+    let mut subagent_depth: u32 = 1;
     let mut enabled = None;
     let mut disabled = Vec::new();
     let mut native_modules = BTreeSet::new();
@@ -215,6 +218,23 @@ async fn load_with_env(
                     })?
                     .to_string(),
             );
+        }
+        if let Some(experimental) = value.get("experimental") {
+            let object = experimental
+                .as_object()
+                .ok_or_else(|| format!("{}: experimental must be an object", source.path))?;
+            if let Some(depth) = object.get("subagent_depth") {
+                let depth = depth
+                    .as_u64()
+                    .filter(|depth| *depth <= u64::from(u32::MAX))
+                    .ok_or_else(|| {
+                        format!(
+                            "{}: experimental.subagent_depth must be a non-negative integer",
+                            source.path
+                        )
+                    })?;
+                subagent_depth = depth as u32;
+            }
         }
         if let Some(list) = value.get("enabled_providers") {
             enabled = Some(provider_ids(list, "enabled_providers", &source.path)?);
@@ -306,6 +326,11 @@ async fn load_with_env(
 
     let selected_agent = match default_agent.as_deref() {
         Some(id) => match loaded_defs.agents.get(id) {
+            Some(agent) if !agent.primary_capable() => {
+                return Err(format!(
+                    "selected agent {id} is subagent-only and cannot be a primary agent"
+                ));
+            }
             Some(agent) => Some(agent.clone()),
             None => {
                 let diagnostic = loaded_defs.diagnostics.iter().find(|diagnostic| {
@@ -538,15 +563,9 @@ async fn load_with_env(
         agent_prompt: selected_agent.as_ref().map(|agent| agent.body.clone()),
         agent_digest: selected_agent.as_ref().map(defs::agent_digest),
         variant: selected_agent.and_then(|agent| agent.variant),
-        agents: loaded_defs
-            .agents
-            .into_iter()
-            // `primary` and `all` agents are selectable; `subagent` profiles
-            // load (execution lands with the subagent slice) but stay out of
-            // the primary picker.
-            .filter(|(_, agent)| agent.mode.as_deref().is_none_or(|mode| mode != "subagent"))
-            .collect(),
+        agents: loaded_defs.agents,
         default_agent,
+        subagent_depth,
         skills,
         skill_errors,
         commands,
@@ -901,6 +920,78 @@ mod tests {
             .map(|_| ())
             .expect_err("missing model");
         assert!(error.contains("model required"));
+    }
+
+    /// Subagent S3: every admitted agent stays in the catalog, the depth knob
+    /// comes from `experimental.subagent_depth`, and a subagent-only
+    /// `default_agent` fails closed instead of becoming a primary.
+    #[tokio::test]
+    async fn subagent_catalog_depth_and_subagent_only_default_agent() {
+        let dir = tempfile::tempdir().expect("fixture");
+        let config = dir.path().join("opencode.json");
+        let base = r#"{
+            "model": "fixture/main",
+            "provider": {"fixture": {"options": {
+                "baseURL": "https://example.invalid/v1", "apiKey": "k"
+            }, "models": {"main": {}}}},
+            "agent": {
+                "boss": {"prompt": "lead", "mode": "primary"},
+                "helper": {"prompt": "help", "mode": "subagent", "description": "Helper"},
+                "general": {"prompt": "any"}
+            }
+        }"#;
+        std::fs::write(&config, base).expect("config");
+        let loaded = load_with_env(dir.path(), BTreeMap::new())
+            .await
+            .expect("composition");
+        assert_eq!(loaded.subagent_depth, 1);
+        let ids: Vec<&str> = loaded.agents.keys().map(String::as_str).collect();
+        assert_eq!(ids, ["boss", "general", "helper"]);
+        assert!(!loaded.agents["boss"].subagent_capable());
+        assert!(loaded.agents["general"].primary_capable());
+        assert!(loaded.agents["general"].subagent_capable());
+        assert!(!loaded.agents["helper"].primary_capable());
+
+        std::fs::write(
+            &config,
+            base.replace(
+                "\"agent\": {",
+                "\"experimental\": {\"subagent_depth\": 2}, \"agent\": {",
+            ),
+        )
+        .expect("config");
+        let loaded = load_with_env(dir.path(), BTreeMap::new())
+            .await
+            .expect("composition");
+        assert_eq!(loaded.subagent_depth, 2);
+
+        std::fs::write(
+            &config,
+            r#"{"model":"fixture/main","provider":{"fixture":{"options":{
+                "baseURL":"https://example.invalid/v1","apiKey":"k"
+            },"models":{"main":{}}}},"experimental":{"subagent_depth":"two"}}"#,
+        )
+        .expect("config");
+        let error = load_with_env(dir.path(), BTreeMap::new())
+            .await
+            .map(|_| ())
+            .expect_err("depth shape");
+        assert!(error.contains("experimental.subagent_depth"), "{error}");
+
+        std::fs::write(
+            &config,
+            base.replace(
+                "\"agent\": {",
+                "\"default_agent\": \"helper\", \"agent\": {",
+            ),
+        )
+        .expect("config");
+        let error = load_with_env(dir.path(), BTreeMap::new())
+            .await
+            .map(|_| ())
+            .expect_err("subagent-only default agent");
+        assert!(error.contains("helper"), "{error}");
+        assert!(error.contains("subagent-only"), "{error}");
     }
 
     #[tokio::test]

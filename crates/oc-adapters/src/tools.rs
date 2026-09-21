@@ -8,12 +8,15 @@
 //! refuse the whole batch before any side effect.
 //!
 //! Registry (and only registry): `read`, `glob`, `grep`, `apply_patch`, `bash`,
-//! `webfetch`, `skill`, `compress`. No `write`/`edit` entries exist. Reasoning/opaque
+//! `webfetch`, `skill`, `compress`, plus the per-lane `subagent` tool. No
+//! `write`/`edit` entries exist. Reasoning/opaque
 //! provider items accumulate in [`TurnLog`] (durable JSON,
 //! same-model/provider replay boundary) and are stripped from the UI
 //! projection.
 
 use std::collections::BTreeMap;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
@@ -37,6 +40,11 @@ pub const MODEL_TOOL_NAMES: &[&str] = &[
     "skill",
     "compress",
 ];
+/// Subagent tool name, advertised only when the runtime published a
+/// subagent catalog for the lane; deliberately outside [`MODEL_TOOL_NAMES`].
+pub const SUBAGENT_TOOL: &str = "subagent";
+/// Upstream `SubagentCompletion.NO_TEXT` fallback for an empty child result.
+pub const SUBAGENT_NO_TEXT: &str = "Subagent completed without a text response.";
 /// Skill body snapshot cap (bytes).
 ///
 /// Upstream opencode has no skill size limit; the previous 16 KiB cap could
@@ -249,6 +257,57 @@ pub fn to_input_items(outputs: &[FunctionCallOutput]) -> serde_json::Value {
     )
 }
 
+/// One validated foreground `subagent` call.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SubagentRequest {
+    /// Agent id to run in the child session.
+    pub agent: String,
+    /// Short child title (3-5 words upstream).
+    pub description: String,
+    /// Child task text; the runner prefixes it for a fresh child.
+    pub prompt: String,
+    /// Explicit `provider/model[#variant]` override.
+    pub model: Option<String>,
+    /// Existing child session to continue.
+    pub session_id: Option<String>,
+}
+
+/// Terminal outcome of one foreground child turn.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SubagentOutcome {
+    /// Child completed; `text` is never empty (upstream `NO_TEXT` fallback).
+    Completed {
+        /// Child session id.
+        session_id: String,
+        /// Final child text.
+        text: String,
+    },
+    /// Child failed or the request was rejected before any child turn.
+    Failed {
+        /// Child session id when a turn ran.
+        session_id: Option<String>,
+        /// Upstream-shaped reason.
+        reason: String,
+    },
+    /// The parent cancellation flag stopped the child in flight.
+    Cancelled {
+        /// Child session id.
+        session_id: String,
+    },
+}
+
+/// Foreground child-turn runner (runtime-owned, invoked by the tool).
+///
+/// The boxed future keeps the trait object-safe and breaks the async
+/// recursion between the turn loop and the nested turn at the type level.
+pub trait SubagentRunner: Sync {
+    /// Run one child to a terminal report. Cancellation is the caller's flag.
+    fn spawn<'x>(
+        &'x self,
+        request: SubagentRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<SubagentOutcome, ToolError>> + Send + 'x>>;
+}
+
 /// Pinned skill catalog: id → bounded entry (generation-time snapshot).
 #[derive(Debug, Clone, Default)]
 pub struct SkillSnapshot {
@@ -346,6 +405,8 @@ pub struct ToolContext<'a> {
     pub webfetch_allow_private: bool,
     /// Central policy hook.
     pub policy: &'a dyn ToolPolicy,
+    /// Foreground child-turn runner; `None` disables `subagent`.
+    pub subagent: Option<&'a dyn SubagentRunner>,
     /// Pinned skill snapshot.
     pub snapshot: &'a SkillSnapshot,
     /// Cancellation flag (checked between calls and inside `bash`).
@@ -425,6 +486,7 @@ async fn execute_call(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
         "bash" => tool_bash(ctx, call).await,
         "webfetch" => tool_webfetch(ctx, call).await,
         "skill" => tool_skill(ctx, call),
+        "subagent" => tool_subagent(ctx, call).await,
         other => format!("error: unknown tool {other}"),
     }
 }
@@ -455,6 +517,7 @@ pub(crate) fn validate_call(call: &ToolCall) -> Result<(), String> {
         }
         "skill" => nonempty("id"),
         "compress" => crate::dcp::validate_range_args(args).is_ok(),
+        "subagent" => validate_subagent_args(args).is_ok(),
         _ => false,
     };
     if valid {
@@ -462,6 +525,45 @@ pub(crate) fn validate_call(call: &ToolCall) -> Result<(), String> {
     } else {
         Err(format!("invalid arguments for {}", call.name))
     }
+}
+
+/// Required `subagent` shape. Agent/model resolution stays with the runner.
+fn validate_subagent_args(args: &serde_json::Value) -> Result<(), String> {
+    let object = args
+        .as_object()
+        .ok_or_else(|| "expected an object".to_string())?;
+    if object.keys().any(|key| {
+        !matches!(
+            key.as_str(),
+            "agent" | "description" | "prompt" | "model" | "sessionID" | "background"
+        )
+    }) {
+        return Err("unexpected property".to_string());
+    }
+    for key in ["agent", "prompt"] {
+        if object
+            .get(key)
+            .and_then(|value| value.as_str())
+            .is_none_or(|value| value.is_empty())
+        {
+            return Err(format!("missing {key}"));
+        }
+    }
+    for key in ["description", "model", "sessionID"] {
+        if object
+            .get(key)
+            .is_some_and(|value| value.as_str().is_none())
+        {
+            return Err(format!("{key} must be a string"));
+        }
+    }
+    if object
+        .get("background")
+        .is_some_and(|value| value.as_bool().is_none())
+    {
+        return Err("background must be a boolean".to_string());
+    }
+    Ok(())
 }
 
 fn parse_glob_args(call: &ToolCall) -> Result<(&str, usize, usize), String> {
@@ -822,6 +924,65 @@ fn tool_skill(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
     }
 }
 
+/// Foreground `subagent` call: run one child to completion in the parent turn.
+///
+/// Result shape mirrors upstream: completed children are wrapped as
+/// `<subagent sessionID="…" state="completed">`; request failures surface as
+/// their upstream message; an in-flight cancellation is `error: cancelled`.
+async fn tool_subagent(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
+    let Some(runner) = ctx.subagent else {
+        return "error: subagent tool is unavailable in this session".to_string();
+    };
+    if call
+        .arguments
+        .get("background")
+        .and_then(|value| value.as_bool())
+        == Some(true)
+    {
+        return "error: background subagents are not supported yet; no child session was created"
+            .to_string();
+    }
+    let string = |key: &str| {
+        call.arguments
+            .get(key)
+            .and_then(|value| value.as_str())
+            .unwrap_or_default()
+            .to_string()
+    };
+    let request = SubagentRequest {
+        agent: string("agent"),
+        description: string("description"),
+        prompt: string("prompt"),
+        model: call
+            .arguments
+            .get("model")
+            .and_then(|value| value.as_str())
+            .map(str::to_string),
+        session_id: call
+            .arguments
+            .get("sessionID")
+            .and_then(|value| value.as_str())
+            .map(str::to_string),
+    };
+    match runner.spawn(request).await {
+        Ok(SubagentOutcome::Completed { session_id, text }) => {
+            format!(
+                "<subagent sessionID=\"{session_id}\" state=\"completed\">\n{text}\n</subagent>"
+            )
+        }
+        Ok(SubagentOutcome::Failed {
+            session_id: Some(session_id),
+            reason,
+        }) => format!("error: subagent failed (sessionID: {session_id}): {reason}"),
+        Ok(SubagentOutcome::Failed {
+            session_id: None,
+            reason,
+        }) => format!("error: {reason}"),
+        Ok(SubagentOutcome::Cancelled { .. }) => "error: cancelled".to_string(),
+        Err(error) => format!("error: {error}"),
+    }
+}
+
 /// Durable turn log: opaque provider items + usage with a replay boundary.
 ///
 /// Serialized as JSON into the turn row (`turns.result`); replay is allowed
@@ -1039,6 +1200,7 @@ mod tests {
             webfetch_auth: None,
             webfetch_allow_private: allow_private,
             policy,
+            subagent: None,
             snapshot: &env.snapshot,
             cancel: &NO_CANCEL,
             roots: Some(ToolRoots {
@@ -1484,6 +1646,7 @@ mod tests {
             webfetch_auth: None,
             webfetch_allow_private: false,
             policy: &policy,
+            subagent: None,
             snapshot: &empty,
             cancel: &NO_CANCEL,
             roots: Some(ToolRoots {

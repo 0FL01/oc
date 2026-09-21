@@ -18,7 +18,9 @@ use oc_core::session::{CoreError, MAX_QUEUE_ITEMS, MessageId, Role};
 use tokio::sync::{broadcast, mpsc, oneshot};
 
 use crate::composition::{self, Composition};
-use crate::runtime::{Runtime, RuntimeError, TurnParams, TurnStatus};
+use crate::runtime::{
+    Runtime, RuntimeError, SubagentAgent, SubagentCatalog, TurnParams, TurnStatus,
+};
 use crate::storage::Db;
 use crate::tui_workspace::{AgentEntry as WorkspaceAgent, WorkspaceError, WorkspaceRegistry};
 
@@ -138,12 +140,18 @@ impl Effective {
                 "unknown agent {id}; available: {}",
                 composition
                     .agents
-                    .keys()
-                    .map(String::as_str)
+                    .values()
+                    .filter(|agent| agent.primary_capable())
+                    .map(|agent| agent.id.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
             ))
         })?;
+        if !agent.primary_capable() {
+            return Err(app_error(format!(
+                "agent {id} is subagent-only and cannot be a primary agent"
+            )));
+        }
         if let Some(model) = agent.model.as_deref() {
             crate::models::select_model(&composition.catalog, model)
                 .map_err(|error| app_error(format!("agent {id}: {error}")))?;
@@ -204,6 +212,7 @@ impl Effective {
         let agents = composition
             .agents
             .values()
+            .filter(|agent| agent.primary_capable())
             .map(|agent| AgentEntry {
                 id: agent.id.clone(),
                 description: agent.description.clone(),
@@ -251,7 +260,45 @@ fn build_runtime<'a>(db: &'a Db, composition: &Composition) -> Result<Runtime<'a
     runtime
         .publish_dcp_protection(composition.dcp_protected.clone())
         .map_err(|error| error.to_string())?;
+    runtime
+        .publish_subagents(subagent_catalog(composition))
+        .map_err(|error| error.to_string())?;
     Ok(runtime)
+}
+
+/// Snapshot every admitted profile for the subagent tool; `None` when this
+/// generation has no subagent-capable agents.
+fn subagent_catalog(composition: &Composition) -> Option<SubagentCatalog> {
+    if !composition
+        .agents
+        .values()
+        .any(|agent| agent.subagent_capable())
+    {
+        return None;
+    }
+    let agents = composition
+        .agents
+        .values()
+        .map(|agent| {
+            (
+                agent.id.clone(),
+                SubagentAgent {
+                    id: agent.id.clone(),
+                    description: agent.description.clone(),
+                    primary: !agent.subagent_capable(),
+                    model: agent.model.clone(),
+                    variant: agent.variant.clone(),
+                    prompt: agent.body.clone(),
+                    permissions: agent.permissions.clone(),
+                    digest: Some(crate::defs::agent_digest(agent)),
+                },
+            )
+        })
+        .collect();
+    Some(SubagentCatalog {
+        agents,
+        depth_limit: composition.subagent_depth,
+    })
 }
 
 /// What the command loop returns to the supervisor.
@@ -439,6 +486,7 @@ fn workspace_agents(composition: &Composition) -> Vec<WorkspaceAgent> {
     composition
         .agents
         .values()
+        .filter(|agent| agent.primary_capable())
         .map(|agent| WorkspaceAgent {
             id: agent.id.clone(),
             description: agent.description.clone(),

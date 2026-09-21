@@ -725,6 +725,8 @@ fn action_level(key: &str, text: &str) -> Result<Permission, ConfigError> {
 pub fn legacy_key(key: &str) -> &str {
     match key {
         "write" | "edit" => "apply_patch",
+        // v1 `task` is the v2.0.12 `subagent` action.
+        "task" => "subagent",
         _ => key,
     }
 }
@@ -1399,6 +1401,7 @@ mod tests {
         .expect("skill");
         assert_eq!(meta.name, "demo");
         assert_eq!(legacy_key("write"), "apply_patch");
+        assert_eq!(legacy_key("task"), "subagent");
         assert_eq!(legacy_key("read"), "read");
         // Upstream parity: no frontmatter still loads with the path id, and
         // unknown frontmatter fields are silently ignored.

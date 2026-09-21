@@ -11,7 +11,7 @@
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -25,9 +25,10 @@ use crate::mcp_stdio::{StdioClient, StdioConfig, StdioError};
 use crate::models::{self, ModelCatalog};
 use crate::patch::ProtectedGlobs;
 use crate::provider::{InputItem, InputRole, ResponsesConfig, ToolDef};
-use crate::storage::{Db, StorageError};
+use crate::storage::{Db, SessionMeta, StorageError};
 use crate::tools::{
-    Assembled, CallFailure, SkillSnapshot, ToolContext, ToolError, ToolPolicy, ToolRoots, TurnLog,
+    Assembled, CallFailure, SUBAGENT_NO_TEXT, SUBAGENT_TOOL, SkillSnapshot, SubagentOutcome,
+    SubagentRequest, SubagentRunner, ToolContext, ToolError, ToolPolicy, ToolRoots, TurnLog,
     assemble_calls, execute_batch,
 };
 
@@ -612,6 +613,49 @@ struct RuntimeWorkspace {
     fixed_input: Vec<InputItem>,
     skills: SkillSnapshot,
     agent_digest: Option<String>,
+    instructions: String,
+    skills_projection: Option<String>,
+    subagents: Option<SubagentCatalog>,
+}
+
+/// Fixed developer input + central policy for one turn lane.
+///
+/// The primary lane mirrors the published workspace. A child lane replaces
+/// the agent prompt and narrows permissions with the child agent's rules.
+struct TurnLane {
+    fixed_input: Vec<InputItem>,
+    agent_digest: Option<String>,
+    permissions: BTreeMap<String, Permission>,
+}
+
+/// One spawnable agent profile snapshotted for the `subagent` tool.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SubagentAgent {
+    /// Agent id (exact match for the tool's `agent` parameter).
+    pub id: String,
+    /// Description shown in the `Available subagents` list.
+    pub description: String,
+    /// Primary-only profiles resolve but are rejected as subagents.
+    pub primary: bool,
+    /// Pinned model (`provider/model[#variant]`), if any.
+    pub model: Option<String>,
+    /// Pinned variant, if any.
+    pub variant: Option<String>,
+    /// Agent prompt/body for the child lane.
+    pub prompt: String,
+    /// Agent permission rules; they can only narrow the parent lane.
+    pub permissions: BTreeMap<String, Permission>,
+    /// Behavior digest pinning the child wire lane.
+    pub digest: Option<String>,
+}
+
+/// Published subagent catalog + depth budget for this Location generation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SubagentCatalog {
+    /// Profiles by id (both primary-only and subagent-capable).
+    pub agents: BTreeMap<String, SubagentAgent>,
+    /// Maximum nesting depth (`experimental.subagent_depth`).
+    pub depth_limit: u32,
 }
 
 /// One bounded active projection: rows the model actually sees.
@@ -646,6 +690,7 @@ pub struct Runtime<'a> {
     nudge_state: Mutex<BTreeMap<String, NudgeState>>,
     stats: Mutex<crate::dcp_auto::DcpStats>,
     mcp_generation: tokio::sync::Mutex<Option<McpGeneration>>,
+    subagent_seq: AtomicU64,
 }
 
 /// Single-flight lease that releases the runtime even when the owning future
@@ -701,6 +746,7 @@ impl<'a> Runtime<'a> {
             nudge_state: Mutex::new(BTreeMap::new()),
             stats: Mutex::new(DcpStats::default()),
             mcp_generation: tokio::sync::Mutex::new(None),
+            subagent_seq: AtomicU64::new(0),
         })
     }
 
@@ -795,28 +841,32 @@ impl<'a> Runtime<'a> {
             return Err(RuntimeError::InvalidArgs(warnings.join("; ")));
         }
         skills.errors = skill_errors;
-        let mut fixed_input = Vec::new();
-        if let Some(prompt) = agent_prompt.filter(|prompt| !prompt.trim().is_empty()) {
-            fixed_input.push(InputItem::message(InputRole::Developer, prompt));
-        }
-        if !instructions.trim().is_empty() {
-            fixed_input.push(InputItem::message(InputRole::Developer, instructions));
-        }
         let projection = skills.projection();
-        if !projection.is_empty() {
-            let catalog = serde_json::to_string(&projection).map_err(|_| RuntimeError::Storage)?;
-            fixed_input.push(InputItem::message(
-                InputRole::Developer,
-                format!(
-                    "Available native skills (metadata only; call skill by id for body): {catalog}"
-                ),
-            ));
-        }
-        *self.workspace.write().expect("workspace lock") = RuntimeWorkspace {
-            fixed_input,
-            skills,
-            agent_digest,
+        let skills_projection = if projection.is_empty() {
+            None
+        } else {
+            Some(serde_json::to_string(&projection).map_err(|_| RuntimeError::Storage)?)
         };
+        let fixed_input =
+            lane_fixed_input(agent_prompt, instructions, skills_projection.as_deref());
+        let mut workspace = self.workspace.write().expect("workspace lock");
+        workspace.fixed_input = fixed_input;
+        workspace.skills = skills;
+        workspace.agent_digest = agent_digest;
+        workspace.instructions = instructions.to_string();
+        workspace.skills_projection = skills_projection;
+        Ok(())
+    }
+
+    /// Publish the subagent catalog + depth budget between turns.
+    pub fn publish_subagents(
+        &self,
+        subagents: Option<SubagentCatalog>,
+    ) -> Result<(), RuntimeError> {
+        if self.active.load(Ordering::Relaxed) {
+            return Err(RuntimeError::TurnActive);
+        }
+        self.workspace.write().expect("workspace lock").subagents = subagents;
         Ok(())
     }
 
@@ -884,15 +934,26 @@ impl<'a> Runtime<'a> {
     ) -> Result<TurnReport, RuntimeError> {
         let _lease = self.begin_active()?;
         let published = self.current.read().expect("generation lock").clone();
+        let lane = self.primary_lane(&published);
         let mut mcp = self.mcp_generation.lock().await;
         let attached = self
             .ensure_mcp_generation(&mut mcp, &published, params.cancel)
             .await?;
         let result = self
-            .run_turn_inner(params, attached, &mut accepted, &mut text_delta)
+            .run_turn_inner(params, &lane, attached, &mut accepted, &mut text_delta)
             .await;
         drop(mcp);
         result
+    }
+
+    /// Fixed input + policy of the primary (published) lane.
+    fn primary_lane(&self, published: &PublishedGeneration) -> TurnLane {
+        let workspace = self.workspace.read().expect("workspace lock");
+        TurnLane {
+            fixed_input: workspace.fixed_input.clone(),
+            agent_digest: workspace.agent_digest.clone(),
+            permissions: published.config.permissions.clone(),
+        }
     }
 
     /// Execute a manual compress over validated ranges (same permission path).
@@ -1052,6 +1113,7 @@ impl<'a> Runtime<'a> {
     async fn run_turn_inner(
         &self,
         params: TurnParams<'_>,
+        lane: &TurnLane,
         attached: &McpGeneration,
         accepted: &mut (dyn FnMut(&str) + Send),
         text_delta: &mut (dyn FnMut(&str, &str) + Send),
@@ -1077,13 +1139,13 @@ impl<'a> Runtime<'a> {
             &sblocks,
             &selection.id,
             &params.catalog.provider,
-            workspace.agent_digest.as_deref(),
+            lane.agent_digest.as_deref(),
             after_seq,
         )?;
         let dcp_config = self.dcp_config.read().expect("dcp lock").clone();
         let compress_available = dcp_config.enabled
             && !dcp_config.manual_mode
-            && published.config.permissions.get(COMPRESS_TOOL) == Some(&Permission::Allow);
+            && lane.permissions.get(COMPRESS_TOOL) == Some(&Permission::Allow);
         let model_context = selection
             .entry
             .pointer("/limit/context")
@@ -1120,7 +1182,7 @@ impl<'a> Runtime<'a> {
         let mut nudge_hint = None;
         // Admission against the entry limits with the assembled estimate.
         let assembled_estimate = estimate_tokens(
-            &serde_json::to_string(&(workspace.fixed_input.as_slice(), history.as_slice()))
+            &serde_json::to_string(&(lane.fixed_input.as_slice(), history.as_slice()))
                 .map_err(|_| RuntimeError::Storage)?,
         ) + estimate_tokens(&params.prompt);
         models::admit(&selection, assembled_estimate, params.max_output)
@@ -1132,9 +1194,17 @@ impl<'a> Runtime<'a> {
             self.db
                 .accept_turn(&turn_id, &params.session, &params.prompt, user_text)?;
         accepted(&turn_id);
+        let policy = RuntimePolicy::new(&lane.permissions);
         let mut tool_defs = builtin_tool_defs();
         if !compress_available {
             tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
+        }
+        let subagents = workspace.subagents.clone();
+        if let Some(catalog) = &subagents {
+            tool_defs.push(subagent_tool_def(
+                catalog,
+                policy.check(SUBAGENT_TOOL).is_ok(),
+            ));
         }
         for entry in &attached.entries {
             tool_defs.push(ToolDef {
@@ -1147,7 +1217,17 @@ impl<'a> Runtime<'a> {
             });
         }
         let snapshot = workspace.skills;
-        let policy = RuntimePolicy::new(&published.config.permissions);
+        let runner = subagents.as_ref().map(|catalog| TurnSubagent {
+            runtime: self,
+            parent_session: params.session.clone(),
+            parent_model_id: params.model_id.clone(),
+            parent_variant: params.variant.clone(),
+            catalog: params.catalog,
+            provider: &params.provider,
+            cancel: params.cancel,
+            attached,
+            subagents: catalog.clone(),
+        });
         let ctx = ToolContext {
             files: &self.files,
             shell: &self.shell,
@@ -1155,6 +1235,7 @@ impl<'a> Runtime<'a> {
             webfetch_auth: self.webfetch_auth.clone(),
             webfetch_allow_private: self.webfetch_allow_private,
             policy: &policy,
+            subagent: runner.as_ref().map(|runner| runner as &dyn SubagentRunner),
             snapshot: &snapshot,
             cancel: params.cancel,
             roots: Some(self.roots.clone()),
@@ -1163,7 +1244,7 @@ impl<'a> Runtime<'a> {
         let mut usage = None;
         let mut calls = Vec::new();
         let mut turn_log = TurnLog::new(&turn_id, &selection.id, &params.catalog.provider);
-        turn_log.agent_digest = workspace.agent_digest.clone();
+        turn_log.agent_digest = lane.agent_digest.clone();
         turn_log.user_message = Some(user_message);
         turn_log
             .input
@@ -1190,7 +1271,7 @@ impl<'a> Runtime<'a> {
             let (nudge, persisted_nudge) = {
                 let estimate = estimate_tokens(
                     &serde_json::to_string(&(
-                        workspace.fixed_input.as_slice(),
+                        lane.fixed_input.as_slice(),
                         history.as_slice(),
                         turn_log.input.as_slice(),
                     ))
@@ -1373,7 +1454,7 @@ impl<'a> Runtime<'a> {
                     &refreshed.blocks,
                     &selection.id,
                     &params.catalog.provider,
-                    workspace.agent_digest.as_deref(),
+                    lane.agent_digest.as_deref(),
                     refreshed.after_seq,
                 )?;
                 apply_dcp_projection(&mut history, &tool_projection);
@@ -1411,6 +1492,92 @@ impl<'a> Runtime<'a> {
             nudge_hint,
             &published,
         )
+    }
+
+    /// Run one child turn through the inner path, without the single-flight
+    /// lease (the parent turn already holds it) and sharing the parent cancel
+    /// flag so one Cancel stops both.
+    #[allow(clippy::too_many_arguments)]
+    async fn run_child_turn(
+        &self,
+        agent: &SubagentAgent,
+        session: &str,
+        prompt: String,
+        model: &ResolvedModel,
+        max_output: u64,
+        catalog: &ModelCatalog,
+        provider: &ResponsesConfig,
+        attached: &McpGeneration,
+        cancel: &AtomicBool,
+    ) -> Result<TurnReport, RuntimeError> {
+        let published = self.current.read().expect("generation lock").clone();
+        let workspace = self.workspace.read().expect("workspace lock").clone();
+        // Parent generation ∩ child agent rules: an agent rule can only make
+        // the child lane stricter, never widen the caller's authority.
+        let mut permissions = published.config.permissions.clone();
+        for (tool, level) in &agent.permissions {
+            permissions
+                .entry(tool.clone())
+                .and_modify(|current| {
+                    if permission_rank(*level) > permission_rank(*current) {
+                        *current = *level;
+                    }
+                })
+                .or_insert(*level);
+        }
+        let lane = TurnLane {
+            fixed_input: lane_fixed_input(
+                Some(&agent.prompt),
+                &workspace.instructions,
+                workspace.skills_projection.as_deref(),
+            ),
+            agent_digest: agent.digest.clone(),
+            permissions,
+        };
+        let params = TurnParams {
+            session: session.to_string(),
+            prompt,
+            invocation: None,
+            catalog,
+            model_id: model.id.clone(),
+            variant: model.variant.clone(),
+            max_output,
+            provider: provider.clone(),
+            cancel,
+            max_rounds: MAX_ROUNDS,
+        };
+        self.run_turn_inner(
+            params,
+            &lane,
+            attached,
+            &mut |_: &str| {},
+            &mut |_: &str, _: &str| {},
+        )
+        .await
+    }
+
+    /// Ancestor depth of a session (root = 0, direct child = 1).
+    fn session_depth(&self, session: &str) -> Result<u32, RuntimeError> {
+        let mut depth = 0u32;
+        let mut current = session.to_string();
+        for _ in 0..=SUBAGENT_DEPTH_WALK_CAP {
+            match self.db.session_meta(&current)?.parent_id {
+                Some(parent) => {
+                    depth = depth.saturating_add(1);
+                    current = parent;
+                }
+                None => return Ok(depth),
+            }
+        }
+        Err(RuntimeError::InvalidArgs(
+            "session parent chain is too deep".to_string(),
+        ))
+    }
+
+    /// Unique child session id for one spawn (monotonic within the runtime).
+    fn new_child_id(&self, parent: &str) -> String {
+        let seq = self.subagent_seq.fetch_add(1, Ordering::Relaxed);
+        format!("{parent}-sub-{}-{seq}", millis())
     }
 
     /// Commit durable records under a freshness check, then report.
@@ -2194,8 +2361,385 @@ fn session_location_key(id: &str) -> String {
     format!("{SESSION_LOCATION_PREFIX}{id}")
 }
 
+/// Bound for walking a session's parent chain (cycle guard).
+const SUBAGENT_DEPTH_WALK_CAP: u32 = 64;
+
+/// Permission strictness rank (`Deny > Ask > Allow`).
+fn permission_rank(level: Permission) -> u8 {
+    match level {
+        Permission::Allow => 0,
+        Permission::Ask => 1,
+        Permission::Deny => 2,
+    }
+}
+
+/// Developer messages a lane starts from: agent prompt, instructions, skills.
+fn lane_fixed_input(
+    agent_prompt: Option<&str>,
+    instructions: &str,
+    skills_projection: Option<&str>,
+) -> Vec<InputItem> {
+    let mut fixed_input = Vec::new();
+    if let Some(prompt) = agent_prompt.filter(|prompt| !prompt.trim().is_empty()) {
+        fixed_input.push(InputItem::message(InputRole::Developer, prompt));
+    }
+    if !instructions.trim().is_empty() {
+        fixed_input.push(InputItem::message(InputRole::Developer, instructions));
+    }
+    if let Some(projection) = skills_projection {
+        fixed_input.push(InputItem::message(
+            InputRole::Developer,
+            format!(
+                "Available native skills (metadata only; call skill by id for body): {projection}"
+            ),
+        ));
+    }
+    fixed_input
+}
+
+/// `subagent` tool definition with the upstream `Available subagents` list.
+fn subagent_tool_def(catalog: &SubagentCatalog, list_available: bool) -> ToolDef {
+    let mut description = String::from(
+        "Spawns an agent in a child session to work on the specified task.\n\
+         The output includes a sessionID you can pass back later to continue that specific conversation with the subagent.\n\
+         New child sessions start with fresh context, so include all relevant context and instructions when you don't pass a sessionID.\n\
+         Foreground (default) runs the subagent to completion and returns its final response.",
+    );
+    if list_available {
+        let available = catalog
+            .agents
+            .values()
+            .filter(|agent| !agent.primary)
+            .collect::<Vec<_>>();
+        if !available.is_empty() {
+            description.push_str("\n\nAvailable subagents:");
+            for agent in available {
+                let fallback = "This subagent should only be called when explicitly requested.";
+                let summary = if agent.description.trim().is_empty() {
+                    fallback
+                } else {
+                    agent.description.trim()
+                };
+                description.push_str(&format!("\n- {}: {summary}", agent.id));
+            }
+        }
+    }
+    ToolDef {
+        name: SUBAGENT_TOOL.to_string(),
+        description,
+        parameters: serde_json::json!({
+            "type": "object",
+            "properties": {
+                "agent": {
+                    "type": "string",
+                    "description": "The type of specialized agent to use for this task.",
+                },
+                "description": {
+                    "type": "string",
+                    "description": "A short 3-5 word label for the task, displayed to the user",
+                },
+                "prompt": {
+                    "type": "string",
+                    "description": "The task for the subagent to perform",
+                },
+                "model": {
+                    "type": "string",
+                    "description": "NEVER set this unless the user explicitly asks for a particular model or variant. The value is written as \"providerID/modelID\", or \"providerID/modelID#variant\" to include a variant. Do not guess the ID.",
+                },
+                "sessionID": {
+                    "type": "string",
+                    "description": "Continue a specific previous subagent conversation by passing its sessionID. Calls without a sessionID start a new conversation.",
+                },
+                "background": {
+                    "type": "boolean",
+                    "description": "Not supported yet: calls with true fail without creating a child session.",
+                },
+            },
+            "required": ["agent", "description", "prompt"],
+            "additionalProperties": false,
+        }),
+    }
+}
+
+/// Catalog-validated child model selection.
+struct ResolvedModel {
+    id: String,
+    variant: Option<String>,
+}
+
+impl ResolvedModel {
+    /// Stored `provider/model[#variant]` form for the child session row.
+    fn stored(&self, provider: &str) -> String {
+        match &self.variant {
+            Some(variant) if !variant.is_empty() => format!("{provider}/{}#{variant}", self.id),
+            _ => format!("{provider}/{}", self.id),
+        }
+    }
+}
+
+/// Parse and validate `provider/model[#variant]` against the catalog.
+fn resolve_subagent_model(catalog: &ModelCatalog, raw: &str) -> Result<ResolvedModel, String> {
+    let invalid = || {
+        format!(
+            "Invalid model \"{raw}\". Use \"providerID/modelID\" or \"providerID/modelID#variant\"."
+        )
+    };
+    let (provider, rest) = raw.split_once('/').ok_or_else(invalid)?;
+    let (id, variant) = match rest.split_once('#') {
+        Some((id, variant)) => (id, Some(variant)),
+        None => (rest, None),
+    };
+    if provider.is_empty() || id.is_empty() {
+        return Err(invalid());
+    }
+    if provider != catalog.provider || !catalog.models.contains_key(id) {
+        return Err(format!(
+            "Model \"{provider}/{id}\" is not available. Use the models tool to see what is available."
+        ));
+    }
+    match variant {
+        None => Ok(ResolvedModel {
+            id: id.to_string(),
+            variant: None,
+        }),
+        Some(variant) => {
+            let base = models::select_model(catalog, id).map_err(|_| invalid())?;
+            match models::select_variant(&base, Some(variant)) {
+                Ok(selection) => Ok(ResolvedModel {
+                    id: id.to_string(),
+                    variant: selection.variant.map(|variant| variant.name),
+                }),
+                Err(models::SelectError::UnavailableVariant { enabled, .. })
+                    if enabled.is_empty() =>
+                {
+                    Err(format!(
+                        "Model \"{provider}/{id}\" has no variants. Omit the variant."
+                    ))
+                }
+                Err(models::SelectError::UnavailableVariant { enabled, .. }) => Err(format!(
+                    "Variant \"{variant}\" is not available for \"{provider}/{id}\". Available: {enabled}."
+                )),
+                Err(_) => Err(invalid()),
+            }
+        }
+    }
+}
+
+/// Resolve the child model per upstream order: explicit override, else the
+/// child agent's model, else the existing child's stored model, else the
+/// parent session model.
+#[allow(clippy::too_many_arguments)]
+fn resolve_child_model(
+    catalog: &ModelCatalog,
+    request_model: Option<&str>,
+    agent_model: Option<&str>,
+    existing: Option<&SessionMeta>,
+    switched: bool,
+    parent_model_id: &str,
+    parent_variant: Option<&str>,
+) -> Result<ResolvedModel, String> {
+    let parent = || ResolvedModel {
+        id: parent_model_id.to_string(),
+        variant: parent_variant.map(str::to_string),
+    };
+    let resolve = |raw: &str| resolve_subagent_model(catalog, raw);
+    if let Some(raw) = request_model {
+        return resolve(raw);
+    }
+    match existing {
+        None => match agent_model {
+            Some(raw) => resolve(raw),
+            None => Ok(parent()),
+        },
+        Some(meta) if switched => match agent_model {
+            Some(raw) => resolve(raw),
+            None => match meta.model.as_deref() {
+                Some(raw) => resolve(raw),
+                None => Ok(parent()),
+            },
+        },
+        Some(meta) => match meta.model.as_deref() {
+            Some(raw) => resolve(raw),
+            None => match agent_model {
+                Some(raw) => resolve(raw),
+                None => Ok(parent()),
+            },
+        },
+    }
+}
+
+/// Foreground child runner for one calling turn.
+struct TurnSubagent<'r, 'a> {
+    runtime: &'r Runtime<'a>,
+    parent_session: String,
+    parent_model_id: String,
+    parent_variant: Option<String>,
+    catalog: &'r ModelCatalog,
+    provider: &'r ResponsesConfig,
+    cancel: &'r AtomicBool,
+    attached: &'r McpGeneration,
+    subagents: SubagentCatalog,
+}
+
+impl SubagentRunner for TurnSubagent<'_, '_> {
+    fn spawn<'x>(
+        &'x self,
+        request: SubagentRequest,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<SubagentOutcome, ToolError>> + Send + 'x>,
+    > {
+        Box::pin(self.spawn_inner(request))
+    }
+}
+
+impl TurnSubagent<'_, '_> {
+    async fn spawn_inner(&self, request: SubagentRequest) -> Result<SubagentOutcome, ToolError> {
+        let failed = |reason: String| {
+            Ok(SubagentOutcome::Failed {
+                session_id: None,
+                reason,
+            })
+        };
+        let limit = self.subagents.depth_limit;
+        let depth = self
+            .runtime
+            .session_depth(&self.parent_session)
+            .map_err(|error| ToolError::Failed {
+                tool: SUBAGENT_TOOL.to_string(),
+                reason: error.to_string(),
+            })?;
+        if depth >= limit {
+            return failed(format!(
+                "Subagent depth limit reached ({limit}). Increase \"experimental.subagent_depth\" to allow nested subagents."
+            ));
+        }
+        let Some(agent) = self.subagents.agents.get(&request.agent) else {
+            return failed(format!("Unknown agent: {}", request.agent));
+        };
+        if agent.primary {
+            return failed(format!("Agent {} cannot run as a subagent", request.agent));
+        }
+        let existing = match &request.session_id {
+            None => None,
+            Some(id) => match self.runtime.db.session_meta(id) {
+                Ok(meta) if meta.parent_id.as_deref() == Some(self.parent_session.as_str()) => {
+                    Some(meta)
+                }
+                Ok(_) => {
+                    return failed(format!(
+                        "Session {id} is not a child of the current session"
+                    ));
+                }
+                Err(StorageError::SessionNotFound) => {
+                    return failed(format!("Subagent session not found: {id}"));
+                }
+                Err(error) => {
+                    return Err(ToolError::Failed {
+                        tool: SUBAGENT_TOOL.to_string(),
+                        reason: error.to_string(),
+                    });
+                }
+            },
+        };
+        let switched = existing
+            .as_ref()
+            .is_some_and(|meta| meta.agent.as_deref() != Some(agent.id.as_str()));
+        let model = match resolve_child_model(
+            self.catalog,
+            request.model.as_deref(),
+            agent.model.as_deref(),
+            existing.as_ref(),
+            switched,
+            &self.parent_model_id,
+            self.parent_variant.as_deref(),
+        ) {
+            Ok(model) => model,
+            Err(reason) => return failed(reason),
+        };
+        let (child_session, fresh) = match &request.session_id {
+            Some(id) => (id.clone(), false),
+            None => {
+                let id = self.runtime.new_child_id(&self.parent_session);
+                self.runtime
+                    .db
+                    .create_child_session(
+                        &self.parent_session,
+                        &id,
+                        Some(&agent.id),
+                        Some(&model.stored(&self.catalog.provider)),
+                        Some(&request.description),
+                    )
+                    .map_err(|error| ToolError::Failed {
+                        tool: SUBAGENT_TOOL.to_string(),
+                        reason: error.to_string(),
+                    })?;
+                self.runtime
+                    .db
+                    .set_pref(&session_location_key(&id), self.runtime.location())
+                    .map_err(|error| ToolError::Failed {
+                        tool: SUBAGENT_TOOL.to_string(),
+                        reason: error.to_string(),
+                    })?;
+                (id, true)
+            }
+        };
+        let prompt = if fresh {
+            format!(
+                "You are a subagent spawned by another session.\n{}",
+                request.prompt
+            )
+        } else {
+            request.prompt.clone()
+        };
+        let max_output = self
+            .catalog
+            .models
+            .get(&model.id)
+            .and_then(|spec| spec.pointer("/limit/output"))
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(0);
+        let report = self
+            .runtime
+            .run_child_turn(
+                agent,
+                &child_session,
+                prompt,
+                &model,
+                max_output,
+                self.catalog,
+                self.provider,
+                self.attached,
+                self.cancel,
+            )
+            .await
+            .map_err(|error| ToolError::Failed {
+                tool: SUBAGENT_TOOL.to_string(),
+                reason: error.to_string(),
+            })?;
+        Ok(match report.status {
+            TurnStatus::Completed => SubagentOutcome::Completed {
+                session_id: child_session,
+                text: if report.text.is_empty() {
+                    SUBAGENT_NO_TEXT.to_string()
+                } else {
+                    report.text
+                },
+            },
+            TurnStatus::Cancelled => SubagentOutcome::Cancelled {
+                session_id: child_session,
+            },
+            _ => SubagentOutcome::Failed {
+                session_id: Some(child_session),
+                reason: report
+                    .diagnostic
+                    .unwrap_or_else(|| "subagent turn did not complete".to_string()),
+            },
+        })
+    }
+}
+
 fn is_builtin(name: &str) -> bool {
-    crate::tools::MODEL_TOOL_NAMES.contains(&name)
+    crate::tools::MODEL_TOOL_NAMES.contains(&name) || name == SUBAGENT_TOOL
 }
 
 fn units_have_calls(units: &[Assembled]) -> bool {
