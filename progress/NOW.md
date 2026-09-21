@@ -1,20 +1,15 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-21T08:36:20+00:00
-Active: T33
+State updated: 2026-09-21T08:37:19+00:00
+Active: нет
 
 Сверить Git status/diff до выполнения команд.
-Task: T33 — Durable tool execution и recovery
-Spec: audit/repairs/T33.md
-Evidence target: evidence/T33/report.md
 
-Закрыть F06, F16 по audit/repairs/T33.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
+Последний срез: T33 [done]; сверить незакоммиченный diff.
 
 ## Result
 
-T33 verified implementation slice on base 18b0792. Initial regressions
+T33 finished; implementation 63ad057 on base 18b0792. Initial regressions
 reproduced intent-after-patch, partial input acceptance, partial terminal commit,
 and orphan blob false success. Sequential common intent/outcome dispatch now
 fails closed for builtins/MCP; original call id retained in operation id.
@@ -42,13 +37,16 @@ credentials, push or valuable file mutation. Product is NOT READY.
 
 ## Next
 
-Runtime diff reviewed; commit verified slice, write evidence/T33/report.md,
-then finish T33. Current runtime edits: application.rs, runtime.rs,
+Evidence: evidence/T33/report.md. Start ready T34 via progress.py, read its repair
+contract and reproduce Responses protocol findings on offline fixtures. Rerun
+binary smoke after typed protocol repair. Runtime edits: application.rs, runtime.rs,
 storage.rs, tools.rs; tests: adapters runtime/blob_audit and oc durability.
-HEAD remains 18b0792; worktree intentionally uncommitted pending delivery.
+Implementation HEAD 63ad057; closeout documents/journal follow in their own commit.
 
 
-Ready (до 5): нет
+Следующий шаг: проверить зависимости и начать первую ready-задачу.
+
+Ready (до 5): T34
 Blocked: T27
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.
