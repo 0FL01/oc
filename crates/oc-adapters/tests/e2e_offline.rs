@@ -500,8 +500,8 @@ async fn e2e05_configured_workspace_a_to_b() {
     assert_eq!(report_b.text, "b ok");
 }
 
-/// Absolute toolchain path: the scrubbed child `PATH` (`/usr/bin:/bin`)
-/// cannot resolve `cargo`, so the scripted model invokes it by path.
+/// Absolute `cargo` for the test's own independent verification command.
+/// The production tool path resolves `cargo` through its inherited `PATH`.
 fn cargo_bin() -> String {
     if let Ok(cargo) = std::env::var("CARGO") {
         return cargo;
@@ -514,29 +514,6 @@ fn cargo_bin() -> String {
         }
     }
     panic!("cargo not found in test PATH");
-}
-
-/// Absolute `rustc` for the `RUSTC` parent-env extra: the scrubbed child
-/// `PATH` cannot resolve it, so the launcher environment provides the
-/// toolchain location (production passes its own observed env through
-/// the same scrub).
-fn rustc_bin() -> String {
-    let from_cargo = std::path::Path::new(&cargo_bin())
-        .parent()
-        .map(|dir| dir.join("rustc"));
-    if let Some(cand) = from_cargo
-        && cand.is_file()
-    {
-        return cand.to_string_lossy().to_string();
-    }
-    let path = std::env::var_os("PATH").unwrap_or_default();
-    for dir in std::env::split_paths(&path) {
-        let cand = dir.join("rustc");
-        if cand.is_file() {
-            return cand.to_string_lossy().to_string();
-        }
-    }
-    panic!("rustc not found in test PATH");
 }
 
 #[tokio::test]
@@ -569,8 +546,10 @@ async fn e2e01_seeded_coding_fix() {
     };
     let files = oc_adapters::files::Files::new(&project, data.path()).expect("files");
     let shell = oc_adapters::shell::Shell::new(&project).expect("shell");
-    let parent_env: BTreeMap<String, String> =
-        [("RUSTC".to_string(), rustc_bin())].into_iter().collect();
+    // Production parity: the runtime receives the process's own observed
+    // environment, so the child toolchain resolves through the allowlisted
+    // `PATH` with no test-only absolute hints.
+    let parent_env: BTreeMap<String, String> = std::env::vars().collect();
     let runtime = Runtime::new(
         &db,
         "work",
@@ -603,7 +582,7 @@ async fn e2e01_seeded_coding_fix() {
         sse_tool_call(
             "r3",
             "bash",
-            &serde_json::json!({"argv": [cargo_bin(), "test"], "timeout_ms": 120_000}),
+            &serde_json::json!({"argv": ["cargo", "test"], "timeout_ms": 120_000}),
         ) + &sse_completed(),
         sse_delta("fixed") + &sse_completed(),
     ]);

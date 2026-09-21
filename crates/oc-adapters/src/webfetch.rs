@@ -1,22 +1,32 @@
-//! Webfetch tool for T11 (TOOL07–TOOL08).
+//! Webfetch tool for T11 (TOOL07–TOOL08), hardened for T38 AUD25/AUD26.
 //!
 //! Plain `GET` with metadata-first results (`status`, `content-type`,
 //! original URL), bounded readable text extraction (HTML/JSON/text), manual
-//! redirect handling (per-hop SSRF re-check, auth never inherited), and
-//! dial-time guards: DNS pre-check on every hop plus post-dial
-//! `remote_addr` verification against DNS-rebinding flips. Loopback and
-//! private ranges are refused unless the explicit test-only
-//! `allow_loopback` exception is set; production callers leave it `false`.
+//! redirect handling through standard URL joining (per-hop SSRF re-check,
+//! auth never inherited) and dial-bound egress control: a
+//! `reqwest::dns::Resolve` wrapper rejects non-public addresses at connect
+//! time, so a DNS answer that changes between the pre-dial check and the
+//! actual connection cannot reach a private endpoint. One total deadline
+//! spans DNS, every redirect hop and the body. Loopback and private ranges
+//! are refused unless the explicit test-only `allow_loopback` exception is
+//! set; production callers leave it `false`.
 
+use std::borrow::Cow;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-use std::time::Duration;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
+use reqwest::Url;
 use thiserror::Error;
 
 /// Response body cap (bytes retained; overflow flagged, never grown).
 pub const BODY_CAP_BYTES: usize = 1024 * 1024;
 /// Max redirect hops followed.
 pub const MAX_REDIRECTS: usize = 5;
+
+/// Error type used by resolver futures; same shape as reqwest's internal
+/// alias, which is not publicly nameable in 0.13.
+type DnsBoxError = Box<dyn std::error::Error + Send + Sync>;
 
 /// Typed fetch errors (no body contents, no credentials).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
@@ -50,7 +60,7 @@ pub enum FetchError {
 /// loopback destinations; it never defaults on.
 #[derive(Debug, Clone, Copy)]
 pub struct FetchOptions {
-    /// Total deadline per call.
+    /// Total deadline per call (DNS, all hops, body).
     pub timeout: Duration,
     /// TCP/TLS connect timeout.
     pub connect_timeout: Duration,
@@ -132,8 +142,18 @@ fn is_public_v6(v6: Ipv6Addr) -> bool {
         || (v6.segments()[0] & 0xfe00) == 0xfc00)
 }
 
+/// Egress policy for a single address.
+fn ensure_public(ip: IpAddr, allow_loopback: bool) -> Result<(), FetchError> {
+    if (allow_loopback && ip.is_loopback()) || ip_is_public(ip) {
+        Ok(())
+    } else {
+        Err(FetchError::PrivateHost)
+    }
+}
+
 /// Pre-dial guard: every resolved address of `host:port` must be public
-/// (or loopback under the explicit test exception).
+/// (or loopback under the explicit test exception). Used by callers that
+/// dial outside `fetch` (MCP remote).
 pub async fn check_host(host: &str, port: u16, allow_loopback: bool) -> Result<(), FetchError> {
     let addrs = tokio::net::lookup_host((host, port))
         .await
@@ -141,13 +161,7 @@ pub async fn check_host(host: &str, port: u16, allow_loopback: bool) -> Result<(
     let mut any = false;
     for addr in addrs {
         any = true;
-        let ip = addr.ip();
-        if allow_loopback && (ip.is_loopback() || ip == IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))) {
-            continue;
-        }
-        if !ip_is_public(ip) {
-            return Err(FetchError::PrivateHost);
-        }
+        ensure_public(addr.ip(), allow_loopback)?;
     }
     if any {
         Ok(())
@@ -156,116 +170,232 @@ pub async fn check_host(host: &str, port: u16, allow_loopback: bool) -> Result<(
     }
 }
 
-fn parse_url(url: &str) -> Result<(String, String, u16, String), FetchError> {
-    let (scheme, rest) = url.split_once("://").ok_or(FetchError::InvalidUrl)?;
-    if scheme != "http" && scheme != "https" {
-        return Err(FetchError::InvalidUrl);
-    }
-    let (authority, path) = match rest.find('/') {
-        Some(i) => (&rest[..i], rest[i..].to_string()),
-        None => (rest, "/".to_string()),
-    };
-    if authority.is_empty() {
-        return Err(FetchError::InvalidUrl);
-    }
-    let (host, port) = if let Some(stripped) = authority.strip_prefix('[') {
-        // Bracketed IPv6 literal: [ip] or [ip]:port.
-        match stripped.split_once("]:") {
-            Some((ip, p)) => {
-                let port = p.parse::<u16>().map_err(|_| FetchError::InvalidUrl)?;
-                (format!("[{ip}]"), port)
-            }
-            None => match stripped.strip_suffix(']') {
-                Some(ip) => (format!("[{ip}]"), default_port(scheme)),
-                None => return Err(FetchError::InvalidUrl),
-            },
-        }
-    } else {
-        match authority.rsplit_once(':') {
-            Some((h, p)) if !h.is_empty() => match p.parse::<u16>() {
-                Ok(port) => (h.to_string(), port),
-                Err(_) => (authority.to_string(), default_port(scheme)),
-            },
-            _ => (authority.to_string(), default_port(scheme)),
-        }
-    };
-    if host.is_empty() {
-        return Err(FetchError::InvalidUrl);
-    }
-    Ok((scheme.to_string(), host, port, path))
+/// Parse and validate a request URL: http/https only, host required,
+/// userinfo refused, fragment stripped (never sent).
+fn parse_request_url(url: &str) -> Result<Url, FetchError> {
+    let mut url = Url::parse(url).map_err(|_| FetchError::InvalidUrl)?;
+    validate_url(&mut url)?;
+    Ok(url)
 }
 
-fn default_port(scheme: &str) -> u16 {
-    if scheme == "https" { 443 } else { 80 }
+/// Validate scheme/host/userinfo of `url` and strip its fragment.
+fn validate_url(url: &mut Url) -> Result<(), FetchError> {
+    match url.scheme() {
+        "http" | "https" => {}
+        _ => return Err(FetchError::InvalidUrl),
+    }
+    if url.host_str().is_none() {
+        return Err(FetchError::InvalidUrl);
+    }
+    if !url.username().is_empty() || url.password().is_some() {
+        return Err(FetchError::InvalidUrl);
+    }
+    url.set_fragment(None);
+    Ok(())
 }
 
-fn redirect_target(location: &str, base: &str) -> Result<String, FetchError> {
-    if location.contains('\0') || location.contains(' ') {
+/// Resolve a `Location` value against the current hop's URL. Standard
+/// joining handles relative, protocol-relative, query-only, fragment-only
+/// and absolute targets; every result is re-validated.
+fn redirect_target(base: &Url, location: &str) -> Result<Url, FetchError> {
+    let location = location.trim();
+    if location.is_empty() || location.contains('\0') {
         return Err(FetchError::BadResponse);
     }
-    if location.starts_with("http://") || location.starts_with("https://") {
-        return Ok(location.to_string());
+    let mut target = base.join(location).map_err(|_| FetchError::BadResponse)?;
+    validate_url(&mut target).map_err(|_| FetchError::BadResponse)?;
+    Ok(target)
+}
+
+/// Marker error for an egress-blocked DNS answer. Survives reqwest's error
+/// wrapping, so `fetch` can report `PrivateHost` for refused dials.
+#[derive(Debug)]
+struct BlockedAddress;
+
+impl std::fmt::Display for BlockedAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("non-public address refused")
     }
-    if let Some(path) = location.strip_prefix('/') {
-        let (scheme, host, port, _) = parse_url(base)?;
-        let authority = if port == default_port(&scheme) {
-            host
-        } else {
-            format!("{host}:{port}")
-        };
-        return Ok(format!("{scheme}://{authority}/{path}"));
+}
+
+impl std::error::Error for BlockedAddress {}
+
+/// System DNS lookup through tokio's resolver (never recurses into reqwest).
+struct SystemResolver;
+
+impl reqwest::dns::Resolve for SystemResolver {
+    fn resolve(&self, name: reqwest::dns::Name) -> reqwest::dns::Resolving {
+        let host = name.as_str().to_string();
+        Box::pin(async move {
+            let addrs = tokio::net::lookup_host((host, 0))
+                .await
+                .map_err(|e| -> DnsBoxError { Box::new(e) })?;
+            Ok(Box::new(addrs) as reqwest::dns::Addrs)
+        })
     }
-    Err(FetchError::BadResponse)
+}
+
+/// Dial-bound egress guard: resolves through `inner` and rejects the whole
+/// answer when any address is non-public (loopback only under the explicit
+/// test flag). Installed as the client's `dns_resolver`, so it runs at
+/// connect time and closes the rebinding window between pre-check and dial.
+struct GuardedResolver {
+    inner: Arc<dyn reqwest::dns::Resolve>,
+    allow_loopback: bool,
+}
+
+impl GuardedResolver {
+    fn new(inner: Arc<dyn reqwest::dns::Resolve>, allow_loopback: bool) -> Self {
+        Self {
+            inner,
+            allow_loopback,
+        }
+    }
+}
+
+impl reqwest::dns::Resolve for GuardedResolver {
+    fn resolve(&self, name: reqwest::dns::Name) -> reqwest::dns::Resolving {
+        let inner = self.inner.clone();
+        let allow_loopback = self.allow_loopback;
+        Box::pin(async move {
+            let addrs = inner.resolve(name).await?;
+            let mut resolved = Vec::new();
+            for addr in addrs {
+                if ensure_public(addr.ip(), allow_loopback).is_err() {
+                    return Err(Box::new(BlockedAddress) as DnsBoxError);
+                }
+                resolved.push(addr);
+            }
+            if resolved.is_empty() {
+                return Err(Box::new(BlockedAddress) as DnsBoxError);
+            }
+            Ok(Box::new(resolved.into_iter()) as reqwest::dns::Addrs)
+        })
+    }
+}
+
+/// Per-hop pre-dial check through the guarded resolver. IP literals never
+/// reach the resolver (hyper dials them directly), so they are classified
+/// here.
+async fn check_dial_target(
+    resolver: &Arc<dyn reqwest::dns::Resolve>,
+    host: &str,
+    allow_loopback: bool,
+) -> Result<(), FetchError> {
+    if let Ok(ip) = host.parse::<IpAddr>() {
+        return ensure_public(ip, allow_loopback);
+    }
+    let name = host
+        .parse::<reqwest::dns::Name>()
+        .map_err(|_| FetchError::InvalidUrl)?;
+    let addrs = resolver
+        .resolve(name)
+        .await
+        .map_err(|_| FetchError::PrivateHost)?;
+    let mut any = false;
+    for addr in addrs {
+        any = true;
+        ensure_public(addr.ip(), allow_loopback)?;
+    }
+    if any {
+        Ok(())
+    } else {
+        Err(FetchError::PrivateHost)
+    }
+}
+
+/// Remaining slice of the total budget; exhaustion is a deadline.
+fn budget_left(deadline: Instant) -> Result<Duration, FetchError> {
+    let left = deadline.saturating_duration_since(Instant::now());
+    if left.is_zero() {
+        Err(FetchError::Deadline)
+    } else {
+        Ok(left)
+    }
+}
+
+/// True when `err` wraps the egress guard's `BlockedAddress`.
+fn blocked_address(err: &reqwest::Error) -> bool {
+    let mut source: Option<&(dyn std::error::Error + 'static)> = Some(err);
+    while let Some(current) = source {
+        if current.downcast_ref::<BlockedAddress>().is_some() {
+            return true;
+        }
+        source = current.source();
+    }
+    false
 }
 
 /// Fetch a URL with full guard rails.
 ///
 /// `auth` (if any) is sent only on the first hop, never inherited by
-/// redirects. Bodies stream with a byte cap; HTML is reduced to readable
-/// text, JSON is pretty-printed when parseable.
+/// redirects. One total deadline spans DNS, every hop and the body; bodies
+/// stream with a byte cap, HTML is reduced to readable text, JSON is
+/// pretty-printed when parseable.
 pub async fn fetch(
     url: &str,
     auth: Option<&str>,
     opts: FetchOptions,
 ) -> Result<FetchResult, FetchError> {
+    let lookup: Arc<dyn reqwest::dns::Resolve> = Arc::new(SystemResolver);
+    fetch_with_resolver(url, auth, opts, lookup).await
+}
+
+/// `fetch` with an injectable lookup resolver (tests simulate rebinding
+/// answers). The resolver is wrapped by the dial-time egress guard.
+async fn fetch_with_resolver(
+    url: &str,
+    auth: Option<&str>,
+    opts: FetchOptions,
+    lookup: Arc<dyn reqwest::dns::Resolve>,
+) -> Result<FetchResult, FetchError> {
     if auth.map(str::is_empty).unwrap_or(false) {
         return Err(FetchError::InvalidUrl);
     }
+    let mut current = parse_request_url(url)?;
+    let deadline = Instant::now() + opts.timeout;
+    let resolver: Arc<dyn reqwest::dns::Resolve> =
+        Arc::new(GuardedResolver::new(lookup, opts.allow_loopback));
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .no_proxy()
         .connect_timeout(opts.connect_timeout)
+        .dns_resolver(resolver.clone())
         .build()
         .map_err(|_| FetchError::Transport)?;
 
-    let mut current = url.to_string();
     let mut hops = 0usize;
     loop {
-        let (scheme, host, port, path) = parse_url(&current)?;
-        check_host(&host, port, opts.allow_loopback).await?;
-        let target = format!("{scheme}://{host}{}{path}", with_port(&scheme, port));
+        // `host_str()` keeps IPv6 brackets; the guard classifies the literal.
+        let host = {
+            let raw = current.host_str().ok_or(FetchError::InvalidUrl)?;
+            raw.strip_prefix('[')
+                .and_then(|h| h.strip_suffix(']'))
+                .unwrap_or(raw)
+                .to_string()
+        };
+        check_dial_target(&resolver, &host, opts.allow_loopback).await?;
 
-        let mut req = client.get(&target).timeout(opts.timeout);
+        let mut req = client.get(current.clone()).timeout(budget_left(deadline)?);
         if hops == 0
             && let Some(token) = auth
         {
             req = req.bearer_auth(token);
         }
         let resp = req.send().await.map_err(|e| {
-            if e.is_timeout() || e.is_connect() {
+            if blocked_address(&e) {
+                FetchError::PrivateHost
+            } else if e.is_timeout() || e.is_connect() {
                 FetchError::Deadline
             } else {
                 FetchError::Transport
             }
         })?;
-        // Post-dial rebinding guard: the connected peer must still be public
-        // (or loopback under the test exception).
-        if let Some(peer) = resp.remote_addr() {
-            let ip = peer.ip();
-            let loopback_ok = opts.allow_loopback && ip.is_loopback();
-            if !loopback_ok && !ip_is_public(ip) {
-                return Err(FetchError::PrivateHost);
-            }
+        // Post-dial rebinding guard, kept as defence in depth.
+        if let Some(peer) = resp.remote_addr()
+            && ensure_public(peer.ip(), opts.allow_loopback).is_err()
+        {
+            return Err(FetchError::PrivateHost);
         }
         let status = resp.status().as_u16();
         if (300..400).contains(&status) {
@@ -277,7 +407,7 @@ pub async fn fetch(
                 .get(reqwest::header::LOCATION)
                 .and_then(|v| v.to_str().ok())
                 .ok_or(FetchError::BadResponse)?;
-            current = redirect_target(location, &current)?;
+            current = redirect_target(&current, location)?;
             hops += 1;
             continue;
         }
@@ -287,27 +417,22 @@ pub async fn fetch(
             .and_then(|v| v.to_str().ok())
             .map(|ct| ct.split(';').next().unwrap_or("").trim().to_lowercase())
             .filter(|ct| !ct.is_empty());
-        let bytes = read_capped_body(resp, opts.body_cap).await?;
+        let body_budget = budget_left(deadline)?;
+        let body = tokio::time::timeout(body_budget, read_capped_body(resp, opts.body_cap))
+            .await
+            .map_err(|_| FetchError::Deadline)??;
         let (text, truncated) = (
-            extract_text(&bytes.body, content_type.as_deref()),
-            bytes.truncated,
+            extract_text(&body.body, content_type.as_deref()),
+            body.truncated,
         );
         return Ok(FetchResult {
             status,
             content_type,
             url: url.to_string(),
-            final_url: current,
+            final_url: current.to_string(),
             text,
             truncated,
         });
-    }
-}
-
-fn with_port(scheme: &str, port: u16) -> String {
-    if port == default_port(scheme) {
-        String::new()
-    } else {
-        format!(":{port}")
     }
 }
 
@@ -361,58 +486,63 @@ pub fn extract_text(bytes: &[u8], content_type: Option<&str>) -> String {
 
 /// Minimal HTML→text: drops comments, `script`/`style` contents and tags,
 /// decodes common entities, collapses whitespace.
+///
+/// Scanning only slices the input at ASCII delimiter boundaries (`<`, `>`,
+/// `;`), so multi-byte UTF-8 text is preserved exactly and can never panic.
 pub fn html_to_text(html: &str) -> String {
-    let mut out = String::with_capacity(html.len());
     let bytes = html.as_bytes();
-    let mut i = 0;
-    let mut skip_tag: Option<&str> = None;
+    let mut out = String::with_capacity(html.len());
+    let mut skip: Option<&'static str> = None;
+    let mut i = 0usize;
+    let mut text_start = 0usize;
     while i < bytes.len() {
-        if skip_tag.is_none() && html[i..].starts_with("<!--") {
-            if let Some(end) = html[i..].find("-->") {
-                i += end + 3;
-                continue;
-            }
-            break;
-        }
-        if bytes[i] == b'<' {
-            let tag = tag_name(&html[i..]);
-            if skip_tag.is_none() && (tag == "script" || tag == "style") {
-                skip_tag = Some(if tag == "script" { "script" } else { "style" });
-            } else if let Some(open) = skip_tag
-                && tag == format!("/{open}")
-            {
-                skip_tag = None;
-            }
-            if let Some(end) = html[i..].find('>') {
-                if skip_tag.is_none()
-                    && (tag == "p"
-                        || tag == "br"
-                        || tag == "div"
-                        || tag == "li"
-                        || tag == "tr"
-                        || tag.starts_with('h'))
-                {
-                    out.push('\n');
-                }
-                i += end + 1;
-                continue;
-            }
-            break;
-        }
-        if skip_tag.is_some() {
+        if bytes[i] != b'<' {
             i += 1;
             continue;
         }
-        out.push(bytes[i] as char);
-        i += 1;
+        if skip.is_none() && text_start < i {
+            out.push_str(&decode_entities(&html[text_start..i]));
+        }
+        if bytes[i..].starts_with(b"<!--") {
+            i = match find_sequence(&bytes[i + 4..], b"-->") {
+                Some(offset) => i + 4 + offset + 3,
+                None => bytes.len(),
+            };
+            text_start = i;
+            continue;
+        }
+        match bytes[i..].iter().position(|b| *b == b'>') {
+            Some(offset) => {
+                let close_at = i + offset;
+                let name = tag_name(&html[i + 1..close_at]);
+                if let Some(open) = skip {
+                    if name.strip_prefix('/') == Some(open) {
+                        skip = None;
+                    }
+                } else if name == "script" || name == "style" {
+                    skip = Some(if name == "script" { "script" } else { "style" });
+                } else if is_block_tag(&name) {
+                    out.push('\n');
+                }
+                i = close_at + 1;
+            }
+            None => i = bytes.len(),
+        }
+        text_start = i;
     }
-    collapse_entities(&out)
+    if skip.is_none() && text_start < bytes.len() {
+        out.push_str(&decode_entities(&html[text_start..]));
+    }
+    collapse_whitespace(&out)
+}
+
+fn find_sequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    haystack.windows(needle.len()).position(|w| w == needle)
 }
 
 fn tag_name(fragment: &str) -> String {
     let inner: String = fragment
         .chars()
-        .skip(1)
         .take_while(|c| *c != '>' && !c.is_whitespace())
         .collect();
     // Keep a possible leading `/` so closing tags compare: "/style".
@@ -420,14 +550,65 @@ fn tag_name(fragment: &str) -> String {
     inner.to_lowercase()
 }
 
-fn collapse_entities(text: &str) -> String {
-    let text = text
-        .replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&#39;", "'")
-        .replace("&nbsp;", " ");
+fn is_block_tag(name: &str) -> bool {
+    matches!(name, "p" | "br" | "div" | "li" | "tr") || name.starts_with('h')
+}
+
+/// Decode named/numeric entities in one text segment. Unknown or malformed
+/// entities stay literal.
+fn decode_entities(text: &str) -> Cow<'_, str> {
+    if !text.contains('&') {
+        return Cow::Borrowed(text);
+    }
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(index) = rest.find('&') {
+        out.push_str(&rest[..index]);
+        let candidate = &rest[index..];
+        match decode_entity(candidate) {
+            Some((decoded, consumed)) => {
+                out.push(decoded);
+                rest = &candidate[consumed..];
+            }
+            None => {
+                out.push('&');
+                rest = &candidate[1..];
+            }
+        }
+    }
+    out.push_str(rest);
+    Cow::Owned(out)
+}
+
+/// Decode one `&...;` sequence; returns the character and bytes consumed.
+fn decode_entity(candidate: &str) -> Option<(char, usize)> {
+    let end = candidate.find(';')?;
+    let body = candidate.get(1..end)?;
+    if body.is_empty() || body.len() > 10 {
+        return None;
+    }
+    let decoded = if let Some(hex) = body.strip_prefix("#x").or_else(|| body.strip_prefix("#X")) {
+        char::from_u32(u32::from_str_radix(hex, 16).ok()?)?
+    } else if let Some(decimal) = body.strip_prefix('#') {
+        char::from_u32(decimal.parse::<u32>().ok()?)?
+    } else {
+        match body {
+            "amp" => '&',
+            "lt" => '<',
+            "gt" => '>',
+            "quot" => '"',
+            "apos" => '\'',
+            "nbsp" => ' ',
+            "mdash" => '\u{2014}',
+            "ndash" => '\u{2013}',
+            "hellip" => '\u{2026}',
+            _ => return None,
+        }
+    };
+    Some((decoded, end + 1))
+}
+
+fn collapse_whitespace(text: &str) -> String {
     let mut collapsed = String::with_capacity(text.len());
     let mut prev_space = true;
     for line in text.lines() {
@@ -447,10 +628,12 @@ fn collapse_entities(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        FetchError, FetchOptions, check_host, extract_text, fetch, html_to_text, ip_is_public,
+        FetchError, FetchOptions, check_host, extract_text, fetch, fetch_with_resolver,
+        html_to_text, ip_is_public,
     };
     use std::collections::HashMap;
-    use std::net::{IpAddr, Ipv4Addr};
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{Arc, Mutex};
     use std::time::Duration;
 
@@ -463,16 +646,29 @@ mod tests {
 
     struct TestServer {
         base: String,
+        addr: SocketAddr,
         seen: Arc<Mutex<Vec<Seen>>>,
         handle: tokio::task::JoinHandle<()>,
     }
 
     impl TestServer {
         async fn spawn() -> Self {
-            let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-                .await
-                .expect("bind");
-            let base = format!("http://{}", listener.local_addr().expect("addr"));
+            Self::spawn_on("127.0.0.1:0").await
+        }
+
+        async fn spawn_on(bind: &str) -> Self {
+            let listener = tokio::net::TcpListener::bind(bind).await.expect("bind");
+            Self::serve(listener)
+        }
+
+        async fn try_spawn_on(bind: &str) -> Option<Self> {
+            let listener = tokio::net::TcpListener::bind(bind).await.ok()?;
+            Some(Self::serve(listener))
+        }
+
+        fn serve(listener: tokio::net::TcpListener) -> Self {
+            let addr = listener.local_addr().expect("addr");
+            let base = format!("http://{addr}");
             let seen: Arc<Mutex<Vec<Seen>>> = Arc::new(Mutex::new(Vec::new()));
             let seen_task = seen.clone();
             let handle = tokio::spawn(async move {
@@ -521,7 +717,9 @@ mod tests {
                             path: path.clone(),
                             auth: headers.get("authorization").cloned(),
                         });
-                        let (status, extra, body, delay_ms) = route(&path);
+                        let host = headers.get("host").cloned().unwrap_or_default();
+                        let route_path = path.split('?').next().unwrap_or("/");
+                        let (status, extra, body, delay_ms) = route(route_path, &host);
                         if delay_ms > 0 {
                             tokio::time::sleep(Duration::from_millis(delay_ms)).await;
                         }
@@ -538,7 +736,16 @@ mod tests {
                     });
                 }
             });
-            Self { base, seen, handle }
+            Self {
+                base,
+                addr,
+                seen,
+                handle,
+            }
+        }
+
+        fn port(&self) -> u16 {
+            self.addr.port()
         }
 
         fn shutdown(self) {
@@ -547,9 +754,14 @@ mod tests {
     }
 
     /// Test routes: (status line, extra headers, body, delay ms).
-    fn route(path: &str) -> (&'static str, Vec<(&'static str, String)>, Vec<u8>, u64) {
+    fn route(path: &str, host: &str) -> (&'static str, Vec<(&'static str, String)>, Vec<u8>, u64) {
         match path {
-            "/text" => ("200 OK", vec![("Content-Type", "text/plain".to_string())], b"hello world".to_vec(), 0),
+            "/text" => (
+                "200 OK",
+                vec![("Content-Type", "text/plain".to_string())],
+                b"hello world".to_vec(),
+                0,
+            ),
             "/html" => (
                 "200 OK",
                 vec![("Content-Type", "text/html".to_string())],
@@ -562,18 +774,66 @@ mod tests {
                 b"{\"key\":\"value\",\"n\":42}".to_vec(),
                 0,
             ),
-            "/redir" => ("302 Found", vec![("Location", "/text".to_string())], Vec::new(), 0),
+            "/redir" => (
+                "302 Found",
+                vec![("Location", "/text".to_string())],
+                Vec::new(),
+                0,
+            ),
+            "/rel" => (
+                "302 Found",
+                vec![("Location", "text".to_string())],
+                Vec::new(),
+                0,
+            ),
+            "/proto" => (
+                "302 Found",
+                vec![("Location", format!("//{host}/text"))],
+                Vec::new(),
+                0,
+            ),
+            "/to-slow" => (
+                "302 Found",
+                vec![("Location", "/slow".to_string())],
+                Vec::new(),
+                0,
+            ),
             "/go-private" => (
                 "302 Found",
                 vec![("Location", "http://10.0.0.1/".to_string())],
                 Vec::new(),
                 0,
             ),
-            "/big" => ("200 OK", vec![("Content-Type", "text/plain".to_string())], vec![b'x'; 3 * 1024 * 1024], 0),
-            "/slow" => ("200 OK", vec![("Content-Type", "text/plain".to_string())], b"late".to_vec(), 5000),
-            "/login" => ("302 Found", vec![("Location", "/check".to_string())], Vec::new(), 0),
-            "/check" => ("200 OK", vec![("Content-Type", "text/plain".to_string())], b"checked".to_vec(), 0),
-            _ => ("404 Not Found", vec![("Content-Type", "text/plain".to_string())], b"nope".to_vec(), 0),
+            "/big" => (
+                "200 OK",
+                vec![("Content-Type", "text/plain".to_string())],
+                vec![b'x'; 3 * 1024 * 1024],
+                0,
+            ),
+            "/slow" => (
+                "200 OK",
+                vec![("Content-Type", "text/plain".to_string())],
+                b"late".to_vec(),
+                5000,
+            ),
+            "/login" => (
+                "302 Found",
+                vec![("Location", "/check".to_string())],
+                Vec::new(),
+                0,
+            ),
+            "/check" => (
+                "200 OK",
+                vec![("Content-Type", "text/plain".to_string())],
+                b"checked".to_vec(),
+                0,
+            ),
+            _ => (
+                "404 Not Found",
+                vec![("Content-Type", "text/plain".to_string())],
+                b"nope".to_vec(),
+                0,
+            ),
         }
     }
 
@@ -585,6 +845,57 @@ mod tests {
             body_cap: super::BODY_CAP_BYTES,
             allow_loopback: true,
         }
+    }
+
+    /// Resolver mapping every name to a fixed answer (test injection point).
+    struct FixedResolver {
+        addrs: Vec<SocketAddr>,
+    }
+
+    impl FixedResolver {
+        fn new(addrs: Vec<SocketAddr>) -> Self {
+            Self { addrs }
+        }
+    }
+
+    impl reqwest::dns::Resolve for FixedResolver {
+        fn resolve(&self, _name: reqwest::dns::Name) -> reqwest::dns::Resolving {
+            ready_addrs(self.addrs.clone())
+        }
+    }
+
+    /// Resolver whose first answer is `first`, every later answer `later`.
+    struct FlipResolver {
+        calls: AtomicUsize,
+        first: Vec<SocketAddr>,
+        later: Vec<SocketAddr>,
+    }
+
+    impl FlipResolver {
+        fn new(first: Vec<SocketAddr>, later: Vec<SocketAddr>) -> Self {
+            Self {
+                calls: AtomicUsize::new(0),
+                first,
+                later,
+            }
+        }
+    }
+
+    impl reqwest::dns::Resolve for FlipResolver {
+        fn resolve(&self, _name: reqwest::dns::Name) -> reqwest::dns::Resolving {
+            let call = self.calls.fetch_add(1, Ordering::SeqCst);
+            if call == 0 {
+                ready_addrs(self.first.clone())
+            } else {
+                ready_addrs(self.later.clone())
+            }
+        }
+    }
+
+    fn ready_addrs(addrs: Vec<SocketAddr>) -> reqwest::dns::Resolving {
+        let answer: Result<reqwest::dns::Addrs, super::DnsBoxError> =
+            Ok(Box::new(addrs.into_iter()) as reqwest::dns::Addrs);
+        Box::pin(std::future::ready(answer))
     }
 
     #[tokio::test]
@@ -720,5 +1031,159 @@ mod tests {
     fn units_extract_and_html() {
         assert_eq!(extract_text(b"plain", Some("text/plain")), "plain");
         assert_eq!(html_to_text("<p>a</p><p>b</p>"), "a\nb");
+    }
+
+    #[test]
+    fn aud25_html_unicode_entities_and_malformed() {
+        let unicode = html_to_text("<p>Привет 🦀</p>");
+        assert!(unicode.contains("Привет 🦀"), "got: {unicode}");
+
+        let entities = html_to_text(
+            "a &amp; b &lt;c&gt; &quot;d&quot; &apos;e&apos; f&nbsp;g &mdash; &ndash; &hellip; &#39; &#x1F980;",
+        );
+        assert!(
+            entities.contains("a & b <c> \"d\" 'e' f g — – … ' 🦀"),
+            "got: {entities}"
+        );
+
+        let unknown = html_to_text("keep &bogus; and &#xZZ; literal");
+        assert!(unknown.contains("&bogus;"), "got: {unknown}");
+        assert!(unknown.contains("&#xZZ;"), "got: {unknown}");
+
+        // Unterminated comment and tag: no panic, tail dropped.
+        let malformed = html_to_text("<p>start <b>bold <i>unclosed<!-- tail");
+        assert!(!malformed.contains("tail"), "got: {malformed}");
+        assert!(malformed.contains("start"), "got: {malformed}");
+        let unclosed_tag = html_to_text("<p>visible<broken");
+        assert!(unclosed_tag.contains("visible"), "got: {unclosed_tag}");
+
+        // Case-insensitive script/style skipping.
+        let upper = html_to_text("<SCRIPT>var x=1;</SCRIPT><STYLE>.y{}</STYLE><P>ok</P>");
+        assert_eq!(upper, "ok");
+
+        // Multi-byte characters adjacent to delimiters stay intact.
+        assert_eq!(html_to_text("é<é>é"), "éé");
+    }
+
+    #[tokio::test]
+    async fn aud25_url_relative_query_ipv6() {
+        let server = TestServer::spawn().await;
+
+        // Query-only URL: path and query reach the server and the final URL.
+        let query_url = format!("{}/text?x=1", server.base);
+        let query = fetch(&query_url, None, test_opts()).await.expect("query");
+        assert_eq!(query.status, 200);
+        assert_eq!(query.final_url, query_url);
+        {
+            let seen = server.seen.lock().expect("seen");
+            assert!(seen.iter().any(|s| s.path == "/text?x=1"), "seen: {seen:?}");
+        }
+
+        // Relative redirect (`Location: text`).
+        let rel = fetch(&format!("{}/rel", server.base), None, test_opts())
+            .await
+            .expect("relative");
+        assert_eq!(rel.text, "hello world");
+        assert_eq!(rel.final_url, format!("{}/text", server.base));
+
+        // Protocol-relative redirect.
+        let proto = fetch(&format!("{}/proto", server.base), None, test_opts())
+            .await
+            .expect("protocol-relative");
+        assert_eq!(proto.text, "hello world");
+        assert_eq!(proto.final_url, format!("{}/text", server.base));
+
+        // Fragment stripped from the request and from the final URL.
+        let frag = fetch(&format!("{}/text#section", server.base), None, test_opts())
+            .await
+            .expect("fragment");
+        assert_eq!(frag.final_url, format!("{}/text", server.base));
+        {
+            let seen = server.seen.lock().expect("seen");
+            assert!(seen.iter().all(|s| !s.path.contains('#')), "seen: {seen:?}");
+        }
+
+        // Userinfo is refused before any dial.
+        assert_eq!(
+            fetch(
+                "http://user:pass@example.com/",
+                None,
+                FetchOptions::default()
+            )
+            .await,
+            Err(FetchError::InvalidUrl)
+        );
+
+        // IPv6 literal through the loopback exception.
+        match TestServer::try_spawn_on("[::1]:0").await {
+            Some(v6) => {
+                let result = fetch(&format!("{}/text", v6.base), None, test_opts())
+                    .await
+                    .expect("ipv6");
+                assert_eq!(result.text, "hello world");
+                v6.shutdown();
+            }
+            None => {
+                // No AF_INET6 in this environment: still prove the literal is
+                // accepted by URL parsing and the guard, failing only later at
+                // connect time.
+                let err = fetch("http://[::1]:9/text", None, test_opts()).await;
+                assert_eq!(err, Err(FetchError::Deadline), "unexpected: {err:?}");
+            }
+        }
+        server.shutdown();
+    }
+
+    #[tokio::test]
+    async fn aud26_dial_bound_private_answer_sends_no_request() {
+        let server = TestServer::spawn().await;
+        let blocked: SocketAddr = format!("127.0.0.1:{}", server.port())
+            .parse()
+            .expect("addr");
+        let mut opts = test_opts();
+        opts.allow_loopback = false;
+
+        // Fake name that the injected resolver maps to loopback: the dial-time
+        // guard refuses it and the server records nothing.
+        let fake: Arc<dyn reqwest::dns::Resolve> = Arc::new(FixedResolver::new(vec![blocked]));
+        let err = fetch_with_resolver("http://blocked.invalid/text", None, opts, fake).await;
+        assert_eq!(err, Err(FetchError::PrivateHost));
+        assert!(
+            server.seen.lock().expect("seen").is_empty(),
+            "private answer must not produce a request"
+        );
+
+        // Rebinding flip: public first (pre-check passes), loopback at dial.
+        let flip: Arc<dyn reqwest::dns::Resolve> = Arc::new(FlipResolver::new(
+            vec!["8.8.8.8:80".parse().expect("public")],
+            vec![blocked],
+        ));
+        let err = fetch_with_resolver("http://flip.invalid/text", None, opts, flip).await;
+        assert_eq!(
+            err,
+            Err(FetchError::PrivateHost),
+            "flip must be refused at dial time"
+        );
+        assert!(
+            server.seen.lock().expect("seen").is_empty(),
+            "flipped answer must not produce a request"
+        );
+        server.shutdown();
+    }
+
+    #[tokio::test]
+    async fn aud26_total_deadline_spans_redirects() {
+        let server = TestServer::spawn().await;
+        let mut opts = test_opts();
+        opts.timeout = Duration::from_millis(400);
+        let started = std::time::Instant::now();
+        let result = fetch(&format!("{}/to-slow", server.base), None, opts).await;
+        let elapsed = started.elapsed();
+        assert_eq!(result, Err(FetchError::Deadline));
+        assert!(
+            elapsed < Duration::from_secs(2),
+            "total budget must bound the slow hop, elapsed {elapsed:?}"
+        );
+        server.shutdown();
     }
 }

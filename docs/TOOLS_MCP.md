@@ -61,6 +61,35 @@ host helper не является отдельным слабым commit path: �
 
 `skill`: input `{id}` выбирает skill только из pinned generation текущего turn. Model-visible descriptor/catalog содержит bounded id/name/description, но не body. Executor проверяет stale generation и central/agent-narrowed permission, записывает durable intent/outcome и возвращает immutable bounded snapshot body с digest и redacted provenance. Unknown/removed/oversized/unreadable skill — visible failure. Tool не перечитывает filesystem, не регистрирует другие tools/MCP, не запускает scripts и не меняет permissions/agent/model.
 
+## T38 qualification — supervision и egress
+
+`bash` supervisor: единый deadline начинается **до** spawn и покрывает spawn,
+запись stdin, исполнение и ограниченное окно teardown. stdin пишет отдельный
+поток, stdout/stderr дренируются конкурентно в bounded state с флагом truncation;
+после cap чтение продолжается без retention, поэтому flood не блокирует pipe.
+Завершение leader не считается завершением группы: drains получают ограниченное
+окно, затем owned session group (setsid, pgid == pid) получает TERM → grace →
+KILL, а reader-потоки никогда не join'ятся бесконечно — возвращается частичный
+вывод. Cancel проверяется на всех ожиданиях. Child env — строгий allowlist имён
+(`PATH`, `HOME`, `TMPDIR`, `TERM`, `USER`, `LOGNAME`, `SHELL`, `CARGO_HOME`,
+`RUSTUP_HOME`, `XDG_*`, `LANG`/`LC_*`), а не substring-фильтр: всё прочее, включая
+безобидные имена, отбрасывается; `PATH`/`LANG` имеют рабочие defaults, поэтому
+обычные `cargo`/`rustc` команды резолвятся без абсолютных подсказок.
+`cwd` проверяется лексически и канонически: symlink внутри root, ведущий наружу,
+даёт `BadCwd`. Ошибка exec теперь сообщает OS error kind, а не bare `reap failed`.
+
+`webfetch`: URL разбирается и joins через `reqwest::Url` (relative,
+protocol-relative, query-only, fragment-only, IPv6, query сохраняется; userinfo и
+не-http(s) отвергаются, fragment снимается). Egress проверяется на dial-time
+через `reqwest::dns::Resolve` guard: весь ответ отвергается, если любой адрес не
+public (loopback — только explicit test flag), поэтому DNS-переброс между
+pre-check и connect не может отправить запрос к private endpoint; redirect
+повторно валидируется и снова проходит guard, bearer идёт только на первый hop.
+Один total budget покрывает DNS, все hops и body. HTML→text сканирует только по
+ASCII-границам (`<`, `>`, `;`), поэтому UTF-8 сохраняется точно и не может
+паниковать; named/numeric entities декодируются, malformed/unclosed разметка
+переносится без паники.
+
 ## Permissions caveat
 
 Универсальный patch убирает дублирование модельных tools, но shell технически может писать через cat/python/компилятор, а MCP может иметь свои side effects. Инструкция предпочитать patch для source edits — behavioral contract, не OS isolation. Runtime и агент не должны заявлять обратное. Build artifacts нормально создаются dev tools.

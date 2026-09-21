@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-21T16:06:20+00:00
-Active: T38
-
-Сверить Git status/diff до выполнения команд.
-Task: T38 — Shell и webfetch без hangs/Unicode panic
-Spec: audit/repairs/T38.md
-Evidence target: evidence/T38/report.md
-
-Закрыть F12, F13 по audit/repairs/T38.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 ## Result
 T38 (F12/AUD27-AUD28, F13/AUD25-AUD26) implemented and verified: shell supervisor with concurrent stdin/output supervision, bounded group teardown, strict child env allowlist and canonical cwd containment; webfetch with Unicode-safe HTML, reqwest::Url handling, dial-bound guarded resolver and one total budget.
 
@@ -23,9 +9,3 @@ AUD27 cases are Linux-specific (session groups). One non-reproducible `reap fail
 
 ## Next
 Commit T38 implementation and evidence, close the task, start T39 (TUI, F14/AUD29-AUD31).
-
-
-Ready (до 5): нет
-Blocked: T27
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

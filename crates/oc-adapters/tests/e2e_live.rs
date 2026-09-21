@@ -23,8 +23,8 @@ use oc_core::context_plan::ProtectedSpec;
 
 static NO_CANCEL: AtomicBool = AtomicBool::new(false);
 
-/// Absolute toolchain paths: the scrubbed child `PATH` (`/usr/bin:/bin`)
-/// cannot resolve `cargo`/`rustc`.
+/// Absolute `cargo` for the test's own independent verification command.
+/// The production tool path resolves `cargo` through its inherited `PATH`.
 fn cargo_abs() -> String {
     if let Ok(cargo) = std::env::var("CARGO") {
         return cargo;
@@ -37,25 +37,6 @@ fn cargo_abs() -> String {
         }
     }
     panic!("cargo not found in test PATH");
-}
-
-fn rustc_abs() -> String {
-    let sibling = std::path::Path::new(&cargo_abs())
-        .parent()
-        .map(|dir| dir.join("rustc"));
-    if let Some(cand) = sibling
-        && cand.is_file()
-    {
-        return cand.to_string_lossy().to_string();
-    }
-    let path = std::env::var_os("PATH").unwrap_or_default();
-    for dir in std::env::split_paths(&path) {
-        let cand = dir.join("rustc");
-        if cand.is_file() {
-            return cand.to_string_lossy().to_string();
-        }
-    }
-    panic!("rustc not found in test PATH");
 }
 
 fn live_env() -> Option<(ResponsesConfig, String, Option<String>)> {
@@ -137,12 +118,10 @@ async fn live_workflow_harness() {
     .collect();
     let files = oc_adapters::files::Files::new(&project, data.path()).expect("files");
     let shell = oc_adapters::shell::Shell::new(&project).expect("shell");
-    // Toolchain location for the scrubbed child env (same pattern as the
-    // offline suite): absolute `cargo` in the prompt, `RUSTC` as a
-    // caller-observed parent-env extra.
-    let cargo = cargo_abs();
-    let parent_env: BTreeMap<String, String> =
-        [("RUSTC".to_string(), rustc_abs())].into_iter().collect();
+    // Production parity: the runtime receives the process's own observed
+    // environment, and the child resolves the toolchain through the
+    // allowlisted `PATH` with no test-only absolute hints.
+    let parent_env: BTreeMap<String, String> = std::env::vars().collect();
     let runtime = Runtime::new(
         &db,
         "work",
@@ -174,13 +153,12 @@ async fn live_workflow_harness() {
     // fixed (or the budget runs out). Truncated gateway streams fail single
     // turns; every attempt is a new durable turn that sees prior history,
     // never a hidden retry of executed tools.
-    let prompt = format!(
-        "Fix the `add` function in src/lib.rs so tests pass. \
+    let prompt = "Fix the `add` function in src/lib.rs so tests pass. \
         First read src/lib.rs. \
         Use apply_patch with a *** Begin Patch / *** Update File: / @@ / +/-lines patch, \
-        then run `{cargo} test` with the default working directory (no cwd override). \
+        then run `cargo test` with the default working directory (no cwd override). \
         Reply briefly."
-    );
+        .to_string();
     let mut fixed = false;
     for attempt in 0..4 {
         let candidate = runtime

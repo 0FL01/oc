@@ -2,12 +2,14 @@
 //!
 //! One-shot supervised execution, not a persistent shell manager and not a
 //! sandbox: the child shares the filesystem, network and uid. Per call the
-//! supervisor forks a fresh process group (`setsid`), pins `cwd` inside the
-//! trusted root, scrubs the child environment of provider/MCP/runner
-//! credentials, drains stdout/stderr concurrently into bounded buffers, and
-//! enforces a deadline (`TERM` → grace → `KILL` to the whole group) with
-//! verified reap. Timeout kills report `Unknown`, explicit cancellation
-//! reports `Cancelled`; neither is ever presented as success.
+//! supervisor forks a fresh session (`setsid`), pins `cwd` inside the trusted
+//! root, exposes only an allowlisted non-credential child environment,
+//! services stdin/stdout/stderr concurrently into bounded buffers, and
+//! enforces one deadline that starts before spawn. Leader exit is not group
+//! completion: drains get a bounded window, then the owned session group is
+//! TERM→grace→KILLed so a descendant holding a pipe can never hang the call.
+//! Timeout kills report `Unknown`, explicit cancellation reports `Cancelled`;
+//! neither is ever presented as success.
 
 use std::collections::BTreeMap;
 use std::io::Read;
@@ -15,6 +17,7 @@ use std::os::unix::process::{CommandExt as _, ExitStatusExt as _};
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use thiserror::Error;
@@ -111,16 +114,20 @@ impl Shell {
         if !project_root.is_absolute() {
             return Err(ShellError::BadCwd);
         }
+        // Canonical root: symlink containment compares real paths.
         Ok(Self {
-            root: project_root.to_path_buf(),
+            root: project_root
+                .canonicalize()
+                .map_err(|_| ShellError::BadCwd)?,
         })
     }
 
     /// Execute `argv` (no shell joining: `argv[0]` is the program).
     ///
     /// `parent_env` is the caller-observed environment (production passes
-    /// `std::env::vars`); only the minimal base plus scrubbed extras reach
-    /// the child. `cancel` is polled alongside the deadline.
+    /// `std::env::vars`); only allowlisted non-credential names reach the
+    /// child. `cancel` is polled alongside the deadline, which starts before
+    /// spawn so a slow spawn or a blocked stdin write cannot extend it.
     pub fn execute(
         &self,
         parent_env: &BTreeMap<String, String>,
@@ -136,6 +143,9 @@ impl Shell {
             return Err(ShellError::StdinTooLarge);
         }
         let cwd_abs = self.resolve_cwd(cwd)?;
+        // The single deadline covers spawn, stdin write, execution and the
+        // bounded drain/teardown window.
+        let start = Instant::now();
         let mut cmd = Command::new(&argv[0]);
         cmd.args(&argv[1..]);
         cmd.current_dir(&cwd_abs);
@@ -160,27 +170,30 @@ impl Shell {
             });
         }
         // New session => process group leader; group kills stay contained.
-        let mut child = cmd.spawn().map_err(|_| ShellError::Reap)?;
+        // The OS error is kept (kind only, no payload) so a refused exec is
+        // diagnosable instead of a bare `Reap`.
+        let mut child = cmd.spawn().map_err(|error| ShellError::SpawnRefused {
+            reason: format!("exec: {error}"),
+        })?;
         let pid = child.id() as i32;
 
-        if !stdin.is_empty() {
-            use std::io::Write as _;
-            if let Some(mut pipe) = child.stdin.take() {
-                let _ = pipe.write_all(stdin);
-                // Pipe closes on drop; a full pipe cannot block us because
-                // the child drains concurrently with our reader threads.
-            }
-        }
+        // stdin runs on its own thread: a child that never reads cannot block
+        // the supervisor (the writer is released by pipe close or group kill).
+        let stdin_done = if stdin.is_empty() {
+            None
+        } else {
+            child
+                .stdin
+                .take()
+                .map(|pipe| spawn_stdin(pipe, stdin.to_vec()))
+        };
 
         // Concurrent drains: one thread per pipe so interleaved floods can
         // never deadlock a full pipe buffer while we wait below.
-        let mut out_pipe = child.stdout.take();
-        let mut err_pipe = child.stderr.take();
         let cap = limits.retain_cap;
-        let out_handle = std::thread::spawn(move || read_capped(out_pipe.take(), cap));
-        let err_handle = std::thread::spawn(move || read_capped(err_pipe.take(), cap));
+        let out = spawn_drain(child.stdout.take(), cap);
+        let err = spawn_drain(child.stderr.take(), cap);
 
-        let start = Instant::now();
         let mut outcome_kind = OutcomeKind::Exited;
         loop {
             if cancel.load(Ordering::Relaxed) {
@@ -198,35 +211,39 @@ impl Shell {
                 }
             }
         }
+        // Deadline/cancel: the whole owned group goes first, so the leader
+        // reap below cannot block on a still-running child.
         if outcome_kind != OutcomeKind::Exited {
-            // TERM the whole group first (well-behaved children exit here),
-            // then KILL after the grace period (TERM-trappers die here).
-            // SAFETY: killpg targets our own child group only; negative
-            // return values (already dead) are ignored.
-            unsafe {
-                libc::killpg(pid, libc::SIGTERM);
-            }
-            let grace_end = Instant::now() + limits.kill_grace;
-            loop {
-                match child.try_wait().map_err(|_| ShellError::Reap)? {
-                    Some(_) => break,
-                    None => {
-                        if Instant::now() >= grace_end {
-                            // SAFETY: same containment as above.
-                            unsafe {
-                                libc::killpg(pid, libc::SIGKILL);
-                            }
-                            break;
-                        }
-                        std::thread::sleep(Duration::from_millis(10));
-                    }
-                }
+            kill_group(pid, limits.kill_grace);
+        }
+        // Leader status (cached by `try_wait` above when it exited).
+        let status = child.wait().map_err(|_| ShellError::Reap)?;
+
+        // Leader exit is not group completion: a descendant may still hold
+        // the pipes open. A normal exit first gets a bounded drain window,
+        // then the owned group is removed so the reader threads can finish.
+        if outcome_kind == OutcomeKind::Exited {
+            wait_drains(
+                &out,
+                &err,
+                stdin_done.as_ref(),
+                Instant::now() + limits.kill_grace,
+            );
+            if !drains_finished(&out, &err, stdin_done.as_ref()) {
+                kill_group(pid, limits.kill_grace);
             }
         }
-        // Reap (blocks only when the group kill above is still in flight).
-        let status = child.wait().map_err(|_| ShellError::Reap)?;
-        let (stdout, stdout_truncated) = out_handle.join().map_err(|_| ShellError::Reap)?;
-        let (stderr, stderr_truncated) = err_handle.join().map_err(|_| ShellError::Reap)?;
+        // Bounded completion wait: a reader blocked on a pipe held outside
+        // our group must never hang the call; partial output is still
+        // returned instead of joining a possibly infinite reader thread.
+        wait_drains(
+            &out,
+            &err,
+            stdin_done.as_ref(),
+            Instant::now() + limits.kill_grace,
+        );
+        let (stdout, stdout_truncated) = out.take();
+        let (stderr, stderr_truncated) = err.take();
         Ok(ShellOutcome {
             code: status.code(),
             signal: status.signal(),
@@ -286,7 +303,14 @@ impl Shell {
         if !abs.is_dir() {
             return Err(ShellError::BadCwd);
         }
-        Ok(abs)
+        // Lexical containment is not enough: a symlink inside the trusted
+        // root can point outside it. The kernel resolves the real path, so
+        // the canonical target must stay inside the canonical root.
+        let canonical = abs.canonicalize().map_err(|_| ShellError::BadCwd)?;
+        if canonical != self.root && !canonical.starts_with(&self.root) {
+            return Err(ShellError::BadCwd);
+        }
+        Ok(canonical)
     }
 }
 
@@ -297,74 +321,168 @@ enum OutcomeKind {
     Cancelled,
 }
 
-/// Bounded pipe read: retains `cap` bytes and flags truncation, draining
-/// the rest without retaining so the child never blocks on a full pipe.
-fn read_capped<T: Read>(pipe: Option<T>, cap: usize) -> (Vec<u8>, bool) {
-    let Some(mut pipe) = pipe else {
-        return (Vec::new(), false);
-    };
-    let mut buf = Vec::new();
-    let mut tmp = [0u8; 8192];
-    let mut truncated = false;
-    loop {
-        match pipe.read(&mut tmp) {
-            Ok(0) => break,
-            Ok(n) => {
-                if buf.len() + n > cap {
-                    let room = cap.saturating_sub(buf.len());
-                    buf.extend_from_slice(&tmp[..room]);
-                    truncated = true;
-                    // Drain the rest without retaining so the child never
-                    // blocks on a full pipe while we wait for its exit.
-                    while pipe.read(&mut tmp).map(|n| n > 0).unwrap_or(false) {}
-                    break;
-                }
-                buf.extend_from_slice(&tmp[..n]);
-            }
-            Err(_) => break,
-        }
-    }
-    (buf, truncated)
+/// Bounded concurrent pipe drain shared with the supervisor.
+///
+/// Retains `cap` bytes, keeps draining past the cap while flagging
+/// truncation (so a flooding child never blocks on a full pipe), and marks
+/// completion under the same lock. The supervisor reads partial output
+/// without ever joining the thread unboundedly.
+struct Drain {
+    state: Arc<Mutex<DrainState>>,
 }
 
-/// Minimal child env: fixed base plus scrubbed extras.
-///
-/// Dropped (case-insensitive substring): `api_key`, `apikey`, `secret`,
-/// `token`, `password`, `passwd`, `authorization`, `credential`,
-/// `private_key`, `ludka`, `openai`, `anthropic`, `mcp_`, `sentry_dsn`.
-/// `PATH`/`LANG` come from the fixed base, never the parent.
-pub fn child_env(parent: &BTreeMap<String, String>) -> BTreeMap<String, String> {
-    const BASE: [(&str, &str); 2] = [("PATH", "/usr/bin:/bin"), ("LANG", "C.UTF-8")];
-    const DROP: [&str; 14] = [
-        "api_key",
-        "apikey",
-        "secret",
-        "token",
-        "password",
-        "passwd",
-        "authorization",
-        "credential",
-        "private_key",
-        "ludka",
-        "openai",
-        "anthropic",
-        "mcp_",
-        "sentry_dsn",
-    ];
-    let mut out: BTreeMap<String, String> = BASE
-        .iter()
-        .map(|(k, v)| (k.to_string(), v.to_string()))
-        .collect();
-    for (key, value) in parent {
-        if key == "PATH" || key == "LANG" {
-            continue;
+#[derive(Default)]
+struct DrainState {
+    bytes: Vec<u8>,
+    truncated: bool,
+    done: bool,
+}
+
+impl Drain {
+    fn finished(&self) -> bool {
+        self.state.lock().expect("drain state").done
+    }
+
+    fn take(&self) -> (Vec<u8>, bool) {
+        let guard = self.state.lock().expect("drain state");
+        (guard.bytes.clone(), guard.truncated)
+    }
+}
+
+fn spawn_drain<R: Read + Send + 'static>(pipe: Option<R>, cap: usize) -> Drain {
+    let state = Arc::new(Mutex::new(DrainState::default()));
+    let worker = state.clone();
+    std::thread::spawn(move || {
+        if let Some(mut pipe) = pipe {
+            let mut tmp = [0u8; 8192];
+            loop {
+                match pipe.read(&mut tmp) {
+                    Ok(0) | Err(_) => break,
+                    Ok(n) => {
+                        let mut guard = worker.lock().expect("drain state");
+                        let room = cap.saturating_sub(guard.bytes.len());
+                        if room == 0 {
+                            guard.truncated = true;
+                        } else {
+                            let take = n.min(room);
+                            guard.bytes.extend_from_slice(&tmp[..take]);
+                            if take < n {
+                                guard.truncated = true;
+                            }
+                        }
+                    }
+                }
+            }
         }
-        let lower = key.to_lowercase();
-        if DROP.iter().any(|d| lower.contains(d)) {
+        worker.lock().expect("drain state").done = true;
+    });
+    Drain { state }
+}
+
+/// Write the bounded stdin payload off-thread; returns the completion flag.
+fn spawn_stdin(mut pipe: std::process::ChildStdin, data: Vec<u8>) -> Arc<AtomicBool> {
+    let done = Arc::new(AtomicBool::new(false));
+    let flag = done.clone();
+    std::thread::spawn(move || {
+        use std::io::Write as _;
+        // A child that never reads blocks this writer, not the supervisor:
+        // pipe close (child exit) or group teardown releases it.
+        let _ = pipe.write_all(&data);
+        drop(pipe);
+        flag.store(true, Ordering::Release);
+    });
+    done
+}
+
+fn drains_finished(out: &Drain, err: &Drain, stdin: Option<&Arc<AtomicBool>>) -> bool {
+    out.finished() && err.finished() && stdin.is_none_or(|flag| flag.load(Ordering::Acquire))
+}
+
+/// Wait for all three stdio streams to finish, never past `deadline`.
+fn wait_drains(out: &Drain, err: &Drain, stdin: Option<&Arc<AtomicBool>>, deadline: Instant) {
+    while Instant::now() < deadline {
+        if drains_finished(out, err, stdin) {
+            return;
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
+}
+
+/// TERM the owned session group, wait up to `grace`, then KILL it.
+///
+/// Containment: `setsid` in the pre-exec child makes it session and group
+/// leader with `pgid == pid`, so `killpg(pid, …)` can only ever reach
+/// processes this call started — never the supervisor's own group.
+fn kill_group(pid: i32, grace: Duration) {
+    if !group_alive(pid) {
+        return;
+    }
+    // SAFETY: signals the child's own session group only; a vanished group
+    // (ESRCH) is already handled by the `group_alive` probe above.
+    unsafe {
+        libc::killpg(pid, libc::SIGTERM);
+    }
+    let deadline = Instant::now() + grace;
+    while group_alive(pid) && Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    if group_alive(pid) {
+        // SAFETY: same containment as the TERM above.
+        unsafe {
+            libc::killpg(pid, libc::SIGKILL);
+        }
+    }
+}
+
+fn group_alive(pid: i32) -> bool {
+    // SAFETY: signal 0 only probes the child's own process group.
+    unsafe { libc::killpg(pid, 0) == 0 }
+}
+
+/// Strict child-environment allowlist: names that cannot carry provider,
+/// MCP or runner credentials and that ordinary dev toolchains need.
+///
+/// This is a positive list, not a "name does not contain a keyword" filter:
+/// anything unlisted (including innocuous names) is dropped.
+const ENV_ALLOWLIST: [&str; 13] = [
+    "PATH",
+    "HOME",
+    "TMPDIR",
+    "TERM",
+    "USER",
+    "LOGNAME",
+    "SHELL",
+    "CARGO_HOME",
+    "RUSTUP_HOME",
+    "XDG_CACHE_HOME",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME",
+    "XDG_RUNTIME_DIR",
+];
+
+fn env_allowed(name: &str) -> bool {
+    name == "LANG" || name.starts_with("LC_") || ENV_ALLOWLIST.contains(&name)
+}
+
+/// Minimal child env: strict name allowlist from the parent plus working
+/// defaults.
+///
+/// Allowlisted names keep their parent value so toolchains resolve normally
+/// (`PATH`, `HOME`, `CARGO_HOME`, …); `PATH`/`LANG` fall back to a working
+/// default when unset. Every other name — credential-shaped or not — is
+/// dropped, because a substring denylist is not a security boundary.
+pub fn child_env(parent: &BTreeMap<String, String>) -> BTreeMap<String, String> {
+    let mut out = BTreeMap::new();
+    for (key, value) in parent {
+        if !env_allowed(key) || value.contains('\0') {
             continue;
         }
         out.insert(key.clone(), value.clone());
     }
+    out.entry("PATH".to_string())
+        .or_insert_with(|| "/usr/bin:/bin".to_string());
+    out.entry("LANG".to_string())
+        .or_insert_with(|| "C.UTF-8".to_string());
     out
 }
 
@@ -478,7 +596,8 @@ mod tests {
             ("OPENAI_API_KEY", "parent-secret"),
             ("MCP_TOKEN", "parent-secret"),
             ("MYAPP_OK", "1"),
-            ("PATH", "/evil/bin"),
+            ("HOME", "/home/fixture"),
+            ("PATH", "/usr/bin:/bin"),
         ]
         .iter()
         .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -606,14 +725,88 @@ mod tests {
             )
             .expect("run");
         let text = String::from_utf8(out.stdout).expect("utf8");
-        assert!(text.contains("MYAPP_OK=1"));
-        assert!(!text.contains("parent-secret"));
+        // Allowlisted non-credential names keep their parent value…
+        assert!(text.contains("HOME=/home/fixture"));
         assert!(text.contains("PATH=/usr/bin:/bin"));
-        // Direct unit coverage of the scrub list.
+        assert!(!text.contains("parent-secret"));
+        // …everything else is dropped: a name-based denylist is not a
+        // boundary, so even an innocuous unlisted name must not survive.
+        assert!(!text.contains("MYAPP_OK"), "unlisted env leaked: {text}");
         let scrubbed = child_env(&parent_env());
         assert!(!scrubbed.contains_key("LUDKA_API_KEY"));
         assert!(!scrubbed.contains_key("MCP_TOKEN"));
-        assert_eq!(scrubbed.get("MYAPP_OK").map(String::as_str), Some("1"));
+        assert!(!scrubbed.contains_key("MYAPP_OK"));
+        assert_eq!(
+            scrubbed.get("HOME").map(String::as_str),
+            Some("/home/fixture")
+        );
+        // Working defaults apply when the parent lacks them.
+        let bare = child_env(&BTreeMap::new());
+        assert_eq!(bare.get("PATH").map(String::as_str), Some("/usr/bin:/bin"));
+        assert_eq!(bare.get("LANG").map(String::as_str), Some("C.UTF-8"));
+    }
+
+    #[test]
+    fn aud28_symlink_cwd_escape_refused_and_toolchain_resolves() {
+        let (tmp, shell) = setup();
+        let outside = tmp.path().join("outside");
+        std::fs::create_dir_all(&outside).expect("outside");
+        std::os::unix::fs::symlink(&outside, tmp.path().join("project/link")).expect("symlink");
+        assert!(matches!(
+            shell.execute(
+                &parent_env(),
+                &["true".to_string()],
+                "link",
+                None,
+                limits(5_000),
+                &NO_CANCEL
+            ),
+            Err(ShellError::BadCwd)
+        ));
+        // A symlink that resolves inside the root stays usable, and the
+        // child starts in the canonical directory.
+        let real = tmp.path().join("project/real");
+        std::fs::create_dir_all(&real).expect("real");
+        std::os::unix::fs::symlink(&real, tmp.path().join("project/inner-link")).expect("inner");
+        let out = shell
+            .execute(
+                &parent_env(),
+                &["pwd".to_string()],
+                "inner-link",
+                None,
+                limits(5_000),
+                &NO_CANCEL,
+            )
+            .expect("run");
+        assert_eq!(out.code, Some(0));
+        let printed = String::from_utf8(out.stdout).expect("utf8");
+        assert_eq!(
+            printed.trim(),
+            real.canonicalize().expect("canon").to_string_lossy()
+        );
+
+        // AUD28: ordinary dev toolchain binaries resolve through the
+        // production child environment, with no test-only absolute hints.
+        let real_parent: BTreeMap<String, String> = std::env::vars().collect();
+        for (program, needle) in [("rustc", "rustc"), ("cargo", "cargo")] {
+            let out = shell
+                .execute(
+                    &real_parent,
+                    &[program.to_string(), "--version".to_string()],
+                    ".",
+                    None,
+                    limits(30_000),
+                    &NO_CANCEL,
+                )
+                .expect("toolchain run");
+            assert_eq!(
+                out.code,
+                Some(0),
+                "{program}: {}",
+                String::from_utf8_lossy(&out.stderr)
+            );
+            assert!(String::from_utf8_lossy(&out.stdout).contains(needle));
+        }
     }
 
     #[test]
