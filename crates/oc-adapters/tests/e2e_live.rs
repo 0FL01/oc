@@ -3,9 +3,11 @@
 //! Mirrors `e2e_offline.rs` against the real OpenProxy: seeded coding
 //! turn, session reopen + next command, compress, restart, webfetch and
 //! (when configured) `codex_web` search. Requires `LUDKA2_API_URL`,
-//! `LUDKA2_API_KEY` and `OC_TEST_MODEL`; without them it records
-//! `BUILD_READY_LIVE_BLOCKED` and passes without touching the network —
-//! never a false PASS. Optional: `OC_TEST_VARIANT`, `LUDKA2_MCP_URL`
+//! `LUDKA2_API_KEY` and `OC_TEST_MODEL`; an explicit run without them emits
+//! one machine-readable BLOCKED object and fails, so an aggregate can never
+//! count an early return as a live PASS. The bounded binary-level campaign
+//! lives in `crates/oc/tests/live_bounded.rs`; this file keeps the
+//! component-level workflow. Optional: `OC_TEST_VARIANT`, `LUDKA2_MCP_URL`
 //! (codex_web exact URL, same key as bearer).
 
 use std::collections::BTreeMap;
@@ -84,8 +86,17 @@ fn copy_dir(from: &std::path::Path, to: &std::path::Path) {
 #[ignore = "needs live OpenProxy credentials"]
 async fn live_workflow_harness() {
     let Some((provider, model, variant)) = live_env() else {
-        eprintln!("BUILD_READY_LIVE_BLOCKED: set LUDKA2_API_URL, LUDKA2_API_KEY, OC_TEST_MODEL");
-        return;
+        let report = serde_json::json!({
+            "harness": "e2e_live_component",
+            "status": "blocked",
+            "reason": "set LUDKA2_API_URL, LUDKA2_API_KEY and OC_TEST_MODEL",
+            "counts": {"attempted": 0, "passed": 0, "failed": 0, "blocked": 1, "skipped": 0},
+        });
+        println!("{}", serde_json::to_string_pretty(&report).expect("json"));
+        if let Ok(path) = std::env::var("OC_LIVE_SUMMARY") {
+            let _ = std::fs::write(path, report.to_string());
+        }
+        panic!("live component harness BLOCKED: missing credentials");
     };
     let started = Instant::now();
     let mut steps = 0usize;

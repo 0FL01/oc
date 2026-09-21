@@ -1,0 +1,12 @@
+{
+  "counts": {
+    "attempted": 0,
+    "blocked": 1,
+    "failed": 0,
+    "passed": 0,
+    "skipped": 0
+  },
+  "harness": "live_bounded",
+  "reason": "OC_TEST_MODEL is not set",
+  "status": "blocked"
+}
