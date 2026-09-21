@@ -138,6 +138,9 @@ async fn load_with_env(
     // fragments follow ordinary config precedence; standalone files then layer
     // at the same admitted roots (JSON before JSONC).
     let mut dcp_fragment = serde_json::json!({});
+    // Every admitted source that contributed a DCP fragment: an unsupported
+    // option must name the file the owner has to edit, not just the field.
+    let mut dcp_sources: Vec<String> = Vec::new();
     for root in &roots {
         let root = root.canonicalize().unwrap_or_else(|_| root.clone());
         for source in &sources {
@@ -149,6 +152,7 @@ async fn load_with_env(
             if let Some(fragment) = value.get("dcp") {
                 merge_json_object(&mut dcp_fragment, fragment)
                     .map_err(|reason| format!("{}: invalid dcp config: {reason}", source.path))?;
+                dcp_sources.push(source.path.clone());
             }
         }
         for name in ["dcp.json", "dcp.jsonc"] {
@@ -167,10 +171,16 @@ async fn load_with_env(
                 .map_err(|error| error.to_string())?;
             merge_json_object(&mut dcp_fragment, &value)
                 .map_err(|reason| format!("{}: invalid dcp config: {reason}", path.display()))?;
+            dcp_sources.push(path.display().to_string());
         }
     }
-    let (dcp_config, dcp_warnings) =
-        dcp_auto::load_config(&dcp_fragment).map_err(|error| error.to_string())?;
+    let (dcp_config, dcp_warnings) = dcp_auto::load_config(&dcp_fragment).map_err(|error| {
+        if dcp_sources.is_empty() {
+            error.to_string()
+        } else {
+            format!("{error} (dcp config sources: {})", dcp_sources.join(", "))
+        }
+    })?;
     let dcp_protected = oc_core::context_plan::ProtectedSpec {
         protect_user_messages: dcp_config.protect_user_messages,
         protect_tags: dcp_config.protect_tags,
@@ -780,6 +790,34 @@ mod tests {
             .await
             .expect("in-root symlink is admitted");
         assert_eq!(loaded.provider.api_key, "in-root-key");
+    }
+
+    /// An unsupported DCP option names the file the owner must edit.
+    #[tokio::test]
+    async fn unsupported_dcp_option_names_its_source() {
+        let dir = tempfile::tempdir().expect("fixture");
+        let project = dir.path().join("project");
+        std::fs::create_dir_all(&project).expect("project");
+        std::fs::write(
+            project.join("opencode.json"),
+            r#"{"model":"fixture/org/new","provider":{"fixture":{"options":{
+                "baseURL":"https://example.invalid/proxy/v1","apiKey":"k"
+            },"models":{"org/new":{}}}}}"#,
+        )
+        .expect("config");
+        std::fs::write(
+            project.join("dcp.jsonc"),
+            r#"{"experimental": {"allowSubAgents": true}}"#,
+        )
+        .expect("dcp config");
+        let error = load_with_env(&project, BTreeMap::new())
+            .await
+            .map(|_| ())
+            .expect_err("unsupported option must fail closed");
+        assert!(
+            error.contains("allowSubAgents") && error.contains("dcp.jsonc"),
+            "the diagnostic must name the source file: {error}"
+        );
     }
 
     #[tokio::test]
