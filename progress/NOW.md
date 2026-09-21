@@ -1,28 +1,16 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-21T16:06:28+00:00
-Active: нет
+State updated: 2026-09-21T16:06:30+00:00
+Active: T39
 
 Сверить Git status/diff до выполнения команд.
+Task: T39 — Довести TUI до подключённого daily workflow
+Spec: audit/repairs/T39.md
+Evidence target: evidence/T39/report.md
 
-Последний срез: T38 [done]; сверить незакоммиченный diff.
+Закрыть F14 по audit/repairs/T39.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
 
-## Result
-T38 closed: F12/AUD27-AUD28 (shell supervision, group teardown, strict child env, canonical cwd) and F13/AUD25-AUD26 (Unicode HTML, Url handling, dial-bound egress, total budget) implemented, RED captured on 4574a2d, workspace gate green.
-
-## Checks
-cargo test --workspace --locked exit 0 (308 passed / 0 failed; only the 3 pre-existing external harnesses ignored); targeted adapters unit 129, shell_watchdog 2, e2e_offline 3, soak 4, runtime 31; clippy -D warnings, fmt --check, build, oc --help, progress.py check, check_docs.py, git diff --check all exit 0.
-
-## Risks
-AUD27 cases are Linux-specific (session groups). One non-reproducible `reap failed` before the spawn-diagnostics change; 3 reruns plus full workspace green, now reported with the OS error. HTML scanner is not spec-complete; exotic markup degrades to text.
-
-## Next
-Start T39 (TUI panels/switch/commands, F14/AUD29-AUD31) from audit/repairs/T39.md.
-
-
-Следующий шаг: проверить зависимости и начать первую ready-задачу.
-
-Ready (до 5): T39
+Ready (до 5): нет
 Blocked: T27
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.

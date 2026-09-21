@@ -10,7 +10,7 @@ Plan: ../../roadmap/M7.md
 - [T36](T36/INDEX.md) [done] — Подключить DCP к реальному tool loop; latest: 0003.md.
 - [T37](T37/INDEX.md) [done] — MCP config, registry и владение ресурсами; latest: 0004.md.
 - [T38](T38/INDEX.md) [done] — Shell и webfetch без hangs/Unicode panic; latest: 0002.md.
-- [T39](T39/INDEX.md) [todo] — Довести TUI до подключённого daily workflow; latest: нет.
+- [T39](T39/INDEX.md) [active] — Довести TUI до подключённого daily workflow; latest: нет.
 - [T40](T40/INDEX.md) [todo] — Ограничить активный контекст, а не подменять его обрезкой; latest: нет.
 - [T41](T41/INDEX.md) [todo] — Пересобрать доказательства вокруг бинарника; latest: нет.
 - [T42](T42/INDEX.md) [todo] — Повторная qualification и честный handoff; latest: нет.
