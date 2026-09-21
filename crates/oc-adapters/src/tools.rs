@@ -20,7 +20,7 @@ use thiserror::Error;
 
 use crate::config::parse_skill;
 use crate::files::Files;
-use crate::patch::{PatchError, WritePolicy};
+use crate::patch::{ApplyFailure, FileResult, PatchError, WritePolicy};
 use crate::provider::StreamItem;
 use crate::shell::{Shell, ShellLimits};
 use crate::storage::Db;
@@ -430,47 +430,63 @@ fn tool_read(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
 fn tool_patch(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
     let patch = call
         .arguments
-        .get("patch")
+        .as_object()
+        .filter(|args| args.len() == 1)
+        .and_then(|args| args.get("patchText"))
         .and_then(|v| v.as_str())
         .unwrap_or("");
     if patch.is_empty() {
-        return "error: invalid arguments for apply_patch: missing patch".to_string();
+        return "error: invalid arguments for apply_patch: expected only nonempty patchText"
+            .to_string();
     }
     let Some(roots) = ctx.roots.as_ref() else {
         return "error: tool apply_patch failed: no roots".to_string();
     };
     let bridge = PolicyBridge(ctx.policy);
-    match crate::patch::apply_patch(&roots.project, &roots.data, patch, &bridge) {
+    patch_outcome(crate::patch::apply_patch(
+        &roots.project,
+        &roots.data,
+        patch,
+        &bridge,
+    ))
+}
+
+fn patch_outcome(result: Result<Vec<FileResult>, ApplyFailure>) -> String {
+    match result {
         Ok(files) => files
             .iter()
-            .map(|f| match &f.new_path {
-                Some(new) => format!(
-                    "{} {} -> {} ({})",
-                    f.op,
-                    f.path,
-                    new,
-                    short_hash(&f.hash_after)
-                ),
-                None => format!("{} {} ({})", f.op, f.path, short_hash(&f.hash_after)),
-            })
+            .map(patch_file_result)
             .collect::<Vec<_>>()
             .join("\n"),
         Err(failure) => {
-            let mut text = String::new();
-            for done in &failure.done {
-                text.push_str(&format!("done {} {}\n", done.op, done.path));
-            }
-            text.push_str(&format!(
+            // The runtime classifies failures by this prefix, including when
+            // earlier operations committed successfully.
+            let mut text = format!(
                 "error: partial op {} ({}): {}",
                 failure.failed_op, failure.failed_path, failure.error
-            ));
+            );
+            for done in &failure.done {
+                text.push_str(&format!("\ndone {}", patch_file_result(done)));
+            }
             text
         }
     }
 }
 
-fn short_hash(hash: &Option<String>) -> String {
-    hash.as_deref().unwrap_or("-").chars().take(12).collect()
+fn patch_file_result(file: &FileResult) -> String {
+    let target = file
+        .new_path
+        .as_ref()
+        .map(|path| format!(" -> {path}"))
+        .unwrap_or_default();
+    format!(
+        "{} {}{} (hash_before={}, hash_after={})",
+        file.op,
+        file.path,
+        target,
+        file.hash_before.as_deref().unwrap_or("-"),
+        file.hash_after.as_deref().unwrap_or("-"),
+    )
 }
 
 async fn tool_bash(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
@@ -865,6 +881,106 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn aud03_patch_text_schema_and_tool_route() {
+        let definition = crate::runtime::builtin_tool_defs()
+            .into_iter()
+            .find(|tool| tool.name == "apply_patch")
+            .expect("patch definition");
+        assert_eq!(
+            definition.parameters,
+            serde_json::json!({
+                "type": "object",
+                "properties": {"patchText": {"type": "string"}},
+                "required": ["patchText"],
+                "additionalProperties": false,
+            })
+        );
+        let env = setup();
+        let policy = AllowAllPolicy;
+        let context = ctx(&env, &policy, false);
+        let patch = "*** Begin Patch\n*** Add File: canonical.txt\n+hello\n*** End Patch\n";
+        for alias in ["patch", "text"] {
+            let output = execute_batch(
+                &context,
+                vec![Assembled::Call(ToolCall {
+                    id: alias.to_string(),
+                    name: "apply_patch".to_string(),
+                    arguments: serde_json::json!({(alias): patch}),
+                })],
+            )
+            .await;
+            assert!(output[0].output.starts_with("error: invalid arguments"));
+            assert!(!env.project.join("canonical.txt").exists());
+        }
+        let output = execute_batch(
+            &context,
+            vec![Assembled::Call(ToolCall {
+                id: "canonical".to_string(),
+                name: "apply_patch".to_string(),
+                arguments: serde_json::json!({"patchText": patch}),
+            })],
+        )
+        .await;
+        assert!(
+            output[0].output.starts_with("add canonical.txt"),
+            "{}",
+            output[0].output
+        );
+        assert_eq!(
+            std::fs::read(env.project.join("canonical.txt")).expect("created"),
+            b"hello\n"
+        );
+    }
+
+    #[test]
+    fn aud05_partial_patch_output_keeps_all_commits_and_full_hashes() {
+        use crate::patch::{ApplyFailure, FileResult, PatchError};
+
+        let before = "a".repeat(64);
+        let after = "b".repeat(64);
+        let done = vec![
+            FileResult {
+                path: "added.txt".to_string(),
+                new_path: None,
+                op: "add",
+                hash_before: None,
+                hash_after: Some(after.clone()),
+            },
+            FileResult {
+                path: "old.txt".to_string(),
+                new_path: Some("renamed.txt".to_string()),
+                op: "update",
+                hash_before: Some(before.clone()),
+                hash_after: Some(after.clone()),
+            },
+            FileResult {
+                path: "move-failed.txt".to_string(),
+                new_path: None,
+                op: "update",
+                hash_before: Some(before.clone()),
+                hash_after: Some(after.clone()),
+            },
+        ];
+        let output = super::patch_outcome(Err(ApplyFailure {
+            done,
+            failed_op: 2,
+            failed_path: "move-failed.txt".to_string(),
+            error: PatchError::Io {
+                path: "target.txt".to_string(),
+            },
+        }));
+        assert_eq!(
+            output,
+            format!(
+                "error: partial op 2 (move-failed.txt): io error at target.txt\n\
+             done add added.txt (hash_before=-, hash_after={after})\n\
+             done update old.txt -> renamed.txt (hash_before={before}, hash_after={after})\n\
+             done update move-failed.txt (hash_before={before}, hash_after={after})"
+            )
+        );
+    }
+
+    #[tokio::test]
     async fn tool_patch_bash_skill_paths() {
         let env = setup();
         let policy = AllowAllPolicy;
@@ -873,7 +989,7 @@ mod tests {
             Assembled::Call(ToolCall {
                 id: "p1".to_string(),
                 name: "apply_patch".to_string(),
-                arguments: serde_json::json!({"patch": "*** Begin Patch\n*** Add File: made.txt\nmade\n*** End Patch\n"}),
+                arguments: serde_json::json!({"patchText": "*** Begin Patch\n*** Add File: made.txt\n+made\n*** End Patch\n"}),
             }),
             Assembled::Call(ToolCall {
                 id: "b1".to_string(),

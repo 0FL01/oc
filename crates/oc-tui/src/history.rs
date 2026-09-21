@@ -132,21 +132,13 @@ fn patch_files(tool: &str, input: Option<&str>) -> Vec<String> {
     let Some(input) = input else {
         return Vec::new();
     };
-    // Recorded input may be raw patch text or JSON carrying it.
-    let mut candidates = vec![input.to_string()];
-    if let Ok(value) = serde_json::from_str::<serde_json::Value>(input) {
-        candidates.extend(
-            ["patch", "patchText", "text"]
-                .into_iter()
-                .filter_map(|key| value.get(key)?.as_str().map(str::to_string)),
-        );
-    }
-    for candidate in candidates {
-        if let Ok(paths) = oc_adapters::patch::affected_paths(&candidate) {
-            return paths;
-        }
-    }
-    Vec::new()
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(input) else {
+        return Vec::new();
+    };
+    let Some(patch) = value.get("patchText").and_then(|value| value.as_str()) else {
+        return Vec::new();
+    };
+    oc_adapters::patch::affected_paths(patch).unwrap_or_default()
 }
 
 fn preview(value: Option<&str>) -> String {
@@ -201,6 +193,27 @@ mod tests {
     }
 
     #[test]
+    fn patch_cards_use_only_patch_text_and_include_move_target() {
+        let patch = "*** Begin Patch\n*** Add File: added.txt\n+hello\n*** Update File: old.txt\n*** Move to: new.txt\n@@\n-old\n+new\n*** End Patch\n";
+        assert_eq!(
+            super::patch_files(
+                "apply_patch",
+                Some(&serde_json::json!({"patchText": patch}).to_string())
+            ),
+            vec!["added.txt", "new.txt", "old.txt"]
+        );
+        for alias in ["patch", "text"] {
+            assert!(
+                super::patch_files(
+                    "apply_patch",
+                    Some(&serde_json::json!({(alias): patch}).to_string())
+                )
+                .is_empty()
+            );
+        }
+    }
+
+    #[test]
     fn cards_pair_intent_outcome_and_patch_files() {
         let db = test_db("cards");
         db.create_session("s").expect("session");
@@ -209,7 +222,7 @@ mod tests {
             "s",
             Some("t1"),
             "apply_patch",
-            "*** Begin Patch\n*** Update File: a.txt\n@@\n-x\n+y\n*** End Patch",
+            &serde_json::json!({"patchText": "*** Begin Patch\n*** Update File: a.txt\n@@\n-x\n+y\n*** End Patch"}).to_string(),
         )
         .expect("intent");
         db.record_tool_outcome("op1", "completed", Some("ok"))

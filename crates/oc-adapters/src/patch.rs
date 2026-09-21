@@ -20,6 +20,8 @@ use thiserror::Error;
 
 use crate::files::{Files, glob_match};
 
+mod fs;
+
 /// Single model-visible tool name; `write`/`edit` must never appear.
 pub const MODEL_TOOL_NAMES: &[&str] = &["apply_patch"];
 /// Patch text cap (mirrors `tool_argument_bytes` 2 MiB).
@@ -28,6 +30,8 @@ pub const PATCH_BYTES_CAP: usize = 2 * 1024 * 1024;
 pub const FILE_BYTES_CAP: usize = 8 * 1024 * 1024;
 /// Max hunks per updated file.
 pub const HUNKS_CAP: usize = 1000;
+// Full preflight retains before/after images. Bound that aggregate explicitly.
+const PLAN_BYTES_CAP: usize = 64 * 1024 * 1024;
 
 /// Typed patch errors (paths only, no contents).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
@@ -173,6 +177,8 @@ enum HunkLine {
 
 struct Hunk {
     lines: Vec<HunkLine>,
+    context: Option<String>,
+    eof: bool,
 }
 
 enum FileOp {
@@ -180,7 +186,6 @@ enum FileOp {
         path: String,
         content: Vec<String>,
         crlf: bool,
-        move_to: Option<String>,
     },
     Update {
         path: String,
@@ -203,8 +208,8 @@ impl FileOp {
 
     fn move_to(&self) -> Option<&str> {
         match self {
-            FileOp::Add { move_to, .. } | FileOp::Update { move_to, .. } => move_to.as_deref(),
-            FileOp::Delete { .. } => None,
+            FileOp::Update { move_to, .. } => move_to.as_deref(),
+            FileOp::Add { .. } | FileOp::Delete { .. } => None,
         }
     }
 }
@@ -294,14 +299,16 @@ fn parse_plan(text: &str) -> Result<Vec<FileOp>, ApplyFailure> {
                 if raw.contains('\0') {
                     return plan_err(ops.len(), "NUL byte in add body");
                 }
-                content.push(lines[i].clone());
+                let Some(body) = lines[i].strip_prefix('+') else {
+                    return plan_err(ops.len(), "Add File lines must start with +");
+                };
+                content.push(body.to_string());
                 i += 1;
             }
             ops.push(FileOp::Add {
                 path,
                 content,
                 crlf,
-                move_to: None,
             });
         } else if let Some(path) = line.strip_prefix("*** Update File:") {
             let path = path.trim().to_string();
@@ -309,13 +316,38 @@ fn parse_plan(text: &str) -> Result<Vec<FileOp>, ApplyFailure> {
                 return plan_err(ops.len(), "empty update path");
             }
             i += 1;
-            let mut hunks: Vec<Hunk> = vec![Hunk { lines: Vec::new() }];
+            let move_to = if let Some(target) = lines[i].strip_prefix("*** Move to:") {
+                if target.trim().is_empty() {
+                    return plan_err(ops.len(), "empty move target");
+                }
+                i += 1;
+                Some(target.trim().to_string())
+            } else {
+                None
+            };
+            let mut hunks: Vec<Hunk> = vec![Hunk {
+                lines: Vec::new(),
+                context: None,
+                eof: false,
+            }];
+            let mut header_seen = false;
             while i < end && !lines[i].starts_with("*** ") {
                 let body = lines[i].as_str();
-                if body.starts_with("@@") {
-                    if !hunks.last().map(|h| h.lines.is_empty()).unwrap_or(false) {
-                        hunks.push(Hunk { lines: Vec::new() });
+                if body == "@@" || body.starts_with("@@ ") {
+                    if hunks.last().is_some_and(|h| h.lines.is_empty()) {
+                        if header_seen {
+                            return plan_err(ops.len(), "empty update hunk");
+                        }
+                    } else {
+                        hunks.push(Hunk {
+                            lines: Vec::new(),
+                            context: None,
+                            eof: false,
+                        });
                     }
+                    hunks.last_mut().expect("hunk").context =
+                        body.strip_prefix("@@ ").map(str::to_string);
+                    header_seen = true;
                 } else if let Some(rest) = body.strip_prefix(' ') {
                     hunks
                         .last_mut()
@@ -348,13 +380,23 @@ fn parse_plan(text: &str) -> Result<Vec<FileOp>, ApplyFailure> {
                 }
                 i += 1;
             }
+            if i < end && lines[i] == "*** End of File" {
+                hunks.last_mut().expect("hunk").eof = true;
+                i += 1;
+                while i < end && lines[i].is_empty() {
+                    i += 1;
+                }
+            }
+            if hunks.iter().any(|h| h.lines.is_empty()) {
+                return plan_err(ops.len(), "empty update hunk");
+            }
             if hunks.len() > HUNKS_CAP {
                 return plan_err(ops.len(), "too many hunks");
             }
             ops.push(FileOp::Update {
                 path,
                 hunks,
-                move_to: None,
+                move_to,
             });
         } else if let Some(path) = line.strip_prefix("*** Delete File:") {
             let path = path.trim().to_string();
@@ -362,32 +404,6 @@ fn parse_plan(text: &str) -> Result<Vec<FileOp>, ApplyFailure> {
                 return plan_err(ops.len(), "empty delete path");
             }
             ops.push(FileOp::Delete { path });
-            i += 1;
-        } else if let Some(target) = line.strip_prefix("*** Move to:") {
-            let target = target.trim().to_string();
-            if target.is_empty() {
-                return plan_err(ops.len(), "empty move target");
-            }
-            let last = ops.last_mut().ok_or_else(|| ApplyFailure {
-                done: Vec::new(),
-                failed_op: 0,
-                failed_path: "$patch".to_string(),
-                error: PatchError::InvalidPatch {
-                    entry: 0,
-                    reason: "*** Move to without a preceding file op".to_string(),
-                },
-            })?;
-            match last {
-                FileOp::Add { move_to, .. } | FileOp::Update { move_to, .. } => {
-                    if move_to.is_some() {
-                        return plan_err(ops.len().saturating_sub(1), "duplicate move target");
-                    }
-                    *move_to = Some(target);
-                }
-                FileOp::Delete { .. } => {
-                    return plan_err(ops.len().saturating_sub(1), "move after delete");
-                }
-            }
             i += 1;
         } else {
             return plan_err(
@@ -475,8 +491,29 @@ pub fn apply_patch(
         },
     })?;
 
-    // Preflight: sizes, paths, conflicts, permissions — before any write.
-    let mut seen: std::collections::HashMap<String, usize> = Default::default();
+    let canonical_root = std::fs::canonicalize(project_root).map_err(|_| {
+        op_fail(
+            0,
+            "$patch",
+            PatchError::Io {
+                path: "$patch".into(),
+            },
+        )
+    })?;
+    let root = fs::Root::new(&canonical_root).map_err(|_| {
+        op_fail(
+            0,
+            "$patch",
+            PatchError::Io {
+                path: "$patch".into(),
+            },
+        )
+    })?;
+    // Preflight: all deterministic failures, including every hunk, before
+    // creating even a destination directory or a staging file.
+    let mut seen: Vec<PathBuf> = Vec::new();
+    let mut prepared = Vec::new();
+    let mut plan_bytes = 0usize;
     for (idx, op) in ops.iter().enumerate() {
         let rel = op.path();
         let fail = |reason: &str| ApplyFailure {
@@ -488,17 +525,6 @@ pub fn apply_patch(
                 reason: reason.to_string(),
             },
         };
-        if seen.insert(rel.to_string(), idx).is_some() {
-            return Err(ApplyFailure {
-                done: Vec::new(),
-                failed_op: idx,
-                failed_path: rel.to_string(),
-                error: PatchError::Conflict {
-                    path: rel.to_string(),
-                    reason: "duplicate op".to_string(),
-                },
-            });
-        }
         let abs = match files.resolve_path(rel) {
             Ok(abs) => abs,
             Err(crate::files::FileToolError::OutsideRoot) => {
@@ -530,6 +556,23 @@ pub fn apply_patch(
             }
             Err(_) => return Err(fail("unresolvable path")),
         };
+        for path in std::iter::once(rel).chain(op.move_to()) {
+            let normalized = map_resolve(&files, path).map_err(|e| op_fail(idx, path, e))?;
+            if seen
+                .iter()
+                .any(|other| normalized.starts_with(other) || other.starts_with(&normalized))
+            {
+                return Err(op_fail(
+                    idx,
+                    path,
+                    PatchError::Conflict {
+                        path: path.to_string(),
+                        reason: "duplicate-or-overlapping-path".to_string(),
+                    },
+                ));
+            }
+            seen.push(normalized);
+        }
         // Refuse symlink mutation in the first profile, even for add/update.
         if let Ok(meta) = std::fs::symlink_metadata(&abs)
             && meta.file_type().is_symlink()
@@ -613,13 +656,127 @@ pub fn apply_patch(
                 ));
             }
         }
+        let path = abs
+            .strip_prefix(&canonical_root)
+            .map_err(|_| fail("outside root"))?
+            .to_path_buf();
+        let io = |_| {
+            op_fail(
+                idx,
+                rel,
+                PatchError::Io {
+                    path: rel.to_string(),
+                },
+            )
+        };
+        root.writable_parent(&path).map_err(io)?;
+        let before = match op {
+            FileOp::Add { .. } => {
+                if !root.absent(&path).map_err(io)? {
+                    return Err(op_fail(
+                        idx,
+                        rel,
+                        PatchError::Conflict {
+                            path: rel.to_string(),
+                            reason: "already-exists".into(),
+                        },
+                    ));
+                }
+                None
+            }
+            _ => Some(root.snapshot(&path).map_err(|error| {
+                if error.kind() == std::io::ErrorKind::FileTooLarge {
+                    op_fail(
+                        idx,
+                        rel,
+                        PatchError::TooLarge {
+                            path: rel.into(),
+                            reason: "file cap".into(),
+                        },
+                    )
+                } else {
+                    io(error)
+                }
+            })?),
+        };
+        let after = match op {
+            FileOp::Add { content, crlf, .. } => {
+                Some(render_doc(content, *crlf, !content.is_empty()))
+            }
+            FileOp::Update { hunks, .. } => {
+                let doc = split_doc(&before.as_ref().expect("snapshot").bytes, rel)
+                    .map_err(|e| op_fail(idx, rel, e))?;
+                let trailing_nl = doc.lines.is_empty() || doc.trailing_nl;
+                let mut lines = doc.lines;
+                apply_hunks(&mut lines, hunks, rel).map_err(|e| op_fail(idx, rel, e))?;
+                Some(render_doc(&lines, doc.crlf, trailing_nl))
+            }
+            FileOp::Delete { .. } => None,
+        };
+        if after
+            .as_ref()
+            .is_some_and(|bytes| bytes.len() > FILE_BYTES_CAP)
+        {
+            return Err(op_fail(
+                idx,
+                rel,
+                PatchError::TooLarge {
+                    path: rel.to_string(),
+                    reason: "file cap".into(),
+                },
+            ));
+        }
+        plan_bytes +=
+            before.as_ref().map_or(0, |s| s.bytes.len()) + after.as_ref().map_or(0, Vec::len);
+        if plan_bytes > PLAN_BYTES_CAP {
+            return Err(op_fail(
+                idx,
+                rel,
+                PatchError::TooLarge {
+                    path: rel.to_string(),
+                    reason: "plan preimages and results exceed 64 MiB".into(),
+                },
+            ));
+        }
+        let target = op
+            .move_to()
+            .map(|target| {
+                let abs = map_resolve(&files, target)?;
+                let relative = abs
+                    .strip_prefix(&canonical_root)
+                    .map_err(|_| PatchError::OutsideRoot {
+                        path: target.into(),
+                    })?
+                    .to_path_buf();
+                if !root.absent(&relative).map_err(|_| PatchError::Io {
+                    path: target.into(),
+                })? {
+                    return Err(PatchError::Conflict {
+                        path: target.into(),
+                        reason: "move-target-exists".into(),
+                    });
+                }
+                root.writable_parent(&relative)
+                    .map_err(|_| PatchError::Io {
+                        path: target.into(),
+                    })?;
+                Ok(relative)
+            })
+            .transpose()
+            .map_err(|e| op_fail(idx, rel, e))?;
+        prepared.push(Prepared {
+            path,
+            target,
+            before,
+            after,
+        });
     }
 
     // Execution: per-file commits, stop at first runtime failure.
     let mut done: Vec<FileResult> = Vec::new();
-    for (idx, op) in ops.iter().enumerate() {
-        match execute_op(&files, op, policy) {
-            Ok(result) => done.push(result),
+    for (idx, (op, prepared)) in ops.iter().zip(&prepared).enumerate() {
+        match execute_op(&root, op, prepared, policy, &mut done) {
+            Ok(()) => {}
             Err(error) => {
                 return Err(ApplyFailure {
                     done,
@@ -642,116 +799,79 @@ fn op_fail(idx: usize, rel: &str, error: PatchError) -> ApplyFailure {
     }
 }
 
+struct Prepared {
+    path: PathBuf,
+    target: Option<PathBuf>,
+    before: Option<fs::Snapshot>,
+    after: Option<Vec<u8>>,
+}
+
 fn execute_op(
-    files: &Files,
+    root: &fs::Root,
     op: &FileOp,
+    prepared: &Prepared,
     policy: &dyn WritePolicy,
-) -> Result<FileResult, PatchError> {
-    // Policy re-checked at execution for TOCTOU narrowness (cheap, local).
-    policy.check(op.path())?;
-    match op {
-        FileOp::Add {
-            path,
-            content,
-            crlf,
-            move_to,
-        } => {
-            let abs = map_resolve(files, path)?;
-            if std::fs::symlink_metadata(&abs).is_ok() {
-                return Err(PatchError::Conflict {
-                    path: path.clone(),
-                    reason: "already-exists".to_string(),
-                });
-            }
-            let bytes = render_doc(content, *crlf, !content.is_empty());
-            if bytes.len() > FILE_BYTES_CAP {
-                return Err(PatchError::TooLarge {
-                    path: path.clone(),
-                    reason: "file cap".to_string(),
-                });
-            }
-            let mode = None;
-            write_atomic(&abs, &bytes, mode)?;
-            let mut result = FileResult {
-                path: path.clone(),
-                new_path: None,
-                op: "add",
-                hash_before: None,
-                hash_after: Some(sha_hex(&bytes)),
-            };
-            if let Some(target) = move_to {
-                policy.check(target)?;
-                rename_checked(files, path, target)?;
-                result.new_path = Some(target.clone());
-            }
-            Ok(result)
-        }
-        FileOp::Update {
-            path,
-            hunks,
-            move_to,
-        } => {
-            let abs = map_resolve(files, path)?;
-            let before = std::fs::read(&abs).map_err(|_| PatchError::Io { path: path.clone() })?;
-            let doc = split_doc(&before, path)?;
-            if before.len() > FILE_BYTES_CAP {
-                return Err(PatchError::TooLarge {
-                    path: path.clone(),
-                    reason: "file cap".to_string(),
-                });
-            }
-            let mode = std::fs::metadata(&abs).ok().map(|m| {
-                use std::os::unix::fs::PermissionsExt as _;
-                m.permissions().mode()
-            });
-            let mut lines = doc.lines;
-            // An empty file has no newline style; added lines bring
-            // newline-terminated endings. Otherwise the file's existing
-            // trailing-newline flag is preserved verbatim.
-            let trailing_nl = if lines.is_empty() {
-                true
-            } else {
-                doc.trailing_nl
-            };
-            apply_hunks(&mut lines, hunks, path)?;
-            let after = render_doc(&lines, doc.crlf, trailing_nl);
-            if after.len() > FILE_BYTES_CAP {
-                return Err(PatchError::TooLarge {
-                    path: path.clone(),
-                    reason: "file cap".to_string(),
-                });
-            }
-            write_atomic(&abs, &after, mode)?;
-            let mut result = FileResult {
-                path: path.clone(),
-                new_path: None,
-                op: "update",
-                hash_before: Some(sha_hex(&before)),
-                hash_after: Some(sha_hex(&after)),
-            };
-            if let Some(target) = move_to {
-                policy.check(target)?;
-                rename_checked(files, path, target)?;
-                result.new_path = Some(target.clone());
-            }
-            Ok(result)
-        }
-        FileOp::Delete { path } => {
-            let abs = map_resolve(files, path)?;
-            let before = std::fs::read(&abs).map_err(|_| PatchError::Conflict {
-                path: path.clone(),
-                reason: "missing".to_string(),
-            })?;
-            std::fs::remove_file(&abs).map_err(|_| PatchError::Io { path: path.clone() })?;
-            Ok(FileResult {
-                path: path.clone(),
-                new_path: None,
-                op: "delete",
-                hash_before: Some(sha_hex(&before)),
-                hash_after: None,
-            })
-        }
+    done: &mut Vec<FileResult>,
+) -> Result<(), PatchError> {
+    let rel = op.path();
+    policy.check(rel)?;
+    let io = |_| PatchError::Io {
+        path: rel.to_string(),
+    };
+    let entry = root
+        .entry(&prepared.path, prepared.before.is_none())
+        .map_err(io)?;
+    let staged = prepared
+        .after
+        .as_ref()
+        .map(|after| entry.stage(after, prepared.before.as_ref().map(|before| before.mode)))
+        .transpose()
+        .map_err(io)?;
+    if let Some(before) = &prepared.before
+        && !entry.unchanged(before).map_err(io)?
+    {
+        return Err(PatchError::Conflict {
+            path: rel.to_string(),
+            reason: "stale-preimage".into(),
+        });
     }
+    if let Some(staged) = staged {
+        staged.commit(prepared.before.is_none()).map_err(io)?;
+    } else {
+        entry.remove().map_err(io)?;
+    }
+    // Record the namespace change before sync/move, which can fail after it.
+    done.push(FileResult {
+        path: rel.to_string(),
+        new_path: None,
+        op: match op {
+            FileOp::Add { .. } => "add",
+            FileOp::Update { .. } => "update",
+            FileOp::Delete { .. } => "delete",
+        },
+        hash_before: prepared
+            .before
+            .as_ref()
+            .map(|before| sha_hex(&before.bytes)),
+        hash_after: prepared.after.as_ref().map(|after| sha_hex(after)),
+    });
+    entry.sync().map_err(io)?;
+    if let Some(target) = &prepared.target {
+        let updated = entry.snapshot().map_err(io)?;
+        policy.check(op.move_to().expect("target"))?;
+        let target = root.entry(target, true).map_err(io)?;
+        if !entry.unchanged(&updated).map_err(io)? {
+            return Err(PatchError::Conflict {
+                path: rel.to_string(),
+                reason: "stale-preimage".into(),
+            });
+        }
+        entry.move_to(&target).map_err(io)?;
+        done.last_mut().expect("committed update").new_path = op.move_to().map(str::to_string);
+        target.sync().map_err(io)?;
+        entry.sync().map_err(io)?;
+    }
+    Ok(())
 }
 
 fn map_resolve(files: &Files, rel: &str) -> Result<PathBuf, PatchError> {
@@ -778,6 +898,18 @@ fn map_resolve(files: &Files, rel: &str) -> Result<PathBuf, PatchError> {
 fn apply_hunks(lines: &mut Vec<String>, hunks: &[Hunk], rel: &str) -> Result<(), PatchError> {
     let mut offset = 0usize;
     for hunk in hunks {
+        if let Some(context) = &hunk.context {
+            let positions: Vec<_> = (offset..lines.len())
+                .filter(|&index| lines[index] == *context)
+                .collect();
+            if positions.len() != 1 {
+                return Err(PatchError::Conflict {
+                    path: rel.to_string(),
+                    reason: "missing-or-ambiguous-context".to_string(),
+                });
+            }
+            offset = positions[0] + 1;
+        }
         // Pure-addition hunks (no anchor) append at the end — this is how
         // text is added to an existing empty file via Update.
         let anchored = hunk
@@ -793,31 +925,30 @@ fn apply_hunks(lines: &mut Vec<String>, hunks: &[Hunk], rel: &str) -> Result<(),
             offset = lines.len();
             continue;
         }
-        let mut found: Option<usize> = None;
-        let mut probe = offset.min(lines.len());
-        while probe < lines.len() || (probe == 0 && lines.is_empty()) {
-            if matches_at(lines, probe, &hunk.lines) {
-                found = Some(probe);
-                break;
-            }
-            probe += 1;
-            if probe > lines.len() {
-                break;
-            }
+        let old_len = hunk
+            .lines
+            .iter()
+            .filter(|l| !matches!(l, HunkLine::Add(_)))
+            .count();
+        let positions: Vec<_> = (offset..lines.len())
+            .filter(|&probe| {
+                (!hunk.eof || probe + old_len == lines.len())
+                    && matches_at(lines, probe, &hunk.lines)
+            })
+            .collect();
+        if positions.len() > 1 {
+            return Err(PatchError::Conflict {
+                path: rel.to_string(),
+                reason: "ambiguous-preimage".to_string(),
+            });
         }
-        // Also probe positions before the offset (edits may reorder).
-        if found.is_none() {
-            for probe in 0..offset.min(lines.len()) {
-                if matches_at(lines, probe, &hunk.lines) {
-                    found = Some(probe);
-                    break;
-                }
-            }
-        }
-        let pos = found.ok_or_else(|| PatchError::Conflict {
-            path: rel.to_string(),
-            reason: "stale-preimage".to_string(),
-        })?;
+        let pos = positions
+            .first()
+            .copied()
+            .ok_or_else(|| PatchError::Conflict {
+                path: rel.to_string(),
+                reason: "stale-preimage".to_string(),
+            })?;
         let mut next: Vec<String> = Vec::with_capacity(lines.len() + 8);
         next.extend_from_slice(&lines[..pos]);
         let mut cursor = pos;
@@ -830,9 +961,9 @@ fn apply_hunks(lines: &mut Vec<String>, hunks: &[Hunk], rel: &str) -> Result<(),
                 next.push(lines[cursor - 1].clone());
             }
         }
+        offset = next.len();
         next.extend_from_slice(&lines[cursor..]);
         *lines = next;
-        offset = pos + 1;
     }
     Ok(())
 }
@@ -851,51 +982,6 @@ fn matches_at(lines: &[String], pos: usize, hunk: &[HunkLine]) -> bool {
         }
     }
     true
-}
-
-fn write_atomic(abs: &std::path::Path, bytes: &[u8], mode: Option<u32>) -> Result<(), PatchError> {
-    let rel = abs.to_string_lossy().into_owned();
-    if let Some(parent) = abs.parent() {
-        std::fs::create_dir_all(parent).map_err(|_| PatchError::Io { path: rel.clone() })?;
-    }
-    let mut tmp = abs.as_os_str().to_os_string();
-    tmp.push(format!(".tmp-{}", std::process::id()));
-    let tmp = std::path::PathBuf::from(tmp);
-    std::fs::write(&tmp, bytes).map_err(|_| PatchError::Io { path: rel.clone() })?;
-    let file = std::fs::OpenOptions::new()
-        .read(true)
-        .open(&tmp)
-        .map_err(|_| PatchError::Io { path: rel.clone() })?;
-    file.sync_all()
-        .map_err(|_| PatchError::Io { path: rel.clone() })?;
-    #[cfg(unix)]
-    if let Some(mode) = mode {
-        use std::os::unix::fs::PermissionsExt as _;
-        std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(mode & 0o777))
-            .map_err(|_| PatchError::Io { path: rel.clone() })?;
-    }
-    std::fs::rename(&tmp, abs).map_err(|_| PatchError::Io { path: rel.clone() })?;
-    Ok(())
-}
-
-fn rename_checked(files: &Files, from_rel: &str, to_rel: &str) -> Result<(), PatchError> {
-    let from = map_resolve(files, from_rel)?;
-    let to = map_resolve(files, to_rel)?;
-    if std::fs::symlink_metadata(&to).is_ok() {
-        return Err(PatchError::Conflict {
-            path: to_rel.to_string(),
-            reason: "move-target-exists".to_string(),
-        });
-    }
-    if let Some(parent) = to.parent() {
-        std::fs::create_dir_all(parent).map_err(|_| PatchError::Io {
-            path: to_rel.to_string(),
-        })?;
-    }
-    std::fs::rename(&from, &to).map_err(|_| PatchError::Io {
-        path: from_rel.to_string(),
-    })?;
-    Ok(())
 }
 
 #[cfg(test)]
@@ -929,7 +1015,7 @@ mod tests {
     fn tool02_new_text_file_unicode_crlf() {
         let (_tmp, project, data) = setup();
         let patch =
-            "*** Begin Patch\n*** Add File: hello.txt\nhello \u{1F30D}\nsecond\n*** End Patch\n";
+            "*** Begin Patch\n*** Add File: hello.txt\n+hello \u{1F30D}\n+second\n*** End Patch\n";
         let done = run(&project, &data, patch).expect("add");
         assert_eq!(done.len(), 1);
         assert_eq!(done[0].op, "add");
@@ -1026,10 +1112,10 @@ mod tests {
         let patch = concat!(
             "*** Begin Patch\n",
             "*** Update File: src.txt\n",
+            "*** Move to: taken.txt\n",
             "@@\n",
             "-v1\n",
             "+v2\n",
-            "*** Move to: taken.txt\n",
             "*** End Patch\n",
         );
         let err = run(&project, &data, patch).expect_err("move conflict");
@@ -1039,10 +1125,10 @@ mod tests {
         let patch = concat!(
             "*** Begin Patch\n",
             "*** Update File: src.txt\n",
+            "*** Move to: dst.txt\n",
             "@@\n",
             "-v1\n",
             "+v2\n",
-            "*** Move to: dst.txt\n",
             "*** End Patch\n",
         );
         let done = run(&project, &data, patch).expect("move");
@@ -1065,7 +1151,7 @@ mod tests {
         let err = run(
             &project,
             &data,
-            "*** Begin Patch\n*** Add File: dup.txt\nnew\n*** End Patch\n",
+            "*** Begin Patch\n*** Add File: dup.txt\n+new\n*** End Patch\n",
         )
         .expect_err("dup");
         assert!(matches!(err.error, PatchError::Conflict { .. }));
@@ -1100,7 +1186,7 @@ mod tests {
         // Grammar failure in the second op: plan stage, nothing committed.
         let patch = concat!(
             "*** Begin Patch\n",
-            "*** Add File: ok.txt\ncontent\n",
+            "*** Add File: ok.txt\n+content\n",
             "*** Frobnicate: nope\n",
             "*** End Patch\n",
         );
@@ -1108,22 +1194,22 @@ mod tests {
         assert!(err.done.is_empty());
         assert_eq!(err.failed_op, 1);
         assert!(!project.join("ok.txt").exists());
-        // Runtime failure in the second op: first file stands, no success.
+        // A stale hunk is deterministic: it must fail preflight, not leave
+        // an earlier add behind. Actual I/O partial failure is in patch_audit.
         fs::write(project.join("second.txt"), b"real\n").expect("seed");
         let patch = concat!(
             "*** Begin Patch\n",
-            "*** Add File: ok.txt\ncontent\n",
+            "*** Add File: ok.txt\n+content\n",
             "*** Update File: second.txt\n",
             "@@\n",
             "-imagined\n",
             "+new\n",
             "*** End Patch\n",
         );
-        let err = run(&project, &data, patch).expect_err("partial");
-        assert_eq!(err.done.len(), 1);
-        assert_eq!(err.done[0].path, "ok.txt");
+        let err = run(&project, &data, patch).expect_err("preflight");
+        assert!(err.done.is_empty());
         assert_eq!(err.failed_op, 1);
-        assert!(project.join("ok.txt").exists());
+        assert!(!project.join("ok.txt").exists());
     }
 
     #[test]
@@ -1136,7 +1222,7 @@ mod tests {
         let err = apply_patch(
             &project,
             &data,
-            "*** Begin Patch\n*** Add File: secrets/k.txt\nx\n*** End Patch\n",
+            "*** Begin Patch\n*** Add File: secrets/k.txt\n+x\n*** End Patch\n",
             &policy,
         )
         .expect_err("protected");
@@ -1144,7 +1230,7 @@ mod tests {
         let outside = run(
             &project,
             &data,
-            "*** Begin Patch\n*** Add File: ../evil.txt\nx\n*** End Patch\n",
+            "*** Begin Patch\n*** Add File: ../evil.txt\n+x\n*** End Patch\n",
         )
         .expect_err("outside");
         assert!(matches!(
@@ -1154,7 +1240,7 @@ mod tests {
         let dataroot = run(
             &project,
             &data,
-            "*** Begin Patch\n*** Add File: ../data/evil.txt\nx\n*** End Patch\n",
+            "*** Begin Patch\n*** Add File: ../data/evil.txt\n+x\n*** End Patch\n",
         )
         .expect_err("dataroot");
         assert!(matches!(dataroot.error, PatchError::OwnDataRoot { .. }));

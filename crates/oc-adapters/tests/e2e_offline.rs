@@ -589,7 +589,11 @@ async fn e2e01_seeded_coding_fix() {
     let patch = "*** Begin Patch\n*** Update File: src/lib.rs\n@@\n pub fn add(a: i32, b: i32) -> i32 {\n-    a - b\n+    a + b\n }\n*** End Patch\n";
     let (base, _) = Fake::start(vec![
         sse_tool_call("r1", "read", &serde_json::json!({"path": "src/lib.rs"})) + &sse_completed(),
-        sse_tool_call("r2", "apply_patch", &serde_json::json!({"patch": patch})) + &sse_completed(),
+        sse_tool_call(
+            "r2",
+            "apply_patch",
+            &serde_json::json!({"patchText": patch}),
+        ) + &sse_completed(),
         sse_tool_call(
             "r3",
             "bash",
@@ -714,10 +718,13 @@ async fn e2e03_compress_restart_retained_fact() {
         let (_, generation2) = make_harness(allow_all());
         let runtime2 = runtime_of(&harness, "work", generation2);
         runtime2.open_session("e3").expect("reopen after restart");
-        let patch = "*** Begin Patch\n*** Add File: widget.txt\nblue\n*** End Patch\n";
+        let patch = "*** Begin Patch\n*** Add File: widget.txt\n+blue\n*** End Patch\n";
         let (base2, bodies2) = Fake::start(vec![
-            sse_tool_call("w1", "apply_patch", &serde_json::json!({"patch": patch}))
-                + &sse_completed(),
+            sse_tool_call(
+                "w1",
+                "apply_patch",
+                &serde_json::json!({"patchText": patch}),
+            ) + &sse_completed(),
             sse_delta("repainted") + &sse_completed(),
         ]);
         let report = runtime2

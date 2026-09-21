@@ -8,9 +8,33 @@ Product tool list является явным выбранным подмнож�
 
 `apply_patch`: один JSON argument `patchText` с upstream-style `*** Begin Patch` / Add File / Update File / Delete File / Move to / End Patch. Не смешивать с provider-hosted Responses `apply_patch` schema. В M2 сохранить parser fixtures выбранного OpenCode baseline; политика unsafe paths — наша.
 
+Native strict profile: Add body состоит только из `+`-строк (префикс снимается);
+empty Add создаёт zero-byte файл. `*** Move to:` идёт непосредственно после
+`*** Update File:`, до hunks. `@@ section` выбирает точный уникальный context,
+`*** End of File` привязывает последний hunk к концу. Неоднозначный preimage,
+повторные/пересекающиеся normalized paths и пустые update hunks — conflict/error.
+Нет fuzzy matching, shell/heredoc wrappers и aliases `patch`/`text`. CRLF и
+отсутствие final newline существующего файла сохраняются (объявленное отличие
+от upstream derive, добавляющего newline). Выбранные source-derived fixtures:
+`fixtures/patch.json`, pinned O1; MIT notice: `fixtures/OpenCode-MIT.txt`.
+
 Обязательные случаи: новый текстовый файл; новый пустой файл; добавление текста в существующий пустой файл через Update; точечные hunks; полная замена текстового содержимого через patch; delete; move/update без overwrite чужого target. Add existing path — conflict, не silent overwrite. CRLF/Unicode/last newline проверены; binary patch вне scope с точной диагностикой.
 
 Парсер сначала строит plan всех операций, validates grammar/sizes/paths/conflicts и checks permissions. Затем per-file preimage check и запись temp file в той же директории, fsync, atomic rename; preserve mode в рамках разрешений. Не обещать all-files atomicity. Ошибка после части commits → partial result с точными paths/hashes; crash ambiguity → unknown. Preimage fingerprint защищает от обычных concurrent edits, но сам по себе не исключает malicious TOCTOU: применять directory-relative no-follow APIs и запрещать symlink mutation в первом профиле. Не выдавать `canonicalize()` за полную защиту.
+
+Весь preflight вычисляет before/after и проверяет каждый hunk до первого изменения;
+лимиты: patch 2 MiB, файл 8 MiB, сохранённые preimages/results плана 64 MiB.
+Linux implementation удерживает directory handles, проходит parents через
+`openat(O_DIRECTORY|O_NOFOLLOW)` и использует только single-component имена в
+mutation syscalls. Temporary inode — `O_CREAT|O_EXCL|O_NOFOLLOW`, новое случайное
+имя; final Add/Move — `renameat2(RENAME_NOREPLACE)`. Update/Delete повторно
+сверяют identity/metadata/bytes перед commit; это не kernel compare-and-swap и
+не защита от враждебного same-UID writer в последнем syscall window. Права нового
+файла ограничены 0600/umask, update сохраняет ordinary mode bits. Перед rename
+синхронизируется файл после chmod, после namespace changes — затронутые directories,
+включая созданные parents. Если sync или Move после Update падает, outcome уже
+содержит совершённый Update с полными hashes; rollback не обещается. Crash может
+оставить staging file, но не вызывает автоматический replay.
 
 Для удаления/rename сохранять достаточную operation metadata в own storage; не превращать это в snapshot/undo subsystem. Не запускать `git reset`, не делать auto-rollback на пользовательские файлы. Модель получает concise diff/status; полный diff в bounded blob.
 

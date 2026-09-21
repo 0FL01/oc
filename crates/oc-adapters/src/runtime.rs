@@ -191,9 +191,14 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "apply_patch".to_string(),
-            description: "Apply a patch to project files. `patch` must start with `*** Begin Patch` and end with `*** End Patch`; update hunks look like `*** Update File: <relative path>` then `@@` then lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Paths stay inside the project root."
+            description: "Apply a patch to project files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <relative path>`, prefix every content line with `+`; no content lines creates an empty file. Update hunks use `*** Update File: <relative path>`, optionally immediately followed by `*** Move to: <relative path>`, then `@@` and lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Delete uses `*** Delete File: <relative path>`. Paths stay inside the project root."
                 .to_string(),
-            parameters: schema(serde_json::json!({"patch": {"type": "string"}}), &["patch"]),
+            parameters: serde_json::json!({
+                "type": "object",
+                "properties": {"patchText": {"type": "string"}},
+                "required": ["patchText"],
+                "additionalProperties": false,
+            }),
         },
         ToolDef {
             name: "bash".to_string(),
@@ -1030,7 +1035,7 @@ impl<'a> Runtime<'a> {
         }
         let patch = call
             .arguments
-            .get("patch")
+            .get("patchText")
             .and_then(|v| v.as_str())
             .unwrap_or("");
         let violations = crate::dcp::check_patch_protected(patch, &self.protected.patterns);

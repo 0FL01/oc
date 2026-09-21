@@ -402,8 +402,12 @@ async fn protected_patch_never_reaches_disk() {
     let (harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation, vec!["*.secret".to_string()]);
     runtime.create_session("s").expect("create");
-    let patch = "*** Begin Patch\n*** Add File: x.secret\n@@\n+boe\n*** End Patch\n";
-    let tool = sse_tool_call("i1", "apply_patch", &serde_json::json!({"patch": patch}));
+    let patch = "*** Begin Patch\n*** Add File: x.secret\n+boe\n*** End Patch\n";
+    let tool = sse_tool_call(
+        "i1",
+        "apply_patch",
+        &serde_json::json!({"patchText": patch}),
+    );
     let (base, _) = Fake::start(vec![tool + &sse_completed()], Duration::ZERO);
     let report = runtime
         .run_turn(params(

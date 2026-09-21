@@ -880,9 +880,10 @@ mod tests {
         // Every affected path parses out: op paths plus rename targets.
         let patch = concat!(
             "*** Begin Patch\n",
-            "*** Add File: new.txt\ncontent\n",
-            "*** Update File: old.txt\n@@\n-a\n+b\n",
+            "*** Add File: new.txt\n+content\n",
+            "*** Update File: old.txt\n",
             "*** Move to: renamed.txt\n",
+            "@@\n-a\n+b\n",
             "*** Delete File: gone.txt\n",
             "*** End Patch\n",
         );

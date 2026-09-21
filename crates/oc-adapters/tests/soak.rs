@@ -291,7 +291,7 @@ fn script_for(kind: &str, session: usize, n: usize) -> Vec<String> {
             sse_tool_call(
                 "p",
                 "apply_patch",
-                &serde_json::json!({"patch": format!("*** Begin Patch\n*** Update File: scratch_s{session}.txt\n@@\n line0\n+line{n}\n*** End Patch")}),
+                &serde_json::json!({"patchText": format!("*** Begin Patch\n*** Update File: scratch_s{session}.txt\n@@\n line0\n+line{n}\n*** End Patch")}),
             ) + &sse_completed(),
             sse_delta("patched") + &sse_completed(),
         ],
