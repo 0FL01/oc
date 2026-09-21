@@ -1,0 +1,12 @@
+{
+  "apply": "union with existing depends_on, not replacement; only after verifying target status and current worktree",
+  "append_dependencies": {
+    "T27": [
+      "T42"
+    ],
+    "T30": [
+      "T42"
+    ]
+  },
+  "note": "T30 may start after offline qualification and report/block on missing live evidence; do not force T27 as a DAG dependency that would prevent this honest blocked handoff. T30 cannot finish READY until required live gates pass."
+}

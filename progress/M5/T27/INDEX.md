@@ -1,6 +1,8 @@
 # T27 — Live пользовательский workflow
 
-Status: todo
+Status: blocked
 Spec: ../../../roadmap/M5.md
 
 Последние 12 записей; остальные доступны по номеру/targeted search.
+
+- [0001](0001.md)

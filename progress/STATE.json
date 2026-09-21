@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-21T06:18:22+00:00",
+  "updated_at": "2026-09-21T07:08:45+00:00",
   "current": null,
   "tasks": {
     "T00": {
@@ -193,9 +193,9 @@
       "reopen_reason": null
     },
     "T27": {
-      "status": "todo",
-      "last_seq": 0,
-      "latest": null,
+      "status": "blocked",
+      "last_seq": 1,
+      "latest": "progress/M5/T27/0001.md",
       "evidence": null,
       "reopen_reason": null
     },
@@ -219,7 +219,91 @@
       "latest": null,
       "evidence": null,
       "reopen_reason": null
+    },
+    "T31": {
+      "status": "todo",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
+      "reopen_reason": null
+    },
+    "T32": {
+      "status": "todo",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
+      "reopen_reason": null
+    },
+    "T33": {
+      "status": "todo",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
+      "reopen_reason": null
+    },
+    "T34": {
+      "status": "todo",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
+      "reopen_reason": null
+    },
+    "T35": {
+      "status": "todo",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
+      "reopen_reason": null
+    },
+    "T36": {
+      "status": "todo",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
+      "reopen_reason": null
+    },
+    "T37": {
+      "status": "todo",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
+      "reopen_reason": null
+    },
+    "T38": {
+      "status": "todo",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
+      "reopen_reason": null
+    },
+    "T39": {
+      "status": "todo",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
+      "reopen_reason": null
+    },
+    "T40": {
+      "status": "todo",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
+      "reopen_reason": null
+    },
+    "T41": {
+      "status": "todo",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
+      "reopen_reason": null
+    },
+    "T42": {
+      "status": "todo",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
+      "reopen_reason": null
     }
   },
-  "last_checkpoint_task": "T29"
+  "last_checkpoint_task": "T27"
 }

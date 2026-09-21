@@ -1,0 +1,202 @@
+{
+  "schema_version": 2,
+  "merge": "append entries to planning/tasks.json.tasks; never replace that file with this fragment",
+  "tasks": [
+    {
+      "id": "T31",
+      "phase": "M7",
+      "title": "Подключить реальный application path",
+      "depends_on": [
+        "T00"
+      ],
+      "tests": [
+        "AUD01",
+        "AUD02"
+      ],
+      "work": "Закрыть F01 по audit/repairs/T31.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T31/report.md",
+      "spec": "audit/repairs/T31.md"
+    },
+    {
+      "id": "T32",
+      "phase": "M7",
+      "title": "Исправить apply_patch до дальнейших мутаций",
+      "depends_on": [
+        "T31"
+      ],
+      "tests": [
+        "AUD03",
+        "AUD04",
+        "AUD05"
+      ],
+      "work": "Закрыть F04, F05 по audit/repairs/T32.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T32/report.md",
+      "spec": "audit/repairs/T32.md"
+    },
+    {
+      "id": "T33",
+      "phase": "M7",
+      "title": "Durable tool execution и recovery",
+      "depends_on": [
+        "T32"
+      ],
+      "tests": [
+        "AUD06",
+        "AUD07",
+        "AUD08"
+      ],
+      "work": "Закрыть F06, F16 по audit/repairs/T33.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T33/report.md",
+      "spec": "audit/repairs/T33.md"
+    },
+    {
+      "id": "T34",
+      "phase": "M7",
+      "title": "Настоящий Responses protocol и streaming",
+      "depends_on": [
+        "T33"
+      ],
+      "tests": [
+        "AUD09",
+        "AUD10",
+        "AUD11",
+        "AUD12",
+        "AUD13"
+      ],
+      "work": "Закрыть F02, F03 по audit/repairs/T34.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T34/report.md",
+      "spec": "audit/repairs/T34.md"
+    },
+    {
+      "id": "T35",
+      "phase": "M7",
+      "title": "Configured workspace и точный discovery",
+      "depends_on": [
+        "T34"
+      ],
+      "tests": [
+        "AUD14",
+        "AUD15",
+        "AUD16",
+        "AUD17",
+        "AUD18"
+      ],
+      "work": "Закрыть F08, F09, F17 по audit/repairs/T35.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T35/report.md",
+      "spec": "audit/repairs/T35.md"
+    },
+    {
+      "id": "T36",
+      "phase": "M7",
+      "title": "Подключить DCP к реальному tool loop",
+      "depends_on": [
+        "T35"
+      ],
+      "tests": [
+        "AUD19",
+        "AUD20",
+        "AUD21"
+      ],
+      "work": "Закрыть F07 по audit/repairs/T36.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T36/report.md",
+      "spec": "audit/repairs/T36.md"
+    },
+    {
+      "id": "T37",
+      "phase": "M7",
+      "title": "MCP config, registry и владение ресурсами",
+      "depends_on": [
+        "T36"
+      ],
+      "tests": [
+        "AUD22",
+        "AUD23",
+        "AUD24"
+      ],
+      "work": "Закрыть F10, F11 по audit/repairs/T37.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T37/report.md",
+      "spec": "audit/repairs/T37.md"
+    },
+    {
+      "id": "T38",
+      "phase": "M7",
+      "title": "Shell и webfetch без hangs/Unicode panic",
+      "depends_on": [
+        "T37"
+      ],
+      "tests": [
+        "AUD25",
+        "AUD26",
+        "AUD27",
+        "AUD28"
+      ],
+      "work": "Закрыть F12, F13 по audit/repairs/T38.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T38/report.md",
+      "spec": "audit/repairs/T38.md"
+    },
+    {
+      "id": "T39",
+      "phase": "M7",
+      "title": "Довести TUI до подключённого daily workflow",
+      "depends_on": [
+        "T38"
+      ],
+      "tests": [
+        "AUD29",
+        "AUD30",
+        "AUD31"
+      ],
+      "work": "Закрыть F14 по audit/repairs/T39.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T39/report.md",
+      "spec": "audit/repairs/T39.md"
+    },
+    {
+      "id": "T40",
+      "phase": "M7",
+      "title": "Ограничить активный контекст, а не подменять его обрезкой",
+      "depends_on": [
+        "T39"
+      ],
+      "tests": [
+        "AUD32",
+        "AUD33",
+        "AUD34"
+      ],
+      "work": "Закрыть F15 по audit/repairs/T40.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T40/report.md",
+      "spec": "audit/repairs/T40.md"
+    },
+    {
+      "id": "T41",
+      "phase": "M7",
+      "title": "Пересобрать доказательства вокруг бинарника",
+      "depends_on": [
+        "T40"
+      ],
+      "tests": [
+        "AUD35",
+        "AUD36",
+        "AUD37"
+      ],
+      "work": "Закрыть F18 по audit/repairs/T41.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T41/report.md",
+      "spec": "audit/repairs/T41.md"
+    },
+    {
+      "id": "T42",
+      "phase": "M7",
+      "title": "Повторная qualification и честный handoff",
+      "depends_on": [
+        "T41"
+      ],
+      "tests": [
+        "AUD38",
+        "AUD39",
+        "AUD40"
+      ],
+      "work": "Закрыть F18 по audit/repairs/T42.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T42/report.md",
+      "spec": "audit/repairs/T42.md"
+    }
+  ]
+}

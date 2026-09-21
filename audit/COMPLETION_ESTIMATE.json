@@ -1,0 +1,98 @@
+{
+  "commit": "fc796830cf336655bebf63b591fe0fd36cdd4310",
+  "reported_task_completion": {
+    "done": 29,
+    "total": 31,
+    "percent": 93.54838709677419
+  },
+  "estimate_type": "expert scope-completion estimate, not measured coverage or probability of success",
+  "estimate_basis": "credit for existing reusable implementation and reported evidence, discounted for disconnected product paths and violated acceptance contracts",
+  "gate_weights": [
+    {
+      "gate": "A01",
+      "area": "Build / поставка",
+      "weight_percent": 5,
+      "estimated_credit_percent": 85
+    },
+    {
+      "gate": "A02",
+      "area": "Общий runtime и durability",
+      "weight_percent": 14,
+      "estimated_credit_percent": 40
+    },
+    {
+      "gate": "A03",
+      "area": "Config / discovery",
+      "weight_percent": 9,
+      "estimated_credit_percent": 70
+    },
+    {
+      "gate": "A04",
+      "area": "Responses",
+      "weight_percent": 13,
+      "estimated_credit_percent": 40
+    },
+    {
+      "gate": "A05",
+      "area": "Built-in tools",
+      "weight_percent": 14,
+      "estimated_credit_percent": 55
+    },
+    {
+      "gate": "A06",
+      "area": "MCP",
+      "weight_percent": 8,
+      "estimated_credit_percent": 60
+    },
+    {
+      "gate": "A07",
+      "area": "DCP",
+      "weight_percent": 10,
+      "estimated_credit_percent": 45
+    },
+    {
+      "gate": "A08",
+      "area": "TUI",
+      "weight_percent": 10,
+      "estimated_credit_percent": 25
+    },
+    {
+      "gate": "A09",
+      "area": "Coding workflow",
+      "weight_percent": 5,
+      "estimated_credit_percent": 45
+    },
+    {
+      "gate": "A10",
+      "area": "Long session",
+      "weight_percent": 4,
+      "estimated_credit_percent": 45
+    },
+    {
+      "gate": "A11",
+      "area": "Execution / journal",
+      "weight_percent": 3,
+      "estimated_credit_percent": 90
+    },
+    {
+      "gate": "A12",
+      "area": "Final evidence",
+      "weight_percent": 2,
+      "estimated_credit_percent": 25
+    },
+    {
+      "gate": "A13",
+      "area": "Configured workspace",
+      "weight_percent": 3,
+      "estimated_credit_percent": 40
+    }
+  ],
+  "weighted_estimate_percent": 49.3,
+  "rounded_communication_percent": 50,
+  "uncertainty_range_percent": [
+    40,
+    60
+  ],
+  "release_gate": "NOT_READY_PRODUCT_GAPS",
+  "note": "The local audit label is not a new runtime status. A critical safety/integration failure blocks READY irrespective of the arithmetic. No percentage is a time-to-finish prediction."
+}

@@ -1,0 +1,195 @@
+{
+  "repository": "0FL01/oc",
+  "branch": "agent/oc-rust-port",
+  "commit": "fc796830cf336655bebf63b591fe0fd36cdd4310",
+  "review_date": "2026-09-21",
+  "method": "static call-path and contract audit; repository evidence read; Rust build/tests not rerun",
+  "sources": [
+    {
+      "id": "S01",
+      "path": "GOAL.md",
+      "symbols_or_scope": "A01–A13 и определения READY / BUILD_READY_LIVE_BLOCKED",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/GOAL.md"
+    },
+    {
+      "id": "S02",
+      "path": "progress/STATE.json",
+      "symbols_or_scope": "29 done; T27 и T30 todo; current=null на снимке",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/progress/STATE.json"
+    },
+    {
+      "id": "S03",
+      "path": "crates/oc/src/bootstrap.rs",
+      "symbols_or_scope": "dispatch; MockProvider::echo() для run",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc/src/bootstrap.rs"
+    },
+    {
+      "id": "S04",
+      "path": "crates/oc/src/tui_cmd.rs",
+      "symbols_or_scope": "run_tui; mock worker, чтение истории, rendering/event loop",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc/src/tui_cmd.rs"
+    },
+    {
+      "id": "S05",
+      "path": "crates/oc/src/headless.rs",
+      "symbols_or_scope": "run_once_to_writers; default_data_dir; persistence",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc/src/headless.rs"
+    },
+    {
+      "id": "S06",
+      "path": "crates/oc-adapters/src/runtime.rs",
+      "symbols_or_scope": "builtin_tool_defs; assemble_turn_input; run_turn_inner; execute_units; run_compress; attach_mcp",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc-adapters/src/runtime.rs"
+    },
+    {
+      "id": "S07",
+      "path": "crates/oc-adapters/src/provider.rs",
+      "symbols_or_scope": "request_body; StreamItem; SseParser; map_event; stream_generation; stream_attempt",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc-adapters/src/provider.rs"
+    },
+    {
+      "id": "S08",
+      "path": "crates/oc-adapters/src/tools.rs",
+      "symbols_or_scope": "ToolCall; FunctionCallOutput; MODEL_TOOL_NAMES; to_input_items",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc-adapters/src/tools.rs"
+    },
+    {
+      "id": "S09",
+      "path": "crates/oc-adapters/src/patch.rs",
+      "symbols_or_scope": "parse_plan; apply_patch; execute_op; write_atomic; rename_checked",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc-adapters/src/patch.rs"
+    },
+    {
+      "id": "S10",
+      "path": "crates/oc-adapters/src/storage.rs",
+      "symbols_or_scope": "begin_turn; record_tool_intent; read_history_full; write_blob; read_blob; recovery",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc-adapters/src/storage.rs"
+    },
+    {
+      "id": "S11",
+      "path": "crates/oc-adapters/src/config.rs",
+      "symbols_or_scope": "assemble; legacy_key; substitute; classify_plugin; ProviderOptions",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc-adapters/src/config.rs"
+    },
+    {
+      "id": "S12",
+      "path": "crates/oc-adapters/src/defs.rs",
+      "symbols_or_scope": "AgentDef; load_entry; insert_command; load_instructions",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc-adapters/src/defs.rs"
+    },
+    {
+      "id": "S13",
+      "path": "crates/oc-adapters/src/discovery.rs",
+      "symbols_or_scope": "refresh; discovery_url; positive_integer; pretty_model_name",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc-adapters/src/discovery.rs"
+    },
+    {
+      "id": "S14",
+      "path": "crates/oc-adapters/src/mcp_remote.rs",
+      "symbols_or_scope": "CodexWebConfig::from_entry; map_registry; search_args; call_tool",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc-adapters/src/mcp_remote.rs"
+    },
+    {
+      "id": "S15",
+      "path": "crates/oc-adapters/src/mcp_stdio.rs",
+      "symbols_or_scope": "StdioConfig::from_entry; spawn_child; kill_reap",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc-adapters/src/mcp_stdio.rs"
+    },
+    {
+      "id": "S16",
+      "path": "crates/oc-adapters/src/shell.rs",
+      "symbols_or_scope": "Shell::execute; resolve_cwd; child_env",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc-adapters/src/shell.rs"
+    },
+    {
+      "id": "S17",
+      "path": "crates/oc-adapters/src/webfetch.rs",
+      "symbols_or_scope": "html_to_text; parse_url; redirect_target; check_host; fetch",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc-adapters/src/webfetch.rs"
+    },
+    {
+      "id": "S18",
+      "path": "crates/oc-tui/src/app.rs",
+      "symbols_or_scope": "TuiState; panel methods; storage/adapters coupling",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc-tui/src/app.rs"
+    },
+    {
+      "id": "S19",
+      "path": "crates/oc-adapters/tests/e2e_live.rs",
+      "symbols_or_scope": "live_workflow_harness; direct Runtime construction; no-env early return; manual compress",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/crates/oc-adapters/tests/e2e_live.rs"
+    },
+    {
+      "id": "S20",
+      "path": "evidence/T24/report.md",
+      "symbols_or_scope": "заявленная offline lifecycle qualification и текстовый carryover",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/evidence/T24/report.md"
+    },
+    {
+      "id": "S21",
+      "path": "evidence/T25/report.md",
+      "symbols_or_scope": "offline/library E2E и частичная live evidence, признанные ограничения",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/evidence/T25/report.md"
+    },
+    {
+      "id": "S22",
+      "path": "evidence/T28/report.md",
+      "symbols_or_scope": "синтетический soak, workload и опубликованные измерения",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/evidence/T28/report.md"
+    },
+    {
+      "id": "S23",
+      "path": "progress/NOW.md",
+      "symbols_or_scope": "последний T29 handoff, опубликованные 194 tests + 3 ignored",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/progress/NOW.md"
+    },
+    {
+      "id": "S24",
+      "path": "planning/tasks.json",
+      "symbols_or_scope": "исходный граф T00–T30; owner каждого acceptance test",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/planning/tasks.json"
+    },
+    {
+      "id": "S25",
+      "path": "scripts/progress.py",
+      "symbols_or_scope": "canonical STATE, reopen dependency guards, byte limits",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/scripts/progress.py"
+    },
+    {
+      "id": "S26",
+      "path": "scripts/check_docs.py",
+      "symbols_or_scope": "проверка структуры, unique owners; не проверяет продукт",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/scripts/check_docs.py"
+    },
+    {
+      "id": "S27",
+      "path": "docs/TOOLS_MCP.md",
+      "symbols_or_scope": "patchText, no-follow, tool registry, MCP lifetime и permissions contracts",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/docs/TOOLS_MCP.md"
+    },
+    {
+      "id": "S28",
+      "path": "Cargo.toml",
+      "symbols_or_scope": "четыре packages, edition и pinned dependency direction",
+      "url": "https://github.com/0FL01/oc/blob/fc796830cf336655bebf63b591fe0fd36cdd4310/Cargo.toml"
+    }
+  ],
+  "external_primary_sources": [
+    {
+      "id": "E01",
+      "url": "https://developers.openai.com/api/docs/guides/function-calling",
+      "scope": "structured function_call / function_call_output and distinct item id / call_id"
+    },
+    {
+      "id": "E02",
+      "url": "https://developers.openai.com/api/docs/guides/reasoning",
+      "scope": "replayable reasoning output in stateless store:false conversations; actual proxy requirements still need fixtures"
+    }
+  ],
+  "limits": [
+    "No complete local checkout was available; selected critical files and execution paths were inspected through the GitHub connector.",
+    "cargo and rustc were unavailable in this review environment. No Rust tests, live endpoints, PTY or host memory measurements were independently executed.",
+    "GitHub Actions branch query returned zero runs. This does not negate locally executed tests reported by the author.",
+    "evidence/FINAL.md was not found at this commit. Branch head was rechecked and remained the audited commit."
+  ]
+}
