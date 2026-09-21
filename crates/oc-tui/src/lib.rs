@@ -13,7 +13,9 @@ pub mod events;
 pub mod history;
 pub mod picker;
 pub mod smoke;
+pub mod styled;
 pub mod terminal;
+pub mod theme;
 pub mod views;
 
 pub use smoke::{render_smoke_frame, tui_name};

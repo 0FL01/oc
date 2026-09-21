@@ -1,45 +1,16 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-21T21:35:30+00:00
-Active: T43
+State updated: 2026-09-21T22:19:23+00:00
+Active: T44
 
 Сверить Git status/diff до выполнения команд.
-Task: T43 — Config compatibility parity и subagent system
-Spec: docs/goals/2026-09-21-config-compat-and-subagents.md
-Evidence target: evidence/T43/report.md
+Task: T44 — TUI pixel parity с opencode v2.0.12
+Spec: docs/goals/2026-09-21-tui-pixel-parity.md
+Evidence target: evidence/T44/report.md
 
-Закрыть owner-visible config warnings по upstream v2.0.12 (комментарии YAML, glob-map permissions, опциональный skill frontmatter, тихий skip каталогов без SKILL.md, flat skills, command agent/model/subagent/subtask, mode subagent/all), убрать искусственные size-лимиты, затем полностью реализовать subagent system по upstream v2.0.12 (spawn/child sessions/notices/reap/permissions/command routing/DCP allowSubAgents). Коммит и push каждого среза.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
-## Result
-
-R1/R2 закрыты: owner config загружается без единого config-warning (остались только
-DCP `allowSubAgents`, который снимет R3, и внешний `crw` Cloudflare 403). Искусственные
-size-лимиты убраны; совместимость markdown-config приведена к upstream v2.0.12.
-
-## Checks
-
-`cargo fmt` clean; clippy `-D warnings` exit 0; `cargo test --locked --workspace --no-fail-fast`
-337 passed / 0 failed / 4 ignored; release build ok; live `oc run` на owner config (crw off) →
-`session s-...` + `pong`; real HOME → только DCP warning + `mcp attach failed for crw`;
-orphan-процессов нет. `aud30_pty_paste_resize_error_recovery` — pre-existing PTY-flakiness
-(в изоляции 3/3 passed).
-
-## Risks
-
-`mode: subagent|all` и command `agent/model/subagent/subtask` парсятся, но ещё не исполняются
-(R3). `crw` остаётся недоступным из клиента (Cloudflare 1010) — для запуска нужен disabled
-или другой endpoint.
-
-## Next
-
-R3: срезы 1–8 из `evidence/subagents/upstream-v2.0.12-plan.md` (config admission → child
-persistence → catalog/route → foreground subagent tool → background/notices/reap → command
-routing → DCP allowSubAgents → TUI/history), коммит+push каждого среза.
-
+Полностью воспроизвести интерфейс upstream opencode v2.0.12 в crates/oc-tui: тема/палитра, геометрия layout, рендер сообщений (markdown/reasoning/tool cards/diff), keymap и диалоги; golden-снапшоты PTY на фиксированных размерах. Recon-артефакты evidence/tui/*, коммит+push каждого среза.
 
 Ready (до 5): T30
-Blocked: T27
+Blocked: T27, T43
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.

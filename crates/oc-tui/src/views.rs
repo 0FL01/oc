@@ -10,13 +10,17 @@ use ratatui::{
     Frame, Terminal,
     backend::TestBackend,
     layout::{Constraint, Direction, Layout},
+    style::Style,
     widgets::{Block, Borders, Paragraph},
 };
 
-use crate::app::{TuiPanel, TuiState};
+use crate::app::{TuiPanel, TuiState, TuiStatus};
+use crate::styled::{Line, Lines, Span};
+use crate::theme::Theme;
 
 /// Render the whole state into one Ratatui frame.
 pub fn render_frame(frame: &mut Frame<'_>, state: &TuiState) {
+    let theme = Theme::dark();
     let area = frame.area();
     let panel = panel_lines(state);
     // +2 for the panel block borders; zero height hides the panel.
@@ -36,30 +40,67 @@ pub fn render_frame(frame: &mut Frame<'_>, state: &TuiState) {
     let visible = state.viewport();
     // Transient status: the intent note and the DCP notice stay visible
     // without ever entering history.
-    let mut title = format!("oc {:?}", state.status());
-    if let Some(note) = state.note() {
-        title.push_str(&format!(" — {note}"));
-    }
-    if let Some(notice) = state.dcp.notice() {
-        title.push_str(&format!(" — {notice}"));
-    }
+    let title = status_title(state, theme);
     // Bottom-align the window in the pane: `viewport()` returns the tail
     // window (scroll-aware) but `Paragraph` top-aligns and would clip the
     // newest lines on small screens.
     let pane_rows = chunks[0].height.saturating_sub(2) as usize;
     let skip = visible.len().saturating_sub(pane_rows.max(1));
-    let history = Paragraph::new(visible.join("\n"))
+    let history = Paragraph::new(Lines::from(visible).into_text())
         .scroll((skip as u16, 0))
-        .block(Block::default().borders(Borders::ALL).title(title));
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme.border()))
+                .title(title.into_ratatui()),
+        );
     frame.render_widget(history, chunks[0]);
     if panel_height > 0 {
-        let panel_widget = Paragraph::new(panel.join("\n"))
-            .block(Block::default().borders(Borders::ALL).title("panel"));
+        let panel_widget = Paragraph::new(Lines::from(panel).into_text()).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme.border_active()))
+                .title(
+                    Line::styled("panel", Style::default().fg(theme.text_muted())).into_ratatui(),
+                ),
+        );
         frame.render_widget(panel_widget, chunks[1]);
     }
-    let prompt =
-        Paragraph::new(state.input()).block(Block::default().borders(Borders::ALL).title("prompt"));
+    let prompt = Paragraph::new(state.input()).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(theme.border()))
+            .title(Line::styled("prompt", Style::default().fg(theme.text_muted())).into_ratatui()),
+    );
     frame.render_widget(prompt, chunks[2]);
+}
+
+/// History pane title: `oc <status>[ — note][ — dcp notice]` with theme
+/// roles (muted prefix, status accent, warning notes, info notices).
+fn status_title(state: &TuiState, theme: &Theme) -> Line {
+    let status = match state.status() {
+        TuiStatus::Idle => theme.text(),
+        TuiStatus::Streaming => theme.primary(),
+        TuiStatus::Cancelled => theme.warning(),
+        TuiStatus::Quit => theme.text_muted(),
+    };
+    let mut spans = vec![
+        Span::styled("oc ", Style::default().fg(theme.text_muted())),
+        Span::styled(format!("{:?}", state.status()), Style::default().fg(status)),
+    ];
+    if let Some(note) = state.note() {
+        spans.push(Span::styled(
+            format!(" — {note}"),
+            Style::default().fg(theme.warning()),
+        ));
+    }
+    if let Some(notice) = state.dcp.notice() {
+        spans.push(Span::styled(
+            format!(" — {notice}"),
+            Style::default().fg(theme.info()),
+        ));
+    }
+    Line::new(spans)
 }
 
 /// Render state to a test backend; returns text lines for assertions.
@@ -164,10 +205,11 @@ fn help_topic(topic: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{panel_lines, render_test};
+    use super::{panel_lines, render_frame, render_test, status_title};
     use crate::app::{TuiPanel, TuiState, VIEWPORT_LINES};
     use crate::dcp_panel::DcpOutcome;
     use crate::events::KeyAction;
+    use crate::theme::Theme;
     use oc_core::core_app::{CoreApp, MockProvider, WorkerTurnId};
     use oc_core::domain::SessionId;
     use oc_core::queries::{
@@ -330,5 +372,45 @@ mod tests {
         });
         let frame = render_test(&state, 70, 24).join("\n");
         assert!(frame.contains("dcp failed: span open"), "notice in title");
+    }
+
+    #[tokio::test]
+    async fn status_title_uses_theme_colors() {
+        let theme = Theme::dark();
+        let mut state = view_state("s-title").await;
+        state.push_note("something happened");
+        let title = status_title(&state, theme);
+        let spans = title.spans();
+        assert_eq!(spans.len(), 3, "{spans:?}");
+        assert_eq!(spans[0].content(), "oc ");
+        assert_eq!(spans[0].style().fg, Some(theme.text_muted()));
+        assert_eq!(spans[1].content(), "Idle");
+        assert_eq!(spans[1].style().fg, Some(theme.text()));
+        assert_eq!(spans[2].content(), " — something happened");
+        assert_eq!(spans[2].style().fg, Some(theme.warning()));
+
+        state.begin_compress_turn(WorkerTurnId("t-title".to_string()));
+        let title = status_title(&state, theme);
+        assert_eq!(title.spans()[1].content(), "Streaming");
+        assert_eq!(title.spans()[1].style().fg, Some(theme.primary()));
+    }
+
+    #[tokio::test]
+    async fn rendered_frame_carries_theme_styles() {
+        use ratatui::{Terminal, backend::TestBackend};
+
+        let theme = Theme::dark();
+        let state = view_state("s-styles").await;
+        let backend = TestBackend::new(40, 10);
+        let mut terminal = Terminal::new(backend).expect("backend");
+        terminal
+            .draw(|frame| render_frame(frame, &state))
+            .expect("draw");
+        let buffer = terminal.backend().buffer();
+        // Pane borders and the status title carry theme colors, so the
+        // palette is live on a real frame, not only in accessors.
+        assert_eq!(buffer[(0, 0)].fg, theme.border());
+        assert_eq!(buffer[(1, 0)].fg, theme.text_muted());
+        assert_eq!(buffer[(4, 0)].fg, theme.text());
     }
 }

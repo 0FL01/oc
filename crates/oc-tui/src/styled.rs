@@ -1,0 +1,240 @@
+//! Styled text primitives for the bounded TUI view model.
+//!
+//! The historical view contract is `Vec<String>` (`views::panel_lines`,
+//! `app::TuiState::viewport`, `picker::ModelPicker::window`). [`Lines`]
+//! converts those producers losslessly: `Lines::from(Vec<String>)` yields one
+//! unstyled [`Line`] per input string, so existing producers and their tests
+//! keep compiling and render byte-identically while views add [`Style`]s
+//! where the theme requires them.
+
+use ratatui::style::Style;
+use ratatui::text::Text;
+
+/// A piece of text with a single style.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Span {
+    content: String,
+    style: Style,
+}
+
+impl Span {
+    /// Text with an explicit style.
+    pub fn styled(content: impl Into<String>, style: Style) -> Self {
+        Self {
+            content: content.into(),
+            style,
+        }
+    }
+
+    /// Unstyled text (terminal defaults).
+    pub fn plain(content: impl Into<String>) -> Self {
+        Self::styled(content, Style::default())
+    }
+
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+
+    pub fn style(&self) -> Style {
+        self.style
+    }
+}
+
+impl From<String> for Span {
+    fn from(content: String) -> Self {
+        Self::plain(content)
+    }
+}
+
+impl From<&str> for Span {
+    fn from(content: &str) -> Self {
+        Self::plain(content)
+    }
+}
+
+/// One styled row. `style` is patched over every span style by Ratatui.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Line {
+    spans: Vec<Span>,
+    style: Style,
+}
+
+impl Line {
+    pub fn new(spans: Vec<Span>) -> Self {
+        Self {
+            spans,
+            style: Style::default(),
+        }
+    }
+
+    /// A single-span line.
+    pub fn styled(content: impl Into<String>, style: Style) -> Self {
+        Self::new(vec![Span::styled(content, style)])
+    }
+
+    /// A single unstyled span.
+    pub fn plain(content: impl Into<String>) -> Self {
+        Self::new(vec![Span::plain(content)])
+    }
+
+    pub fn spans(&self) -> &[Span] {
+        &self.spans
+    }
+
+    pub fn style(&self) -> Style {
+        self.style
+    }
+
+    /// Patch a row-level style (applied on top of the span styles).
+    pub fn with_style(mut self, style: Style) -> Self {
+        self.style = style;
+        self
+    }
+
+    /// Concatenated span text, without any style.
+    pub fn plain_text(&self) -> String {
+        self.spans
+            .iter()
+            .map(|span| span.content.as_str())
+            .collect()
+    }
+
+    /// Convert to the Ratatui type for rendering.
+    pub fn into_ratatui(self) -> ratatui::text::Line<'static> {
+        let spans = self
+            .spans
+            .into_iter()
+            .map(|span| ratatui::text::Span::styled(span.content, span.style))
+            .collect::<Vec<_>>();
+        ratatui::text::Line::from(spans).style(self.style)
+    }
+}
+
+impl From<String> for Line {
+    fn from(content: String) -> Self {
+        Self::plain(content)
+    }
+}
+
+impl From<&str> for Line {
+    fn from(content: &str) -> Self {
+        Self::plain(content)
+    }
+}
+
+impl From<Span> for Line {
+    fn from(span: Span) -> Self {
+        Self::new(vec![span])
+    }
+}
+
+impl From<Vec<Span>> for Line {
+    fn from(spans: Vec<Span>) -> Self {
+        Self::new(spans)
+    }
+}
+
+/// A sequence of styled rows; the drop-in replacement for `Vec<String>`.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Lines(pub Vec<Line>);
+
+impl Lines {
+    pub fn new(lines: Vec<Line>) -> Self {
+        Self(lines)
+    }
+
+    /// Row texts without styles.
+    pub fn plain_text(&self) -> Vec<String> {
+        self.0.iter().map(Line::plain_text).collect()
+    }
+
+    /// Convert to the Ratatui type for rendering.
+    pub fn into_text(self) -> Text<'static> {
+        Text::from(
+            self.0
+                .into_iter()
+                .map(Line::into_ratatui)
+                .collect::<Vec<_>>(),
+        )
+    }
+}
+
+impl From<Vec<String>> for Lines {
+    fn from(lines: Vec<String>) -> Self {
+        Self(lines.into_iter().map(Line::plain).collect())
+    }
+}
+
+impl From<Vec<Line>> for Lines {
+    fn from(lines: Vec<Line>) -> Self {
+        Self(lines)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ratatui::{Terminal, backend::TestBackend, widgets::Paragraph};
+
+    fn render_paragraph(text: Text<'static>, width: u16, height: u16) -> ratatui::buffer::Buffer {
+        let backend = TestBackend::new(width, height);
+        let mut terminal = Terminal::new(backend).expect("backend");
+        terminal
+            .draw(|frame| frame.render_widget(Paragraph::new(text), frame.area()))
+            .expect("draw");
+        terminal.backend().buffer().clone()
+    }
+
+    #[test]
+    fn string_conversions_are_unstyled() {
+        let span = Span::from("hi");
+        assert_eq!(span.content(), "hi");
+        assert_eq!(span.style(), Style::default());
+
+        let line = Line::from(String::from("hi"));
+        assert_eq!(line.plain_text(), "hi");
+        assert_eq!(line.spans().len(), 1);
+        assert_eq!(line.spans()[0].style(), Style::default());
+
+        let lines = Lines::from(vec!["a".to_string(), "b".to_string()]);
+        assert_eq!(lines.plain_text(), vec!["a".to_string(), "b".to_string()]);
+    }
+
+    #[test]
+    fn styled_spans_keep_their_style() {
+        use ratatui::style::Color;
+
+        let line = Line::new(vec![
+            Span::styled("oc ", Style::default().fg(Color::Rgb(1, 2, 3))),
+            Span::plain("Idle"),
+        ]);
+        assert_eq!(line.plain_text(), "oc Idle");
+        let rendered = line.into_ratatui();
+        assert_eq!(rendered.spans[0].style.fg, Some(Color::Rgb(1, 2, 3)));
+        assert_eq!(rendered.spans[1].style.fg, None);
+    }
+
+    /// Unstyled `Vec<String>` conversion must render byte-identically to the
+    /// historical `join("\n")` paragraph, styles included (all default).
+    #[test]
+    fn lines_render_byte_identically_to_joined_strings() {
+        let rows = vec![
+            "user: привет 🌍".to_string(),
+            "ai: ok".to_string(),
+            String::new(),
+            "panel | /model".to_string(),
+        ];
+        let legacy = render_paragraph(Text::from(rows.join("\n")), 40, 8);
+        let styled = render_paragraph(Lines::from(rows).into_text(), 40, 8);
+        assert_eq!(legacy, styled);
+    }
+
+    #[test]
+    fn conversion_to_ratatui_matches_the_source_text() {
+        let lines = Lines::from(vec!["a".to_string(), "b".to_string()]);
+        let text = lines.into_text();
+        assert_eq!(text.lines.len(), 2);
+        assert_eq!(text.lines[0].to_string(), "a");
+        assert_eq!(text.lines[1].to_string(), "b");
+    }
+}

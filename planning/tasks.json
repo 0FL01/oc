@@ -716,6 +716,32 @@
       "work": "Закрыть owner-visible config warnings по upstream v2.0.12 (комментарии YAML, glob-map permissions, опциональный skill frontmatter, тихий skip каталогов без SKILL.md, flat skills, command agent/model/subagent/subtask, mode subagent/all), убрать искусственные size-лимиты, затем полностью реализовать subagent system по upstream v2.0.12 (spawn/child sessions/notices/reap/permissions/command routing/DCP allowSubAgents). Коммит и push каждого среза.",
       "evidence": "evidence/T43/report.md",
       "spec": "docs/goals/2026-09-21-config-compat-and-subagents.md"
+    },
+    {
+      "id": "T44",
+      "phase": "M9",
+      "title": "TUI pixel parity с opencode v2.0.12",
+      "depends_on": [],
+      "tests": [
+        "A02"
+      ],
+      "work": "Полностью воспроизвести интерфейс upstream opencode v2.0.12 в crates/oc-tui: тема/палитра, геометрия layout, рендер сообщений (markdown/reasoning/tool cards/diff), keymap и диалоги; golden-снапшоты PTY на фиксированных размерах. Recon-артефакты evidence/tui/*, коммит+push каждого среза.",
+      "evidence": "evidence/T44/report.md",
+      "spec": "docs/goals/2026-09-21-tui-pixel-parity.md"
+    },
+    {
+      "id": "T45",
+      "phase": "M8",
+      "title": "Остаток subagent system (T43 slices 5-8)",
+      "depends_on": [
+        "T43"
+      ],
+      "tests": [
+        "A02"
+      ],
+      "work": "Background subagents + synthetic notices + reap, command routing (agent/model/subagent/subtask), DCP allowSubAgents для child turns, TUI/history child rows. Источник: evidence/subagents/upstream-v2.0.12-plan.md (срезы 5-8).",
+      "evidence": "evidence/T45/report.md",
+      "spec": "docs/goals/2026-09-21-config-compat-and-subagents.md"
     }
   ]
 }
