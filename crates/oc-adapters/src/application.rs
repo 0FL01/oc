@@ -28,52 +28,15 @@ pub async fn spawn(
         crate::shell::Shell::new(&composition.project).map_err(|e| format!("shell: {e}"))?;
     let (app, inbox, events) = CoreApp::channel(MAX_QUEUE_ITEMS);
     let (ready, ready_rx) = oneshot::channel();
-    let handle = tokio::spawn(async move {
-        let runtime = Runtime::new(
-            &db,
-            &composition.project.to_string_lossy(),
-            composition.generation.clone(),
-            crate::patch::ProtectedGlobs {
-                patterns: Vec::new(),
-            },
-            files,
-            shell,
-            composition.parent_env.clone(),
-            crate::tools::ToolRoots {
-                project: composition.project.clone(),
-                data: db.root().to_path_buf(),
-            },
-            None,
-            false,
-            composition.dcp_config.clone(),
-        );
-        match runtime {
-            Err(error) => {
-                let _ = ready.send(Err(error.to_string()));
-            }
-            Ok(runtime) => {
-                if let Err(error) =
-                    runtime.publish_dcp_protection(composition.dcp_protected.clone())
-                {
-                    let _ = ready.send(Err(error.to_string()));
-                    return;
-                }
-                if let Err(error) = runtime.publish_workspace(
-                    composition.agent_prompt.as_deref(),
-                    &composition.instructions,
-                    composition.skills.clone(),
-                    composition.skill_errors.clone(),
-                    composition.agent_digest.clone(),
-                ) {
-                    let _ = ready.send(Err(error.to_string()));
-                    return;
-                }
-                if ready.send(Ok(())).is_ok() {
-                    worker(&runtime, &db, &composition, inbox, events).await;
-                }
-            }
-        }
-    });
+    let handle = tokio::spawn(start_worker(
+        db,
+        composition,
+        files,
+        shell,
+        inbox,
+        events,
+        ready,
+    ));
     let guard = WorkerGuard::from_task(handle);
     match ready_rx.await {
         Ok(Ok(())) => Ok((app, guard, diagnostics)),
@@ -85,6 +48,63 @@ pub async fn spawn(
             })
         }
     }
+}
+
+/// Own the whole application task: build the runtime, publish the workspace
+/// exactly once, then run the command loop and close owned MCP resources.
+#[allow(clippy::too_many_arguments)]
+async fn start_worker(
+    db: Db,
+    composition: Composition,
+    files: crate::files::Files,
+    shell: crate::shell::Shell,
+    inbox: mpsc::Receiver<InboxMsg>,
+    events: broadcast::Sender<CoreEvent>,
+    ready: oneshot::Sender<Result<(), String>>,
+) -> Result<(), String> {
+    let runtime = Runtime::new(
+        &db,
+        &composition.project.to_string_lossy(),
+        composition.generation.clone(),
+        crate::patch::ProtectedGlobs {
+            patterns: Vec::new(),
+        },
+        files,
+        shell,
+        composition.parent_env.clone(),
+        crate::tools::ToolRoots {
+            project: composition.project.clone(),
+            data: db.root().to_path_buf(),
+        },
+        None,
+        false,
+        composition.dcp_config.clone(),
+    );
+    let runtime = match runtime {
+        Err(error) => {
+            let _ = ready.send(Err(error.to_string()));
+            return Ok(());
+        }
+        Ok(runtime) => runtime,
+    };
+    if let Err(error) = runtime.publish_dcp_protection(composition.dcp_protected.clone()) {
+        let _ = ready.send(Err(error.to_string()));
+        return Ok(());
+    }
+    if let Err(error) = runtime.publish_workspace(
+        composition.agent_prompt.as_deref(),
+        &composition.instructions,
+        composition.skills.clone(),
+        composition.skill_errors.clone(),
+        composition.agent_digest.clone(),
+    ) {
+        let _ = ready.send(Err(error.to_string()));
+        return Ok(());
+    }
+    if ready.send(Ok(())).is_err() {
+        return Ok(());
+    }
+    worker(&runtime, &db, &composition, inbox, events).await
 }
 
 fn app_error(error: impl std::fmt::Display) -> CoreError {
@@ -142,7 +162,7 @@ async fn worker(
     composition: &Composition,
     mut inbox: mpsc::Receiver<InboxMsg>,
     events: broadcast::Sender<CoreEvent>,
-) {
+) -> Result<(), String> {
     while let Some(message) = inbox.recv().await {
         match message {
             InboxMsg::Shutdown => break,
@@ -274,7 +294,10 @@ async fn worker(
             message => query(db, runtime, message),
         }
     }
-    let _ = runtime.shutdown_mcp().await;
+    runtime
+        .shutdown_mcp()
+        .await
+        .map_err(|error| error.to_string())
 }
 
 fn resolve_submission(

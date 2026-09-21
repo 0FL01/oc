@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, RwLock};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use oc_core::context_plan::ProtectedSpec;
 use oc_core::session::{Message, MessageId, Role};
@@ -37,6 +37,10 @@ pub const MAX_ROUNDS: u32 = 8;
 pub const ROUND_CAP: u32 = 16;
 /// Max tool-output bytes kept in the turn report.
 pub const REPORT_OUTPUT_CAP: usize = 2_048;
+/// Max enabled MCP servers attached in one application generation.
+pub const MAX_MCP_SERVERS: usize = 8;
+/// Generation-wide budget for closing every owned MCP resource.
+pub const MCP_CLOSE_BUDGET: Duration = Duration::from_secs(10);
 /// Max command definition/invocation bytes for one expansion.
 pub const COMMAND_BYTES_CAP: usize = 4_096;
 /// Prefs key prefix binding sessions to Locations.
@@ -338,15 +342,24 @@ struct McpGeneration {
 }
 
 impl McpGeneration {
-    /// Explicitly close remote services and reap complete stdio process groups.
+    /// Explicitly close every owned client under one generation-wide budget.
+    ///
+    /// A client that times out is dropped, which keeps the stdio process-group
+    /// SIGKILL fallback armed; the generic budget prevents one unresponsive
+    /// server from multiplying per-client timeouts across the generation.
     async fn close(self) -> Result<(), RuntimeError> {
+        let deadline = tokio::time::Instant::now() + MCP_CLOSE_BUDGET;
         let mut failed = false;
         for server in self.servers {
-            let result = match server.client {
-                AttachedServer::Remote(client) => client.close().await.map_err(|_| ()),
-                AttachedServer::Stdio(client) => client.shutdown().await.map_err(|_| ()),
-            };
-            failed |= result.is_err();
+            let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+            if remaining.is_zero() {
+                failed = true;
+                continue;
+            }
+            match tokio::time::timeout(remaining, close_attached(server)).await {
+                Ok(Ok(())) => {}
+                Ok(Err(())) | Err(_) => failed = true,
+            }
         }
         if failed {
             Err(RuntimeError::McpShutdown)
@@ -355,54 +368,118 @@ impl McpGeneration {
         }
     }
 
-    /// Relist a dirty catalog between turns without reconnecting/reinitializing.
+    /// Claim dirty servers, relist exactly those, and restore the claim on any
+    /// failure. Notifications arriving during the relist stay claimed for the
+    /// next turn because the flag is claimed before the request is sent.
     async fn refresh_if_changed(&mut self, cancel: &AtomicBool) -> Result<(), RuntimeError> {
-        let dirty = self.servers.iter().any(|server| match &server.client {
-            AttachedServer::Remote(client) => client.catalog_changed(),
-            AttachedServer::Stdio(client) => client.catalog_changed(),
-        });
-        if !dirty {
+        let claims = self.claim_dirty();
+        if !claims.iter().any(|claimed| *claimed) {
             return Ok(());
         }
-        let mut registries = Vec::with_capacity(self.servers.len());
-        for server in &self.servers {
-            let tools = match &server.client {
+        let mut replacements: Vec<Option<Vec<mcp_remote::RegistryEntry>>> =
+            vec![None; self.servers.len()];
+        for (index, server) in self.servers.iter().enumerate() {
+            if !claims[index] {
+                continue;
+            }
+            let listed = match &server.client {
                 AttachedServer::Remote(client) => client
                     .list_tools(cancel)
                     .await
-                    .map_err(|error| remote_attach_error(&server.server_id, error))?,
+                    .map_err(|error| remote_attach_error(&server.server_id, error)),
                 AttachedServer::Stdio(client) => client
                     .list_tools(cancel)
                     .await
-                    .map_err(|error| stdio_attach_error(&server.server_id, error))?,
+                    .map_err(|error| stdio_attach_error(&server.server_id, error)),
             };
-            registries.push(
-                mcp_remote::map_registry(
+            let registry = match listed {
+                Ok(tools) => mcp_remote::map_registry(
                     &server.server_id,
                     tools
                         .into_iter()
                         .map(|tool| (tool.name, tool.description, tool.input_schema))
                         .collect(),
                 )
-                .map_err(|error| remote_attach_error(&server.server_id, error))?,
-            );
-        }
-        self.entries = mcp_remote::merge_registries(registries)
-            .map_err(|error| remote_attach_error("generation", error))?;
-        for server in &self.servers {
-            match &server.client {
-                AttachedServer::Remote(client) => client.clear_catalog_changed(),
-                AttachedServer::Stdio(client) => client.clear_catalog_changed(),
+                .map_err(|error| remote_attach_error(&server.server_id, error)),
+                Err(error) => Err(error),
+            };
+            match registry {
+                Ok(registry) => replacements[index] = Some(registry),
+                Err(error) => {
+                    self.restore_dirty(&claims);
+                    return Err(error);
+                }
             }
         }
-        Ok(())
+        let mut registries = Vec::with_capacity(self.servers.len());
+        for (index, server) in self.servers.iter().enumerate() {
+            registries.push(
+                replacements[index]
+                    .clone()
+                    .unwrap_or_else(|| server.registry.clone()),
+            );
+        }
+        match mcp_remote::merge_registries(registries) {
+            Ok(entries) => {
+                for (index, replacement) in replacements.into_iter().enumerate() {
+                    if let Some(registry) = replacement {
+                        self.servers[index].registry = registry;
+                    }
+                }
+                self.entries = entries;
+                Ok(())
+            }
+            Err(error) => {
+                self.restore_dirty(&claims);
+                Err(remote_attach_error("generation", error))
+            }
+        }
+    }
+
+    fn claim_dirty(&self) -> Vec<bool> {
+        self.servers
+            .iter()
+            .map(|server| match &server.client {
+                AttachedServer::Remote(client) => client.claim_catalog_changed(),
+                AttachedServer::Stdio(client) => client.claim_catalog_changed(),
+            })
+            .collect()
+    }
+
+    fn restore_dirty(&self, claims: &[bool]) {
+        for (index, server) in self.servers.iter().enumerate() {
+            if claims[index] {
+                match &server.client {
+                    AttachedServer::Remote(client) => client.restore_catalog_changed(),
+                    AttachedServer::Stdio(client) => client.restore_catalog_changed(),
+                }
+            }
+        }
     }
 }
 
-/// Server id + client + namespaced registry entries.
+/// Close one attached client with a typed failure result.
+async fn close_attached(server: AttachedMcp) -> Result<(), ()> {
+    match server.client {
+        AttachedServer::Remote(client) => client.close().await.map_err(|_| ()),
+        AttachedServer::Stdio(client) => client.shutdown().await.map_err(|_| ()),
+    }
+}
+
+/// Close a generation in an owned task so cleanup still runs to completion
+/// when the awaiting caller future is dropped.
+async fn close_generation(generation: McpGeneration) -> Result<(), RuntimeError> {
+    match tokio::spawn(generation.close()).await {
+        Ok(result) => result,
+        Err(_) => Err(RuntimeError::McpShutdown),
+    }
+}
+
+/// Server id + client + per-server base registry.
 struct AttachedMcp {
     server_id: String,
     client: AttachedServer,
+    registry: Vec<mcp_remote::RegistryEntry>,
 }
 
 /// Terminal turn status persisted to storage.
@@ -530,6 +607,16 @@ pub struct Runtime<'a> {
     mcp_generation: tokio::sync::Mutex<Option<McpGeneration>>,
 }
 
+/// Single-flight lease that releases the runtime even when the owning future
+/// is dropped before returning.
+struct ActiveLease<'a>(&'a AtomicBool);
+
+impl Drop for ActiveLease<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
+}
+
 impl<'a> Runtime<'a> {
     /// Build a runtime over one Location and an initial generation.
     #[allow(clippy::too_many_arguments)]
@@ -589,14 +676,9 @@ impl<'a> Runtime<'a> {
     /// Atomically publish a fully built candidate generation. Only lands
     /// between turns; returns the new id.
     pub async fn reload(&self, generation: Generation) -> Result<u64, RuntimeError> {
-        if self.active.swap(true, Ordering::SeqCst) {
-            return Err(RuntimeError::TurnActive);
-        }
-        if let Some(old) = self.mcp_generation.lock().await.take()
-            && let Err(error) = old.close().await
-        {
-            self.active.store(false, Ordering::SeqCst);
-            return Err(error);
+        let _lease = self.begin_active()?;
+        if let Some(old) = self.mcp_generation.lock().await.take() {
+            close_generation(old).await?;
         }
         let mut current = self.current.write().expect("generation lock");
         let id = current.id + 1;
@@ -604,14 +686,22 @@ impl<'a> Runtime<'a> {
             id,
             config: generation,
         });
-        self.active.store(false, Ordering::SeqCst);
         Ok(id)
+    }
+
+    /// Claim the single-flight lease; the guard releases it on every path,
+    /// including a future dropped mid-operation.
+    fn begin_active(&self) -> Result<ActiveLease<'_>, RuntimeError> {
+        if self.active.swap(true, Ordering::SeqCst) {
+            return Err(RuntimeError::TurnActive);
+        }
+        Ok(ActiveLease(&self.active))
     }
 
     /// Close the current Location/config generation's MCP resources.
     pub async fn shutdown_mcp(&self) -> Result<(), RuntimeError> {
         if let Some(generation) = self.mcp_generation.lock().await.take() {
-            generation.close().await?;
+            close_generation(generation).await?;
         }
         Ok(())
     }
@@ -735,26 +825,16 @@ impl<'a> Runtime<'a> {
         mut accepted: impl FnMut(&str) + Send,
         mut text_delta: impl FnMut(&str, &str) + Send,
     ) -> Result<TurnReport, RuntimeError> {
-        if self.active.swap(true, Ordering::SeqCst) {
-            return Err(RuntimeError::TurnActive);
-        }
+        let _lease = self.begin_active()?;
         let published = self.current.read().expect("generation lock").clone();
         let mut mcp = self.mcp_generation.lock().await;
-        let attached = match self
+        let attached = self
             .ensure_mcp_generation(&mut mcp, &published, params.cancel)
-            .await
-        {
-            Ok(value) => value,
-            Err(error) => {
-                self.active.store(false, Ordering::SeqCst);
-                return Err(error);
-            }
-        };
+            .await?;
         let result = self
             .run_turn_inner(params, attached, &mut accepted, &mut text_delta)
             .await;
         drop(mcp);
-        self.active.store(false, Ordering::SeqCst);
         result
     }
 
@@ -765,12 +845,8 @@ impl<'a> Runtime<'a> {
         args: &serde_json::Value,
         spec: &ProtectedSpec,
     ) -> Result<CompressReport, RuntimeError> {
-        if self.active.swap(true, Ordering::SeqCst) {
-            return Err(RuntimeError::TurnActive);
-        }
-        let result = self.run_compress_inner(session, args, spec);
-        self.active.store(false, Ordering::SeqCst);
-        result
+        let _lease = self.begin_active()?;
+        self.run_compress_inner(session, args, spec)
     }
 
     fn run_compress_inner(
@@ -1772,7 +1848,7 @@ impl<'a> Runtime<'a> {
             .is_some_and(|generation| generation.publication == published.id);
         if !reusable {
             if let Some(old) = slot.take() {
-                old.close().await?;
+                close_generation(old).await?;
             }
             *slot = Some(self.attach_mcp(published, cancel).await?);
         } else if let Some(generation) = slot.as_mut() {
@@ -1787,6 +1863,17 @@ impl<'a> Runtime<'a> {
         published: &PublishedGeneration,
         cancel: &AtomicBool,
     ) -> Result<McpGeneration, RuntimeError> {
+        let enabled = published
+            .config
+            .mcp
+            .values()
+            .filter(|entry| entry.enabled)
+            .count();
+        if enabled > MAX_MCP_SERVERS {
+            return Err(RuntimeError::InvalidArgs(format!(
+                "too many enabled MCP servers: {enabled} exceeds {MAX_MCP_SERVERS}"
+            )));
+        }
         let mut attached = Vec::new();
         let mut registries = Vec::new();
         let mut ids: Vec<&String> = published.config.mcp.keys().collect();
@@ -1833,24 +1920,31 @@ impl<'a> Runtime<'a> {
                                             AttachedMcp {
                                                 server_id: id.clone(),
                                                 client: AttachedServer::Remote(client),
+                                                registry: registry.clone(),
                                             },
                                             registry,
                                         )),
                                         Err(error) => {
-                                            client
-                                                .close()
-                                                .await
-                                                .map_err(|_| RuntimeError::McpShutdown)?;
+                                            let cleanup = close_attached(AttachedMcp {
+                                                server_id: id.clone(),
+                                                client: AttachedServer::Remote(client),
+                                                registry: Vec::new(),
+                                            })
+                                            .await;
+                                            cleanup.map_err(|_| RuntimeError::McpShutdown)?;
                                             Err(error)
                                         }
                                     }
                                 }
                                 Err(error) => {
                                     let mapped = remote_attach_error(id, error);
-                                    client
-                                        .close()
-                                        .await
-                                        .map_err(|_| RuntimeError::McpShutdown)?;
+                                    let cleanup = close_attached(AttachedMcp {
+                                        server_id: id.clone(),
+                                        client: AttachedServer::Remote(client),
+                                        registry: Vec::new(),
+                                    })
+                                    .await;
+                                    cleanup.map_err(|_| RuntimeError::McpShutdown)?;
                                     Err(mapped)
                                 }
                             },
@@ -1890,24 +1984,31 @@ impl<'a> Runtime<'a> {
                                             AttachedMcp {
                                                 server_id: id.clone(),
                                                 client: AttachedServer::Stdio(client),
+                                                registry: registry.clone(),
                                             },
                                             registry,
                                         )),
                                         Err(error) => {
-                                            client
-                                                .shutdown()
-                                                .await
-                                                .map_err(|_| RuntimeError::McpShutdown)?;
+                                            let cleanup = close_attached(AttachedMcp {
+                                                server_id: id.clone(),
+                                                client: AttachedServer::Stdio(client),
+                                                registry: Vec::new(),
+                                            })
+                                            .await;
+                                            cleanup.map_err(|_| RuntimeError::McpShutdown)?;
                                             Err(error)
                                         }
                                     }
                                 }
                                 Err(error) => {
                                     let mapped = stdio_attach_error(id, error);
-                                    client
-                                        .shutdown()
-                                        .await
-                                        .map_err(|_| RuntimeError::McpShutdown)?;
+                                    let cleanup = close_attached(AttachedMcp {
+                                        server_id: id.clone(),
+                                        client: AttachedServer::Stdio(client),
+                                        registry: Vec::new(),
+                                    })
+                                    .await;
+                                    cleanup.map_err(|_| RuntimeError::McpShutdown)?;
                                     Err(mapped)
                                 }
                             },
@@ -1925,12 +2026,11 @@ impl<'a> Runtime<'a> {
                     registries.push(registry);
                 }
                 Err(error) => {
-                    let cleanup = McpGeneration {
+                    let cleanup = close_generation(McpGeneration {
                         publication: published.id,
                         servers: attached,
                         entries: Vec::new(),
-                    }
-                    .close()
+                    })
                     .await;
                     cleanup?;
                     return Err(error);
@@ -1944,12 +2044,11 @@ impl<'a> Runtime<'a> {
                 entries,
             }),
             Err(error) => {
-                let cleanup = McpGeneration {
+                let cleanup = close_generation(McpGeneration {
                     publication: published.id,
                     servers: attached,
                     entries: Vec::new(),
-                }
-                .close()
+                })
                 .await;
                 cleanup?;
                 Err(remote_attach_error("generation", error))

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-21T15:19:07+00:00
+State updated: 2026-09-21T15:37:56+00:00
 Active: T37
 
 Сверить Git status/diff до выполнения команд.
@@ -14,54 +14,40 @@ Evidence target: evidence/T37/report.md
 
 ## Result
 
-T37 paused at a substantial verified but incomplete slice on base `839279c`.
-Actual `oc` now accepts case-insensitive Authorization, rejects conflicting
-duplicates pre-network, reuses one MCP child/handshake/list across two TUI turns,
-routes collision-renamed wire names by exact retained mapping, distinguishes
-isError/unsupported modality/transport, rejects partial oversized catalogs, and
-uses query/response_length. Disabled local MCP remains zero-spawn.
-
-Remote/stdio clients remain rmcp. Stdio uses trusted project cwd, minimal safe
-env, dedicated process group and TERM→KILL cleanup. Runtime caches one MCP
-generation, closes it on reload/shutdown, cleans partial attach, refreshes a
-list-changed catalog without reinitialize, and actual restart with disabled MCP
-does not respawn. No live calls, credentials, dependency or package changes.
+T37 finished on base 839279c; report maps F10/F11 and AUD22–AUD24 to executed
+regressions. Actual `oc` accepts unmodified user Authorization config, rejects
+conflicting duplicates before network, reuses one MCP child/handshake/catalog
+per config generation, closes it on reload/disable/shutdown with confirmed reap,
+routes collision-renamed names by exact retained identity, rejects partial
+oversized catalogs, distinguishes isError/unsupported modality/transport, and
+uses the server `query`/`response_length` schema. Stdio children get trusted cwd,
+minimal non-credential env and their own process group; disabled entries remain
+zero-spawn. Cleanup failures now propagate to a non-zero exit. No live calls,
+credentials, dependency or package changes.
 
 ## Checks
 
-Initial RED is `evidence/T37/regression.md`. Final paused-slice command passed:
-remote MCP 20 executed + 1 ignored live, stdio MCP 10 + 1 ignored real, runtime
-29, actual-binary MCP 7; 66 executed tests total, zero failures. Workspace
-all-target clippy `-D warnings`, rustfmt and `git diff --check` pass after the last
-edit. Progress/docs structural checks pass. Full workspace test/build gate has NOT
-yet been rerun because T37 is intentionally paused before completion.
+Initial RED: evidence/T37/regression.md. Final targeted and workspace commands
+with exact counts: evidence/T37/checks.md. Runtime 31, remote MCP 20 + 1 ignored
+live, stdio MCP 10 + 1 ignored real, actual MCP 7, core 17, adapter unit 124,
+full workspace suites all exit 0. Workspace all-target clippy -D warnings, fmt
+check, locked build, `oc --help`, progress/docs checks and `git diff --check`
+pass. Three pre-existing external harnesses remain NOT RUN, not PASS.
 
 ## Risks
 
-T37 is NOT done. Adversarial review found four remaining hardening items:
-1. propagate/verify shutdown errors end-to-end instead of application ignoring the
-   final result; confirm rmcp JoinError is not success;
-2. replace async `active` flag clearing with a cancellation-safe RAII lease so a
-   dropped turn/reload future cannot leave permanent TurnActive;
-3. make list_changed refresh per-server and race-safe (claim/restore dirty bit),
-   not relist every server or lose a second notification;
-4. reject an enabled-server count cap before spawning and bound aggregate cleanup
-   time while still attempting every owned cleanup.
-
-Raw HTTP/stdin frame preallocation and process-wide output/queue lifetime remain
-explicit T40 scope; retained MCP text is currently capped at 1 MiB. User-facing
-reload/location controls remain T39; adapter reload plus actual restart/disable
-is the current T37 evidence. Overall goal remains active but is being paused by
-explicit user request. T38–T42, T27 and T30 remain.
+Overall goal is NOT complete and no READY claim is made. Raw HTTP/stdin frame
+preallocation and process-wide output/queue lifetime stay with T40. User-facing
+reload/location controls are T39. Live OpenProxy MCP and provider qualification
+remain T27 after T42. T38–T42 plus FINAL T30 are still ahead.
 
 ## Next
 
-On resume, keep T37 active. Fix the four items above, add cancellation/drop and
-server-cap regressions, rerun actual MCP/adapter suites and full workspace gates,
-review diff, write `evidence/T37/report.md`, finish T37, then continue T38.
-Audit fragments were already merged once and must not be rerun. Current changes
-are intended to be committed/pushed as a resumable partial slice; Git is source
-of truth for the exact commit and branch.
+Commit the verified T37 hardening, record the implementation hash in the report,
+finish T37 through the existing progress engine and commit the generated
+closeout. Then immediately start T38: read audit/repairs/T38.md, reproduce the
+remaining shell/webfetch findings offline with temporary fixtures, and continue
+the same regression-first cycle. Audit fragments must not be merged again.
 
 
 Ready (до 5): нет

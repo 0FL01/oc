@@ -491,22 +491,27 @@ impl CodexWebClient {
         })
     }
 
-    /// True after the server requests a tools/list refresh.
-    pub fn catalog_changed(&self) -> bool {
-        self.tools_changed.load(Ordering::Acquire)
+    /// Atomically claim a pending tools/list refresh. A notification that
+    /// arrives during the relist stays claimed for the next turn.
+    pub fn claim_catalog_changed(&self) -> bool {
+        self.tools_changed.swap(false, Ordering::AcqRel)
     }
 
-    /// Clear the refresh marker only after a complete validated relist.
-    pub fn clear_catalog_changed(&self) {
-        self.tools_changed.store(false, Ordering::Release);
+    /// Restore a claimed refresh after a failed relist so it is retried.
+    pub fn restore_catalog_changed(&self) {
+        self.tools_changed.store(true, Ordering::Release);
     }
 
     /// Close the rmcp service and wait for transport cleanup for a bounded time.
+    ///
+    /// A timed-out or panicked service task is a cleanup failure, never success.
     pub async fn close(mut self) -> Result<(), McpError> {
         match self.running.close_with_timeout(CLOSE_TIMEOUT).await {
-            Ok(Some(_)) => Ok(()),
+            Ok(Some(rmcp::service::QuitReason::Closed | rmcp::service::QuitReason::Cancelled)) => {
+                Ok(())
+            }
+            Ok(Some(_)) | Err(_) => Err(McpError::Transport),
             Ok(None) => Err(McpError::Deadline),
-            Err(_) => Err(McpError::Transport),
         }
     }
 

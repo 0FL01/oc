@@ -321,14 +321,17 @@ impl SpawnedChild {
     }
 
     /// Reap ladder: close stdin, SIGTERM, grace, SIGKILL, wait.
+    ///
+    /// The owned group stays armed (Drop still kills it) until wait succeeds.
     pub async fn kill_reap(&mut self) -> Result<std::process::ExitStatus, StdioError> {
         drop(self.child.stdin.take());
         let terminated = self.process_group.terminate().await;
         let status = self.child.wait().await.map_err(|_| StdioError::Spawn);
         await_stderr(&mut self.stderr_task).await;
-        self.process_group.disarm();
         terminated?;
-        status
+        let status = status?;
+        self.process_group.disarm();
+        Ok(status)
     }
 }
 
@@ -565,16 +568,17 @@ impl StdioClient {
         })
     }
 
-    /// True after the server requests a tools/list refresh.
-    pub fn catalog_changed(&self) -> bool {
+    /// Atomically claim a pending tools/list refresh. A notification that
+    /// arrives during the relist stays claimed for the next turn.
+    pub fn claim_catalog_changed(&self) -> bool {
         self.tools_changed
-            .load(std::sync::atomic::Ordering::Acquire)
+            .swap(false, std::sync::atomic::Ordering::AcqRel)
     }
 
-    /// Clear the refresh marker only after a complete validated relist.
-    pub fn clear_catalog_changed(&self) {
+    /// Restore a claimed refresh after a failed relist so it is retried.
+    pub fn restore_catalog_changed(&self) {
         self.tools_changed
-            .store(false, std::sync::atomic::Ordering::Release);
+            .store(true, std::sync::atomic::Ordering::Release);
     }
 
     /// Config generation: increments on every restart from the same argv.
@@ -668,6 +672,9 @@ impl StdioClient {
 
     /// Explicitly close rmcp, terminate the owned process group, reap the
     /// wrapper, and finish the bounded stderr drain.
+    ///
+    /// The owned process group is disarmed only after every teardown step
+    /// succeeds; otherwise Drop keeps the SIGKILL fallback armed.
     pub async fn shutdown(mut self) -> Result<(), StdioError> {
         if let Some(running) = self.running.as_ref() {
             running.cancellation_token().cancel();
@@ -675,8 +682,11 @@ impl StdioClient {
         let terminated = self.process_group.terminate().await;
         let closed = if let Some(mut running) = self.running.take() {
             match running.close_with_timeout(SERVICE_CLOSE_TIMEOUT).await {
-                Ok(Some(_)) => Ok(()),
-                Ok(None) | Err(_) => Err(StdioError::Transport),
+                Ok(Some(
+                    rmcp::service::QuitReason::Closed | rmcp::service::QuitReason::Cancelled,
+                )) => Ok(()),
+                Ok(Some(_)) | Err(_) => Err(StdioError::Transport),
+                Ok(None) => Err(StdioError::Transport),
             }
         } else {
             Ok(())

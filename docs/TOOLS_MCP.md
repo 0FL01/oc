@@ -85,6 +85,37 @@ Local `chrome-devtools`: argv точно из trusted config, без shell split
 
 MCP клиент живёт в Location/config generation и не разделяется между разными auth/cwd. Reload между turns закрывает старый client; disabled entries не держат processes/requests. List-changed events инвалидируют только соответствующий catalog с controlled refresh. No session-global unbounded map of old generations.
 
+## Generation ownership (T37)
+
+Один `Runtime` держит ровно один connected MCP generation: второй turn той же
+config generation переиспользует child/handshake/catalog, а reload, disable или
+shutdown закрывают старую generation до публикации новой. Partial attach,
+cancelled attach и отменённый turn освобождают single-flight lease через RAII,
+поэтому поздний вызов не зависает в `TurnActive`. Cleanup выполняется в owned
+task, поэтому drop caller future не отменяет закрытие. Ошибка закрытия/reap
+возвращается наружу: `WorkerGuard::join` сообщает её, и actual binary завершается
+ненулевым кодом вместо заявления clean shutdown.
+
+Owned stdio child лидирует отдельную process group (`setpgid` до exec), получает
+trusted project cwd и минимальный env (`PATH`/`HOME`/`TMPDIR`/`LANG`/`LC_*`) без
+credential values; TERM→grace→KILL адресуется только собственной group, а
+не runner. SIGKILL fallback остаётся armed, пока wait не подтвердил reap.
+Закрытие generation ограничено общим бюджетом 10 s; превышение — честный
+`mcp shutdown failed`, а не бесконечное ожидание. Число enabled MCP servers
+ограничено (`MAX_MCP_SERVERS = 8`) до первого spawn; aggregate catalog
+(128 tools / 1 MiB metadata) и per-server 64 tools / 32 KiB schema отвергаются
+целиком, без частичной публикации. Model-visible wire name ограничен 64 bytes:
+небезопасные/длинные identity кодируются provider-safe именем с hash-suffix, а
+exact server/tool сохраняется в dispatch map (никакого `split_once("__")`).
+
+`tools/list_changed` claim-ится атомарно перед relist; перечитывается только
+изменившийся server, а notification, пришедшая во время relist, остаётся pending
+для следующего turn. Failed relist восстанавливает claim и сохраняет прежний
+catalog. Пропущенный или конфликтующий `Authorization` даёт явную ошибку до
+network: headers нормализуются в typed `HeaderMap` case-insensitively, а
+duplicate с разными значениями — terminal config error. Search вызывает
+server schema `query` + `response_length`, не helper `limit`.
+
 ## Direct exposure vs Code Mode
 
 В `oc-rs.toml` профиль явно `tool_exposure = "direct"`. При отсутствии upstream codemode field выбранный профиль означает direct — это объявленное отличие. Explicit true = actionable unsupported error. Не запускать JS interpreter, Node eval, Code Mode shim или remote execute to emulate missing interpreter.

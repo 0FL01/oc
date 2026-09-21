@@ -183,8 +183,12 @@ pub struct CoreApp {
 }
 
 /// Worker join guard; await after [`CoreApp::shutdown`].
+///
+/// The worker reports a typed failure string (for example an owned MCP
+/// resource that could not be closed), so callers can exit non-zero instead
+/// of claiming a clean shutdown.
 pub struct WorkerGuard {
-    handle: Option<tokio::task::JoinHandle<()>>,
+    handle: Option<tokio::task::JoinHandle<Result<(), String>>>,
 }
 
 impl CoreApp {
@@ -212,7 +216,10 @@ impl CoreApp {
     /// Spawn a worker with explicit inbox capacity (tests use small caps).
     pub fn spawn_with_capacity(provider: MockProvider, capacity: usize) -> (Self, WorkerGuard) {
         let (app, inbox_rx, event_tx) = Self::channel(capacity);
-        let handle = tokio::spawn(worker_loop(provider, inbox_rx, event_tx));
+        let handle = tokio::spawn(async move {
+            worker_loop(provider, inbox_rx, event_tx).await;
+            Ok(())
+        });
         (
             app,
             WorkerGuard {
@@ -325,16 +332,18 @@ impl CoreApp {
 
 impl WorkerGuard {
     /// Own the native application task using the same shutdown/join contract.
-    pub fn from_task(handle: tokio::task::JoinHandle<()>) -> Self {
+    pub fn from_task(handle: tokio::task::JoinHandle<Result<(), String>>) -> Self {
         Self {
             handle: Some(handle),
         }
     }
 
-    /// Wait for the worker task to finish.
-    pub async fn join(mut self) -> Result<(), tokio::task::JoinError> {
+    /// Wait for the worker task to finish and surface its cleanup result.
+    pub async fn join(mut self) -> Result<(), String> {
         if let Some(handle) = self.handle.take() {
-            handle.await?;
+            handle
+                .await
+                .map_err(|error| format!("application worker join: {error}"))??;
         }
         Ok(())
     }
@@ -498,7 +507,7 @@ async fn worker_loop(
 
 #[cfg(test)]
 mod tests {
-    use super::{CoreApp, CoreEvent, MockProvider};
+    use super::{CoreApp, CoreEvent, MockProvider, WorkerGuard};
     use crate::domain::SessionId;
     use crate::session::Role;
     use std::time::Duration;
@@ -527,6 +536,22 @@ mod tests {
                 CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             }
         }
+    }
+
+    #[tokio::test]
+    async fn worker_guard_surfaces_cleanup_failure() {
+        let handle = tokio::spawn(async { Err("mcp shutdown failed".to_string()) });
+        let error = WorkerGuard::from_task(handle)
+            .join()
+            .await
+            .expect_err("cleanup failure must not be reported as success");
+        assert_eq!(error, "mcp shutdown failed");
+        let panicked = tokio::spawn(async { panic!("worker panic probe") });
+        let error = WorkerGuard::from_task(panicked)
+            .join()
+            .await
+            .expect_err("a panicked worker is a join failure");
+        assert!(error.contains("application worker join"), "{error}");
     }
 
     #[tokio::test]

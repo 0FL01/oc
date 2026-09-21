@@ -1179,12 +1179,14 @@ for line in sys.stdin:
 }
 
 #[tokio::test]
-async fn aud23_tool_list_changed_relists_without_reinitializing() {
+async fn aud23_tool_list_changed_relists_only_the_dirty_server() {
     let (harness, mut generation) = make_harness(allow_all());
-    let script = harness._project.path().join("list_changed.py");
-    let lifecycle = harness._project.path().join("list_changed.log");
+    let changed_script = harness._project.path().join("list_changed.py");
+    let changed_log = harness._project.path().join("list_changed.log");
+    // The dirty server announces a change after every list, so a notification
+    // arriving during a relist must stay pending for the next turn.
     std::fs::write(
-        &script,
+        &changed_script,
         r#"import json, os, sys
 count = 0
 with open(sys.argv[1], 'a') as f: f.write('spawn %d\n' % os.getpid())
@@ -1196,16 +1198,138 @@ for line in sys.stdin:
     elif method == 'tools/list':
         count += 1
         with open(sys.argv[1], 'a') as f: f.write('list\n')
-        result={'tools':[{'name':('old' if count == 1 else 'new'),'description':'changed','inputSchema':{'type':'object'}}]}
+        result={'tools':[{'name':('old' if count % 2 == 1 else 'new'),'description':'changed','inputSchema':{'type':'object'}}]}
     if result is not None:
         print(json.dumps({'jsonrpc':'2.0','id':r['id'],'result':result}), flush=True)
-        if method == 'tools/list' and count == 1:
+        if method == 'tools/list':
             print(json.dumps({'jsonrpc':'2.0','method':'notifications/tools/list_changed'}), flush=True)
 "#,
     )
     .unwrap();
+    let stable_script = harness._project.path().join("stable.py");
+    let stable_log = harness._project.path().join("stable.log");
+    std::fs::write(
+        &stable_script,
+        r#"import json, os, sys
+with open(sys.argv[1], 'a') as f: f.write('spawn %d\n' % os.getpid())
+for line in sys.stdin:
+    r=json.loads(line); method=r.get('method'); result=None
+    if method == 'initialize':
+        with open(sys.argv[1], 'a') as f: f.write('initialize\n')
+        result={'protocolVersion':'2025-11-25','capabilities':{'tools':{}},'serverInfo':{'name':'stable','version':'1'}}
+    elif method == 'tools/list':
+        with open(sys.argv[1], 'a') as f: f.write('list\n')
+        result={'tools':[{'name':'ping','description':'stable','inputSchema':{'type':'object'}}]}
+    if result is not None:
+        print(json.dumps({'jsonrpc':'2.0','id':r['id'],'result':result}), flush=True)
+"#,
+    )
+    .unwrap();
+    for (id, script, log) in [
+        ("changed", &changed_script, &changed_log),
+        ("stable", &stable_script, &stable_log),
+    ] {
+        generation.mcp.insert(
+            id.into(),
+            McpEntry {
+                kind: "local".into(),
+                url: None,
+                enabled: true,
+                oauth: false,
+                headers: BTreeMap::new(),
+                command: vec![
+                    "/usr/bin/python3".into(),
+                    script.to_string_lossy().into_owned(),
+                    log.to_string_lossy().into_owned(),
+                ],
+                timeout: Some(2_000),
+                codemode: None,
+            },
+        );
+    }
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s").unwrap();
+    let (base, _, requests) =
+        Fake::start_recording(vec![sse_delta("ok") + &sse_completed()], Duration::ZERO);
+    for prompt in ["first", "second", "third"] {
+        assert_eq!(
+            runtime
+                .run_turn(params(
+                    "s",
+                    prompt,
+                    &harness,
+                    provider_of(&base),
+                    &NO_CANCEL,
+                ))
+                .await
+                .unwrap()
+                .status,
+            TurnStatus::Completed
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    {
+        let requests = requests.lock().unwrap();
+        let names = |request: &serde_json::Value| {
+            request["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter_map(|tool| tool["name"].as_str().map(str::to_string))
+                .collect::<Vec<_>>()
+        };
+        assert!(names(&requests[0]).contains(&"changed__old".to_string()));
+        assert!(names(&requests[1]).contains(&"changed__new".to_string()));
+        assert!(names(&requests[2]).contains(&"changed__old".to_string()));
+        for request in requests.iter() {
+            assert!(names(request).contains(&"stable__ping".to_string()));
+        }
+    }
+    let changed = std::fs::read_to_string(&changed_log).unwrap();
+    assert_eq!(
+        changed.lines().filter(|line| *line == "initialize").count(),
+        1
+    );
+    assert_eq!(
+        changed.lines().filter(|line| *line == "list").count(),
+        3,
+        "notification during relist was lost: {changed}"
+    );
+    let stable = std::fs::read_to_string(&stable_log).unwrap();
+    assert_eq!(
+        stable.lines().filter(|line| *line == "initialize").count(),
+        1
+    );
+    assert_eq!(
+        stable.lines().filter(|line| *line == "list").count(),
+        1,
+        "dirty server forced an unrelated relist: {stable}"
+    );
+    runtime.shutdown_mcp().await.unwrap();
+}
+
+#[tokio::test]
+async fn aud23_aborted_turn_releases_lease_and_shutdown_reaps_child() {
+    let (harness, mut generation) = make_harness(allow_all());
+    let script = harness._project.path().join("aborted_turn.py");
+    let lifecycle = harness._project.path().join("aborted_turn.log");
+    std::fs::write(
+        &script,
+        r#"import json, os, sys
+with open(sys.argv[1], 'a') as f: f.write('spawn %d\n' % os.getpid())
+for line in sys.stdin:
+    r=json.loads(line); method=r.get('method'); result=None
+    if method == 'initialize':
+        result={'protocolVersion':'2025-11-25','capabilities':{'tools':{}},'serverInfo':{'name':'aborted','version':'1'}}
+    elif method == 'tools/list':
+        result={'tools':[{'name':'ping','description':'ping','inputSchema':{'type':'object'}}]}
+    if result is not None:
+        print(json.dumps({'jsonrpc':'2.0','id':r['id'],'result':result}), flush=True)
+"#,
+    )
+    .unwrap();
     generation.mcp.insert(
-        "changed".into(),
+        "counted".into(),
         McpEntry {
             kind: "local".into(),
             url: None,
@@ -1223,48 +1347,112 @@ for line in sys.stdin:
     );
     let runtime = runtime_of(&harness, generation, Vec::new());
     runtime.create_session("s").unwrap();
-    let (base, _, requests) =
-        Fake::start_recording(vec![sse_delta("ok") + &sse_completed()], Duration::ZERO);
-    runtime
-        .run_turn(params(
-            "s",
-            "first",
-            &harness,
-            provider_of(&base),
-            &NO_CANCEL,
-        ))
-        .await
-        .unwrap();
-    tokio::time::sleep(Duration::from_millis(50)).await;
-    runtime
-        .run_turn(params(
-            "s",
-            "second",
-            &harness,
-            provider_of(&base),
-            &NO_CANCEL,
-        ))
-        .await
-        .unwrap();
+    let (slow, _) = Fake::start(
+        vec![sse_delta("slow") + &sse_completed()],
+        Duration::from_secs(3),
+    );
     {
-        let requests = requests.lock().unwrap();
-        let names = |request: &serde_json::Value| {
-            request["tools"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .filter_map(|tool| tool["name"].as_str().map(str::to_string))
-                .collect::<Vec<_>>()
-        };
-        assert!(names(&requests[0]).contains(&"changed__old".to_string()));
-        assert!(!names(&requests[0]).contains(&"changed__new".to_string()));
-        assert!(names(&requests[1]).contains(&"changed__new".to_string()));
-        assert!(!names(&requests[1]).contains(&"changed__old".to_string()));
+        let pending = runtime.run_turn(params(
+            "s",
+            "aborted",
+            &harness,
+            provider_of(&slow),
+            &NO_CANCEL,
+        ));
+        tokio::pin!(pending);
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        loop {
+            let spawned = std::fs::read_to_string(&lifecycle)
+                .map(|log| log.contains("spawn "))
+                .unwrap_or(false);
+            if spawned {
+                break;
+            }
+            assert!(std::time::Instant::now() < deadline, "child never spawned");
+            tokio::select! {
+                _ = tokio::time::sleep(Duration::from_millis(20)) => {}
+                _ = &mut pending => panic!("turn finished before the abort"),
+            }
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        // `pending` is dropped here while the provider stream is still open.
     }
-    let log = std::fs::read_to_string(&lifecycle).unwrap();
-    assert_eq!(log.lines().filter(|line| *line == "initialize").count(), 1);
-    assert_eq!(log.lines().filter(|line| *line == "list").count(), 2);
+    // The single-flight lease must be released by the dropped future.
+    let (base, _) = Fake::start(vec![sse_delta("ok") + &sse_completed()], Duration::ZERO);
+    assert_eq!(
+        runtime
+            .run_turn(params(
+                "s",
+                "after the abort",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ))
+            .await
+            .expect("lease released after abort")
+            .status,
+        TurnStatus::Completed
+    );
     runtime.shutdown_mcp().await.unwrap();
+    let pid = std::fs::read_to_string(&lifecycle)
+        .unwrap()
+        .lines()
+        .find_map(|line| line.strip_prefix("spawn "))
+        .and_then(|pid| pid.parse::<libc::pid_t>().ok())
+        .expect("recorded child pid");
+    let deadline = std::time::Instant::now() + Duration::from_secs(1);
+    // SAFETY: signal 0 only probes the fixture child pid.
+    while unsafe { libc::kill(pid, 0) } == 0 && std::time::Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    // SAFETY: final fixture liveness probe only.
+    let alive = unsafe { libc::kill(pid, 0) };
+    assert_ne!(alive, 0, "shutdown left the generation child alive");
+}
+
+#[tokio::test]
+async fn aud23_server_cap_blocks_spawn_before_first_child() {
+    let (harness, mut generation) = make_harness(allow_all());
+    let marker = harness._project.path().join("cap-spawn.log");
+    for index in 0..(oc_adapters::runtime::MAX_MCP_SERVERS + 1) {
+        generation.mcp.insert(
+            format!("server-{index}"),
+            McpEntry {
+                kind: "local".into(),
+                url: None,
+                enabled: true,
+                oauth: false,
+                headers: BTreeMap::new(),
+                command: vec![
+                    "/bin/sh".into(),
+                    "-c".into(),
+                    format!("printf 'spawned\\n' >> {}", marker.display()),
+                ],
+                timeout: Some(2_000),
+                codemode: None,
+            },
+        );
+    }
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s").unwrap();
+    let (base, _) = Fake::start(vec![sse_delta("ok") + &sse_completed()], Duration::ZERO);
+    let error = runtime
+        .run_turn(params(
+            "s",
+            "must not attach",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .expect_err("server cap must refuse the generation");
+    let text = error.to_string();
+    assert!(
+        text.contains("too many enabled MCP servers"),
+        "actionable cap diagnostic: {text}"
+    );
+    assert!(!marker.exists(), "server cap spawned a child anyway");
+    assert_eq!(harness.db.history_len("s").unwrap(), 0, "turn was accepted");
 }
 
 #[tokio::test]
