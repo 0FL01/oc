@@ -350,44 +350,6 @@ fn function_item_count(request: &serde_json::Value, kind: &str, call_id: &str) -
         .count()
 }
 
-/// An enabled MCP server that cannot attach degrades to "tools absent" with
-/// a visible warning instead of failing the whole generation.
-#[tokio::test]
-async fn aud12_unreachable_mcp_server_degrades_the_generation() {
-    let (harness, mut generation) = make_harness(allow_all());
-    generation.mcp.insert(
-        "broken".to_string(),
-        McpEntry {
-            kind: "remote".to_string(),
-            url: Some("http://127.0.0.1:1/mcp".to_string()),
-            enabled: true,
-            oauth: false,
-            headers: BTreeMap::new(),
-            command: Vec::new(),
-            timeout: Some(500),
-            codemode: None,
-        },
-    );
-    let runtime = runtime_of(&harness, generation, Vec::new());
-    runtime.create_session("s").unwrap();
-    let (base, _) = Fake::start(
-        vec![sse_delta("still works") + &sse_completed()],
-        Duration::ZERO,
-    );
-    let report = runtime
-        .run_turn(params(
-            "s",
-            "hello",
-            &harness,
-            provider_of(&base),
-            &NO_CANCEL,
-        ))
-        .await
-        .expect("a broken external MCP server must not fail the turn");
-    assert_eq!(report.status, TurnStatus::Completed, "{report:?}");
-    assert_eq!(report.text, "still works");
-}
-
 #[tokio::test]
 async fn aud06_intent_failure_prevents_patch() {
     let (harness, generation) = make_harness(allow_all());

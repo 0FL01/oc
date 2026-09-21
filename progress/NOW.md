@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-21T20:26:02+00:00
+State updated: 2026-09-21T20:35:34+00:00
 Active: T27
 
 Сверить Git status/diff до выполнения команд.
@@ -14,56 +14,53 @@ Evidence target: evidence/T27/report.md
 
 ## Result
 
-Owner-reported startup blockers fixed and the live path exercised end to end.
+Owner startup blockers: two fixed, one remains (config-side).
 
-1. `dcp.experimental.allowSubAgents: true` no longer blocks: the native DCP loader
-   accepts it with a visible warning (`dcp: dcp experimental.allowSubAgents is enabled;
-   subagents are not implemented yet, so the option is ignored`), because subagent support
-   is a future feature. `customPrompts: true` stays rejected as deferred. Both the
-   `dcp.jsonc`/inline-fragment path (`dcp_auto::load_config`) and the assembled-generation
-   check (`config::validate_dcp`) were changed together.
-2. `model required` is now actionable: the error lists the models the admitted config
-   declares (bounded, 12 + "and N more") and where to set the top-level `model`. The repo
-   Location got `opencode.json` with `model: ludka2/ocg/muse-spark-1.3-contributor`.
-3. Two more strictness blockers found while starting the real config:
-   - unknown provider option keys (e.g. `provider.a6api-claude.options.authToken`) are now
-     warnings instead of shape errors;
-   - a foreign `npm` (e.g. `@ai-sdk/anthropic`) only fails for the *selected* provider, so
-     an unselected provider from another frontend cannot block startup.
-4. A remote MCP server that cannot attach now degrades to "tools absent" with a visible
-   `warning: mcp <id> unavailable: <reason>` instead of failing the whole generation;
-   cancellation still propagates. Test `aud12_unreachable_mcp_server_degrades_the_generation`.
+FIXED
+- `dcp.experimental.allowSubAgents: true` no longer blocks; it is accepted with a visible
+  warning until subagent support lands (`customPrompts: true` stays deferred/rejected).
+- `model required` is actionable: the error lists the configured models (bounded) and the
+  repo Location now has `opencode.json` with `model: ludka2/ocg/muse-spark-1.3-contributor`.
+- Unknown provider option keys (`authToken`) are warnings, and a foreign `npm` only fails for
+  the *selected* provider, so another frontend's provider entry cannot block startup.
 
-Live verification on the production path (`oc run`, real HOME, real credentials): with MCP
-servers disabled or exactly one enabled, the run completes and answers
-(`session s-...` + `pong`) against `ludka2` / `ocg/muse-spark-1.3-contributor`.
+REMAINING (owner config): `mcp.crw` cannot attach from this client. Direct probe:
+`POST https://crw.bash8.de/mcp` with the configured `Bearer {env:CRW_API_KEY}` returns
+Cloudflare `403 Error 1010` (browser-signature block) for a non-browser HTTP client, while
+`mcp.codex_web` on ludka2 answers `initialize` in 0.03 s. Attach failure is fatal by the
+existing contract (`mcp_attach_failure_is_loud`, `aud23_partial_attach_failure_reaps_...`),
+so the run stops with `error: application: mcp attach failed for crw`. Disable `crw`
+(`"enabled": false`) or move it to a non-Cloudflare endpoint; a browser-compatible client is
+a separate, larger change.
+
+Live path verified end to end on the production binary with the real credentials when the
+crw server is disabled: `oc run` completes and answers (`session s-...` + `pong`) against
+`ludka2` / `ocg/muse-spark-1.3-contributor`. `POST {LUDKA2_API_URL}/responses` returns 200
+for both documented models; `/models` returns 40 ids.
+
+REVERTED: an attempted "unreachable MCP degrades to a warning" change contradicted the
+existing T37 contract tests (AUD23 reaping + loud failure) and was rolled back; the
+workspace is green again.
 
 ## Checks
 
-`cargo test -p oc-adapters --lib` -> 138 passed / 0 failed. `cargo test -p oc-adapters --test
-runtime` -> 32 passed (new degradation test). `cargo clippy --locked --workspace
---all-targets -- -D warnings` -> exit 0, `cargo fmt --all` applied. `cargo build --locked
---release` rebuilt. Live probes: `/models` 200 (40 ids), `/responses` 200 for both documented
-models, `POST {LUDKA2_API_URL}/mcp` initialize 200 in 0.03 s.
+`cargo test --locked --workspace --no-fail-fast` -> 333 passed / 0 failed / 4 ignored (exit
+0). `cargo clippy --locked --workspace --all-targets -- -D warnings` -> exit 0. `cargo fmt`
+clean. `cargo build --locked --release` rebuilt. Live probes as above (no secrets printed).
 
 ## Risks
 
-- NEW reproducible bug, on T27's critical path: with **two enabled remote MCP servers**
-  (`codex_web` + `crw`) the run hangs (>100 s, no stdout, no error) although each server
-  alone works and each endpoint answers instantly when probed directly. Single-server runs
-  and the MCP-disabled run complete. Suspect the attach/registry path when more than one
-  remote server is published (deadlock or unbounded wait), not the servers themselves.
-- No T27 PASS yet: the mandatory live campaign must wait for that fix.
+- The crw MCP server is unusable for this client until the config or the endpoint changes;
+  with it enabled, every `oc` command that loads the Location fails fast.
+- T27 (mandatory live campaign) still has no PASS: the harness must accept the discovered
+  `ludka2` model and the campaign must run with `codex_web` (mandatory) and `crw` disabled.
 
 ## Next
 
-1. Reproduce the two-server hang with a bounded test (two remote MCP fakes, one turn) and
-   fix it in `Runtime::attach_mcp` / `merge_registries`; keep the degradation warning for
-   genuinely unreachable servers.
-2. Then run T27: `set -a; . .local/live.env; set +a; OC_TEST_MODEL=ludka2/ocg/muse-spark-1.3-contributor`
-   with the harness reading the owner config (JSONC fix already in), mandatory `codex_web`
-   step included, and record the summary in `evidence/T27/`.
-3. Only then T30 FINAL over A01-A13.
+1. Owner: set `"enabled": false` for `mcp.crw` (or repoint it) in
+   `~/.config/opencode/opencode.jsonc`.
+2. Then T27: harness model acceptance for discovery providers, live campaign with codex_web,
+   summary in `evidence/T27/`; then T30 FINAL over A01-A13.
 
 
 Ready (до 5): T30

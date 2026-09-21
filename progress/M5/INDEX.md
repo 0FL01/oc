@@ -7,4 +7,4 @@ Plan: ../../roadmap/M5.md
 - [T24](T24/INDEX.md) [done] — Интеграция lifecycle; latest: 0001.md.
 - [T25](T25/INDEX.md) [done] — Offline coding/compaction E2E; latest: 0001.md.
 - [T26](T26/INDEX.md) [done] — PTY и UX qualification; latest: 0001.md.
-- [T27](T27/INDEX.md) [active] — Live пользовательский workflow; latest: 0004.md.
+- [T27](T27/INDEX.md) [active] — Live пользовательский workflow; latest: 0005.md.
