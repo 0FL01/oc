@@ -1,55 +1,28 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-21T18:55:13+00:00
-Active: T42
+State updated: 2026-09-21T18:55:26+00:00
+Active: T27
 
 Сверить Git status/diff до выполнения команд.
-Task: T42 — Повторная qualification и честный handoff
-Spec: audit/repairs/T42.md
-Evidence target: evidence/T42/report.md
+Task: T27 — Live пользовательский workflow
+Spec: roadmap/M5.md
+Evidence target: evidence/T27/report.md
 
-Закрыть F18 по audit/repairs/T42.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
+Явно opt-in выполнить готовый bounded live campaign: coding без edits вне fixture, reopen/next command, compress/resume, webfetch и codex_web search с counters/watchdog; optional browser smoke only explicit opt-in. Product/harness code здесь не добавлять; report remaining models unqualified.
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-
-T42 offline qualification executed on the four compatibility fixes plus the mandatory
-regressions. Working tree: bare `oc` launches the local TUI (and is an actionable error
-without a terminal), `/location <path>` performs a real Location switch inside one running
-application lifecycle (target generation built before publication, old MCP closed after,
-sessions Location-bound, refused during a turn, generation caches dropped), `apply_patch`
-tool cards carry a bounded diff summary, and config sources/`.opencode` roots/AGENTS files
-must canonicalise inside their admitted root (symlink escape fails closed). New tests: 3
-composition trust tests, 1 patch diff test, 3 actual-binary PTY tests.
-
+T27 paused before any new live probe at HEAD fc796830cf336655bebf63b591fe0fd36cdd4310. User-supplied audit contract requires T31–T42 offline repairs first. Existing uncommitted T27 activation is preserved as this blocked transition; no runtime files changed.
 ## Checks
-
-`cargo test --workspace --locked` -> 331 passed / 0 failed / 4 ignored (exit 0, log in
-`evidence/T42/qual-test.log`). `cargo fmt --all -- --check`, `cargo clippy --locked
---workspace --all-targets -- -D warnings`, `cargo build --locked`, `oc --help`,
-`git diff --check`, `progress.py check`, `check_docs.py` all exit 0. Clean HOME/XDG with a
-Node/Bun-free PATH: `e2e_offline` 3/3 passed (log in `evidence/T42/qual-cleanhome.log`).
-RED captured before the fixes: `evidence/T42/red-config-trust.txt` (0/2),
-`evidence/T42/red-pty.txt` (0/3).
-
+Inspected Git status/diff, audit/README.md, audit/REPORT.md and progress CLI help. HEAD equals audited snapshot. No new product test or live request executed.
 ## Risks
-
-- The Location switch is explicitly refused while a turn streams (nothing lost); a queued
-  switch is out of scope.
-- Live provider/MCP behaviour is not covered here: T27 remains the mandatory live gate.
-- 4 ignored tests (3 pre-existing external harnesses + credential-gated live campaign);
-  none counted as passing.
-
+Product gaps F01–F18 remain unqualified; prior task completion is not readiness evidence. T27 blocked by product qualification, not credentials.
 ## Next
-
-1. Commit the fixes, close T42 with `evidence/T42/report.md` (AUD38–AUD40 mapping).
-2. Start T27: bounded live campaign on the production `oc` path (Responses + mandatory
-   `codex_web` MCP) with the owner's config; never optional.
-3. Then T30 FINAL over A01–A13; READY only after T27 passes.
+Merge audit fragments under existing journal lock with backups, retain historical state, add T42 dependencies to T27/T30, validate registries and start T31. Resume T27 only after T42 offline qualification.
 
 
-Ready (до 5): нет
-Blocked: T27
+Ready (до 5): T30
+Blocked: нет
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.
