@@ -1,20 +1,16 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-21T09:38:18+00:00
-Active: T34
+State updated: 2026-09-21T09:39:42+00:00
+Active: нет
 
 Сверить Git status/diff до выполнения команд.
-Task: T34 — Настоящий Responses protocol и streaming
-Spec: audit/repairs/T34.md
-Evidence target: evidence/T34/report.md
 
-Закрыть F02, F03 по audit/repairs/T34.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
+Последний срез: T34 [done]; сверить незакоммиченный diff.
 
 ## Result
 
-T34 implementation verified on base HEAD 4e07cc7, awaiting delivery/finish.
+T34 finished; implementation c5e33d4 on base HEAD 4e07cc7. Evidence report maps
+F02/F03 and AUD09–AUD13 to executed regression and actual binary tests.
 Actual CLI/TUI use typed Responses history; canonical output/call IDs and opaque
 continuation survive tool rounds and process restart. Terminal failures, EOF and
 round exhaustion cannot complete or execute partial calls. Cancellation covers
@@ -41,15 +37,16 @@ No live qualification claimed; T27 remains product-blocked until T42.
 
 ## Next
 
-Commit verified T34 runtime/tests/docs/evidence, record implementation hash in
-report, finish through existing progress.py and commit closeout. Then start only
-ready T35; audit fragments must not be merged again. Changed files are provider,
-runtime/storage/tools/DCP projection/composition/config/application, CLI/headless,
-direct test fixtures and docs/PROVIDER_OPENPROXY.md plus evidence/progress; Git
-status is authoritative. No push yet.
+Start only ready T35 through progress.py after checking GOAL/NOW and actual Git;
+read audit/repairs/T35.md and reproduce current config/discovery findings offline.
+Audit fragments must not be merged again. No more T34 implementation edits needed.
+Closeout changes report/checkpoint and generated journal only; implementation
+c5e33d4 contains runtime/tests/docs and prior checkpoints. No push yet.
 
 
-Ready (до 5): нет
+Следующий шаг: проверить зависимости и начать первую ready-задачу.
+
+Ready (до 5): T35
 Blocked: T27
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.

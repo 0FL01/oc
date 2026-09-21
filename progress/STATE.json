@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-21T09:38:18+00:00",
-  "current": "T34",
+  "updated_at": "2026-09-21T09:39:42+00:00",
+  "current": null,
   "tasks": {
     "T00": {
       "status": "done",
@@ -242,10 +242,10 @@
       "reopen_reason": null
     },
     "T34": {
-      "status": "active",
-      "last_seq": 2,
-      "latest": "progress/M7/T34/0002.md",
-      "evidence": null,
+      "status": "done",
+      "last_seq": 3,
+      "latest": "progress/M7/T34/0003.md",
+      "evidence": "evidence/T34/report.md",
       "reopen_reason": null
     },
     "T35": {
