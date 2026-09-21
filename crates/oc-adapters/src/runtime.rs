@@ -2153,7 +2153,7 @@ impl<'a> Runtime<'a> {
                     attached.push(server);
                     registries.push(registry);
                 }
-                Err(error) => {
+                Err(RuntimeError::Cancelled) => {
                     let cleanup = close_generation(McpGeneration {
                         publication: published.id,
                         servers: attached,
@@ -2161,7 +2161,14 @@ impl<'a> Runtime<'a> {
                     })
                     .await;
                     cleanup?;
-                    return Err(error);
+                    return Err(RuntimeError::Cancelled);
+                }
+                Err(error) => {
+                    // An external MCP server that cannot attach degrades to
+                    // "tools absent" with a visible warning instead of failing
+                    // the whole generation: calls to its tools then fail
+                    // closed as unknown tools. Cancellation still propagates.
+                    eprintln!("warning: mcp {id} unavailable: {error}");
                 }
             }
         }

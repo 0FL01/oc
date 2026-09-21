@@ -217,8 +217,10 @@ fn parse_limit(
 /// Load layered config: defaults, then the `dcp.jsonc` fragment (already
 /// parsed to JSON by the caller; sources stay read-only here).
 ///
-/// Experimental `allowSubAgents`/`customPrompts` are explicitly rejected;
-/// unknown top-level keys produce warnings, never silent behavior.
+/// Experimental `allowSubAgents` is accepted with a visible warning until
+/// subagent support lands (it only permits subagent summarisation, which this
+/// generation never performs); `customPrompts` is still rejected as deferred.
+/// Unknown top-level keys produce warnings, never silent behavior.
 pub fn load_config(fragment: &serde_json::Value) -> Result<(DcpConfig, Vec<String>), DcpAutoError> {
     let invalid = |reason: &str| DcpAutoError::InvalidConfig {
         reason: reason.to_string(),
@@ -226,11 +228,17 @@ pub fn load_config(fragment: &serde_json::Value) -> Result<(DcpConfig, Vec<Strin
     let obj = fragment
         .as_object()
         .ok_or_else(|| invalid("config must be an object"))?;
+    let mut config = DcpConfig::default();
+    let mut warnings = Vec::new();
     if let Some(exp) = obj.get("experimental") {
         if exp.get("allowSubAgents") == Some(&serde_json::Value::Bool(true)) {
-            return Err(DcpAutoError::UnsupportedOption {
-                reason: "allowSubAgents is out of goal scope".to_string(),
-            });
+            // Future subagent support will use this flag; today the option is
+            // tolerated visibly instead of blocking the whole application.
+            warnings.push(
+                "dcp experimental.allowSubAgents is enabled; subagents are not \
+                 implemented yet, so the option is ignored"
+                    .to_string(),
+            );
         }
         if exp.get("customPrompts") == Some(&serde_json::Value::Bool(true)) {
             return Err(DcpAutoError::UnsupportedOption {
@@ -238,8 +246,6 @@ pub fn load_config(fragment: &serde_json::Value) -> Result<(DcpConfig, Vec<Strin
             });
         }
     }
-    let mut config = DcpConfig::default();
-    let mut warnings = Vec::new();
     let known = [
         "enabled",
         "$schema",
@@ -1026,10 +1032,15 @@ mod tests {
         assert!(
             load_config(&serde_json::json!({"minContextLimit": 9, "maxContextLimit": 8})).is_err()
         );
-        assert!(matches!(
-            load_config(&serde_json::json!({"experimental": {"allowSubAgents": true}})),
-            Err(DcpAutoError::UnsupportedOption { .. })
-        ));
+        // Subagents are a future feature: the flag is accepted visibly.
+        let (accepted, warnings) =
+            load_config(&serde_json::json!({"experimental": {"allowSubAgents": true}}))
+                .expect("allowSubAgents is tolerated until subagents land");
+        assert_eq!(accepted.enabled, DcpConfig::default().enabled);
+        assert!(
+            warnings.iter().any(|w| w.contains("allowSubAgents")),
+            "the ignored option is reported: {warnings:?}"
+        );
         // Bare, pinned, and the user-required latest alias bind one compiled instance.
         let bare = resolve_dcp_module("@tarquinen/opencode-dcp").expect("bare");
         let pinned = resolve_dcp_module("@tarquinen/opencode-dcp@3.1.15").expect("pinned");

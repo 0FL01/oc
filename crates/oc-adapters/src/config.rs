@@ -73,8 +73,12 @@ pub enum Permission {
 }
 
 /// Provider options with exact upstream semantics preserved.
+///
+/// Unknown option keys are not a shape error: they are reported as warnings
+/// (`provider.<id>.options.<key>`) so a vendor-specific field written for
+/// another frontend cannot block the whole application. Known fields keep
+/// strict typing.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct ProviderOptions {
     /// Base URL template (may contain `{env:..}` before substitution).
     #[serde(rename = "baseURL", default)]
@@ -453,6 +457,8 @@ pub fn assemble(
     enabled_providers: Option<&HashSet<String>>,
 ) -> Result<Generation, ConfigError> {
     let mut providers: BTreeMap<String, (ProviderEntry, String)> = BTreeMap::new();
+    // Unknown provider option keys: visible warnings, never a hard failure.
+    let mut unknown_options: Vec<String> = Vec::new();
     let mut mcp: BTreeMap<String, (McpEntry, String)> = BTreeMap::new();
     let mut permissions: BTreeMap<String, (Permission, String)> = BTreeMap::new();
 
@@ -474,7 +480,12 @@ pub fn assemble(
                         field: format!("provider.{id}"),
                         reason: format!("shape: {e}"),
                     })?;
-                validate_provider(id, &entry)?;
+                for key in unknown_option_keys(raw.get("options")) {
+                    unknown_options.push(format!(
+                        "provider.{id}.options.{key} is not supported by the native \
+                         profile; the option is ignored"
+                    ));
+                }
                 providers.insert(id.clone(), (entry, source.path.clone()));
             }
         }
@@ -537,6 +548,12 @@ pub fn assemble(
             *value = substitute(value, path, trusted, env)?;
         }
         let selected = enabled_providers.is_none_or(|only| only.contains(id));
+        // Only the provider that will actually be used must be on the native
+        // family: an unselected provider with a foreign package (another
+        // frontend's entry) must not block the application.
+        if selected {
+            validate_provider(id, &entry)?;
+        }
         if selected && entry.options.api_key.trim().is_empty() {
             return Err(ConfigError::MissingCredential {
                 field: format!("provider.{id}.options.apiKey"),
@@ -576,8 +593,28 @@ pub fn assemble(
         mcp: out_mcp,
         permissions: out_perm,
         provenance,
-        warnings: Vec::new(),
+        warnings: unknown_options,
     })
+}
+
+/// Known provider option keys; anything else is a visible warning.
+const PROVIDER_OPTION_KEYS: &[&str] = &[
+    "baseURL",
+    "apiKey",
+    "timeout",
+    "chunkTimeout",
+    "setCacheKey",
+    "headers",
+];
+
+fn unknown_option_keys(options: Option<&serde_json::Value>) -> Vec<String> {
+    let Some(map) = options.and_then(|value| value.as_object()) else {
+        return Vec::new();
+    };
+    map.keys()
+        .filter(|key| !PROVIDER_OPTION_KEYS.contains(&key.as_str()))
+        .cloned()
+        .collect()
 }
 
 fn validate_provider(id: &str, entry: &ProviderEntry) -> Result<(), ConfigError> {
@@ -616,12 +653,9 @@ fn validate_mcp(id: &str, entry: &McpEntry) -> Result<(), ConfigError> {
 
 fn validate_dcp(raw: &serde_json::Value) -> Result<(), ConfigError> {
     if let Some(exp) = raw.get("experimental") {
-        if exp.get("allowSubAgents") == Some(&serde_json::Value::Bool(true)) {
-            return Err(ConfigError::UnsupportedCapability {
-                field: "dcp.experimental.allowSubAgents".to_string(),
-                reason: "subagents are out of goal scope".to_string(),
-            });
-        }
+        // `allowSubAgents: true` is tolerated: it only permits subagent
+        // summarisation, which this generation does not perform yet. The
+        // native DCP loader reports it as a warning.
         if exp.get("customPrompts") == Some(&serde_json::Value::Bool(true)) {
             return Err(ConfigError::UnsupportedCapability {
                 field: "dcp.experimental.customPrompts".to_string(),
@@ -983,6 +1017,24 @@ mod tests {
         assert!(matches!(err, ConfigError::MissingCredential { .. }));
     }
 
+    /// A vendor-specific provider option (written for another frontend) is a
+    /// visible warning, not a shape error that blocks the application.
+    #[test]
+    fn unknown_provider_option_is_a_warning() {
+        let config = r#"{"provider": {"p": {"options": {"authToken": "x", "apiKey": "k"},
+            "models": {"m": {}}}}}"#;
+        let generation = assemble(&[src("s", config, true)], &env(&[]), None).expect("assembled");
+        assert_eq!(generation.providers["p"].options.api_key, "k");
+        assert!(
+            generation
+                .warnings
+                .iter()
+                .any(|warning| warning.contains("provider.p.options.authToken")),
+            "the ignored option is reported: {:?}",
+            generation.warnings
+        );
+    }
+
     #[test]
     fn cfg03_capability_failures() {
         let bad_npm = r#"{"provider": {"x": {"npm": "evil-pkg",
@@ -1004,10 +1056,14 @@ mod tests {
             Err(ConfigError::UnsupportedCapability { .. })
         ));
         let dcp = r#"{"dcp": {"experimental": {"allowSubAgents": true}}}"#;
-        assert!(matches!(
-            assemble(&[src("s", dcp, true)], &env(&[]), None),
-            Err(ConfigError::UnsupportedCapability { .. })
-        ));
+        assert!(
+            !matches!(
+                assemble(&[src("s", dcp, true)], &env(&[]), None),
+                Err(ConfigError::UnsupportedCapability { field, .. })
+                    if field.contains("allowSubAgents")
+            ),
+            "allowSubAgents must not block assembly"
+        );
         let mode = r#"{"dcp": {"compress": {"mode": "message"}}}"#;
         assert!(matches!(
             assemble(&[src("s", mode, true)], &env(&[]), None),

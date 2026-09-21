@@ -326,10 +326,49 @@ async fn load_with_env(
         None => None,
     };
 
-    let selected = selected.ok_or_else(|| {
-        "model required: set top-level model to provider/model-id in opencode.json/jsonc"
-            .to_string()
-    })?;
+    let selected = match selected {
+        Some(selected) => selected,
+        None => {
+            // Actionable, bounded: name the models the admitted config
+            // declares so the owner can copy one into the top-level `model`.
+            let mut candidates: Vec<String> = Vec::new();
+            for source in &sources {
+                let Ok(value) = config::parse_jsonc(&source.text, &source.path) else {
+                    continue;
+                };
+                let Some(providers) = value.get("provider").and_then(|v| v.as_object()) else {
+                    continue;
+                };
+                for (provider_id, provider) in providers {
+                    let Some(models) = provider.get("models").and_then(|v| v.as_object()) else {
+                        continue;
+                    };
+                    for model_id in models.keys() {
+                        candidates.push(format!("{provider_id}/{model_id}"));
+                    }
+                }
+            }
+            candidates.sort();
+            candidates.dedup();
+            let total = candidates.len();
+            candidates.truncate(12);
+            let listed = if candidates.is_empty() {
+                "no models are declared in the admitted config; add a provider with a models map"
+                    .to_string()
+            } else {
+                let suffix = if total > candidates.len() {
+                    format!(" (and {} more)", total - candidates.len())
+                } else {
+                    String::new()
+                };
+                format!("configured models: {}{suffix}", candidates.join(", "))
+            };
+            return Err(format!(
+                "model required: set top-level `model` to provider/model-id in the Location \
+                 or global opencode.json/jsonc; {listed}"
+            ));
+        }
+    };
     let selected = selected_agent
         .as_ref()
         .and_then(|agent| agent.model.clone())
@@ -807,7 +846,7 @@ mod tests {
         .expect("config");
         std::fs::write(
             project.join("dcp.jsonc"),
-            r#"{"experimental": {"allowSubAgents": true}}"#,
+            r#"{"experimental": {"customPrompts": true}}"#,
         )
         .expect("dcp config");
         let error = load_with_env(&project, BTreeMap::new())
@@ -815,8 +854,27 @@ mod tests {
             .map(|_| ())
             .expect_err("unsupported option must fail closed");
         assert!(
-            error.contains("allowSubAgents") && error.contains("dcp.jsonc"),
+            error.contains("customPrompts") && error.contains("dcp.jsonc"),
             "the diagnostic must name the source file: {error}"
+        );
+
+        // Subagents are a future feature: `allowSubAgents` is tolerated with a
+        // visible warning instead of blocking the application.
+        std::fs::write(
+            project.join("dcp.jsonc"),
+            r#"{"experimental": {"allowSubAgents": true}}"#,
+        )
+        .expect("dcp config");
+        let loaded = load_with_env(&project, BTreeMap::new())
+            .await
+            .expect("allowSubAgents must not block");
+        assert!(
+            loaded
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.contains("allowSubAgents")),
+            "the ignored option is reported: {:?}",
+            loaded.diagnostics
         );
     }
 
