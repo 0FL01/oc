@@ -1,20 +1,15 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-21T08:08:51+00:00
-Active: T32
+State updated: 2026-09-21T08:10:14+00:00
+Active: нет
 
 Сверить Git status/diff до выполнения команд.
-Task: T32 — Исправить apply_patch до дальнейших мутаций
-Spec: audit/repairs/T32.md
-Evidence target: evidence/T32/report.md
 
-Закрыть F04, F05 по audit/repairs/T32.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
+Последний срез: T32 [done]; сверить незакоммиченный diff.
 
 ## Result
 
-T32 verified implementation slice on base e92b614. Reproduced F04/F05 first:
+T32 finished; implementation commit 7636595, base e92b614. Reproduced F04/F05 first:
 all three independent regressions failed before production edits. Canonical
 patchText/schema/consumers aligned; Add bytes and Move order corrected. All
 hunks/paths/policy/filesystem permissions preflight before writes. Linux
@@ -41,14 +36,16 @@ may leave staging file but must never auto-replay. No live/paid calls or push.
 
 ## Next
 
-Commit verified implementation, write evidence/T32/report.md with code SHA,
-finish T32 through existing journal after docs checks. Then start ready T33 and
-reproduce AUD06–08 storage/durable-intent failures on temporary fixtures only.
+Evidence: evidence/T32/report.md. Start ready T33 through scripts/progress.py,
+read audit/repairs/T33.md, then reproduce AUD06–08 storage/durable-intent failures
+on temporary fixtures only. No audit-fragment remerge and no live campaign yet.
 Changed runtime: patch.rs/private patch/fs.rs, runtime/tools schema, direct
 DCP/TUI consumers/fixtures; no dependency or package boundary change.
 
 
-Ready (до 5): нет
+Следующий шаг: проверить зависимости и начать первую ready-задачу.
+
+Ready (до 5): T33
 Blocked: T27
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.
