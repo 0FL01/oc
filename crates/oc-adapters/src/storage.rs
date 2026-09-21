@@ -492,12 +492,14 @@ impl Db {
     ) -> Result<String, StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let count: i64 = tx.query_row(
-            "SELECT COUNT(*) FROM compression_blocks WHERE session_id = ?1",
-            params![session],
+        // Block ids are a global sequence: per-session COUNT would hand a
+        // second session the same `b0001` and violate the primary key.
+        let max: Option<i64> = tx.query_row(
+            "SELECT MAX(CAST(SUBSTR(id, 2) AS INTEGER)) FROM compression_blocks",
+            [],
             |row| row.get(0),
         )?;
-        let id = format!("b{:04}", count + 1);
+        let id = format!("b{:04}", max.unwrap_or(0) + 1);
         let now = now_rfc3339();
         tx.execute(
             "INSERT INTO compression_blocks(id, session_id, topic, summary, start_msg, end_msg, created_at)
