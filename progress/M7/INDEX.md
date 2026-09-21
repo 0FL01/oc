@@ -2,7 +2,7 @@
 
 Plan: ../../roadmap/M7.md
 
-- [T31](T31/INDEX.md) [active] — Подключить реальный application path; latest: 0002.md.
+- [T31](T31/INDEX.md) [done] — Подключить реальный application path; latest: 0003.md.
 - [T32](T32/INDEX.md) [todo] — Исправить apply_patch до дальнейших мутаций; latest: нет.
 - [T33](T33/INDEX.md) [todo] — Durable tool execution и recovery; latest: нет.
 - [T34](T34/INDEX.md) [todo] — Настоящий Responses protocol и streaming; latest: нет.
