@@ -1,20 +1,16 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-21T10:50:39+00:00
-Active: T35
+State updated: 2026-09-21T10:51:36+00:00
+Active: нет
 
 Сверить Git status/diff до выполнения команд.
-Task: T35 — Configured workspace и точный discovery
-Spec: audit/repairs/T35.md
-Evidence target: evidence/T35/report.md
 
-Закрыть F08, F09, F17 по audit/repairs/T35.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
+Последний срез: T35 [done]; сверить незакоммиченный diff.
 
 ## Result
 
-T35 implementation verified on base 9daa55c, awaiting commit/finish. Actual-binary configured-workspace regressions
+T35 finished: implementation 320bf4c on base 9daa55c. Report maps F08/F09/F17
+and AUD14–AUD18 to executed actual-binary/oracle evidence. Actual-binary configured-workspace regressions
 pass 6/6: global/project AGENTS isolation, selected primary prompt, literal
 single-pass command, pinned skill body, legacy/agent permission denial, precise
 malformed/unknown diagnostics and cross-Location session refusal. User-required
@@ -38,13 +34,15 @@ Known authoring goal marker is intentionally no-op, not a supported plugin host.
 
 ## Next
 
-Commit the verified implementation/tests/docs/evidence, record its hash in the
-report, finish T35 through progress.py, then start T36 without pausing. Current
-changes include production code, configured_workspace.rs, docs/fixtures, evidence
-and generated T35 progress; Git status is authoritative. No push/live call.
+Start T36 after checking GOAL/NOW and Git, read audit/repairs/T36.md, and reproduce
+the missing model-visible compress/nudge/graph behavior offline. Do not rerun audit
+merge. T35 implementation is 320bf4c; closeout changes only report/checkpoint and
+generated progress. No push/live call.
 
 
-Ready (до 5): нет
+Следующий шаг: проверить зависимости и начать первую ready-задачу.
+
+Ready (до 5): T36
 Blocked: T27
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.
