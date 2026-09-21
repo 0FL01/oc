@@ -11,6 +11,6 @@ Plan: ../../roadmap/M7.md
 - [T37](T37/INDEX.md) [done] — MCP config, registry и владение ресурсами; latest: 0004.md.
 - [T38](T38/INDEX.md) [done] — Shell и webfetch без hangs/Unicode panic; latest: 0002.md.
 - [T39](T39/INDEX.md) [done] — Довести TUI до подключённого daily workflow; latest: 0002.md.
-- [T40](T40/INDEX.md) [active] — Ограничить активный контекст, а не подменять его обрезкой; latest: 0001.md.
+- [T40](T40/INDEX.md) [done] — Ограничить активный контекст, а не подменять его обрезкой; latest: 0002.md.
 - [T41](T41/INDEX.md) [todo] — Пересобрать доказательства вокруг бинарника; latest: нет.
 - [T42](T42/INDEX.md) [todo] — Повторная qualification и честный handoff; latest: нет.
