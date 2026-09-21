@@ -89,6 +89,20 @@ async fn load_with_env(
     let mut sources = Vec::new();
     let mut seen = HashSet::new();
     for root in &roots {
+        // A source is admitted only when it stays inside the canonical root
+        // that declared it. A symlinked config resolving outside is refused
+        // (fail closed) instead of being canonicalized and marked trusted,
+        // which would authorise `{file:}` reads in an outside directory.
+        let canonical_root = match root.canonicalize() {
+            Ok(canonical) => canonical,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(e) => {
+                return Err(format!(
+                    "cannot resolve config root {}: {e}",
+                    root.display()
+                ));
+            }
+        };
         for name in ["opencode.json", "opencode.jsonc"] {
             let path = root.join(name);
             let text = match std::fs::read_to_string(&path) {
@@ -99,6 +113,14 @@ async fn load_with_env(
             let canonical = path
                 .canonicalize()
                 .map_err(|e| format!("cannot resolve config {}: {e}", path.display()))?;
+            if !canonical.starts_with(&canonical_root) {
+                return Err(format!(
+                    "refusing config {}: resolves outside its admitted root {} ({})",
+                    path.display(),
+                    root.display(),
+                    canonical.display()
+                ));
+            }
             if seen.insert(canonical.clone()) {
                 sources.push(config::Source {
                     path: canonical.to_string_lossy().into_owned(),
@@ -230,10 +252,26 @@ async fn load_with_env(
         );
     }
     merge_config_sources(&mut loaded_defs, &sources, &project)?;
+    // The `.opencode` definition root is admitted only inside the Location
+    // root; a symlinked root resolving outside fails closed.
     let local_defs = project.join(".opencode");
-    let local_defs = local_defs
-        .canonicalize()
-        .unwrap_or_else(|_| project.join(".opencode"));
+    let local_defs = match local_defs.canonicalize() {
+        Ok(canonical) => {
+            if !canonical.starts_with(&project) {
+                return Err(format!(
+                    "refusing {}: resolves outside the Location root {} ({})",
+                    local_defs.display(),
+                    project.display(),
+                    canonical.display()
+                ));
+            }
+            canonical
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => local_defs,
+        Err(e) => {
+            return Err(format!("cannot resolve {}: {e}", local_defs.display()));
+        }
+    };
     merge_config_sources(&mut loaded_defs, &sources, &local_defs)?;
     defs::merge_definition_root(
         &mut loaded_defs,
@@ -246,13 +284,13 @@ async fn load_with_env(
     let mut instruction_files = Vec::new();
     if let Some(global) = global.as_ref() {
         let file = global.join("AGENTS.md");
-        if file.exists() {
-            instruction_files.push((file.to_string_lossy().into_owned(), file));
+        if let Some(admitted) = admit_instruction(&file, global)? {
+            instruction_files.push((file.to_string_lossy().into_owned(), admitted));
         }
     }
     let local_agents = project.join("AGENTS.md");
-    if local_agents.exists() {
-        instruction_files.push((local_agents.to_string_lossy().into_owned(), local_agents));
+    if let Some(admitted) = admit_instruction(&local_agents, &project)? {
+        instruction_files.push((local_agents.to_string_lossy().into_owned(), admitted));
     }
     let (instructions, instruction_diagnostics) = defs::load_instructions(&instruction_files);
 
@@ -522,6 +560,42 @@ fn permission_rank(level: config::Permission) -> u8 {
     }
 }
 
+/// Admit an instruction file only when it stays inside its admitted root.
+///
+/// Returns the canonical path when the file exists inside `root`, `None`
+/// when it is absent, and fails closed when a symlink resolves outside.
+fn admit_instruction(file: &Path, root: &Path) -> Result<Option<PathBuf>, String> {
+    let canonical_root = match root.canonicalize() {
+        Ok(canonical) => canonical,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => {
+            return Err(format!(
+                "cannot resolve config root {}: {e}",
+                root.display()
+            ));
+        }
+    };
+    let canonical = match file.canonicalize() {
+        Ok(canonical) => canonical,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => {
+            return Err(format!(
+                "cannot resolve instructions {}: {e}",
+                file.display()
+            ));
+        }
+    };
+    if !canonical.starts_with(&canonical_root) {
+        return Err(format!(
+            "refusing instructions {}: resolves outside its admitted root {} ({})",
+            file.display(),
+            root.display(),
+            canonical.display()
+        ));
+    }
+    Ok(Some(canonical))
+}
+
 fn merge_config_sources(
     definitions: &mut defs::LoadedDefs,
     sources: &[config::Source],
@@ -625,6 +699,87 @@ mod tests {
             .map(|_| ())
             .expect_err("missing key");
         assert!(error.contains("missing credential"));
+    }
+
+    /// A config file that resolves outside its admitted root is not a
+    /// trusted source: `{file:}` must never be read relative to an outside
+    /// directory (fail closed, not a silent canonicalize-and-trust).
+    #[tokio::test]
+    async fn symlinked_config_outside_the_root_is_refused() {
+        let dir = tempfile::tempdir().expect("fixture");
+        let project = dir.path().join("project");
+        let outside = dir.path().join("outside");
+        std::fs::create_dir_all(&project).expect("project");
+        std::fs::create_dir_all(&outside).expect("outside");
+        std::fs::write(outside.join("secret.txt"), "outside-secret-value").expect("secret");
+        std::fs::write(
+            outside.join("config.json"),
+            r#"{"model":"fixture/org/new","provider":{"fixture":{"options":{
+                "baseURL":"https://example.invalid/proxy/v1",
+                "apiKey":"{file:secret.txt}"
+            },"models":{"org/new":{}}}}}"#,
+        )
+        .expect("outside config");
+        std::os::unix::fs::symlink(outside.join("config.json"), project.join("opencode.json"))
+            .expect("symlink");
+        let error = load_with_env(&project, BTreeMap::new())
+            .await
+            .map(|_| ())
+            .expect_err("symlink escape must fail closed");
+        assert!(error.contains("outside"), "{error}");
+    }
+
+    /// The admitted `.opencode` root must stay inside the Location root:
+    /// a symlinked root cannot pull in outside definitions.
+    #[tokio::test]
+    async fn symlinked_local_root_outside_the_project_is_refused() {
+        let dir = tempfile::tempdir().expect("fixture");
+        let project = dir.path().join("project");
+        let outside = dir.path().join("outside/.opencode");
+        std::fs::create_dir_all(&project).expect("project");
+        std::fs::create_dir_all(outside.join("command")).expect("outside root");
+        std::fs::write(
+            project.join("opencode.json"),
+            r#"{"model":"fixture/org/new","provider":{"fixture":{"options":{
+                "baseURL":"https://example.invalid/proxy/v1","apiKey":"k"
+            },"models":{"org/new":{}}}}}"#,
+        )
+        .expect("config");
+        std::fs::write(
+            outside.join("command/escape.md"),
+            "---\ndescription: outside command\n---\noutside payload\n",
+        )
+        .expect("outside command");
+        std::os::unix::fs::symlink(&outside, project.join(".opencode")).expect("symlink");
+        let error = load_with_env(&project, BTreeMap::new())
+            .await
+            .map(|_| ())
+            .expect_err("symlinked local root must fail closed");
+        assert!(error.contains("outside"), "{error}");
+    }
+
+    /// Containment, not a blanket symlink ban: a config symlinked inside its
+    /// own admitted root stays trusted and keeps `{file:}` working.
+    #[tokio::test]
+    async fn in_root_symlinked_config_stays_admitted() {
+        let dir = tempfile::tempdir().expect("fixture");
+        let project = dir.path().join("project");
+        std::fs::create_dir_all(&project).expect("project");
+        std::fs::write(project.join("key.txt"), "in-root-key").expect("key");
+        std::fs::write(
+            project.join("real.json"),
+            r#"{"model":"fixture/org/new","provider":{"fixture":{"options":{
+                "baseURL":"https://example.invalid/proxy/v1",
+                "apiKey":"{file:key.txt}"
+            },"models":{"org/new":{}}}}}"#,
+        )
+        .expect("real config");
+        std::os::unix::fs::symlink(project.join("real.json"), project.join("opencode.json"))
+            .expect("symlink");
+        let loaded = load_with_env(&project, BTreeMap::new())
+            .await
+            .expect("in-root symlink is admitted");
+        assert_eq!(loaded.provider.api_key, "in-root-key");
     }
 
     #[tokio::test]

@@ -12,7 +12,9 @@ use std::time::Duration;
 use tokio::sync::{broadcast, mpsc, oneshot};
 
 use crate::domain::SessionId;
-use crate::queries::{CatalogSnapshot, DcpSnapshot, HistoryPage, SkillCard, ToolOpPage};
+use crate::queries::{
+    CatalogSnapshot, DcpSnapshot, HistoryPage, LocationSnapshot, SkillCard, ToolOpPage,
+};
 use crate::session::{CoreError, MAX_INPUT_BYTES, MAX_QUEUE_ITEMS, Message, MessageId, Role};
 
 /// Opaque turn id for the worker (monotonic `t0001`, …).
@@ -190,6 +192,17 @@ pub enum InboxMsg {
         id: String,
         /// Resulting snapshot after acceptance.
         ack: oneshot::Sender<Result<CatalogSnapshot, CoreError>>,
+    },
+    /// Switch the whole application to another Location (project path).
+    ///
+    /// The target generation is built completely before the switch is
+    /// published; the current Location is kept on failure. Refused while a
+    /// turn is active.
+    SwitchLocation {
+        /// Target project path.
+        path: String,
+        /// Resulting Location/session/catalog snapshot after acceptance.
+        ack: oneshot::Sender<Result<LocationSnapshot, CoreError>>,
     },
     /// DCP context/stats snapshot for a session.
     Dcp {
@@ -435,6 +448,16 @@ impl CoreApp {
         let (ack_tx, ack_rx) = oneshot::channel();
         self.inbox
             .send(InboxMsg::Catalog { ack: ack_tx })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Switch the running application to another Location (project path).
+    pub async fn switch_location(&self, path: String) -> Result<LocationSnapshot, CoreError> {
+        let (ack_tx, ack_rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::SwitchLocation { path, ack: ack_tx })
             .await
             .map_err(|_| CoreError::Shutdown)?;
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
@@ -716,6 +739,9 @@ fn scripted_unsupported(message: InboxMsg) {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::SelectAgent { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::SwitchLocation { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::Dcp { ack, .. } => {

@@ -1,7 +1,8 @@
 //! Minimal CLI surface for T05.
 //!
 //! `run`/`sessions` arrive here; full `tui`/`models`/`config` arrive in
-//! M1/M2/M5. Bare `oc` without subcommand or `--smoke` is a usage error.
+//! M1/M2/M5. Bare `oc` on a terminal launches the same local TUI as
+//! `oc tui`; without a terminal it is an actionable usage error.
 
 use std::path::PathBuf;
 
@@ -17,7 +18,8 @@ pub struct Args {
     /// Print linked crate versions and exit without side effects.
     #[arg(long, default_value_t = false)]
     pub smoke: bool,
-    /// Subcommand; required unless `--smoke` is given.
+    /// Subcommand; bare `oc` launches the local TUI when stdin/stdout are a
+    /// terminal (otherwise it fails with a headless hint).
     #[command(subcommand)]
     pub command: Option<Command>,
 }

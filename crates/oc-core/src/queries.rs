@@ -91,6 +91,22 @@ pub struct CatalogSnapshot {
     pub commands: Vec<String>,
 }
 
+/// Result of one successful Location switch inside a running application.
+///
+/// The target generation was built completely before this value is produced:
+/// the frontend adopts the returned session and catalog together.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocationSnapshot {
+    /// Canonical Location id (project path) now served.
+    pub location: String,
+    /// Session bound to that Location (new, or the recorded one on return).
+    pub session: String,
+    /// Catalog for the new generation.
+    pub catalog: CatalogSnapshot,
+    /// Non-fatal diagnostics from the target generation (never secrets).
+    pub diagnostics: Vec<String>,
+}
+
 /// Skill catalog card: metadata only, never bodies.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SkillCard {

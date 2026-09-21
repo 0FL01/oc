@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-21T18:55:13+00:00
-Active: T42
-
-Сверить Git status/diff до выполнения команд.
-Task: T42 — Повторная qualification и честный handoff
-Spec: audit/repairs/T42.md
-Evidence target: evidence/T42/report.md
-
-Закрыть F18 по audit/repairs/T42.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 ## Result
 
 T42 offline qualification executed on the four compatibility fixes plus the mandatory
@@ -47,9 +33,3 @@ RED captured before the fixes: `evidence/T42/red-config-trust.txt` (0/2),
 2. Start T27: bounded live campaign on the production `oc` path (Responses + mandatory
    `codex_web` MCP) with the owner's config; never optional.
 3. Then T30 FINAL over A01–A13; READY only after T27 passes.
-
-
-Ready (до 5): нет
-Blocked: T27
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

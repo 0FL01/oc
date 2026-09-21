@@ -230,6 +230,139 @@ pub fn affected_paths(patch_text: &str) -> Result<Vec<String>, PatchError> {
     Ok(paths.into_iter().collect())
 }
 
+/// Max files summarised for a diff card (bounded UI state).
+pub const DIFF_FILES_CAP: usize = 8;
+/// Max hunks counted per file (counts stay exact; this only bounds work).
+const DIFF_HUNKS_CAP: usize = 4096;
+
+/// One file in a bounded `apply_patch` diff representation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DiffFile {
+    /// Op path as written in the patch (never invented).
+    pub path: String,
+    /// Add / Update / Delete.
+    pub change: &'static str,
+    /// Rename target, when the op moves a file.
+    pub move_to: Option<String>,
+    /// Added lines (`+`), exact for updates and adds.
+    pub additions: usize,
+    /// Removed lines (`-`), exact for updates.
+    pub removals: usize,
+    /// `@@` hunk sections in this op.
+    pub hunks: usize,
+}
+
+/// Bounded diff summary of an `apply_patch` payload for tool cards.
+///
+/// Parsed from the same grammar as execution, but never touching the
+/// filesystem and never keeping a second copy of the patch: only counts and
+/// paths, capped at [`DIFF_FILES_CAP`] files.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DiffSummary {
+    /// Per-file summaries, in patch order.
+    pub files: Vec<DiffFile>,
+    /// Exact added-line total over all ops.
+    pub additions: usize,
+    /// Exact removed-line total over all ops.
+    pub removals: usize,
+    /// True when more files exist than [`DIFF_FILES_CAP`].
+    pub truncated: bool,
+    /// True when the payload is not a well-formed patch envelope.
+    pub malformed: bool,
+}
+
+/// Summarise an `apply_patch` payload (bounded, no filesystem access).
+pub fn diff_summary(patch_text: &str) -> DiffSummary {
+    let mut summary = DiffSummary::default();
+    if patch_text.len() > PATCH_BYTES_CAP {
+        summary.malformed = true;
+        return summary;
+    }
+    let mut current: Option<DiffFile> = None;
+    let mut began = false;
+    for raw in patch_text.split('\n') {
+        let line = raw.strip_suffix('\r').unwrap_or(raw);
+        if let Some(path) = line.strip_prefix("*** Add File: ") {
+            began = true;
+            finish_file(&mut summary, current.take());
+            current = Some(DiffFile {
+                path: path.trim().to_string(),
+                change: "Add",
+                move_to: None,
+                additions: 0,
+                removals: 0,
+                hunks: 0,
+            });
+            continue;
+        }
+        if let Some(path) = line.strip_prefix("*** Update File: ") {
+            began = true;
+            finish_file(&mut summary, current.take());
+            current = Some(DiffFile {
+                path: path.trim().to_string(),
+                change: "Update",
+                move_to: None,
+                additions: 0,
+                removals: 0,
+                hunks: 0,
+            });
+            continue;
+        }
+        if let Some(path) = line.strip_prefix("*** Delete File: ") {
+            began = true;
+            finish_file(&mut summary, current.take());
+            current = Some(DiffFile {
+                path: path.trim().to_string(),
+                change: "Delete",
+                move_to: None,
+                additions: 0,
+                removals: 0,
+                hunks: 0,
+            });
+            continue;
+        }
+        let Some(file) = current.as_mut() else {
+            continue;
+        };
+        if let Some(target) = line.strip_prefix("*** Move to: ") {
+            file.move_to = Some(target.trim().to_string());
+            continue;
+        }
+        if line.starts_with("@@") {
+            if file.hunks < DIFF_HUNKS_CAP {
+                file.hunks += 1;
+            }
+            continue;
+        }
+        if line.starts_with("*** ") {
+            continue;
+        }
+        if line.starts_with('+') {
+            file.additions += 1;
+            summary.additions += 1;
+        } else if line.starts_with('-') {
+            file.removals += 1;
+            summary.removals += 1;
+        }
+    }
+    finish_file(&mut summary, current.take());
+    if !began {
+        summary.malformed = true;
+    }
+    summary
+}
+
+fn finish_file(summary: &mut DiffSummary, file: Option<DiffFile>) {
+    let Some(file) = file else {
+        return;
+    };
+    if summary.files.len() < DIFF_FILES_CAP {
+        summary.files.push(file);
+    } else {
+        summary.truncated = true;
+    }
+}
+
 /// Parse `patchText` into an execution plan (no filesystem access).
 fn parse_plan(text: &str) -> Result<Vec<FileOp>, ApplyFailure> {
     if text.len() > PATCH_BYTES_CAP {
@@ -987,8 +1120,8 @@ fn matches_at(lines: &[String], pos: usize, hunk: &[HunkLine]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        AllowAll, ApplyFailure, FileResult, MODEL_TOOL_NAMES, PatchError, ProtectedGlobs,
-        apply_patch,
+        AllowAll, ApplyFailure, DIFF_FILES_CAP, FileResult, MODEL_TOOL_NAMES, PatchError,
+        ProtectedGlobs, apply_patch, diff_summary,
     };
     use std::fs;
     use std::os::unix::fs::PermissionsExt as _;
@@ -1291,5 +1424,54 @@ mod tests {
         )
         .expect_err("binary");
         assert!(matches!(err.error, PatchError::Binary { .. }));
+    }
+    #[test]
+    fn diff_summary_is_exact_and_bounded() {
+        let patch = concat!(
+            "*** Begin Patch\n",
+            "*** Update File: src/lib.rs\n",
+            "@@\n",
+            "-a\n",
+            "+b\n",
+            "+c\n",
+            "*** Add File: tests/new.rs\n",
+            "+x\n",
+            "*** Delete File: old.txt\n",
+            "*** End Patch",
+        );
+        let summary = diff_summary(patch);
+        assert_eq!(summary.files.len(), 3);
+        assert_eq!(summary.files[0].path, "src/lib.rs");
+        assert_eq!(summary.files[0].change, "Update");
+        assert_eq!(summary.files[0].hunks, 1);
+        assert_eq!(
+            (summary.files[0].additions, summary.files[0].removals),
+            (2, 1)
+        );
+        assert_eq!(summary.files[1].change, "Add");
+        assert_eq!(summary.files[2].change, "Delete");
+        assert_eq!((summary.additions, summary.removals), (3, 1));
+        assert!(!summary.truncated && !summary.malformed);
+
+        // Rename target and hunk count stay visible.
+        let moved = diff_summary(
+            "*** Begin Patch\n*** Update File: a.txt\n*** Move to: b.txt\n@@\n@@\n-x\n*** End Patch",
+        );
+        assert_eq!(moved.files[0].move_to.as_deref(), Some("b.txt"));
+        assert_eq!(moved.files[0].hunks, 2);
+
+        // More files than the cap: bounded list, exact totals.
+        let mut big = String::from("*** Begin Patch\n");
+        for index in 0..(DIFF_FILES_CAP + 3) {
+            big.push_str(&format!("*** Add File: f{index}.rs\n+x\n"));
+        }
+        let summary = diff_summary(&big);
+        assert_eq!(summary.files.len(), DIFF_FILES_CAP);
+        assert!(summary.truncated);
+        assert_eq!(summary.additions, DIFF_FILES_CAP + 3);
+
+        // Non-patch payloads are marked, never invented.
+        let summary = diff_summary("{\"not\":\"a patch\"}");
+        assert!(summary.files.is_empty() && summary.malformed);
     }
 }

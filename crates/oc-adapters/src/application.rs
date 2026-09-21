@@ -4,14 +4,15 @@
 //! selection. Frontends query bounded view snapshots and send actions; they
 //! never open the database or duplicate config/persistence logic (T39).
 
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use oc_core::core_app::{CoreApp, CoreEvent, InboxMsg, WorkerGuard, WorkerTurnId};
 use oc_core::domain::SessionId;
 use oc_core::queries::{
-    AgentEntry, CatalogSnapshot, DcpSnapshot, HistoryMessage, HistoryPage, ModelEntry, SkillCard,
-    ToolOpPage, ToolOpView, VariantEntry,
+    AgentEntry, CatalogSnapshot, DcpSnapshot, HistoryMessage, HistoryPage, LocationSnapshot,
+    ModelEntry, SkillCard, ToolOpPage, ToolOpView, VariantEntry,
 };
 use oc_core::session::{CoreError, MAX_QUEUE_ITEMS, MessageId, Role};
 use tokio::sync::{broadcast, mpsc, oneshot};
@@ -40,21 +41,9 @@ pub async fn spawn(
     let db = Db::open(data).map_err(|e| format!("storage: {e}"))?;
     db.recover_interrupted_tools()
         .map_err(|e| format!("recovery: {e}"))?;
-    let files = crate::files::Files::new(&composition.project, db.root())
-        .map_err(|e| format!("files: {e}"))?;
-    let shell =
-        crate::shell::Shell::new(&composition.project).map_err(|e| format!("shell: {e}"))?;
     let (app, inbox, events) = CoreApp::channel(MAX_QUEUE_ITEMS);
     let (ready, ready_rx) = oneshot::channel();
-    let handle = tokio::spawn(start_worker(
-        db,
-        composition,
-        files,
-        shell,
-        inbox,
-        events,
-        ready,
-    ));
+    let handle = tokio::spawn(start_worker(db, composition, inbox, events, ready));
     let guard = WorkerGuard::from_task(handle);
     match ready_rx.await {
         Ok(Ok(worker_diagnostics)) => {
@@ -234,20 +223,14 @@ impl Effective {
     }
 }
 
-/// Own the whole application task: build the runtime, publish the workspace
-/// exactly once, then run the command loop and close owned MCP resources.
-#[allow(clippy::too_many_arguments)]
-async fn start_worker(
-    db: Db,
-    composition: Composition,
-    files: crate::files::Files,
-    shell: crate::shell::Shell,
-    inbox: mpsc::Receiver<InboxMsg>,
-    events: broadcast::Sender<CoreEvent>,
-    ready: oneshot::Sender<Result<Vec<String>, String>>,
-) -> Result<(), String> {
+/// Build one complete runtime for a composition (no publication yet).
+fn build_runtime<'a>(db: &'a Db, composition: &Composition) -> Result<Runtime<'a>, String> {
+    let files = crate::files::Files::new(&composition.project, db.root())
+        .map_err(|e| format!("files: {e}"))?;
+    let shell =
+        crate::shell::Shell::new(&composition.project).map_err(|e| format!("shell: {e}"))?;
     let runtime = Runtime::new(
-        &db,
+        db,
         &composition.project.to_string_lossy(),
         composition.generation.clone(),
         crate::patch::ProtectedGlobs {
@@ -263,18 +246,47 @@ async fn start_worker(
         None,
         false,
         composition.dcp_config.clone(),
-    );
-    let runtime = match runtime {
+    )
+    .map_err(|error| error.to_string())?;
+    runtime
+        .publish_dcp_protection(composition.dcp_protected.clone())
+        .map_err(|error| error.to_string())?;
+    Ok(runtime)
+}
+
+/// What the command loop returns to the supervisor.
+enum WorkerOutcome {
+    /// Inbox closed or an explicit shutdown was requested.
+    Stop,
+    /// The owner asked to switch Location; the supervisor owns the rebuild.
+    Switch {
+        /// Target project path.
+        path: String,
+        /// Acceptance after the complete target generation is published.
+        ack: oneshot::Sender<Result<LocationSnapshot, CoreError>>,
+    },
+}
+
+/// Own the whole application task: build the runtime, publish the workspace
+/// exactly once, then run the command loop and close owned MCP resources.
+///
+/// A Location switch builds the complete target generation (config, catalog,
+/// agents/skills/commands, MCP resources, runtime, session) before it is
+/// published; a failure keeps the current Location untouched.
+async fn start_worker(
+    db: Db,
+    mut composition: Composition,
+    mut inbox: mpsc::Receiver<InboxMsg>,
+    events: broadcast::Sender<CoreEvent>,
+    ready: oneshot::Sender<Result<Vec<String>, String>>,
+) -> Result<(), String> {
+    let mut runtime = match build_runtime(&db, &composition) {
+        Ok(runtime) => runtime,
         Err(error) => {
-            let _ = ready.send(Err(error.to_string()));
+            let _ = ready.send(Err(error));
             return Ok(());
         }
-        Ok(runtime) => runtime,
     };
-    if let Err(error) = runtime.publish_dcp_protection(composition.dcp_protected.clone()) {
-        let _ = ready.send(Err(error.to_string()));
-        return Ok(());
-    }
     let mut effective = Effective::from_composition(&composition);
     let mut registry = WorkspaceRegistry::bind(
         runtime.generation_id(),
@@ -283,6 +295,7 @@ async fn start_worker(
         workspace_agents(&composition),
         skill_metas(&composition),
     );
+    let mut sessions: BTreeMap<String, String> = BTreeMap::new();
     let mut diagnostics = effective.apply_persisted_model(&db, &composition);
     diagnostics.extend(effective.apply_persisted_agent(&db, &composition, &mut registry));
     if let Err(error) = publish_workspace(&runtime, &composition, &effective) {
@@ -292,16 +305,119 @@ async fn start_worker(
     if ready.send(Ok(diagnostics)).is_err() {
         return Ok(());
     }
-    worker(
-        &runtime,
-        &db,
-        &composition,
-        effective,
-        registry,
-        inbox,
-        events,
-    )
-    .await
+    loop {
+        let outcome = worker(
+            &runtime,
+            &db,
+            &composition,
+            &mut effective,
+            &mut registry,
+            &mut inbox,
+            &events,
+            &mut sessions,
+        )
+        .await?;
+        match outcome {
+            WorkerOutcome::Stop => {
+                runtime
+                    .shutdown_mcp()
+                    .await
+                    .map_err(|error| error.to_string())?;
+                break;
+            }
+            WorkerOutcome::Switch { path, ack } => {
+                match switch_target(&db, &path, &mut sessions).await {
+                    Ok((next, next_composition, next_effective, next_registry, session, notes)) => {
+                        // The target generation is complete: only now drop the
+                        // old Location's MCP resources and swap the state.
+                        runtime
+                            .shutdown_mcp()
+                            .await
+                            .map_err(|error| error.to_string())?;
+                        runtime = next;
+                        let location = runtime.location().to_string();
+                        let catalog = next_effective.snapshot(&next_composition);
+                        composition = next_composition;
+                        effective = next_effective;
+                        registry = next_registry;
+                        let _ = ack.send(Ok(LocationSnapshot {
+                            location,
+                            session: session.0,
+                            catalog,
+                            diagnostics: notes,
+                        }));
+                    }
+                    Err(error) => {
+                        let _ = ack.send(Err(app_error(error)));
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Build the complete target generation for a Location switch.
+///
+/// Nothing is published and no old state is dropped here: the caller swaps
+/// only after this returns successfully.
+#[allow(clippy::type_complexity)]
+async fn switch_target<'a>(
+    db: &'a Db,
+    path: &str,
+    sessions: &mut BTreeMap<String, String>,
+) -> Result<
+    (
+        Runtime<'a>,
+        Composition,
+        Effective,
+        WorkspaceRegistry,
+        SessionId,
+        Vec<String>,
+    ),
+    String,
+> {
+    let composition = composition::load(Path::new(path)).await?;
+    let runtime = build_runtime(db, &composition)?;
+    let mut effective = Effective::from_composition(&composition);
+    let mut registry = WorkspaceRegistry::bind(
+        runtime.generation_id(),
+        runtime.location(),
+        &composition.generation,
+        workspace_agents(&composition),
+        skill_metas(&composition),
+    );
+    let mut notes = composition.diagnostics.clone();
+    notes.extend(effective.apply_persisted_model(db, &composition));
+    notes.extend(effective.apply_persisted_agent(db, &composition, &mut registry));
+    publish_workspace(&runtime, &composition, &effective).map_err(|error| error.to_string())?;
+    // Sessions stay Location-bound: a return to a visited Location reopens
+    // its recorded session, a first visit mints one for the new Location.
+    let location = runtime.location().to_string();
+    let session = match sessions.get(&location).cloned() {
+        Some(id) => {
+            runtime
+                .open_session(&id)
+                .map_err(|error| error.to_string())?;
+            SessionId(id)
+        }
+        None => {
+            let id = format!("s-loc-{}", nanos());
+            runtime
+                .create_session(&id)
+                .map_err(|error| error.to_string())?;
+            sessions.insert(location, id.clone());
+            SessionId(id)
+        }
+    };
+    Ok((runtime, composition, effective, registry, session, notes))
+}
+
+fn nanos() -> u128 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos()
 }
 
 /// Publish the agent prompt, instructions and pinned skills for the next turn.
@@ -384,11 +500,16 @@ fn query(
     composition: &Composition,
     effective: &mut Effective,
     registry: &mut WorkspaceRegistry,
+    sessions: &mut BTreeMap<String, String>,
     message: InboxMsg,
 ) {
     match message {
         InboxMsg::Create { id, ack } => {
-            let _ = ack.send(runtime.create_session(&id.0).map_err(app_error));
+            let result = runtime.create_session(&id.0).map_err(app_error);
+            if result.is_ok() {
+                sessions.insert(runtime.location().to_string(), id.0.clone());
+            }
+            let _ = ack.send(result);
         }
         InboxMsg::List { ack } => {
             let _ = ack.send(
@@ -560,6 +681,11 @@ fn query(
             })();
             let _ = ack.send(result);
         }
+        InboxMsg::SwitchLocation { ack, .. } => {
+            // A switch never races the active turn: it is refused while the
+            // worker is streaming and can be retried afterwards.
+            let _ = ack.send(Err(app_error("turn active; location switch refused")));
+        }
         InboxMsg::Dcp { session, ack } => {
             let result = (|| -> Result<DcpSnapshot, CoreError> {
                 runtime.open_session(&session.0).map_err(app_error)?;
@@ -639,11 +765,12 @@ async fn worker(
     runtime: &Runtime<'_>,
     db: &Db,
     composition: &Composition,
-    mut effective: Effective,
-    mut registry: WorkspaceRegistry,
-    mut inbox: mpsc::Receiver<InboxMsg>,
-    events: broadcast::Sender<CoreEvent>,
-) -> Result<(), String> {
+    effective: &mut Effective,
+    registry: &mut WorkspaceRegistry,
+    inbox: &mut mpsc::Receiver<InboxMsg>,
+    events: &broadcast::Sender<CoreEvent>,
+    sessions: &mut BTreeMap<String, String>,
+) -> Result<WorkerOutcome, String> {
     while let Some(message) = inbox.recv().await {
         // A manual compress request is a real turn: the model drives the
         // compress tool exactly like an automatic nudge.
@@ -660,8 +787,12 @@ async fn worker(
             other => other,
         };
         match message {
-            InboxMsg::Shutdown => break,
+            InboxMsg::Shutdown => return Ok(WorkerOutcome::Stop),
+            InboxMsg::SwitchLocation { path, ack } => {
+                return Ok(WorkerOutcome::Switch { path, ack });
+            }
             InboxMsg::Submit { session, text, ack } => {
+                sessions.insert(runtime.location().to_string(), session.0.clone());
                 if text.trim().is_empty() {
                     let _ = ack.send(Err(app_error("empty prompt")));
                     continue;
@@ -736,8 +867,9 @@ async fn worker(
                                     db,
                                     runtime,
                                     composition,
-                                    &mut effective,
-                                    &mut registry,
+                                    effective,
+                                    registry,
+                                    sessions,
                                     command,
                                 ),
                             }
@@ -800,16 +932,14 @@ async fn worker(
                 db,
                 runtime,
                 composition,
-                &mut effective,
-                &mut registry,
+                effective,
+                registry,
+                sessions,
                 message,
             ),
         }
     }
-    runtime
-        .shutdown_mcp()
-        .await
-        .map_err(|error| error.to_string())
+    Ok(WorkerOutcome::Stop)
 }
 
 fn resolve_submission(

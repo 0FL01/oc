@@ -1,0 +1,28 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.16s
+     Running unittests src/lib.rs (/home/opencode/ai/oc/target/debug/deps/oc_adapters-30d9df82874e6689)
+
+running 2 tests
+test composition::tests::symlinked_config_outside_the_root_is_refused ... FAILED
+test composition::tests::symlinked_local_root_outside_the_project_is_refused ... FAILED
+
+failures:
+
+---- composition::tests::symlinked_config_outside_the_root_is_refused stdout ----
+
+thread 'composition::tests::symlinked_config_outside_the_root_is_refused' (3438652) panicked at crates/oc-adapters/src/composition.rs:654:14:
+symlink escape must fail closed: ()
+
+---- composition::tests::symlinked_local_root_outside_the_project_is_refused stdout ----
+
+thread 'composition::tests::symlinked_local_root_outside_the_project_is_refused' (3438653) panicked at crates/oc-adapters/src/composition.rs:683:14:
+symlinked local root must fail closed: ()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    composition::tests::symlinked_config_outside_the_root_is_refused
+    composition::tests::symlinked_local_root_outside_the_project_is_refused
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p oc-adapters --lib`

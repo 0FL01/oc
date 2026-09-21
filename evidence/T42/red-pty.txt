@@ -1,0 +1,35 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.18s
+     Running tests/pty_t42.rs (/home/opencode/ai/oc/target/debug/deps/pty_t42-872e617ad428151a)
+
+running 3 tests
+test aud38_apply_patch_card_shows_bounded_diff ... FAILED
+test aud38_bare_oc_launches_the_local_tui ... FAILED
+test aud38_location_switch_is_one_lifecycle ... FAILED
+
+failures:
+
+---- aud38_apply_patch_card_shows_bounded_diff stdout ----
+
+thread 'aud38_apply_patch_card_shows_bounded_diff' (3414999) panicked at crates/oc/tests/pty_t42.rs:693:13:
+timeout waiting for screen row "src/lib.rs +1 -1 (1h)"; screen: ["┌oc Idle───────────────────────────────────────────────────────────────────────────────────────────────────────────────┐", "│you: patch the file                                                                                                   │", "│ai: answer:patched                                                                                                    │", "│                                                                                                                      │", "│                                                                                                                      │", "│                                                                                                                      │", "│                                                                                                                      │", "│                                                                                                                      │", "│                                                                                                                      │", "│                                                                                                                      │", "│                                                                                                                      │", "│                                                                                                                      │", "│                                                                                                                      │", "│                                                                                                                      │", "│                                                                                                                      │", "│                                                                                                                      │", "└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘", "┌panel─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐", "│cards | newest first, up pages older                                                                                  │", "│> apply_patch completed (ts-t42-patch-1790016317251-r1-c0-call_t39) [src/lib.rs] -> update src/lib.rs (hash_before=f83│", "└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘", "┌prompt────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐", "│                                                                                                                      │", "└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- aud38_bare_oc_launches_the_local_tui stdout ----
+
+thread 'aud38_bare_oc_launches_the_local_tui' (3415341) panicked at crates/oc/tests/pty_t42.rs:466:17:
+timeout waiting for visible-after "Idle"; 57 fresh bytes; head: "usage:oc[--data-dirPATH]<run|sessions>|oc--smoke"; requests=0 last_prompt=""
+
+---- aud38_location_switch_is_one_lifecycle stdout ----
+
+thread 'aud38_location_switch_is_one_lifecycle' (3415604) panicked at crates/oc/tests/pty_t42.rs:466:17:
+timeout waiting for visible-after "usage: /location"; 12131 fresh bytes; head: "┌ocIdle───────────────────────────────────────────────────────────────────────────────────────────────────────────────┐││││││││││││││││││││││�"; requests=0 last_prompt=""
+
+
+failures:
+    aud38_apply_patch_card_shows_bounded_diff
+    aud38_bare_oc_launches_the_local_tui
+    aud38_location_switch_is_one_lifecycle
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 60.41s
+
+error: test failed, to rerun pass `-p oc --test pty_t42`

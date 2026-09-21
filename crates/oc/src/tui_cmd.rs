@@ -50,7 +50,9 @@ pub async fn run_tui(data_dir: &Path, session_opt: Option<String>) -> ExitCode {
 
 async fn run_inner(data_dir: &Path, session_opt: Option<String>) -> Result<ExitCode, String> {
     if !at_tty() {
-        return Err("no TTY for interactive TUI; use `oc run` headless".to_string());
+        return Err(
+            "no TTY for interactive TUI; use `oc run \"<prompt>\"` for headless use".to_string(),
+        );
     }
     let project = std::env::current_dir().map_err(|e| e.to_string())?;
     let session = match session_opt {
@@ -130,11 +132,13 @@ async fn drive_ui(app: &CoreApp, session: SessionId) -> Result<ExitCode, String>
         }
         // Worker events, non-blocking drain.
         while let Ok(event) = rx.try_recv() {
-            handle_worker_event(app, &mut state, &mut loop_state, &session, event).await?;
+            let current = state.session().clone();
+            handle_worker_event(app, &mut state, &mut loop_state, &current, event).await?;
         }
         // The DCP panel shows runtime counters: refresh when it opens.
         if *state.panel() == TuiPanel::Dcp && !loop_state.dcp_seen {
-            refresh_dcp(app, &mut state, &session).await;
+            let current = state.session().clone();
+            refresh_dcp(app, &mut state, &current).await;
             loop_state.dcp_seen = true;
         } else if *state.panel() != TuiPanel::Dcp {
             loop_state.dcp_seen = false;
@@ -148,6 +152,14 @@ async fn drive_ui(app: &CoreApp, session: SessionId) -> Result<ExitCode, String>
 fn at_tty() -> bool {
     use std::io::IsTerminal as _;
     std::io::stdin().is_terminal()
+}
+
+/// True when bare `oc` may launch the interactive TUI: both ends must be a
+/// real terminal. `oc tui` keeps the stdin-only gate so an unusable stdout
+/// still fails visibly at draw time instead of silently doing nothing.
+pub fn interactive_ready() -> bool {
+    use std::io::IsTerminal as _;
+    std::io::stdin().is_terminal() && std::io::stdout().is_terminal()
 }
 
 /// Handle one Crossterm event: keys drive the open panel or the prompt,
@@ -273,6 +285,30 @@ async fn apply_intent(
             state.set_session(target);
             state.attach_page(&page);
             state.close_panel();
+        }
+        PanelIntent::SwitchLocation { path } => {
+            // The application refuses a switch during a turn; the view-model
+            // keeps the current Location and session until it is published.
+            if state.is_busy() {
+                return Err("turn active; location switch refused".to_string());
+            }
+            let snapshot = app.switch_location(path).await.map_err(|e| e.to_string())?;
+            let target = SessionId::new(snapshot.session.clone())
+                .ok_or_else(|| "bad session id".to_string())?;
+            let page = app
+                .history_page(target.clone(), None, None, HISTORY_PAGE_LIMIT)
+                .await
+                .map_err(|e| e.to_string())?;
+            state.reset_workspace();
+            state.set_session(target);
+            state.attach_page(&page);
+            state.apply_catalog(snapshot.catalog);
+            state.close_panel();
+            loop_state.cards_before = None;
+            state.push_note(&format!("location: {}", snapshot.location));
+            for diagnostic in snapshot.diagnostics {
+                state.push_note(&format!("warning: {diagnostic}"));
+            }
         }
         PanelIntent::LoadOlder => {
             let before = state

@@ -27,6 +27,11 @@ pub enum CommandAction {
     OpenCards,
     /// Help, optionally for one topic.
     Help(Option<String>),
+    /// Switch the running application to another Location (project path).
+    SwitchLocation {
+        /// Target project path (as typed; the application canonicalises).
+        path: String,
+    },
     /// Manual DCP compress with bounded focus (UI04).
     DcpCompress {
         /// Focus instruction (possibly empty).
@@ -52,6 +57,9 @@ pub fn dispatch(input: &str) -> Option<CommandAction> {
         "sessions" => Some(CommandAction::OpenSessions),
         "skills" => Some(CommandAction::OpenSkills),
         "cards" => Some(CommandAction::OpenCards),
+        "location" => Some(CommandAction::SwitchLocation {
+            path: args.to_string(),
+        }),
         "dcp-compress" => Some(CommandAction::DcpCompress {
             focus: args.to_string(),
         }),
@@ -65,10 +73,11 @@ pub fn dispatch(input: &str) -> Option<CommandAction> {
 }
 
 /// Built-in command names for completion (exact table, sorted).
-pub const BUILTINS: [&str; 7] = [
+pub const BUILTINS: [&str; 8] = [
     "agents",
     "dcp-compress",
     "help",
+    "location",
     "model",
     "quit",
     "sessions",
@@ -102,6 +111,12 @@ mod tests {
         assert_eq!(dispatch("hello"), None);
         assert_eq!(dispatch("/unknown"), Some(CommandAction::Help(None)));
         assert_eq!(
+            dispatch("/location /srv/other"),
+            Some(CommandAction::SwitchLocation {
+                path: "/srv/other".to_string()
+            })
+        );
+        assert_eq!(
             dispatch("/dcp-compress draft span"),
             Some(CommandAction::DcpCompress {
                 focus: "draft span".to_string()
@@ -126,6 +141,7 @@ mod tests {
                 "agents",
                 "dcp-compress",
                 "help",
+                "location",
                 "model",
                 "quit",
                 "sessions",

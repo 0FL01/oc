@@ -90,3 +90,26 @@ T40 wiring: активный контекст собирается bounded proje
 Первоначальные safety caps заданы в `examples/oc-rs.toml`; это новые product defaults, не upstream defaults и не benchmark-обещание. Memory budgets квалифицируются A10. У метрик не должно быть high-cardinality labels на каждый token/message. Лог по умолчанию — metadata; payload tracing требует отдельного opt-in и никогда не включает credentials.
 
 Не оптимизировать custom allocator, static musl, parallel workers или cache до измерений. Не заводить API server «на будущее». Первые архитектурные сигналы успеха — работающий вертикальный slice и тестируемые ownership boundaries.
+
+## T42 compatibility wiring
+
+Bare `oc` is the local TUI: `bootstrap` launches the same `run_tui` path as `oc tui` when
+stdin *and* stdout are terminals, and otherwise exits 2 with an actionable `oc run "<prompt>"`
+hint instead of any hidden headless/daemon mode. `oc tui` stays the explicit equivalent
+(stdin-only gate, so an unusable stdout still fails visibly at draw time).
+
+A Location switch happens inside one running application lifecycle: `/location <path>` sends
+`InboxMsg::SwitchLocation`; the supervisor builds the complete target generation (config
+load, catalog, agents/skills/commands, MCP registry, runtime, session binding) *before*
+publication, then closes the old runtime's MCP resources, swaps the state and only then
+answers the frontend with `LocationSnapshot`. A build failure leaves the current Location
+untouched, and a switch requested while a turn streams is refused explicitly. Sessions stay
+Location-bound: a first visit mints a session, a return reopens the recorded one. The
+view-model drops every generation-bound cache (`TuiState::reset_workspace`) so no panel can
+show the previous Location's catalog, skills, cards, sessions or DCP snapshot.
+
+`apply_patch` tool cards render a bounded diff summary (per-file op marker, path, +/- counts,
+hunk count, rename target; totals; file cap) parsed from the patch text, never a second copy
+of the patch bytes. Config sources are admitted only inside the canonical root that declared
+them: a symlinked `opencode.json`/`.opencode` root/`AGENTS.md` resolving outside fails closed,
+while in-root symlinks remain admitted and `{file:}` stays relative to the admitted source.

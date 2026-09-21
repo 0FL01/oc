@@ -140,7 +140,7 @@ pub fn panel_lines(state: &TuiState) -> Vec<String> {
             Some(topic) => vec![format!("help | {topic}"), help_topic(topic.as_str())],
             None => vec![
                 "help | commands".to_string(),
-                "/model /agents /sessions /skills /cards /dcp-compress /help /quit".to_string(),
+                "/model /agents /sessions /skills /cards /location <path> /dcp-compress /help /quit".to_string(),
             ],
         },
         TuiPanel::Dcp => {

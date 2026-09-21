@@ -199,12 +199,16 @@ pub struct ToolCard {
     pub files: Vec<String>,
     /// True when more files exist than listed.
     pub files_truncated: bool,
+    /// Bounded diff representation for `apply_patch` (counts and paths only,
+    /// never a second copy of the patch bytes); `None` for other tools.
+    pub diff: Option<oc_adapters::patch::DiffSummary>,
 }
 
 /// Build one bounded card from a recorded tool operation.
 pub fn card_from_row(row: &ToolOpView) -> ToolCard {
     let files = patch_files(&row.name, row.input.as_deref());
     let files_truncated = files.len() > CARD_FILES;
+    let diff = patch_diff(&row.name, row.input.as_deref());
     ToolCard {
         op: row.op.clone(),
         name: row.name.clone(),
@@ -215,7 +219,30 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
         output_truncated: row.output_truncated,
         files: files.into_iter().take(CARD_FILES).collect(),
         files_truncated,
+        diff,
     }
+}
+
+/// Bounded diff summary for `apply_patch` input (parsed, never invented).
+fn patch_diff(tool: &str, input: Option<&str>) -> Option<oc_adapters::patch::DiffSummary> {
+    if tool != "apply_patch" {
+        return None;
+    }
+    let patch = patch_text(input)?;
+    let summary = oc_adapters::patch::diff_summary(&patch);
+    if summary.malformed || summary.files.is_empty() {
+        return None;
+    }
+    Some(summary)
+}
+
+fn patch_text(input: Option<&str>) -> Option<String> {
+    let input = input?;
+    let value = serde_json::from_str::<serde_json::Value>(input).ok()?;
+    value
+        .get("patchText")
+        .and_then(|value| value.as_str())
+        .map(str::to_string)
 }
 
 /// Build bounded cards for a page of recorded tool operations.
@@ -227,16 +254,10 @@ fn patch_files(tool: &str, input: Option<&str>) -> Vec<String> {
     if tool != "apply_patch" {
         return Vec::new();
     }
-    let Some(input) = input else {
+    let Some(patch) = patch_text(input) else {
         return Vec::new();
     };
-    let Ok(value) = serde_json::from_str::<serde_json::Value>(input) else {
-        return Vec::new();
-    };
-    let Some(patch) = value.get("patchText").and_then(|value| value.as_str()) else {
-        return Vec::new();
-    };
-    oc_adapters::patch::affected_paths(patch).unwrap_or_default()
+    oc_adapters::patch::affected_paths(&patch).unwrap_or_default()
 }
 
 fn preview(value: Option<&str>) -> String {

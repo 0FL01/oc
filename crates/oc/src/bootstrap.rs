@@ -11,6 +11,15 @@ pub async fn run(args: Args) -> ExitCode {
     if args.smoke && args.command.is_none() {
         return legacy_smoke();
     }
+    // Bare `oc` is the local TUI, but only on a real terminal: a redirected
+    // invocation is not silently turned into a hidden headless/daemon run.
+    if args.command.is_none() && !crate::tui_cmd::interactive_ready() {
+        eprintln!(
+            "error: bare `oc` needs an interactive terminal (stdin/stdout are not a TTY); \
+             use `oc run \"<prompt>\"` for headless use"
+        );
+        return ExitCode::from(2);
+    }
     let data_dir = match args
         .data_dir
         .clone()
@@ -24,10 +33,7 @@ pub async fn run(args: Args) -> ExitCode {
         }
     };
     match args.command {
-        None => {
-            eprintln!("usage: oc [--data-dir PATH] <run|sessions> | oc --smoke");
-            ExitCode::from(2)
-        }
+        None => crate::tui_cmd::run_tui(&data_dir, None).await,
         Some(Command::Run {
             prompt,
             session,

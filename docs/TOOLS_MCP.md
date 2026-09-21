@@ -168,3 +168,15 @@ server schema `query` + `response_length`, не helper `limit`.
 ## Direct exposure vs Code Mode
 
 В `oc-rs.toml` профиль явно `tool_exposure = "direct"`. При отсутствии upstream codemode field выбранный профиль означает direct — это объявленное отличие. Explicit true = actionable unsupported error. Не запускать JS interpreter, Node eval, Code Mode shim или remote execute to emulate missing interpreter.
+
+## T42 qualification — config source trust
+
+`opencode.json`/`opencode.jsonc` sources are admitted per root (global config dir, Location
+root, `.opencode`) only when the canonical file stays inside that root's canonical path; a
+symlinked config resolving outside is refused with the resolved path in the diagnostic, so a
+source can never be canonicalised outside and then marked trusted. The `.opencode` definition
+root must stay inside the Location root, and `AGENTS.md` files must stay inside their own
+root. In-root symlinks are still admitted (containment policy, not a blanket symlink ban), and
+`{file:...}` substitution keeps its no-follow, relative-only, 64 KiB-bounded reader rooted at
+the admitted source directory. The Location switch itself re-runs this admission for the
+target root, so a switch cannot smuggle in an outside source.

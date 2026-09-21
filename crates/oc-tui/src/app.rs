@@ -92,6 +92,11 @@ pub enum PanelIntent {
         /// Target session id.
         id: String,
     },
+    /// Switch the whole application to another Location (project path).
+    SwitchLocation {
+        /// Target project path.
+        path: String,
+    },
     /// Load one older history page.
     LoadOlder,
     /// Load one newer history page.
@@ -196,6 +201,30 @@ impl TuiState {
 
     /// Switch to another session after an accepted switch: clears view state
     /// and the history window; status returns to `Idle` unless quitting.
+    /// Drop every generation-bound cache after a Location switch.
+    ///
+    /// Panel data (catalog, agents, sessions, skills, cards, DCP snapshot and
+    /// workspace commands) belongs to the previous Location: the next panel
+    /// open must reload from the new generation instead of showing it.
+    pub fn reset_workspace(&mut self) {
+        self.picker = None;
+        self.catalog_loaded = false;
+        self.agents.clear();
+        self.agents_cursor = 0;
+        self.sessions.clear();
+        self.sessions_cursor = 0;
+        self.sessions_loaded = false;
+        self.skills.clear();
+        self.skills_cursor = 0;
+        self.skills_loaded = false;
+        self.commands.clear();
+        self.cards.clear();
+        self.cards_cursor = 0;
+        self.cards_loaded = false;
+        self.cards_has_older = false;
+        self.dcp = DcpPanelState::default();
+    }
+
     pub fn set_session(&mut self, session: SessionId) {
         self.session = session;
         self.input.clear();
@@ -603,6 +632,14 @@ impl TuiState {
                 self.panel = TuiPanel::Cards;
                 open_snapshot(&mut outcome, self.cards_loaded, PanelIntent::LoadCards);
             }
+            CommandAction::SwitchLocation { path } => {
+                if path.is_empty() {
+                    outcome.note = Some("usage: /location <project-path>".to_string());
+                    outcome.consumed_input = true;
+                } else {
+                    outcome.intent = Some(PanelIntent::SwitchLocation { path });
+                }
+            }
             CommandAction::Help(topic) => {
                 self.panel = TuiPanel::Help(topic);
                 outcome.consumed_input = true;
@@ -799,11 +836,52 @@ fn open_snapshot(outcome: &mut KeyOutcome, loaded: bool, intent: PanelIntent) {
 
 /// One bounded render row for a tool card.
 fn card_row(card: &ToolCard) -> HistoryRow {
-    let files = if card.files.is_empty() {
-        String::new()
-    } else {
-        let suffix = if card.files_truncated { ", …" } else { "" };
-        format!(" [{}{suffix}]", card.files.join(", "))
+    // `apply_patch` shows a bounded diff (touched files with +/- counts and
+    // hunk counts) instead of the raw patch bytes; other tools keep the
+    // parsed path list. Never a second copy of a large payload.
+    let files = match &card.diff {
+        Some(diff) => {
+            let listed = diff
+                .files
+                .iter()
+                .take(crate::history::CARD_FILES)
+                .map(|file| {
+                    let marker = match file.change {
+                        "Add" => "+",
+                        "Delete" => "-",
+                        _ => "~",
+                    };
+                    let mut text = format!(
+                        "{marker}{} +{} -{}",
+                        file.path, file.additions, file.removals
+                    );
+                    if file.hunks > 0 {
+                        text.push_str(&format!(" ({}h)", file.hunks));
+                    }
+                    if let Some(target) = &file.move_to {
+                        text.push_str(&format!(" -> {target}"));
+                    }
+                    text
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            let suffix = if diff.truncated || diff.files.len() > crate::history::CARD_FILES {
+                ", …"
+            } else {
+                ""
+            };
+            format!(
+                " [{listed}{suffix}] diff {}f +{} -{}",
+                diff.files.len(),
+                diff.additions,
+                diff.removals
+            )
+        }
+        None if card.files.is_empty() => String::new(),
+        None => {
+            let suffix = if card.files_truncated { ", …" } else { "" };
+            format!(" [{}{suffix}]", card.files.join(", "))
+        }
     };
     let output = if card.output_preview.is_empty() {
         String::new()
@@ -816,12 +894,14 @@ fn card_row(card: &ToolCard) -> HistoryRow {
     } else {
         format!(" -> {}", card.output_preview)
     };
+    // Diff first: a long operation id must never push the diff off a narrow
+    // panel row.
     HistoryRow {
         seq: i64::MAX,
         role: String::new(),
         text: format!(
-            "{} {} ({}){}{}",
-            card.name, card.state, card.op, files, output
+            "{} {}{}{} ({})",
+            card.name, card.state, files, output, card.op
         ),
     }
 }

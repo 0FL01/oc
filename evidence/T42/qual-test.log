@@ -1,0 +1,522 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.22s
+     Running unittests src/main.rs (target/debug/deps/oc-f71b8faf3accffa9)
+
+running 1 test
+test headless::tests::sessions_list_stdout_ids_only ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/application.rs (target/debug/deps/application-bb9d0e8aeeb32cfe)
+
+running 1 test
+test aud01_binary_sends_configured_responses_request ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/configured_workspace.rs (target/debug/deps/configured_workspace-a40a27649cac8a4e)
+
+running 6 tests
+test aud17_binary_selected_malformed_agent_is_hard_error_not_sibling_fallback ... ok
+test aud17_binary_unknown_plugin_is_precise_preflight_error_without_side_effect ... ok
+test aud17_binary_malformed_selected_skill_is_visible_and_valid_sibling_survives ... ok
+test aud16_binary_selected_agent_can_only_narrow_apply_patch_permission ... ok
+test aud16_binary_legacy_write_edit_deny_blocks_apply_patch_side_effect ... ok
+test aud14_aud15_aud17_binary_loads_isolated_a_b_workspace_and_pins_skill ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+
+     Running tests/dcp_runtime.rs (target/debug/deps/dcp_runtime-532688551d583918)
+
+running 2 tests
+test aud19_aud20_aud21_binary_model_compress_nudges_and_restart ... ok
+test aud21_binary_sigkill_never_publishes_a_partial_multi_range_compression ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.96s
+
+     Running tests/durability.rs (target/debug/deps/durability-7021f0e33041831d)
+
+running 1 test
+test aud06_binary_kill_after_side_effect_recovers_unknown_without_replay ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+     Running tests/golden_binary.rs (target/debug/deps/golden_binary-ab6c17896b7210ed)
+
+running 1 test
+test aud35_binary_golden_workflow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.68s
+
+     Running tests/live_bounded.rs (target/debug/deps/live_bounded-bf8b3e79c6f04ee3)
+
+running 2 tests
+test live_bounded_campaign ... ignored, needs live OpenProxy credentials and OC_TEST_MODEL
+test live_bounded_dry_run_branches ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 2.99s
+
+     Running tests/mcp_application.rs (target/debug/deps/mcp_application-5d06ccc89b445ab1)
+
+running 7 tests
+test aud22_binary_rejects_conflicting_authorization_duplicates_before_network ... ok
+test aud24_binary_rejects_oversized_catalog_without_partial_provider_tools ... ok
+test aud24_binary_routes_collision_names_to_exact_original_server_and_tool ... ok
+test aud22_binary_accepts_user_authorization_spelling_at_strict_mcp ... ok
+test aud24_binary_search_uses_the_advertised_response_length_schema ... ok
+test aud24_binary_surfaces_is_error_and_unsupported_result_modality ... ok
+test aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.03s
+
+     Running tests/memory_bounds.rs (target/debug/deps/memory_bounds-7bf690377c4a9b42)
+
+running 1 test
+test aud32_actual_binary_bounds_active_context_with_growing_archive ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.51s
+
+     Running tests/pty.rs (target/debug/deps/pty-195f515958ff13b4)
+
+running 13 tests
+test pty_panic_restores_terminal ... ok
+test pty_resize_redraws_full_frame ... ok
+test pty_escape_cancels_heartbeat_request ... ok
+test aud02_store01_persist_resume_across_restart ... ok
+test pty_slow_consumer_stall_then_drain ... ok
+test tui_without_tty_is_usage_error ... ok
+test ui05_interrupted_exit_is_nonsuccess ... ok
+test ui05_ndjson_stdout_only_and_slow_consumer ... ok
+test pty_smoke_type_echo_quit ... ok
+test pty_tiny_screen_survives ... ok
+test pty_long_history_starts_and_pages ... ok
+test pty_ssh_like_term_variants ... ok
+test pty_unicode_and_paste_roundtrip ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.05s
+
+     Running tests/pty_t39.rs (target/debug/deps/pty_t39-04f96c028623e40c)
+
+running 3 tests
+test aud29_pty_panels_change_runtime_state ... ok
+test aud30_pty_paste_resize_error_recovery ... ok
+test aud31_pty_bounded_backing_state ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.84s
+
+     Running tests/pty_t42.rs (target/debug/deps/pty_t42-872e617ad428151a)
+
+running 3 tests
+test aud38_bare_oc_launches_the_local_tui ... ok
+test aud38_apply_patch_card_shows_bounded_diff ... ok
+test aud38_location_switch_is_one_lifecycle ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.70s
+
+     Running tests/responses.rs (target/debug/deps/responses-54f180c403a1c627)
+
+running 4 tests
+test aud10_binary_image_modality_is_explicitly_rejected ... ok
+test aud13_binary_rejects_oversized_pending_line_with_visible_limit ... ok
+test aud12_binary_delta_before_terminal_and_silent_stream_sigint ... ok
+test aud09_aud10_binary_exact_typed_tool_history_survives_restart ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+
+     Running unittests src/lib.rs (target/debug/deps/oc_adapters-a1a47d2a8e3ff253)
+
+running 136 tests
+test composition::tests::missing_config_and_missing_model_are_errors ... ok
+test attachments::tests::prov05_images_text_caps_refusals ... ok
+test composition::tests::aud18_static_ludka_context_above_discovery_cap_is_unchanged ... ok
+test composition::tests::in_root_symlinked_config_stays_admitted ... ok
+test composition::tests::symlinked_config_outside_the_root_is_refused ... ok
+test config::tests::cfg02_substitution_merge_byte_unchanged ... ok
+test config::tests::cfg03_capability_failures ... ok
+test composition::tests::symlinked_local_root_outside_the_project_is_refused ... ok
+test config::tests::cfg04_trust_secrets_disabled ... ok
+test config::tests::cfg01_user_forms_native_profile ... ok
+test config::tests::cfg05_config_roots_order ... ok
+test config::tests::cfg06_instructions_once_with_provenance ... ok
+test config::tests::cfg07_definitions_frontmatter_and_bounds ... ok
+test config::tests::cfg08_native_plugins_exact_only ... ok
+test composition::tests::ordered_sources_select_exact_model_and_selected_credentials ... ok
+test dcp::tests::dcp01_projection_carries_no_credentials ... ok
+test dcp::tests::dcp01_range_schema_bounds ... ok
+test dcp::tests::dcp09_effectiveness_and_no_gain_bound ... ok
+test dcp::tests::projection_collapses_prunes_and_expands ... ok
+test dcp_auto::tests::aud20_percent_model_limits_strong_nudge_and_wildcard_protection ... ok
+test dcp_auto::tests::dcp05_thresholds_frequency_turn_reset_no_accumulation ... ok
+test dcp_auto::tests::dcp06_dedup_purge_recalc_at_compress ... ok
+test dcp_auto::tests::dcp07_config_aliases_stats_and_unsupported ... ok
+test defs::tests::agent_digest_covers_body_and_permissions ... ok
+test defs::tests::config_domains_merge_in_caller_order_without_invented_files ... ok
+test defs::tests::instructions_dedup_sentinel_and_diagnose ... ok
+test defs::tests::later_source_replaces_with_shadow_provenance ... ok
+test defs::tests::skills_singular_before_plural_and_valid_siblings_survive ... ok
+test defs::tests::symlinks_are_refused ... ok
+test defs::tests::unsupported_agent_and_command_modes_fail_explicitly ... ok
+test discovery::tests::aud18_any_2xx_succeeds_and_body_cap_invalid_response_is_terminal ... ok
+test discovery::tests::aud18_headers_replace_reserved_case_insensitively_once_and_preserve_custom ... ok
+test discovery::tests::aud18_missing_credentials_zero_requests_and_persistent_empty_is_bounded ... ok
+test discovery::tests::aud18_names_strip_only_the_first_slash_and_remote_connection_fields_are_ignored ... ok
+test discovery::tests::aud18_reqwest_url_validation_rejects_userinfo_query_fragment_and_malformed ... ok
+test discovery::tests::aud18_safe_integer_boundary_and_local_preclamp_validation ... ok
+test discovery::tests::aud18_successful_refresh_removes_absent_ids ... ok
+test discovery::tests::disc01_basic_dynamic_no_hardcode ... ok
+test discovery::tests::disc02_atomic_row_validation ... ok
+test discovery::tests::disc03_authority_ignores_remote_connection ... ok
+test discovery::tests::disc05_limits_and_deletion ... ok
+test discovery::tests::disc06_variants_allowlist_and_override ... ok
+test discovery::tests::disc07_fake_clock_budgets ... ok
+test discovery::tests::disc08_retry_classes_and_cancel ... ok
+test discovery::tests::disc09_publication_rules ... ok
+test discovery::tests::disc10_isolation_and_sanitized_warnings ... ok
+test discovery::tests::disc_names_and_gating ... ok
+test files::tests::aud19_grep_skips_fifo_without_blocking ... ok
+test composition::tests::aud18_composition_sends_configured_discovery_headers ... ok
+test dcp::tests::dcp03_nested_placeholders_cycles_and_verbatim ... ok
+test dcp::tests::dcp01_durable_blocks_members_prune ... ok
+test dcp::tests::dcp04_patch_affected_paths_and_protection ... ok
+test files::tests::tool01_binary_and_large_diagnostics ... ok
+test files::tests::tool01_bounded_chunks_with_cursor ... ok
+test files::tests::tool01_grep_literal_sorted_paginated ... ok
+test models::tests::admission_context_output_and_missing ... ok
+test models::tests::diagnostics_and_explain ... ok
+test models::tests::exact_selection_no_fallback ... ok
+test files::tests::tool01_own_data_root_refused_all_shapes ... ok
+test files::tests::tool01_glob_sorted_paginated ... ok
+test models::tests::variant_allowlist_and_default ... ok
+test patch::tests::diff_summary_is_exact_and_bounded ... ok
+test patch::fs::tests::aud04_pinned_parent_handle_never_follows_replacement_symlink ... ok
+test patch::tests::tool02_new_text_file_unicode_crlf ... ok
+test patch::tests::tool02_new_empty_file_and_append_via_update ... ok
+test patch::tests::tool03_registry_has_no_write_edit ... ok
+test patch::tests::tool02_crlf_and_trailing_newline_preserved ... ok
+test patch::tests::tool04_add_existing_and_stale_preimage ... ok
+test patch::tests::tool04_invalid_later_entry_and_partial_runtime ... ok
+test patch::tests::tool04_mode_preserved_and_binary_refused ... ok
+test patch::tests::tool03_targeted_hunks_and_full_replace ... ok
+test patch::tests::tool03_delete_and_move_without_overwrite ... ok
+test patch::tests::tool04_protected_outside_dataroot_symlink ... ok
+test dcp::tests::dcp02_ids_stable_across_restart_and_stale_rejected ... ok
+test provider::tests::aud09_aud10_canonical_wire_and_output ... ok
+test provider::tests::aud11_complete_text_event_eof_is_not_success ... ok
+test provider::tests::aud11_done_fallback_and_unfinished_call_rejection ... ok
+test provider::tests::aud12_cancel_silent_body_and_headers ... ok
+test provider::tests::aud11_terminal_failures_never_retry_and_success_does_not_wait_for_eof ... ok
+test files::tests::aud19_search_patterns_scan_and_hit_text_are_byte_bounded ... ok
+test provider::tests::prov02_splits_crlf_comments_usage_cap ... ok
+test provider::tests::aud13_effective_idle_timeout_400_and_unsafe_headers ... ok
+test provider::tests::sse_event_data_flush_split ... ok
+test provider::tests::units_request_shape ... ok
+test provider::tests::prov01_exact_url_auth_store_cachekey ... ok
+test shell::tests::tool05_child_env_excludes_credentials ... ok
+test shell::tests::tool05_interleaved_output_no_deadlock ... ok
+test shell::tests::aud28_symlink_cwd_escape_refused_and_toolchain_resolves ... ok
+test shell::tests::tool05_truncation_exit_and_shape ... ok
+test shell::tests::tool06_cwd_and_argv_guards ... ok
+test files::tests::aud19_wide_directory_stops_at_walk_budget ... ok
+test smoke::tests::adapter_sees_core_app ... ok
+test smoke::tests::reqwest_client_builds_offline ... ok
+test smoke::tests::rmcp_types_are_linked ... ok
+test smoke::tests::sqlite_memory_roundtrip ... ok
+test smoke::tests::tokio_runtime_available ... ok
+test provider::tests::prov06_statuses_retry_owner ... ok
+test storage::tests::blob_orphan_collected_referenced_kept ... ok
+test storage::tests::crash_intent_recovers_unknown_without_replay ... ok
+test storage::tests::durable_input_turn_event_roundtrip ... ok
+test storage::tests::history_pages_and_tool_ops_are_bounded ... ok
+test storage::tests::prefs_roundtrip ... ok
+test storage::tests::second_owner_is_refused ... ok
+test storage::tests::quota_and_permissions_enforced ... ok
+test storage::tests::unsafe_roots_refused ... ok
+test tools::tests::aud03_patch_text_schema_and_tool_route ... ok
+test tools::tests::aud05_partial_patch_output_keeps_all_commits_and_full_hashes ... ok
+test storage::tests::symlink_root_and_escape_not_followed ... ok
+test tools::tests::prov04_opaque_boundary_persist_replay ... ok
+test tools::tests::tool01_glob_grep_execute_structured_sorted_pages ... ok
+test tools::tests::tool01_glob_grep_permission_denial_precedes_dispatch ... ok
+test tools::tests::tool01_glob_grep_validate_strict_bounded_arguments ... ok
+test tools::tests::tool10_duplicate_ids_refuse_batch ... ok
+test tools::tests::tool10_registry_has_no_write_edit ... ok
+test tools::tests::tool10_unknown_invalid_match_ids ... ok
+test tools::tests::tool11_projection_and_snapshot_failures ... ok
+test tools::tests::tool11_stale_and_durable_graph ... ok
+test provider::tests::prov07_timeouts_and_cancel ... ok
+test shell::tests::tool06_cancel_flag_reports_cancelled ... ok
+test tools::tests::tool_patch_bash_skill_paths ... ok
+test tools::tests::prov03_complete_roundtrip_ordered_ids ... ok
+test webfetch::tests::aud25_html_unicode_entities_and_malformed ... ok
+test tui_workspace::tests::primary_select_persist_resolve ... ok
+test tui_workspace::tests::stale_actions_fail_and_locations_are_single ... ok
+test tui_workspace::tests::vanished_agent_blocks ... ok
+test webfetch::tests::aud26_dial_bound_private_answer_sends_no_request ... ok
+test webfetch::tests::tool08_ip_classification ... ok
+test webfetch::tests::aud25_url_relative_query_ipv6 ... ok
+test webfetch::tests::tool08_localhost_needs_exception ... ok
+test webfetch::tests::tool07_text_html_json_redirect_status ... ok
+test webfetch::tests::units_extract_and_html ... ok
+test webfetch::tests::aud26_total_deadline_spans_redirects ... ok
+test webfetch::tests::tool08_loopback_private_redirect_guards ... ok
+test webfetch::tests::tool08_large_body_deadline_auth ... ok
+test provider::tests::aud13_byte_bounds_utf8_and_incremental_observer ... ok
+test shell::tests::tool06_timeout_term_resistant_grandchild ... ok
+
+test result: ok. 136 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.93s
+
+     Running tests/blob_audit.rs (target/debug/deps/blob_audit-74a380d630e3af08)
+
+running 11 tests
+test concurrent_writes_do_not_overrun_quota ... ok
+test existing_content_addressed_orphan_is_readable_after_write ... ok
+test gc_respects_grace_references_and_non_regular_entries ... ok
+test abandoned_temp_does_not_block_retry_and_counts_toward_quota ... ok
+test orphan_adoption_and_dedup_obey_quota_without_double_counting ... ok
+test oversized_orphan_is_rejected_and_gc_recovers_quota ... ok
+test partial_temp_write_failure_is_cleaned_up ... ok
+test read_propagates_sqlite_failure ... ok
+test row_failure_leaves_orphan_and_retry_repairs_after_reopen ... ok
+test stale_metadata_is_repaired_and_corrupt_content_is_rejected ... ok
+test concurrent_gc_preserves_published_blobs_and_active_temps ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+
+     Running tests/context_bounds.rs (target/debug/deps/context_bounds-c64f434f09e065a5)
+
+running 3 tests
+test aud34_tool_output_beyond_preview_is_retrievable ... ok
+test aud33_payload_above_64k_within_budget_is_complete ... ok
+test aud32_equal_active_context_bounded_construction ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.41s
+
+     Running tests/dcp_atomic.rs (target/debug/deps/dcp_atomic-ef8ad3ca29f4f037)
+
+running 4 tests
+test nested_unknown_cycle_depth_and_size_fail_during_planning ... ok
+test protected_user_tag_and_file_messages_are_preserved_verbatim ... ok
+test no_gain_is_reported_without_writes ... ok
+test second_range_failure_rolls_back_blocks_members_and_tool_journal ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/e2e_live.rs (target/debug/deps/e2e_live-103de3fb3453be6d)
+
+running 1 test
+test live_workflow_harness ... ignored, needs live OpenProxy credentials
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/e2e_offline.rs (target/debug/deps/e2e_offline-e58081f146cf2f71)
+
+running 3 tests
+test e2e05_configured_workspace_a_to_b ... ok
+test e2e03_compress_restart_retained_fact ... ok
+test e2e01_seeded_coding_fix ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
+
+     Running tests/mcp_remote.rs (target/debug/deps/mcp_remote-decae0a9e9653781)
+
+running 21 tests
+test config_validation_needs_no_network ... ok
+test header_names_are_case_insensitive_and_conflicts_are_explicit ... ok
+test entry_mapping_refuses_oauth_and_keeps_exact_url ... ok
+test invalid_replies_are_transport_errors ... ok
+test handshake_uses_exact_url_and_bearer ... ok
+test live_search_harness ... ignored, needs live codex_web credentials
+test entry_authorization_and_custom_headers_reach_the_strict_endpoint ... ok
+test private_host_refused_without_test_flag ... ok
+test registry_bounds_and_collisions ... ok
+test search_args_shape ... ok
+test list_paginates_and_maps_registry ... ok
+test invalid_catalogs_are_typed_attach_errors ... ok
+test list_update_is_visible_on_relist ... ok
+test search_returns_text_and_surfaces_is_error ... ok
+test catalog_tool_and_page_limits_are_errors_without_partial_success ... ok
+test result_modalities_arguments_and_transport_have_distinct_errors ... ok
+test sse_response_path_supported ... ok
+test unauthorized_is_terminal_without_retry ... ok
+test version_mismatch_is_rejected ... ok
+test slow_call_can_be_cancelled ... ok
+test slow_call_hits_client_deadline ... ok
+
+test result: ok. 20 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.55s
+
+     Running tests/mcp_stdio.rs (target/debug/deps/mcp_stdio-dc95263e47142c29)
+
+running 11 tests
+test disabled_spawns_nothing ... ok
+test entry_mapping_keeps_exact_argv_and_refuses_risky_shapes ... ok
+test real_server_smoke ... ignored, needs explicitly selected real server argv
+test launch_list_call_with_exact_argv_and_minimal_env ... ok
+test restart_keeps_config_and_bumps_generation ... ok
+test tool_results_and_arguments_have_distinct_typed_failures ... ok
+test list_tool_and_page_caps_are_visible_catalog_errors ... ok
+test kill_reap_leaves_no_zombie ... ok
+test from_entry_uses_trusted_cwd_and_only_working_parent_env ... ok
+test stderr_is_bounded_and_redacted ... ok
+test wrapper_descendants_are_group_owned_for_raw_rmcp_failure_and_drop ... ok
+
+test result: ok. 10 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1.84s
+
+     Running tests/patch_audit.rs (target/debug/deps/patch_audit-e13c3e8af45edbc1)
+
+running 10 tests
+test aud03_ambiguous_hunks_and_overlapping_paths_are_preflight_conflicts ... ok
+test aud04_parent_symlink_and_replacement_do_not_escape ... ok
+test aud03_add_file_decodes_the_patch_plus_prefix ... ok
+test aud05_concurrent_preimage_is_preserved ... ok
+test aud04_predictable_temp_symlink_must_not_modify_outside_file ... ok
+test aud05_late_stale_hunk_must_not_commit_earlier_file ... ok
+test aud05_late_filesystem_permission_failure_is_preflight ... ok
+test aud05_io_failure_after_commit_reports_precise_partial_outcome ... ok
+test aud04_concurrent_add_and_move_targets_are_not_overwritten ... ok
+test aud03_pinned_upstream_grammar_independent_bytes ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/runtime.rs (target/debug/deps/runtime-38e1aaa953306d88)
+
+running 31 tests
+test aud07_rejected_input_has_no_turn_or_event ... ok
+test aud06_intent_failure_prevents_patch ... ok
+test aud07_terminal_failure_does_not_commit_assistant ... ok
+test aud11_round_exhaustion_retains_output_without_replaying_effect_after_restart ... ok
+test aud12_cancel_during_mcp_initialize_reaps_child_before_acceptance ... ok
+test aud19_denied_compress_has_no_schema_anchor_or_nudge ... ok
+test aud11_text_without_successful_terminal_never_completes ... ok
+test aud07_mixed_order_and_mcp_storage_failures ... ok
+test aud20_nudge_cadence_survives_database_and_runtime_restart ... ok
+test aud11_incomplete_call_never_executes ... ok
+test aud20_summary_buffer_changes_effective_nudge_threshold ... ok
+test aud21_turn_protection_preserves_recent_completed_turn_verbatim ... ok
+test aud23_partial_attach_failure_reaps_previously_connected_child ... ok
+test aud20_nudge_cadence_and_model_compress_are_session_scoped ... ok
+test aud23_server_cap_blocks_spawn_before_first_child ... ok
+test aud23_aborted_turn_releases_lease_and_shutdown_reaps_child ... ok
+test command_expansion_is_single_bounded_pass ... ok
+test aud21_model_compress_preserves_complete_tool_graph_without_replay ... ok
+test aud23_generation_reuse_then_reload_disable_reaps_the_single_child ... ok
+test command_invocation_is_durable ... ok
+test compress_blocks_compensate_and_stabilize ... ok
+test location_binding_holds ... ok
+test mcp_attach_failure_is_loud ... ok
+test cancel_drains_to_records ... ok
+test aud20_compress_commits_only_eligible_strategy_projection ... ok
+test aud23_tool_list_changed_relists_only_the_dirty_server ... ok
+test text_turn_completes_and_drains ... ok
+test protected_patch_never_reaches_disk ... ok
+test tool_rounds_execute_and_record ... ok
+test denied_and_ask_tools_fail_visibly ... ok
+test reload_applies_new_policy_and_guards_active_turn ... ok
+
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.43s
+
+     Running tests/shell_watchdog.rs (target/debug/deps/shell_watchdog-8fdc3cff87013205)
+
+running 2 tests
+test aud27_watchdog_child ... ok
+test aud27_pathological_children_are_bounded_under_watchdog ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.31s
+
+     Running tests/soak.rs (target/debug/deps/soak-af401e211c392918)
+
+running 4 tests
+test blob_quota_failure_is_visible_and_recoverable ... ok
+test crash_injection_recovers_and_restarts ... ok
+test output_pressure_stays_capped_single_transcript ... ok
+test soak_two_epochs_bounded_growth ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 42.66s
+
+     Running tests/storage_lock.rs (target/debug/deps/storage_lock-3eb22c23ce109e56)
+
+running 1 test
+test dropped_db_releases_root_while_concurrent_child_is_before_exec ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running unittests src/lib.rs (target/debug/deps/oc_core-5a85cbfd18ba2814)
+
+running 17 tests
+test application::tests::smoke_handle_reports_zero ... ok
+test context_plan::tests::ranges_validate_existence_order_disjointness ... ok
+test context_plan::tests::checksum_stable_and_sensitive ... ok
+test context_plan::tests::projection_replaces_without_mutating_raw ... ok
+test core_app::tests::second_submit_while_active_is_busy ... ok
+test core_app::tests::worker_guard_surfaces_cleanup_failure ... ok
+test domain::tests::rejects_empty_session_id ... ok
+test core_app::tests::queries_stay_responsive_during_stream ... ok
+test domain::tests::serde_roundtrip ... ok
+test ports::tests::smoke_provider_error_is_typed ... ok
+test session::tests::error_messages_are_stable ... ok
+test session::tests::ids_reject_empty ... ok
+test runtime::tests::tick_returns_one ... ok
+test tests::core_name_is_stable ... ok
+test core_app::tests::rejects_unknown_session_and_oversize_and_stale_cancel ... ok
+test core_app::tests::vertical_input_to_response ... ok
+test core_app::tests::cancel_long_stream_interrupts ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (target/debug/deps/oc_tui-aac0bbb7b40c9e55)
+
+running 35 tests
+test app::tests::panel_enter_returns_selection_intents ... ok
+test app::tests::scroll_edges_request_pages ... ok
+test app::tests::slash_commands_return_intents_and_keep_input ... ok
+test app::tests::viewport_is_bounded_with_unicode ... ok
+test app::tests::aud33_paste_is_never_silently_cut_below_the_input_budget ... ok
+test commands::tests::completes_prefix ... ok
+test commands::tests::routes_builtins ... ok
+test dcp_panel::tests::focus_is_bounded ... ok
+test dcp_panel::tests::nudge_is_transient_text_only ... ok
+test dcp_panel::tests::request_outcome_cycle ... ok
+test events::tests::map_event_routes_key_paste_resize ... ok
+test events::tests::maps_basics ... ok
+test history::tests::append_evicts_oldest_and_flags_it ... ok
+test history::tests::byte_cap_is_enforced_on_every_insertion ... ok
+test history::tests::card_from_row_bounds_previews_and_parses_patch_text_only ... ok
+test history::tests::cards_from_rows_maps_every_row ... ok
+test history::tests::paging_newest_first_sets_flags ... ok
+test history::tests::prepend_evicts_newest_and_flags_it ... ok
+test history::tests::reset_evicts_over_row_cap ... ok
+test picker::tests::choose_roundtrips_through_the_stored_record ... ok
+test picker::tests::no_record_browses_and_foreign_records_are_ignored ... ok
+test picker::tests::retired_model_is_actionable ... ok
+test picker::tests::retired_variant_keeps_model_and_surfaces_note ... ok
+test picker::tests::unknown_id_never_falls_back ... ok
+test picker::tests::window_is_bounded ... ok
+test smoke::tests::crossterm_event_kind_is_linked ... ok
+test smoke::tests::smoke_frame_contains_pending ... ok
+test app::tests::retained_bytes_are_bounded_after_many_pages ... ok
+test events::tests::paste_passes_through_unbounded ... ok
+test views::tests::dcp_panel_renders_snapshot_and_notice ... ok
+test views::tests::render_is_bounded_with_unicode ... ok
+test views::tests::panels_render_bounded ... ok
+test app::tests::accepted_submit_clears_input_and_streams ... ok
+test app::tests::stale_turn_events_are_ignored ... ok
+test app::tests::cancel_releases_turn ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+   Doc-tests oc_adapters
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests oc_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests oc_tui
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
