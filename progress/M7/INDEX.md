@@ -7,7 +7,7 @@ Plan: ../../roadmap/M7.md
 - [T33](T33/INDEX.md) [done] — Durable tool execution и recovery; latest: 0003.md.
 - [T34](T34/INDEX.md) [done] — Настоящий Responses protocol и streaming; latest: 0003.md.
 - [T35](T35/INDEX.md) [done] — Configured workspace и точный discovery; latest: 0003.md.
-- [T36](T36/INDEX.md) [todo] — Подключить DCP к реальному tool loop; latest: нет.
+- [T36](T36/INDEX.md) [active] — Подключить DCP к реальному tool loop; latest: 0002.md.
 - [T37](T37/INDEX.md) [todo] — MCP config, registry и владение ресурсами; latest: нет.
 - [T38](T38/INDEX.md) [todo] — Shell и webfetch без hangs/Unicode panic; latest: нет.
 - [T39](T39/INDEX.md) [todo] — Довести TUI до подключённого daily workflow; latest: нет.

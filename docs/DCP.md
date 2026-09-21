@@ -65,4 +65,43 @@ Config source order фиксируется отдельной source-derived fix
 
 Fake-model scenario заставляет вызвать compress на большом закрытом span, затем потребовать fact из summary и выполнить patch/test. Assert immutable raw history checksum, stable IDs после restart, уменьшенную serialized projection, preserved facts/полные tool-call-result groups/protected bytes, отсутствие config/provider credentials, valid tool graph и restart consistency. Live regression проверяет реальный endpoint, но не обещает универсальную semantic losslessness.
 
+## Квалифицированный native path (T36)
+
+Normal `oc run`/TUI runtime публикует `compress` как ordinary function tool рядом
+с `glob`/`grep`; все три проходят общий validation → permission → durable intent →
+dispatch → durable outcome. DCP developer lane содержит bounded ordered anchors
+`{id,role,closed}` и transient nudge, но не записывается в raw history. Disabled,
+manual или неразрешённый compress не публикует schema/anchors/nudge.
+
+Модельный compress сначала строит весь plan. Одна SQLite transaction сохраняет
+blocks/members, consumption старых memberships, durable dedup/purge projection,
+tool outcome, turn wire journal и reset nudge state. No-gain не создаёт block и
+не сбрасывает cadence. После commit следующий round заново строит projection.
+SIGKILL regression останавливает actual binary на durability sync внутри этой
+transaction и после restart допускает только zero-or-complete state без replay.
+
+Nudge state durable и изолирован ключом session/provider/model. Percent limits и
+exact provider/model overrides вычисляются от context limit выбранной модели;
+summaryBuffer расширяет hard boundary, но не откладывает первое soft reminder.
+`nudgeForce` принимает `strong|soft`. Успешная compression сбрасывает cadence
+только своего ключа. Manual mode отключает autonomous strategies/reminders.
+
+Dedup/purge решения появляются только вместе с успешной compression и переживают
+restart. Identity включает `call_id` и occurrence, поэтому reuse ID не смешивает
+вызовы. Dedup использует canonical JSON, purge удаляет только большой старый input
+ошибочного call и сохраняет exact outcome. `*`/`?` tool protections, typed file
+paths (для patch — parsed affected paths), recent-turn protection и user/tag/file
+content сохраняются. Complete call/output pairs никогда не рвутся. Block anchors
+могут быть вложенными; consumed block rows остаются для bounded expansion, а их
+active memberships заменяются транзакционно.
+
+`dcp.json/jsonc` и inline `dcp` читаются в общем порядке admitted config roots,
+read-only, bounded 1 MiB, regular UTF-8, no-follow. Deep object merge поддерживает
+required surface выше. `autoUpdate:true`, unsupported modes/custom prompts и
+subagents дают explicit unsupported error. `showCompression`, notification и
+commands display сохранены в snapshot, но их UI controls квалифицируются T39.
+
+Offline evidence: `evidence/T36/report.md`. Полная archive materialization и
+process-wide lifetime/RSS gates остаются T40, не считаются закрытыми этим срезом.
+
 До переноса кода/prompts/tests сохранить license/notices/provenance. Rust перевод не удаляет лицензирование источника. Не копировать unrelated OpenProxy code с неустановленной лицензией.

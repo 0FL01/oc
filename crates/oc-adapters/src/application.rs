@@ -45,13 +45,19 @@ pub async fn spawn(
             },
             None,
             false,
-            crate::dcp_auto::DcpConfig::default(),
+            composition.dcp_config.clone(),
         );
         match runtime {
             Err(error) => {
                 let _ = ready.send(Err(error.to_string()));
             }
             Ok(runtime) => {
+                if let Err(error) =
+                    runtime.publish_dcp_protection(composition.dcp_protected.clone())
+                {
+                    let _ = ready.send(Err(error.to_string()));
+                    return;
+                }
                 if let Err(error) = runtime.publish_workspace(
                     composition.agent_prompt.as_deref(),
                     &composition.instructions,

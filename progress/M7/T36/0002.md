@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-21T13:48:31+00:00
-Active: T36
-
-Сверить Git status/diff до выполнения команд.
-Task: T36 — Подключить DCP к реальному tool loop
-Spec: audit/repairs/T36.md
-Evidence target: evidence/T36/report.md
-
-Закрыть F07 по audit/repairs/T36.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 ## Result
 
 T36 implementation verified on base 1aac158, awaiting implementation commit and
@@ -45,9 +31,3 @@ report; finish T36 through progress.py and commit generated closeout. Then
 immediately start T37, read its repair contract, and reproduce the MCP lifetime/
 auth findings offline. Audit fragments must not be merged again. Git status is
 authoritative; no push or live probe has occurred.
-
-
-Ready (до 5): нет
-Blocked: T27
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

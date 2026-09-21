@@ -42,7 +42,22 @@ mutation syscalls. Temporary inode — `O_CREAT|O_EXCL|O_NOFOLLOW`, новое �
 
 `webfetch`: read-only GET, http/https, text/HTML/JSON response; bounded download и redirect count, понятное преобразование HTML→text, исходный URL/status/content type и source references в результате. Не browser automation и не OpenProxy private admin fetch. Private/link-local/loopback targets запрещены по умолчанию; DNS resolution, фактический dial и каждый redirect проверяются вместе. Explicit trusted endpoint exception для provider/MCP НЕ распространяется на модельный webfetch. Credential headers не наследуются; proxy env не должен обходить egress policy. Для test fixtures использовать отдельный explicit loopback allowlist. No arbitrary methods/upload/cookies.
 
-`compress` — отдельный контекстный tool из DCP.md; файл на диске не меняет.
+`glob`: literal bounded pattern, stable sorted pagination. Pattern ≤4096 bytes,
+не более 64 segments; memoized `**` matcher. Walk budget 10,000 entries считается
+при enumeration, до накопления результата. Nonregular nodes не читаются.
+
+`grep`: literal UTF-8 search (regex mode пока explicit unsupported), stable sorted
+pagination. Pattern ≤4096 bytes, per-file read ≤1 MiB, aggregate scan ≤16 MiB,
+hit text ≤2 KiB на UTF-8 boundary. Files открываются no-follow/nonblocking и после
+fstat читаются только regular; FIFO/device не блокируют runtime. Budget exhaustion
+видим, не подменяется silent partial success.
+
+`compress` — ordinary function tool из DCP.md; файл на диске не меняет. Schema
+точно `{topic,content:[{startId,endId,summary}]}`. Он использует тот же permission
+и durable dispatcher, что остальные built-ins; model call atomically сохраняет
+projection/outcome и следующий Responses round получает новую projection. Direct
+host helper не является отдельным слабым commit path: он использует тот же planner
+и atomic storage boundary. Disabled/manual/deny убирают model-visible schema.
 
 `skill`: input `{id}` выбирает skill только из pinned generation текущего turn. Model-visible descriptor/catalog содержит bounded id/name/description, но не body. Executor проверяет stale generation и central/agent-narrowed permission, записывает durable intent/outcome и возвращает immutable bounded snapshot body с digest и redacted provenance. Unknown/removed/oversized/unreadable skill — visible failure. Tool не перечитывает filesystem, не регистрирует другие tools/MCP, не запускает scripts и не меняет permissions/agent/model.
 

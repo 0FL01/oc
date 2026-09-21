@@ -713,6 +713,7 @@ async fn e2e03_compress_restart_retained_fact() {
             protect_user_messages: false,
             protect_tags: false,
             file_globs: Vec::new(),
+            ..ProtectedSpec::default()
         };
         let compress = runtime.run_compress("e3", &args, &spec).expect("compress");
         assert!(compress.shrank, "projection must shrink");

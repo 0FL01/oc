@@ -42,6 +42,18 @@ pub enum DcpError {
         /// Missing id.
         id: String,
     },
+    /// Referenced compression block is not in the existing or candidate set.
+    #[error("unknown block {id}")]
+    UnknownBlock {
+        /// Missing block id.
+        id: String,
+    },
+    /// A candidate member is already covered by an effective block.
+    #[error("message already compressed {id}")]
+    ExistingOverlap {
+        /// Conflicting message id.
+        id: String,
+    },
     /// Protected payload too large to preserve verbatim: compression is
     /// visibly impossible, never silently lossy.
     #[error("compression impossible: {reason}")]
@@ -61,6 +73,17 @@ pub enum DcpError {
         /// Human reason.
         reason: String,
     },
+    /// The measured serialized projection did not shrink.
+    #[error("compression has no gain: {before_bytes} -> {after_bytes} bytes")]
+    NoGain {
+        /// Existing projected serialized size.
+        before_bytes: usize,
+        /// Candidate projected serialized size.
+        after_bytes: usize,
+    },
+    /// The durable compression snapshot changed before commit.
+    #[error("compression state changed")]
+    Conflict,
     /// Patch touches protected paths.
     #[error("protected patch paths")]
     PatchProtected {
@@ -159,6 +182,52 @@ pub struct CompressionBlock {
     pub members: Vec<String>,
 }
 
+/// Pure, fully validated compression candidate.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompressionPlan {
+    /// Candidate blocks in transcript order with their final durable ids.
+    pub blocks: Vec<CompressionBlock>,
+    /// Existing projection serialized as the provider-facing row shape.
+    pub before_bytes: usize,
+    /// Candidate projection serialized as the provider-facing row shape.
+    pub after_bytes: usize,
+    /// Rough saved-token estimate derived from measured saved bytes.
+    pub saved_tokens: u64,
+    /// Older blocks whose active memberships are subsumed by this plan.
+    pub consumed_blocks: Vec<String>,
+    first_block_number: u64,
+}
+
+/// Successful durable compression result.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompressionReport {
+    /// Blocks committed by this call.
+    pub blocks: Vec<CompressionBlock>,
+    /// Existing projected serialized bytes.
+    pub before_bytes: usize,
+    /// Committed projected serialized bytes.
+    pub after_bytes: usize,
+    /// Rough saved-token estimate derived from measured saved bytes.
+    pub saved_tokens: u64,
+}
+
+/// Optional existing tool operation and turn journal finalized with the blocks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CompressionCommitMetadata<'a> {
+    /// Existing model tool operation id.
+    pub operation_id: &'a str,
+    /// Terminal operation state.
+    pub operation_state: &'a str,
+    /// Structured operation output.
+    pub operation_output: &'a str,
+    /// Existing owning turn id for model dispatch; absent for manual dispatch.
+    pub turn_id: Option<&'a str>,
+    /// Updated replayable turn log, present exactly with `turn_id`.
+    pub turn_log: Option<&'a str>,
+    /// Preference updates committed at the same durability boundary.
+    pub preference_updates: &'a [(String, String)],
+}
+
 /// Apply the DCP v2 schema migration (idempotent, additive only).
 pub fn apply_dcp_schema(db: &crate::storage::Db) -> Result<(), DcpError> {
     db.apply_dcp_schema().map_err(|_| DcpError::Storage)
@@ -223,11 +292,357 @@ pub const NESTED_DEPTH_CAP: usize = 8;
 /// Nested expansion byte cap.
 pub const NESTED_BYTES_CAP: usize = 65536;
 
-/// Compress validated ranges: plan (disjoint, stable ids, tail refused),
-/// append protected content verbatim (upstream-exact headings), persist
-/// blocks durably, and return block ids in ascending order.
+/// Build a complete compression candidate without storage writes.
 ///
-/// Raw history is never mutated; callers assert the checksum around this.
+/// Input ranges may be out of transcript order: each summary remains attached
+/// to its own resolved anchors. Existing and candidate nested references are
+/// expanded strictly before actual before/after row serialization is measured.
+#[allow(clippy::too_many_arguments)]
+pub fn plan_compression(
+    session: &str,
+    history: &[oc_core::session::Message],
+    validated: &[ValidatedRange],
+    spec: &oc_core::context_plan::ProtectedSpec,
+    existing: &[CompressionBlock],
+    prune_up_to: Option<&str>,
+    next_block_number: u64,
+) -> Result<CompressionPlan, DcpError> {
+    plan_compression_with_gain(
+        session,
+        history,
+        validated,
+        spec,
+        existing,
+        prune_up_to,
+        next_block_number,
+        true,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn plan_compression_with_gain(
+    session: &str,
+    history: &[oc_core::session::Message],
+    validated: &[ValidatedRange],
+    spec: &oc_core::context_plan::ProtectedSpec,
+    existing: &[CompressionBlock],
+    prune_up_to: Option<&str>,
+    next_block_number: u64,
+    require_row_gain: bool,
+) -> Result<CompressionPlan, DcpError> {
+    use oc_core::context_plan::{PlanError, message_protected, plan_ranges};
+
+    if validated.is_empty() || validated.len() > RANGES_CAP {
+        return Err(DcpError::InvalidArgs {
+            reason: "content must hold 1..=32 entries".to_string(),
+        });
+    }
+    let existing_by_id = existing
+        .iter()
+        .map(|block| (block.id.as_str(), block))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let mut consumed = std::collections::BTreeSet::new();
+    let mut resolved = Vec::with_capacity(validated.len());
+    for range in validated {
+        if range.topic.trim().is_empty()
+            || range.topic.chars().count() > TOPIC_CAP
+            || range.summary.trim().is_empty()
+            || range.summary.chars().count() > SUMMARY_CAP
+        {
+            return Err(DcpError::InvalidArgs {
+                reason: "range topic/summary is empty or too large".to_string(),
+            });
+        }
+        if range.summary.contains(PROTECTED_USER_HEADING)
+            || range.summary.contains(PROTECTED_CONTENT_HEADING)
+        {
+            return Err(DcpError::InvalidArgs {
+                reason: "summary contains a reserved protection heading".to_string(),
+            });
+        }
+        let start = if let Some(block) = existing_by_id.get(range.start_id.as_str()) {
+            consumed.insert(block.id.clone());
+            block.start_msg.clone()
+        } else {
+            range.start_id.clone()
+        };
+        let end = if let Some(block) = existing_by_id.get(range.end_id.as_str()) {
+            consumed.insert(block.id.clone());
+            block.end_msg.clone()
+        } else {
+            range.end_id.clone()
+        };
+        for placeholder in parse_block_placeholders(&range.summary) {
+            if existing_by_id.contains_key(placeholder.block_id.as_str()) {
+                consumed.insert(placeholder.block_id);
+            }
+        }
+        let one = plan_ranges(history, &[(start, end)]).map_err(|error| match error {
+            PlanError::UnknownMessage { id } => DcpError::UnknownMessage { id },
+            other => DcpError::InvalidArgs {
+                reason: other.to_string(),
+            },
+        })?;
+        resolved.push((range, one.into_iter().next().expect("one planned range")));
+    }
+    resolved.sort_by_key(|(_, range)| (range.start, range.end));
+    for pair in resolved.windows(2) {
+        if pair[1].1.start <= pair[0].1.end {
+            return Err(DcpError::InvalidArgs {
+                reason: "overlapping ranges".to_string(),
+            });
+        }
+    }
+
+    let positions = history
+        .iter()
+        .enumerate()
+        .map(|(index, message)| (message.id.0.as_str(), index))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    for id in &consumed {
+        let block = existing_by_id
+            .get(id.as_str())
+            .expect("known consumed block");
+        let covered = resolved.iter().any(|(_, range)| {
+            block.members.iter().all(|member| {
+                positions
+                    .get(member.as_str())
+                    .is_some_and(|position| range.start <= *position && *position <= range.end)
+            })
+        });
+        if !covered {
+            return Err(DcpError::InvalidArgs {
+                reason: format!("referenced block {id} is not fully covered"),
+            });
+        }
+    }
+    if let Some(tail) = history.len().checked_sub(1)
+        && resolved
+            .iter()
+            .any(|(_, range)| range.start <= tail && tail <= range.end)
+    {
+        return Err(DcpError::InvalidArgs {
+            reason: "range covers the unfinished tail".to_string(),
+        });
+    }
+
+    let existing_members: std::collections::HashSet<&str> = existing
+        .iter()
+        .filter(|block| !consumed.contains(&block.id))
+        .flat_map(|block| block.members.iter().map(String::as_str))
+        .collect();
+    let mut blocks = Vec::with_capacity(resolved.len());
+    for (offset, (range, resolved)) in resolved.into_iter().enumerate() {
+        let members: Vec<String> = history
+            [resolved.start..=resolved.end.min(history.len().saturating_sub(1))]
+            .iter()
+            .map(|message| message.id.0.clone())
+            .collect();
+        if let Some(id) = members
+            .iter()
+            .find(|id| existing_members.contains(id.as_str()))
+        {
+            return Err(DcpError::ExistingOverlap { id: id.clone() });
+        }
+
+        let mut user_texts = Vec::new();
+        let mut other_texts = Vec::new();
+        for message in &history[resolved.start..=resolved.end] {
+            if !message_protected(spec, message) {
+                continue;
+            }
+            if message.text.len() > PROTECTED_BYTES_CAP {
+                return Err(DcpError::Impossible {
+                    reason: "protected content exceeds verbatim budget".to_string(),
+                });
+            }
+            if spec.protect_user_messages && matches!(message.role, oc_core::session::Role::User) {
+                user_texts.push(message.text.clone());
+                if spec.protect_tags {
+                    other_texts.extend(
+                        oc_core::context_plan::extract_protect_tags(&message.text)
+                            .map(String::from),
+                    );
+                }
+            } else {
+                // Tag- and file-glob-protected messages are retained in full,
+                // not reduced to only the matching token/span.
+                other_texts.push(message.text.clone());
+            }
+        }
+        let summary = append_protected_tags(
+            &append_protected_user_messages(&range.summary, &user_texts),
+            &other_texts,
+        );
+        let number = next_block_number
+            .checked_add(offset as u64)
+            .ok_or_else(|| DcpError::Impossible {
+                reason: "block id space exhausted".to_string(),
+            })?;
+        let id = format!("b{number:04}");
+        if existing.iter().any(|block| block.id == id) {
+            return Err(DcpError::Conflict);
+        }
+        blocks.push(CompressionBlock {
+            id,
+            session: session.to_string(),
+            topic: range.topic.clone(),
+            summary,
+            start_msg: members.first().cloned().expect("planned range has a start"),
+            end_msg: members.last().cloned().expect("planned range has an end"),
+            members,
+        });
+    }
+
+    let history_rows = history
+        .iter()
+        .map(|message| {
+            (
+                message.id.0.clone(),
+                match message.role {
+                    oc_core::session::Role::User => "user".to_string(),
+                    oc_core::session::Role::Assistant => "assistant".to_string(),
+                },
+                message.text.clone(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let mut candidate = existing.to_vec();
+    for block in &mut candidate {
+        if consumed.contains(&block.id) {
+            block.members.clear();
+        }
+    }
+    candidate.extend(blocks.iter().cloned());
+    let mut graph = existing.to_vec();
+    graph.extend(blocks.iter().cloned());
+    validate_block_graph(&graph)?;
+    let before = project_rows_checked(&history_rows, existing, prune_up_to)?;
+    let after = project_rows_checked(&history_rows, &candidate, prune_up_to)?;
+    let before_bytes = serialized_rows_len(&before)?;
+    let after_bytes = serialized_rows_len(&after)?;
+    if require_row_gain && after_bytes >= before_bytes {
+        return Err(DcpError::NoGain {
+            before_bytes,
+            after_bytes,
+        });
+    }
+    let saved_bytes = before_bytes.saturating_sub(after_bytes);
+    let saved_tokens = u64::try_from(saved_bytes).unwrap_or(u64::MAX).div_ceil(4);
+    Ok(CompressionPlan {
+        blocks,
+        before_bytes,
+        after_bytes,
+        saved_tokens,
+        consumed_blocks: consumed.into_iter().collect(),
+        first_block_number: next_block_number,
+    })
+}
+
+/// Plan and atomically commit every range/member and optional tool journal.
+pub fn compress_ranges_atomic(
+    db: &crate::storage::Db,
+    session: &str,
+    history: &[oc_core::session::Message],
+    validated: &[ValidatedRange],
+    spec: &oc_core::context_plan::ProtectedSpec,
+    commit: Option<&CompressionCommitMetadata<'_>>,
+) -> Result<CompressionReport, DcpError> {
+    let plan = prepare_compression(db, session, history, validated, spec, true)?;
+    commit_compression(db, session, plan, commit)
+}
+
+/// Prepare against one consistent storage snapshot without writing.
+pub(crate) fn prepare_compression(
+    db: &crate::storage::Db,
+    session: &str,
+    history: &[oc_core::session::Message],
+    validated: &[ValidatedRange],
+    spec: &oc_core::context_plan::ProtectedSpec,
+    require_row_gain: bool,
+) -> Result<CompressionPlan, DcpError> {
+    let (rows, prune, next) = db.compression_snapshot(session).map_err(map_storage)?;
+    let existing = rows.into_iter().map(block_from_row).collect::<Vec<_>>();
+    plan_compression_with_gain(
+        session,
+        history,
+        validated,
+        spec,
+        &existing,
+        prune.as_deref(),
+        next,
+        require_row_gain,
+    )
+}
+
+/// Atomically publish a previously prepared plan and optional model-tool journal.
+pub(crate) fn commit_compression(
+    db: &crate::storage::Db,
+    session: &str,
+    plan: CompressionPlan,
+    commit: Option<&CompressionCommitMetadata<'_>>,
+) -> Result<CompressionReport, DcpError> {
+    commit_compression_with_projection(db, session, plan, commit, &[], &[])
+}
+
+pub(crate) fn commit_compression_with_projection(
+    db: &crate::storage::Db,
+    session: &str,
+    plan: CompressionPlan,
+    commit: Option<&CompressionCommitMetadata<'_>>,
+    hidden_calls: &[crate::storage::DcpCallKey],
+    purged_calls: &[crate::storage::DcpCallKey],
+) -> Result<CompressionReport, DcpError> {
+    let (existing_rows, prune, next) = db.compression_snapshot(session).map_err(map_storage)?;
+    if next != plan.first_block_number {
+        return Err(DcpError::Conflict);
+    }
+    let rows = plan
+        .blocks
+        .iter()
+        .map(|block| crate::storage::CompressionBlockRow {
+            id: block.id.clone(),
+            session: block.session.clone(),
+            topic: block.topic.clone(),
+            summary: block.summary.clone(),
+            start_msg: block.start_msg.clone(),
+            end_msg: block.end_msg.clone(),
+            members: block.members.clone(),
+        })
+        .collect::<Vec<_>>();
+    let tool = commit.map(|metadata| crate::storage::ToolOutcomeLogCommit {
+        operation_id: metadata.operation_id,
+        operation_state: metadata.operation_state,
+        operation_output: metadata.operation_output,
+        turn_id: metadata.turn_id,
+        turn_log: metadata.turn_log,
+        preference_updates: metadata.preference_updates,
+    });
+    let existing_ids = existing_rows
+        .iter()
+        .map(|block| block.id.clone())
+        .collect::<Vec<_>>();
+    db.commit_compression_plan(crate::storage::CompressionPlanCommit {
+        session,
+        blocks: &rows,
+        consumed_blocks: &plan.consumed_blocks,
+        expected_next: plan.first_block_number,
+        expected_existing: &existing_ids,
+        expected_prune: prune.as_deref(),
+        hidden_calls,
+        purged_calls,
+        tool: tool.as_ref(),
+    })
+    .map_err(map_storage)?;
+    Ok(CompressionReport {
+        blocks: plan.blocks,
+        before_bytes: plan.before_bytes,
+        after_bytes: plan.after_bytes,
+        saved_tokens: plan.saved_tokens,
+    })
+}
+
+/// Compatibility wrapper returning only committed block ids.
 pub fn compress_ranges(
     db: &crate::storage::Db,
     session: &str,
@@ -235,53 +650,33 @@ pub fn compress_ranges(
     validated: &[ValidatedRange],
     spec: &oc_core::context_plan::ProtectedSpec,
 ) -> Result<Vec<String>, DcpError> {
-    use oc_core::context_plan::{covered_protected, plan_ranges_protected};
-    let specs: Vec<(String, String)> = validated
-        .iter()
-        .map(|range| (range.start_id.clone(), range.end_id.clone()))
-        .collect();
-    let ranges = plan_ranges_protected(history, &specs).map_err(|e| DcpError::InvalidArgs {
-        reason: e.to_string(),
-    })?;
-    // Protected bytes must fit the verbatim budget, else visible impossibility.
-    for message in covered_protected(history, &ranges, spec) {
-        if message.text.len() > PROTECTED_BYTES_CAP {
-            return Err(DcpError::Impossible {
-                reason: "protected content exceeds verbatim budget".to_string(),
-            });
-        }
+    Ok(
+        compress_ranges_atomic(db, session, history, validated, spec, None)?
+            .blocks
+            .into_iter()
+            .map(|block| block.id)
+            .collect(),
+    )
+}
+
+fn block_from_row(row: crate::storage::CompressionBlockRow) -> CompressionBlock {
+    CompressionBlock {
+        id: row.id,
+        session: row.session,
+        topic: row.topic,
+        summary: row.summary,
+        start_msg: row.start_msg,
+        end_msg: row.end_msg,
+        members: row.members,
     }
-    let protected = covered_protected(history, &ranges, spec);
-    let mut user_texts = Vec::new();
-    let mut tag_texts = Vec::new();
-    for message in &protected {
-        if matches!(message.role, oc_core::session::Role::User) {
-            user_texts.push(message.text.clone());
-        }
-        tag_texts
-            .extend(oc_core::context_plan::extract_protect_tags(&message.text).map(String::from));
+}
+
+fn map_storage(error: crate::storage::StorageError) -> DcpError {
+    if matches!(error, crate::storage::StorageError::CompressionConflict) {
+        DcpError::Conflict
+    } else {
+        DcpError::Storage
     }
-    let mut ids = Vec::with_capacity(validated.len());
-    for (range, resolved) in validated.iter().zip(ranges.iter()) {
-        let mut summary = range.summary.clone();
-        summary = append_protected_user_messages(&summary, &user_texts);
-        summary = append_protected_tags(&summary, &tag_texts);
-        let members: Vec<String> = history
-            [resolved.start..=resolved.end.min(history.len().saturating_sub(1))]
-            .iter()
-            .map(|message| message.id.0.clone())
-            .collect();
-        ids.push(save_block(
-            db,
-            session,
-            &range.topic,
-            &summary,
-            &range.start_id,
-            &range.end_id,
-            &members,
-        )?);
-    }
-    Ok(ids)
 }
 
 /// Append covered user messages verbatim (upstream-exact heading).
@@ -289,9 +684,8 @@ pub fn append_protected_user_messages(summary: &str, user_texts: &[String]) -> S
     if user_texts.is_empty() {
         return summary.to_string();
     }
-    let heading = "\n\nThe following user messages were sent in this conversation verbatim:";
     let body: String = user_texts.iter().map(|text| format!("\n{text}")).collect();
-    format!("{summary}{heading}{body}")
+    format!("{summary}{PROTECTED_USER_HEADING}{body}")
 }
 
 /// Append covered `<protect>` extracts verbatim (upstream-exact heading).
@@ -299,10 +693,14 @@ pub fn append_protected_tags(summary: &str, tag_texts: &[String]) -> String {
     if tag_texts.is_empty() {
         return summary.to_string();
     }
-    let heading = "\n\nThe following protected prompt information was included in this conversation verbatim:";
     let body: String = tag_texts.iter().map(|text| format!("\n{text}")).collect();
-    format!("{summary}{heading}{body}")
+    format!("{summary}{PROTECTED_CONTENT_HEADING}{body}")
 }
+
+const PROTECTED_USER_HEADING: &str =
+    "\n\nThe following user messages were sent in this conversation verbatim:";
+const PROTECTED_CONTENT_HEADING: &str =
+    "\n\nThe following protected prompt information was included in this conversation verbatim:";
 
 /// Parsed block placeholder (`(bN)` or `{block_N}`) inside a summary.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -376,10 +774,15 @@ pub fn expand_block(
     }
     let block = blocks
         .get(id)
-        .ok_or_else(|| DcpError::UnknownMessage { id: id.to_string() })?;
+        .ok_or_else(|| DcpError::UnknownBlock { id: id.to_string() })?;
+    if block.summary.len() > NESTED_BYTES_CAP {
+        return Err(DcpError::NestedTooLarge {
+            reason: "byte cap".to_string(),
+        });
+    }
     seen.push(id.to_string());
     let mut text = block.summary.clone();
-    for placeholder in parse_block_placeholders(&block.summary) {
+    for placeholder in parse_block_placeholders(authored_summary(&block.summary)) {
         let nested = expand_block(blocks, &placeholder.block_id, depth + 1, seen)?;
         text = text.replacen(placeholder.raw.as_str(), nested.as_str(), 1);
         if text.len() > NESTED_BYTES_CAP {
@@ -392,13 +795,41 @@ pub fn expand_block(
     Ok(text)
 }
 
+fn authored_summary(summary: &str) -> &str {
+    let protected_start = [PROTECTED_USER_HEADING, PROTECTED_CONTENT_HEADING]
+        .into_iter()
+        .filter_map(|heading| summary.find(heading))
+        .min()
+        .unwrap_or(summary.len());
+    &summary[..protected_start]
+}
+
+fn validate_block_graph(blocks: &[CompressionBlock]) -> Result<(), DcpError> {
+    let by_id = blocks
+        .iter()
+        .map(|block| (block.id.clone(), block.clone()))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    for id in by_id.keys() {
+        expand_block(&by_id, id, 0, &mut Vec::new())?;
+    }
+    Ok(())
+}
+
+fn serialized_rows_len(rows: &[(String, String, String)]) -> Result<usize, DcpError> {
+    serde_json::to_vec(rows)
+        .map(|bytes| bytes.len())
+        .map_err(|_| DcpError::Impossible {
+            reason: "projection serialization failed".to_string(),
+        })
+}
+
 /// Project full history through compression blocks and the prune mark.
 ///
 /// Covered member messages collapse into one
 /// `[compressed {id}] {summary}` system entry at the position of the
 /// first covered message; uncovered messages pass through verbatim in
 /// order. Summaries expand nested placeholders under cycle/depth/byte
-/// guards (raw summary on failure). A prune mark drops the prefix
+/// guards. A prune mark drops the prefix
 /// through the marked message id; an unknown mark id is ignored, never
 /// applied blindly. History rows are never mutated; stale member ids
 /// (compacted elsewhere) are skipped, never fatal.
@@ -419,6 +850,26 @@ pub(crate) fn project_rows(
     blocks: &[CompressionBlock],
     prune_up_to: Option<&str>,
 ) -> Vec<(String, String, String)> {
+    // Compatibility projection for previously persisted invalid blocks. New
+    // writes always use the strict planner below and can never reach fallback.
+    project_rows_with_mode(history, blocks, prune_up_to, false)
+        .expect("compatibility projection cannot fail")
+}
+
+fn project_rows_checked(
+    history: &[(String, String, String)],
+    blocks: &[CompressionBlock],
+    prune_up_to: Option<&str>,
+) -> Result<Vec<(String, String, String)>, DcpError> {
+    project_rows_with_mode(history, blocks, prune_up_to, true)
+}
+
+fn project_rows_with_mode(
+    history: &[(String, String, String)],
+    blocks: &[CompressionBlock],
+    prune_up_to: Option<&str>,
+    strict: bool,
+) -> Result<Vec<(String, String, String)>, DcpError> {
     let by_id: std::collections::BTreeMap<String, CompressionBlock> = blocks
         .iter()
         .map(|block| (block.id.clone(), block.clone()))
@@ -445,10 +896,14 @@ pub(crate) fn project_rows(
                 emitted.push(block_id.to_string());
                 let summary = by_id
                     .get(*block_id)
-                    .map(|block| {
-                        expand_block(&by_id, block_id, 0, &mut Vec::new())
-                            .unwrap_or_else(|_| block.summary.clone())
-                    })
+                    .map(
+                        |block| match expand_block(&by_id, block_id, 0, &mut Vec::new()) {
+                            Ok(summary) => Ok(summary),
+                            Err(error) if strict => Err(error),
+                            Err(_) => Ok(block.summary.clone()),
+                        },
+                    )
+                    .transpose()?
                     .unwrap_or_default();
                 out.push((
                     block_id.to_string(),
@@ -460,7 +915,7 @@ pub(crate) fn project_rows(
             None => out.push((id.clone(), role.clone(), text.clone())),
         }
     }
-    out
+    Ok(out)
 }
 
 /// Patch protection: every affected path is checked against protected globs.
@@ -550,6 +1005,11 @@ fn glob_match(pattern: &str, text: &str) -> bool {
         &pattern.split('/').collect::<Vec<_>>(),
         &text.split('/').collect::<Vec<_>>(),
     )
+}
+
+/// Match a model tool argument path against DCP context-protection globs.
+pub(crate) fn path_is_protected(patterns: &[String], path: &str) -> bool {
+    patterns.iter().any(|pattern| glob_match(pattern, path))
 }
 
 /// Single-shot compress outcome: either a smaller projection or a visible
@@ -761,6 +1221,8 @@ mod tests {
         );
         // Unfinished tail coverage refused.
         let db = crate::storage::Db::open(&tmp.path().join("d3")).expect("db");
+        super::apply_dcp_schema(&db).expect("migrate");
+        db.create_session("s-3").expect("session");
         assert!(matches!(
             super::compress_ranges(
                 &db,
@@ -857,7 +1319,8 @@ mod tests {
             Err(super::DcpError::Cycle { .. })
         ));
         // Protected user text + protect tags appended verbatim upstream-style.
-        let history = history5();
+        let mut history = history5();
+        history[1].text = "verbose unprotected answer ".repeat(32);
         let tmp = tempfile::tempdir().expect("temp");
         let db = crate::storage::Db::open(&tmp.path().join("data")).expect("db");
         super::apply_dcp_schema(&db).expect("migrate");
@@ -866,6 +1329,7 @@ mod tests {
             protect_user_messages: true,
             protect_tags: true,
             file_globs: vec![],
+            ..ProtectedSpec::default()
         };
         super::compress_ranges(
             &db,
@@ -926,10 +1390,13 @@ mod tests {
         ];
         let tmp = tempfile::tempdir().expect("temp");
         let db = crate::storage::Db::open(&tmp.path().join("data")).expect("db");
+        super::apply_dcp_schema(&db).expect("migrate");
+        db.create_session("s").expect("session");
         let spec = ProtectedSpec {
             protect_user_messages: true,
             protect_tags: false,
             file_globs: vec![],
+            ..ProtectedSpec::default()
         };
         assert!(matches!(
             super::compress_ranges(

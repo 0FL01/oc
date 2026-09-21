@@ -185,6 +185,31 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
             ),
         },
         ToolDef {
+            name: "glob".to_string(),
+            description: "List project paths matching a bounded glob. Results are sorted and paginated.".to_string(),
+            parameters: schema(
+                serde_json::json!({
+                    "pattern": {"type": "string"},
+                    "offset": {"type": "integer", "minimum": 0},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 1000}
+                }),
+                &["pattern"],
+            ),
+        },
+        ToolDef {
+            name: "grep".to_string(),
+            description: "Search project text with a bounded literal pattern. Results are sorted and paginated; regex mode is unsupported.".to_string(),
+            parameters: schema(
+                serde_json::json!({
+                    "pattern": {"type": "string"},
+                    "literal": {"type": "boolean"},
+                    "offset": {"type": "integer", "minimum": 0},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 1000}
+                }),
+                &["pattern"],
+            ),
+        },
+        ToolDef {
             name: "apply_patch".to_string(),
             description: "Apply a patch to project files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <relative path>`, prefix every content line with `+`; no content lines creates an empty file. Update hunks use `*** Update File: <relative path>`, optionally immediately followed by `*** Move to: <relative path>`, then `@@` and lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Delete uses `*** Delete File: <relative path>`. Paths stay inside the project root."
                 .to_string(),
@@ -217,6 +242,28 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
             name: "skill".to_string(),
             description: "Invoke a pinned skill".to_string(),
             parameters: schema(serde_json::json!({"id": {"type": "string"}}), &["id"]),
+        },
+        ToolDef {
+            name: COMPRESS_TOOL.to_string(),
+            description: "Replace one or more closed transcript ranges with durable summaries. Use only stable startId/endId anchors from the DCP context lane; never include the unfinished final anchor.".to_string(),
+            parameters: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "topic": {"type": "string", "minLength": 1, "maxLength": crate::dcp::TOPIC_CAP},
+                    "content": {"type": "array", "minItems": 1, "maxItems": crate::dcp::RANGES_CAP, "items": {
+                        "type": "object",
+                        "properties": {
+                            "startId": {"type": "string"},
+                            "endId": {"type": "string"},
+                            "summary": {"type": "string", "minLength": 1, "maxLength": crate::dcp::SUMMARY_CAP}
+                        },
+                        "required": ["startId", "endId", "summary"],
+                        "additionalProperties": false
+                    }}
+                },
+                "required": ["topic", "content"],
+                "additionalProperties": false
+            }),
         },
     ]
 }
@@ -429,8 +476,9 @@ pub struct Runtime<'a> {
     webfetch_auth: Option<String>,
     webfetch_allow_private: bool,
     dcp_config: RwLock<crate::dcp_auto::DcpConfig>,
+    dcp_protected: RwLock<ProtectedSpec>,
     workspace: RwLock<RuntimeWorkspace>,
-    nudge_state: Mutex<NudgeState>,
+    nudge_state: Mutex<BTreeMap<String, NudgeState>>,
     stats: Mutex<crate::dcp_auto::DcpStats>,
 }
 
@@ -472,8 +520,9 @@ impl<'a> Runtime<'a> {
             webfetch_auth,
             webfetch_allow_private,
             dcp_config: RwLock::new(dcp_config),
+            dcp_protected: RwLock::new(ProtectedSpec::default()),
             workspace: RwLock::new(RuntimeWorkspace::default()),
-            nudge_state: Mutex::new(NudgeState::default()),
+            nudge_state: Mutex::new(BTreeMap::new()),
             stats: Mutex::new(DcpStats::default()),
         })
     }
@@ -509,6 +558,15 @@ impl<'a> Runtime<'a> {
             return Err(RuntimeError::TurnActive);
         }
         *self.dcp_config.write().expect("dcp lock") = config;
+        Ok(())
+    }
+
+    /// Publish context-preservation rules independently of file permissions.
+    pub fn publish_dcp_protection(&self, spec: ProtectedSpec) -> Result<(), RuntimeError> {
+        if self.active.load(Ordering::Relaxed) {
+            return Err(RuntimeError::TurnActive);
+        }
+        *self.dcp_protected.write().expect("dcp protection lock") = spec;
         Ok(())
     }
 
@@ -644,6 +702,20 @@ impl<'a> Runtime<'a> {
         args: &serde_json::Value,
         spec: &ProtectedSpec,
     ) -> Result<CompressReport, RuntimeError> {
+        if self.active.swap(true, Ordering::SeqCst) {
+            return Err(RuntimeError::TurnActive);
+        }
+        let result = self.run_compress_inner(session, args, spec);
+        self.active.store(false, Ordering::SeqCst);
+        result
+    }
+
+    fn run_compress_inner(
+        &self,
+        session: &str,
+        args: &serde_json::Value,
+        spec: &ProtectedSpec,
+    ) -> Result<CompressReport, RuntimeError> {
         let published = self.current.read().expect("generation lock").clone();
         {
             let policy = RuntimePolicy::new(&published.config.permissions);
@@ -656,13 +728,6 @@ impl<'a> Runtime<'a> {
             .map_err(|e| RuntimeError::Compress(e.to_string()))?;
         let history = self.db.read_history_full(session)?;
         let messages = map_messages(&history)?;
-        let before: Vec<String> = self
-            .db
-            .load_compression_blocks(session)
-            .map_err(|_| RuntimeError::Storage)?
-            .into_iter()
-            .map(|block| block.id)
-            .collect();
         let op = format!(
             "compress-{session}-{}",
             SystemTime::now()
@@ -672,55 +737,60 @@ impl<'a> Runtime<'a> {
         );
         self.db
             .record_tool_intent(&op, session, None, COMPRESS_TOOL, &args.to_string())?;
-        let blocks = match crate::dcp::compress_ranges(self.db, session, &messages, &ranges, spec) {
-            Ok(blocks) => blocks,
-            Err(error) => {
-                // Compensate: remove blocks this attempt stored before failing.
-                for block in self.db.load_compression_blocks(session)? {
-                    if !before.contains(&block.id) {
-                        self.db.delete_compression_block(&block.id)?;
-                    }
+        let plan =
+            match crate::dcp::prepare_compression(self.db, session, &messages, &ranges, spec, true)
+            {
+                Ok(plan) => plan,
+                Err(error) => {
+                    self.db
+                        .record_tool_outcome(&op, "failed", Some(&error.to_string()))?;
+                    return Err(RuntimeError::Compress(error.to_string()));
                 }
-                self.db
-                    .record_tool_outcome(&op, "failed", Some(&error.to_string()))?;
-                return Err(RuntimeError::Compress(error.to_string()));
+            };
+        let blocks = plan
+            .blocks
+            .iter()
+            .map(|block| block.id.clone())
+            .collect::<Vec<_>>();
+        let output = serde_json::json!({
+            "status": "compressed",
+            "blocks": blocks,
+            "savedTokens": plan.saved_tokens,
+            "beforeBytes": plan.before_bytes,
+            "afterBytes": plan.after_bytes,
+        })
+        .to_string();
+        let mut next_states = self.nudge_state.lock().expect("nudge lock").clone();
+        for (key, state) in &mut next_states {
+            if key.starts_with(&format!("dcp.nudge.{session}\0")) {
+                state.on_compress_success();
             }
+        }
+        let preference_updates = next_states
+            .iter()
+            .filter(|(key, _)| key.starts_with(&format!("dcp.nudge.{session}\0")))
+            .map(|(key, state)| {
+                serde_json::to_string(state)
+                    .map(|value| (key.clone(), value))
+                    .map_err(|_| RuntimeError::Storage)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let metadata = crate::dcp::CompressionCommitMetadata {
+            operation_id: &op,
+            operation_state: "completed",
+            operation_output: &output,
+            turn_id: None,
+            turn_log: None,
+            preference_updates: &preference_updates,
         };
-        if self.generation_id() != published.id {
-            // Superseded mid-apply: roll back this attempt, never half-apply.
-            for block in &blocks {
-                self.db.delete_compression_block(block)?;
-            }
-            self.db
-                .record_tool_outcome(&op, "failed", Some("stale generation"))?;
-            return Err(RuntimeError::StaleGeneration {
-                want: published.id,
-                got: self.generation_id(),
-            });
-        }
-        // Rough savings: covered history estimate minus summary estimate.
-        let history_bytes: usize = messages.iter().map(|message| message.text.len()).sum();
-        let summary_bytes: usize = ranges.iter().map(|range| range.summary.len()).sum();
-        let saved_tokens = (history_bytes as u64 / 4).saturating_sub(summary_bytes as u64 / 4);
-        let outcome = crate::dcp::decide_outcome(saved_tokens);
-        let shrank = matches!(outcome, crate::dcp::CompressOutcome::Compressed { .. });
-        self.db.record_tool_outcome(
-            &op,
-            "completed",
-            Some(&serde_json::json!({"blocks": blocks}).to_string()),
-        )?;
-        {
-            let mut stats = self.stats.lock().expect("stats lock");
-            stats.compressions += 1;
-            self.nudge_state
-                .lock()
-                .expect("nudge lock")
-                .on_compress_success();
-        }
+        let report = crate::dcp::commit_compression(self.db, session, plan, Some(&metadata))
+            .map_err(|error| RuntimeError::Compress(error.to_string()))?;
+        *self.nudge_state.lock().expect("nudge lock") = next_states;
+        self.stats.lock().expect("stats lock").compressions += 1;
         Ok(CompressReport {
-            blocks,
-            saved_tokens,
-            shrank,
+            blocks: report.blocks.iter().map(|block| block.id.clone()).collect(),
+            saved_tokens: report.saved_tokens,
+            shrank: true,
         })
     }
 
@@ -748,29 +818,53 @@ impl<'a> Runtime<'a> {
             .db
             .load_prune_mark(&params.session)
             .map_err(|_| RuntimeError::Storage)?;
-        let projected = crate::dcp::project_rows(&full, &sblocks, prune.as_deref());
-        let history = self.wire_history(
+        let mut projected = crate::dcp::project_rows(&full, &sblocks, prune.as_deref());
+        let mut history = self.wire_history(
             &params.session,
             &projected,
+            &sblocks,
             &selection.id,
             &params.catalog.provider,
             workspace.agent_digest.as_deref(),
         )?;
-        let nudge_hint = {
-            let mut state = self.nudge_state.lock().expect("nudge lock");
-            state.on_turn();
-            let config = self.dcp_config.read().expect("dcp lock").clone();
-            let estimate = estimate_tokens(
-                &serde_json::to_string(&(workspace.fixed_input.as_slice(), history.as_slice()))
-                    .map_err(|_| RuntimeError::Storage)?,
-            ) + estimate_tokens(&params.prompt);
-            let hint =
-                evaluate(&config, &mut state, &selection.id, estimate).map(|nudge| nudge.text);
-            if hint.is_some() {
-                self.stats.lock().expect("stats lock").nudges_emitted += 1;
+        let dcp_config = self.dcp_config.read().expect("dcp lock").clone();
+        let compress_available = dcp_config.enabled
+            && !dcp_config.manual_mode
+            && published.config.permissions.get(COMPRESS_TOOL) == Some(&Permission::Allow);
+        let model_context = selection
+            .entry
+            .pointer("/limit/context")
+            .and_then(serde_json::Value::as_u64)
+            .ok_or_else(|| {
+                RuntimeError::InvalidArgs("selected model has no context limit".into())
+            })?;
+        let dcp_model_key = format!("{}/{}", params.catalog.provider, selection.id);
+        let dcp_thresholds = dcp_config.effective_for_context(&dcp_model_key, model_context);
+        if dcp_thresholds.min_context > dcp_thresholds.max_context {
+            return Err(RuntimeError::InvalidArgs(
+                "effective DCP minContextLimit exceeds maxContextLimit".into(),
+            ));
+        }
+        let mut tool_projection = self.db.load_dcp_tool_projection(&params.session)?;
+        apply_dcp_projection(&mut history, &tool_projection);
+        let mut anchors = compress_available
+            .then(|| dcp_config_input(&projected, &dcp_config))
+            .flatten();
+        let state_key = format!(
+            "dcp.nudge.{}\0{}\0{}",
+            params.session, params.catalog.provider, selection.id
+        );
+        {
+            let mut states = self.nudge_state.lock().expect("nudge lock");
+            if !states.contains_key(&state_key) {
+                let state = match self.db.get_pref(&state_key)? {
+                    Some(raw) => serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?,
+                    None => NudgeState::default(),
+                };
+                states.insert(state_key.clone(), state);
             }
-            hint
-        };
+        }
+        let mut nudge_hint = None;
         // Admission against the entry limits with the assembled estimate.
         let assembled_estimate = estimate_tokens(
             &serde_json::to_string(&(workspace.fixed_input.as_slice(), history.as_slice()))
@@ -786,6 +880,9 @@ impl<'a> Runtime<'a> {
                 .accept_turn(&turn_id, &params.session, &params.prompt, user_text)?;
         accepted(&turn_id);
         let mut tool_defs = builtin_tool_defs();
+        if !compress_available {
+            tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
+        }
         for server in attached {
             for entry in &server.entries {
                 tool_defs.push(ToolDef {
@@ -836,9 +933,54 @@ impl<'a> Runtime<'a> {
                     &published,
                 );
             }
+            let (nudge, persisted_nudge) = {
+                let estimate = estimate_tokens(
+                    &serde_json::to_string(&(
+                        workspace.fixed_input.as_slice(),
+                        history.as_slice(),
+                        turn_log.input.as_slice(),
+                    ))
+                    .map_err(|_| RuntimeError::Storage)?,
+                );
+                let summary_tokens = active_summary_tokens(&projected);
+                let mut states = self.nudge_state.lock().expect("nudge lock");
+                let state = states.entry(state_key.clone()).or_default();
+                let nudge = if compress_available {
+                    state.on_turn();
+                    evaluate(
+                        &dcp_config,
+                        state,
+                        &dcp_model_key,
+                        model_context,
+                        estimate,
+                        summary_tokens,
+                    )
+                } else {
+                    None
+                };
+                let persisted = serde_json::to_string(state).map_err(|_| RuntimeError::Storage)?;
+                (nudge, persisted)
+            };
+            self.db.set_pref(&state_key, &persisted_nudge)?;
+            let nudge_input = nudge.as_ref().map(|nudge| {
+                let force = match nudge.force {
+                    crate::dcp_auto::NudgeForce::Soft => "advisory",
+                    crate::dcp_auto::NudgeForce::Hard => "required before more work",
+                };
+                InputItem::message(
+                    InputRole::Developer,
+                    format!("DCP reminder ({force}): {}", nudge.text),
+                )
+            });
+            if let Some(nudge) = &nudge {
+                nudge_hint = Some(nudge.text.clone());
+                self.stats.lock().expect("stats lock").nudges_emitted += 1;
+            }
             let input: Vec<InputItem> = workspace
                 .fixed_input
                 .iter()
+                .chain(nudge_input.iter())
+                .chain(anchors.iter())
                 .chain(&history)
                 .chain(&turn_log.input)
                 .cloned()
@@ -952,7 +1094,7 @@ impl<'a> Runtime<'a> {
             }
             self.db
                 .checkpoint_turn(&turn_id, &turn_log.to_json().to_string())?;
-            let round_calls = self
+            let (round_calls, projection_changed) = self
                 .execute_units(
                     &turn_id,
                     &params.session,
@@ -963,9 +1105,30 @@ impl<'a> Runtime<'a> {
                     params.cancel,
                     rounds,
                     &mut turn_log,
+                    &state_key,
+                    &mut tool_projection,
                 )
                 .await?;
             calls.extend(round_calls);
+            if projection_changed {
+                let full = self.db.read_history_full(&params.session)?;
+                let blocks = crate::dcp::load_blocks(self.db, &params.session)
+                    .map_err(|_| RuntimeError::Storage)?;
+                let prune = self.db.load_prune_mark(&params.session)?;
+                projected = crate::dcp::project_rows(&full, &blocks, prune.as_deref());
+                history = self.wire_history(
+                    &params.session,
+                    &projected,
+                    &blocks,
+                    &selection.id,
+                    &params.catalog.provider,
+                    workspace.agent_digest.as_deref(),
+                )?;
+                apply_dcp_projection(&mut history, &tool_projection);
+                anchors = compress_available
+                    .then(|| dcp_config_input(&projected, &dcp_config))
+                    .flatten();
+            }
             if !units_have_calls(&units) {
                 break;
             }
@@ -1048,12 +1211,17 @@ impl<'a> Runtime<'a> {
         &self,
         session: &str,
         projected: &[(String, String, String)],
+        blocks: &[crate::dcp::CompressionBlock],
         model: &str,
         provider: &str,
         agent_digest: Option<&str>,
     ) -> Result<Vec<InputItem>, RuntimeError> {
         let mut turns = BTreeMap::new();
         let mut represented = std::collections::BTreeSet::new();
+        let covered_anchors = blocks
+            .iter()
+            .flat_map(|block| block.members.iter().cloned())
+            .collect::<std::collections::BTreeSet<_>>();
         for raw in self.db.wire_logs(session)? {
             let value: serde_json::Value =
                 serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?;
@@ -1061,7 +1229,9 @@ impl<'a> Runtime<'a> {
             let Some(anchor) = log.user_message else {
                 continue;
             };
-            if !projected.iter().any(|(id, _, _)| id == &anchor) {
+            if !projected.iter().any(|(id, _, _)| id == &anchor)
+                && !covered_anchors.contains(&anchor)
+            {
                 continue;
             }
             if log.model != model || log.provider != provider {
@@ -1102,6 +1272,10 @@ impl<'a> Runtime<'a> {
             turns.insert(anchor, input);
         }
         let mut input = Vec::new();
+        let block_members = blocks
+            .iter()
+            .map(|block| (block.id.as_str(), block.members.as_slice()))
+            .collect::<BTreeMap<_, _>>();
         for (id, role, text) in projected {
             if let Some(items) = turns.remove(id) {
                 input.extend(items);
@@ -1118,6 +1292,34 @@ impl<'a> Runtime<'a> {
                     }
                 };
                 input.push(InputItem::message(role, text));
+                if let Some(anchors) = block_members.get(id.as_str()) {
+                    for anchor in *anchors {
+                        if let Some(items) = turns.remove(anchor) {
+                            let answered = items
+                                .iter()
+                                .filter_map(|item| match item {
+                                    InputItem::FunctionCallOutput { call_id, .. } => {
+                                        Some(call_id.clone())
+                                    }
+                                    _ => None,
+                                })
+                                .collect::<std::collections::BTreeSet<_>>();
+                            input.extend(items.into_iter().filter(|item| {
+                                match item {
+                                    InputItem::Message { .. } => false,
+                                    InputItem::ProviderOutput(value)
+                                        if value["type"] == "function_call" =>
+                                    {
+                                        value["call_id"]
+                                            .as_str()
+                                            .is_some_and(|call_id| answered.contains(call_id))
+                                    }
+                                    _ => true,
+                                }
+                            }));
+                        }
+                    }
+                }
             }
         }
         Ok(input)
@@ -1138,8 +1340,11 @@ impl<'a> Runtime<'a> {
         cancel: &AtomicBool,
         round: u32,
         turn_log: &mut TurnLog,
-    ) -> Result<Vec<CallRecord>, RuntimeError> {
+        nudge_key: &str,
+        tool_projection: &mut crate::storage::DcpToolProjection,
+    ) -> Result<(Vec<CallRecord>, bool), RuntimeError> {
         let mut records = Vec::new();
+        let mut projection_changed = false;
         for (i, unit) in units.iter().enumerate() {
             let (id, name, input) = match unit {
                 Assembled::Call(call) => (&call.id, call.name.as_str(), call.arguments.to_string()),
@@ -1158,6 +1363,17 @@ impl<'a> Runtime<'a> {
                         format!("error: invalid arguments for {}", call.name),
                     ))
                 }
+                Assembled::Call(call)
+                    if call.name == COMPRESS_TOOL && {
+                        let config = self.dcp_config.read().expect("dcp lock");
+                        !config.enabled || config.manual_mode
+                    } =>
+                {
+                    Some((
+                        "failed",
+                        "error: compress unavailable in disabled/manual DCP mode".to_string(),
+                    ))
+                }
                 Assembled::Call(call) if policy.check(&call.name).is_err() => {
                     let state = if is_builtin(&call.name) {
                         "failed"
@@ -1174,6 +1390,215 @@ impl<'a> Runtime<'a> {
             // Fail closed. No built-in or MCP dispatch can precede this commit.
             self.db
                 .record_tool_intent(&op, session, Some(turn_id), name, &input)?;
+            if rejection.is_none()
+                && let Assembled::Call(call) = unit
+                && call.name == COMPRESS_TOOL
+            {
+                let (_, ranges) = crate::dcp::validate_range_args(&call.arguments)
+                    .map_err(|error| RuntimeError::Compress(error.to_string()))?;
+                let full = self.db.read_history_full(session)?;
+                let messages = map_messages(&full)?;
+                let config = self.dcp_config.read().expect("dcp lock").clone();
+                let mut spec = self
+                    .dcp_protected
+                    .read()
+                    .expect("dcp protection lock")
+                    .clone();
+                apply_turn_protection(&full, &config, &mut spec);
+                match crate::dcp::prepare_compression(
+                    self.db, session, &messages, &ranges, &spec, false,
+                ) {
+                    Ok(plan) => {
+                        let existing = crate::dcp::load_blocks(self.db, session)
+                            .map_err(|_| RuntimeError::Storage)?;
+                        let prune = self.db.load_prune_mark(session)?;
+                        let rows = full.clone();
+                        let before_rows =
+                            crate::dcp::project_rows(&rows, &existing, prune.as_deref());
+                        let mut before_wire = self.wire_history(
+                            session,
+                            &before_rows,
+                            &existing,
+                            &turn_log.model,
+                            &turn_log.provider,
+                            turn_log.agent_digest.as_deref(),
+                        )?;
+                        let strategy_delta =
+                            plan_dcp_strategies(&before_wire, &config, tool_projection);
+                        apply_dcp_projection(&mut before_wire, tool_projection);
+                        let mut candidate_tool_projection = tool_projection.clone();
+                        candidate_tool_projection
+                            .hidden
+                            .extend(strategy_delta.hidden.iter().cloned());
+                        candidate_tool_projection
+                            .purged
+                            .extend(strategy_delta.purged.iter().cloned());
+                        let mut candidate = existing;
+                        for block in &mut candidate {
+                            if plan.consumed_blocks.contains(&block.id) {
+                                block.members.clear();
+                            }
+                        }
+                        candidate.extend(plan.blocks.iter().cloned());
+                        let after_rows =
+                            crate::dcp::project_rows(&rows, &candidate, prune.as_deref());
+                        let mut after_wire = self.wire_history(
+                            session,
+                            &after_rows,
+                            &candidate,
+                            &turn_log.model,
+                            &turn_log.provider,
+                            turn_log.agent_digest.as_deref(),
+                        )?;
+                        apply_dcp_projection(&mut after_wire, &candidate_tool_projection);
+                        let before_bytes = serde_json::to_vec(&(
+                            dcp_config_input(&before_rows, &config),
+                            before_wire,
+                        ))
+                        .map_err(|_| RuntimeError::Storage)?
+                        .len();
+                        let after_bytes = serde_json::to_vec(&(
+                            dcp_config_input(&after_rows, &config),
+                            after_wire,
+                        ))
+                        .map_err(|_| RuntimeError::Storage)?
+                        .len();
+                        if after_bytes >= before_bytes {
+                            let output = serde_json::json!({
+                                "status": "no_gain",
+                                "beforeBytes": before_bytes,
+                                "afterBytes": after_bytes,
+                            })
+                            .to_string();
+                            turn_log.input.push(InputItem::FunctionCallOutput {
+                                call_id: id.clone(),
+                                output: output.clone(),
+                            });
+                            self.db.tool_outcome_with_log(
+                                &op,
+                                "no_gain",
+                                &output,
+                                turn_id,
+                                &turn_log.to_json().to_string(),
+                            )?;
+                            records.push(CallRecord {
+                                name: name.to_string(),
+                                state: "no_gain".to_string(),
+                                output: truncate(&output, REPORT_OUTPUT_CAP),
+                            });
+                            continue;
+                        }
+                        let saved_tokens = u64::try_from(before_bytes - after_bytes)
+                            .unwrap_or(u64::MAX)
+                            .div_ceil(4);
+                        let output = serde_json::json!({
+                            "status": "compressed",
+                            "blocks": plan.blocks.iter().map(|block| block.id.clone()).collect::<Vec<_>>(),
+                            "savedTokens": saved_tokens,
+                            "beforeBytes": before_bytes,
+                            "afterBytes": after_bytes,
+                        })
+                        .to_string();
+                        turn_log.input.push(InputItem::FunctionCallOutput {
+                            call_id: id.clone(),
+                            output: output.clone(),
+                        });
+                        let log = turn_log.to_json().to_string();
+                        let next_nudge = {
+                            let states = self.nudge_state.lock().expect("nudge lock");
+                            let mut state = states.get(nudge_key).cloned().unwrap_or_default();
+                            state.on_compress_success();
+                            state
+                        };
+                        let preference_updates = vec![(
+                            nudge_key.to_string(),
+                            serde_json::to_string(&next_nudge)
+                                .map_err(|_| RuntimeError::Storage)?,
+                        )];
+                        let metadata = crate::dcp::CompressionCommitMetadata {
+                            operation_id: &op,
+                            operation_state: "completed",
+                            operation_output: &output,
+                            turn_id: Some(turn_id),
+                            turn_log: Some(&log),
+                            preference_updates: &preference_updates,
+                        };
+                        let hidden = strategy_delta.hidden.iter().cloned().collect::<Vec<_>>();
+                        let purged = strategy_delta.purged.iter().cloned().collect::<Vec<_>>();
+                        let report = crate::dcp::commit_compression_with_projection(
+                            self.db,
+                            session,
+                            plan,
+                            Some(&metadata),
+                            &hidden,
+                            &purged,
+                        )
+                        .map_err(|error| RuntimeError::Compress(error.to_string()))?;
+                        *tool_projection = candidate_tool_projection;
+                        self.nudge_state
+                            .lock()
+                            .expect("nudge lock")
+                            .insert(nudge_key.to_string(), next_nudge);
+                        self.stats.lock().expect("stats lock").compressions += 1;
+                        records.push(CallRecord {
+                            name: name.to_string(),
+                            state: "completed".to_string(),
+                            output: truncate(&output, REPORT_OUTPUT_CAP),
+                        });
+                        debug_assert!(!report.blocks.is_empty());
+                        projection_changed = true;
+                        continue;
+                    }
+                    Err(crate::dcp::DcpError::NoGain {
+                        before_bytes,
+                        after_bytes,
+                    }) => {
+                        let output = serde_json::json!({
+                            "status": "no_gain",
+                            "beforeBytes": before_bytes,
+                            "afterBytes": after_bytes,
+                        })
+                        .to_string();
+                        turn_log.input.push(InputItem::FunctionCallOutput {
+                            call_id: id.clone(),
+                            output: output.clone(),
+                        });
+                        self.db.tool_outcome_with_log(
+                            &op,
+                            "no_gain",
+                            &output,
+                            turn_id,
+                            &turn_log.to_json().to_string(),
+                        )?;
+                        records.push(CallRecord {
+                            name: name.to_string(),
+                            state: "no_gain".to_string(),
+                            output: truncate(&output, REPORT_OUTPUT_CAP),
+                        });
+                        continue;
+                    }
+                    Err(error) => {
+                        let output = format!("error: {error}");
+                        turn_log.input.push(InputItem::FunctionCallOutput {
+                            call_id: id.clone(),
+                            output: output.clone(),
+                        });
+                        self.db.tool_outcome_with_log(
+                            &op,
+                            "failed",
+                            &output,
+                            turn_id,
+                            &turn_log.to_json().to_string(),
+                        )?;
+                        records.push(CallRecord {
+                            name: name.to_string(),
+                            state: "failed".to_string(),
+                            output: truncate(&output, REPORT_OUTPUT_CAP),
+                        });
+                        continue;
+                    }
+                }
+            }
             let (state, output) = if let Some(rejection) = rejection {
                 rejection
             } else {
@@ -1204,7 +1629,7 @@ impl<'a> Runtime<'a> {
                 output: truncate(&output, REPORT_OUTPUT_CAP),
             });
         }
-        Ok(records)
+        Ok((records, projection_changed))
     }
 
     /// Legacy patch deny wins: a protected patch never reaches the executor.
@@ -1390,6 +1815,267 @@ fn map_messages(history: &[(String, String, String)]) -> Result<Vec<Message>, Ru
         });
     }
     Ok(out)
+}
+
+fn dcp_config_input(
+    projected: &[(String, String, String)],
+    config: &DcpConfig,
+) -> Option<InputItem> {
+    if !config.enabled || config.manual_mode {
+        return None;
+    }
+    let anchors = projected
+        .iter()
+        .enumerate()
+        .map(|(index, (id, role, _))| {
+            serde_json::json!({
+                "id": id,
+                "role": role,
+                "closed": index + 1 < projected.len(),
+            })
+        })
+        .collect::<Vec<_>>();
+    Some(InputItem::message(
+        InputRole::Developer,
+        format!(
+            "DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: {}",
+            serde_json::Value::Array(anchors)
+        ),
+    ))
+}
+
+fn plan_dcp_strategies(
+    input: &[InputItem],
+    config: &DcpConfig,
+    existing: &crate::storage::DcpToolProjection,
+) -> crate::storage::DcpToolProjection {
+    let mut projection = crate::storage::DcpToolProjection::default();
+    if !config.enabled || (config.manual_mode && !config.automatic_strategies) {
+        return projection;
+    }
+    let total_users = input
+        .iter()
+        .filter(|item| {
+            matches!(
+                item,
+                InputItem::Message {
+                    role: InputRole::User,
+                    ..
+                }
+            )
+        })
+        .count() as u64;
+    let mut outputs: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for item in input {
+        if let InputItem::FunctionCallOutput { call_id, output } = item {
+            outputs
+                .entry(call_id.clone())
+                .or_default()
+                .push(output.clone());
+        }
+    }
+    let mut users_seen = 0u64;
+    let mut calls = Vec::new();
+    let mut occurrences: BTreeMap<String, u64> = BTreeMap::new();
+    for (index, item) in input.iter().enumerate() {
+        if matches!(
+            item,
+            InputItem::Message {
+                role: InputRole::User,
+                ..
+            }
+        ) {
+            users_seen += 1;
+        }
+        let InputItem::ProviderOutput(value) = item else {
+            continue;
+        };
+        if value["type"] != "function_call" {
+            continue;
+        }
+        let Some(call_id) = value["call_id"].as_str().map(str::to_owned) else {
+            continue;
+        };
+        let occurrence = occurrences.entry(call_id.clone()).or_default();
+        let call_key = (call_id.clone(), *occurrence);
+        *occurrence += 1;
+        if existing.hidden.contains(&call_key) {
+            continue;
+        }
+        let name = value["name"].as_str().unwrap_or_default().to_owned();
+        let arguments = value["arguments"].as_str().unwrap_or_default().to_owned();
+        let file_protected = dcp_call_has_protected_path(&name, &arguments, config);
+        let generally_protected =
+            crate::dcp_auto::tool_is_protected(&config.protected_tools, &name);
+        let dedup_protected = file_protected
+            || generally_protected
+            || crate::dcp_auto::tool_is_protected(&config.dedup_protected_tools, &name);
+        let purge_protected = file_protected
+            || generally_protected
+            || crate::dcp_auto::tool_is_protected(&config.purge_protected_tools, &name);
+        let age = total_users.saturating_sub(users_seen);
+        let turn_protected = config.turn_protection && age <= config.turn_protection_turns;
+        let dedup_protected = dedup_protected || turn_protected;
+        let purge_protected = purge_protected || turn_protected;
+        if config.purge_errors
+            && !purge_protected
+            && arguments.len() > crate::dcp_auto::LARGE_INPUT_BYTES
+            && age >= config.purge_after_turns
+            && outputs
+                .get(&call_id)
+                .and_then(|values| values.get(call_key.1 as usize))
+                .is_some_and(|output| output.starts_with("error:"))
+        {
+            projection.purged.insert(call_key.clone());
+        }
+        calls.push((
+            index,
+            call_key,
+            name,
+            canonical_json(&arguments),
+            dedup_protected,
+        ));
+    }
+    if !config.deduplication {
+        return projection;
+    }
+    let mut last = BTreeMap::new();
+    for (index, _, name, arguments, _) in &calls {
+        last.insert((name.clone(), arguments.clone()), *index);
+    }
+    projection.hidden = calls
+        .into_iter()
+        .filter(|(index, _, name, arguments, protected)| {
+            !protected && last.get(&(name.clone(), arguments.clone())) != Some(index)
+        })
+        .map(|(_, call_key, _, _, _)| call_key)
+        .collect();
+    projection
+}
+
+fn apply_turn_protection(
+    history: &[(String, String, String)],
+    config: &DcpConfig,
+    spec: &mut ProtectedSpec,
+) {
+    if !config.turn_protection || config.turn_protection_turns == 0 {
+        return;
+    }
+    let closed_end = if history.last().is_some_and(|(_, role, _)| role == "user") {
+        history.len().saturating_sub(1)
+    } else {
+        history.len()
+    };
+    let Some(start) = history[..closed_end]
+        .iter()
+        .enumerate()
+        .rev()
+        .filter(|(_, (_, role, _))| role == "user")
+        .nth(usize::try_from(config.turn_protection_turns.saturating_sub(1)).unwrap_or(usize::MAX))
+        .map(|(index, _)| index)
+        .or_else(|| {
+            history[..closed_end]
+                .iter()
+                .position(|(_, role, _)| role == "user")
+        })
+    else {
+        return;
+    };
+    spec.protected_message_ids.extend(
+        history[start..closed_end]
+            .iter()
+            .map(|(id, _, _)| id.clone()),
+    );
+}
+
+fn apply_dcp_projection(
+    input: &mut Vec<InputItem>,
+    projection: &crate::storage::DcpToolProjection,
+) {
+    let mut calls: BTreeMap<String, u64> = BTreeMap::new();
+    let mut outputs: BTreeMap<String, u64> = BTreeMap::new();
+    input.retain_mut(|item| match item {
+        InputItem::ProviderOutput(value) if value["type"] == "function_call" => {
+            let Some(call_id) = value["call_id"].as_str().map(str::to_owned) else {
+                return true;
+            };
+            let occurrence = calls.entry(call_id.clone()).or_default();
+            let key = (call_id, *occurrence);
+            *occurrence += 1;
+            if projection.purged.contains(&key) {
+                value["arguments"] = serde_json::Value::String(
+                    serde_json::json!({"purged": "large error input"}).to_string(),
+                );
+            }
+            !projection.hidden.contains(&key)
+        }
+        InputItem::FunctionCallOutput { call_id, .. } => {
+            let occurrence = outputs.entry(call_id.clone()).or_default();
+            let key = (call_id.clone(), *occurrence);
+            *occurrence += 1;
+            !projection.hidden.contains(&key)
+        }
+        _ => true,
+    });
+}
+
+fn canonical_json(raw: &str) -> String {
+    fn sort(value: serde_json::Value) -> serde_json::Value {
+        match value {
+            serde_json::Value::Object(object) => serde_json::Value::Object(
+                object
+                    .into_iter()
+                    .map(|(key, value)| (key, sort(value)))
+                    .collect::<std::collections::BTreeMap<_, _>>()
+                    .into_iter()
+                    .collect(),
+            ),
+            serde_json::Value::Array(values) => {
+                serde_json::Value::Array(values.into_iter().map(sort).collect())
+            }
+            value => value,
+        }
+    }
+    serde_json::from_str(raw)
+        .map(sort)
+        .and_then(|value| serde_json::to_string(&value))
+        .unwrap_or_else(|_| raw.to_string())
+}
+
+fn dcp_call_has_protected_path(name: &str, arguments: &str, config: &DcpConfig) -> bool {
+    fn contains_path(value: &serde_json::Value, patterns: &[String]) -> bool {
+        match value {
+            serde_json::Value::String(value) => crate::dcp::path_is_protected(patterns, value),
+            serde_json::Value::Array(values) => {
+                values.iter().any(|value| contains_path(value, patterns))
+            }
+            serde_json::Value::Object(values) => {
+                values.values().any(|value| contains_path(value, patterns))
+            }
+            _ => false,
+        }
+    }
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(arguments) else {
+        return name == "apply_patch";
+    };
+    if name == "apply_patch"
+        && let Some(patch) = value.get("patchText").and_then(|value| value.as_str())
+    {
+        return crate::patch::affected_paths(patch).map_or(true, |paths| {
+            paths
+                .iter()
+                .any(|path| crate::dcp::path_is_protected(&config.protected_file_patterns, path))
+        });
+    }
+    contains_path(&value, &config.protected_file_patterns)
+}
+
+fn active_summary_tokens(projected: &[(String, String, String)]) -> u64 {
+    projected
+        .iter()
+        .filter(|(id, _, _)| id.starts_with('b'))
+        .map(|(_, _, text)| estimate_tokens(text))
+        .sum()
 }
 
 fn millis() -> u64 {

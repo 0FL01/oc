@@ -272,6 +272,7 @@ async fn live_workflow_harness() {
         protect_user_messages: false,
         protect_tags: false,
         file_globs: Vec::new(),
+        ..ProtectedSpec::default()
     };
     let compress = runtime
         .run_compress("live", &args, &spec)

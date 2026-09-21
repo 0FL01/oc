@@ -7,10 +7,11 @@
 //! tools, invalid JSON and replayed terminals never execute; duplicates
 //! refuse the whole batch before any side effect.
 //!
-//! Registry (and only registry): `read`, `apply_patch`, `bash`, `webfetch`,
-//! `skill`. No `write`/`edit` entries exist. Reasoning/opaque provider items
-//! accumulate in [`TurnLog`] (durable JSON, same-model/provider replay
-//! boundary) and are stripped from the UI projection.
+//! Registry (and only registry): `read`, `glob`, `grep`, `apply_patch`, `bash`,
+//! `webfetch`, `skill`, `compress`. No `write`/`edit` entries exist. Reasoning/opaque
+//! provider items accumulate in [`TurnLog`] (durable JSON,
+//! same-model/provider replay boundary) and are stripped from the UI
+//! projection.
 
 use std::collections::BTreeMap;
 use std::sync::atomic::AtomicBool;
@@ -26,11 +27,24 @@ use crate::shell::{Shell, ShellLimits};
 use crate::storage::Db;
 
 /// Model-visible tool names; `write`/`edit` must never appear here.
-pub const MODEL_TOOL_NAMES: &[&str] = &["read", "apply_patch", "bash", "webfetch", "skill"];
+pub const MODEL_TOOL_NAMES: &[&str] = &[
+    "read",
+    "glob",
+    "grep",
+    "apply_patch",
+    "bash",
+    "webfetch",
+    "skill",
+    "compress",
+];
 /// Skill body snapshot cap (bytes).
 pub const SKILL_BODY_CAP: usize = 16384;
 /// Bash per-call timeout cap (ms).
 pub const BASH_TIMEOUT_CAP_MS: u64 = 600_000;
+/// Highest accepted zero-based search cursor.
+const SEARCH_OFFSET_CAP: u64 = 1_000_000;
+/// Highest accepted glob/grep page size (the `Files` API cap).
+const SEARCH_LIMIT_CAP: u64 = 1_000;
 
 /// Typed tool errors (no argument contents, no secrets).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
@@ -397,6 +411,8 @@ async fn execute_call(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
     }
     match call.name.as_str() {
         "read" => tool_read(ctx, call),
+        "glob" => tool_glob(ctx, call),
+        "grep" => tool_grep(ctx, call),
         "apply_patch" => tool_patch(ctx, call),
         "bash" => tool_bash(ctx, call).await,
         "webfetch" => tool_webfetch(ctx, call).await,
@@ -416,6 +432,8 @@ pub(crate) fn validate_call(call: &ToolCall) -> Result<(), String> {
     };
     let valid = match call.name.as_str() {
         "read" => nonempty("path"),
+        "glob" => parse_glob_args(call).is_ok(),
+        "grep" => parse_grep_args(call).is_ok(),
         "apply_patch" => args.as_object().is_some_and(|a| a.len() == 1) && nonempty("patchText"),
         "bash" => args
             .get("argv")
@@ -428,6 +446,7 @@ pub(crate) fn validate_call(call: &ToolCall) -> Result<(), String> {
                     .any(|key| args.get(key).is_some())
         }
         "skill" => nonempty("id"),
+        "compress" => crate::dcp::validate_range_args(args).is_ok(),
         _ => false,
     };
     if valid {
@@ -435,6 +454,81 @@ pub(crate) fn validate_call(call: &ToolCall) -> Result<(), String> {
     } else {
         Err(format!("invalid arguments for {}", call.name))
     }
+}
+
+fn parse_glob_args(call: &ToolCall) -> Result<(&str, usize, usize), String> {
+    let args = call
+        .arguments
+        .as_object()
+        .ok_or_else(|| "expected an object".to_string())?;
+    if args
+        .keys()
+        .any(|key| !matches!(key.as_str(), "pattern" | "offset" | "limit"))
+    {
+        return Err("unexpected property".to_string());
+    }
+    let pattern = args
+        .get("pattern")
+        .and_then(|value| value.as_str())
+        .filter(|pattern| {
+            !pattern.is_empty()
+                && pattern.len() <= crate::files::SEARCH_PATTERN_BYTES_CAP
+                && pattern.split('/').count() <= crate::files::GLOB_SEGMENTS_CAP
+        })
+        .ok_or_else(|| "missing pattern".to_string())?;
+    let (offset, limit) = parse_search_page(args)?;
+    Ok((pattern, offset, limit))
+}
+
+fn parse_grep_args(call: &ToolCall) -> Result<(&str, bool, usize, usize), String> {
+    let args = call
+        .arguments
+        .as_object()
+        .ok_or_else(|| "expected an object".to_string())?;
+    if args
+        .keys()
+        .any(|key| !matches!(key.as_str(), "pattern" | "literal" | "offset" | "limit"))
+    {
+        return Err("unexpected property".to_string());
+    }
+    let pattern = args
+        .get("pattern")
+        .and_then(|value| value.as_str())
+        .filter(|pattern| {
+            !pattern.is_empty() && pattern.len() <= crate::files::SEARCH_PATTERN_BYTES_CAP
+        })
+        .ok_or_else(|| "missing pattern".to_string())?;
+    let literal = match args.get("literal") {
+        Some(value) => value
+            .as_bool()
+            .ok_or_else(|| "literal must be a boolean".to_string())?,
+        None => true,
+    };
+    let (offset, limit) = parse_search_page(args)?;
+    Ok((pattern, literal, offset, limit))
+}
+
+fn parse_search_page(
+    args: &serde_json::Map<String, serde_json::Value>,
+) -> Result<(usize, usize), String> {
+    let offset = match args.get("offset") {
+        Some(value) => value
+            .as_u64()
+            .filter(|offset| *offset <= SEARCH_OFFSET_CAP)
+            .ok_or_else(|| format!("offset must be between 0 and {SEARCH_OFFSET_CAP}"))?,
+        None => 0,
+    };
+    let limit = match args.get("limit") {
+        Some(value) => value
+            .as_u64()
+            .filter(|limit| (1..=SEARCH_LIMIT_CAP).contains(limit))
+            .ok_or_else(|| format!("limit must be between 1 and {SEARCH_LIMIT_CAP}"))?,
+        None => crate::files::DEFAULT_PAGE_LIMIT as u64,
+    };
+    Ok((
+        usize::try_from(offset).map_err(|_| "offset is too large".to_string())?,
+        usize::try_from(limit).map_err(|_| "limit is too large".to_string())?,
+    ))
 }
 
 fn tool_read(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
@@ -469,6 +563,80 @@ fn tool_read(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
         }
         Err(e) => format!("error: {e}"),
     }
+}
+
+fn tool_glob(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
+    let (pattern, offset, limit) = match parse_glob_args(call) {
+        Ok(args) => args,
+        Err(reason) => return format!("error: invalid arguments for glob: {reason}"),
+    };
+    let fetch_limit = limit.saturating_add(1).min(SEARCH_LIMIT_CAP as usize);
+    match ctx.files.glob(pattern, offset, fetch_limit) {
+        Ok(mut items) => {
+            let mut truncated = items.len() > limit;
+            items.truncate(limit);
+            if !truncated && items.len() == limit && limit == SEARCH_LIMIT_CAP as usize {
+                truncated = match ctx.files.glob(pattern, offset + items.len(), 1) {
+                    Ok(next) => !next.is_empty(),
+                    Err(error) => return format!("error: {error}"),
+                };
+            }
+            let returned = items.len();
+            serde_json::json!({
+                "items": items,
+                "pagination": pagination(offset, limit, returned, truncated),
+            })
+            .to_string()
+        }
+        Err(error) => format!("error: {error}"),
+    }
+}
+
+fn tool_grep(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
+    let (pattern, literal, offset, limit) = match parse_grep_args(call) {
+        Ok(args) => args,
+        Err(reason) => return format!("error: invalid arguments for grep: {reason}"),
+    };
+    let fetch_limit = limit.saturating_add(1).min(SEARCH_LIMIT_CAP as usize);
+    match ctx.files.grep(pattern, literal, offset, fetch_limit) {
+        Ok(mut hits) => {
+            let mut truncated = hits.len() > limit;
+            hits.truncate(limit);
+            if !truncated && hits.len() == limit && limit == SEARCH_LIMIT_CAP as usize {
+                truncated = match ctx.files.grep(pattern, literal, offset + hits.len(), 1) {
+                    Ok(next) => !next.is_empty(),
+                    Err(error) => return format!("error: {error}"),
+                };
+            }
+            let returned = hits.len();
+            let matches = hits
+                .into_iter()
+                .map(|hit| {
+                    serde_json::json!({
+                        "path": hit.path,
+                        "line": hit.line,
+                        "text": hit.text,
+                    })
+                })
+                .collect::<Vec<_>>();
+            serde_json::json!({
+                "matches": matches,
+                "pagination": pagination(offset, limit, returned, truncated),
+            })
+            .to_string()
+        }
+        Err(error) => format!("error: {error}"),
+    }
+}
+
+fn pagination(offset: usize, limit: usize, returned: usize, truncated: bool) -> serde_json::Value {
+    serde_json::json!({
+        "offset": offset,
+        "limit": limit,
+        "returned": returned,
+        "truncated": truncated,
+        "next_offset": truncated.then_some(offset + returned),
+    })
 }
 
 fn tool_patch(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
@@ -891,7 +1059,16 @@ mod tests {
     fn tool10_registry_has_no_write_edit() {
         assert_eq!(
             MODEL_TOOL_NAMES,
-            &["read", "apply_patch", "bash", "webfetch", "skill"]
+            &[
+                "read",
+                "glob",
+                "grep",
+                "apply_patch",
+                "bash",
+                "webfetch",
+                "skill",
+                "compress"
+            ]
         );
         assert!(!MODEL_TOOL_NAMES.contains(&"write"));
         assert!(!MODEL_TOOL_NAMES.contains(&"edit"));
@@ -953,6 +1130,145 @@ mod tests {
         let input = to_input_items(&outputs);
         assert_eq!(input[0]["call_id"], "c1");
         assert_eq!(input[0]["type"], "function_call_output");
+    }
+
+    #[tokio::test]
+    async fn tool01_glob_grep_execute_structured_sorted_pages() {
+        let env = setup();
+        for (path, body) in [
+            ("search/zeta.rs", "aud_runtime_needle zeta\n"),
+            ("search/alpha.rs", "first\naud_runtime_needle alpha\n"),
+            ("search/nested/beta.rs", "aud_runtime_needle beta\n"),
+        ] {
+            let path = env.project.join(path);
+            std::fs::create_dir_all(path.parent().expect("parent")).expect("directory");
+            std::fs::write(path, body).expect("search fixture");
+        }
+        let policy = AllowAllPolicy;
+        let context = ctx(&env, &policy, false);
+        let outputs = execute_batch(
+            &context,
+            vec![
+                Assembled::Call(ToolCall {
+                    id: "glob-1".to_string(),
+                    name: "glob".to_string(),
+                    arguments: serde_json::json!({
+                        "pattern": "search/**/*.rs",
+                        "offset": 0,
+                        "limit": 2,
+                    }),
+                }),
+                Assembled::Call(ToolCall {
+                    id: "grep-1".to_string(),
+                    name: "grep".to_string(),
+                    arguments: serde_json::json!({
+                        "pattern": "aud_runtime_needle",
+                        "literal": true,
+                        "offset": 0,
+                        "limit": 10,
+                    }),
+                }),
+                Assembled::Call(ToolCall {
+                    id: "glob-invalid".to_string(),
+                    name: "glob".to_string(),
+                    arguments: serde_json::json!({"pattern": "**/*", "extra": true}),
+                }),
+            ],
+        )
+        .await;
+
+        let glob: serde_json::Value =
+            serde_json::from_str(&outputs[0].output).expect("structured glob output");
+        assert_eq!(
+            glob["items"],
+            serde_json::json!(["search/alpha.rs", "search/nested/beta.rs"])
+        );
+        assert_eq!(glob["pagination"]["offset"], 0);
+        assert_eq!(glob["pagination"]["limit"], 2);
+        assert_eq!(glob["pagination"]["returned"], 2);
+        assert_eq!(glob["pagination"]["truncated"], true);
+        assert_eq!(glob["pagination"]["next_offset"], 2);
+
+        let grep: serde_json::Value =
+            serde_json::from_str(&outputs[1].output).expect("structured grep output");
+        assert_eq!(grep["matches"].as_array().expect("matches").len(), 3);
+        assert_eq!(grep["matches"][0]["path"], "search/alpha.rs");
+        assert_eq!(grep["matches"][0]["line"], 2);
+        assert_eq!(grep["matches"][1]["path"], "search/nested/beta.rs");
+        assert_eq!(grep["matches"][2]["path"], "search/zeta.rs");
+        assert_eq!(grep["pagination"]["returned"], 3);
+        assert_eq!(grep["pagination"]["truncated"], false);
+        assert_eq!(grep["pagination"]["next_offset"], serde_json::Value::Null);
+        assert!(
+            outputs[2]
+                .output
+                .starts_with("error: invalid arguments for glob")
+        );
+    }
+
+    #[test]
+    fn tool01_glob_grep_validate_strict_bounded_arguments() {
+        let valid = |name: &str, arguments: serde_json::Value| ToolCall {
+            id: name.to_string(),
+            name: name.to_string(),
+            arguments,
+        };
+        assert!(
+            super::validate_call(&valid("glob", serde_json::json!({"pattern": "**/*.rs"}))).is_ok()
+        );
+        assert!(
+            super::validate_call(&valid(
+                "grep",
+                serde_json::json!({"pattern": "needle", "literal": true})
+            ))
+            .is_ok()
+        );
+        for call in [
+            valid("glob", serde_json::json!({"pattern": "*", "extra": true})),
+            valid("glob", serde_json::json!({"pattern": "*", "offset": -1})),
+            valid(
+                "glob",
+                serde_json::json!({"pattern": "*", "offset": 1_000_001}),
+            ),
+            valid("glob", serde_json::json!({"pattern": "*", "limit": 0})),
+            valid("grep", serde_json::json!({"pattern": "x", "limit": 1_001})),
+            valid(
+                "grep",
+                serde_json::json!({"pattern": "x", "literal": "true"}),
+            ),
+        ] {
+            assert!(super::validate_call(&call).is_err(), "accepted {call:?}");
+        }
+    }
+
+    #[tokio::test]
+    async fn tool01_glob_grep_permission_denial_precedes_dispatch() {
+        let env = setup();
+        let policy = DenyListPolicy {
+            denied: vec!["glob".to_string(), "grep".to_string()],
+        };
+        let context = ctx(&env, &policy, false);
+        let outputs = execute_batch(
+            &context,
+            vec![
+                Assembled::Call(ToolCall {
+                    id: "glob-denied".to_string(),
+                    name: "glob".to_string(),
+                    arguments: serde_json::json!({"pattern": "**/*", "extra": true}),
+                }),
+                Assembled::Call(ToolCall {
+                    id: "grep-denied".to_string(),
+                    name: "grep".to_string(),
+                    arguments: serde_json::json!({
+                        "pattern": "file-bytes",
+                        "literal": "not-a-boolean",
+                    }),
+                }),
+            ],
+        )
+        .await;
+        assert_eq!(outputs[0].output, "error: denied glob");
+        assert_eq!(outputs[1].output, "error: denied grep");
     }
 
     #[tokio::test]

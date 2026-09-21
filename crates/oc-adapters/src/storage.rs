@@ -46,6 +46,9 @@ pub enum StorageError {
     /// The exact session primary key already exists.
     #[error("session already exists")]
     SessionAlreadyExists,
+    /// Compression state changed or conflicts with the candidate plan.
+    #[error("compression state conflict")]
+    CompressionConflict,
     /// Underlying SQLite failure.
     #[error("sqlite: {0}")]
     Sqlite(#[from] rusqlite::Error),
@@ -117,6 +120,40 @@ pub struct CompressionBlockRow {
     pub end_msg: String,
     /// Covered message ids in order (references only, never text).
     pub members: Vec<String>,
+}
+
+/// Stable occurrence of a provider call ID in session wire order.
+pub(crate) type DcpCallKey = (String, u64);
+
+/// Durable DCP tool projection decisions. A provider may reuse call IDs in
+/// different turns, so identity includes the occurrence in immutable wire order.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct DcpToolProjection {
+    pub hidden: std::collections::BTreeSet<DcpCallKey>,
+    pub purged: std::collections::BTreeSet<DcpCallKey>,
+}
+
+/// Existing durable tool outcome to commit with compression blocks.
+pub(crate) struct ToolOutcomeLogCommit<'a> {
+    pub(crate) operation_id: &'a str,
+    pub(crate) operation_state: &'a str,
+    pub(crate) operation_output: &'a str,
+    pub(crate) turn_id: Option<&'a str>,
+    pub(crate) turn_log: Option<&'a str>,
+    pub(crate) preference_updates: &'a [(String, String)],
+}
+
+/// One prevalidated DCP transaction request.
+pub(crate) struct CompressionPlanCommit<'a> {
+    pub(crate) session: &'a str,
+    pub(crate) blocks: &'a [CompressionBlockRow],
+    pub(crate) consumed_blocks: &'a [String],
+    pub(crate) expected_next: u64,
+    pub(crate) expected_existing: &'a [String],
+    pub(crate) expected_prune: Option<&'a str>,
+    pub(crate) hidden_calls: &'a [DcpCallKey],
+    pub(crate) purged_calls: &'a [DcpCallKey],
+    pub(crate) tool: Option<&'a ToolOutcomeLogCommit<'a>>,
 }
 
 impl Db {
@@ -592,8 +629,17 @@ impl Db {
                message_id TEXT NOT NULL,
                PRIMARY KEY(block_id, message_id));
              CREATE TABLE IF NOT EXISTS prune_marks(
-               session_id TEXT PRIMARY KEY REFERENCES sessions(id),
-               up_to_msg TEXT NOT NULL, created_at TEXT NOT NULL);
+                session_id TEXT PRIMARY KEY REFERENCES sessions(id),
+                up_to_msg TEXT NOT NULL, created_at TEXT NOT NULL);
+             CREATE TABLE IF NOT EXISTS dcp_tool_projection(
+                 session_id TEXT NOT NULL REFERENCES sessions(id),
+                 call_id TEXT NOT NULL, action TEXT NOT NULL,
+                 PRIMARY KEY(session_id, call_id));
+             CREATE TABLE IF NOT EXISTS dcp_tool_projection_v2(
+                 session_id TEXT NOT NULL REFERENCES sessions(id),
+                 call_id TEXT NOT NULL, occurrence INTEGER NOT NULL,
+                 action TEXT NOT NULL,
+                 PRIMARY KEY(session_id, call_id, occurrence));
              INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (2, 't17');",
         )?;
         Ok(())
@@ -645,6 +691,13 @@ impl Db {
         session: &str,
     ) -> Result<Vec<CompressionBlockRow>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
+        Self::load_compression_blocks_from(&conn, session)
+    }
+
+    fn load_compression_blocks_from(
+        conn: &Connection,
+        session: &str,
+    ) -> Result<Vec<CompressionBlockRow>, StorageError> {
         let mut stmt = conn.prepare_cached(
             "SELECT id, topic, summary, start_msg, end_msg FROM compression_blocks
              WHERE session_id = ?1 ORDER BY id ASC",
@@ -662,7 +715,10 @@ impl Db {
         for block in blocks {
             let (id, topic, summary, start_msg, end_msg) = block?;
             let mut members = conn.prepare_cached(
-                "SELECT message_id FROM compression_members WHERE block_id = ?1 ORDER BY message_id ASC",
+                "SELECT cm.message_id FROM compression_members AS cm
+                 LEFT JOIN messages AS m ON m.id = cm.message_id
+                 WHERE cm.block_id = ?1
+                 ORDER BY m.seq IS NULL, m.seq ASC, cm.rowid ASC",
             )?;
             let rows = members.query_map(params![id], |row| row.get::<_, String>(0))?;
             let mut member_ids = Vec::new();
@@ -680,6 +736,279 @@ impl Db {
             });
         }
         Ok(out)
+    }
+
+    /// Read one consistent DCP planning snapshot.
+    pub(crate) fn compression_snapshot(
+        &self,
+        session: &str,
+    ) -> Result<(Vec<CompressionBlockRow>, Option<String>, u64), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Self::require_session(&conn, session)?;
+        let blocks = Self::load_compression_blocks_from(&conn, session)?;
+        let prune = conn
+            .query_row(
+                "SELECT up_to_msg FROM prune_marks WHERE session_id = ?1",
+                params![session],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        let max: Option<i64> = conn.query_row(
+            "SELECT MAX(CAST(SUBSTR(id, 2) AS INTEGER)) FROM compression_blocks",
+            [],
+            |row| row.get(0),
+        )?;
+        let next = u64::try_from(max.unwrap_or(0))
+            .unwrap_or(0)
+            .saturating_add(1);
+        Ok((blocks, prune, next))
+    }
+
+    /// Commit a prevalidated compression plan as one SQLite transaction.
+    pub(crate) fn commit_compression_plan(
+        &self,
+        plan: CompressionPlanCommit<'_>,
+    ) -> Result<(), StorageError> {
+        let CompressionPlanCommit {
+            session,
+            blocks,
+            consumed_blocks,
+            expected_next,
+            expected_existing,
+            expected_prune,
+            hidden_calls,
+            purged_calls,
+            tool,
+        } = plan;
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        Self::require_session(&tx, session)?;
+
+        let max: Option<i64> = tx.query_row(
+            "SELECT MAX(CAST(SUBSTR(id, 2) AS INTEGER)) FROM compression_blocks",
+            [],
+            |row| row.get(0),
+        )?;
+        let actual_next = u64::try_from(max.unwrap_or(0))
+            .unwrap_or(0)
+            .saturating_add(1);
+        if actual_next != expected_next {
+            return Err(StorageError::CompressionConflict);
+        }
+        let actual_existing = {
+            let mut statement = tx.prepare_cached(
+                "SELECT id FROM compression_blocks WHERE session_id = ?1 ORDER BY id ASC",
+            )?;
+            statement
+                .query_map(params![session], |row| row.get::<_, String>(0))?
+                .collect::<Result<Vec<_>, _>>()?
+        };
+        let actual_prune = tx
+            .query_row(
+                "SELECT up_to_msg FROM prune_marks WHERE session_id = ?1",
+                params![session],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        if actual_existing != expected_existing || actual_prune.as_deref() != expected_prune {
+            return Err(StorageError::CompressionConflict);
+        }
+
+        let mut candidate_members = std::collections::HashSet::new();
+        let consumed_set = consumed_blocks
+            .iter()
+            .collect::<std::collections::HashSet<_>>();
+        for block in consumed_blocks {
+            let owned = tx
+                .query_row(
+                    "SELECT 1 FROM compression_blocks WHERE id = ?1 AND session_id = ?2",
+                    params![block, session],
+                    |_| Ok(()),
+                )
+                .optional()?
+                .is_some();
+            if !owned {
+                return Err(StorageError::CompressionConflict);
+            }
+        }
+        for (offset, block) in blocks.iter().enumerate() {
+            let number = expected_next.saturating_add(offset as u64);
+            if block.session != session || block.id != format!("b{number:04}") {
+                return Err(StorageError::CompressionConflict);
+            }
+            for member in &block.members {
+                if !candidate_members.insert(member.as_str()) {
+                    return Err(StorageError::CompressionConflict);
+                }
+                let existing_block = tx
+                    .query_row(
+                        "SELECT cm.block_id FROM compression_members AS cm
+                         JOIN compression_blocks AS cb ON cb.id = cm.block_id
+                         WHERE cb.session_id = ?1 AND cm.message_id = ?2 LIMIT 1",
+                        params![session, member],
+                        |row| row.get::<_, String>(0),
+                    )
+                    .optional()?;
+                if existing_block
+                    .as_ref()
+                    .is_some_and(|block| !consumed_set.contains(block))
+                {
+                    return Err(StorageError::CompressionConflict);
+                }
+            }
+        }
+
+        if let Some(tool) = tool {
+            if tool.turn_id.is_some() != tool.turn_log.is_some() {
+                return Err(StorageError::CompressionConflict);
+            }
+            let operation_exists = match tool.turn_id {
+                Some(turn) => tx
+                    .query_row(
+                        "SELECT 1 FROM tool_operations
+                         WHERE id = ?1 AND session_id = ?2 AND turn_id = ?3",
+                        params![tool.operation_id, session, turn],
+                        |_| Ok(()),
+                    )
+                    .optional()?
+                    .is_some(),
+                None => tx
+                    .query_row(
+                        "SELECT 1 FROM tool_operations
+                         WHERE id = ?1 AND session_id = ?2 AND turn_id IS NULL",
+                        params![tool.operation_id, session],
+                        |_| Ok(()),
+                    )
+                    .optional()?
+                    .is_some(),
+            };
+            let turn_exists = match tool.turn_id {
+                Some(turn) => tx
+                    .query_row(
+                        "SELECT 1 FROM turns WHERE id = ?1 AND session_id = ?2",
+                        params![turn, session],
+                        |_| Ok(()),
+                    )
+                    .optional()?
+                    .is_some(),
+                None => true,
+            };
+            if !operation_exists || !turn_exists {
+                return Err(StorageError::CompressionConflict);
+            }
+        }
+
+        let now = now_rfc3339();
+        for block in consumed_blocks {
+            tx.execute(
+                "DELETE FROM compression_members WHERE block_id = ?1",
+                [block],
+            )?;
+        }
+        for block in blocks {
+            tx.execute(
+                "INSERT INTO compression_blocks(id, session_id, topic, summary, start_msg, end_msg, created_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    block.id,
+                    session,
+                    block.topic,
+                    block.summary,
+                    block.start_msg,
+                    block.end_msg,
+                    now
+                ],
+            )?;
+            for member in &block.members {
+                tx.execute(
+                    "INSERT INTO compression_members(block_id, message_id) VALUES (?1, ?2)",
+                    params![block.id, member],
+                )?;
+            }
+        }
+        for (call_id, occurrence) in hidden_calls {
+            let occurrence =
+                i64::try_from(*occurrence).map_err(|_| StorageError::CompressionConflict)?;
+            tx.execute(
+                "INSERT INTO dcp_tool_projection_v2(session_id, call_id, occurrence, action)
+                 VALUES (?1, ?2, ?3, 'hidden')
+                 ON CONFLICT(session_id, call_id, occurrence) DO UPDATE SET action = 'hidden'",
+                params![session, call_id, occurrence],
+            )?;
+        }
+        for (call_id, occurrence) in purged_calls {
+            if !hidden_calls.contains(&(call_id.clone(), *occurrence)) {
+                let occurrence =
+                    i64::try_from(*occurrence).map_err(|_| StorageError::CompressionConflict)?;
+                tx.execute(
+                    "INSERT INTO dcp_tool_projection_v2(session_id, call_id, occurrence, action)
+                     VALUES (?1, ?2, ?3, 'purged')
+                     ON CONFLICT(session_id, call_id, occurrence) DO UPDATE SET action = 'purged'",
+                    params![session, call_id, occurrence],
+                )?;
+            }
+        }
+
+        if let Some(tool) = tool {
+            tx.execute(
+                "UPDATE tool_operations SET state = ?1, output = ?2 WHERE id = ?3",
+                params![
+                    tool.operation_state,
+                    tool.operation_output,
+                    tool.operation_id
+                ],
+            )?;
+            if let (Some(turn), Some(log)) = (tool.turn_id, tool.turn_log) {
+                tx.execute(
+                    "UPDATE turns SET result = ?1 WHERE id = ?2",
+                    params![log, turn],
+                )?;
+            }
+            for (key, value) in tool.preference_updates {
+                tx.execute(
+                    "INSERT INTO prefs(key, value, updated_at) VALUES (?1, ?2, ?3)
+                     ON CONFLICT(key) DO UPDATE SET value = ?2, updated_at = ?3",
+                    params![key, value, now_rfc3339()],
+                )?;
+            }
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// Load durable tool projection decisions for one session.
+    pub(crate) fn load_dcp_tool_projection(
+        &self,
+        session: &str,
+    ) -> Result<DcpToolProjection, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Self::require_session(&conn, session)?;
+        let mut statement = conn.prepare_cached(
+            "SELECT call_id, occurrence, action FROM dcp_tool_projection_v2 WHERE session_id = ?1",
+        )?;
+        let rows = statement.query_map([session], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, i64>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })?;
+        let mut projection = DcpToolProjection::default();
+        for row in rows {
+            let (call_id, occurrence, action) = row?;
+            let occurrence =
+                u64::try_from(occurrence).map_err(|_| StorageError::CompressionConflict)?;
+            match action.as_str() {
+                "hidden" => {
+                    projection.hidden.insert((call_id, occurrence));
+                }
+                "purged" => {
+                    projection.purged.insert((call_id, occurrence));
+                }
+                _ => return Err(StorageError::CompressionConflict),
+            }
+        }
+        Ok(projection)
     }
 
     /// Record a prune mark: outbound context drops the prefix through `up_to`.

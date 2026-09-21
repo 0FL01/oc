@@ -10,6 +10,8 @@
 //! regex mode is refused until a vetted engine is pinned (see below).
 
 use std::collections::BTreeMap;
+use std::io::Read as _;
+use std::os::unix::fs::OpenOptionsExt as _;
 use std::path::{Component, Path, PathBuf};
 
 use thiserror::Error;
@@ -22,6 +24,14 @@ pub const READ_LINES_CAP: usize = 2000;
 pub const WALK_FILES_CAP: usize = 10000;
 /// Per-file grep scan cap (bytes).
 pub const GREP_FILE_BYTES_CAP: u64 = 1024 * 1024;
+/// Aggregate bytes inspected by one grep call.
+pub const GREP_SCAN_BYTES_CAP: u64 = 16 * 1024 * 1024;
+/// Maximum model-supplied glob/grep pattern bytes.
+pub const SEARCH_PATTERN_BYTES_CAP: usize = 4096;
+/// Maximum slash-delimited glob segments.
+pub const GLOB_SEGMENTS_CAP: usize = 64;
+/// Maximum text bytes retained in one grep hit.
+pub const GREP_HIT_BYTES_CAP: usize = 2048;
 /// Default page size for glob/grep.
 pub const DEFAULT_PAGE_LIMIT: usize = 50;
 
@@ -142,7 +152,11 @@ impl Files {
         offset: usize,
         limit: usize,
     ) -> Result<Vec<String>, FileToolError> {
-        if pattern.is_empty() || pattern.contains('\0') {
+        if pattern.is_empty()
+            || pattern.contains('\0')
+            || pattern.len() > SEARCH_PATTERN_BYTES_CAP
+            || pattern.split('/').count() > GLOB_SEGMENTS_CAP
+        {
             return Err(FileToolError::InvalidPattern("empty pattern".to_string()));
         }
         let mut all = Vec::new();
@@ -166,7 +180,7 @@ impl Files {
         offset: usize,
         limit: usize,
     ) -> Result<Vec<GrepHit>, FileToolError> {
-        if pattern.is_empty() {
+        if pattern.is_empty() || pattern.len() > SEARCH_PATTERN_BYTES_CAP {
             return Err(FileToolError::InvalidPattern("empty pattern".to_string()));
         }
         if !literal {
@@ -181,6 +195,7 @@ impl Files {
         let limit = limit.clamp(1, 1000);
         let mut hits = Vec::new();
         let mut skipped = 0usize;
+        let mut scanned = 0u64;
         for rel in files {
             if hits.len() >= limit {
                 break;
@@ -190,7 +205,36 @@ impl Files {
             if meta.len() > GREP_FILE_BYTES_CAP {
                 continue;
             }
-            let bytes = std::fs::read(&abs).map_err(|_| FileToolError::Io)?;
+            let remaining = GREP_SCAN_BYTES_CAP.saturating_sub(scanned);
+            if remaining == 0 {
+                return Err(FileToolError::BudgetExhausted);
+            }
+            let mut file = std::fs::OpenOptions::new()
+                .read(true)
+                .custom_flags(libc::O_CLOEXEC | libc::O_NOFOLLOW | libc::O_NONBLOCK)
+                .open(&abs)
+                .map_err(|_| FileToolError::Io)?;
+            if !file
+                .metadata()
+                .map_err(|_| FileToolError::Io)?
+                .file_type()
+                .is_file()
+            {
+                continue;
+            }
+            let read_cap = GREP_FILE_BYTES_CAP.min(remaining).saturating_add(1);
+            let mut bytes = Vec::new();
+            file.by_ref()
+                .take(read_cap)
+                .read_to_end(&mut bytes)
+                .map_err(|_| FileToolError::Io)?;
+            if bytes.len() as u64 > remaining {
+                return Err(FileToolError::BudgetExhausted);
+            }
+            scanned = scanned.saturating_add(bytes.len() as u64);
+            if bytes.len() as u64 > GREP_FILE_BYTES_CAP {
+                continue;
+            }
             if bytes.contains(&0) {
                 continue;
             }
@@ -201,10 +245,18 @@ impl Files {
                         skipped += 1;
                         continue;
                     }
+                    let mut text = line.to_string();
+                    if text.len() > GREP_HIT_BYTES_CAP {
+                        let mut end = GREP_HIT_BYTES_CAP;
+                        while !text.is_char_boundary(end) {
+                            end -= 1;
+                        }
+                        text.truncate(end);
+                    }
                     hits.push(GrepHit {
                         path: rel.clone(),
                         line: idx as u64 + 1,
-                        text: line.to_string(),
+                        text,
                     });
                     if hits.len() >= limit {
                         break;
@@ -307,14 +359,14 @@ impl Files {
         let mut names: BTreeMap<String, PathBuf> = BTreeMap::new();
         for entry in entries {
             let entry = entry.map_err(|_| FileToolError::Io)?;
-            let name = entry.file_name().to_string_lossy().into_owned();
-            names.insert(name, entry.path());
-        }
-        for (name, path) in names {
             *walked += 1;
             if *walked > WALK_FILES_CAP {
                 return Err(FileToolError::BudgetExhausted);
             }
+            let name = entry.file_name().to_string_lossy().into_owned();
+            names.insert(name, entry.path());
+        }
+        for (name, path) in names {
             // Never descend into the own data root or follow symlinks.
             if path.starts_with(&self.data_root) {
                 continue;
@@ -330,6 +382,9 @@ impl Files {
                         format!("{rel}/{name}")
                     };
                     self.walk(child, walked, out)?;
+                    continue;
+                }
+                if !meta.file_type().is_file() {
                     continue;
                 }
             }
@@ -348,23 +403,32 @@ impl Files {
 pub(crate) fn glob_match(pattern: &str, path: &str) -> bool {
     let pat_segs: Vec<&str> = pattern.split('/').collect();
     let path_segs: Vec<&str> = path.split('/').collect();
-    match_segments(&pat_segs, &path_segs)
+    let mut memo = std::collections::HashMap::new();
+    match_segments(&pat_segs, &path_segs, 0, 0, &mut memo)
 }
 
-fn match_segments(pat: &[&str], path: &[&str]) -> bool {
-    if pat.is_empty() {
-        return path.is_empty();
+fn match_segments(
+    pat: &[&str],
+    path: &[&str],
+    p: usize,
+    s: usize,
+    memo: &mut std::collections::HashMap<(usize, usize), bool>,
+) -> bool {
+    if let Some(result) = memo.get(&(p, s)) {
+        return *result;
     }
-    if pat[0] == "**" {
-        return (0..=path.len()).any(|i| match_segments(&pat[1..], &path[i..]));
-    }
-    if path.is_empty() {
-        return false;
-    }
-    if match_segment(pat[0], path[0]) {
-        return match_segments(&pat[1..], &path[1..]);
-    }
-    false
+    let result = if p == pat.len() {
+        s == path.len()
+    } else if pat[p] == "**" {
+        match_segments(pat, path, p + 1, s, memo)
+            || (s < path.len() && match_segments(pat, path, p, s + 1, memo))
+    } else {
+        s < path.len()
+            && match_segment(pat[p], path[s])
+            && match_segments(pat, path, p + 1, s + 1, memo)
+    };
+    memo.insert((p, s), result);
+    result
 }
 
 fn match_segment(pat: &str, text: &str) -> bool {
@@ -488,6 +552,66 @@ mod tests {
             files.grep("f.o", false, 0, 10),
             Err(FileToolError::InvalidPattern(_))
         ));
+    }
+
+    #[test]
+    fn aud19_search_patterns_scan_and_hit_text_are_byte_bounded() {
+        let (_tmp, files) = setup();
+        let root = project_of(&files);
+        assert!(matches!(
+            files.glob(&"x".repeat(super::SEARCH_PATTERN_BYTES_CAP + 1), 0, 1),
+            Err(FileToolError::InvalidPattern(_))
+        ));
+        assert!(matches!(
+            files.glob(&vec!["**"; super::GLOB_SEGMENTS_CAP + 1].join("/"), 0, 1),
+            Err(FileToolError::InvalidPattern(_))
+        ));
+        fs::write(
+            root.join("long.txt"),
+            format!("needle {}", "🌍".repeat(super::GREP_HIT_BYTES_CAP)),
+        )
+        .unwrap();
+        let hit = files.grep("needle", true, 0, 1).unwrap().remove(0);
+        assert!(hit.text.len() <= super::GREP_HIT_BYTES_CAP);
+        assert!(hit.text.is_char_boundary(hit.text.len()));
+
+        fs::remove_file(root.join("long.txt")).unwrap();
+        for index in 0..=super::GREP_SCAN_BYTES_CAP / super::GREP_FILE_BYTES_CAP {
+            fs::write(
+                root.join(format!("scan-{index:02}.txt")),
+                vec![b'x'; super::GREP_FILE_BYTES_CAP as usize],
+            )
+            .unwrap();
+        }
+        assert_eq!(
+            files.grep("absent", true, 0, 1),
+            Err(FileToolError::BudgetExhausted)
+        );
+    }
+
+    #[test]
+    fn aud19_wide_directory_stops_at_walk_budget() {
+        let (_tmp, files) = setup();
+        let root = project_of(&files);
+        for index in 0..=super::WALK_FILES_CAP {
+            fs::write(root.join(format!("wide-{index:05}")), b"").unwrap();
+        }
+        assert_eq!(files.glob("*", 0, 1), Err(FileToolError::BudgetExhausted));
+    }
+
+    #[test]
+    fn aud19_grep_skips_fifo_without_blocking() {
+        use std::ffi::CString;
+
+        let (_tmp, files) = setup();
+        let fifo = project_of(&files).join("model-controlled.fifo");
+        let fifo_c = CString::new(fifo.as_os_str().as_encoded_bytes()).unwrap();
+        // SAFETY: the NUL-terminated path points into this test's temporary root.
+        assert_eq!(unsafe { libc::mkfifo(fifo_c.as_ptr(), 0o600) }, 0);
+        let started = std::time::Instant::now();
+        assert!(files.grep("anything", true, 0, 10).unwrap().is_empty());
+        assert!(started.elapsed() < std::time::Duration::from_secs(1));
+        assert!(files.glob("*", 0, 10).unwrap().is_empty());
     }
 
     #[test]

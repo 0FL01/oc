@@ -240,10 +240,15 @@ pub struct ProtectedSpec {
     pub protect_tags: bool,
     /// File glob patterns matched against whitespace-delimited text tokens.
     pub file_globs: Vec<String>,
+    /// Stable message IDs retained verbatim by runtime turn protection.
+    pub protected_message_ids: std::collections::BTreeSet<String>,
 }
 
 /// True when a message carries protected content under `spec`.
 pub fn message_protected(spec: &ProtectedSpec, message: &Message) -> bool {
+    if spec.protected_message_ids.contains(&message.id.0) {
+        return true;
+    }
     if spec.protect_user_messages && matches!(message.role, crate::session::Role::User) {
         return true;
     }

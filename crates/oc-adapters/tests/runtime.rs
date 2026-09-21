@@ -247,6 +247,15 @@ fn runtime_of<'a>(
     generation: Generation,
     protected: Vec<String>,
 ) -> Runtime<'a> {
+    runtime_with_dcp(harness, generation, protected, DcpConfig::default())
+}
+
+fn runtime_with_dcp<'a>(
+    harness: &'a Harness,
+    generation: Generation,
+    protected: Vec<String>,
+    dcp_config: DcpConfig,
+) -> Runtime<'a> {
     let project = harness._project.path();
     let files = oc_adapters::files::Files::new(project, harness._data.path()).expect("files");
     let shell = oc_adapters::shell::Shell::new(project).expect("shell");
@@ -266,7 +275,7 @@ fn runtime_of<'a>(
         },
         None,
         false,
-        DcpConfig::default(),
+        dcp_config,
     )
     .expect("runtime")
 }
@@ -306,6 +315,40 @@ fn params<'c>(
 }
 
 static NO_CANCEL: AtomicBool = AtomicBool::new(false);
+
+fn dcp_nudge_count(request: &serde_json::Value) -> usize {
+    request["input"]
+        .to_string()
+        .matches("exceeds soft limit")
+        .count()
+}
+
+fn function_call<'a>(
+    request: &'a serde_json::Value,
+    call_id: &str,
+) -> Option<&'a serde_json::Value> {
+    request["input"]
+        .as_array()?
+        .iter()
+        .find(|item| item["type"] == "function_call" && item["call_id"].as_str() == Some(call_id))
+}
+
+fn function_output<'a>(request: &'a serde_json::Value, call_id: &str) -> Option<&'a str> {
+    request["input"].as_array()?.iter().find_map(|item| {
+        (item["type"] == "function_call_output" && item["call_id"].as_str() == Some(call_id))
+            .then(|| item["output"].as_str())
+            .flatten()
+    })
+}
+
+fn function_item_count(request: &serde_json::Value, kind: &str, call_id: &str) -> usize {
+    request["input"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|item| item["type"] == kind && item["call_id"].as_str() == Some(call_id))
+        .count()
+}
 
 #[tokio::test]
 async fn aud06_intent_failure_prevents_patch() {
@@ -1187,6 +1230,7 @@ async fn compress_blocks_compensate_and_stabilize() {
         protect_user_messages: false,
         protect_tags: false,
         file_globs: Vec::new(),
+        ..ProtectedSpec::default()
     };
     let args = serde_json::json!({
         "topic": "t",
@@ -1266,4 +1310,736 @@ async fn command_invocation_is_durable() {
     runtime.run_turn(turn_params).await.expect("turn");
     let history = harness.db.read_history("s").expect("history");
     assert_eq!(history[0], ("user".to_string(), "/cmd thing".to_string()));
+}
+
+#[tokio::test]
+async fn aud20_nudge_cadence_and_model_compress_are_session_scoped() {
+    let (harness, generation) = make_harness(allow_all());
+    let dcp = DcpConfig {
+        min_context: 1,
+        max_context: 1,
+        nudge_frequency: 2,
+        iteration_threshold: 100,
+        ..DcpConfig::default()
+    };
+    let runtime = runtime_with_dcp(&harness, generation, Vec::new(), dcp);
+    runtime.create_session("a").unwrap();
+    runtime.create_session("b").unwrap();
+    std::fs::write(harness._project.path().join("note.txt"), "note").unwrap();
+
+    let start = harness
+        .db
+        .append_message("a", "user", &format!("closed start {}", "x".repeat(8_192)))
+        .unwrap();
+    let end = harness
+        .db
+        .append_message(
+            "a",
+            "assistant",
+            &format!("closed end {}", "y".repeat(8_192)),
+        )
+        .unwrap();
+    harness
+        .db
+        .append_message("a", "user", "uncompressed tail")
+        .unwrap();
+
+    let mut a_read = sse_tool_call("a-read", "read", &serde_json::json!({"path": "note.txt"}));
+    a_read.push_str(&sse_completed());
+    let mut b_read = sse_tool_call("b-read", "read", &serde_json::json!({"path": "note.txt"}));
+    b_read.push_str(&sse_completed());
+    let mut a_compress = sse_tool_call(
+        "a-compress",
+        "compress",
+        &serde_json::json!({
+            "topic": "closed setup",
+            "content": [{
+                "startId": start,
+                "endId": end,
+                "summary": "closed setup is complete"
+            }]
+        }),
+    );
+    a_compress.push_str(&sse_completed());
+    let (base, hits, requests) = Fake::start_recording(
+        vec![
+            a_read,
+            sse_delta("a first complete") + &sse_completed(),
+            b_read,
+            sse_delta("b first complete") + &sse_completed(),
+            a_compress,
+            sse_delta("a compressed") + &sse_completed(),
+            sse_delta("b cadence complete") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let provider = provider_of(&base);
+
+    let a_first = runtime
+        .run_turn(params(
+            "a",
+            "advance A twice",
+            &harness,
+            provider.clone(),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(a_first.rounds, 2);
+    let b_first = runtime
+        .run_turn(params(
+            "b",
+            "advance B twice",
+            &harness,
+            provider.clone(),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(b_first.rounds, 2);
+    let a_second = runtime
+        .run_turn(params(
+            "a",
+            "compress A from the model",
+            &harness,
+            provider.clone(),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(a_second.rounds, 2);
+    assert_eq!(a_second.calls.len(), 1);
+    assert_eq!(a_second.calls[0].name, "compress");
+    assert_eq!(a_second.calls[0].state, "completed");
+    runtime
+        .run_turn(params(
+            "b",
+            "B remains independently due",
+            &harness,
+            provider,
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(*hits.lock().unwrap(), 7);
+    let requests = requests.lock().unwrap();
+    assert_eq!(requests.len(), 7);
+    assert_eq!(
+        requests.iter().map(dcp_nudge_count).collect::<Vec<_>>(),
+        [1, 0, 1, 0, 1, 0, 1],
+        "A and B must keep independent frequency=2 cadence; only A enters cooldown after compress"
+    );
+    assert_eq!(harness.db.load_compression_blocks("a").unwrap().len(), 1);
+    assert!(harness.db.load_compression_blocks("b").unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn aud20_nudge_cadence_survives_database_and_runtime_restart() {
+    let (mut harness, generation) = make_harness(allow_all());
+    let dcp = DcpConfig {
+        min_context: 1,
+        max_context: 1,
+        nudge_frequency: 5,
+        iteration_threshold: 100,
+        ..DcpConfig::default()
+    };
+    let runtime = runtime_with_dcp(&harness, generation.clone(), Vec::new(), dcp.clone());
+    runtime.create_session("restart-nudge").unwrap();
+    let (base, hits, requests) = Fake::start_recording(
+        vec![
+            sse_delta("first") + &sse_completed(),
+            sse_delta("after restart") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let provider = provider_of(&base);
+    runtime
+        .run_turn(params(
+            "restart-nudge",
+            "first",
+            &harness,
+            provider.clone(),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    drop(runtime);
+    drop(harness.db);
+    harness.db = Db::open(harness._data.path()).unwrap();
+    let runtime = runtime_with_dcp(&harness, generation, Vec::new(), dcp);
+    runtime.open_session("restart-nudge").unwrap();
+    runtime
+        .run_turn(params(
+            "restart-nudge",
+            "second",
+            &harness,
+            provider,
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(*hits.lock().unwrap(), 2);
+    assert_eq!(
+        requests
+            .lock()
+            .unwrap()
+            .iter()
+            .map(dcp_nudge_count)
+            .collect::<Vec<_>>(),
+        [1, 0],
+        "restart must restore cadence rather than reset and emit immediately"
+    );
+}
+
+#[tokio::test]
+async fn aud19_denied_compress_has_no_schema_anchor_or_nudge() {
+    let mut permissions = allow_all();
+    permissions.insert("compress".to_string(), Permission::Deny);
+    let (harness, generation) = make_harness(permissions);
+    let dcp = DcpConfig {
+        min_context: 1,
+        max_context: 1,
+        compress_permission: Some(Permission::Deny),
+        ..DcpConfig::default()
+    };
+    let runtime = runtime_with_dcp(&harness, generation, Vec::new(), dcp);
+    runtime.create_session("denied-compress").unwrap();
+    let (base, _, requests) =
+        Fake::start_recording(vec![sse_delta("done") + &sse_completed()], Duration::ZERO);
+    runtime
+        .run_turn(params(
+            "denied-compress",
+            "normal turn",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    let requests = requests.lock().unwrap();
+    assert_eq!(requests.len(), 1);
+    assert!(
+        !requests[0]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|tool| tool["name"] == "compress")
+    );
+    let input = requests[0]["input"].to_string();
+    assert!(!input.contains("DCP context anchors"));
+    assert!(!input.contains("DCP reminder"));
+}
+
+#[tokio::test]
+async fn aud21_turn_protection_preserves_recent_completed_turn_verbatim() {
+    let (harness, generation) = make_harness(allow_all());
+    let dcp = DcpConfig {
+        turn_protection: true,
+        turn_protection_turns: 1,
+        deduplication: false,
+        purge_errors: false,
+        ..DcpConfig::default()
+    };
+    let runtime = runtime_with_dcp(&harness, generation, Vec::new(), dcp);
+    runtime.create_session("turn-protection").unwrap();
+    let recent_user = format!("RECENT_USER_EXACT {}", "u".repeat(8_192));
+    let recent_assistant = format!("RECENT_ASSISTANT_EXACT {}", "a".repeat(8_192));
+    let start = harness
+        .db
+        .append_message("turn-protection", "user", &recent_user)
+        .unwrap();
+    let end = harness
+        .db
+        .append_message("turn-protection", "assistant", &recent_assistant)
+        .unwrap();
+    let mut compress = sse_tool_call(
+        "turn-protection-compress",
+        "compress",
+        &serde_json::json!({
+            "topic": "recent turn",
+            "content": [{
+                "startId": start, "endId": end,
+                "summary": "recent turn summary"
+            }]
+        }),
+    );
+    compress.push_str(&sse_completed());
+    let (base, _, requests) = Fake::start_recording(
+        vec![compress, sse_delta("protected") + &sse_completed()],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "turn-protection",
+            "attempt compression of recent completed turn",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.calls.len(), 1);
+    assert!(matches!(
+        report.calls[0].state.as_str(),
+        "completed" | "no_gain"
+    ));
+    let requests = requests.lock().unwrap();
+    let next = requests[1]["input"].to_string();
+    assert!(next.contains("RECENT_USER_EXACT"));
+    assert!(next.contains("RECENT_ASSISTANT_EXACT"));
+}
+
+#[tokio::test]
+async fn aud20_summary_buffer_changes_effective_nudge_threshold() {
+    let (harness, generation) = make_harness(allow_all());
+    let mut dcp = DcpConfig {
+        min_context: 500,
+        max_context: 600,
+        nudge_frequency: 1,
+        summary_buffer: true,
+        ..DcpConfig::default()
+    };
+    let runtime = runtime_with_dcp(&harness, generation, Vec::new(), dcp.clone());
+    runtime.create_session("summary-buffer").unwrap();
+    let first = harness
+        .db
+        .append_message("summary-buffer", "user", &"u".repeat(10_000))
+        .unwrap();
+    let second = harness
+        .db
+        .append_message("summary-buffer", "assistant", &"a".repeat(10_000))
+        .unwrap();
+    harness
+        .db
+        .append_message("summary-buffer", "user", "tail")
+        .unwrap();
+    oc_adapters::dcp::save_block(
+        &harness.db,
+        "summary-buffer",
+        "buffer",
+        &"s".repeat(4_000),
+        &first,
+        &second,
+        &[first.clone(), second.clone()],
+    )
+    .unwrap();
+    let (base, _, requests) = Fake::start_recording(
+        vec![
+            sse_delta("buffered") + &sse_completed(),
+            sse_delta("unbuffered") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let provider = provider_of(&base);
+    runtime
+        .run_turn(params(
+            "summary-buffer",
+            "small request",
+            &harness,
+            provider.clone(),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    dcp.summary_buffer = false;
+    runtime.reload_dcp(dcp).unwrap();
+    runtime
+        .run_turn(params(
+            "summary-buffer",
+            "small request two",
+            &harness,
+            provider,
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    let requests = requests.lock().unwrap();
+    let first = requests[0]["input"].to_string();
+    let second = requests[1]["input"].to_string();
+    assert!(first.contains("DCP reminder (advisory)"));
+    assert!(!first.contains("required before more work"));
+    assert!(second.contains("DCP reminder (required before more work)"));
+}
+
+#[tokio::test]
+async fn aud20_compress_commits_only_eligible_strategy_projection() {
+    let (harness, generation) = make_harness(allow_all());
+    let mut dcp = DcpConfig {
+        deduplication: true,
+        purge_errors: true,
+        purge_after_turns: 1,
+        protected_tools: vec!["bash".to_string()],
+        protected_file_patterns: vec!["src/*.rs".to_string()],
+        turn_protection: true,
+        turn_protection_turns: 1,
+        ..DcpConfig::default()
+    };
+    let runtime = runtime_with_dcp(&harness, generation, Vec::new(), dcp.clone());
+    runtime.create_session("strategy").unwrap();
+    std::fs::write(harness._project.path().join("note.txt"), "durable note").unwrap();
+
+    let duplicate_args = serde_json::json!({"path": "note.txt"});
+    let protected_args = serde_json::json!({"argv": ["/bin/true", "protected"]});
+    let error_args = serde_json::json!({"path": format!("/{}", "e".repeat(5_000))});
+    let recent_error_args = serde_json::json!({"path": format!("/{}", "r".repeat(5_000))});
+    let large_success_args = serde_json::json!({"argv": ["/bin/true", "s".repeat(5_000)]});
+    let protected_patch_args = serde_json::json!({
+        "patchText": format!(
+            "*** Begin Patch\n*** Update File: src/critical.rs\n@@\n-missing\n+{}\n*** End Patch\n",
+            "p".repeat(5_000)
+        )
+    });
+    assert!(error_args.to_string().len() > 4_096);
+    assert!(large_success_args.to_string().len() > 4_096);
+    assert!(protected_patch_args.to_string().len() > 4_096);
+
+    let mut old_batch = String::new();
+    old_batch.push_str(&sse_tool_call("dup-read", "read", &duplicate_args));
+    old_batch.push_str(&sse_tool_call("protected-1", "bash", &protected_args));
+    old_batch.push_str(&sse_tool_call("error-old", "read", &error_args));
+    old_batch.push_str(&sse_tool_call("large-success", "bash", &large_success_args));
+    old_batch.push_str(&sse_tool_call(
+        "protected-file",
+        "apply_patch",
+        &protected_patch_args,
+    ));
+    old_batch.push_str(&sse_completed());
+    let mut recent_batch = String::new();
+    // Provider call IDs are opaque and may repeat in a later turn. Strategy
+    // identity must not hide every occurrence merely because one is deduped.
+    recent_batch.push_str(&sse_tool_call("dup-read", "read", &duplicate_args));
+    recent_batch.push_str(&sse_tool_call("protected-2", "bash", &protected_args));
+    recent_batch.push_str(&sse_tool_call("error-recent", "read", &recent_error_args));
+    recent_batch.push_str(&sse_completed());
+    let mut compress = sse_tool_call(
+        "strategy-compress",
+        "compress",
+        &serde_json::json!({
+            "topic": "old tool work",
+            "content": [{
+                "startId": "m0001", "endId": "m0004",
+                "summary": "old tool work completed"
+            }]
+        }),
+    );
+    compress.push_str(&sse_completed());
+    let mut third_duplicate = sse_tool_call("dup-read", "read", &duplicate_args);
+    third_duplicate.push_str(&sse_completed());
+    let mut second_compress = sse_tool_call(
+        "strategy-compress-2",
+        "compress",
+        &serde_json::json!({
+            "topic": "first strategy pass",
+            "content": [{
+                "startId": "m0005", "endId": "m0006",
+                "summary": "first strategy pass completed"
+            }]
+        }),
+    );
+    second_compress.push_str(&sse_completed());
+    let (base, hits, requests) = Fake::start_recording(
+        vec![
+            old_batch,
+            sse_delta("old tools complete") + &sse_completed(),
+            recent_batch,
+            sse_delta("recent tools complete") + &sse_completed(),
+            compress,
+            sse_delta("strategy projection captured") + &sse_completed(),
+            third_duplicate,
+            sse_delta("third duplicate captured") + &sse_completed(),
+            second_compress,
+            sse_delta("second strategy projection captured") + &sse_completed(),
+            sse_delta("manual projection captured") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let provider = provider_of(&base);
+
+    let old = runtime
+        .run_turn(params(
+            "strategy",
+            "seed old typed tools",
+            &harness,
+            provider.clone(),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(old.calls.len(), 5);
+    let recent = runtime
+        .run_turn(params(
+            "strategy",
+            "seed recent typed tools",
+            &harness,
+            provider.clone(),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(recent.calls.len(), 3);
+    let exact_error = harness
+        .db
+        .list_tool_ops("strategy")
+        .unwrap()
+        .into_iter()
+        .find(|op| op.op.ends_with("-error-old"))
+        .and_then(|op| op.output)
+        .expect("durable old error output");
+    assert!(exact_error.starts_with("error:"));
+
+    runtime
+        .run_turn(params(
+            "strategy",
+            &format!(
+                "compress and commit automatic strategies {}",
+                "strategy-padding ".repeat(1_000)
+            ),
+            &harness,
+            provider.clone(),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    let third = runtime
+        .run_turn(params(
+            "strategy",
+            "seed a third reused provider call id",
+            &harness,
+            provider.clone(),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(third.calls.len(), 1);
+    runtime
+        .run_turn(params(
+            "strategy",
+            "compress again without occurrence drift",
+            &harness,
+            provider.clone(),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    dcp.manual_mode = true;
+    dcp.automatic_strategies = false;
+    runtime.reload_dcp(dcp).unwrap();
+    runtime
+        .run_turn(params(
+            "strategy",
+            "capture manual bypass",
+            &harness,
+            provider,
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(*hits.lock().unwrap(), 11);
+    let requests = requests.lock().unwrap();
+    assert_eq!(requests.len(), 11);
+    let projected = &requests[5];
+    assert_eq!(
+        function_item_count(projected, "function_call", "dup-read"),
+        1
+    );
+    assert_eq!(
+        function_item_count(projected, "function_call_output", "dup-read"),
+        1
+    );
+    for call_id in [
+        "protected-1",
+        "error-old",
+        "large-success",
+        "protected-file",
+        "protected-2",
+        "error-recent",
+    ] {
+        assert!(
+            function_call(projected, call_id).is_some(),
+            "strategy removed eligible call {call_id}"
+        );
+        assert!(
+            function_output(projected, call_id).is_some(),
+            "strategy orphaned output {call_id}"
+        );
+    }
+    assert_eq!(
+        function_call(projected, "error-old").unwrap()["arguments"],
+        serde_json::json!({"purged": "large error input"}).to_string()
+    );
+    assert_eq!(
+        function_call(projected, "error-recent").unwrap()["arguments"],
+        recent_error_args.to_string(),
+        "turnProtection must prevent purge of recent typed tool input"
+    );
+    assert_eq!(
+        function_output(projected, "error-old"),
+        Some(exact_error.as_str())
+    );
+    assert_eq!(
+        function_call(projected, "large-success").unwrap()["arguments"],
+        large_success_args.to_string(),
+        "large successful arguments must not be purged"
+    );
+    assert_eq!(
+        function_call(projected, "protected-file").unwrap()["arguments"],
+        protected_patch_args.to_string(),
+        "protectedFilePatterns must inspect typed apply_patch paths"
+    );
+    assert_eq!(
+        function_call(projected, "dup-read").unwrap()["arguments"],
+        duplicate_args.to_string()
+    );
+    assert_eq!(
+        function_call(projected, "protected-1").unwrap()["arguments"],
+        protected_args.to_string()
+    );
+    assert_eq!(
+        function_call(projected, "protected-2").unwrap()["arguments"],
+        protected_args.to_string()
+    );
+
+    let projected_again = &requests[9];
+    assert_eq!(
+        function_item_count(projected_again, "function_call", "dup-read"),
+        1,
+        "a second strategy transaction must keep only the newest reused call ID occurrence"
+    );
+    assert_eq!(
+        function_item_count(projected_again, "function_call_output", "dup-read"),
+        1
+    );
+
+    let manual = &requests[10];
+    assert_eq!(function_item_count(manual, "function_call", "dup-read"), 1);
+    assert_eq!(
+        function_item_count(manual, "function_call_output", "dup-read"),
+        1
+    );
+    for (call_id, arguments) in [
+        ("protected-1", protected_args.to_string()),
+        (
+            "error-old",
+            serde_json::json!({"purged": "large error input"}).to_string(),
+        ),
+        ("large-success", large_success_args.to_string()),
+        ("protected-file", protected_patch_args.to_string()),
+        ("dup-read", duplicate_args.to_string()),
+        ("protected-2", protected_args.to_string()),
+        (
+            "error-recent",
+            serde_json::json!({"purged": "large error input"}).to_string(),
+        ),
+    ] {
+        assert_eq!(
+            function_call(manual, call_id).map(|call| &call["arguments"]),
+            Some(&serde_json::Value::String(arguments)),
+            "manual mode changed committed projection for {call_id}"
+        );
+        assert!(
+            function_output(manual, call_id).is_some(),
+            "manual mode removed output {call_id}"
+        );
+    }
+    assert_eq!(
+        function_output(manual, "error-old"),
+        Some(exact_error.as_str())
+    );
+}
+
+#[tokio::test]
+async fn aud21_model_compress_preserves_complete_tool_graph_without_replay() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("graph").unwrap();
+    let mut effect = sse_tool_call(
+        "graph-effect",
+        "bash",
+        &serde_json::json!({
+            "argv": ["/bin/sh", "-c", "printf 'once\\n' >> graph-effects"]
+        }),
+    );
+    effect.push_str(&sse_completed());
+    let (base, seed_hits, _) = Fake::start_recording(
+        vec![
+            effect,
+            sse_delta(&format!("effect complete {}", "padding ".repeat(2_000))) + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let provider = provider_of(&base);
+    let seeded = runtime
+        .run_turn(params(
+            "graph",
+            &format!(
+                "perform one durable effect {}",
+                "request-padding ".repeat(2_000)
+            ),
+            &harness,
+            provider.clone(),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(seeded.calls.len(), 1);
+    assert_eq!(seeded.calls[0].state, "completed");
+    let history = harness.db.read_history_full("graph").unwrap();
+    assert_eq!(history.len(), 2);
+
+    let mut compress = sse_tool_call(
+        "compress-graph",
+        "compress",
+        &serde_json::json!({
+            "topic": "unsafe graph range",
+            "content": [{
+                "startId": history[0].0,
+                "endId": history[1].0,
+                "summary": "the durable effect completed once"
+            }]
+        }),
+    );
+    compress.push_str(&sse_completed());
+    let (compress_base, compress_hits, requests) = Fake::start_recording(
+        vec![compress, sse_delta("refusal handled") + &sse_completed()],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "graph",
+            "compress the completed tool turn",
+            &harness,
+            provider_of(&compress_base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(report.calls[0].name, "compress");
+    assert_eq!(report.calls[0].state, "completed");
+    let requests = requests.lock().unwrap();
+    assert!(
+        function_output(&requests[1], "compress-graph")
+            .is_some_and(|output| output.contains("\"status\":\"compressed\""))
+    );
+    assert!(function_call(&requests[1], "graph-effect").is_some());
+    assert!(function_output(&requests[1], "graph-effect").is_some());
+    assert!(harness.db.load_compression_blocks("graph").unwrap().len() == 1);
+    assert_eq!(
+        std::fs::read_to_string(harness._project.path().join("graph-effects")).unwrap(),
+        "once\n"
+    );
+    let operations = harness.db.list_tool_ops("graph").unwrap();
+    assert_eq!(
+        operations.iter().filter(|op| op.name == "bash").count(),
+        1,
+        "compression refusal replayed the prior side effect"
+    );
+    assert_eq!(*seed_hits.lock().unwrap(), 2);
+    assert_eq!(
+        *compress_hits.lock().unwrap(),
+        2,
+        "compression must return one structured output and then continue"
+    );
 }

@@ -314,6 +314,7 @@ fn spec() -> ProtectedSpec {
         protect_user_messages: false,
         protect_tags: false,
         file_globs: Vec::new(),
+        ..ProtectedSpec::default()
     }
 }
 
@@ -433,10 +434,20 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
             if global % 12 == 11 {
                 let ids = harness.db.read_history_full(&name).expect("ids");
                 if ids.len() >= 4 {
+                    // Recompression starts at the effective projection anchor,
+                    // not at a raw member already owned by an active block.
+                    let start = harness
+                        .db
+                        .load_compression_blocks(&name)
+                        .expect("blocks")
+                        .into_iter()
+                        .find(|block| !block.members.is_empty())
+                        .map(|block| block.id)
+                        .unwrap_or_else(|| ids[0].0.clone());
                     let args = serde_json::json!({
                         "topic": format!("soak e{epoch}"),
                         "content": [{
-                            "startId": ids[0].0, "endId": ids[ids.len() - 2].0,
+                            "startId": start, "endId": ids[ids.len() - 2].0,
                             "summary": "soak range",
                         }],
                     });

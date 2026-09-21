@@ -4,11 +4,13 @@
 //! composes existing adapters; broader config/Location support belongs to T35.
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::io::Read as _;
+use std::os::unix::fs::OpenOptionsExt as _;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
-use crate::{config, defs, discovery, models, provider};
+use crate::{config, dcp_auto, defs, discovery, models, provider};
 
 /// Fully built application configuration. Contains credentials and must not be logged.
 pub struct Composition {
@@ -42,6 +44,10 @@ pub struct Composition {
     pub native_modules: BTreeSet<String>,
     /// Non-fatal definition diagnostics for frontend display.
     pub diagnostics: Vec<String>,
+    /// Effective native DCP policy loaded with this application generation.
+    pub dcp_config: dcp_auto::DcpConfig,
+    /// Context-preservation policy; independent of filesystem permissions.
+    pub dcp_protected: oc_core::context_plan::ProtectedSpec,
 }
 
 /// Load ordered user config and resolve an explicitly selected model.
@@ -101,6 +107,50 @@ async fn load_with_env(
     if sources.is_empty() {
         return Err("no opencode.json/jsonc found; configure a provider and top-level model (provider/model-id) in the project or XDG opencode config directory".to_string());
     }
+
+    // DCP config is native data, never executable plugin code. Inline `dcp`
+    // fragments follow ordinary config precedence; standalone files then layer
+    // at the same admitted roots (JSON before JSONC).
+    let mut dcp_fragment = serde_json::json!({});
+    for root in &roots {
+        let root = root.canonicalize().unwrap_or_else(|_| root.clone());
+        for source in &sources {
+            if Path::new(&source.path).parent() != Some(root.as_path()) {
+                continue;
+            }
+            let value =
+                config::parse_jsonc(&source.text, &source.path).map_err(|e| e.to_string())?;
+            if let Some(fragment) = value.get("dcp") {
+                merge_json_object(&mut dcp_fragment, fragment)
+                    .map_err(|reason| format!("{}: invalid dcp config: {reason}", source.path))?;
+            }
+        }
+        for name in ["dcp.json", "dcp.jsonc"] {
+            let path = root.join(name);
+            let text = match read_native_config(&root, name) {
+                Ok(Some(text)) => text,
+                Ok(None) => continue,
+                Err(error) => {
+                    return Err(format!(
+                        "cannot read dcp config {}: {error}",
+                        path.display()
+                    ));
+                }
+            };
+            let value = config::parse_jsonc(&text, &path.to_string_lossy())
+                .map_err(|error| error.to_string())?;
+            merge_json_object(&mut dcp_fragment, &value)
+                .map_err(|reason| format!("{}: invalid dcp config: {reason}", path.display()))?;
+        }
+    }
+    let (dcp_config, dcp_warnings) =
+        dcp_auto::load_config(&dcp_fragment).map_err(|error| error.to_string())?;
+    let dcp_protected = oc_core::context_plan::ProtectedSpec {
+        protect_user_messages: dcp_config.protect_user_messages,
+        protect_tags: dcp_config.protect_tags,
+        file_globs: dcp_config.protected_file_patterns.clone(),
+        protected_message_ids: BTreeSet::new(),
+    };
 
     let mut selected = None;
     let mut default_agent = None;
@@ -267,6 +317,21 @@ async fn load_with_env(
             );
         }
     }
+    if let Some(level) = dcp_config.compress_permission {
+        generation
+            .permissions
+            .entry("compress".to_string())
+            .and_modify(|current| {
+                if permission_rank(level) > permission_rank(*current) {
+                    *current = level;
+                }
+            })
+            .or_insert(level);
+        generation.provenance.insert(
+            "permissions.compress".to_string(),
+            "native dcp config".to_string(),
+        );
+    }
     let entry = generation.providers.get(provider_id).ok_or_else(|| {
         format!("selected provider {provider_id} is not configured; add provider.{provider_id}")
     })?;
@@ -346,6 +411,11 @@ async fn load_with_env(
         })
         .collect();
     diagnostics.extend(plugin_diagnostics);
+    diagnostics.extend(
+        dcp_warnings
+            .into_iter()
+            .map(|warning| format!("dcp: {warning}")),
+    );
     diagnostics.extend(instruction_diagnostics.iter().map(|diagnostic| {
         format!(
             "{}: {}: {}",
@@ -385,7 +455,53 @@ async fn load_with_env(
         commands,
         native_modules,
         diagnostics,
+        dcp_config,
+        dcp_protected,
     })
+}
+
+fn merge_json_object(
+    target: &mut serde_json::Value,
+    layer: &serde_json::Value,
+) -> Result<(), &'static str> {
+    let target = target.as_object_mut().ok_or("base must be an object")?;
+    let layer = layer.as_object().ok_or("fragment must be an object")?;
+    for (key, value) in layer {
+        if value.is_object() && target.get(key).is_some_and(serde_json::Value::is_object) {
+            merge_json_object(target.get_mut(key).expect("existing key"), value)?;
+        } else {
+            target.insert(key.clone(), value.clone());
+        }
+    }
+    Ok(())
+}
+
+fn read_native_config(root: &Path, name: &str) -> Result<Option<String>, String> {
+    let path = root.join(name);
+    let mut file = match std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_CLOEXEC | libc::O_NOFOLLOW)
+        .open(&path)
+    {
+        Ok(file) => file,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error.to_string()),
+    };
+    let metadata = file.metadata().map_err(|error| error.to_string())?;
+    if !metadata.is_file() {
+        return Err("not a regular file".to_string());
+    }
+    let mut bytes = Vec::new();
+    file.by_ref()
+        .take(1024 * 1024 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|error| error.to_string())?;
+    if bytes.len() > 1024 * 1024 {
+        return Err("exceeds 1 MiB".to_string());
+    }
+    String::from_utf8(bytes)
+        .map(Some)
+        .map_err(|_| "not UTF-8".to_string())
 }
 
 fn permission_rank(level: config::Permission) -> u8 {
