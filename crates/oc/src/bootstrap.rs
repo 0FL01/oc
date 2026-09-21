@@ -32,7 +32,14 @@ pub async fn run(args: Args) -> ExitCode {
             prompt,
             session,
             json,
+            image,
         }) => {
+            if image.is_some() {
+                eprintln!(
+                    "error: unsupported modality: image input; this application profile accepts text only"
+                );
+                return ExitCode::from(2);
+            }
             let mut out = stdout().lock();
             let mut err = stderr().lock();
             headless::run_once_to_writers(prompt, session, json, &data_dir, &mut out, &mut err)

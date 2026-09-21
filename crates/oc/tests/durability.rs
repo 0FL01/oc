@@ -21,6 +21,7 @@ const FIRST_PROMPT: &str = "AUD06 execute one temporary side effect";
 const NEXT_PROMPT: &str = "AUD06 fresh prompt after process kill";
 const ANSWER: &str = "fresh configured response after recovery";
 const CALL: &str = "aud06-shell-call";
+const ITEM: &str = "aud06-shell-item";
 const MODEL: &str = "durability-unseen-model";
 
 #[test]
@@ -69,10 +70,7 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
     let arguments = json!({"argv": ["/bin/sh", "effect.sh"], "cwd": "."});
     let mut first = spawn(&home, &project, FIRST_PROMPT, "first");
     let (mut socket, request) = accept_request(&listener);
-    assert_eq!(
-        request["input"][0]["content"],
-        format!("user: {FIRST_PROMPT}")
-    );
+    assert_eq!(request["input"], json!([user_message(FIRST_PROMPT)]));
     assert!(
         request["tools"]
             .as_array()
@@ -84,11 +82,14 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
         &mut socket,
         &[
             json!({"type": "response.output_item.added", "item": {
-                "type": "function_call", "id": CALL, "call_id": CALL, "name": "bash"
+                "type": "function_call", "id": ITEM, "call_id": CALL, "name": "bash"
             }}),
-            json!({"type": "response.function_call_arguments.delta", "item_id": CALL,
+            json!({"type": "response.function_call_arguments.delta", "item_id": ITEM,
                    "delta": arguments.to_string()}),
-            json!({"type": "response.completed", "response": {"status": "completed"}}),
+            json!({"type": "response.completed", "response": {"status": "completed",
+                "output": [{"type": "function_call", "id": ITEM, "call_id": CALL,
+                    "name": "bash", "arguments": arguments.to_string(), "status": "completed"}]
+            }}),
         ],
     );
     drop(socket);
@@ -154,10 +155,16 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
         arguments
     );
     let turn = intent.turn.as_deref().expect("intent has owning turn");
-    assert_eq!(
-        db.turn_result(turn).expect("interrupted turn"),
-        ("started".into(), None)
-    );
+    let (status, wire_log) = db.turn_result(turn).expect("interrupted turn");
+    assert_eq!(status, "started");
+    let wire: Value =
+        serde_json::from_str(wire_log.as_deref().expect("durable wire intent")).expect("wire JSON");
+    assert_eq!(wire["input"][0], user_message(FIRST_PROMPT));
+    assert_eq!(wire["input"].as_array().expect("items").len(), 2);
+    assert_eq!(wire["input"][1]["type"], "function_call");
+    assert_eq!(wire["input"][1]["call_id"], CALL);
+    assert_eq!(wire["input"][1]["arguments"], arguments.to_string());
+    assert!(wire.get("assistant_message").is_none());
     let accepted = db.read_history_full(SESSION).expect("accepted history");
     assert_eq!(
         accepted.len(),
@@ -175,8 +182,8 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
     let mut restarted = spawn(&home, &project, NEXT_PROMPT, "restart");
     let (mut socket, request) = accept_request(&listener);
     assert_eq!(
-        request["input"][0]["content"],
-        format!("user: {FIRST_PROMPT}\n\nuser: {NEXT_PROMPT}"),
+        request["input"],
+        json!([user_message(FIRST_PROMPT), user_message(NEXT_PROMPT)]),
         "normal new request retains the accepted input without replay/result fabrication"
     );
     assert!(
@@ -227,7 +234,7 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
     );
     assert_eq!(
         db.turn_result(turn).expect("recovered turn"),
-        ("unknown".into(), None)
+        ("unknown".into(), wire_log)
     );
     let history = db.read_history_full(SESSION).expect("reopened history");
     assert_eq!(
@@ -248,6 +255,12 @@ struct Process {
     child: Child,
     stdout: PathBuf,
     stderr: PathBuf,
+}
+
+fn user_message(text: &str) -> Value {
+    json!({"type": "message", "role": "user", "content": [
+        {"type": "input_text", "text": text}
+    ]})
 }
 
 fn spawn(home: &Path, project: &Path, prompt: &str, label: &str) -> Process {

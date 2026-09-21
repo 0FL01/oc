@@ -56,14 +56,26 @@ pub enum StorageError {
 
 /// Owned storage handle: lock file + SQLite connection + blob dir.
 ///
-/// The lock `File` is held for the whole lifetime; dropping releases the
-/// flock. The lockfile inode is never deleted by PID.
+/// The lock is held for the whole lifetime; dropping closes SQLite before
+/// explicitly releasing the flock. The lockfile inode is never deleted by PID.
 pub struct Db {
     root: PathBuf,
     blob_dir: PathBuf,
     quota_bytes: u64,
-    _lock: File,
     conn: Mutex<Connection>,
+    // Fields drop in declaration order: release ownership after SQLite closes.
+    _lock: RootLock,
+}
+
+/// Constructed only after successful acquisition of the exclusive flock.
+struct RootLock(File);
+
+impl Drop for RootLock {
+    fn drop(&mut self) {
+        // Close alone can leave the flock held by a concurrently forked child
+        // until exec closes its inherited descriptor. Release it explicitly.
+        let _ = fs2::FileExt::unlock(&self.0);
+    }
 }
 
 /// One tool operation row for TUI tool cards (T22).
@@ -142,6 +154,7 @@ impl Db {
             .truncate(false)
             .open(&lock_path)?;
         try_lock_exclusive(&lock)?;
+        let lock = RootLock(lock);
 
         let db_path = root.join("oc.sqlite");
         let conn = Connection::open(&db_path)?;
@@ -154,8 +167,8 @@ impl Db {
             root,
             blob_dir,
             quota_bytes,
-            _lock: lock,
             conn: Mutex::new(conn),
+            _lock: lock,
         })
     }
 
@@ -432,13 +445,13 @@ impl Db {
         session: &str,
         prompt: &str,
         user_text: &str,
-    ) -> Result<(), StorageError> {
+    ) -> Result<String, StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         Self::insert_turn(&tx, turn, session, prompt)?;
-        Self::insert_message(&tx, session, "user", user_text)?;
+        let message = Self::insert_message(&tx, session, "user", user_text)?;
         tx.commit()?;
-        Ok(())
+        Ok(message)
     }
 
     fn insert_turn(
@@ -482,8 +495,19 @@ impl Db {
             tx.query_row("SELECT session_id FROM turns WHERE id = ?1", [turn], |r| {
                 r.get(0)
             })?;
+        let mut result = result.map(str::to_owned);
         if let Some(text) = assistant {
-            Self::insert_message(&tx, &session, "assistant", text)?;
+            let message = Self::insert_message(&tx, &session, "assistant", text)?;
+            if let Some(raw) = &mut result {
+                let mut value: serde_json::Value = serde_json::from_str(raw).map_err(|_| {
+                    StorageError::Io(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "invalid turn log",
+                    ))
+                })?;
+                value["assistant_message"] = message.into();
+                *raw = value.to_string();
+            }
         }
         let n = tx
             .prepare_cached("UPDATE turns SET status = ?1, result = ?2 WHERE id = ?3")?
@@ -497,6 +521,50 @@ impl Db {
         )?;
         tx.commit()?;
         Ok(())
+    }
+
+    /// Persist a completed generation before dispatch, without finishing its turn.
+    pub(crate) fn checkpoint_turn(&self, turn: &str, result: &str) -> Result<(), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        conn.execute(
+            "UPDATE turns SET result = ?1 WHERE id = ?2 AND status = 'started'",
+            params![result, turn],
+        )?;
+        Ok(())
+    }
+
+    /// Outcome and its replayable wire item are a single durable boundary.
+    pub(crate) fn tool_outcome_with_log(
+        &self,
+        op: &str,
+        state: &str,
+        output: &str,
+        turn: &str,
+        log: &str,
+    ) -> Result<(), StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        tx.execute(
+            "UPDATE tool_operations SET state = ?1, output = ?2 WHERE id = ?3",
+            params![state, output, op],
+        )?;
+        tx.execute(
+            "UPDATE turns SET result = ?1 WHERE id = ?2",
+            params![log, turn],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// Per-turn wire journals; never exposed by history/UI readers.
+    pub(crate) fn wire_logs(&self, session: &str) -> Result<Vec<String>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let mut query = conn.prepare(
+            "SELECT result FROM turns WHERE session_id = ?1 AND result IS NOT NULL ORDER BY rowid",
+        )?;
+        let rows = query.query_map([session], |row| row.get(0))?;
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(StorageError::Sqlite)
     }
 
     /// Read a turn's terminal status and result JSON (turn-log replay).

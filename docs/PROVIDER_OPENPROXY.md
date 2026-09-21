@@ -64,6 +64,48 @@ Stream parser incremental: bounded SSE buffer, multiline data/CRLF/UTF-8 fragmen
 
 Live verification подтверждает конкретный proxy deployment/model/variant. Не распространять один успешный run на все модели из /models.
 
+### T34: квалифицированный offline application path
+
+`run`/`tui` отправляют typed messages и полные canonical output items. `item.id`
+и `call_id` различаются: result связан именно с `call_id`. `store:false` запрос
+включает `reasoning.encrypted_content`; opaque items и assistant phase сохраняются
+в private wire journal (`turns.result`), не в UI history. Outcome tool и его wire
+result коммитятся атомарно. Restart сохраняет завершённые пары, не исполняет
+неоднозначные операции и не выдумывает их результат. Silent 64 KiB history drop
+удалён; bounded archive projection остаётся отдельной qualification T40.
+
+Только `response.completed` завершает generation успешно; EOF/failed/incomplete
+и round limit не дают completed turn. Canonical terminal output имеет приоритет,
+иначе используются complete `output_item.done` в порядке output_index. Полный
+JSON аргументов без complete item/terminal не разрешает execution. Cancel
+прерывает DNS/headers/body и MCP initialize; observer получает UTF-8 deltas до
+terminal, максимум 16 KiB каждый. Idle budget — effective `chunkTimeout`, default
+6 000 000 ms; total deadline при `timeout:false` отсутствует.
+
+Byte ceilings: pending SSE line/event — 2 MiB каждый, arguments/call — 1 MiB,
+generation accounting — 32 MiB, serialized request — 32 MiB, events — 10 000.
+Accounting charge `4 × payload bytes + 256/event` не является измерением RSS.
+Превышение даёт явную sanitized ошибку, не silent truncate. HTTP 400 и terminal
+failure не повторяются; не более двух attempts только до commitment.
+
+`max_output_tokens` берётся из выбранного лимита; `setCacheKey:false`/absent не
+добавляет key, true хеширует logical body без credentials/headers. Extra headers
+задаются в provider `options.headers`, разрешают substitutions, но native
+Authorization/Accept/Content-Type имеют приоритет без учёта регистра. Transport
+overrides (Host, Content-Length и т. п.) отвергаются; redirects запрещены.
+
+Application profile пока text-only: `oc run --image URL` явно отказывает с exit 2
+до network/storage. Adapter image serialization отдельно проверена, но это НЕ
+claim рабочего image workflow или полного A04. AUD10 допускает такой diagnostic.
+Same-session provider/model switch сейчас явно отказывает вместо replay чужого
+opaque state; UI switching квалифицируется T39. Live A04 остаётся за T27.
+
+Доказательства: `evidence/T34/report.md`; источники protocol shape:
+[pinned P1](https://raw.githubusercontent.com/0FL01/openproxy/4ef76dbce2cdbb85206cbe5e59acbad9d96ae387/contracts/lean-proxy.md),
+[Responses create](https://developers.openai.com/api/reference/resources/responses/methods/create),
+[reasoning](https://developers.openai.com/api/docs/guides/reasoning),
+[function calling](https://developers.openai.com/api/docs/guides/function-calling).
+
 ## Live test credentials (боевые тестовые, проверяемы)
 
 Владелец выдал тестовые credentials для live-проверок (T16/T27): файл `.local/live.env` (gitignored, в индекс не попадает):

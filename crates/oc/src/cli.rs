@@ -35,6 +35,9 @@ pub enum Command {
         /// Emit NDJSON events on stdout (diagnostics stay on stderr).
         #[arg(long, default_value_t = false)]
         json: bool,
+        /// Image input is not supported by this text-only application profile.
+        #[arg(long, value_name = "URL")]
+        image: Option<String>,
     },
     /// Inspect persisted sessions.
     Sessions {

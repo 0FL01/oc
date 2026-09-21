@@ -5,16 +5,18 @@
 //! `prompt_cache_key`, and ordinary function tool schemas — no OAuth, no API
 //! fallback. Bounded incremental SSE (arbitrary byte splits incl. split
 //! UTF-8, multiline `data:`, CRLF, comments), text/argument deltas and usage
-//! metadata with an event cap. Errors are typed (401/403/429/5xx,
-//! incomplete/EOF); exactly one retry lives here and only before any event
+//! metadata with event/byte caps. Errors distinguish failed/incomplete/EOF;
+//! exactly one retry lives here and only before any event
 //! is committed — callers never repeat a committed generation or tool call.
 //! `timeout:false` means no total deadline; the 6 000 000 ms chunk idle
-//! budget is enforced between bytes; explicit cancel drops the connection.
+//! default budget is enforced between bytes; effective config may override it.
+//! Explicit cancel interrupts DNS, header and body waits.
 
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 use thiserror::Error;
 
@@ -26,6 +28,16 @@ pub const CHUNK_TIMEOUT_MS: u64 = 6_000_000;
 pub const EVENT_CAP: usize = 10_000;
 /// Max attempts per generation: initial + exactly one retry.
 pub const MAX_ATTEMPTS: usize = 2;
+/// Maximum pending SSE line and complete event, in bytes.
+pub const SSE_BYTE_CAP: usize = 2 * 1024 * 1024;
+/// Maximum arguments for one call, including all deltas.
+pub const ARGUMENT_BYTE_CAP: usize = 1024 * 1024;
+/// Conservative retained generation budget (payload copies and item overhead).
+pub const GENERATION_BYTE_CAP: usize = 32 * 1024 * 1024;
+/// Maximum serialized request, matching the pinned proxy's body ceiling.
+pub const REQUEST_BYTE_CAP: usize = 32 * 1024 * 1024;
+/// Largest text fragment passed to an observer.
+pub const TEXT_DELTA_BYTE_CAP: usize = 16 * 1024;
 
 /// Typed provider errors (no credentials, no prompt contents).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
@@ -69,10 +81,116 @@ pub enum ProviderError {
     /// Misconfiguration (bad base URL, oversize body).
     #[error("invalid config")]
     InvalidConfig,
+    /// Terminal provider failure; raw error messages are deliberately withheld.
+    #[error("response failed")]
+    Failed,
+    /// Terminal incomplete response (distinct from transport EOF).
+    #[error("response incomplete")]
+    ResponseIncomplete,
+    /// Nonretryable HTTP status, without potentially sensitive response body.
+    #[error("HTTP status {0}")]
+    HttpStatus(u16),
+    /// Byte ceiling reached before appending data.
+    #[error("{0} byte limit exceeded")]
+    ByteLimit(&'static str),
+    /// Malformed UTF-8 is never silently replaced.
+    #[error("invalid UTF-8 in stream")]
+    InvalidUtf8,
+}
+
+/// Responses message role, independent of UI event kinds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InputRole {
+    /// System instructions.
+    System,
+    /// Developer instructions.
+    Developer,
+    /// User content.
+    User,
+    /// Previous assistant content.
+    Assistant,
+}
+
+/// Typed Responses content parts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum InputContent {
+    /// Text supplied to the model.
+    InputText { text: String },
+    /// URL or data URL; omitted detail uses the provider's default.
+    InputImage {
+        image_url: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        detail: Option<String>,
+    },
+    /// Prior assistant text.
+    OutputText { text: String },
+}
+
+/// Canonical continuation input. Provider output is replayed without alteration.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum InputItem {
+    /// A typed message.
+    Message {
+        role: InputRole,
+        content: Vec<InputContent>,
+    },
+    /// A tool result linked to the function call's call_id, never its item id.
+    FunctionCallOutput { call_id: String, output: String },
+    /// Complete output item, including opaque fields and assistant phase.
+    #[serde(untagged)]
+    ProviderOutput(serde_json::Value),
+}
+
+impl<'de> Deserialize<'de> for InputItem {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        // Canonical messages carry ids/phase/status and must never be decoded
+        // through the narrower user-authored message representation.
+        if value["type"] == "message"
+            && value.get("id").is_none()
+            && value.get("phase").is_none()
+            && value.get("status").is_none()
+        {
+            let role =
+                serde_json::from_value(value["role"].clone()).map_err(serde::de::Error::custom)?;
+            let content = serde_json::from_value(value["content"].clone())
+                .map_err(serde::de::Error::custom)?;
+            return Ok(Self::Message { role, content });
+        }
+        if value["type"] == "function_call_output" {
+            let call_id = value["call_id"]
+                .as_str()
+                .ok_or_else(|| serde::de::Error::custom("missing call_id"))?
+                .to_owned();
+            let output = value["output"]
+                .as_str()
+                .ok_or_else(|| serde::de::Error::custom("missing output"))?
+                .to_owned();
+            return Ok(Self::FunctionCallOutput { call_id, output });
+        }
+        Ok(Self::ProviderOutput(value))
+    }
+}
+
+impl InputItem {
+    /// Construct a text message (canonical model output should use ProviderOutput).
+    pub fn message(role: InputRole, text: impl Into<String>) -> Self {
+        Self::Message {
+            role,
+            content: vec![if role == InputRole::Assistant {
+                InputContent::OutputText { text: text.into() }
+            } else {
+                InputContent::InputText { text: text.into() }
+            }],
+        }
+    }
 }
 
 /// Ordinary function tool definition for the request schema.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ToolDef {
     /// Function name.
     pub name: String,
@@ -91,6 +209,8 @@ pub enum StreamItem {
     ToolCallStarted {
         /// Item id the following argument deltas attach to.
         item_id: String,
+        /// Function invocation id used by function_call_output.
+        call_id: String,
         /// Model-facing tool name.
         name: String,
     },
@@ -123,6 +243,8 @@ pub enum StreamItem {
 /// Complete streamed generation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Generation {
+    /// Full completed output, including opaque continuation state.
+    pub output: Vec<serde_json::Value>,
     /// Ordered stream items (deltas in arrival order).
     pub items: Vec<StreamItem>,
     /// Full model text (concatenated deltas).
@@ -146,6 +268,10 @@ pub struct ResponsesConfig {
     pub connect_timeout: Duration,
     /// Test-only private-network exception (mirrors webfetch).
     pub allow_private: bool,
+    /// Extra request headers (values are never included in Debug).
+    pub headers: BTreeMap<String, String>,
+    /// Whether to send a deterministic prompt_cache_key.
+    pub set_cache_key: bool,
 }
 
 impl std::fmt::Debug for ResponsesConfig {
@@ -222,45 +348,86 @@ pub struct SseParser {
     /// Pending bytes (incomplete UTF-8 tail or partial line).
     pending: Vec<u8>,
     /// Accumulated `data:` lines for the current event.
-    data: Vec<String>,
+    data: String,
     /// Current event's `event:` field, if any.
     event_name: Option<String>,
     /// Events decoded so far (cap enforcement).
     events: usize,
+    completed: bool,
+    terminal: bool,
+    retained: usize,
+    arguments: BTreeMap<String, usize>,
+    announced_calls: std::collections::BTreeSet<String>,
+    output_done: BTreeMap<u64, serde_json::Value>,
+    output: Option<Vec<serde_json::Value>>,
 }
 
 impl SseParser {
     /// Feed bytes; returns decoded stream items (may be empty mid-line).
     pub fn push(&mut self, bytes: &[u8]) -> Result<Vec<StreamItem>, ProviderError> {
-        self.pending.extend_from_slice(bytes);
-        // Split off the longest valid UTF-8 prefix; hold an incomplete tail.
-        let valid_len = match std::str::from_utf8(&self.pending) {
-            Ok(_) => self.pending.len(),
-            Err(e) => {
-                if e.error_len().is_none() {
-                    e.valid_up_to()
-                } else {
-                    // Malformed bytes: lossy-decode the valid head, drop one
-                    // byte past it, keep the rest for the next push.
-                    let head =
-                        String::from_utf8_lossy(&self.pending[..e.valid_up_to()]).into_owned();
-                    let mut rest = self.pending[e.valid_up_to() + 1..].to_vec();
-                    std::mem::swap(&mut self.pending, &mut rest);
-                    let items = self.consume_text(&head)?;
-                    let mut tail = self.push(&[])?;
-                    let mut out = items;
-                    out.append(&mut tail);
-                    return Ok(out);
-                }
+        self.push_observed(bytes, &mut |_| {})
+    }
+
+    fn push_observed(
+        &mut self,
+        bytes: &[u8],
+        observe: &mut (dyn FnMut(&StreamItem) + Send),
+    ) -> Result<Vec<StreamItem>, ProviderError> {
+        let mut out = Vec::new();
+        for segment in bytes.split_inclusive(|b| *b == b'\n') {
+            if self.completed {
+                break;
             }
-        };
-        let text = std::str::from_utf8(&self.pending[..valid_len])
-            .map_err(|_| ProviderError::Incomplete)?
-            .to_string();
-        self.pending.drain(..valid_len);
-        // Complete events decoded from the valid prefix are returned even
-        // when a split UTF-8 tail (or partial line) stays pending.
-        self.consume_text(&text)
+            if self.pending.len().saturating_add(segment.len()) > SSE_BYTE_CAP {
+                return Err(ProviderError::ByteLimit("SSE line"));
+            }
+            self.pending.extend_from_slice(segment);
+            if !segment.ends_with(b"\n") {
+                if let Err(error) = std::str::from_utf8(&self.pending)
+                    && error.error_len().is_some()
+                {
+                    return Err(ProviderError::InvalidUtf8);
+                }
+                continue;
+            }
+            let pending = std::mem::take(&mut self.pending);
+            let line = std::str::from_utf8(&pending).map_err(|_| ProviderError::InvalidUtf8)?;
+            let line = line.strip_suffix('\n').unwrap_or(line);
+            let line = line.strip_suffix('\r').unwrap_or(line);
+            if line.is_empty() {
+                if let Some(item) = self.dispatch()? {
+                    // Split at UTF-8 boundaries before observing or retaining text.
+                    if let StreamItem::TextDelta(text) = item {
+                        let mut rest = text.as_str();
+                        while !rest.is_empty() {
+                            let mut end = rest.len().min(TEXT_DELTA_BYTE_CAP);
+                            while !rest.is_char_boundary(end) {
+                                end -= 1;
+                            }
+                            let item = StreamItem::TextDelta(rest[..end].to_owned());
+                            observe(&item);
+                            out.push(item);
+                            rest = &rest[end..];
+                        }
+                    } else {
+                        observe(&item);
+                        out.push(item);
+                    }
+                }
+            } else if let Some(data) = line.strip_prefix("data:") {
+                let data = data.strip_prefix(' ').unwrap_or(data);
+                if self.data.len().saturating_add(data.len()).saturating_add(1) > SSE_BYTE_CAP {
+                    return Err(ProviderError::ByteLimit("SSE event"));
+                }
+                if !self.data.is_empty() {
+                    self.data.push('\n');
+                }
+                self.data.push_str(data);
+            } else if let Some(name) = line.strip_prefix("event:") {
+                self.event_name = Some(name.trim().to_owned());
+            }
+        }
+        Ok(out)
     }
 
     /// Flush at EOF: a non-empty tail without a dispatching blank line is
@@ -281,44 +448,6 @@ impl SseParser {
         Ok(Vec::new())
     }
 
-    fn consume_text(&mut self, text: &str) -> Result<Vec<StreamItem>, ProviderError> {
-        let mut out = Vec::new();
-        // Retain a trailing partial line for the next push. A post-terminator
-        // residue after a final `\n` is not a line: dispatching on it would
-        // fire a data-less event when a flush splits `event:` from `data:`.
-        let mut lines: Vec<&str> = text.split('\n').collect();
-        let tail = match lines.pop() {
-            Some(last) if text.ends_with('\n') => {
-                debug_assert!(last.is_empty());
-                None
-            }
-            last => last,
-        };
-        for line in lines {
-            let line = line.strip_suffix('\r').unwrap_or(line);
-            if line.is_empty() {
-                if let Some(item) = self.dispatch()? {
-                    out.push(item);
-                }
-                continue;
-            }
-            if line.starts_with(':') {
-                continue; // Comment / heartbeat.
-            }
-            if let Some(name) = line.strip_prefix("event:") {
-                self.event_name = Some(name.trim().to_string());
-            } else if let Some(data) = line.strip_prefix("data:") {
-                let data = data.strip_prefix(' ').unwrap_or(data);
-                self.data.push(data.to_string());
-            }
-        }
-        if let Some(tail) = tail {
-            let tail = tail.strip_suffix('\r').unwrap_or(tail);
-            self.pending.splice(..0, tail.as_bytes().iter().cloned());
-        }
-        Ok(out)
-    }
-
     fn dispatch(&mut self) -> Result<Option<StreamItem>, ProviderError> {
         if self.data.is_empty() && self.event_name.is_none() {
             return Ok(None);
@@ -327,16 +456,119 @@ impl SseParser {
         if self.events > EVENT_CAP {
             return Err(ProviderError::EventCap);
         }
-        let payload = self.data.join("\n");
-        self.data.clear();
+        let payload = std::mem::take(&mut self.data);
         self.event_name = None;
-        if payload == "[DONE]" {
+        if payload == "[DONE]" || payload.is_empty() {
             return Ok(None);
         }
+        // Account for parser JSON, retained item, full text and canonical output
+        // copies, plus per-event container overhead, before parsing/cloning.
+        let cost = payload.len().saturating_mul(4).saturating_add(256);
+        if self.retained.saturating_add(cost) > GENERATION_BYTE_CAP {
+            return Err(ProviderError::ByteLimit("generation"));
+        }
+        self.retained += cost;
         let value: serde_json::Value =
             serde_json::from_str(&payload).map_err(|_| ProviderError::Incomplete)?;
+        match value["type"].as_str() {
+            Some("response.output_item.added") if value["item"]["type"] == "function_call" => {
+                let item = &value["item"];
+                let id = item["id"]
+                    .as_str()
+                    .filter(|id| !id.is_empty())
+                    .ok_or(ProviderError::Incomplete)?;
+                self.announced_calls.insert(id.to_owned());
+                if item["arguments"]
+                    .as_str()
+                    .is_some_and(|args| args.len() > ARGUMENT_BYTE_CAP)
+                {
+                    return Err(ProviderError::ByteLimit("arguments"));
+                }
+            }
+            Some("response.failed" | "error") => {
+                self.terminal = true;
+                return Err(ProviderError::Failed);
+            }
+            Some("response.incomplete") => {
+                self.terminal = true;
+                return Err(ProviderError::ResponseIncomplete);
+            }
+            Some("response.function_call_arguments.delta") => {
+                let id = value["item_id"].as_str().ok_or(ProviderError::Incomplete)?;
+                let delta = value["delta"].as_str().ok_or(ProviderError::Incomplete)?;
+                let size = self.arguments.entry(id.to_owned()).or_default();
+                if size.saturating_add(delta.len()) > ARGUMENT_BYTE_CAP {
+                    return Err(ProviderError::ByteLimit("arguments"));
+                }
+                *size += delta.len();
+            }
+            Some("response.output_item.done") => {
+                let item = value.get("item").ok_or(ProviderError::Incomplete)?;
+                validate_output(item)?;
+                let index = value["output_index"]
+                    .as_u64()
+                    .unwrap_or(self.output_done.len() as u64);
+                self.output_done.insert(index, item.clone());
+            }
+            Some("response.completed") => {
+                self.terminal = true;
+                match value
+                    .pointer("/response/status")
+                    .and_then(serde_json::Value::as_str)
+                {
+                    Some("failed") => return Err(ProviderError::Failed),
+                    Some("incomplete" | "in_progress" | "cancelled" | "queued") => {
+                        return Err(ProviderError::ResponseIncomplete);
+                    }
+                    Some("completed") | None => {}
+                    _ => return Err(ProviderError::Incomplete),
+                }
+                if let Some(output) = value.pointer("/response/output") {
+                    let output = output.as_array().ok_or(ProviderError::Incomplete)?;
+                    for item in output {
+                        validate_output(item)?;
+                    }
+                    self.output = Some(output.clone());
+                }
+                for id in self.announced_calls.iter().chain(self.arguments.keys()) {
+                    let complete = |item: &serde_json::Value| {
+                        item["type"] == "function_call" && item["id"].as_str() == Some(id.as_str())
+                    };
+                    let found = match &self.output {
+                        Some(output) => output.iter().any(complete),
+                        None => self.output_done.values().any(complete),
+                    };
+                    if !found {
+                        return Err(ProviderError::ResponseIncomplete);
+                    }
+                }
+                self.completed = true;
+            }
+            _ => {}
+        }
         Ok(map_event(&value))
     }
+}
+
+fn validate_output(item: &serde_json::Value) -> Result<(), ProviderError> {
+    if item["status"].as_str().is_some_and(|s| s != "completed") {
+        return Err(ProviderError::ResponseIncomplete);
+    }
+    if item["type"] == "function_call" {
+        let arguments = item["arguments"]
+            .as_str()
+            .ok_or(ProviderError::Incomplete)?;
+        if arguments.len() > ARGUMENT_BYTE_CAP {
+            return Err(ProviderError::ByteLimit("arguments"));
+        }
+        if item["call_id"].as_str().is_none_or(str::is_empty)
+            || item["name"].as_str().is_none_or(str::is_empty)
+            || serde_json::from_str::<serde_json::Value>(arguments).is_err()
+        {
+            return Err(ProviderError::Incomplete);
+        }
+    }
+    Ok(())
 }
 
 /// Map a Responses event object to a stream item (`None` = ignorable).
@@ -366,6 +598,11 @@ fn map_event(value: &serde_json::Value) -> Option<StreamItem> {
                 return None;
             }
             Some(StreamItem::ToolCallStarted {
+                call_id: item
+                    .get("call_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_owned(),
                 item_id: item
                     .get("id")
                     .and_then(|v| v.as_str())
@@ -378,7 +615,11 @@ fn map_event(value: &serde_json::Value) -> Option<StreamItem> {
                     .to_string(),
             })
         }
-        Some("response.reasoning.delta") => value
+        Some(
+            "response.reasoning.delta"
+            | "response.reasoning_text.delta"
+            | "response.reasoning_summary_text.delta",
+        ) => value
             .get("delta")
             .and_then(|d| d.as_str())
             .map(|d| StreamItem::ReasoningDelta(d.to_string())),
@@ -418,7 +659,7 @@ fn map_event(value: &serde_json::Value) -> Option<StreamItem> {
 /// Stream one generation: POST → SSE → items.
 ///
 /// Exactly one retry is owned here, and only before the first event commits.
-/// `cancel` is polled between chunks; setting it drops the connection and
+/// `cancel` interrupts network waits; setting it drops the connection and
 /// reports [`ProviderError::Cancelled`].
 pub async fn stream_generation(
     config: &ResponsesConfig,
@@ -454,19 +695,128 @@ pub async fn stream_generation_observed(
     chunk_timeout: Option<Duration>,
     observe: &mut (dyn FnMut(&StreamItem) + Send),
 ) -> Result<Generation, ProviderError> {
+    bounded_json(&(
+        model,
+        prompt,
+        tools,
+        variant.and_then(|v| v.reasoning_effort.as_deref()),
+    ))?;
+    let mut body = request_body(model, variant, prompt, tools);
+    if !config.set_cache_key {
+        body.as_object_mut()
+            .expect("request object")
+            .remove("prompt_cache_key");
+    }
+    stream_body(
+        config,
+        bounded_json(&body)?,
+        cancel,
+        chunk_timeout.unwrap_or(Duration::from_millis(config.chunk_timeout_ms)),
+        observe,
+    )
+    .await
+}
+
+/// Runtime entry point: typed, stateless Responses continuation with effective options.
+#[allow(clippy::too_many_arguments)]
+pub async fn stream_input_observed(
+    config: &ResponsesConfig,
+    model: &str,
+    variant: Option<&SelectedVariant>,
+    input: &[InputItem],
+    tools: &[ToolDef],
+    max_output: u64,
+    cancel: &AtomicBool,
+    observe: &mut (dyn FnMut(&StreamItem) + Send),
+) -> Result<Generation, ProviderError> {
+    if max_output == 0 {
+        return Err(ProviderError::InvalidConfig);
+    }
+    // Preflight borrowed input before constructing any owned request copies.
+    bounded_json(&(
+        model,
+        input,
+        tools,
+        variant.and_then(|v| v.reasoning_effort.as_deref()),
+    ))?;
+    let mut body = serde_json::json!({
+        "model": model, "store": false, "stream": true, "input": input,
+        "include": ["reasoning.encrypted_content"],
+        "max_output_tokens": max_output,
+        "tools": tools.iter().map(|tool| serde_json::json!({
+            "type": "function", "name": tool.name,
+            "description": tool.description, "parameters": tool.parameters,
+        })).collect::<Vec<_>>(),
+    });
+    if let Some(effort) = variant.and_then(|v| v.reasoning_effort.as_deref()) {
+        body["reasoning"] = serde_json::json!({"effort": effort});
+    }
+    if config.set_cache_key {
+        body["prompt_cache_key"] = format!("{:x}", Sha256::digest(bounded_json(&body)?)).into();
+    }
+    stream_body(
+        config,
+        bounded_json(&body)?,
+        cancel,
+        Duration::from_millis(config.chunk_timeout_ms),
+        observe,
+    )
+    .await
+}
+
+/// Serializer refuses bytes before allocation/append beyond the request cap.
+fn bounded_json(value: &impl Serialize) -> Result<Vec<u8>, ProviderError> {
+    struct Writer(Vec<u8>);
+    impl std::io::Write for Writer {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            if self.0.len().saturating_add(bytes.len()) > REQUEST_BYTE_CAP {
+                return Err(std::io::Error::other("request byte limit"));
+            }
+            self.0.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let mut writer = Writer(Vec::new());
+    serde_json::to_writer(&mut writer, value).map_err(|_| ProviderError::ByteLimit("request"))?;
+    Ok(writer.0)
+}
+
+/// Cancellation waiter shared with native protocol adapters. No wakeup depends
+/// on network activity; callers select this against DNS/header/body futures.
+pub(crate) async fn wait_cancel(cancel: &AtomicBool) {
+    while !cancel.load(Ordering::Relaxed) {
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+}
+
+async fn stream_body(
+    config: &ResponsesConfig,
+    body: Vec<u8>,
+    cancel: &AtomicBool,
+    chunk_timeout: Duration,
+    observe: &mut (dyn FnMut(&StreamItem) + Send),
+) -> Result<Generation, ProviderError> {
+    if config.timeout == Some(true) {
+        return Err(ProviderError::InvalidConfig);
+    }
+    let headers = request_headers(config)?;
     let url = config.generation_url()?;
-    guard_private_url(&url, config.allow_private).await?;
-    let body = request_body(model, variant, prompt, tools);
-    let chunk_timeout = chunk_timeout.unwrap_or(Duration::from_millis(CHUNK_TIMEOUT_MS));
+    tokio::select! {
+        biased;
+        () = wait_cancel(cancel) => return Err(ProviderError::Cancelled),
+        result = tokio::time::timeout(config.connect_timeout, guard_private_url(&url, config.allow_private)) => {
+            result.map_err(|_| ProviderError::Deadline)??;
+        }
+    }
 
     let builder = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .no_proxy()
         .connect_timeout(config.connect_timeout);
     // timeout:false (or absent) means no total deadline: never set one.
-    if config.timeout == Some(true) {
-        return Err(ProviderError::InvalidConfig);
-    }
     let client = builder.build().map_err(|_| ProviderError::Transport)?;
 
     let mut attempts = 0usize;
@@ -475,8 +825,9 @@ pub async fn stream_generation_observed(
         match stream_attempt(
             &client,
             &url,
-            &config.api_key,
+            &headers,
             &body,
+            config.allow_private,
             cancel,
             chunk_timeout,
             observe,
@@ -494,6 +845,7 @@ pub async fn stream_generation_observed(
                         | ProviderError::Server
                         | ProviderError::Transport
                         | ProviderError::Incomplete
+                        | ProviderError::Deadline
                         | ProviderError::IdleTimeout
                 );
                 if retryable && !committed && attempts < MAX_ATTEMPTS {
@@ -505,18 +857,53 @@ pub async fn stream_generation_observed(
     }
 }
 
+fn request_headers(config: &ResponsesConfig) -> Result<reqwest::header::HeaderMap, ProviderError> {
+    use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
+    let mut headers = HeaderMap::new();
+    for (name, value) in &config.headers {
+        let name =
+            HeaderName::from_bytes(name.as_bytes()).map_err(|_| ProviderError::InvalidConfig)?;
+        match name.as_str() {
+            "authorization" | "accept" | "content-type" => continue,
+            "host"
+            | "content-length"
+            | "transfer-encoding"
+            | "connection"
+            | "upgrade"
+            | "trailer"
+            | "te"
+            | "proxy-authorization"
+            | "proxy-connection" => return Err(ProviderError::InvalidConfig),
+            _ => {}
+        }
+        let mut value = HeaderValue::from_str(value).map_err(|_| ProviderError::InvalidConfig)?;
+        value.set_sensitive(true);
+        headers.insert(name, value);
+    }
+    let mut auth = HeaderValue::from_str(&format!("Bearer {}", config.api_key))
+        .map_err(|_| ProviderError::InvalidConfig)?;
+    auth.set_sensitive(true);
+    headers.insert("authorization", auth);
+    headers.insert("accept", HeaderValue::from_static("text/event-stream"));
+    headers.insert("content-type", HeaderValue::from_static("application/json"));
+    Ok(headers)
+}
+
 async fn guard_private_url(url: &str, allow_private: bool) -> Result<(), ProviderError> {
-    let host = url
-        .split("://")
-        .nth(1)
-        .and_then(|rest| rest.split('/').next())
-        .unwrap_or("");
-    let host = host.rsplit_once(':').map(|(h, _)| h).unwrap_or(host);
-    let host = host.trim_start_matches('[').trim_end_matches(']');
-    if host.is_empty() {
+    let url = reqwest::Url::parse(url).map_err(|_| ProviderError::InvalidConfig)?;
+    if !matches!(url.scheme(), "http" | "https")
+        || !url.username().is_empty()
+        || url.password().is_some()
+    {
         return Err(ProviderError::InvalidConfig);
     }
-    let port = 80u16;
+    let host = url
+        .host_str()
+        .ok_or(ProviderError::InvalidConfig)?
+        .trim_matches(['[', ']']);
+    let port = url
+        .port_or_known_default()
+        .ok_or(ProviderError::InvalidConfig)?;
     let addrs = tokio::net::lookup_host((host, port))
         .await
         .map_err(|_| ProviderError::PrivateHost)?;
@@ -540,22 +927,26 @@ async fn guard_private_url(url: &str, allow_private: bool) -> Result<(), Provide
 
 /// One POST→SSE attempt. Returns the terminal error plus whether any event
 /// was already committed (which forbids retry).
+#[allow(clippy::too_many_arguments)]
 async fn stream_attempt(
     client: &reqwest::Client,
     url: &str,
-    api_key: &str,
-    body: &serde_json::Value,
+    headers: &reqwest::header::HeaderMap,
+    body: &[u8],
+    allow_private: bool,
     cancel: &AtomicBool,
     chunk_timeout: Duration,
     observe: &mut (dyn FnMut(&StreamItem) + Send),
 ) -> Result<Generation, (ProviderError, bool)> {
-    let resp = client
+    let request = client
         .post(url)
-        .bearer_auth(api_key)
-        .header("Accept", "text/event-stream")
-        .json(body)
-        .send()
-        .await
+        .headers(headers.clone())
+        .body(body.to_vec());
+    let resp = tokio::select! {
+        biased;
+        () = wait_cancel(cancel) => return Err((ProviderError::Cancelled, false)),
+        result = tokio::time::timeout(chunk_timeout, request.send()) => result.map_err(|_| (ProviderError::IdleTimeout, false))?,
+    }
         .map_err(|e| {
             // Only true timeouts are deadlines; refusals/DNS failures are
             // transport errors (connect_timeout expiry surfaces is_timeout).
@@ -569,7 +960,7 @@ async fn stream_attempt(
     // Post-dial rebinding guard on the connected peer.
     if let Some(peer) = resp.remote_addr()
         && !crate::webfetch::ip_is_public(peer.ip())
-        && !peer.ip().is_loopback()
+        && !(allow_private && peer.ip().is_loopback())
     {
         return Err((ProviderError::PrivateHost, false));
     }
@@ -587,7 +978,7 @@ async fn stream_attempt(
         return Err((ProviderError::Server, false));
     }
     if status != 200 {
-        return Err((ProviderError::Transport, false));
+        return Err((ProviderError::HttpStatus(status), false));
     }
 
     let mut parser = SseParser::default();
@@ -600,7 +991,12 @@ async fn stream_attempt(
         }
         // The idle budget applies to the wait itself, not just between
         // polls: a silent gap longer than chunk_timeout fails the stream.
-        let chunk = match tokio::time::timeout(chunk_timeout, resp.chunk()).await {
+        let result = tokio::select! {
+            biased;
+            () = wait_cancel(cancel) => return Err((ProviderError::Cancelled, committed)),
+            result = tokio::time::timeout(chunk_timeout, resp.chunk()) => result,
+        };
+        let chunk = match result {
             Err(_) => return Err((ProviderError::IdleTimeout, committed)),
             Ok(Err(e)) => {
                 let error = if e.is_timeout() {
@@ -618,14 +1014,17 @@ async fn stream_attempt(
                 if bytes.is_empty() {
                     continue;
                 }
-                let mut fresh = parser.push(&bytes).map_err(|e| (e, committed))?;
-                if !fresh.is_empty() {
+                let mut forward = |item: &StreamItem| {
                     committed = true;
-                }
-                for item in &fresh {
                     observe(item);
-                }
+                };
+                let result = parser.push_observed(&bytes, &mut forward);
+                committed |= parser.events > 0 || parser.terminal;
+                let mut fresh = result.map_err(|e| (e, committed))?;
                 items.append(&mut fresh);
+                if parser.completed {
+                    break;
+                }
             }
         }
     }
@@ -634,9 +1033,8 @@ async fn stream_attempt(
         observe(item);
     }
     items.extend(tail);
-    if items.is_empty() {
-        // An eventless EOF is a truncated stream, never an empty success.
-        return Err((ProviderError::Incomplete, false));
+    if !parser.completed {
+        return Err((ProviderError::Incomplete, committed));
     }
 
     let mut text = String::new();
@@ -657,7 +1055,15 @@ async fn stream_attempt(
             _ => {}
         }
     }
-    Ok(Generation { items, text, usage })
+    let output = parser
+        .output
+        .unwrap_or_else(|| parser.output_done.into_values().collect());
+    Ok(Generation {
+        output,
+        items,
+        text,
+        usage,
+    })
 }
 
 /// Redacted request preview for diagnostics (auth/contents withheld).
@@ -683,6 +1089,7 @@ mod tests {
         CHUNK_TIMEOUT_MS, EVENT_CAP, ProviderError, ResponsesConfig, SseParser, StreamItem,
         ToolDef, prompt_cache_key, request_body, stream_generation,
     };
+    use std::collections::BTreeMap;
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::sync::{Arc, Mutex};
     use std::time::Duration;
@@ -702,6 +1109,7 @@ mod tests {
         path: String,
         auth: Option<String>,
         body: Vec<u8>,
+        headers: BTreeMap<String, String>,
     }
 
     struct TestServer {
@@ -755,11 +1163,13 @@ mod tests {
                         let path = parts.next().unwrap_or("/").to_string();
                         let mut content_len = 0usize;
                         let mut auth = None;
+                        let mut headers = BTreeMap::new();
                         for line in lines {
                             if line.is_empty() {
                                 break;
                             }
                             if let Some((k, v)) = line.split_once(':') {
+                                headers.insert(k.trim().to_ascii_lowercase(), v.trim().to_owned());
                                 if k.trim().eq_ignore_ascii_case("content-length") {
                                     content_len = v.trim().parse().unwrap_or(0);
                                 }
@@ -790,6 +1200,7 @@ mod tests {
                             path,
                             auth,
                             body,
+                            headers,
                         });
                         let action = behavior(n);
                         let mut head_out =
@@ -839,7 +1250,7 @@ mod tests {
     }
 
     fn sse_completed(input: u64, output: u64) -> Vec<u8> {
-        format!("data: {{\"type\":\"response.completed\",\"response\":{{\"usage\":{{\"input_tokens\":{input},\"output_tokens\":{output}}}}}}}\n\n").into_bytes()
+        format!("data: {{\"type\":\"response.completed\",\"response\":{{\"status\":\"completed\",\"usage\":{{\"input_tokens\":{input},\"output_tokens\":{output}}}}}}}\n\n").into_bytes()
     }
 
     fn test_config(base: &str) -> ResponsesConfig {
@@ -850,10 +1261,369 @@ mod tests {
             chunk_timeout_ms: CHUNK_TIMEOUT_MS,
             connect_timeout: Duration::from_secs(5),
             allow_private: true,
+            headers: BTreeMap::new(),
+            set_cache_key: true,
         }
     }
 
     static NO_CANCEL: AtomicBool = AtomicBool::new(false);
+
+    fn event(value: serde_json::Value) -> Vec<u8> {
+        format!("data: {value}\n\n").into_bytes()
+    }
+
+    #[tokio::test]
+    async fn aud11_done_fallback_and_unfinished_call_rejection() {
+        let call = serde_json::json!({"type":"function_call","id":"fc_A","call_id":"call_B","name":"read","arguments":"{}","status":"completed"});
+        for complete in [false, true] {
+            let call = call.clone();
+            let server = TestServer::spawn(Arc::new(move |_| {
+                let mut chunks = vec![(event(serde_json::json!({"type":"response.output_item.added","item":{"type":"function_call","id":"fc_A","call_id":"call_B","name":"read"}})), 0)];
+                if complete {
+                    chunks.push((event(serde_json::json!({"type":"response.output_item.done","output_index":0,"item":call})), 0));
+                }
+                chunks.push((sse_completed(0, 0), 0));
+                Action { status: "200 OK", headers: vec![], chunks, abort_after: None }
+            })).await;
+            let result = stream_generation(
+                &test_config(&server.base),
+                "m",
+                None,
+                "x",
+                &[],
+                &NO_CANCEL,
+                None,
+            )
+            .await;
+            if complete {
+                assert_eq!(
+                    result.expect("done fallback").output,
+                    vec![
+                        serde_json::json!({"type":"function_call","id":"fc_A","call_id":"call_B","name":"read","arguments":"{}","status":"completed"})
+                    ]
+                );
+            } else {
+                assert_eq!(result, Err(ProviderError::ResponseIncomplete));
+            }
+            assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
+            server.shutdown();
+        }
+    }
+
+    #[tokio::test]
+    async fn aud11_terminal_failures_never_retry_and_success_does_not_wait_for_eof() {
+        for (kind, error) in [
+            ("response.failed", ProviderError::Failed),
+            ("response.incomplete", ProviderError::ResponseIncomplete),
+        ] {
+            let server = TestServer::spawn(Arc::new(move |_| Action {
+                status: "200 OK",
+                headers: vec![],
+                chunks: vec![(
+                    event(
+                        serde_json::json!({"type":kind,"response":{"error":{"message":"SECRET"}}}),
+                    ),
+                    0,
+                )],
+                abort_after: None,
+            }))
+            .await;
+            let result = stream_generation(
+                &test_config(&server.base),
+                "m",
+                None,
+                "x",
+                &[],
+                &NO_CANCEL,
+                None,
+            )
+            .await;
+            assert_eq!(result, Err(error));
+            assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
+            assert!(!format!("{result:?}").contains("SECRET"));
+            server.shutdown();
+        }
+        let server = TestServer::spawn(Arc::new(|_| Action {
+            status: "200 OK",
+            headers: vec![],
+            chunks: vec![(sse_completed(1, 2), 0), (b"garbage".to_vec(), 5000)],
+            abort_after: None,
+        }))
+        .await;
+        let result = tokio::time::timeout(
+            Duration::from_millis(500),
+            stream_generation(
+                &test_config(&server.base),
+                "m",
+                None,
+                "x",
+                &[],
+                &NO_CANCEL,
+                None,
+            ),
+        )
+        .await;
+        assert!(result.expect("terminal must return before EOF").is_ok());
+        server.shutdown();
+    }
+
+    #[tokio::test]
+    async fn aud09_aud10_canonical_wire_and_output() {
+        use super::{InputContent, InputItem, InputRole, stream_input_observed};
+        let output = vec![
+            serde_json::json!({"type":"reasoning", "id":"rs_A", "encrypted_content":"opaque", "summary":[]}),
+            serde_json::json!({"type":"message", "id":"msg_A", "role":"assistant", "status":"completed", "phase":"commentary", "content":[{"type":"output_text","text":"inspect","annotations":[]}]}),
+            serde_json::json!({"type":"function_call", "id":"fc_A", "call_id":"call_B", "name":"read", "arguments":"{}", "status":"completed"}),
+        ];
+        let terminal_output = output.clone();
+        let server = TestServer::spawn(Arc::new(move |_| Action {
+            status: "200 OK", headers: vec![], chunks: vec![
+                (event(serde_json::json!({"type":"response.output_item.added","item":{"type":"function_call","id":"fc_A","call_id":"call_B","name":"read"}})), 0),
+                (event(serde_json::json!({"type":"response.completed","response":{"status":"completed","output":terminal_output}})), 0),
+            ], abort_after: None,
+        })).await;
+        let mut config = test_config(&server.base);
+        config.set_cache_key = false;
+        config.headers = BTreeMap::from([
+            ("X-Trace".into(), "private-extra-value".into()),
+            ("aUtHoRiZaTiOn".into(), "wrong".into()),
+            ("ACCEPT".into(), "wrong".into()),
+            ("Content-Type".into(), "wrong".into()),
+        ]);
+        let mut input = vec![
+            InputItem::message(InputRole::System, "system"),
+            InputItem::message(InputRole::Developer, "developer"),
+            InputItem::message(InputRole::User, "user"),
+            InputItem::Message {
+                role: InputRole::User,
+                content: vec![InputContent::InputImage {
+                    image_url: "data:image/png;base64,AA==".into(),
+                    detail: Some("low".into()),
+                }],
+            },
+        ];
+        input.extend(output.iter().cloned().map(InputItem::ProviderOutput));
+        input.push(InputItem::FunctionCallOutput {
+            call_id: "call_B".into(),
+            output: "tool result".into(),
+        });
+        let restored: Vec<InputItem> =
+            serde_json::from_slice(&serde_json::to_vec(&input).expect("serialize"))
+                .expect("deserialize");
+        assert_eq!(
+            restored, input,
+            "opaque/phase-bearing output survives restart serialization"
+        );
+        let generation = stream_input_observed(
+            &config,
+            "unknown-model",
+            None,
+            &input,
+            &tools(),
+            789,
+            &NO_CANCEL,
+            &mut |_| {},
+        )
+        .await
+        .expect("generation");
+        assert_eq!(generation.output, output);
+        assert!(generation.items.iter().any(|i| matches!(i, StreamItem::ToolCallStarted { item_id, call_id, .. } if item_id == "fc_A" && call_id == "call_B")));
+        let seen = server.seen.lock().expect("seen");
+        let body: serde_json::Value = serde_json::from_slice(&seen[0].body).expect("body");
+        assert_eq!(body["input"][3]["content"][0]["type"], "input_image");
+        assert_eq!(body["input"][4], output[0]);
+        assert_eq!(body["input"][5], output[1]);
+        assert_eq!(body["input"][6], output[2]);
+        assert_eq!(
+            body["input"][7],
+            serde_json::json!({"type":"function_call_output","call_id":"call_B","output":"tool result"})
+        );
+        assert_eq!(body["max_output_tokens"], 789);
+        assert_eq!(
+            body["include"],
+            serde_json::json!(["reasoning.encrypted_content"])
+        );
+        assert!(body.get("prompt_cache_key").is_none());
+        assert_eq!(seen[0].headers["x-trace"], "private-extra-value");
+        assert_eq!(seen[0].headers["authorization"], "Bearer test-key");
+        assert_eq!(seen[0].headers["accept"], "text/event-stream");
+        assert_eq!(seen[0].headers["content-type"], "application/json");
+        assert!(!format!("{config:?}").contains("private-extra-value"));
+        drop(seen);
+        server.shutdown();
+    }
+
+    #[tokio::test]
+    async fn aud13_effective_idle_timeout_400_and_unsafe_headers() {
+        let server = TestServer::spawn(Arc::new(|_| Action {
+            status: "200 OK",
+            headers: vec![],
+            chunks: vec![(sse_delta("first"), 0), (sse_completed(0, 0), 5000)],
+            abort_after: None,
+        }))
+        .await;
+        let mut config = test_config(&server.base);
+        config.chunk_timeout_ms = 30;
+        let start = std::time::Instant::now();
+        assert_eq!(
+            super::stream_input_observed(&config, "m", None, &[], &[], 5, &NO_CANCEL, &mut |_| {})
+                .await,
+            Err(ProviderError::IdleTimeout)
+        );
+        assert!(start.elapsed() < Duration::from_millis(500));
+        assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
+        server.shutdown();
+        let server = TestServer::spawn(Arc::new(|_| Action {
+            status: "400 Bad Request",
+            headers: vec![],
+            chunks: vec![],
+            abort_after: None,
+        }))
+        .await;
+        let mut config = test_config(&server.base);
+        assert_eq!(
+            stream_generation(&config, "m", None, "x", &[], &NO_CANCEL, None).await,
+            Err(ProviderError::HttpStatus(400))
+        );
+        assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
+        config.headers.insert("hOsT".into(), "evil".into());
+        assert_eq!(
+            stream_generation(&config, "m", None, "x", &[], &NO_CANCEL, None).await,
+            Err(ProviderError::InvalidConfig)
+        );
+        assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
+        server.shutdown();
+    }
+
+    #[tokio::test]
+    async fn aud13_byte_bounds_utf8_and_incremental_observer() {
+        use super::{ARGUMENT_BYTE_CAP, SSE_BYTE_CAP, TEXT_DELTA_BYTE_CAP};
+        let mut parser = SseParser::default();
+        assert_eq!(
+            parser.push(&vec![b'x'; SSE_BYTE_CAP + 1]),
+            Err(ProviderError::ByteLimit("SSE line"))
+        );
+        assert!(parser.pending.is_empty());
+        let mut parser = SseParser::default();
+        let line = format!("data: {}\n", " ".repeat(SSE_BYTE_CAP / 2));
+        parser.push(line.as_bytes()).expect("half event");
+        assert_eq!(
+            parser.push(line.as_bytes()),
+            Err(ProviderError::ByteLimit("SSE event"))
+        );
+        let mut parser = SseParser::default();
+        assert_eq!(
+            parser.push(b"data: \xff\n\n"),
+            Err(ProviderError::InvalidUtf8)
+        );
+        let mut parser = SseParser::default();
+        let args = event(
+            serde_json::json!({"type":"response.function_call_arguments.delta","item_id":"fc_A","delta":"a".repeat(ARGUMENT_BYTE_CAP)}),
+        );
+        parser.push(&args).expect("at cap");
+        assert_eq!(parser.push(&event(serde_json::json!({"type":"response.function_call_arguments.delta","item_id":"fc_A","delta":"b"}))), Err(ProviderError::ByteLimit("arguments")));
+        let mut parser = SseParser::default();
+        let mut text = String::new();
+        let expected = "🌍".repeat(TEXT_DELTA_BYTE_CAP);
+        parser
+            .push_observed(&sse_delta(&expected), &mut |item| {
+                if let StreamItem::TextDelta(delta) = item {
+                    assert!(delta.len() <= TEXT_DELTA_BYTE_CAP);
+                    text.push_str(delta);
+                }
+            })
+            .expect("bounded observer");
+        assert_eq!(text, expected);
+        assert!(!parser.completed, "observed before terminal");
+        let mut parser = SseParser::default();
+        let large = sse_delta(&"x".repeat(256 * 1024));
+        let error = (0..100).find_map(|_| parser.push(&large).err());
+        assert_eq!(error, Some(ProviderError::ByteLimit("generation")));
+        assert!(parser.retained <= super::GENERATION_BYTE_CAP);
+        let oversized = "x".repeat(super::REQUEST_BYTE_CAP + 1);
+        assert_eq!(
+            super::stream_input_observed(
+                &test_config("http://127.0.0.1:9"),
+                "m",
+                None,
+                &[super::InputItem::message(super::InputRole::User, oversized)],
+                &[],
+                100,
+                &NO_CANCEL,
+                &mut |_| {},
+            )
+            .await,
+            Err(ProviderError::ByteLimit("request"))
+        );
+    }
+
+    #[tokio::test]
+    async fn aud11_complete_text_event_eof_is_not_success() {
+        let server = TestServer::spawn(Arc::new(|_| Action {
+            status: "200 OK",
+            headers: vec![],
+            chunks: vec![(sse_delta("not completed"), 0)],
+            abort_after: None,
+        }))
+        .await;
+        let result = stream_generation(
+            &test_config(&server.base),
+            "m",
+            None,
+            "x",
+            &[],
+            &NO_CANCEL,
+            None,
+        )
+        .await;
+        assert_eq!(result, Err(ProviderError::Incomplete));
+        assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
+        server.shutdown();
+    }
+
+    #[tokio::test]
+    async fn aud12_cancel_silent_body_and_headers() {
+        use tokio::io::AsyncWriteExt as _;
+        for send_headers in [false, true] {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+                .await
+                .expect("bind");
+            let config = test_config(&format!("http://{}", listener.local_addr().expect("addr")));
+            let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
+            let server = tokio::spawn(async move {
+                let (mut socket, _) = listener.accept().await.expect("accept");
+                if send_headers {
+                    socket
+                        .write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\n\r\n")
+                        .await
+                        .expect("headers");
+                    socket.write_all(&sse_delta("first")).await.expect("delta");
+                }
+                let _ = ready_tx.send(());
+                tokio::time::sleep(Duration::from_secs(10)).await;
+            });
+            let cancel = AtomicBool::new(false);
+            let trigger = async {
+                ready_rx.await.expect("ready");
+                tokio::time::sleep(Duration::from_millis(50)).await;
+                cancel.store(true, Ordering::Relaxed);
+            };
+            let request = async {
+                tokio::time::timeout(
+                    Duration::from_millis(500),
+                    stream_generation(&config, "m", None, "x", &[], &cancel, None),
+                )
+                .await
+            };
+            let (result, ()) = tokio::join!(request, trigger);
+            server.abort();
+            assert_eq!(
+                result,
+                Ok(Err(ProviderError::Cancelled)),
+                "headers={send_headers}"
+            );
+        }
+    }
 
     fn tools() -> Vec<ToolDef> {
         vec![ToolDef {
@@ -937,7 +1707,7 @@ mod tests {
             ": heartbeat\n".to_string(),
             "data: {\"type\":\"response.output_text.delta\",\"delta\":\"a\"}\r\n\r\n".to_string(),
             "data: {\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"i1\",\"delta\":\"{\\\"a\\\"\"}\n\n".to_string(),
-            "data: {\"type\":\"response.completed\",\"response\":{\"usage\":{\"input_tokens\":10,\"output_tokens\":20}}}\n\n".to_string(),
+            "data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"output\":[{\"type\":\"function_call\",\"id\":\"i1\",\"call_id\":\"call1\",\"name\":\"read\",\"arguments\":\"{\\\"a\\\":1}\",\"status\":\"completed\"}],\"usage\":{\"input_tokens\":10,\"output_tokens\":20}}}\n\n".to_string(),
         ]
         .concat();
         let mut whole = SseParser::default();
@@ -1053,7 +1823,7 @@ mod tests {
                 Action {
                     status: "200 OK",
                     headers: vec![("Content-Type", "text/event-stream".to_string())],
-                    chunks: vec![(sse_delta("ok"), 0)],
+                    chunks: vec![(sse_delta("ok"), 0), (sse_completed(0, 0), 0)],
                     abort_after: None,
                 }
             }
@@ -1087,7 +1857,7 @@ mod tests {
                 Action {
                     status: "200 OK",
                     headers: vec![("Content-Type", "text/event-stream".to_string())],
-                    chunks: vec![(sse_delta("ok"), 0)],
+                    chunks: vec![(sse_delta("ok"), 0), (sse_completed(0, 0), 0)],
                     abort_after: None,
                 }
             }

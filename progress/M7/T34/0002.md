@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-21T09:38:18+00:00
-Active: T34
-
-Сверить Git status/diff до выполнения команд.
-Task: T34 — Настоящий Responses protocol и streaming
-Spec: audit/repairs/T34.md
-Evidence target: evidence/T34/report.md
-
-Закрыть F02, F03 по audit/repairs/T34.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 ## Result
 
 T34 implementation verified on base HEAD 4e07cc7, awaiting delivery/finish.
@@ -47,9 +33,3 @@ ready T35; audit fragments must not be merged again. Changed files are provider,
 runtime/storage/tools/DCP projection/composition/config/application, CLI/headless,
 direct test fixtures and docs/PROVIDER_OPENPROXY.md plus evidence/progress; Git
 status is authoritative. No push yet.
-
-
-Ready (до 5): нет
-Blocked: T27
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

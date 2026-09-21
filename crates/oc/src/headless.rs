@@ -47,10 +47,17 @@ pub async fn run_once_to_writers(
                 .await
                 .map_err(|e| e.to_string())?;
             let mut rx = app.subscribe();
-            let turn = app
-                .submit(session.clone(), prompt)
-                .await
-                .map_err(|e| e.to_string())?;
+            let submit = app.submit(session.clone(), prompt);
+            tokio::pin!(submit);
+            let turn = tokio::select! {
+                result = &mut submit => result.map_err(|e| e.to_string())?,
+                signal = tokio::signal::ctrl_c() => {
+                    signal.map_err(|e| e.to_string())?;
+                    app.cancel(session.clone()).await.map_err(|e| e.to_string())?;
+                    let _ = submit.await;
+                    return Ok(ExitCode::from(130));
+                }
+            };
             writeln!(err, "session {}", session.0).map_err(|e| e.to_string())?;
             loop {
                 let event = tokio::select! {

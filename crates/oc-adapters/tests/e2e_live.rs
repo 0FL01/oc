@@ -70,6 +70,8 @@ fn live_env() -> Option<(ResponsesConfig, String, Option<String>)> {
         .filter(|v| !v.trim().is_empty());
     Some((
         ResponsesConfig {
+            headers: BTreeMap::new(),
+            set_cache_key: true,
             base_url: base,
             api_key: key,
             timeout: Some(false),

@@ -69,8 +69,14 @@ impl Fixture {
                         let body = read_request(&mut socket);
                         assert_eq!(body["model"], FIXTURE_MODEL);
                         assert_eq!(body["stream"], true);
-                        let input = body["input"][0]["content"].as_str().expect("input");
-                        let prompt = input.rsplit("user: ").next().expect("last prompt");
+                        let input = body["input"].as_array().expect("typed input");
+                        let prompt = input
+                            .iter()
+                            .rev()
+                            .find(|item| item["type"] == "message" && item["role"] == "user")
+                            .expect("user message")["content"][0]["text"]
+                            .as_str()
+                            .expect("last prompt");
                         let answer = match prompt {
                             "CLI durable seed" => "first configured answer".to_string(),
                             "PTY durable followup" => "second configured answer".to_string(),
@@ -79,9 +85,8 @@ impl Fixture {
                         };
                         let slow = prompt == "cancel heartbeat probe";
                         captured.lock().expect("requests").push(body);
-                        // Cancellation currently polls between received chunks. Heartbeats
-                        // allow that path to run; this does not qualify silent-stream cancel
-                        // cancellation during a silent stream (T34).
+                        // Preserve the heartbeat regression. Silent-body and
+                        // pre-header cancellation are covered by responses.rs.
                         let _ = respond(&mut socket, &answer, slow, &stopping);
                     }
                     Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
@@ -1163,12 +1168,23 @@ fn aud02_store01_persist_resume_across_restart() {
     .iter()
     .enumerate()
     {
-        let input = requests[index]["input"][0]["content"]
-            .as_str()
-            .expect("outbound input");
+        let input = &requests[index]["input"];
+        let typed: Vec<_> = expected
+            .iter()
+            .map(|message| {
+                let (role, text) = message.split_once(": ").expect("role and text");
+                let kind = if role == "assistant" {
+                    "output_text"
+                } else {
+                    "input_text"
+                };
+                serde_json::json!({"type": "message", "role": role,
+                "content": [{"type": kind, "text": text}]})
+            })
+            .collect();
         assert_eq!(
             input,
-            expected.join("\n\n"),
+            &serde_json::json!(typed),
             "durable request history at turn {index}"
         );
     }

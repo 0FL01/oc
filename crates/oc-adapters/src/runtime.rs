@@ -3,9 +3,8 @@
 //! compress, Location-scoped sessions, MCP/DCP/reasoning cleanup, and
 //! config reload between turns only.
 //!
-//! The provider layer streams one text prompt per round, so multi-round
-//! tool continuation carries prior results as bounded text (documented
-//! carryover, not a hidden protocol). Tool side effects are inherently
+//! The provider receives typed messages and complete Responses output items.
+//! Durable per-turn wire journals preserve stateless continuation. Tool effects are
 //! non-transactional; the staleness guarantee covers durable records
 //! (turn result, messages, compression blocks), which never commit under
 //! a superseded generation.
@@ -25,7 +24,7 @@ use crate::mcp_remote::{self, CodexWebClient, RemoteTool};
 use crate::mcp_stdio::{StdioClient, StdioConfig};
 use crate::models::{self, ModelCatalog};
 use crate::patch::ProtectedGlobs;
-use crate::provider::{ResponsesConfig, ToolDef};
+use crate::provider::{InputItem, InputRole, ResponsesConfig, ToolDef};
 use crate::storage::{Db, StorageError};
 use crate::tools::{
     Assembled, CallFailure, SkillSnapshot, ToolContext, ToolError, ToolPolicy, ToolRoots, TurnLog,
@@ -36,10 +35,6 @@ use crate::tools::{
 pub const MAX_ROUNDS: u32 = 8;
 /// Hard cap for a caller-supplied round limit.
 pub const ROUND_CAP: u32 = 16;
-/// Max assembled prompt bytes (oldest history drops first).
-pub const INPUT_BYTES_CAP: usize = 65_536;
-/// Max tool-output bytes carried into the next round.
-pub const PRIOR_OUTPUT_CAP: usize = 4_096;
 /// Max tool-output bytes kept in the turn report.
 pub const REPORT_OUTPUT_CAP: usize = 2_048;
 /// Max command definition/invocation bytes for one expansion.
@@ -226,52 +221,6 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
     ]
 }
 
-/// One prior round carried into the next prompt as bounded text.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RoundSummary {
-    /// Model text of the round.
-    pub text: String,
-    /// `(tool name, bounded output)` pairs in order.
-    pub calls: Vec<(String, String)>,
-}
-
-/// The single prompt assembler: history projection + user text + prior
-/// round carryover, capped at [`INPUT_BYTES_CAP`] by dropping oldest
-/// history first (user text and the latest round always survive).
-pub fn assemble_turn_input(
-    history: &[(String, String)],
-    user: &str,
-    prior: &[RoundSummary],
-) -> String {
-    let mut sections = vec![format!("user: {user}")];
-    for round in prior {
-        let mut section = String::from("previous round model text:\n");
-        section.push_str(&round.text);
-        for (name, output) in &round.calls {
-            section.push_str(&format!("\ntool {name} output:\n{output}"));
-        }
-        sections.push(section);
-    }
-    let mut history_lines: Vec<String> = history
-        .iter()
-        .map(|(role, text)| format!("{role}: {text}"))
-        .collect();
-    while assembled_len(&history_lines, &sections) > INPUT_BYTES_CAP && !history_lines.is_empty() {
-        history_lines.remove(0);
-    }
-    history_lines
-        .into_iter()
-        .chain(sections)
-        .collect::<Vec<_>>()
-        .join("\n\n")
-}
-
-fn assembled_len(history: &[String], sections: &[String]) -> usize {
-    history.iter().map(String::len).sum::<usize>()
-        + sections.iter().map(String::len).sum::<usize>()
-        + (history.len() + sections.len()) * 2
-}
-
 /// Rough token estimate (bytes/4 heuristic, documented at call sites).
 pub fn estimate_tokens(text: &str) -> u64 {
     (text.len() / 4) as u64
@@ -351,6 +300,8 @@ pub enum TurnStatus {
     Failed,
     /// Generation superseded before durable commit.
     Interrupted,
+    /// Successful response requested more work than the round budget permits.
+    Incomplete,
 }
 
 impl TurnStatus {
@@ -360,6 +311,7 @@ impl TurnStatus {
             Self::Cancelled => "cancelled",
             Self::Failed => "failed",
             Self::Interrupted => "interrupted",
+            Self::Incomplete => "incomplete",
         }
     }
 }
@@ -382,6 +334,8 @@ pub struct TurnReport {
     pub turn_id: String,
     /// Terminal status.
     pub status: TurnStatus,
+    /// Sanitized provider error kind; never raw remote text or payloads.
+    pub diagnostic: Option<String>,
     /// Accumulated model text.
     pub text: String,
     /// Rounds executed.
@@ -590,9 +544,13 @@ impl<'a> Runtime<'a> {
         if self.active.swap(true, Ordering::SeqCst) {
             return Err(RuntimeError::TurnActive);
         }
-        // Attach inside the single-flight guard so spawns serialize.
-        let attachment = match self.attach_mcp_current().await {
-            Ok(attachment) => attachment,
+        let attachment = tokio::select! {
+            biased;
+            _ = crate::provider::wait_cancel(params.cancel) => Err(RuntimeError::Cancelled),
+            result = self.attach_mcp_current() => result,
+        };
+        let attachment = match attachment {
+            Ok(value) => value,
             Err(error) => {
                 self.active.store(false, Ordering::SeqCst);
                 return Err(error);
@@ -708,7 +666,49 @@ impl<'a> Runtime<'a> {
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
         let selection = models::select_variant(&base, params.variant.as_deref())
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
-        // Attach MCP servers for this generation (fail fast, never silent).
+        // Outbound context honors compression blocks + prune mark: covered
+        // members collapse to summaries, raw history is never rewritten.
+        let full = self.db.read_history_full(&params.session)?;
+        let sblocks =
+            crate::dcp::load_blocks(self.db, &params.session).map_err(|_| RuntimeError::Storage)?;
+        let prune = self
+            .db
+            .load_prune_mark(&params.session)
+            .map_err(|_| RuntimeError::Storage)?;
+        let projected = crate::dcp::project_rows(&full, &sblocks, prune.as_deref());
+        let history = self.wire_history(
+            &params.session,
+            &projected,
+            &selection.id,
+            &params.catalog.provider,
+        )?;
+        let nudge_hint = {
+            let mut state = self.nudge_state.lock().expect("nudge lock");
+            state.on_turn();
+            let config = self.dcp_config.read().expect("dcp lock").clone();
+            let estimate = estimate_tokens(
+                &serde_json::to_string(&history).map_err(|_| RuntimeError::Storage)?,
+            ) + estimate_tokens(&params.prompt);
+            let hint =
+                evaluate(&config, &mut state, &selection.id, estimate).map(|nudge| nudge.text);
+            if hint.is_some() {
+                self.stats.lock().expect("stats lock").nudges_emitted += 1;
+            }
+            hint
+        };
+        // Admission against the entry limits with the assembled estimate.
+        let assembled_estimate =
+            estimate_tokens(&serde_json::to_string(&history).map_err(|_| RuntimeError::Storage)?)
+                + estimate_tokens(&params.prompt);
+        models::admit(&selection, assembled_estimate, params.max_output)
+            .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+        // Durable intent before any side effect.
+        let turn_id = format!("t{}-{}", params.session, millis());
+        let user_text = params.invocation.as_deref().unwrap_or(&params.prompt);
+        let user_message =
+            self.db
+                .accept_turn(&turn_id, &params.session, &params.prompt, user_text)?;
+        accepted(&turn_id);
         let mut tool_defs = builtin_tool_defs();
         for server in attached {
             for entry in &server.entries {
@@ -719,41 +719,6 @@ impl<'a> Runtime<'a> {
                 });
             }
         }
-        // Outbound context honors compression blocks + prune mark: covered
-        // members collapse to summaries, raw history is never rewritten.
-        let full = self.db.read_history_full(&params.session)?;
-        let sblocks =
-            crate::dcp::load_blocks(self.db, &params.session).map_err(|_| RuntimeError::Storage)?;
-        let prune = self
-            .db
-            .load_prune_mark(&params.session)
-            .map_err(|_| RuntimeError::Storage)?;
-        let history: Vec<(String, String)> =
-            crate::dcp::project_history(&full, &sblocks, prune.as_deref());
-        let nudge_hint = {
-            let mut state = self.nudge_state.lock().expect("nudge lock");
-            state.on_turn();
-            let config = self.dcp_config.read().expect("dcp lock").clone();
-            let estimate =
-                estimate_tokens(&history_text(&history)) + estimate_tokens(&params.prompt);
-            let hint =
-                evaluate(&config, &mut state, &selection.id, estimate).map(|nudge| nudge.text);
-            if hint.is_some() {
-                self.stats.lock().expect("stats lock").nudges_emitted += 1;
-            }
-            hint
-        };
-        // Admission against the entry limits with the assembled estimate.
-        let assembled_estimate =
-            estimate_tokens(&assemble_turn_input(&history, &params.prompt, &[]));
-        models::admit(&selection, assembled_estimate, params.max_output)
-            .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
-        // Durable intent before any side effect.
-        let turn_id = format!("t{}-{}", params.session, millis());
-        let user_text = params.invocation.as_deref().unwrap_or(&params.prompt);
-        self.db
-            .accept_turn(&turn_id, &params.session, &params.prompt, user_text)?;
-        accepted(&turn_id);
         let snapshot = {
             let skills = self.skills.read().expect("skills lock");
             SkillSnapshot::build(&skills).0
@@ -773,8 +738,13 @@ impl<'a> Runtime<'a> {
         let mut text = String::new();
         let mut usage = None;
         let mut calls = Vec::new();
-        let mut prior = Vec::new();
-        let mut turn_log = TurnLog::new(&turn_id, &selection.id, "runtime");
+        let mut turn_log = TurnLog::new(&turn_id, &selection.id, &params.catalog.provider);
+        turn_log.user_message = Some(user_message);
+        turn_log
+            .input
+            .push(InputItem::message(InputRole::User, &params.prompt));
+        self.db
+            .checkpoint_turn(&turn_id, &turn_log.to_json().to_string())?;
         let max_rounds = params.max_rounds.clamp(1, ROUND_CAP);
         let mut rounds = 0u32;
         loop {
@@ -792,15 +762,15 @@ impl<'a> Runtime<'a> {
                     &published,
                 );
             }
-            let prompt = assemble_turn_input(&history, &params.prompt, &prior);
-            let generation = match crate::provider::stream_generation_observed(
+            let input: Vec<InputItem> = history.iter().chain(&turn_log.input).cloned().collect();
+            let generation = match crate::provider::stream_input_observed(
                 &params.provider,
                 &selection.id,
                 selection.variant.as_ref(),
-                &prompt,
+                &input,
                 &tool_defs,
+                params.max_output,
                 params.cancel,
-                None,
                 &mut |item| {
                     if let crate::provider::StreamItem::TextDelta(delta) = item {
                         text_delta(&turn_id, delta);
@@ -810,13 +780,19 @@ impl<'a> Runtime<'a> {
             .await
             {
                 Ok(generation) => generation,
-                Err(_) => {
+                Err(error) => {
                     let status = if params.cancel.load(Ordering::Relaxed) {
                         TurnStatus::Cancelled
+                    } else if matches!(
+                        error,
+                        crate::provider::ProviderError::Incomplete
+                            | crate::provider::ProviderError::ResponseIncomplete
+                    ) {
+                        TurnStatus::Incomplete
                     } else {
                         TurnStatus::Failed
                     };
-                    return self.commit_turn(
+                    let mut report = self.commit_turn(
                         &turn_log,
                         turn_id,
                         &params.session,
@@ -827,7 +803,9 @@ impl<'a> Runtime<'a> {
                         calls,
                         nudge_hint,
                         &published,
-                    );
+                    )?;
+                    report.diagnostic = Some(error.to_string());
+                    return Ok(report);
                 }
             };
             rounds += 1;
@@ -838,7 +816,22 @@ impl<'a> Runtime<'a> {
             if generation.usage.is_some() {
                 usage = generation.usage;
             }
-            let units = match assemble_calls(&generation.items) {
+            // Calls come only from complete canonical output, never partial deltas.
+            let mut call_items = Vec::new();
+            for item in &generation.output {
+                if item["type"] == "function_call" {
+                    call_items.push(crate::provider::StreamItem::ToolCallStarted {
+                        item_id: item["id"].as_str().unwrap_or_default().to_string(),
+                        call_id: item["call_id"].as_str().unwrap_or_default().to_string(),
+                        name: item["name"].as_str().unwrap_or_default().to_string(),
+                    });
+                    call_items.push(crate::provider::StreamItem::ArgDelta {
+                        item_id: item["id"].as_str().unwrap_or_default().to_string(),
+                        delta: item["arguments"].as_str().unwrap_or_default().to_string(),
+                    });
+                }
+            }
+            let units = match assemble_calls(&call_items) {
                 Ok(units) => units,
                 Err(error) => {
                     calls.push(CallRecord {
@@ -863,6 +856,22 @@ impl<'a> Runtime<'a> {
                     );
                 }
             };
+            let has_message = generation
+                .output
+                .iter()
+                .any(|value| value["type"] == "message");
+            turn_log
+                .input
+                .extend(generation.output.into_iter().map(InputItem::ProviderOutput));
+            // Text-only synthetic peers may omit canonical messages. This is plain
+            // assistant text, never reconstruction of reasoning or function calls.
+            if !generation.text.is_empty() && !has_message {
+                turn_log
+                    .input
+                    .push(InputItem::message(InputRole::Assistant, &generation.text));
+            }
+            self.db
+                .checkpoint_turn(&turn_id, &turn_log.to_json().to_string())?;
             let round_calls = self
                 .execute_units(
                     &turn_id,
@@ -873,26 +882,26 @@ impl<'a> Runtime<'a> {
                     attached,
                     params.cancel,
                     rounds,
+                    &mut turn_log,
                 )
                 .await?;
-            let summaries: Vec<(String, String)> = round_calls
-                .iter()
-                .map(|record| {
-                    (
-                        record.name.clone(),
-                        truncate(&record.output, PRIOR_OUTPUT_CAP),
-                    )
-                })
-                .collect();
             calls.extend(round_calls);
-            if units_have_calls(&units) {
-                prior.push(RoundSummary {
-                    text: generation.text.clone(),
-                    calls: summaries,
-                });
-            }
-            if !units_have_calls(&units) || rounds >= max_rounds {
+            if !units_have_calls(&units) {
                 break;
+            }
+            if rounds >= max_rounds {
+                return self.commit_turn(
+                    &turn_log,
+                    turn_id,
+                    &params.session,
+                    TurnStatus::Incomplete,
+                    text,
+                    rounds,
+                    usage,
+                    calls,
+                    nudge_hint,
+                    &published,
+                );
             }
         }
         self.commit_turn(
@@ -946,12 +955,86 @@ impl<'a> Runtime<'a> {
         Ok(TurnReport {
             turn_id,
             status,
+            diagnostic: None,
             text,
             rounds,
             usage,
             calls,
             nudge_hint,
         })
+    }
+
+    fn wire_history(
+        &self,
+        session: &str,
+        projected: &[(String, String, String)],
+        model: &str,
+        provider: &str,
+    ) -> Result<Vec<InputItem>, RuntimeError> {
+        let mut turns = BTreeMap::new();
+        let mut represented = std::collections::BTreeSet::new();
+        for raw in self.db.wire_logs(session)? {
+            let value: serde_json::Value =
+                serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?;
+            let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
+            let Some(anchor) = log.user_message else {
+                continue;
+            };
+            if !projected.iter().any(|(id, _, _)| id == &anchor) {
+                continue;
+            }
+            if log.model != model || log.provider != provider {
+                return Err(RuntimeError::InvalidArgs(
+                    "session wire history belongs to a different provider/model".to_string(),
+                ));
+            }
+            if let Some(id) = value["assistant_message"].as_str() {
+                represented.insert(id.to_string());
+            }
+            // Unknown operations cannot be replayed or assigned invented results.
+            // Retain every committed pair; omit only unanswered function calls.
+            let answered: std::collections::BTreeSet<String> = log
+                .input
+                .iter()
+                .filter_map(|item| match item {
+                    InputItem::FunctionCallOutput { call_id, .. } => Some(call_id.clone()),
+                    _ => None,
+                })
+                .collect();
+            let input = log
+                .input
+                .into_iter()
+                .filter(|item| match item {
+                    InputItem::ProviderOutput(value) if value["type"] == "function_call" => {
+                        value["call_id"]
+                            .as_str()
+                            .is_some_and(|id| answered.contains(id))
+                    }
+                    _ => true,
+                })
+                .collect::<Vec<_>>();
+            turns.insert(anchor, input);
+        }
+        let mut input = Vec::new();
+        for (id, role, text) in projected {
+            if let Some(items) = turns.remove(id) {
+                input.extend(items);
+            } else if !represented.contains(id) {
+                let role = match role.as_str() {
+                    "system" => InputRole::System,
+                    "developer" => InputRole::Developer,
+                    "user" => InputRole::User,
+                    "assistant" => InputRole::Assistant,
+                    _ => {
+                        return Err(RuntimeError::InvalidArgs(
+                            "history contains an unpaired tool message".to_string(),
+                        ));
+                    }
+                };
+                input.push(InputItem::message(role, text));
+            }
+        }
+        Ok(input)
     }
 
     /// Execute one assembled batch: builtins via the executor, MCP via
@@ -968,6 +1051,7 @@ impl<'a> Runtime<'a> {
         attached: &[AttachedMcp],
         cancel: &AtomicBool,
         round: u32,
+        turn_log: &mut TurnLog,
     ) -> Result<Vec<CallRecord>, RuntimeError> {
         let mut records = Vec::new();
         for (i, unit) in units.iter().enumerate() {
@@ -1017,7 +1101,17 @@ impl<'a> Runtime<'a> {
                 }
             };
             // Failure here leaves started/unknown; never continue the batch.
-            self.db.record_tool_outcome(&op, state, Some(&output))?;
+            turn_log.input.push(InputItem::FunctionCallOutput {
+                call_id: id.clone(),
+                output: output.clone(),
+            });
+            self.db.tool_outcome_with_log(
+                &op,
+                state,
+                &output,
+                turn_id,
+                &turn_log.to_json().to_string(),
+            )?;
             records.push(CallRecord {
                 name: name.to_string(),
                 state: state.to_string(),
@@ -1188,14 +1282,6 @@ fn registry_entries(server_id: &str, tools: &[RemoteTool]) -> Vec<RegistryEntry>
             schema: tool.input_schema.clone(),
         })
         .collect()
-}
-
-fn history_text(history: &[(String, String)]) -> String {
-    history
-        .iter()
-        .map(|(role, text)| format!("{role}: {text}"))
-        .collect::<Vec<_>>()
-        .join("\n")
 }
 
 fn map_messages(history: &[(String, String, String)]) -> Result<Vec<Message>, RuntimeError> {

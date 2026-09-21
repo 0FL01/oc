@@ -1,6 +1,6 @@
 //! T24 (STORE05/TOOL09/DCP08): runtime turn loop against a fake Responses
 //! server — completion/drain, unified permission path, MCP fail-fast,
-//! Location binding, reload, compress, commands, assembler bounds.
+//! Location binding, reload, compress, commands, AUD11/AUD12 outcomes.
 
 use std::collections::{BTreeMap, VecDeque};
 use std::io::{BufRead, BufReader, Read, Write};
@@ -14,7 +14,7 @@ use oc_adapters::dcp_auto::DcpConfig;
 use oc_adapters::models::ModelCatalog;
 use oc_adapters::patch::ProtectedGlobs;
 use oc_adapters::provider::ResponsesConfig;
-use oc_adapters::runtime::{Runtime, TurnParams, TurnStatus, assemble_turn_input, expand_command};
+use oc_adapters::runtime::{Runtime, TurnParams, TurnStatus, expand_command};
 use oc_adapters::storage::Db;
 use oc_core::context_plan::ProtectedSpec;
 
@@ -26,22 +26,28 @@ fn sse_delta(text: &str) -> String {
 }
 
 fn sse_completed() -> String {
-    "data: {\"type\":\"response.completed\",\"response\":{\"usage\":{\"input_tokens\":10,\"output_tokens\":5}}}\n\n".to_string()
+    "data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":10,\"output_tokens\":5}}}\n\n".to_string()
 }
 
-fn sse_tool_call(item_id: &str, name: &str, args: &serde_json::Value) -> String {
-    let added = format!(
-        "data: {{\"type\":\"response.output_item.added\",\"item\":{{\"type\":\"function_call\",\"id\":\"{item_id}\",\"name\":\"{name}\"}}}}\n\n"
-    );
-    let delta = format!(
-        "data: {{\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"{item_id}\",\"delta\":{}}}\n\n",
-        serde_json::Value::String(args.to_string())
-    );
-    added + &delta
+fn sse_tool_call(call_id: &str, name: &str, args: &serde_json::Value) -> String {
+    let item_id = format!("fc_{call_id}");
+    let added = serde_json::json!({"type": "response.output_item.added", "item": {
+        "type": "function_call", "id": item_id, "call_id": call_id,
+        "name": name, "arguments": "", "status": "in_progress"
+    }});
+    let delta = serde_json::json!({"type": "response.function_call_arguments.delta",
+        "item_id": item_id, "delta": args.to_string()});
+    let done = serde_json::json!({"type": "response.output_item.done", "item": {
+        "type": "function_call", "id": item_id, "call_id": call_id,
+        "name": name, "arguments": args.to_string(), "status": "completed"
+    }});
+    format!("data: {added}\n\ndata: {delta}\n\ndata: {done}\n\n")
 }
 
 /// Scripted fakes: serve queued SSE bodies in order, then repeat the last.
 struct Fake;
+
+type CapturedRequests = Arc<Mutex<Vec<serde_json::Value>>>;
 
 impl Fake {
     /// Stall the body `stall` after sending headers immediately: models a
@@ -109,6 +115,14 @@ impl Fake {
     }
 
     fn start(script: Vec<String>, delay: Duration) -> (String, Arc<Mutex<usize>>) {
+        let (base, hits, _) = Self::start_recording(script, delay);
+        (base, hits)
+    }
+
+    fn start_recording(
+        script: Vec<String>,
+        delay: Duration,
+    ) -> (String, Arc<Mutex<usize>>, CapturedRequests) {
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let base = format!(
             "http://127.0.0.1:{}/v1",
@@ -118,10 +132,13 @@ impl Fake {
         let queue = Arc::new(Mutex::new(VecDeque::from(script)));
         let worker_queue = queue.clone();
         let worker_hits = hits.clone();
+        let requests = Arc::new(Mutex::new(Vec::new()));
+        let worker_requests = requests.clone();
         std::thread::spawn(move || {
             for stream in listener.incoming().filter_map(Result::ok) {
                 let queue = worker_queue.clone();
                 let hits = worker_hits.clone();
+                let requests = worker_requests.clone();
                 std::thread::spawn(move || {
                     let mut reader = BufReader::new(stream);
                     let mut content_length = 0usize;
@@ -145,6 +162,10 @@ impl Fake {
                     if content_length > 0 {
                         let _ = reader.read_exact(&mut body);
                     }
+                    requests
+                        .lock()
+                        .expect("requests")
+                        .push(serde_json::from_slice(&body).expect("JSON request"));
                     std::thread::sleep(delay);
                     let payload = {
                         let mut queue = queue.lock().expect("queue");
@@ -165,7 +186,7 @@ impl Fake {
             }
         });
         let _ = &queue;
-        (base, hits)
+        (base, hits, requests)
     }
 }
 
@@ -252,6 +273,8 @@ fn runtime_of<'a>(
 
 fn provider_of(base: &str) -> ResponsesConfig {
     ResponsesConfig {
+        headers: BTreeMap::new(),
+        set_cache_key: true,
         base_url: base.to_string(),
         api_key: "test-key".to_string(),
         timeout: Some(false),
@@ -365,7 +388,7 @@ async fn aud07_terminal_failure_does_not_commit_assistant() {
     let runtime = runtime_of(&harness, generation, Vec::new());
     runtime.create_session("s").unwrap();
     let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
-    sql.execute_batch("CREATE TRIGGER fail_terminal BEFORE UPDATE ON turns BEGIN SELECT RAISE(ABORT, 'injected terminal failure'); END;").unwrap();
+    sql.execute_batch("CREATE TRIGGER fail_terminal BEFORE UPDATE ON turns WHEN NEW.status = 'completed' BEGIN SELECT RAISE(ABORT, 'injected terminal failure'); END;").unwrap();
     let (base, _) = Fake::start(
         vec![sse_delta("must not commit") + &sse_completed()],
         Duration::ZERO,
@@ -395,6 +418,16 @@ async fn aud07_terminal_failure_does_not_commit_assistant() {
         )
         .unwrap();
     assert_eq!(terminal, 0);
+    let (status, checkpoint): (String, Option<String>) = sql
+        .query_row("SELECT status, result FROM turns", [], |r| {
+            Ok((r.get(0)?, r.get(1)?))
+        })
+        .unwrap();
+    assert_eq!(status, "started");
+    assert!(
+        checkpoint.is_some(),
+        "generation checkpoint must succeed before the terminal commit fails"
+    );
     drop(runtime);
     drop(harness.db);
     let reopened = Db::open(harness._data.path()).unwrap();
@@ -554,6 +587,206 @@ async fn text_turn_completes_and_drains() {
 }
 
 #[tokio::test]
+async fn aud11_text_without_successful_terminal_never_completes() {
+    for (terminal, expected, stored) in [
+        ("", TurnStatus::Incomplete, "incomplete"),
+        (
+            "data: {\"type\":\"response.failed\",\"response\":{\"status\":\"failed\",\"error\":{\"code\":\"server_error\"}}}\n\n",
+            TurnStatus::Failed,
+            "failed",
+        ),
+        (
+            "data: {\"type\":\"response.incomplete\",\"response\":{\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"max_output_tokens\"}}}\n\n",
+            TurnStatus::Incomplete,
+            "incomplete",
+        ),
+    ] {
+        let (harness, generation) = make_harness(allow_all());
+        let runtime = runtime_of(&harness, generation, Vec::new());
+        runtime.create_session("s").unwrap();
+        let (base, hits) = Fake::start(vec![sse_delta("partial") + terminal], Duration::ZERO);
+        let mut observed = String::new();
+        let report = runtime
+            .run_turn_with_events(
+                params("s", "hello", &harness, provider_of(&base), &NO_CANCEL),
+                |_| {},
+                |_, delta| observed.push_str(delta),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            observed, "partial",
+            "fixture must deliver a valid text delta"
+        );
+        assert_eq!(report.status, expected);
+        assert!(report.calls.is_empty());
+        assert_eq!(harness.db.turn_result(&report.turn_id).unwrap().0, stored);
+        assert_eq!(
+            harness.db.read_history("s").unwrap(),
+            [("user".to_string(), "hello".to_string())],
+            "partial assistant must not be committed as a completed answer"
+        );
+        assert_eq!(*hits.lock().unwrap(), 1, "no hidden generation retry");
+    }
+}
+
+#[tokio::test]
+async fn aud11_incomplete_call_never_executes() {
+    for terminal in [
+        "".to_string(),
+        "data: {\"type\":\"response.incomplete\",\"response\":{\"status\":\"incomplete\"}}\n\n"
+            .to_string(),
+        "data: {\"type\":\"response.failed\",\"response\":{\"status\":\"failed\"}}\n\n".to_string(),
+        sse_completed(),
+    ] {
+        let (harness, generation) = make_harness(allow_all());
+        let runtime = runtime_of(&harness, generation, Vec::new());
+        runtime.create_session("s").unwrap();
+        let args = serde_json::json!({"argv": ["/bin/sh", "-c", "printf unexpected >> sentinel"]});
+        let added = serde_json::json!({"type": "response.output_item.added", "item": {
+            "type": "function_call", "id": "fc_partial", "call_id": "call_partial",
+            "name": "bash", "arguments": "", "status": "in_progress"
+        }});
+        let delta = serde_json::json!({"type": "response.function_call_arguments.delta",
+            "item_id": "fc_partial", "delta": args.to_string()});
+        // Even valid JSON arguments cannot substitute for output_item.done.
+        let (base, hits) = Fake::start(
+            vec![format!("data: {added}\n\ndata: {delta}\n\n{terminal}")],
+            Duration::ZERO,
+        );
+        let report = runtime
+            .run_turn(params("s", "run", &harness, provider_of(&base), &NO_CANCEL))
+            .await
+            .unwrap();
+        assert_ne!(report.status, TurnStatus::Completed, "{terminal}");
+        assert!(report.calls.is_empty(), "unfinished batch executed");
+        assert!(harness.db.list_tool_ops("s").unwrap().is_empty());
+        assert!(!harness._project.path().join("sentinel").exists());
+        assert_ne!(
+            harness.db.turn_result(&report.turn_id).unwrap().0,
+            "completed"
+        );
+        assert_eq!(*hits.lock().unwrap(), 1, "no hidden generation retry");
+    }
+}
+
+#[tokio::test]
+async fn aud11_round_exhaustion_retains_output_without_replaying_effect_after_restart() {
+    let (mut harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation.clone(), Vec::new());
+    runtime.create_session("s").unwrap();
+    let tool = sse_tool_call(
+        "call_effect",
+        "bash",
+        &serde_json::json!({"argv": ["/bin/sh", "-c", "printf 'once\\n' >> effects; printf durable-output"]}),
+    );
+    let (base, hits, requests) = Fake::start_recording(
+        vec![
+            tool + &sse_completed(),
+            sse_delta("resumed") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let mut turn = params(
+        "s",
+        "record effect",
+        &harness,
+        provider_of(&base),
+        &NO_CANCEL,
+    );
+    turn.max_rounds = 1;
+    let report = runtime.run_turn(turn).await.unwrap();
+    assert_eq!(report.status, TurnStatus::Incomplete);
+    assert_eq!(report.rounds, 1);
+    assert_eq!(report.calls.len(), 1);
+    assert_eq!(report.calls[0].state, "completed");
+    assert_eq!(*hits.lock().unwrap(), 1, "round budget must stop requests");
+    assert_eq!(
+        std::fs::read_to_string(harness._project.path().join("effects")).unwrap(),
+        "once\n"
+    );
+    let (status, raw) = harness.db.turn_result(&report.turn_id).unwrap();
+    assert_eq!(status, "incomplete");
+    let journal: serde_json::Value = serde_json::from_str(&raw.unwrap()).unwrap();
+    let input = journal["input"].as_array().unwrap();
+    let output = input
+        .iter()
+        .find(|item| item["type"] == "function_call_output")
+        .unwrap()
+        .clone();
+    assert_eq!(output["call_id"], "call_effect");
+    assert!(
+        output["output"]
+            .as_str()
+            .unwrap()
+            .contains("durable-output")
+    );
+    assert_eq!(
+        input
+            .iter()
+            .filter(|item| item["type"] == "function_call_output")
+            .count(),
+        1
+    );
+    assert!(input.iter().any(|item| item["type"] == "function_call"
+        && item["id"] == "fc_call_effect"
+        && item["call_id"] == "call_effect"));
+
+    drop(runtime);
+    drop(harness.db);
+    harness.db = Db::open(harness._data.path()).unwrap();
+    assert_eq!(
+        harness.db.turn_result(&report.turn_id).unwrap().0,
+        "incomplete"
+    );
+    let reopened: serde_json::Value =
+        serde_json::from_str(&harness.db.turn_result(&report.turn_id).unwrap().1.unwrap()).unwrap();
+    assert_eq!(
+        reopened, journal,
+        "recovery must preserve the durable wire journal"
+    );
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.open_session("s").unwrap();
+    let resumed = runtime
+        .run_turn(params(
+            "s",
+            "continue",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resumed.status, TurnStatus::Completed);
+    assert!(resumed.calls.is_empty());
+    assert_eq!(
+        std::fs::read_to_string(harness._project.path().join("effects")).unwrap(),
+        "once\n"
+    );
+    let ops = harness.db.list_tool_ops("s").unwrap();
+    assert_eq!(
+        ops.len(),
+        1,
+        "restart must not execute the prior effect again"
+    );
+    assert_eq!(ops[0].state, "completed");
+    assert_eq!(*hits.lock().unwrap(), 2);
+    let requests = requests.lock().unwrap();
+    let continuation = requests[1]["input"].as_array().unwrap();
+    assert_eq!(
+        continuation.iter().filter(|item| **item == output).count(),
+        1
+    );
+    assert!(
+        continuation
+            .iter()
+            .any(|item| item["type"] == "function_call"
+                && item["id"] == "fc_call_effect"
+                && item["call_id"] == "call_effect")
+    );
+}
+
+#[tokio::test]
 async fn tool_rounds_execute_and_record() {
     let (harness, generation) = make_harness(allow_all());
     std::fs::write(harness._project.path().join("note.txt"), "file-bytes").expect("seed");
@@ -677,6 +910,119 @@ async fn cancel_drains_to_records() {
     assert_eq!(history.len(), 1, "user kept, no partial assistant");
     let (status, _) = harness.db.turn_result(&report.turn_id).expect("turn row");
     assert_eq!(status, "cancelled");
+}
+
+#[tokio::test]
+async fn aud12_cancel_during_mcp_initialize_reaps_child_before_acceptance() {
+    let (harness, mut generation) = make_harness(allow_all());
+    let script = harness._project.path().join("stall_initialize.py");
+    let pid_file = harness._project.path().join("mcp.pid");
+    std::fs::write(
+        &script,
+        r#"import json, os, sys, time
+request = json.loads(sys.stdin.readline())
+assert request['method'] == 'initialize'
+with open(sys.argv[1], 'w') as f:
+    f.write(str(os.getpid()))
+time.sleep(30)
+"#,
+    )
+    .unwrap();
+    generation.mcp.insert(
+        "stall".to_string(),
+        McpEntry {
+            kind: "local".to_string(),
+            url: None,
+            enabled: true,
+            oauth: false,
+            headers: BTreeMap::new(),
+            command: vec![
+                "/usr/bin/python3".to_string(),
+                script.to_string_lossy().into_owned(),
+                pid_file.to_string_lossy().into_owned(),
+            ],
+            timeout: Some(30_000),
+            codemode: None,
+        },
+    );
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s").unwrap();
+    let (base, hits) = Fake::start(
+        vec![sse_delta("unexpected") + &sse_completed()],
+        Duration::ZERO,
+    );
+    let cancel = AtomicBool::new(false);
+    let accepted = AtomicBool::new(false);
+    let outcome = tokio::time::timeout(Duration::from_secs(5), async {
+        tokio::join!(
+            async {
+                // Synchronize on initialize received, not an assumed startup delay.
+                loop {
+                    if std::fs::read_to_string(&pid_file)
+                        .is_ok_and(|text| text.parse::<u32>().is_ok())
+                    {
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                }
+                let at = std::time::Instant::now();
+                cancel.store(true, Ordering::Relaxed);
+                at
+            },
+            runtime.run_turn_with_events(
+                params("s", "cancel attach", &harness, provider_of(&base), &cancel),
+                |_| {
+                    accepted.store(true, Ordering::Relaxed);
+                },
+                |_, _| panic!("provider started before MCP attached"),
+            )
+        )
+    })
+    .await;
+    let pid: u32 = std::fs::read_to_string(&pid_file)
+        .expect("child received initialize")
+        .parse()
+        .unwrap();
+    let process = std::path::PathBuf::from(format!("/proc/{pid}"));
+    let cleanup = tokio::time::timeout(Duration::from_secs(1), async {
+        while process.exists() {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await;
+    if cleanup.is_err() {
+        // A failing regression must not leave this fixture running for 30 seconds.
+        let _ = std::process::Command::new("/bin/kill")
+            .args(["-KILL", &pid.to_string()])
+            .status();
+    }
+    let (cancelled_at, result) = outcome.expect("attach ignored cancellation for five seconds");
+    assert!(
+        cancelled_at.elapsed() < Duration::from_secs(1),
+        "cancel/child cleanup exceeded one second"
+    );
+    assert_eq!(
+        result.unwrap_err(),
+        oc_adapters::runtime::RuntimeError::Cancelled
+    );
+    assert!(cleanup.is_ok(), "stdio child {pid} survived cancellation");
+    assert!(!accepted.load(Ordering::Relaxed));
+    assert_eq!(*hits.lock().unwrap(), 0);
+    assert!(harness.db.read_history("s").unwrap().is_empty());
+    assert!(harness.db.list_tool_ops("s").unwrap().is_empty());
+    let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    let turns: i64 = sql
+        .query_row("SELECT COUNT(*) FROM turns", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(turns, 0, "cancelled attach must not begin a turn");
+    let events: i64 = sql
+        .query_row(
+            "SELECT COUNT(*) FROM events WHERE kind != 'session_created'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(events, 0, "cancelled attach must not acknowledge input");
 }
 
 #[tokio::test]
@@ -906,16 +1252,6 @@ fn command_expansion_is_single_bounded_pass() {
             .expect("partial")
             .contains("$9")
     );
-}
-
-#[test]
-fn assembler_caps_history_and_keeps_user() {
-    let history: Vec<(String, String)> = (0..2_000)
-        .map(|i| ("user".to_string(), "x".repeat(100) + &i.to_string()))
-        .collect();
-    let prompt = assemble_turn_input(&history, "final question", &[]);
-    assert!(prompt.len() <= oc_adapters::runtime::INPUT_BYTES_CAP + 8_192);
-    assert!(prompt.contains("final question"));
 }
 
 #[tokio::test]

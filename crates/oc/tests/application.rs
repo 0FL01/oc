@@ -80,7 +80,14 @@ fn aud01_binary_sends_configured_responses_request() {
                 .contains("authorization: bearer fixture-not-a-secret\r\n")
         );
         assert_eq!(body["model"], model);
-        assert!(body["input"].to_string().contains("binary wiring probe"));
+        assert_eq!(
+            body["input"],
+            serde_json::json!([{
+                "type": "message", "role": "user", "content": [
+                    {"type": "input_text", "text": "binary wiring probe"}
+                ]
+            }])
+        );
         let sse = concat!(
             "data: {\"type\":\"response.output_text.delta\",\"delta\":\"configured endpoint answer\"}\n\n",
             "data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"output\":[{\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"configured endpoint answer\"}]}]}}\n\n"

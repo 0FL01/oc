@@ -407,6 +407,18 @@ pub fn project_history(
     blocks: &[CompressionBlock],
     prune_up_to: Option<&str>,
 ) -> Vec<(String, String)> {
+    project_rows(history, blocks, prune_up_to)
+        .into_iter()
+        .map(|(_, role, text)| (role, text))
+        .collect()
+}
+
+/// Projection retaining anchors for Responses wire journals.
+pub(crate) fn project_rows(
+    history: &[(String, String, String)],
+    blocks: &[CompressionBlock],
+    prune_up_to: Option<&str>,
+) -> Vec<(String, String, String)> {
     let by_id: std::collections::BTreeMap<String, CompressionBlock> = blocks
         .iter()
         .map(|block| (block.id.clone(), block.clone()))
@@ -439,12 +451,13 @@ pub fn project_history(
                     })
                     .unwrap_or_default();
                 out.push((
+                    block_id.to_string(),
                     "system".to_string(),
                     format!("[compressed {block_id}] {summary}"),
                 ));
             }
             Some(_) => {}
-            None => out.push((role.clone(), text.clone())),
+            None => out.push((id.clone(), role.clone(), text.clone())),
         }
     }
     out

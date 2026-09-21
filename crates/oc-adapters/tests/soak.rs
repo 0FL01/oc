@@ -35,15 +35,23 @@ fn sse_delta(text: &str) -> String {
 }
 
 fn sse_completed() -> String {
-    "data: {\"type\":\"response.completed\",\"response\":{\"usage\":{\"input_tokens\":10,\"output_tokens\":5}}}\n\n"
+    "data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":10,\"output_tokens\":5}}}\n\n"
         .to_string()
 }
 
-fn sse_tool_call(item_id: &str, name: &str, args: &serde_json::Value) -> String {
-    format!(
-        "data: {{\"type\":\"response.output_item.added\",\"item\":{{\"type\":\"function_call\",\"id\":\"{item_id}\",\"name\":\"{name}\"}}}}\n\ndata: {{\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"{item_id}\",\"delta\":{}}}\n\n",
-        serde_json::Value::String(args.to_string())
-    )
+fn sse_tool_call(call_id: &str, name: &str, args: &serde_json::Value) -> String {
+    let item_id = format!("fc_{call_id}");
+    let added = serde_json::json!({"type": "response.output_item.added", "item": {
+        "type": "function_call", "id": item_id, "call_id": call_id,
+        "name": name, "arguments": "", "status": "in_progress"
+    }});
+    let delta = serde_json::json!({"type": "response.function_call_arguments.delta",
+        "item_id": item_id, "delta": args.to_string()});
+    let done = serde_json::json!({"type": "response.output_item.done", "item": {
+        "type": "function_call", "id": item_id, "call_id": call_id,
+        "name": name, "arguments": args.to_string(), "status": "completed"
+    }});
+    format!("data: {added}\n\ndata: {delta}\n\ndata: {done}\n\n")
 }
 
 /// Scripted fake: queued SSE bodies in order, then repeat the last.
@@ -238,6 +246,8 @@ fn runtime_of<'a>(harness: &'a Harness, generation: Generation) -> Runtime<'a> {
 
 fn provider_of(base: &str) -> ResponsesConfig {
     ResponsesConfig {
+        headers: BTreeMap::new(),
+        set_cache_key: true,
         base_url: base.to_string(),
         api_key: "test-key".to_string(),
         timeout: Some(false),
@@ -441,11 +451,23 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
     // One cancel against a stalled stream.
     let stalled = Fake::start_stalled();
     let flag = AtomicBool::new(false);
-    let pending = runtime.run_turn(params("s0", "stall", harness, provider_of(&stalled), &flag));
-    tokio::pin!(pending);
-    tokio::time::sleep(Duration::from_millis(300)).await;
-    flag.store(true, Ordering::Relaxed);
-    let cancelled = pending.await.expect("cancel lands");
+    let (accepted, ready) = tokio::sync::oneshot::channel();
+    let mut accepted = Some(accepted);
+    let (cancelled, ()) = tokio::join!(
+        runtime.run_turn_with_events(
+            params("s0", "stall", harness, provider_of(&stalled), &flag),
+            |_| {
+                let _ = accepted.take().expect("one acceptance").send(());
+            },
+            |_, _| {},
+        ),
+        async {
+            ready.await.expect("accepted before cancellation");
+            tokio::time::sleep(Duration::from_millis(300)).await;
+            flag.store(true, Ordering::Relaxed);
+        }
+    );
+    let cancelled = cancelled.expect("cancel lands");
     assert_eq!(cancelled.status, TurnStatus::Cancelled);
     // One loud MCP failure: no silent degradation, no partial turn.
     let bad = Generation {
@@ -559,21 +581,19 @@ async fn output_pressure_stays_capped_single_transcript() {
     runtime.create_session("press").expect("create");
     // 500 × 1 KiB deltas + a 300 KiB read + a big shell listing.
     let giant = sse_delta(&"g".repeat(1_024)).repeat(500) + &sse_completed();
-    let read_big = sse_tool_call("r", "read", &serde_json::json!({"path": "big.bin"}))
-        + &sse_completed()
-        + &sse_delta("saw it")
-        + &sse_completed();
+    let read_big =
+        sse_tool_call("r", "read", &serde_json::json!({"path": "big.bin"})) + &sse_completed();
     let bash_big = sse_tool_call(
         "b",
         "bash",
         &serde_json::json!({"argv": ["/bin/echo", &"h".repeat(10_000)]}),
-    ) + &sse_completed()
-        + &sse_delta("ran")
-        + &sse_completed();
+    ) + &sse_completed();
     let (base, _) = Fake::start(vec![
         giant,
         read_big,
+        sse_delta("saw it") + &sse_completed(),
         bash_big,
+        sse_delta("ran") + &sse_completed(),
         sse_delta("steady") + &sse_completed(),
     ]);
     static CANCEL: AtomicBool = AtomicBool::new(false);

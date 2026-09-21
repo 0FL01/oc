@@ -116,7 +116,7 @@ impl ToolPolicy for DenyListPolicy {
 /// Assembled tool call with validated JSON arguments.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolCall {
-    /// Provider item id (output key).
+    /// Provider function call_id (not the streamed item id).
     pub id: String,
     /// Registry tool name.
     pub name: String,
@@ -147,19 +147,23 @@ pub enum Assembled {
 /// Duplicate announced ids refuse the whole batch before any execution.
 /// Deltas for unannounced ids and unparseable JSON become [`Assembled::Failed`].
 pub fn assemble_calls(items: &[StreamItem]) -> Result<Vec<Assembled>, BatchError> {
-    let mut names: BTreeMap<String, (String, usize)> = BTreeMap::new();
+    let mut names: BTreeMap<String, (String, String)> = BTreeMap::new();
     let mut args: BTreeMap<String, String> = BTreeMap::new();
     let mut order: Vec<String> = Vec::new();
     for item in items {
         match item {
-            StreamItem::ToolCallStarted { item_id, name } => {
-                if names.contains_key(item_id) {
+            StreamItem::ToolCallStarted {
+                item_id,
+                call_id,
+                name,
+            } => {
+                if names.contains_key(item_id) || names.values().any(|(_, id)| id == call_id) {
                     return Err(BatchError::DuplicateId {
                         id: item_id.clone(),
                     });
                 }
                 order.push(item_id.clone());
-                names.insert(item_id.clone(), (name.clone(), order.len()));
+                names.insert(item_id.clone(), (name.clone(), call_id.clone()));
             }
             StreamItem::ArgDelta { item_id, delta } => {
                 if !names.contains_key(item_id) {
@@ -177,18 +181,18 @@ pub fn assemble_calls(items: &[StreamItem]) -> Result<Vec<Assembled>, BatchError
     let mut units = Vec::new();
     for id in order {
         match names.remove(&id) {
-            Some((name, _)) => {
+            Some((name, call_id)) => {
                 let raw = args.remove(&id).unwrap_or_default();
                 match serde_json::from_str::<serde_json::Value>(&raw) {
                     Ok(arguments) if arguments.is_object() => {
                         units.push(Assembled::Call(ToolCall {
-                            id,
+                            id: call_id,
                             name,
                             arguments,
                         }));
                     }
                     _ => units.push(Assembled::Failed(CallFailure {
-                        id,
+                        id: call_id,
                         error: "invalid JSON arguments".to_string(),
                     })),
                 }
@@ -205,7 +209,7 @@ pub fn assemble_calls(items: &[StreamItem]) -> Result<Vec<Assembled>, BatchError
 /// Durable tool-call output keyed to the original call id.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionCallOutput {
-    /// Original provider item id.
+    /// Original provider function call_id.
     pub call_id: String,
     /// Bounded result text (or visible error).
     pub output: String,
@@ -648,6 +652,10 @@ pub struct TurnLog {
     pub opaque: Vec<serde_json::Value>,
     /// Terminal usage when reported.
     pub usage: Option<(u64, u64)>,
+    /// Accepted raw-history anchor for this turn's wire input.
+    pub user_message: Option<String>,
+    /// Completed Responses items and durable tool results, never UI text parsing.
+    pub input: Vec<crate::provider::InputItem>,
 }
 
 impl TurnLog {
@@ -659,6 +667,8 @@ impl TurnLog {
             provider: provider.to_string(),
             opaque: Vec::new(),
             usage: None,
+            user_message: None,
+            input: Vec::new(),
         }
     }
 
@@ -686,12 +696,25 @@ impl TurnLog {
             "provider": self.provider,
             "opaque": self.opaque,
             "usage": self.usage.map(|(i, o)| serde_json::json!([i, o])),
+            "user_message": self.user_message,
+            "input": self.input,
         })
     }
 
     /// Deserialize from the turn row.
     pub fn from_json(value: &serde_json::Value) -> Result<Self, String> {
         Ok(Self {
+            user_message: value
+                .get("user_message")
+                .and_then(|v| v.as_str())
+                .map(str::to_owned),
+            input: serde_json::from_value(
+                value
+                    .get("input")
+                    .cloned()
+                    .unwrap_or_else(|| serde_json::json!([])),
+            )
+            .map_err(|_| "invalid wire input")?,
             turn_id: value
                 .get("turn_id")
                 .and_then(|v| v.as_str())
@@ -833,6 +856,7 @@ mod tests {
     fn started(id: &str, name: &str) -> StreamItem {
         StreamItem::ToolCallStarted {
             item_id: id.to_string(),
+            call_id: id.to_string(),
             name: name.to_string(),
         }
     }
@@ -1211,15 +1235,25 @@ mod tests {
                                 Err(_) => break,
                             }
                         }
-                        let body_text = String::from_utf8_lossy(&body).into_owned();
-                        let payload = if body_text.contains("function_call_output") {
+                        let request: serde_json::Value =
+                            serde_json::from_slice(&body).expect("request");
+                        let continuation = request["input"]
+                            .as_array()
+                            .expect("input")
+                            .iter()
+                            .any(|item| item["type"] == "function_call_output");
+                        let payload = if continuation {
+                            assert_eq!(request["input"][2]["call_id"], "c1");
+                            assert_eq!(request["input"][3]["call_id"], "c2");
                             "data: {\"type\":\"response.output_text.delta\",\"delta\":\"done\"}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"usage\":{\"input_tokens\":5,\"output_tokens\":6}}}\n\n"
                         } else {
                             concat!(
-                                "data: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"c1\",\"type\":\"function_call\",\"name\":\"read\",\"arguments\":\"\"}}\n\n",
-                                "data: {\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"c1\",\"delta\":\"{\\\"path\\\":\\\"note.txt\\\"}\"}\n\n",
-                                "data: {\"type\":\"response.output_item.added\",\"output_index\":1,\"item\":{\"id\":\"c2\",\"type\":\"function_call\",\"name\":\"read\",\"arguments\":\"\"}}\n\n",
-                                "data: {\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"c2\",\"delta\":\"{\\\"limit\\\":1}\"}\n\n",
+                                "data: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"fc1\",\"call_id\":\"c1\",\"type\":\"function_call\",\"name\":\"read\",\"arguments\":\"\"}}\n\n",
+                                "data: {\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"fc1\",\"delta\":\"{\\\"path\\\":\\\"note.txt\\\"}\"}\n\n",
+                                "data: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"id\":\"fc1\",\"call_id\":\"c1\",\"type\":\"function_call\",\"name\":\"read\",\"arguments\":\"{\\\"path\\\":\\\"note.txt\\\"}\",\"status\":\"completed\"}}\n\n",
+                                "data: {\"type\":\"response.output_item.added\",\"output_index\":1,\"item\":{\"id\":\"fc2\",\"call_id\":\"c2\",\"type\":\"function_call\",\"name\":\"read\",\"arguments\":\"\"}}\n\n",
+                                "data: {\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"fc2\",\"delta\":\"{\\\"limit\\\":1}\"}\n\n",
+                                "data: {\"type\":\"response.output_item.done\",\"output_index\":1,\"item\":{\"id\":\"fc2\",\"call_id\":\"c2\",\"type\":\"function_call\",\"name\":\"read\",\"arguments\":\"{\\\"limit\\\":1}\",\"status\":\"completed\"}}\n\n",
                                 "data: {\"type\":\"response.completed\",\"response\":{\"usage\":{\"input_tokens\":1,\"output_tokens\":2}}}\n\n",
                             )
                         };
@@ -1242,6 +1276,8 @@ mod tests {
 
     fn provider_config(base: &str) -> ResponsesConfig {
         ResponsesConfig {
+            headers: BTreeMap::new(),
+            set_cache_key: true,
             base_url: base.to_string(),
             api_key: "k".to_string(),
             timeout: Some(false),
@@ -1286,17 +1322,26 @@ mod tests {
             outputs[1].output
         );
         // Turn 2: outputs travel as function_call_output; model finishes.
-        let input = to_input_items(&outputs);
-        assert_eq!(input[0]["call_id"], "c1");
-        let _ = input; // Shape asserted; wire below carries it.
-        let second = stream_generation(
+        let mut input: Vec<crate::provider::InputItem> = first
+            .output
+            .into_iter()
+            .map(crate::provider::InputItem::ProviderOutput)
+            .collect();
+        input.extend(outputs.into_iter().map(|output| {
+            crate::provider::InputItem::FunctionCallOutput {
+                call_id: output.call_id,
+                output: output.output,
+            }
+        }));
+        let second = crate::provider::stream_input_observed(
             &provider_config(&server.base),
             "m",
             None,
-            "roundtrip-marker function_call_output",
+            &input,
             &[],
+            100,
             &NO_CANCEL,
-            None,
+            &mut |_| {},
         )
         .await
         .expect("second");

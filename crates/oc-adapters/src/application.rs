@@ -197,6 +197,11 @@ async fn worker(
                     let _ = ack.send(Err(app_error(error)));
                 } else if let Some(turn) = turn {
                     let event = match result {
+                        Err(RuntimeError::Cancelled) => CoreEvent::TurnInterrupted {
+                            session: session.clone(),
+                            turn,
+                            partial: String::new(),
+                        },
                         Ok(report) if report.status == TurnStatus::Completed => {
                             CoreEvent::TurnFinished {
                                 session: session.clone(),
@@ -211,10 +216,26 @@ async fn worker(
                                 partial: report.text,
                             }
                         }
-                        result => CoreEvent::TurnFailed {
+                        Ok(report) if report.status == TurnStatus::Incomplete => {
+                            CoreEvent::TurnFailed {
+                                session: session.clone(),
+                                turn,
+                                error: app_error(report.diagnostic.as_deref().unwrap_or(
+                                    "turn incomplete: response ended early or round limit reached",
+                                )),
+                            }
+                        }
+                        Ok(report) => CoreEvent::TurnFailed {
                             session: session.clone(),
                             turn,
-                            error: app_error(result.err().unwrap_or(RuntimeError::Provider)),
+                            error: app_error(
+                                report.diagnostic.as_deref().unwrap_or("provider error"),
+                            ),
+                        },
+                        Err(error) => CoreEvent::TurnFailed {
+                            session: session.clone(),
+                            turn,
+                            error: app_error(error),
                         },
                     };
                     let _ = events.send(event);

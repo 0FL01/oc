@@ -29,18 +29,22 @@ fn sse_delta(text: &str) -> String {
 }
 
 fn sse_completed() -> String {
-    "data: {\"type\":\"response.completed\",\"response\":{\"usage\":{\"input_tokens\":10,\"output_tokens\":5}}}\n\n".to_string()
+    "data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":10,\"output_tokens\":5}}}\n\n".to_string()
 }
 
-fn sse_tool_call(item_id: &str, name: &str, args: &serde_json::Value) -> String {
-    let added = format!(
-        "data: {{\"type\":\"response.output_item.added\",\"item\":{{\"type\":\"function_call\",\"id\":\"{item_id}\",\"name\":\"{name}\"}}}}\n\n"
-    );
-    let delta = format!(
-        "data: {{\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"{item_id}\",\"delta\":{}}}\n\n",
-        serde_json::Value::String(args.to_string())
-    );
-    added + &delta
+fn sse_tool_call(call_id: &str, name: &str, args: &serde_json::Value) -> String {
+    let item_id = format!("fc_{call_id}");
+    let added = serde_json::json!({"type": "response.output_item.added", "item": {
+        "type": "function_call", "id": item_id, "call_id": call_id,
+        "name": name, "arguments": "", "status": "in_progress"
+    }});
+    let delta = serde_json::json!({"type": "response.function_call_arguments.delta",
+        "item_id": item_id, "delta": args.to_string()});
+    let done = serde_json::json!({"type": "response.output_item.done", "item": {
+        "type": "function_call", "id": item_id, "call_id": call_id,
+        "name": name, "arguments": args.to_string(), "status": "completed"
+    }});
+    format!("data: {added}\n\ndata: {delta}\n\ndata: {done}\n\n")
 }
 
 /// Scripted fake: queued SSE bodies in order (last repeats), every
@@ -189,6 +193,8 @@ fn runtime_of<'a>(harness: &'a Harness, location: &str, generation: Generation) 
 
 fn provider_of(base: &str) -> ResponsesConfig {
     ResponsesConfig {
+        headers: BTreeMap::new(),
+        set_cache_key: true,
         base_url: base.to_string(),
         api_key: "test-key".to_string(),
         timeout: Some(false),

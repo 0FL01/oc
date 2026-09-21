@@ -85,6 +85,9 @@ pub struct ProviderOptions {
     /// Stable cache key flag.
     #[serde(rename = "setCacheKey", default)]
     pub set_cache_key: Option<bool>,
+    /// Extra generation headers; native auth and transport headers take precedence.
+    #[serde(default)]
+    pub headers: BTreeMap<String, String>,
 }
 
 /// Single provider entry.
@@ -439,8 +442,8 @@ pub fn assemble(
         let mut entry = entry.clone();
         entry.options.base_url = substitute(&entry.options.base_url, path, trusted, env)?;
         entry.options.api_key = substitute(&entry.options.api_key, path, trusted, env)?;
-        for headers in [] as [Option<&mut BTreeMap<String, String>>; 0] {
-            let _ = headers;
+        for value in entry.options.headers.values_mut() {
+            *value = substitute(value, path, trusted, env)?;
         }
         let selected = enabled_providers.is_none_or(|only| only.contains(id));
         if selected && entry.options.api_key.trim().is_empty() {

@@ -144,6 +144,8 @@ async fn load_with_env(
         format!("selected provider {provider_id} is not configured; add provider.{provider_id}")
     })?;
     let provider = provider::ResponsesConfig {
+        headers: entry.options.headers.clone(),
+        set_cache_key: entry.options.set_cache_key.unwrap_or(false),
         base_url: entry.options.base_url.clone(),
         api_key: entry.options.api_key.clone(),
         timeout: entry.options.timeout,
