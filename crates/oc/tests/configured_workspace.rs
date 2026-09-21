@@ -523,7 +523,7 @@ fn aud17_binary_selected_malformed_agent_is_hard_error_not_sibling_fallback() {
     let broken = fixture.project_a.join(".opencode/agents/broken.md");
     write(
         &broken,
-        "---\ndescription: selected malformed agent\nmode: subagent\n---\nMUST_NOT_FALL_BACK\n",
+        "---\ndescription: selected malformed agent\nmode: banana\n---\nMUST_NOT_FALL_BACK\n",
     );
     let mut process = fixture.spawn(
         &fixture.project_a,
@@ -535,7 +535,7 @@ fn aud17_binary_selected_malformed_agent_is_hard_error_not_sibling_fallback() {
     assert!(process.output().is_empty());
     let diagnostic = process.diagnostics();
     assert!(diagnostic.contains("broken"), "{diagnostic}");
-    assert!(diagnostic.contains("subagent"), "{diagnostic}");
+    assert!(diagnostic.contains("unknown agent mode"), "{diagnostic}");
     assert!(diagnostic.contains(&broken.to_string_lossy().to_string()));
     fixture.assert_no_request();
 }
@@ -551,7 +551,7 @@ fn aud17_binary_malformed_selected_skill_is_visible_and_valid_sibling_survives()
         "AUD17_VALID_SKILL_BODY_45f4e2",
     );
     let malformed = fixture.project_a.join(".opencode/skills/broken/SKILL.md");
-    write(&malformed, "missing frontmatter and metadata\n");
+    write(&malformed, "---\nname: broken\ndescription: unclosed\n");
     let mut process = fixture.spawn(
         &fixture.project_a,
         "s-aud17-broken-skill",

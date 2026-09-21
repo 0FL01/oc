@@ -676,13 +676,40 @@ fn validate_dcp(raw: &serde_json::Value) -> Result<(), ConfigError> {
 
 /// Normalize a permission value, mapping legacy `write`/`edit` to patch.
 ///
-/// Conflicting legacy policies resolve conservative deny → ask → allow at
-/// the caller (`assemble` keeps the most restrictive across sources).
+/// Upstream `Rule = Union([Action, Record(String, Action)])` with a
+/// `Record(String, Rule)` catch-all: a scalar `allow|ask|deny` is accepted
+/// for any identifier key (unknown action names never fail loading), and a
+/// glob→action map (the shape used for `external_directory`, `edit`,
+/// `apply_patch`, `bash` and `webfetch`) folds to the most restrictive
+/// level. An empty map keeps the conservative `ask`. Conflicting legacy
+/// policies resolve conservative deny → ask → allow at the caller
+/// (`assemble` keeps the most restrictive across sources).
 pub fn normalize_permission(key: &str, raw: &serde_json::Value) -> Result<Permission, ConfigError> {
-    let text = raw.as_str().ok_or_else(|| ConfigError::Invalid {
-        field: format!("permissions.{key}"),
-        reason: "must be allow/ask/deny".to_string(),
-    })?;
+    match raw {
+        serde_json::Value::String(text) => action_level(key, text),
+        serde_json::Value::Object(rules) => {
+            let mut level: Option<Permission> = None;
+            for (glob, rule) in rules {
+                let text = rule.as_str().ok_or_else(|| ConfigError::Invalid {
+                    field: format!("permissions.{key}.{glob}"),
+                    reason: "must be allow/ask/deny".to_string(),
+                })?;
+                let next = action_level(&format!("{key}.{glob}"), text)?;
+                level = Some(match level {
+                    Some(current) if !more_restrictive(next, current) => current,
+                    _ => next,
+                });
+            }
+            Ok(level.unwrap_or(Permission::Ask))
+        }
+        _ => Err(ConfigError::Invalid {
+            field: format!("permissions.{key}"),
+            reason: "must be allow/ask/deny".to_string(),
+        }),
+    }
+}
+
+fn action_level(key: &str, text: &str) -> Result<Permission, ConfigError> {
     match text {
         "allow" => Ok(Permission::Allow),
         "ask" => Ok(Permission::Ask),
@@ -783,104 +810,257 @@ pub fn classify_plugin(identity: &str, config_root: &str) -> Result<&'static str
     })
 }
 
-/// Bounded skill frontmatter (`name`/`description` only).
+/// Skill frontmatter metadata (all fields optional, upstream parity).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SkillMeta {
     /// Directory id.
     pub id: String,
-    /// Bounded name.
+    /// Name (`id` when frontmatter omits it).
     pub name: String,
-    /// Bounded description.
+    /// Description (empty when frontmatter omits it).
     pub description: String,
+}
+
+/// One frontmatter line with its indentation width.
+struct FrontmatterLine<'a> {
+    indent: usize,
+    content: &'a str,
+}
+
+/// Split Markdown frontmatter using the admitted YAML subset: nested
+/// mappings, scalar sequences, quoted scalars and `#` comments (gray-matter +
+/// js-yaml parity for the shapes the owner writes). A line whose first
+/// non-space character is `#` is a comment, and a `#` preceded by whitespace
+/// starts a trailing comment (`provider/model#variant` stays intact).
+/// Duplicate mapping keys at any level are a parse error; unknown fields are
+/// the caller's concern. Returns the parsed mapping (empty object when the
+/// file has no frontmatter) and the remaining body.
+pub(crate) fn split_frontmatter_value(text: &str) -> Result<(serde_json::Value, &str), String> {
+    let after = match text
+        .strip_prefix("---\n")
+        .or_else(|| text.strip_prefix("---\r\n"))
+    {
+        Some(after) => after,
+        None => return Ok((serde_json::Value::Object(serde_json::Map::new()), text)),
+    };
+    let mut offset = 0usize;
+    let mut lines: Vec<FrontmatterLine<'_>> = Vec::new();
+    let mut closed = false;
+    for line in after.split_inclusive('\n') {
+        let next_offset = offset + line.len();
+        let trimmed = line.trim_end_matches(['\n', '\r']);
+        if trimmed == "---" {
+            offset = next_offset;
+            closed = true;
+            break;
+        }
+        offset = next_offset;
+        let indent = trimmed.len() - trimmed.trim_start_matches(' ').len();
+        let content = &trimmed[indent..];
+        if content.is_empty() || content.starts_with('#') {
+            continue;
+        }
+        if content.starts_with('\t') {
+            return Err("unsupported frontmatter indentation".to_string());
+        }
+        lines.push(FrontmatterLine { indent, content });
+    }
+    if !closed {
+        return Err("missing closing frontmatter ---".to_string());
+    }
+    let mut index = 0usize;
+    let value = if lines.is_empty() {
+        serde_json::Value::Object(serde_json::Map::new())
+    } else {
+        parse_frontmatter_block(&lines, &mut index, 0)?
+    };
+    if index < lines.len() {
+        return Err("unsupported frontmatter indentation".to_string());
+    }
+    Ok((value, &after[offset..]))
+}
+
+/// Parse one indentation-delimited mapping or scalar sequence.
+fn parse_frontmatter_block(
+    lines: &[FrontmatterLine<'_>],
+    index: &mut usize,
+    indent: usize,
+) -> Result<serde_json::Value, String> {
+    let Some(first) = lines.get(*index) else {
+        return Ok(serde_json::Value::Null);
+    };
+    if first.content == "-" || first.content.starts_with("- ") {
+        let mut items = Vec::new();
+        while let Some(line) = lines.get(*index) {
+            if line.indent < indent {
+                break;
+            }
+            if line.indent != indent {
+                return Err("unsupported frontmatter indentation".to_string());
+            }
+            let item = line
+                .content
+                .strip_prefix('-')
+                .ok_or_else(|| "unsupported frontmatter structure".to_string())?;
+            items.push(parse_frontmatter_scalar(item.trim())?);
+            *index += 1;
+        }
+        return Ok(serde_json::Value::Array(items));
+    }
+    let mut map = serde_json::Map::new();
+    while let Some(line) = lines.get(*index) {
+        if line.indent < indent {
+            break;
+        }
+        if line.indent > indent {
+            return Err("unsupported frontmatter indentation".to_string());
+        }
+        let (raw_key, raw_value) = line
+            .content
+            .split_once(':')
+            .ok_or_else(|| "malformed frontmatter field".to_string())?;
+        let key = unquote_frontmatter_scalar(raw_key.trim())?;
+        if key.is_empty() {
+            return Err("malformed frontmatter field".to_string());
+        }
+        if map.contains_key(&key) {
+            return Err(format!("duplicate frontmatter field {key}"));
+        }
+        let value_text = strip_frontmatter_comment(raw_value).trim().to_string();
+        *index += 1;
+        if value_text.is_empty() {
+            let nested = lines
+                .get(*index)
+                .filter(|next| next.indent > indent)
+                .map(|next| next.indent);
+            match nested {
+                Some(nested_indent) => {
+                    map.insert(key, parse_frontmatter_block(lines, index, nested_indent)?);
+                }
+                None => {
+                    map.insert(key, serde_json::Value::Null);
+                }
+            }
+        } else {
+            if lines.get(*index).is_some_and(|next| next.indent > indent) {
+                return Err("unsupported nested frontmatter".to_string());
+            }
+            map.insert(key, parse_frontmatter_scalar(&value_text)?);
+        }
+    }
+    Ok(serde_json::Value::Object(map))
+}
+
+/// Strip a trailing `#` comment outside quotes (YAML comment rules).
+fn strip_frontmatter_comment(value: &str) -> &str {
+    let mut quote: Option<u8> = None;
+    let mut preceded_by_space = true;
+    for (index, byte) in value.bytes().enumerate() {
+        match quote {
+            Some(active) => {
+                if byte == active {
+                    quote = None;
+                }
+            }
+            None => {
+                if byte == b'"' || byte == b'\'' {
+                    quote = Some(byte);
+                } else if byte == b'#' && preceded_by_space {
+                    return &value[..index];
+                }
+            }
+        }
+        preceded_by_space = byte == b' ' || byte == b'\t';
+    }
+    value
+}
+
+/// Parse a scalar into a JSON value; only `true`/`false`/`null` are typed.
+fn parse_frontmatter_scalar(text: &str) -> Result<serde_json::Value, String> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return Ok(serde_json::Value::Null);
+    }
+    if trimmed.starts_with('"') || trimmed.starts_with('\'') {
+        return Ok(serde_json::Value::String(unquote_frontmatter_scalar(
+            trimmed,
+        )?));
+    }
+    match trimmed {
+        "true" => Ok(serde_json::Value::Bool(true)),
+        "false" => Ok(serde_json::Value::Bool(false)),
+        "null" | "~" => Ok(serde_json::Value::Null),
+        _ => Ok(serde_json::Value::String(trimmed.to_string())),
+    }
+}
+
+/// Remove matching surrounding quotes (YAML single/double quote escapes).
+fn unquote_frontmatter_scalar(text: &str) -> Result<String, String> {
+    let trimmed = text.trim();
+    if let Some(inner) = trimmed
+        .strip_prefix('"')
+        .and_then(|rest| rest.strip_suffix('"'))
+    {
+        let mut out = String::with_capacity(inner.len());
+        let mut chars = inner.chars();
+        while let Some(c) = chars.next() {
+            if c == '\\' {
+                out.push(chars.next().unwrap_or('\\'));
+            } else {
+                out.push(c);
+            }
+        }
+        return Ok(out);
+    }
+    if let Some(inner) = trimmed
+        .strip_prefix('\'')
+        .and_then(|rest| rest.strip_suffix('\''))
+    {
+        return Ok(inner.replace("''", "'"));
+    }
+    if trimmed.starts_with('"') || trimmed.starts_with('\'') {
+        return Err("malformed frontmatter scalar".to_string());
+    }
+    Ok(trimmed.to_string())
 }
 
 /// Parse `SKILL.md` frontmatter without a YAML engine.
 ///
-/// Only `name:`/`description:` scalar lines are honored; oversized or
-/// unreadable files fail visibly; body bytes are never returned here (the
-/// native `skill` tool serves bounded snapshots at call time).
+/// Upstream parity: every field is optional (`name?`, `description?`,
+/// `metadata?`), unknown fields are silently ignored, and a file without
+/// frontmatter still loads with the path id and no description. Body bytes
+/// are never returned here (the native `skill` tool serves bounded snapshots
+/// at call time).
 pub fn parse_skill(id: &str, text: &str) -> Result<SkillMeta, ConfigError> {
-    if text.len() > 65536 {
-        return Err(ConfigError::Invalid {
-            field: format!("skill.{id}.body"),
-            reason: "skill file too large".to_string(),
-        });
-    }
-    let mut lines = text.lines();
-    if lines.next() != Some("---") {
-        return Err(ConfigError::Invalid {
-            field: format!("skill.{id}.frontmatter"),
-            reason: "missing opening ---".to_string(),
-        });
-    }
-    let mut name: Option<String> = None;
-    let mut description: Option<String> = None;
-    let mut closed = false;
-    for (index, line) in (&mut lines).enumerate() {
-        if line == "---" {
-            closed = true;
-            break;
-        }
-        if index >= 64 || line.len() > 1024 {
+    let (value, _body) = split_frontmatter_value(text).map_err(|reason| ConfigError::Invalid {
+        field: format!("skill.{id}.frontmatter"),
+        reason,
+    })?;
+    let object = value.as_object().ok_or_else(|| ConfigError::Invalid {
+        field: format!("skill.{id}.frontmatter"),
+        reason: "must be a mapping".to_string(),
+    })?;
+    let name = match object.get("name") {
+        None | Some(serde_json::Value::Null) => id.to_string(),
+        Some(serde_json::Value::String(name)) if name.trim().is_empty() => id.to_string(),
+        Some(serde_json::Value::String(name)) => name.trim().to_string(),
+        Some(_) => {
             return Err(ConfigError::Invalid {
-                field: format!("skill.{id}.frontmatter"),
-                reason: "frontmatter too large".to_string(),
+                field: format!("skill.{id}.name"),
+                reason: "must be a string".to_string(),
             });
         }
-        if let Some(rest) = line.strip_prefix("name:") {
-            if name.is_some() {
-                return Err(ConfigError::Invalid {
-                    field: format!("skill.{id}.name"),
-                    reason: "duplicate field".to_string(),
-                });
-            }
-            name = Some(rest.trim().trim_matches('"').to_string());
-        } else if let Some(rest) = line.strip_prefix("description:") {
-            if description.is_some() {
-                return Err(ConfigError::Invalid {
-                    field: format!("skill.{id}.description"),
-                    reason: "duplicate field".to_string(),
-                });
-            }
-            description = Some(rest.trim().trim_matches('"').to_string());
-        } else if !line.trim().is_empty() {
-            let Some((field, _)) = line.split_once(':') else {
-                return Err(ConfigError::Invalid {
-                    field: format!("skill.{id}.frontmatter"),
-                    reason: "malformed frontmatter field".to_string(),
-                });
-            };
+    };
+    let description = match object.get("description") {
+        None | Some(serde_json::Value::Null) => String::new(),
+        Some(serde_json::Value::String(description)) => description.trim().to_string(),
+        Some(_) => {
             return Err(ConfigError::Invalid {
-                field: format!("skill.{id}.frontmatter.{}", field.trim()),
-                reason: "unknown frontmatter field".to_string(),
-            });
-        }
-    }
-    if !closed {
-        return Err(ConfigError::Invalid {
-            field: format!("skill.{id}.frontmatter"),
-            reason: "missing closing ---".to_string(),
-        });
-    }
-    let name = name
-        .filter(|s| !s.is_empty())
-        .ok_or_else(|| ConfigError::Invalid {
-            field: format!("skill.{id}.name"),
-            reason: "missing bounded name".to_string(),
-        })?;
-    let description =
-        description
-            .filter(|s| !s.is_empty())
-            .ok_or_else(|| ConfigError::Invalid {
                 field: format!("skill.{id}.description"),
-                reason: "missing bounded description".to_string(),
-            })?;
-    if name.len() > 256 || description.len() > 1024 {
-        return Err(ConfigError::Invalid {
-            field: format!("skill.{id}.frontmatter"),
-            reason: "field too large".to_string(),
-        });
-    }
+                reason: "must be a string".to_string(),
+            });
+        }
+    };
     Ok(SkillMeta {
         id: id.to_string(),
         name,
@@ -923,7 +1103,8 @@ pub fn parse_native_profile(text: &str) -> Result<NativeProfile, ConfigError> {
 mod tests {
     use super::{
         ConfigError, Permission, Source, assemble, classify_plugin, explain_redacted, legacy_key,
-        parse_jsonc, parse_native_profile, parse_skill, strip_jsonc, substitute,
+        parse_jsonc, parse_native_profile, parse_skill, split_frontmatter_value, strip_jsonc,
+        substitute,
     };
     use std::collections::{BTreeMap, HashSet};
 
@@ -1219,14 +1400,22 @@ mod tests {
         assert_eq!(meta.name, "demo");
         assert_eq!(legacy_key("write"), "apply_patch");
         assert_eq!(legacy_key("read"), "read");
-        assert!(parse_skill("x", "no frontmatter").is_err());
+        // Upstream parity: no frontmatter still loads with the path id, and
+        // unknown frontmatter fields are silently ignored.
+        let bare = parse_skill("x", "no frontmatter").expect("bare skill");
+        assert_eq!(bare.id, "x");
+        assert_eq!(bare.name, "x");
+        assert_eq!(bare.description, "");
+        let unknown = parse_skill(
+            "x",
+            "---\nname: x\ndescription: x\nunknown: rejected\nlicense: MIT\n---\nbody",
+        )
+        .expect("unknown fields are ignored");
+        assert_eq!(unknown.description, "x");
         assert!(parse_skill("x", "---\nname: x\ndescription: x\nbody").is_err());
         assert!(
-            parse_skill(
-                "x",
-                "---\nname: x\ndescription: x\nunknown: rejected\n---\nbody",
-            )
-            .is_err()
+            parse_skill("x", "---\nname: x\nname: dup\n---\nbody").is_err(),
+            "duplicate keys stay a parse error"
         );
         // Permissions merge most-restrictive across sources.
         let generation = assemble(
@@ -1260,6 +1449,70 @@ mod tests {
             generation.provenance["permissions.apply_patch"],
             "P/opencode.json"
         );
+    }
+
+    #[test]
+    fn permission_glob_maps_fold_conservatively_and_unknown_actions_pass() {
+        // Owner shape: `external_directory` with glob → action entries.
+        let generation = assemble(
+            &[src(
+                "G/opencode.json",
+                r#"{"permissions": {
+                    "external_directory": {"*": "ask", "~/.cargo/**": "allow"},
+                    "bash": {"*": "deny", "git *": "allow"},
+                    "webfetch": {"*": "allow"},
+                    "some_future_action": "allow"
+                }}"#,
+                true,
+            )],
+            &env(&[]),
+            None,
+        )
+        .expect("glob maps");
+        assert_eq!(
+            generation.permissions["external_directory"],
+            Permission::Ask
+        );
+        assert_eq!(generation.permissions["bash"], Permission::Deny);
+        assert_eq!(generation.permissions["webfetch"], Permission::Allow);
+        assert_eq!(
+            generation.permissions["some_future_action"],
+            Permission::Allow
+        );
+        // A malformed nested action is still a precise error.
+        let bad = assemble(
+            &[src(
+                "G/opencode.json",
+                r#"{"permissions": {"bash": {"*": "maybe"}}}"#,
+                true,
+            )],
+            &env(&[]),
+            None,
+        )
+        .expect_err("bad action");
+        assert!(matches!(bad, ConfigError::Invalid { .. }));
+    }
+
+    #[test]
+    fn skill_frontmatter_comments_and_optional_metadata() {
+        // Commented-out fields never count as duplicates or unknowns.
+        let meta = parse_skill(
+            "demo",
+            "---\n#model: vendor/commented\nname: demo\ndescription: use #hash\nmetadata:\n  author: someone\n  tags:\n    - a\n    - b\ncompatibility: opencode\nlicense: MIT\n---\nbody\n",
+        )
+        .expect("skill");
+        assert_eq!(meta.name, "demo");
+        assert_eq!(meta.description, "use");
+        let missing_description =
+            parse_skill("demo", "---\nname: demo\n---\nbody\n").expect("description optional");
+        assert_eq!(missing_description.description, "");
+        let (value, body) = split_frontmatter_value(
+            "---\nmodel: vendor/model#variant # trailing\nmode: subagent\n---\nrest\n",
+        )
+        .expect("frontmatter");
+        assert_eq!(value["model"], "vendor/model#variant");
+        assert_eq!(value["mode"], "subagent");
+        assert_eq!(body, "rest\n");
     }
 
     #[test]

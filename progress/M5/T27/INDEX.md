@@ -1,6 +1,6 @@
 # T27 — Live пользовательский workflow
 
-Status: active
+Status: blocked
 Spec: ../../../roadmap/M5.md
 
 Последние 12 записей; остальные доступны по номеру/targeted search.
@@ -10,3 +10,4 @@ Spec: ../../../roadmap/M5.md
 - [0003](0003.md)
 - [0004](0004.md)
 - [0005](0005.md)
+- [0006](0006.md)

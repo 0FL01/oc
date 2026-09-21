@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-21T20:35:34+00:00",
-  "current": "T27",
+  "updated_at": "2026-09-21T21:24:41+00:00",
+  "current": "T43",
   "tasks": {
     "T00": {
       "status": "done",
@@ -193,9 +193,9 @@
       "reopen_reason": null
     },
     "T27": {
-      "status": "active",
-      "last_seq": 5,
-      "latest": "progress/M5/T27/0005.md",
+      "status": "blocked",
+      "last_seq": 6,
+      "latest": "progress/M5/T27/0006.md",
       "evidence": null,
       "reopen_reason": null
     },
@@ -302,6 +302,13 @@
       "last_seq": 3,
       "latest": "progress/M7/T42/0003.md",
       "evidence": "evidence/T42/report.md",
+      "reopen_reason": null
+    },
+    "T43": {
+      "status": "active",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
       "reopen_reason": null
     }
   },

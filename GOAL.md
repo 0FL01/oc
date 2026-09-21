@@ -52,6 +52,17 @@
 
 OAuth providers/MCP, другие native provider families, Chat Completions adapter, Code Mode interpreter, служба serve/attach и HTTP parity, web/desktop, LSP, snapshot/undo, subagents/task orchestration, arbitrary JS/TS/npm plugin runtime, general plugin SDK/hot-load, migration/importer, publishing/packages/auto-update, embeddings/RAG журнала. DCP experimental message mode, executable skills/commands и config-authoring UI отложены и не должны приниматься как working config.
 
+## Owner scope amendment (2026-09-21)
+
+Владелец расширил scope: subagent system теперь входит в обязательный результат —
+[docs/goals/2026-09-21-config-compat-and-subagents.md](docs/goals/2026-09-21-config-compat-and-subagents.md),
+milestone [roadmap/M8.md](roadmap/M8.md). Пункт «subagents/task orchestration» в списке
+«Вне этого goal» и соответствующий запрет в `audit/GOAL.md` остаются историей аудитов
+A01–A13 и не ограничивают T43. Совместимость markdown-config с upstream v2.0.12
+(frontmatter/permissions/skills/commands) и снятие искусственных size-лимитов — обязательные
+требования T43. Остальные границы (без OAuth, ChatCompletions fallback, daemon/serve/attach,
+Code Mode, JS/TS/WASM plugin host, cloud orchestrator) не меняются.
+
 Не превращать browser `enabled:false` в true автоматически. Не переносить OpenProxy внутрь `oc` и не редактировать его deployment.
 
 ## Исполнение

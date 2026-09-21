@@ -37,8 +37,7 @@
       "depends_on": [
         "T01"
       ],
-      "tests": [
-      ],
+      "tests": [],
       "work": "Проверить pinned sources/licenses; зафиксировать Responses wire, MCP strict version, DCP range schema, user discovery oracle и configured-workspace source paths/tests. Получить representative source-derived fixtures для root/instruction/definition order, frontmatter и exact plugin identities с provenance; executable baseline failures фиксировать, не выдавать fixtures за executed parity.",
       "evidence": "evidence/T02/report.md",
       "spec": "roadmap/M0.md"
@@ -50,8 +49,7 @@
       "depends_on": [
         "T01"
       ],
-      "tests": [
-      ],
+      "tests": [],
       "work": "Typed commands/queries, session worker, scripted provider, cancellation path и bounded channels. Вертикальный input→response без real network.",
       "evidence": "evidence/T03/report.md",
       "spec": "roadmap/M1.md"
@@ -94,8 +92,7 @@
       "depends_on": [
         "T05"
       ],
-      "tests": [
-      ],
+      "tests": [],
       "work": "Prompt/stream/history/cancel/exit в Ratatui, limited viewport, PTY test; тот же application handle.",
       "evidence": "evidence/T06/report.md",
       "spec": "roadmap/M1.md"
@@ -252,8 +249,7 @@
         "T13",
         "T14"
       ],
-      "tests": [
-      ],
+      "tests": [],
       "work": "Effective model selection/variant validation, unknown metadata diagnostics, context+output admission and explain; no production automatic model fallback.",
       "evidence": "evidence/T15/report.md",
       "spec": "roadmap/M3.md"
@@ -706,6 +702,20 @@
       "work": "Закрыть F18 по audit/repairs/T42.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
       "evidence": "evidence/T42/report.md",
       "spec": "audit/repairs/T42.md"
+    },
+    {
+      "id": "T43",
+      "phase": "M8",
+      "title": "Config compatibility parity и subagent system",
+      "depends_on": [],
+      "tests": [
+        "A02",
+        "A03",
+        "A05"
+      ],
+      "work": "Закрыть owner-visible config warnings по upstream v2.0.12 (комментарии YAML, glob-map permissions, опциональный skill frontmatter, тихий skip каталогов без SKILL.md, flat skills, command agent/model/subagent/subtask, mode subagent/all), убрать искусственные size-лимиты, затем полностью реализовать subagent system по upstream v2.0.12 (spawn/child sessions/notices/reap/permissions/command routing/DCP allowSubAgents). Коммит и push каждого среза.",
+      "evidence": "evidence/T43/report.md",
+      "spec": "docs/goals/2026-09-21-config-compat-and-subagents.md"
     }
   ]
 }

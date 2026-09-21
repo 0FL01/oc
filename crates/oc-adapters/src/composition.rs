@@ -516,10 +516,7 @@ async fn load_with_env(
     let mut skill_errors = BTreeMap::new();
     for diagnostic in &loaded_defs.diagnostics {
         if diagnostic.field == "skill"
-            && let Some(id) = Path::new(&diagnostic.path)
-                .parent()
-                .and_then(Path::file_name)
-                .and_then(|id| id.to_str())
+            && let Some(id) = skill_diagnostic_id(&diagnostic.path)
         {
             skill_errors.insert(
                 id.to_string(),
@@ -544,7 +541,10 @@ async fn load_with_env(
         agents: loaded_defs
             .agents
             .into_iter()
-            .filter(|(_, agent)| agent.mode.as_deref().is_none_or(|mode| mode == "primary"))
+            // `primary` and `all` agents are selectable; `subagent` profiles
+            // load (execution lands with the subagent slice) but stay out of
+            // the primary picker.
+            .filter(|(_, agent)| agent.mode.as_deref().is_none_or(|mode| mode != "subagent"))
             .collect(),
         default_agent,
         skills,
@@ -606,6 +606,15 @@ fn permission_rank(level: config::Permission) -> u8 {
         config::Permission::Allow => 0,
         config::Permission::Ask => 1,
         config::Permission::Deny => 2,
+    }
+}
+
+/// Skill id from a diagnostic path: `<id>/SKILL.md` or flat `<id>.md`.
+fn skill_diagnostic_id(path: &str) -> Option<&str> {
+    let path = Path::new(path);
+    match path.file_name().and_then(|name| name.to_str()) {
+        Some("SKILL.md") => path.parent()?.file_name()?.to_str(),
+        _ => path.file_stem()?.to_str(),
     }
 }
 

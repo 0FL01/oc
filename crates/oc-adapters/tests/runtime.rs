@@ -14,7 +14,7 @@ use oc_adapters::dcp_auto::DcpConfig;
 use oc_adapters::models::ModelCatalog;
 use oc_adapters::patch::ProtectedGlobs;
 use oc_adapters::provider::ResponsesConfig;
-use oc_adapters::runtime::{Runtime, TurnParams, TurnStatus, expand_command};
+use oc_adapters::runtime::{COMMAND_BYTES_CAP, Runtime, TurnParams, TurnStatus, expand_command};
 use oc_adapters::storage::Db;
 use oc_core::context_plan::ProtectedSpec;
 
@@ -1763,7 +1763,16 @@ fn command_expansion_is_single_bounded_pass() {
     )
     .expect("expand");
     assert_eq!(expanded, "summarize a (a b)");
-    assert!(expand_command(&"x".repeat(5_000), &[]).is_err());
+    assert!(expand_command(&"x".repeat(COMMAND_BYTES_CAP + 1), &[]).is_err());
+    // Upstream has no command size limit; a realistic 41 KiB command (owner
+    // config shape) must expand instead of failing on a serving cap.
+    let large = "x".repeat(41_000);
+    assert_eq!(
+        expand_command(&large, &[])
+            .expect("large command expands")
+            .len(),
+        large.len()
+    );
     assert!(
         expand_command("ok $9", &["only".to_string()])
             .expect("partial")

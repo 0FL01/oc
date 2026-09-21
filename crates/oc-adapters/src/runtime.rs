@@ -42,7 +42,12 @@ pub const MAX_MCP_SERVERS: usize = 8;
 /// Generation-wide budget for closing every owned MCP resource.
 pub const MCP_CLOSE_BUDGET: Duration = Duration::from_secs(10);
 /// Max command definition/invocation bytes for one expansion.
-pub const COMMAND_BYTES_CAP: usize = 4_096;
+///
+/// Upstream opencode has no command size limit; the owner config ships a
+/// 41 KiB command, so the previous 4 KiB cap made loading succeed but
+/// invocation fail. Kept as a generous serving bound (audited contract: the
+/// expansion stays bounded), never reached by realistic command files.
+pub const COMMAND_BYTES_CAP: usize = 1024 * 1024;
 /// Prefs key prefix binding sessions to Locations.
 pub const SESSION_LOCATION_PREFIX: &str = "tui.session_location.";
 /// Permission name gating manual compress execution.

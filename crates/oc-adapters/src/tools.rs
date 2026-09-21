@@ -38,7 +38,11 @@ pub const MODEL_TOOL_NAMES: &[&str] = &[
     "compress",
 ];
 /// Skill body snapshot cap (bytes).
-pub const SKILL_BODY_CAP: usize = 16384;
+///
+/// Upstream opencode has no skill size limit; the previous 16 KiB cap could
+/// truncate real SKILL.md files. Kept as a generous snapshot bound (audited
+/// contract: oversized bodies are skipped with a visible warning).
+pub const SKILL_BODY_CAP: usize = 1024 * 1024;
 /// Bash per-call timeout cap (ms).
 pub const BASH_TIMEOUT_CAP_MS: u64 = 600_000;
 /// Highest accepted zero-based search cursor.
@@ -311,13 +315,17 @@ impl SkillSnapshot {
     }
 
     /// Model projection: bounded id/name/description without bodies.
+    ///
+    /// Skills without a description remain callable by id but stay out of
+    /// the auto-invoke guidance (upstream parity).
     pub fn projection(&self) -> Vec<SkillView> {
         self.entries
             .iter()
-            .map(|(id, e)| SkillView {
+            .filter(|(_, entry)| !entry.description.trim().is_empty())
+            .map(|(id, entry)| SkillView {
                 id: id.clone(),
-                name: e.name.clone(),
-                description: e.description.clone(),
+                name: entry.name.clone(),
+                description: entry.description.clone(),
             })
             .collect()
     }
@@ -1445,13 +1453,20 @@ mod tests {
                     "x".repeat(super::SKILL_BODY_CAP + 1)
                 ),
             ),
-            ("bad".to_string(), "no frontmatter".to_string()),
+            (
+                "bad".to_string(),
+                "---\nname: bad\nname: duplicate\n---\nbody\n".to_string(),
+            ),
+            // Upstream parity: no frontmatter still loads with the path id.
+            ("bare".to_string(), "no frontmatter".to_string()),
         ]);
         assert_eq!(warnings.len(), 2);
         let projection = snapshot.projection();
+        // The no-description skill loads but stays out of auto-invoke guidance.
         assert_eq!(projection.len(), 1);
         let json = serde_json::to_value(&projection).expect("json");
         assert!(json.to_string().contains("\"ok\""));
+        assert!(!json.to_string().contains("\"bare\""));
         assert!(!json.to_string().contains("body"));
     }
 
