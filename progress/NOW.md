@@ -1,28 +1,16 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-21T17:03:56+00:00
-Active: нет
+State updated: 2026-09-21T17:03:57+00:00
+Active: T40
 
 Сверить Git status/diff до выполнения команд.
+Task: T40 — Ограничить активный контекст, а не подменять его обрезкой
+Spec: audit/repairs/T40.md
+Evidence target: evidence/T40/report.md
 
-Последний срез: T39 [done]; сверить незакоммиченный diff.
+Закрыть F15 по audit/repairs/T40.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
 
-## Result
-T39 (F14/AUD29-AUD31) implemented and verified: oc-tui is a storage-free bounded view-model driven by typed intents, the application owner serves catalog/skills/paged history/tool cards/DCP snapshots and applies model/variant/agent selection, and the binary runs the real loop with panels, paste/resize handling, compress turns and terminal recovery.
-
-## Checks
-cargo test --workspace --locked exit 0 (317 passed / 0 failed; only the 3 pre-existing external harnesses ignored); targeted pty_t39 3, pty 13, oc-tui 34, mcp_application 7; clippy -D warnings, fmt --check, build, oc --help, progress.py check, check_docs.py, git diff --check all exit 0.
-
-## Risks
-PTY qualification is Linux-specific (openpty/termios/flock). The metrics probe is opt-in and inert without OC_TUI_TEST_METRICS. Cards paging is asserted for the newest page; deep paging is covered by storage/query tests. VariantEntry surfaces only reasoningEffort.
-
-## Next
-Commit T39 implementation and evidence, close the task, start T40 (archive/queue/lifetime bounds).
-
-
-Следующий шаг: проверить зависимости и начать первую ready-задачу.
-
-Ready (до 5): T40
+Ready (до 5): нет
 Blocked: T27
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.

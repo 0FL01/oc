@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-21T17:03:56+00:00",
-  "current": null,
+  "updated_at": "2026-09-21T17:03:57+00:00",
+  "current": "T40",
   "tasks": {
     "T00": {
       "status": "done",
@@ -284,7 +284,7 @@
       "reopen_reason": null
     },
     "T40": {
-      "status": "todo",
+      "status": "active",
       "last_seq": 0,
       "latest": null,
       "evidence": null,
