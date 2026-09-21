@@ -87,6 +87,13 @@ pub enum RuntimeError {
     Storage,
     /// Compress argument/apply failure (reason only).
     Compress(String),
+    /// Active context exceeded the independent byte safety budget.
+    ContextOverflow {
+        /// Bytes the active projection needs.
+        bytes: u64,
+        /// Configured safety budget.
+        cap: usize,
+    },
     /// Malformed runtime input (empty Location, bad command, over-cap).
     InvalidArgs(String),
     /// Explicit cancellation drained to durable records.
@@ -110,6 +117,10 @@ impl std::fmt::Display for RuntimeError {
             Self::Provider => write!(f, "provider error"),
             Self::Storage => write!(f, "storage error"),
             Self::Compress(reason) => write!(f, "compress: {reason}"),
+            Self::ContextOverflow { bytes, cap } => write!(
+                f,
+                "active context is {bytes} bytes, above the {cap} byte safety budget; compress the session or start a new one"
+            ),
             Self::InvalidArgs(reason) => write!(f, "invalid args: {reason}"),
             Self::Cancelled => write!(f, "cancelled"),
         }
@@ -275,7 +286,11 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
     ]
 }
 
-/// Rough token estimate (bytes/4 heuristic, documented at call sites).
+/// Rough token estimate: the bytes/4 heuristic, not a counter for any
+/// specific proxy model. Admission compares it against the selected entry's
+/// declared `limit.context`/`limit.output`; a real model may count more or
+/// fewer tokens, so the estimate is an explicit approximation and the byte
+/// safety budget stays an independent guard.
 pub fn estimate_tokens(text: &str) -> u64 {
     (text.len() / 4) as u64
 }
@@ -552,6 +567,17 @@ pub struct CompressReport {
     pub shrank: bool,
 }
 
+/// Independent byte safety budget for one assembled active projection.
+///
+/// This is a memory guard, not the model admission rule: token admission
+/// (`models::admit`) still runs against the selected entry's context limit
+/// and the estimate stays a heuristic. Exceeding this budget refuses the
+/// turn with an explicit diagnostic instead of silently dropping facts.
+pub const ACTIVE_CONTEXT_BYTES_CAP: usize = 16 * 1024 * 1024;
+
+/// Turn-log page size for the bounded wire replay.
+pub const WIRE_LOG_PAGE: usize = 64;
+
 /// Turn parameters (everything a turn needs, nothing ambient).
 pub struct TurnParams<'c> {
     /// Session id (Location-bound).
@@ -581,6 +607,16 @@ struct RuntimeWorkspace {
     fixed_input: Vec<InputItem>,
     skills: SkillSnapshot,
     agent_digest: Option<String>,
+}
+
+/// One bounded active projection: rows the model actually sees.
+struct ActiveContext {
+    /// Prune floor: no row at or below this seq is projected.
+    after_seq: i64,
+    /// Projected rows (active rows with block summaries placed in order).
+    projected: Vec<(String, String, String)>,
+    /// Compression blocks (full list: covered anchors stay replayable).
+    blocks: Vec<crate::dcp::CompressionBlock>,
 }
 
 /// Authoritative runtime: Location + published generation + DCP counters.
@@ -881,6 +917,10 @@ impl<'a> Runtime<'a> {
         self.open_session(session)?;
         let (_topic, ranges) = crate::dcp::validate_range_args(args)
             .map_err(|e| RuntimeError::Compress(e.to_string()))?;
+        // Manual compress is an explicit owner action over the visible
+        // transcript: ranges may address rows the provider projection has
+        // already dropped, so the addressed history is materialised here
+        // (never on the per-turn path).
         let history = self.db.read_history_full(session)?;
         let messages = map_messages(&history)?;
         let op = format!(
@@ -949,6 +989,61 @@ impl<'a> Runtime<'a> {
         })
     }
 
+    /// Bounded active projection: prune-bounded rows plus block summaries.
+    ///
+    /// Never materialises the covered archive; an active window above
+    /// [`ACTIVE_CONTEXT_BYTES_CAP`] refuses the turn with an explicit
+    /// diagnostic instead of silently dropping facts.
+    fn active_projection(&self, session: &str) -> Result<ActiveContext, RuntimeError> {
+        let after_seq = self
+            .db
+            .prune_bound(session)?
+            .map(|(_, seq)| seq)
+            .unwrap_or(0);
+        let active = self
+            .db
+            .active_history(session, after_seq, ACTIVE_CONTEXT_BYTES_CAP)?;
+        if active.overflow {
+            return Err(RuntimeError::ContextOverflow {
+                bytes: active.bytes,
+                cap: ACTIVE_CONTEXT_BYTES_CAP,
+            });
+        }
+        let blocks =
+            crate::dcp::load_blocks(self.db, session).map_err(|_| RuntimeError::Storage)?;
+        let positions = self.db.block_positions(session, after_seq)?;
+        let projected = crate::dcp::project_active_rows(&active.rows, &blocks, &positions)
+            .map_err(|error| RuntimeError::InvalidArgs(error.to_string()))?;
+        Ok(ActiveContext {
+            after_seq,
+            projected,
+            blocks,
+        })
+    }
+
+    /// Active rows only (prune-bounded, no block placement).
+    #[allow(clippy::type_complexity)]
+    fn active_rows(
+        &self,
+        session: &str,
+    ) -> Result<(i64, Vec<(String, String, String)>), RuntimeError> {
+        let after_seq = self
+            .db
+            .prune_bound(session)?
+            .map(|(_, seq)| seq)
+            .unwrap_or(0);
+        let active = self
+            .db
+            .active_history(session, after_seq, ACTIVE_CONTEXT_BYTES_CAP)?;
+        if active.overflow {
+            return Err(RuntimeError::ContextOverflow {
+                bytes: active.bytes,
+                cap: ACTIVE_CONTEXT_BYTES_CAP,
+            });
+        }
+        Ok((after_seq, active.rows))
+    }
+
     async fn run_turn_inner(
         &self,
         params: TurnParams<'_>,
@@ -966,14 +1061,11 @@ impl<'a> Runtime<'a> {
         let workspace = self.workspace.read().expect("workspace lock").clone();
         // Outbound context honors compression blocks + prune mark: covered
         // members collapse to summaries, raw history is never rewritten.
-        let full = self.db.read_history_full(&params.session)?;
-        let sblocks =
-            crate::dcp::load_blocks(self.db, &params.session).map_err(|_| RuntimeError::Storage)?;
-        let prune = self
-            .db
-            .load_prune_mark(&params.session)
-            .map_err(|_| RuntimeError::Storage)?;
-        let mut projected = crate::dcp::project_rows(&full, &sblocks, prune.as_deref());
+        let ActiveContext {
+            after_seq,
+            mut projected,
+            blocks: sblocks,
+        } = self.active_projection(&params.session)?;
         let mut history = self.wire_history(
             &params.session,
             &projected,
@@ -981,6 +1073,7 @@ impl<'a> Runtime<'a> {
             &selection.id,
             &params.catalog.provider,
             workspace.agent_digest.as_deref(),
+            after_seq,
         )?;
         let dcp_config = self.dcp_config.read().expect("dcp lock").clone();
         let compress_available = dcp_config.enabled
@@ -1267,18 +1360,16 @@ impl<'a> Runtime<'a> {
                 .await?;
             calls.extend(round_calls);
             if projection_changed {
-                let full = self.db.read_history_full(&params.session)?;
-                let blocks = crate::dcp::load_blocks(self.db, &params.session)
-                    .map_err(|_| RuntimeError::Storage)?;
-                let prune = self.db.load_prune_mark(&params.session)?;
-                projected = crate::dcp::project_rows(&full, &blocks, prune.as_deref());
+                let refreshed = self.active_projection(&params.session)?;
+                projected = refreshed.projected;
                 history = self.wire_history(
                     &params.session,
                     &projected,
-                    &blocks,
+                    &refreshed.blocks,
                     &selection.id,
                     &params.catalog.provider,
                     workspace.agent_digest.as_deref(),
+                    refreshed.after_seq,
                 )?;
                 apply_dcp_projection(&mut history, &tool_projection);
                 anchors = compress_available
@@ -1363,6 +1454,7 @@ impl<'a> Runtime<'a> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn wire_history(
         &self,
         session: &str,
@@ -1371,6 +1463,7 @@ impl<'a> Runtime<'a> {
         model: &str,
         provider: &str,
         agent_digest: Option<&str>,
+        after_seq: i64,
     ) -> Result<Vec<InputItem>, RuntimeError> {
         let mut turns = BTreeMap::new();
         let mut represented = std::collections::BTreeSet::new();
@@ -1378,7 +1471,10 @@ impl<'a> Runtime<'a> {
             .iter()
             .flat_map(|block| block.members.iter().cloned())
             .collect::<std::collections::BTreeSet<_>>();
-        for raw in self.db.wire_logs(session)? {
+        for raw in self
+            .db
+            .wire_logs_for_window(session, after_seq, WIRE_LOG_PAGE)?
+        {
             let value: serde_json::Value =
                 serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?;
             let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
@@ -1552,7 +1648,12 @@ impl<'a> Runtime<'a> {
             {
                 let (_, ranges) = crate::dcp::validate_range_args(&call.arguments)
                     .map_err(|error| RuntimeError::Compress(error.to_string()))?;
-                let full = self.db.read_history_full(session)?;
+                let context = self.active_projection(session)?;
+                let after_seq = context.after_seq;
+                let full = {
+                    let (_, rows) = self.active_rows(session)?;
+                    rows
+                };
                 let messages = map_messages(&full)?;
                 let config = self.dcp_config.read().expect("dcp lock").clone();
                 let mut spec = self
@@ -1567,10 +1668,8 @@ impl<'a> Runtime<'a> {
                     Ok(plan) => {
                         let existing = crate::dcp::load_blocks(self.db, session)
                             .map_err(|_| RuntimeError::Storage)?;
-                        let prune = self.db.load_prune_mark(session)?;
                         let rows = full.clone();
-                        let before_rows =
-                            crate::dcp::project_rows(&rows, &existing, prune.as_deref());
+                        let before_rows = context.projected.clone();
                         let mut before_wire = self.wire_history(
                             session,
                             &before_rows,
@@ -1578,6 +1677,7 @@ impl<'a> Runtime<'a> {
                             &turn_log.model,
                             &turn_log.provider,
                             turn_log.agent_digest.as_deref(),
+                            after_seq,
                         )?;
                         let strategy_delta =
                             plan_dcp_strategies(&before_wire, &config, tool_projection);
@@ -1596,8 +1696,19 @@ impl<'a> Runtime<'a> {
                             }
                         }
                         candidate.extend(plan.blocks.iter().cloned());
+                        let member_ids = candidate
+                            .iter()
+                            .flat_map(|block| block.members.iter().cloned())
+                            .collect::<Vec<_>>();
+                        let seqs = self
+                            .db
+                            .message_seqs(session, &member_ids)?
+                            .into_iter()
+                            .collect::<std::collections::BTreeMap<_, _>>();
+                        let after_positions = crate::dcp::member_positions(&candidate, &seqs);
                         let after_rows =
-                            crate::dcp::project_rows(&rows, &candidate, prune.as_deref());
+                            crate::dcp::project_active_rows(&rows, &candidate, &after_positions)
+                                .map_err(|error| RuntimeError::InvalidArgs(error.to_string()))?;
                         let mut after_wire = self.wire_history(
                             session,
                             &after_rows,
@@ -1605,6 +1716,7 @@ impl<'a> Runtime<'a> {
                             &turn_log.model,
                             &turn_log.provider,
                             turn_log.agent_digest.as_deref(),
+                            after_seq,
                         )?;
                         apply_dcp_projection(&mut after_wire, &candidate_tool_projection);
                         let before_bytes = serde_json::to_vec(&(
@@ -2125,7 +2237,8 @@ fn truncate(text: &str, max: usize) -> String {
     if text.len() <= max {
         return text.to_string();
     }
-    format!("{}…[+{}]", &text[..max], text.len() - max)
+    let kept = text.floor_char_boundary(max);
+    format!("{}…[+{}]", &text[..kept], text.len() - kept)
 }
 
 fn remote_attach_error(server: &str, error: McpError) -> RuntimeError {

@@ -7,9 +7,6 @@
 
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 
-/// Max paste bytes accepted.
-pub const PASTE_MAX: usize = 64 * 1024;
-
 /// Minimal actions the chat view understands.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KeyAction {
@@ -38,7 +35,8 @@ pub enum KeyAction {
 pub enum UiEvent {
     /// Key action.
     Key(KeyAction),
-    /// Bracketed paste text (bounded to [`PASTE_MAX`], char-boundary safe).
+    /// Bracketed paste text, passed through unchanged: the input budget is
+    /// enforced (and reported) by `TuiState::handle_paste`.
     Paste(String),
     /// Terminal was resized; the next frame re-reads the size.
     Resize,
@@ -70,9 +68,7 @@ pub fn map_key(event: KeyEvent) -> Option<KeyAction> {
 pub fn map_event(event: Event) -> Option<UiEvent> {
     match event {
         Event::Key(key) => map_key(key).map(UiEvent::Key),
-        Event::Paste(text) => Some(UiEvent::Paste(
-            crate::truncate_utf8(&text, PASTE_MAX).to_string(),
-        )),
+        Event::Paste(text) => Some(UiEvent::Paste(text)),
         Event::Resize(_, _) => Some(UiEvent::Resize),
         _ => None,
     }
@@ -80,7 +76,7 @@ pub fn map_event(event: Event) -> Option<UiEvent> {
 
 #[cfg(test)]
 mod tests {
-    use super::{KeyAction, PASTE_MAX, UiEvent, map_event, map_key};
+    use super::{KeyAction, UiEvent, map_event, map_key};
     use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 
     fn key(code: KeyCode) -> KeyEvent {
@@ -113,12 +109,13 @@ mod tests {
     }
 
     #[test]
-    fn paste_is_bounded_on_char_boundary() {
-        let text = "ж".repeat(PASTE_MAX);
+    fn paste_passes_through_unbounded() {
+        // Bounding happens once, in the input buffer, with a visible note.
+        let text = "ж".repeat(200 * 1024);
         let Some(UiEvent::Paste(bounded)) = map_event(Event::Paste(text)) else {
             panic!("paste must map");
         };
-        assert!(bounded.len() <= PASTE_MAX);
+        assert_eq!(bounded.len(), 400 * 1024);
         assert!(bounded.chars().all(|c| c == 'ж'));
         assert_eq!(
             map_event(Event::Paste(String::new())),

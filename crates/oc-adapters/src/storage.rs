@@ -43,6 +43,9 @@ pub enum StorageError {
     /// Session id is unknown.
     #[error("session not found")]
     SessionNotFound,
+    /// Tool operation id is unknown.
+    #[error("tool operation not found")]
+    OperationNotFound,
     /// The exact session primary key already exists.
     #[error("session already exists")]
     SessionAlreadyExists,
@@ -55,6 +58,58 @@ pub enum StorageError {
     /// Underlying I/O failure.
     #[error("io: {0}")]
     Io(#[from] std::io::Error),
+}
+
+/// Bounded active-projection read ([`Db::active_history`]).
+pub struct ActiveHistory {
+    /// Rows in seq order (`id`, `role`, `text`).
+    pub rows: Vec<(String, String, String)>,
+    /// Retained active text bytes.
+    pub bytes: u64,
+    /// Rows the active window holds (including rows released on overflow).
+    pub rows_read: usize,
+    /// True when the active text exceeded the caller's byte budget.
+    pub overflow: bool,
+}
+
+/// Seq encoded in a message id (`m0017`), if it has the expected shape.
+fn anchor_seq(result: &str) -> Option<i64> {
+    let value: serde_json::Value = serde_json::from_str(result).ok()?;
+    let id = value.get("user_message")?.as_str()?;
+    id.strip_prefix('m')?.parse::<i64>().ok()
+}
+
+/// Byte length of the longest prefix of `bytes` that ends on a char boundary.
+fn complete_bytes(bytes: &[u8]) -> usize {
+    match std::str::from_utf8(bytes) {
+        Ok(_) => bytes.len(),
+        Err(error) => error.valid_up_to(),
+    }
+}
+
+/// Bound one stored tool-operation output to a UI preview.
+///
+/// `raw` is a prefix supplied by SQL (`substr`), `bytes` the full stored
+/// size: a truncated preview carries the exact dropped byte count so the
+/// caller can continue through [`Db::read_tool_op_output`].
+fn bound_preview(raw: Option<String>, bytes: i64) -> (Option<String>, bool) {
+    let Some(text) = raw else {
+        return (None, false);
+    };
+    let total = bytes.max(0) as usize;
+    if total <= text.len() {
+        // The SQL prefix already holds every stored byte.
+        return (Some(text), false);
+    }
+    let kept = text.floor_char_boundary(TOOL_OP_PREVIEW_BYTES.min(text.len()));
+    (
+        Some(format!(
+            "{}…[+{}]",
+            &text[..kept],
+            total.saturating_sub(kept)
+        )),
+        true,
+    )
 }
 
 /// Owned storage handle: lock file + SQLite connection + blob dir.
@@ -94,8 +149,13 @@ pub struct ToolOpRow {
     pub state: String,
     /// Bounded input snapshot.
     pub input: Option<String>,
-    /// Bounded output snapshot.
+    /// Bounded output preview (never the whole result; see
+    /// [`read_tool_op_output`] for the continuation).
     pub output: Option<String>,
+    /// Full stored output size in bytes.
+    pub output_bytes: i64,
+    /// Whether [`ToolOpRow::output`] is a truncated preview.
+    pub output_truncated: bool,
     /// Insertion order cursor (newest-first paging).
     pub rowid: i64,
 }
@@ -104,6 +164,14 @@ pub struct ToolOpRow {
 pub const HISTORY_PAGE_MAX: usize = 100;
 /// Max tool operations listed per session (UI03 cards).
 pub const TOOL_OPS_MAX: usize = 200;
+/// Output preview bytes kept in a UI-facing tool-operation row.
+///
+/// The durable result is never rewritten: previews carry an explicit
+/// `…[+N]` marker and the continuation is available through
+/// [`Db::read_tool_op_output`].
+pub const TOOL_OP_PREVIEW_BYTES: usize = 2_048;
+/// Active-history page size for bounded projection reads.
+pub const ACTIVE_HISTORY_PAGE: usize = 256;
 
 /// Durable compression block row with ordered membership (T17).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -429,21 +497,33 @@ impl Db {
         let limit = (limit.min(TOOL_OPS_MAX) as i64).max(0);
         let conn = self.conn.lock().expect("db mutex");
         let mut stmt = conn.prepare_cached(
-            "SELECT id, turn_id, name, state, input, output, rowid FROM tool_operations
-             WHERE session_id = ?1 AND (?2 IS NULL OR rowid < ?2)
-             ORDER BY rowid DESC LIMIT ?3",
+            "SELECT id, turn_id, name, state, input,
+                    CASE WHEN length(CAST(output AS BLOB)) > ?4
+                         THEN substr(output, 1, ?4) ELSE output END,
+                    length(CAST(output AS BLOB)), rowid
+               FROM tool_operations
+              WHERE session_id = ?1 AND (?2 IS NULL OR rowid < ?2)
+              ORDER BY rowid DESC LIMIT ?3",
         )?;
-        let rows = stmt.query_map(params![session, before_rowid, limit], |row| {
-            Ok(ToolOpRow {
-                op: row.get(0)?,
-                turn: row.get(1)?,
-                name: row.get(2)?,
-                state: row.get(3)?,
-                input: row.get(4)?,
-                output: row.get(5)?,
-                rowid: row.get(6)?,
-            })
-        })?;
+        let rows = stmt.query_map(
+            params![session, before_rowid, limit, TOOL_OP_PREVIEW_BYTES as i64],
+            |row| {
+                let raw: Option<String> = row.get(5)?;
+                let bytes: i64 = row.get::<_, Option<i64>>(6)?.unwrap_or(0);
+                let (output, truncated) = bound_preview(raw, bytes);
+                Ok(ToolOpRow {
+                    op: row.get(0)?,
+                    turn: row.get(1)?,
+                    name: row.get(2)?,
+                    state: row.get(3)?,
+                    input: row.get(4)?,
+                    output,
+                    output_bytes: bytes,
+                    output_truncated: truncated,
+                    rowid: row.get(7)?,
+                })
+            },
+        )?;
         let mut out = Vec::new();
         for row in rows {
             out.push(row?);
@@ -452,6 +532,44 @@ impl Db {
             Self::require_session(&conn, session)?;
         }
         Ok(out)
+    }
+
+    /// Read a byte window of one tool operation's durable output.
+    ///
+    /// `offset` and `limit` are byte offsets into the stored text; the
+    /// returned window never splits a UTF-8 char (a trailing partial char is
+    /// withheld, so the next call starts on a boundary). Returns
+    /// `(text, total_bytes, next_offset)`; `next_offset` is `None` once the
+    /// end of the result is reached.
+    pub fn read_tool_op_output(
+        &self,
+        op: &str,
+        offset: usize,
+        limit: usize,
+    ) -> Result<(String, i64, Option<i64>), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let (window, total): (Option<Vec<u8>>, i64) = conn
+            .query_row(
+                "SELECT substr(CAST(output AS BLOB), ?2, ?3),
+                        length(CAST(output AS BLOB))
+                   FROM tool_operations WHERE id = ?1",
+                params![op, offset as i64 + 1, limit as i64],
+                |row| {
+                    Ok((
+                        row.get::<_, Option<Vec<u8>>>(0)?,
+                        row.get::<_, Option<i64>>(1)?.unwrap_or(0),
+                    ))
+                },
+            )
+            .optional()?
+            .ok_or(StorageError::OperationNotFound)?;
+        let bytes = window.unwrap_or_default();
+        // Withhold an incomplete trailing char so no byte is ever skipped.
+        let kept = complete_bytes(&bytes);
+        let text = String::from_utf8_lossy(&bytes[..kept]).to_string();
+        let next = offset + kept;
+        let next_offset = (next < total as usize).then_some(next as i64);
+        Ok((text, total, next_offset))
     }
 
     /// Recorded tool-operation rowid bounds `(min, max)`; `None` when empty.
@@ -505,20 +623,32 @@ impl Db {
     pub fn list_tool_ops(&self, session: &str) -> Result<Vec<ToolOpRow>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let mut stmt = conn.prepare_cached(
-            "SELECT id, turn_id, name, state, input, output, rowid FROM tool_operations
-             WHERE session_id = ?1 ORDER BY rowid ASC LIMIT ?2",
+            "SELECT id, turn_id, name, state, input,
+                    CASE WHEN length(CAST(output AS BLOB)) > ?3
+                         THEN substr(output, 1, ?3) ELSE output END,
+                    length(CAST(output AS BLOB)), rowid
+               FROM tool_operations
+              WHERE session_id = ?1 ORDER BY rowid ASC LIMIT ?2",
         )?;
-        let rows = stmt.query_map(params![session, TOOL_OPS_MAX as i64], |row| {
-            Ok(ToolOpRow {
-                op: row.get(0)?,
-                turn: row.get(1)?,
-                name: row.get(2)?,
-                state: row.get(3)?,
-                input: row.get(4)?,
-                output: row.get(5)?,
-                rowid: row.get(6)?,
-            })
-        })?;
+        let rows = stmt.query_map(
+            params![session, TOOL_OPS_MAX as i64, TOOL_OP_PREVIEW_BYTES as i64],
+            |row| {
+                let raw: Option<String> = row.get(5)?;
+                let bytes: i64 = row.get::<_, Option<i64>>(6)?.unwrap_or(0);
+                let (output, truncated) = bound_preview(raw, bytes);
+                Ok(ToolOpRow {
+                    op: row.get(0)?,
+                    turn: row.get(1)?,
+                    name: row.get(2)?,
+                    state: row.get(3)?,
+                    input: row.get(4)?,
+                    output,
+                    output_bytes: bytes,
+                    output_truncated: truncated,
+                    rowid: row.get(7)?,
+                })
+            },
+        )?;
         let mut out = Vec::new();
         for row in rows {
             out.push(row?);
@@ -526,6 +656,180 @@ impl Db {
         if out.is_empty() {
             Self::require_session(&conn, session)?;
         }
+        Ok(out)
+    }
+
+    /// Prune mark id plus the seq of the marked message.
+    ///
+    /// A mark whose message row is gone is reported as absent: the caller
+    /// then projects from the full history (more context, never less).
+    pub fn prune_bound(&self, session: &str) -> Result<Option<(String, i64)>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        conn.query_row(
+            "SELECT p.up_to_msg, m.seq FROM prune_marks p
+               JOIN messages m ON m.id = p.up_to_msg
+              WHERE p.session_id = ?1",
+            params![session],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()
+        .map_err(StorageError::Sqlite)
+    }
+
+    /// Lowest in-window seq of each compression block's members, ascending.
+    ///
+    /// Used to place block summaries inside a bounded active projection
+    /// without materialising the covered rows themselves.
+    pub fn block_positions(
+        &self,
+        session: &str,
+        after_seq: i64,
+    ) -> Result<Vec<(String, i64)>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let mut stmt = conn.prepare_cached(
+            "SELECT cm.block_id, MIN(m.seq) FROM compression_members cm
+               JOIN messages m ON m.id = cm.message_id
+               JOIN compression_blocks b ON b.id = cm.block_id
+              WHERE b.session_id = ?1 AND m.seq > ?2
+              GROUP BY cm.block_id ORDER BY MIN(m.seq) ASC",
+        )?;
+        let rows = stmt.query_map(params![session, after_seq], |row| {
+            Ok((row.get(0)?, row.get(1)?))
+        })?;
+        let mut out = Vec::new();
+        for row in rows {
+            out.push(row?);
+        }
+        Ok(out)
+    }
+
+    /// Read the active projection: rows newer than `after_seq` that no
+    /// compression block covers, in seq order.
+    ///
+    /// Retained memory is bounded by `budget` plus one page; when the active
+    /// text exceeds `budget` the rows are released and the exact totals are
+    /// reported with `overflow = true`, so the caller can refuse the turn
+    /// with a diagnostic instead of silently dropping facts.
+    pub fn active_history(
+        &self,
+        session: &str,
+        after_seq: i64,
+        budget: usize,
+    ) -> Result<ActiveHistory, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let mut rows: Vec<(String, String, String)> = Vec::new();
+        let mut bytes: u64 = 0;
+        let mut cursor = after_seq;
+        loop {
+            let mut stmt = conn.prepare_cached(
+                "SELECT id, role, seq, length(CAST(text AS BLOB)), text FROM messages
+                  WHERE session_id = ?1 AND seq > ?2
+                    AND NOT EXISTS (SELECT 1 FROM compression_members cm
+                                     WHERE cm.message_id = messages.id)
+                  ORDER BY seq ASC LIMIT ?3",
+            )?;
+            let page: Vec<(String, String, i64, i64, String)> = stmt
+                .query_map(
+                    params![session, cursor, ACTIVE_HISTORY_PAGE as i64],
+                    |row| {
+                        Ok((
+                            row.get(0)?,
+                            row.get(1)?,
+                            row.get(2)?,
+                            row.get::<_, Option<i64>>(3)?.unwrap_or(0),
+                            row.get(4)?,
+                        ))
+                    },
+                )?
+                .collect::<Result<Vec<_>, _>>()?;
+            if page.is_empty() {
+                if rows.is_empty() && cursor == after_seq {
+                    Self::require_session(&conn, session)?;
+                }
+                break;
+            }
+            let full_page = page.len() == ACTIVE_HISTORY_PAGE;
+            for (id, role, seq, size, text) in page {
+                cursor = seq;
+                bytes = bytes.saturating_add(size.max(0) as u64);
+                rows.push((id, role, text));
+            }
+            if bytes > budget as u64 {
+                // Exact remaining totals without materialising any text.
+                let (extra_rows, extra_bytes): (i64, i64) = conn.query_row(
+                    "SELECT COUNT(*), COALESCE(SUM(length(CAST(text AS BLOB))), 0)
+                       FROM messages
+                      WHERE session_id = ?1 AND seq > ?2
+                        AND NOT EXISTS (SELECT 1 FROM compression_members cm
+                                         WHERE cm.message_id = messages.id)",
+                    params![session, cursor],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )?;
+                return Ok(ActiveHistory {
+                    rows_read: rows.len() + extra_rows.max(0) as usize,
+                    bytes: bytes.saturating_add(extra_bytes.max(0) as u64),
+                    rows: Vec::new(),
+                    overflow: true,
+                });
+            }
+            if !full_page {
+                break;
+            }
+        }
+        Ok(ActiveHistory {
+            rows_read: rows.len(),
+            bytes,
+            rows,
+            overflow: false,
+        })
+    }
+
+    /// Turn logs whose anchor belongs to the active window.
+    ///
+    /// Scans newest-first in bounded pages and stops once the anchor seq
+    /// falls to or below `floor_seq`: turn rows are inserted in anchor order,
+    /// so nothing newer can appear below that point. Logs without a parseable
+    /// anchor are kept (never drop history on an unknown shape).
+    pub fn wire_logs_for_window(
+        &self,
+        session: &str,
+        floor_seq: i64,
+        page: usize,
+    ) -> Result<Vec<String>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let page = (page.min(TOOL_OPS_MAX) as i64).max(1);
+        let mut out = Vec::new();
+        let mut upper: Option<i64> = None;
+        loop {
+            let mut stmt = conn.prepare_cached(
+                "SELECT rowid, result FROM turns
+                  WHERE session_id = ?1 AND result IS NOT NULL
+                    AND (?2 IS NULL OR rowid < ?2)
+                  ORDER BY rowid DESC LIMIT ?3",
+            )?;
+            let batch: Vec<(i64, String)> = stmt
+                .query_map(params![session, upper, page], |row| {
+                    Ok((row.get(0)?, row.get(1)?))
+                })?
+                .collect::<Result<Vec<_>, _>>()?;
+            let full_page = batch.len() == page as usize;
+            if let Some((rowid, _)) = batch.last() {
+                upper = Some(*rowid);
+            }
+            let mut oldest = i64::MAX;
+            for (_, result) in batch {
+                match anchor_seq(&result) {
+                    Some(seq) if seq > floor_seq => out.push(result),
+                    Some(seq) => oldest = oldest.min(seq),
+                    None => out.push(result),
+                }
+            }
+            if oldest <= floor_seq || !full_page {
+                break;
+            }
+        }
+        // Restore insertion order: replay must see turns oldest-first.
+        out.reverse();
         Ok(out)
     }
 
@@ -716,14 +1020,25 @@ impl Db {
     }
 
     /// Per-turn wire journals; never exposed by history/UI readers.
-    pub(crate) fn wire_logs(&self, session: &str) -> Result<Vec<String>, StorageError> {
+    /// Seq of each requested message id (order-preserving input list).
+    pub fn message_seqs(
+        &self,
+        session: &str,
+        ids: &[String],
+    ) -> Result<Vec<(String, i64)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let mut query = conn.prepare(
-            "SELECT result FROM turns WHERE session_id = ?1 AND result IS NOT NULL ORDER BY rowid",
-        )?;
-        let rows = query.query_map([session], |row| row.get(0))?;
-        rows.collect::<Result<Vec<_>, _>>()
-            .map_err(StorageError::Sqlite)
+        let mut out = Vec::with_capacity(ids.len());
+        let mut stmt =
+            conn.prepare_cached("SELECT seq FROM messages WHERE session_id = ?1 AND id = ?2")?;
+        for id in ids {
+            let seq: Option<i64> = stmt
+                .query_row(params![session, id], |row| row.get(0))
+                .optional()?;
+            if let Some(seq) = seq {
+                out.push((id.clone(), seq));
+            }
+        }
+        Ok(out)
     }
 
     /// Read a turn's terminal status and result JSON (turn-log replay).
@@ -753,6 +1068,8 @@ impl Db {
              CREATE TABLE IF NOT EXISTS prune_marks(
                 session_id TEXT PRIMARY KEY REFERENCES sessions(id),
                 up_to_msg TEXT NOT NULL, created_at TEXT NOT NULL);
+             CREATE INDEX IF NOT EXISTS compression_members_message
+                ON compression_members(message_id);
              CREATE TABLE IF NOT EXISTS dcp_tool_projection(
                  session_id TEXT NOT NULL REFERENCES sessions(id),
                  call_id TEXT NOT NULL, action TEXT NOT NULL,

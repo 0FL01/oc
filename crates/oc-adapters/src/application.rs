@@ -506,6 +506,8 @@ fn query(
                         state: row.state,
                         input: row.input,
                         output: row.output,
+                        output_bytes: row.output_bytes,
+                        output_truncated: row.output_truncated,
                     })
                     .collect();
                 Ok(ToolOpPage {
@@ -569,14 +571,34 @@ fn query(
                     .dcp_turn_state(&session.0)
                     .map(|state| state.turns_since_compress)
                     .unwrap_or(0);
-                let history = db.read_history_full(&session.0).map_err(app_error)?;
-                let mut text = String::new();
-                for (_, _, body) in &history {
-                    if text.len() >= ESTIMATE_BYTES {
-                        break;
+                // Estimate from the active projection, not the archive: the
+                // DCP panel must not materialise pruned/covered history.
+                let after_seq = db
+                    .prune_bound(&session.0)
+                    .map_err(app_error)?
+                    .map(|(_, seq)| seq)
+                    .unwrap_or(0);
+                let active = db
+                    .active_history(
+                        &session.0,
+                        after_seq,
+                        crate::runtime::ACTIVE_CONTEXT_BYTES_CAP,
+                    )
+                    .map_err(app_error)?;
+                let estimated_tokens = if active.overflow {
+                    // Above the safety budget: report the exact byte-derived
+                    // estimate instead of a silent zero.
+                    active.bytes / 4
+                } else {
+                    let mut text = String::new();
+                    for (_, _, body) in &active.rows {
+                        if text.len() >= ESTIMATE_BYTES {
+                            break;
+                        }
+                        text.push_str(body);
                     }
-                    text.push_str(body);
-                }
+                    crate::runtime::estimate_tokens(&text)
+                };
                 let model_context = composition
                     .catalog
                     .models
@@ -588,7 +610,7 @@ fn query(
                     .dcp_config
                     .effective_for_context(&effective.model_id, model_context);
                 Ok(DcpSnapshot {
-                    estimated_tokens: crate::runtime::estimate_tokens(&text),
+                    estimated_tokens,
                     max_context: thresholds.max_context,
                     turns_since_compress,
                     blocks,

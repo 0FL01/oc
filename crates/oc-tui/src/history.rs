@@ -191,6 +191,10 @@ pub struct ToolCard {
     pub input_preview: String,
     /// Bounded output preview (empty when none recorded).
     pub output_preview: String,
+    /// Full stored output size in bytes.
+    pub output_bytes: i64,
+    /// True when the durable result is longer than the preview.
+    pub output_truncated: bool,
     /// Affected paths for `apply_patch` (parsed, never invented).
     pub files: Vec<String>,
     /// True when more files exist than listed.
@@ -207,6 +211,8 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
         state: row.state.clone(),
         input_preview: preview(row.input.as_deref()),
         output_preview: preview(row.output.as_deref()),
+        output_bytes: row.output_bytes,
+        output_truncated: row.output_truncated,
         files: files.into_iter().take(CARD_FILES).collect(),
         files_truncated,
     }
@@ -376,6 +382,8 @@ mod tests {
             state: "completed".to_string(),
             input: Some(serde_json::json!({ "patchText": patch }).to_string()),
             output: Some("ok".to_string()),
+            output_bytes: 0,
+            output_truncated: false,
         });
         assert_eq!(card.op, "op1");
         assert_eq!(card.state, "completed");
@@ -392,6 +400,8 @@ mod tests {
                 state: "started".to_string(),
                 input: Some(serde_json::json!({ (alias): patch }).to_string()),
                 output: None,
+                output_bytes: 0,
+                output_truncated: false,
             });
             assert!(card.files.is_empty(), "alias {alias} must be ignored");
         }
@@ -402,6 +412,8 @@ mod tests {
             state: "started".to_string(),
             input: Some("not json".to_string()),
             output: None,
+            output_bytes: 0,
+            output_truncated: false,
         });
         assert!(card.files.is_empty());
         assert!(card.output_preview.is_empty());
@@ -415,6 +427,8 @@ mod tests {
             state: "started".to_string(),
             input: Some(serde_json::json!({ "patchText": patch }).to_string()),
             output: Some(long),
+            output_bytes: 0,
+            output_truncated: false,
         });
         assert!(card.files.is_empty());
         assert!(card.input_preview.len() <= CARD_PREVIEW + 16);
@@ -433,6 +447,8 @@ mod tests {
             state: "started".to_string(),
             input: Some(serde_json::json!({ "patchText": patch }).to_string()),
             output: None,
+            output_bytes: 0,
+            output_truncated: false,
         });
         assert_eq!(card.files.len(), CARD_FILES);
         assert!(card.files_truncated);
@@ -448,6 +464,8 @@ mod tests {
                 state: "started".to_string(),
                 input: None,
                 output: None,
+                output_bytes: 0,
+                output_truncated: false,
             },
             ToolOpView {
                 rowid: 0,
@@ -456,6 +474,8 @@ mod tests {
                 state: "failed".to_string(),
                 input: Some("{}".to_string()),
                 output: Some("boom".to_string()),
+                output_bytes: 0,
+                output_truncated: false,
             },
         ];
         let cards = cards_from_rows(&rows);

@@ -1,0 +1,13 @@
+running 3 tests
+test aud32_equal_active_context_bounded_construction ... 
+thread 'aud32_equal_active_context_bounded_construction' (3293089) panicked at crates/oc-adapters/tests/context_bounds_red.rs:481:5:
+turn construction peak followed the archive: 99273700 bytes for 2000 archived pairs (small run: 1113686 bytes)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test aud33_payload_above_64k_within_budget_is_complete ... ok
+test aud34_tool_output_beyond_preview_is_retrievable ... 
+thread 'aud34_tool_output_beyond_preview_is_retrievable' (3293103) panicked at crates/oc-adapters/tests/context_bounds_red.rs:588:5:
+the UI-facing row must be a bounded preview: 3017 bytes
+failures:
+failures:
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.98s
+error: test failed, to rerun pass `-p oc-adapters --test context_bounds_red`

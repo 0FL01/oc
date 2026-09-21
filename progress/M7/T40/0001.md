@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-21T17:51:26+00:00
-Active: T40
-
-Сверить Git status/diff до выполнения команд.
-Task: T40 — Ограничить активный контекст, а не подменять его обрезкой
-Spec: audit/repairs/T40.md
-Evidence target: evidence/T40/report.md
-
-Закрыть F15 по audit/repairs/T40.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 ## Result
 
 T40 (F15, AUD32–AUD34) implemented and verified in the working tree:
@@ -60,9 +46,3 @@ T40 (F15, AUD32–AUD34) implemented and verified in the working tree:
 
 Commit the T40 slice, write `evidence/T40/report.md`, run `progress.py finish`,
 push, then start T41 (actual-binary evidence) per the repair order.
-
-
-Ready (до 5): нет
-Blocked: T27
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

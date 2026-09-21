@@ -1325,6 +1325,7 @@ dependencies = [
  "oc-core",
  "oc-tui",
  "ratatui",
+ "rusqlite",
  "serde",
  "serde_json",
  "tempfile",

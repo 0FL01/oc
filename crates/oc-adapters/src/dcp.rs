@@ -918,6 +918,108 @@ fn project_rows_with_mode(
     Ok(out)
 }
 
+/// Lowest member seq per block, ascending: summary placement input for
+/// [`project_active_rows`] when blocks are not persisted yet.
+pub fn member_positions(
+    blocks: &[CompressionBlock],
+    seqs: &std::collections::BTreeMap<String, i64>,
+) -> Vec<(String, i64)> {
+    let mut out = Vec::new();
+    for block in blocks {
+        let lowest = block
+            .members
+            .iter()
+            .filter_map(|member| seqs.get(member).copied())
+            .min();
+        if let Some(seq) = lowest {
+            out.push((block.id.clone(), seq));
+        }
+    }
+    out.sort_by_key(|(_, seq)| *seq);
+    out
+}
+
+/// Project an already-bounded active history with block summaries.
+///
+/// `active` holds only rows no block covers (in seq order, prune already
+/// applied); `positions` gives each block's lowest in-window member seq
+/// ([`crate::storage::Db::block_positions`]). The result is identical to
+/// [`project_rows`] over the full history: each block summary is emitted at
+/// the position of its first in-window member, and covered rows are never
+/// materialised. Blocks without an in-window member emit nothing, matching
+/// the prune behaviour of the full projection.
+pub fn project_active_rows(
+    active: &[(String, String, String)],
+    blocks: &[CompressionBlock],
+    positions: &[(String, i64)],
+) -> Result<Vec<(String, String, String)>, DcpError> {
+    let by_id: std::collections::BTreeMap<String, CompressionBlock> = blocks
+        .iter()
+        .map(|block| (block.id.clone(), block.clone()))
+        .collect();
+    // Position lookup by block id, ordered by first in-window member.
+    let mut queue: Vec<(&str, i64)> = positions
+        .iter()
+        .map(|(id, seq)| (id.as_str(), *seq))
+        .collect();
+    queue.sort_by_key(|(_, seq)| *seq);
+    // Covered rows are dropped here: their summary is placed by position.
+    // A covered row whose block has no position is kept (fail open, never
+    // drop a fact because placement metadata was missing).
+    let placed: std::collections::BTreeSet<&str> = queue.iter().map(|(id, _)| *id).collect();
+    let mut member_of: std::collections::HashMap<&str, &str> = std::collections::HashMap::new();
+    for block in blocks {
+        for member in &block.members {
+            member_of
+                .entry(member.as_str())
+                .or_insert(block.id.as_str());
+        }
+    }
+    let mut out = Vec::with_capacity(active.len() + queue.len());
+    let mut next = 0usize;
+    for (id, role, text) in active {
+        if let Some(block_id) = member_of.get(id.as_str())
+            && placed.contains(*block_id)
+        {
+            continue;
+        }
+        let seq = id
+            .strip_prefix('m')
+            .and_then(|rest| rest.parse::<i64>().ok())
+            .unwrap_or(i64::MAX);
+        while next < queue.len() && queue[next].1 < seq {
+            let block_id = queue[next].0;
+            let summary = match by_id.get(block_id) {
+                Some(block) => expand_block(&by_id, block_id, 0, &mut Vec::new())
+                    .unwrap_or_else(|_| block.summary.clone()),
+                None => String::new(),
+            };
+            out.push((
+                block_id.to_string(),
+                "system".to_string(),
+                format!("[compressed {block_id}] {summary}"),
+            ));
+            next += 1;
+        }
+        out.push((id.clone(), role.clone(), text.clone()));
+    }
+    while next < queue.len() {
+        let block_id = queue[next].0;
+        let summary = match by_id.get(block_id) {
+            Some(block) => expand_block(&by_id, block_id, 0, &mut Vec::new())
+                .unwrap_or_else(|_| block.summary.clone()),
+            None => String::new(),
+        };
+        out.push((
+            block_id.to_string(),
+            "system".to_string(),
+            format!("[compressed {block_id}] {summary}"),
+        ));
+        next += 1;
+    }
+    Ok(out)
+}
+
 /// Patch protection: every affected path is checked against protected globs.
 ///
 /// `apply_patch` counts as a protected mutation equivalent: any violation

@@ -1,0 +1,6 @@
+AUD32 binary workload: archive pairs 8 -> 3000 x 16384 B (+ turn logs), active pairs 2 x 1024 B
+AUD32 small: baseline_rss_kb=12 peak_hwm_kb=26200 end_rss_kb=25600 end_pss_kb=23301 peak_pss_kb=23963 children=0 db_bytes=524288 wal_bytes=0
+AUD32 large: baseline_rss_kb=16 peak_hwm_kb=169876 end_rss_kb=26520 end_pss_kb=23918 peak_pss_kb=167576 children=0 db_bytes=152453120 wal_bytes=0
+thread 'aud32_actual_binary_bounds_active_context_with_growing_archive' (3342332) panicked at crates/oc/tests/memory_bounds.rs:518:5:
+peak RSS followed the archive: 169860 KiB for 3000 archived pairs (small run: 26188 KiB, bound 65536 KiB)
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.11s

@@ -24,10 +24,9 @@ use crate::picker::ModelPicker;
 
 /// Visible lines kept in the viewport (scroll window).
 pub const VIEWPORT_LINES: usize = 20;
-/// Bounded input buffer (bytes).
-pub const MAX_INPUT_BYTES: usize = 4096;
-/// Max bytes appended by one bracketed paste event.
-pub const PASTE_INPUT_MAX: usize = 64 * 1024;
+/// Bounded input buffer (bytes): the core input budget, so the view never
+/// drops bytes the runtime would have accepted.
+pub const MAX_INPUT_BYTES: usize = oc_core::session::MAX_INPUT_BYTES;
 /// Max card rows retained by the Cards panel.
 pub const CARDS_MAX: usize = 160;
 
@@ -378,11 +377,18 @@ impl TuiState {
             return KeyOutcome::default();
         }
         let room = MAX_INPUT_BYTES.saturating_sub(self.input.len());
-        if room > 0 {
-            let text = crate::truncate_utf8(text, room.min(PASTE_INPUT_MAX));
-            self.input.push_str(text);
+        let kept = crate::truncate_utf8(text, room);
+        let dropped = text.len().saturating_sub(kept.len());
+        self.input.push_str(kept);
+        if dropped == 0 {
+            return KeyOutcome::default();
         }
-        KeyOutcome::default()
+        KeyOutcome {
+            note: Some(format!(
+                "paste truncated: {dropped} bytes dropped at the {MAX_INPUT_BYTES} byte input limit"
+            )),
+            ..KeyOutcome::default()
+        }
     }
 
     /// Report a runtime DCP outcome: transient notice, never chat history.
@@ -464,10 +470,17 @@ impl TuiState {
         match action {
             KeyAction::Left | KeyAction::Right => KeyOutcome::default(),
             KeyAction::Char(c) => {
-                if self.input.len() < MAX_INPUT_BYTES {
+                if self.input.len() + c.len_utf8() <= MAX_INPUT_BYTES {
                     self.input.push(c);
+                    KeyOutcome::default()
+                } else {
+                    KeyOutcome {
+                        note: Some(format!(
+                            "input limit {MAX_INPUT_BYTES} bytes reached; the key was not added"
+                        )),
+                        ..KeyOutcome::default()
+                    }
                 }
-                KeyOutcome::default()
             }
             KeyAction::Backspace => {
                 self.input.pop();
@@ -794,6 +807,12 @@ fn card_row(card: &ToolCard) -> HistoryRow {
     };
     let output = if card.output_preview.is_empty() {
         String::new()
+    } else if card.output_truncated {
+        format!(
+            " -> {}…[+{} bytes stored]",
+            card.output_preview,
+            card.output_bytes.max(0)
+        )
     } else {
         format!(" -> {}", card.output_preview)
     };
@@ -960,6 +979,27 @@ mod tests {
         std::mem::forget(guard);
         app.create_session(sid(name)).await.expect("create");
         TuiState::new(app, sid(name))
+    }
+
+    #[tokio::test]
+    async fn aud33_paste_is_never_silently_cut_below_the_input_budget() {
+        let mut state = fresh_state("s-aud33-paste").await;
+        // 100 KiB of multibyte text: above the old 64 KiB transport cap and
+        // well inside the configured input budget, so nothing may be dropped.
+        let big = "п".repeat(50 * 1024);
+        let outcome = state.handle_paste(&big);
+        assert_eq!(state.input().len(), big.len(), "paste must be kept whole");
+        assert!(outcome.note.is_none(), "no diagnostic without a drop");
+
+        // Above the input budget the cut is bounded and reported.
+        let huge = "x".repeat(MAX_INPUT_BYTES + 4096);
+        let outcome = state.handle_paste(&huge);
+        assert_eq!(state.input().len(), MAX_INPUT_BYTES);
+        let note = outcome.note.expect("a dropped paste must be reported");
+        assert!(
+            note.contains("paste") && note.contains(&MAX_INPUT_BYTES.to_string()),
+            "note must name the paste and the budget: {note}"
+        );
     }
 
     async fn type_text(state: &mut TuiState, text: &str) {

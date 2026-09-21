@@ -90,6 +90,26 @@ ASCII-границам (`<`, `>`, `;`), поэтому UTF-8 сохраняет�
 паниковать; named/numeric entities декодируются, malformed/unclosed разметка
 переносится без паники.
 
+## T40 qualification — bounded active context и retention
+
+Активная projection строится по ссылкам/страницам: `read_history_full`
+остаётся только у явного owner-действия (manual `/dcp-compress` над видимым
+транскриптом), а per-turn путь читает `active_history` (prune-bounded,
+covered rows пропускаются) и `wire_logs_for_window` (turn logs до anchor
+floor). Независимый `ACTIVE_CONTEXT_BYTES_CAP` ограничивает память сборки и
+не подменяет token admission: превышение даёт `ContextOverflow` с точными
+bytes/cap и советом compress/prune, а не потерю фактов. Эвристика оценки
+токенов (bytes/4) документирована как оценка, а не как точный счётчик
+конкретной proxy-модели.
+
+Tool output: UI-строка операции отдаёт bounded preview с маркером `…[+N]` и
+точным `output_bytes`; полный result хранится один раз в
+`tool_operations.output` и читается продолжением
+`read_tool_op_output(op, offset, limit)` (байтовые окна по UTF-8-границам,
+`next_offset`). Модель по-прежнему получает полный result в turn log —
+preview никогда не подменяет доступные модели данные. Ввод TUI ограничен тем
+же лимитом, что и core, а превышение видно в note.
+
 ## Permissions caveat
 
 Универсальный patch убирает дублирование модельных tools, но shell технически может писать через cat/python/компилятор, а MCP может иметь свои side effects. Инструкция предпочитать patch для source edits — behavioral contract, не OS isolation. Runtime и агент не должны заявлять обратное. Build artifacts нормально создаются dev tools.

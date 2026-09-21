@@ -134,8 +134,12 @@ pub struct ToolOpView {
     pub state: String,
     /// Recorded input JSON (bounded preview by the consumer).
     pub input: Option<String>,
-    /// Recorded outcome (bounded preview by the consumer).
+    /// Recorded outcome preview (bounded; never the whole result).
     pub output: Option<String>,
+    /// Full stored output size in bytes.
+    pub output_bytes: i64,
+    /// Whether [`ToolOpView::output`] is a truncated preview.
+    pub output_truncated: bool,
 }
 
 /// One bounded, newest-first tool operation page.
