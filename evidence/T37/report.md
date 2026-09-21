@@ -1,7 +1,8 @@
 # T37 — MCP config, registry и владение ресурсами
 
 Status: **PASS for T37 mandatory offline scope**, not overall product READY.
-Implementation: `885fcd1` plus the hardening commit on base `839279c`.
+Implementation: `885fcd1` (client/registry work) and `b02d75a` (shutdown,
+cancellation-lease, per-server refresh, caps) on base `839279c`.
 Findings: **F10, F11**. Contract: `audit/repairs/T37.md`.
 Initial red: [regression.md](regression.md). Executed gates: [checks.md](checks.md).
 No live/paid endpoint, real credential or valuable user file was touched.
