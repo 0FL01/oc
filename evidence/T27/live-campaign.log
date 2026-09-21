@@ -1,0 +1,30 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.45s
+     Running tests/live_bounded.rs (target/debug/deps/live_bounded-bf8b3e79c6f04ee3)
+
+running 1 test
+{
+  "counts": {
+    "attempted": 0,
+    "blocked": 1,
+    "failed": 0,
+    "passed": 0,
+    "skipped": 0
+  },
+  "harness": "live_bounded",
+  "reason": "model ocg/muse-spark-1.3-contributor is not declared in /home/opencode/.config/opencode/opencode.jsonc",
+  "status": "blocked"
+}
+
+thread 'live_bounded_campaign' (3440663) panicked at crates/oc/tests/live_bounded.rs:127:5:
+live harness BLOCKED: model ocg/muse-spark-1.3-contributor is not declared in /home/opencode/.config/opencode/opencode.jsonc
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test live_bounded_campaign ... FAILED
+
+failures:
+
+failures:
+    live_bounded_campaign
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p oc --test live_bounded`

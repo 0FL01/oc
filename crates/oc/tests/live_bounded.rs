@@ -152,8 +152,10 @@ impl LiveConfig {
         let path = config_path()?;
         let raw = std::fs::read_to_string(&path)
             .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
-        let value: Value = serde_json::from_str(&raw)
-            .map_err(|error| format!("{} is not JSON: {error}", path.display()))?;
+        // The owner's config is JSONC: use the shipped parser so comments and
+        // trailing commas behave exactly as the product does.
+        let value: Value = oc_adapters::config::parse_jsonc(&raw, &path.to_string_lossy())
+            .map_err(|error| format!("{} is not JSONC: {error}", path.display()))?;
         let (provider_id, model_id) = model
             .split_once('/')
             .map(|(provider, model)| (provider.to_string(), model.to_string()))

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-21T18:55:26+00:00",
+  "updated_at": "2026-09-21T18:56:56+00:00",
   "current": "T27",
   "tasks": {
     "T00": {
@@ -194,8 +194,8 @@
     },
     "T27": {
       "status": "active",
-      "last_seq": 1,
-      "latest": "progress/M5/T27/0001.md",
+      "last_seq": 2,
+      "latest": "progress/M5/T27/0002.md",
       "evidence": null,
       "reopen_reason": null
     },
@@ -305,5 +305,5 @@
       "reopen_reason": null
     }
   },
-  "last_checkpoint_task": "T42"
+  "last_checkpoint_task": "T27"
 }
