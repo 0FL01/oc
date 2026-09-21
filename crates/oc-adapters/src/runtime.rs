@@ -20,8 +20,8 @@ use oc_core::session::{Message, MessageId, Role};
 
 use crate::config::{Generation, Permission};
 use crate::dcp_auto::{DcpConfig, DcpStats, NudgeState, evaluate};
-use crate::mcp_remote::{self, CodexWebClient, RemoteTool};
-use crate::mcp_stdio::{StdioClient, StdioConfig};
+use crate::mcp_remote::{self, CodexWebClient, McpError};
+use crate::mcp_stdio::{StdioClient, StdioConfig, StdioError};
 use crate::models::{self, ModelCatalog};
 use crate::patch::ProtectedGlobs;
 use crate::provider::{InputItem, InputRole, ResponsesConfig, ToolDef};
@@ -75,6 +75,8 @@ pub enum RuntimeError {
         /// Server id.
         server: String,
     },
+    /// One or more owned MCP resources could not confirm shutdown/reap.
+    McpShutdown,
     /// Provider failure (kind only).
     Provider,
     /// Storage failure (kind only).
@@ -100,6 +102,7 @@ impl std::fmt::Display for RuntimeError {
             }
             Self::PermissionDenied { tool } => write!(f, "denied {tool}"),
             Self::McpAttach { server } => write!(f, "mcp attach failed for {server}"),
+            Self::McpShutdown => write!(f, "mcp shutdown failed"),
             Self::Provider => write!(f, "provider error"),
             Self::Storage => write!(f, "storage error"),
             Self::Compress(reason) => write!(f, "compress: {reason}"),
@@ -327,19 +330,72 @@ enum AttachedServer {
     Stdio(StdioClient),
 }
 
-/// Attached servers for one turn; [`McpAttachment::close`] reaps children.
-struct McpAttachment {
+/// One Location/config generation owns connected clients and its exact dispatch map.
+struct McpGeneration {
+    publication: u64,
     servers: Vec<AttachedMcp>,
+    entries: Vec<mcp_remote::RegistryEntry>,
 }
 
-impl McpAttachment {
-    /// Shut down stdio children (reap ladder); remote clients drop-close.
-    async fn close(self) {
+impl McpGeneration {
+    /// Explicitly close remote services and reap complete stdio process groups.
+    async fn close(self) -> Result<(), RuntimeError> {
+        let mut failed = false;
         for server in self.servers {
-            if let AttachedServer::Stdio(client) = server.client {
-                let _ = client.shutdown().await;
+            let result = match server.client {
+                AttachedServer::Remote(client) => client.close().await.map_err(|_| ()),
+                AttachedServer::Stdio(client) => client.shutdown().await.map_err(|_| ()),
+            };
+            failed |= result.is_err();
+        }
+        if failed {
+            Err(RuntimeError::McpShutdown)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Relist a dirty catalog between turns without reconnecting/reinitializing.
+    async fn refresh_if_changed(&mut self, cancel: &AtomicBool) -> Result<(), RuntimeError> {
+        let dirty = self.servers.iter().any(|server| match &server.client {
+            AttachedServer::Remote(client) => client.catalog_changed(),
+            AttachedServer::Stdio(client) => client.catalog_changed(),
+        });
+        if !dirty {
+            return Ok(());
+        }
+        let mut registries = Vec::with_capacity(self.servers.len());
+        for server in &self.servers {
+            let tools = match &server.client {
+                AttachedServer::Remote(client) => client
+                    .list_tools(cancel)
+                    .await
+                    .map_err(|error| remote_attach_error(&server.server_id, error))?,
+                AttachedServer::Stdio(client) => client
+                    .list_tools(cancel)
+                    .await
+                    .map_err(|error| stdio_attach_error(&server.server_id, error))?,
+            };
+            registries.push(
+                mcp_remote::map_registry(
+                    &server.server_id,
+                    tools
+                        .into_iter()
+                        .map(|tool| (tool.name, tool.description, tool.input_schema))
+                        .collect(),
+                )
+                .map_err(|error| remote_attach_error(&server.server_id, error))?,
+            );
+        }
+        self.entries = mcp_remote::merge_registries(registries)
+            .map_err(|error| remote_attach_error("generation", error))?;
+        for server in &self.servers {
+            match &server.client {
+                AttachedServer::Remote(client) => client.clear_catalog_changed(),
+                AttachedServer::Stdio(client) => client.clear_catalog_changed(),
             }
         }
+        Ok(())
     }
 }
 
@@ -347,15 +403,6 @@ impl McpAttachment {
 struct AttachedMcp {
     server_id: String,
     client: AttachedServer,
-    entries: Vec<RegistryEntry>,
-}
-
-/// Registry entry shared across MCP transports.
-#[derive(Debug, Clone)]
-struct RegistryEntry {
-    namespaced: String,
-    tool: String,
-    schema: serde_json::Value,
 }
 
 /// Terminal turn status persisted to storage.
@@ -480,6 +527,7 @@ pub struct Runtime<'a> {
     workspace: RwLock<RuntimeWorkspace>,
     nudge_state: Mutex<BTreeMap<String, NudgeState>>,
     stats: Mutex<crate::dcp_auto::DcpStats>,
+    mcp_generation: tokio::sync::Mutex<Option<McpGeneration>>,
 }
 
 impl<'a> Runtime<'a> {
@@ -524,6 +572,7 @@ impl<'a> Runtime<'a> {
             workspace: RwLock::new(RuntimeWorkspace::default()),
             nudge_state: Mutex::new(BTreeMap::new()),
             stats: Mutex::new(DcpStats::default()),
+            mcp_generation: tokio::sync::Mutex::new(None),
         })
     }
 
@@ -539,9 +588,15 @@ impl<'a> Runtime<'a> {
 
     /// Atomically publish a fully built candidate generation. Only lands
     /// between turns; returns the new id.
-    pub fn reload(&self, generation: Generation) -> Result<u64, RuntimeError> {
-        if self.active.load(Ordering::Relaxed) {
+    pub async fn reload(&self, generation: Generation) -> Result<u64, RuntimeError> {
+        if self.active.swap(true, Ordering::SeqCst) {
             return Err(RuntimeError::TurnActive);
+        }
+        if let Some(old) = self.mcp_generation.lock().await.take()
+            && let Err(error) = old.close().await
+        {
+            self.active.store(false, Ordering::SeqCst);
+            return Err(error);
         }
         let mut current = self.current.write().expect("generation lock");
         let id = current.id + 1;
@@ -549,7 +604,16 @@ impl<'a> Runtime<'a> {
             id,
             config: generation,
         });
+        self.active.store(false, Ordering::SeqCst);
         Ok(id)
+    }
+
+    /// Close the current Location/config generation's MCP resources.
+    pub async fn shutdown_mcp(&self) -> Result<(), RuntimeError> {
+        if let Some(generation) = self.mcp_generation.lock().await.take() {
+            generation.close().await?;
+        }
+        Ok(())
     }
 
     /// Replace the DCP config between turns.
@@ -674,12 +738,12 @@ impl<'a> Runtime<'a> {
         if self.active.swap(true, Ordering::SeqCst) {
             return Err(RuntimeError::TurnActive);
         }
-        let attachment = tokio::select! {
-            biased;
-            _ = crate::provider::wait_cancel(params.cancel) => Err(RuntimeError::Cancelled),
-            result = self.attach_mcp_current() => result,
-        };
-        let attachment = match attachment {
+        let published = self.current.read().expect("generation lock").clone();
+        let mut mcp = self.mcp_generation.lock().await;
+        let attached = match self
+            .ensure_mcp_generation(&mut mcp, &published, params.cancel)
+            .await
+        {
             Ok(value) => value,
             Err(error) => {
                 self.active.store(false, Ordering::SeqCst);
@@ -687,10 +751,9 @@ impl<'a> Runtime<'a> {
             }
         };
         let result = self
-            .run_turn_inner(params, &attachment.servers, &mut accepted, &mut text_delta)
+            .run_turn_inner(params, attached, &mut accepted, &mut text_delta)
             .await;
-        // Reap own children on every path (STORE05); remote drops close.
-        attachment.close().await;
+        drop(mcp);
         self.active.store(false, Ordering::SeqCst);
         result
     }
@@ -797,7 +860,7 @@ impl<'a> Runtime<'a> {
     async fn run_turn_inner(
         &self,
         params: TurnParams<'_>,
-        attached: &[AttachedMcp],
+        attached: &McpGeneration,
         accepted: &mut (dyn FnMut(&str) + Send),
         text_delta: &mut (dyn FnMut(&str, &str) + Send),
     ) -> Result<TurnReport, RuntimeError> {
@@ -883,14 +946,15 @@ impl<'a> Runtime<'a> {
         if !compress_available {
             tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
         }
-        for server in attached {
-            for entry in &server.entries {
-                tool_defs.push(ToolDef {
-                    name: entry.namespaced.clone(),
-                    description: format!("mcp {} tool", entry.tool),
-                    parameters: entry.schema.clone(),
-                });
-            }
+        for entry in &attached.entries {
+            tool_defs.push(ToolDef {
+                name: entry.namespaced.clone(),
+                description: entry
+                    .description
+                    .clone()
+                    .unwrap_or_else(|| format!("mcp {} tool", entry.tool)),
+                parameters: entry.input_schema.clone(),
+            });
         }
         let snapshot = workspace.skills;
         let policy = RuntimePolicy::new(&published.config.permissions);
@@ -1336,7 +1400,7 @@ impl<'a> Runtime<'a> {
         units: &[Assembled],
         ctx: &ToolContext<'_>,
         policy: &RuntimePolicy<'_>,
-        attached: &[AttachedMcp],
+        attached: &McpGeneration,
         cancel: &AtomicBool,
         round: u32,
         turn_log: &mut TurnLog,
@@ -1658,55 +1722,73 @@ impl<'a> Runtime<'a> {
     /// Dispatch only after the common permission and durable intent path.
     async fn execute_mcp(
         call: &crate::tools::ToolCall,
-        attached: &[AttachedMcp],
+        attached: &McpGeneration,
         cancel: &AtomicBool,
     ) -> (&'static str, String) {
-        let (server_id, tool) = match call.name.split_once("__") {
-            Some((server, tool)) => (server, tool),
-            None => {
-                return ("failed", format!("error: unknown tool {}", call.name));
-            }
-        };
-        let server = attached.iter().find(|server| server.server_id == server_id);
-        let Some(server) = server else {
-            return ("failed", format!("error: unknown mcp server {server_id}"));
-        };
-        if !server.entries.iter().any(|entry| entry.tool == tool) {
+        let Some(entry) = attached
+            .entries
+            .iter()
+            .find(|entry| entry.namespaced == call.name)
+        else {
             return ("failed", format!("error: unknown mcp tool {}", call.name));
-        }
-        let result = match &server.client {
-            AttachedServer::Remote(client) => client
-                .call_tool(tool, call.arguments.clone(), cancel)
-                .await
-                .map_err(|e| e.to_string()),
-            AttachedServer::Stdio(child) => child
-                .call_tool(tool, call.arguments.clone(), cancel)
-                .await
-                .map_err(|e| e.to_string()),
         };
-        match result {
-            Ok(text) => ("completed", text),
-            Err(_) if cancel.load(Ordering::Relaxed) => {
-                ("cancelled", "error: cancelled".to_string())
-            }
-            Err(_) => ("failed", "error: mcp call failed".to_string()),
+        let server = attached
+            .servers
+            .iter()
+            .find(|server| server.server_id == entry.server);
+        let Some(server) = server else {
+            return (
+                "failed",
+                format!("error: unknown mcp server {}", entry.server),
+            );
+        };
+        match &server.client {
+            AttachedServer::Remote(client) => client
+                .call_tool(&entry.tool, call.arguments.clone(), cancel)
+                .await
+                .map_or_else(
+                    |error| remote_mcp_failure(error, cancel),
+                    |text| ("completed", text),
+                ),
+            AttachedServer::Stdio(child) => child
+                .call_tool(&entry.tool, call.arguments.clone(), cancel)
+                .await
+                .map_or_else(
+                    |error| stdio_mcp_failure(error, cancel),
+                    |text| ("completed", text),
+                ),
         }
     }
 
-    /// Attach enabled MCP servers for the current generation (fail fast).
-    async fn attach_mcp_current(&self) -> Result<McpAttachment, RuntimeError> {
-        let published = self.current.read().expect("generation lock").clone();
-        self.attach_mcp(&published)
-            .await
-            .map(|servers| McpAttachment { servers })
+    /// Reuse one connected MCP registry for the whole Location/config generation.
+    async fn ensure_mcp_generation<'m>(
+        &self,
+        slot: &'m mut Option<McpGeneration>,
+        published: &PublishedGeneration,
+        cancel: &AtomicBool,
+    ) -> Result<&'m McpGeneration, RuntimeError> {
+        let reusable = slot
+            .as_ref()
+            .is_some_and(|generation| generation.publication == published.id);
+        if !reusable {
+            if let Some(old) = slot.take() {
+                old.close().await?;
+            }
+            *slot = Some(self.attach_mcp(published, cancel).await?);
+        } else if let Some(generation) = slot.as_mut() {
+            generation.refresh_if_changed(cancel).await?;
+        }
+        Ok(slot.as_ref().expect("MCP generation published"))
     }
 
-    /// Attached servers for one turn; closing reaps stdio children.
+    /// Attach and validate every enabled server before publishing the generation.
     async fn attach_mcp(
         &self,
         published: &PublishedGeneration,
-    ) -> Result<Vec<AttachedMcp>, RuntimeError> {
+        cancel: &AtomicBool,
+    ) -> Result<McpGeneration, RuntimeError> {
         let mut attached = Vec::new();
+        let mut registries = Vec::new();
         let mut ids: Vec<&String> = published.config.mcp.keys().collect();
         ids.sort();
         for id in ids {
@@ -1714,44 +1796,165 @@ impl<'a> Runtime<'a> {
             if !entry.enabled {
                 continue;
             }
-            if entry.kind == "remote" {
+            let result = if entry.kind == "remote" {
                 let config = mcp_remote::CodexWebConfig::from_entry(entry)
-                    .map_err(|_| RuntimeError::McpAttach { server: id.clone() })?;
-                // Attach uses a bounded dial timeout, not the turn cancel flag.
-                let dial_cancel = AtomicBool::new(false);
-                let client = CodexWebClient::connect(&config)
-                    .await
-                    .map_err(|_| RuntimeError::McpAttach { server: id.clone() })?;
-                let tools = client
-                    .list_tools(&dial_cancel)
-                    .await
-                    .map_err(|_| RuntimeError::McpAttach { server: id.clone() })?;
-                attached.push(AttachedMcp {
-                    server_id: id.clone(),
-                    client: AttachedServer::Remote(client),
-                    entries: registry_entries(id, &tools),
-                });
+                    .map(|mut config| {
+                        config.allow_private = self
+                            .parent_env
+                            .get("OC_TEST_ALLOW_LOOPBACK")
+                            .is_some_and(|value| value == "1");
+                        config
+                    })
+                    .map_err(|error| remote_attach_error(id, error));
+                match config {
+                    Ok(config) => {
+                        let client = tokio::select! {
+                            biased;
+                            _ = crate::provider::wait_cancel(cancel) => Err(RuntimeError::Cancelled),
+                            result = CodexWebClient::connect(&config) => {
+                                result.map_err(|error| remote_attach_error(id, error))
+                            }
+                        };
+                        match client {
+                            Ok(client) => match client.list_tools(cancel).await {
+                                Ok(tools) => {
+                                    let registry = mcp_remote::map_registry(
+                                        id,
+                                        tools
+                                            .into_iter()
+                                            .map(|tool| {
+                                                (tool.name, tool.description, tool.input_schema)
+                                            })
+                                            .collect(),
+                                    )
+                                    .map_err(|error| remote_attach_error(id, error));
+                                    match registry {
+                                        Ok(registry) => Ok((
+                                            AttachedMcp {
+                                                server_id: id.clone(),
+                                                client: AttachedServer::Remote(client),
+                                            },
+                                            registry,
+                                        )),
+                                        Err(error) => {
+                                            client
+                                                .close()
+                                                .await
+                                                .map_err(|_| RuntimeError::McpShutdown)?;
+                                            Err(error)
+                                        }
+                                    }
+                                }
+                                Err(error) => {
+                                    let mapped = remote_attach_error(id, error);
+                                    client
+                                        .close()
+                                        .await
+                                        .map_err(|_| RuntimeError::McpShutdown)?;
+                                    Err(mapped)
+                                }
+                            },
+                            Err(error) => Err(error),
+                        }
+                    }
+                    Err(error) => Err(error),
+                }
             } else if entry.kind == "local" {
-                let config = StdioConfig::from_entry(id, entry)
-                    .map_err(|_| RuntimeError::McpAttach { server: id.clone() })?;
-                let client = StdioClient::launch(&config)
-                    .await
-                    .map_err(|_| RuntimeError::McpAttach { server: id.clone() })?;
-                let dial_cancel = AtomicBool::new(false);
-                let tools = client
-                    .list_tools(&dial_cancel)
-                    .await
-                    .map_err(|_| RuntimeError::McpAttach { server: id.clone() })?;
-                attached.push(AttachedMcp {
-                    server_id: id.clone(),
-                    client: AttachedServer::Stdio(client),
-                    entries: registry_entries(id, &tools),
-                });
+                let config =
+                    StdioConfig::from_entry(id, entry, &self.roots.project, &self.parent_env)
+                        .map_err(|error| stdio_attach_error(id, error));
+                match config {
+                    Ok(config) => {
+                        let client = tokio::select! {
+                            biased;
+                            _ = crate::provider::wait_cancel(cancel) => Err(RuntimeError::Cancelled),
+                            result = StdioClient::launch(&config) => {
+                                result.map_err(|error| stdio_attach_error(id, error))
+                            }
+                        };
+                        match client {
+                            Ok(client) => match client.list_tools(cancel).await {
+                                Ok(tools) => {
+                                    let registry = mcp_remote::map_registry(
+                                        id,
+                                        tools
+                                            .into_iter()
+                                            .map(|tool| {
+                                                (tool.name, tool.description, tool.input_schema)
+                                            })
+                                            .collect(),
+                                    )
+                                    .map_err(|error| remote_attach_error(id, error));
+                                    match registry {
+                                        Ok(registry) => Ok((
+                                            AttachedMcp {
+                                                server_id: id.clone(),
+                                                client: AttachedServer::Stdio(client),
+                                            },
+                                            registry,
+                                        )),
+                                        Err(error) => {
+                                            client
+                                                .shutdown()
+                                                .await
+                                                .map_err(|_| RuntimeError::McpShutdown)?;
+                                            Err(error)
+                                        }
+                                    }
+                                }
+                                Err(error) => {
+                                    let mapped = stdio_attach_error(id, error);
+                                    client
+                                        .shutdown()
+                                        .await
+                                        .map_err(|_| RuntimeError::McpShutdown)?;
+                                    Err(mapped)
+                                }
+                            },
+                            Err(error) => Err(error),
+                        }
+                    }
+                    Err(error) => Err(error),
+                }
             } else {
-                return Err(RuntimeError::McpAttach { server: id.clone() });
+                Err(RuntimeError::McpAttach { server: id.clone() })
+            };
+            match result {
+                Ok((server, registry)) => {
+                    attached.push(server);
+                    registries.push(registry);
+                }
+                Err(error) => {
+                    let cleanup = McpGeneration {
+                        publication: published.id,
+                        servers: attached,
+                        entries: Vec::new(),
+                    }
+                    .close()
+                    .await;
+                    cleanup?;
+                    return Err(error);
+                }
             }
         }
-        Ok(attached)
+        match mcp_remote::merge_registries(registries) {
+            Ok(entries) => Ok(McpGeneration {
+                publication: published.id,
+                servers: attached,
+                entries,
+            }),
+            Err(error) => {
+                let cleanup = McpGeneration {
+                    publication: published.id,
+                    servers: attached,
+                    entries: Vec::new(),
+                }
+                .close()
+                .await;
+                cleanup?;
+                Err(remote_attach_error("generation", error))
+            }
+        }
     }
 }
 
@@ -1777,6 +1980,32 @@ fn output_state(output: &str) -> &'static str {
     }
 }
 
+fn remote_mcp_failure(error: McpError, cancel: &AtomicBool) -> (&'static str, String) {
+    if cancel.load(Ordering::Relaxed) || error == McpError::Cancelled {
+        return ("cancelled", "error: cancelled".into());
+    }
+    let message = match error {
+        McpError::ToolFailed => "error: mcp tool reported failure",
+        McpError::UnsupportedResult | McpError::BadResult => "error: unsupported mcp result",
+        McpError::InvalidArguments => "error: invalid mcp arguments",
+        _ => "error: mcp transport failure",
+    };
+    ("failed", message.into())
+}
+
+fn stdio_mcp_failure(error: StdioError, cancel: &AtomicBool) -> (&'static str, String) {
+    if cancel.load(Ordering::Relaxed) || error == StdioError::Cancelled {
+        return ("cancelled", "error: cancelled".into());
+    }
+    let message = match error {
+        StdioError::ToolFailed => "error: mcp tool reported failure",
+        StdioError::UnsupportedModality | StdioError::BadResult => "error: unsupported mcp result",
+        StdioError::NonObjectArguments => "error: invalid mcp arguments",
+        _ => "error: mcp transport failure",
+    };
+    ("failed", message.into())
+}
+
 fn truncate(text: &str, max: usize) -> String {
     if text.len() <= max {
         return text.to_string();
@@ -1784,15 +2013,27 @@ fn truncate(text: &str, max: usize) -> String {
     format!("{}…[+{}]", &text[..max], text.len() - max)
 }
 
-fn registry_entries(server_id: &str, tools: &[RemoteTool]) -> Vec<RegistryEntry> {
-    tools
-        .iter()
-        .map(|tool| RegistryEntry {
-            namespaced: format!("{server_id}__{}", tool.name),
-            tool: tool.name.clone(),
-            schema: tool.input_schema.clone(),
-        })
-        .collect()
+fn remote_attach_error(server: &str, error: McpError) -> RuntimeError {
+    match error {
+        McpError::Cancelled => RuntimeError::Cancelled,
+        McpError::InvalidHeader(_)
+        | McpError::ConflictingHeader(_)
+        | McpError::CatalogLimited
+        | McpError::Catalog(_) => RuntimeError::InvalidArgs(format!("mcp {server}: {error}")),
+        _ => RuntimeError::McpAttach {
+            server: server.to_string(),
+        },
+    }
+}
+
+fn stdio_attach_error(server: &str, error: StdioError) -> RuntimeError {
+    match error {
+        StdioError::Cancelled => RuntimeError::Cancelled,
+        StdioError::CatalogLimited => RuntimeError::InvalidArgs(format!("mcp {server}: {error}")),
+        _ => RuntimeError::McpAttach {
+            server: server.to_string(),
+        },
+    }
 }
 
 fn map_messages(history: &[(String, String, String)]) -> Result<Vec<Message>, RuntimeError> {

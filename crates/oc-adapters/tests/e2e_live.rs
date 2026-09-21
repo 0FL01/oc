@@ -344,6 +344,7 @@ async fn live_workflow_harness() {
         let config = oc_adapters::mcp_remote::CodexWebConfig {
             url,
             bearer: key,
+            custom_headers: reqwest::header::HeaderMap::new(),
             timeout: Duration::from_secs(60),
             allow_private: false,
         };
@@ -351,7 +352,7 @@ async fn live_workflow_harness() {
             .await
             .expect("codex_web connect");
         let text = client
-            .search("oc smoke probe", Some(3), &NO_CANCEL)
+            .search("oc smoke probe", Some("short"), &NO_CANCEL)
             .await
             .expect("codex_web search");
         steps += 1;

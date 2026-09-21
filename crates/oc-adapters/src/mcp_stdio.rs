@@ -1,12 +1,17 @@
-//! Local MCP stdio child lifecycle for T21 (MCP04/MCP05).
+//! Local MCP stdio child lifecycle for T37 (AUD23/AUD24).
 //!
 //! Spawn from an exact retained argv over rmcp's child-process transport:
 //! JSON-RPC on stdout, bounded redacted stderr, TERM→KILL reap ladder,
 //! restart from the same config generation. The child environment is
-//! minimal (`env_clear` + explicit non-credential extras) and never shares
-//! provider/MCP credentials or the runner cwd. `enabled: false` spawns
-//! nothing and probes nothing: no process, no Node requirement.
+//! minimal (`env_clear` + PATH/HOME/TMPDIR/locale allowlist) and never shares
+//! provider/MCP credentials. Each child owns a dedicated process group, so
+//! wrapper descendants are cleaned without signalling the runner group.
+//! `enabled: false` spawns nothing and probes nothing: no process, no Node
+//! requirement.
 
+use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::ffi::OsStr;
+use std::os::unix::ffi::OsStrExt as _;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -23,6 +28,11 @@ pub const STDIO_TIMEOUT: Duration = Duration::from_secs(60);
 pub const MAX_LIST_PAGES: usize = 16;
 /// Max tools accepted per server.
 pub const TOOLS_CAP: usize = 64;
+/// Maximum retained text from one MCP call.
+pub const RESULT_TEXT_BYTES_CAP: usize = 1024 * 1024;
+
+const SERVICE_CLOSE_TIMEOUT: Duration = Duration::from_secs(2);
+const STDERR_DRAIN_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// Typed stdio errors (no secrets, no child output contents).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
@@ -48,21 +58,30 @@ pub enum StdioError {
     /// Tool reported `isError`.
     #[error("tool error")]
     ToolFailed,
+    /// tools/list exceeded the tool or page bound; no partial catalog returned.
+    #[error("tool catalog limit exceeded")]
+    CatalogLimited,
+    /// Tool arguments must be a JSON object.
+    #[error("tool arguments must be an object")]
+    NonObjectArguments,
+    /// Result uses a modality this text-only adapter cannot expose.
+    #[error("unsupported tool result modality")]
+    UnsupportedModality,
     /// Malformed tool result shape.
     #[error("bad tool result")]
     BadResult,
 }
 
 /// Exact local-server launch parameters.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct StdioConfig {
     /// Server id for registry namespacing.
     pub server_id: String,
     /// Exact argv, retained verbatim (no shell split, no rewrite).
     pub argv: Vec<String>,
-    /// Child cwd; defaults to the system temp dir (never the runner cwd).
+    /// Trusted project cwd; manually constructed configs may omit it.
     pub cwd: Option<PathBuf>,
-    /// Extra child env vars; credential names refused.
+    /// Minimal child env; only PATH/HOME/TMPDIR/LANG/LC_* are accepted.
     pub extra_env: Vec<(String, String)>,
     /// Secrets redacted from stderr snapshots (values never logged).
     pub secrets: Vec<String>,
@@ -70,6 +89,23 @@ pub struct StdioConfig {
     pub timeout: Duration,
     /// `false` refuses to spawn or probe anything.
     pub enabled: bool,
+}
+
+impl std::fmt::Debug for StdioConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StdioConfig")
+            .field("server_id", &redact_text(&self.server_id, &self.secrets))
+            .field("argv", &format_args!("<redacted:{}>", self.argv.len()))
+            .field("cwd", &self.cwd.as_ref().map(|_| "<trusted>"))
+            .field(
+                "extra_env",
+                &format_args!("<redacted:{}>", self.extra_env.len()),
+            )
+            .field("secrets", &"<redacted>")
+            .field("timeout", &self.timeout)
+            .field("enabled", &self.enabled)
+            .finish()
+    }
 }
 
 impl StdioConfig {
@@ -87,19 +123,35 @@ impl StdioConfig {
         {
             return Err(StdioError::InvalidConfig);
         }
-        for (name, _) in &self.extra_env {
-            if is_credential_name(name) {
+        let mut names = HashSet::new();
+        for (name, value) in &self.extra_env {
+            if !is_allowed_env_name(name)
+                || is_credential_name(name)
+                || !names.insert(name)
+                || name.as_bytes().contains(&0)
+                || value.as_bytes().contains(&0)
+            {
                 return Err(StdioError::InvalidConfig);
             }
+        }
+        if self
+            .cwd
+            .as_deref()
+            .is_some_and(|cwd| cwd.as_os_str().as_bytes().contains(&0))
+        {
+            return Err(StdioError::InvalidConfig);
         }
         Ok(())
     }
 
     /// Build from a loaded [`McpEntry`](crate::config::McpEntry) without
-    /// spawning. Remote entries, OAuth, and Code Mode are refused.
+    /// spawning. `project_cwd` and `parent_env` must come from the trusted
+    /// Location generation. Remote entries, OAuth, and Code Mode are refused.
     pub fn from_entry(
         server_id: &str,
         entry: &crate::config::McpEntry,
+        project_cwd: &Path,
+        parent_env: &BTreeMap<String, String>,
     ) -> Result<Self, StdioError> {
         if entry.kind != "local"
             || !entry.enabled
@@ -112,18 +164,43 @@ impl StdioConfig {
             }
             return Err(StdioError::InvalidConfig);
         }
+        let secrets: Vec<String> = parent_env
+            .iter()
+            .filter(|(name, value)| is_credential_name(name) && !value.is_empty())
+            .map(|(_, value)| value.clone())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        let extra_env = parent_env
+            .iter()
+            .filter(|(name, value)| {
+                is_allowed_env_name(name)
+                    && !is_credential_name(name)
+                    && !secrets
+                        .iter()
+                        .any(|secret| !secret.is_empty() && value.contains(secret))
+            })
+            .map(|(name, value)| (name.clone(), value.clone()))
+            .collect();
         let config = Self {
             server_id: server_id.to_string(),
             argv: entry.command.clone(),
-            cwd: None,
-            extra_env: Vec::new(),
-            secrets: Vec::new(),
+            cwd: Some(project_cwd.to_path_buf()),
+            extra_env,
+            secrets,
             timeout: Duration::from_millis(entry.timeout.unwrap_or(60_000)),
             enabled: true,
         };
         config.validate()?;
         Ok(config)
     }
+}
+
+fn is_allowed_env_name(name: &str) -> bool {
+    matches!(name, "PATH" | "HOME" | "TMPDIR" | "LANG")
+        || name
+            .strip_prefix("LC_")
+            .is_some_and(|suffix| !suffix.is_empty())
 }
 
 fn is_credential_name(name: &str) -> bool {
@@ -150,10 +227,77 @@ struct StderrLog {
     truncated: bool,
 }
 
+struct OwnedProcessGroup {
+    pgid: Option<libc::pid_t>,
+}
+
+impl OwnedProcessGroup {
+    fn new(pid: u32) -> Result<Self, StdioError> {
+        let pgid = libc::pid_t::try_from(pid).map_err(|_| StdioError::Spawn)?;
+        // PID 0/1 and the runner's group are never owned signal targets.
+        // SAFETY: getpgrp reads the caller's process-group id without side effects.
+        if pgid <= 1 || pgid == unsafe { libc::getpgrp() } {
+            return Err(StdioError::Spawn);
+        }
+        Ok(Self { pgid: Some(pgid) })
+    }
+
+    fn id(&self) -> Option<u32> {
+        self.pgid.and_then(|pgid| u32::try_from(pgid).ok())
+    }
+
+    fn signal(&self, signal: libc::c_int) -> Result<(), StdioError> {
+        let Some(pgid) = self.pgid else {
+            return Ok(());
+        };
+        // SAFETY: pgid is a positive child-created group distinct from the
+        // runner group; negation targets only that owned process group.
+        let result = unsafe { libc::kill(-pgid, signal) };
+        if result == 0 || std::io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH) {
+            Ok(())
+        } else {
+            Err(StdioError::Spawn)
+        }
+    }
+
+    fn is_alive(&self) -> bool {
+        let Some(pgid) = self.pgid else {
+            return false;
+        };
+        // SAFETY: signal 0 only probes the owned negative process-group id.
+        let result = unsafe { libc::kill(-pgid, 0) };
+        result == 0 || std::io::Error::last_os_error().raw_os_error() != Some(libc::ESRCH)
+    }
+
+    async fn terminate(&self) -> Result<(), StdioError> {
+        self.signal(libc::SIGTERM)?;
+        let deadline = tokio::time::Instant::now() + TERM_GRACE;
+        while self.is_alive() && tokio::time::Instant::now() < deadline {
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+        if self.is_alive() {
+            self.signal(libc::SIGKILL)?;
+        }
+        Ok(())
+    }
+
+    fn disarm(&mut self) {
+        self.pgid = None;
+    }
+}
+
+impl Drop for OwnedProcessGroup {
+    fn drop(&mut self) {
+        let _ = self.signal(libc::SIGKILL);
+    }
+}
+
 /// A spawned child before the MCP handshake: raw lifecycle handle.
 pub struct SpawnedChild {
     child: tokio::process::Child,
+    process_group: OwnedProcessGroup,
     stderr: Arc<Mutex<StderrLog>>,
+    stderr_task: Option<tokio::task::JoinHandle<()>>,
     /// Resolved executable path actually exec'd.
     pub resolved_bin: PathBuf,
     /// Exact argv tail passed to the child.
@@ -166,6 +310,11 @@ impl SpawnedChild {
         self.child.id()
     }
 
+    /// Dedicated process-group id, equal to the original child pid.
+    pub fn process_group_id(&self) -> Option<u32> {
+        self.process_group.id()
+    }
+
     /// Current bounded stderr snapshot with `secrets` redacted.
     pub fn stderr_snapshot(&self, secrets: &[String]) -> StderrSnapshot {
         snapshot(&self.stderr, secrets)
@@ -174,53 +323,37 @@ impl SpawnedChild {
     /// Reap ladder: close stdin, SIGTERM, grace, SIGKILL, wait.
     pub async fn kill_reap(&mut self) -> Result<std::process::ExitStatus, StdioError> {
         drop(self.child.stdin.take());
-        if let Some(pid) = self.child.id() {
-            // Best effort: the child may already be gone.
-            // SAFETY: kill with SIGTERM to our direct child pid only; ESRCH ignored.
-            unsafe {
-                libc::kill(pid as libc::pid_t, libc::SIGTERM);
-            }
-            let waited = poll_exit(&mut self.child, TERM_GRACE).await;
-            if !waited {
-                self.child.kill().await.map_err(|_| StdioError::Spawn)?;
-            }
-        }
-        self.child.wait().await.map_err(|_| StdioError::Spawn)
-    }
-}
-
-async fn poll_exit(child: &mut tokio::process::Child, grace: Duration) -> bool {
-    let start = std::time::Instant::now();
-    loop {
-        match child.try_wait() {
-            Ok(Some(_)) => return true,
-            Ok(None) => {}
-            Err(_) => return false,
-        }
-        if start.elapsed() >= grace {
-            return false;
-        }
-        tokio::time::sleep(Duration::from_millis(25)).await;
+        let terminated = self.process_group.terminate().await;
+        let status = self.child.wait().await.map_err(|_| StdioError::Spawn);
+        await_stderr(&mut self.stderr_task).await;
+        self.process_group.disarm();
+        terminated?;
+        status
     }
 }
 
 fn snapshot(log: &Arc<Mutex<StderrLog>>, secrets: &[String]) -> StderrSnapshot {
     let guard = log.lock().expect("stderr log");
-    let mut text = String::from_utf8_lossy(&guard.bytes).to_string();
+    let text = String::from_utf8_lossy(&guard.bytes).to_string();
+    StderrSnapshot {
+        text: redact_text(&text, secrets),
+        truncated: guard.truncated,
+    }
+}
+
+fn redact_text(text: &str, secrets: &[String]) -> String {
+    let mut text = text.to_string();
     for secret in secrets {
         if !secret.is_empty() {
             text = text.replace(secret.as_str(), "***");
         }
     }
-    StderrSnapshot {
-        text,
-        truncated: guard.truncated,
-    }
+    text
 }
 
-/// Resolve `argv0` without inheriting PATH: absolute when it names a path,
-/// otherwise a read-only parent-PATH lookup. The child never sees PATH.
-fn resolve_bin(argv0: &str) -> Result<PathBuf, StdioError> {
+/// Resolve `argv0`: absolute when it names a path, otherwise from the retained
+/// allowlisted PATH (with a read-only parent fallback for manual configs).
+fn resolve_bin(argv0: &str, child_env: &[(String, String)]) -> Result<PathBuf, StdioError> {
     if argv0.contains('/') {
         let path = PathBuf::from(argv0);
         if path.is_file() {
@@ -228,7 +361,12 @@ fn resolve_bin(argv0: &str) -> Result<PathBuf, StdioError> {
         }
         return Err(StdioError::Spawn);
     }
-    let path_var = std::env::var_os("PATH").unwrap_or_default();
+    let path_var = child_env
+        .iter()
+        .find(|(name, _)| name == "PATH")
+        .map(|(_, value)| OsStr::new(value).to_os_string())
+        .or_else(|| std::env::var_os("PATH"))
+        .unwrap_or_default();
     for dir in std::env::split_paths(&path_var) {
         let candidate = dir.join(argv0);
         if is_executable(&candidate) {
@@ -236,6 +374,35 @@ fn resolve_bin(argv0: &str) -> Result<PathBuf, StdioError> {
         }
     }
     Err(StdioError::Spawn)
+}
+
+fn configured_command(
+    config: &StdioConfig,
+) -> Result<(tokio::process::Command, PathBuf), StdioError> {
+    config.validate()?;
+    let resolved_bin = resolve_bin(&config.argv[0], &config.extra_env)?;
+    let mut cmd = tokio::process::Command::new(&resolved_bin);
+    cmd.args(&config.argv[1..]);
+    cmd.env_clear();
+    cmd.envs(config.extra_env.iter().map(|(name, value)| (name, value)));
+    cmd.current_dir(config.cwd.as_deref().unwrap_or_else(|| Path::new("/tmp")));
+    cmd.kill_on_drop(true);
+    // SAFETY: setpgid is async-signal-safe and touches no shared memory. It
+    // runs after fork and before exec, making the child leader of a new group.
+    unsafe {
+        cmd.pre_exec(become_process_group_leader);
+    }
+    Ok((cmd, resolved_bin))
+}
+
+fn become_process_group_leader() -> std::io::Result<()> {
+    // SAFETY: setpgid is async-signal-safe; both zero arguments refer to the
+    // pre-exec child itself and request a new process group led by that child.
+    if unsafe { libc::setpgid(0, 0) } == 0 {
+        Ok(())
+    } else {
+        Err(std::io::Error::last_os_error())
+    }
 }
 
 fn is_executable(path: &Path) -> bool {
@@ -252,42 +419,41 @@ fn is_executable(path: &Path) -> bool {
 
 /// Spawn the child with a minimal environment. No handshake happens here.
 pub fn spawn_child(config: &StdioConfig) -> Result<SpawnedChild, StdioError> {
-    config.validate()?;
-    let resolved_bin = resolve_bin(&config.argv[0])?;
-    let mut cmd = tokio::process::Command::new(&resolved_bin);
-    cmd.args(&config.argv[1..]);
-    cmd.env_clear();
-    for (name, value) in &config.extra_env {
-        cmd.env(name, value);
-    }
-    match &config.cwd {
-        Some(cwd) => {
-            cmd.current_dir(cwd);
-        }
-        None => {
-            cmd.current_dir(std::env::temp_dir());
-        }
-    }
+    let (mut cmd, resolved_bin) = configured_command(config)?;
     cmd.stdin(std::process::Stdio::piped());
     cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::piped());
-    // New process group is intentionally *not* requested: the reap ladder
-    // addresses the direct child, never the runner group.
     let mut child = cmd.spawn().map_err(|_| StdioError::Spawn)?;
+    let process_group = OwnedProcessGroup::new(child.id().ok_or(StdioError::Spawn)?)?;
     let stderr = child.stderr.take();
     let log = Arc::new(Mutex::new(StderrLog::default()));
-    if let Some(pipe) = stderr {
+    let stderr_task = stderr.map(|pipe| {
         let worker = log.clone();
         tokio::spawn(async move {
             drain_capped(pipe, &worker).await;
-        });
-    }
+        })
+    });
     Ok(SpawnedChild {
         child,
+        process_group,
         stderr: log,
+        stderr_task,
         resolved_bin,
         argv_tail: config.argv[1..].to_vec(),
     })
+}
+
+async fn await_stderr(task: &mut Option<tokio::task::JoinHandle<()>>) {
+    let Some(mut task) = task.take() else {
+        return;
+    };
+    if tokio::time::timeout(STDERR_DRAIN_TIMEOUT, &mut task)
+        .await
+        .is_err()
+    {
+        task.abort();
+        let _ = task.await;
+    }
 }
 
 async fn drain_capped(mut pipe: tokio::process::ChildStderr, log: &Arc<Mutex<StderrLog>>) {
@@ -313,17 +479,35 @@ async fn drain_capped(mut pipe: tokio::process::ChildStderr, log: &Arc<Mutex<Std
     }
 }
 
+#[derive(Clone, Default)]
+struct ClientEvents {
+    tools_changed: Arc<std::sync::atomic::AtomicBool>,
+}
+
+impl rmcp::handler::client::ClientHandler for ClientEvents {
+    fn on_tool_list_changed(
+        &self,
+        _context: rmcp::service::NotificationContext<rmcp::service::RoleClient>,
+    ) -> impl std::future::Future<Output = ()> + rmcp::service::MaybeSendFuture + '_ {
+        self.tools_changed
+            .store(true, std::sync::atomic::Ordering::Release);
+        std::future::ready(())
+    }
+}
+
 type McpPeer = rmcp::service::Peer<rmcp::service::RoleClient>;
-type McpRunning = rmcp::service::RunningService<rmcp::service::RoleClient, ()>;
+type McpRunning = rmcp::service::RunningService<rmcp::service::RoleClient, ClientEvents>;
 
 /// Connected stdio client: one child, one handshake, restartable.
 pub struct StdioClient {
     peer: McpPeer,
     running: Option<McpRunning>,
-    pid: Option<u32>,
+    process_group: OwnedProcessGroup,
     stderr: Arc<Mutex<StderrLog>>,
+    stderr_task: Option<tokio::task::JoinHandle<()>>,
     config: StdioConfig,
     generation: u64,
+    tools_changed: Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl StdioClient {
@@ -333,54 +517,74 @@ impl StdioClient {
     }
 
     async fn launch_generation(config: &StdioConfig, generation: u64) -> Result<Self, StdioError> {
-        config.validate()?;
-        let resolved_bin = resolve_bin(&config.argv[0])?;
-        let mut cmd = tokio::process::Command::new(&resolved_bin);
-        cmd.args(&config.argv[1..]);
-        cmd.env_clear();
-        for (name, value) in &config.extra_env {
-            cmd.env(name, value);
-        }
-        match &config.cwd {
-            Some(cwd) => {
-                cmd.current_dir(cwd);
-            }
-            None => {
-                cmd.current_dir(std::env::temp_dir());
-            }
-        }
+        let (cmd, _) = configured_command(config)?;
         let (transport, stderr_pipe) =
             rmcp::transport::child_process::TokioChildProcess::builder(cmd)
                 .stderr(std::process::Stdio::piped())
                 .spawn()
                 .map_err(|_| StdioError::Spawn)?;
-        let pid = transport.id();
+        let mut process_group = OwnedProcessGroup::new(transport.id().ok_or(StdioError::Spawn)?)?;
         let log = Arc::new(Mutex::new(StderrLog::default()));
-        if let Some(pipe) = stderr_pipe {
+        let mut stderr_task = stderr_pipe.map(|pipe| {
             let worker = log.clone();
             tokio::spawn(async move {
                 drain_capped(pipe, &worker).await;
-            });
-        }
-        let running =
-            tokio::time::timeout(config.timeout, rmcp::service::serve_client((), transport))
-                .await
-                .map_err(|_| StdioError::Deadline)?
-                .map_err(|_| StdioError::Transport)?;
+            })
+        });
+        let events = ClientEvents::default();
+        let tools_changed = events.tools_changed.clone();
+        let running = match tokio::time::timeout(
+            config.timeout,
+            rmcp::service::serve_client(events, transport),
+        )
+        .await
+        {
+            Ok(Ok(running)) => running,
+            result => {
+                let error = if result.is_err() {
+                    StdioError::Deadline
+                } else {
+                    StdioError::Transport
+                };
+                let _ = process_group.terminate().await;
+                await_stderr(&mut stderr_task).await;
+                process_group.disarm();
+                return Err(error);
+            }
+        };
         let peer = running.peer().clone();
         Ok(Self {
             peer,
-            pid,
+            process_group,
             running: Some(running),
             stderr: log,
+            stderr_task,
             config: config.clone(),
             generation,
+            tools_changed,
         })
+    }
+
+    /// True after the server requests a tools/list refresh.
+    pub fn catalog_changed(&self) -> bool {
+        self.tools_changed
+            .load(std::sync::atomic::Ordering::Acquire)
+    }
+
+    /// Clear the refresh marker only after a complete validated relist.
+    pub fn clear_catalog_changed(&self) {
+        self.tools_changed
+            .store(false, std::sync::atomic::Ordering::Release);
     }
 
     /// Config generation: increments on every restart from the same argv.
     pub fn generation(&self) -> u64 {
         self.generation
+    }
+
+    /// Dedicated process-group id, equal to the original wrapper pid.
+    pub fn process_group_id(&self) -> Option<u32> {
+        self.process_group.id()
     }
 
     /// Current bounded stderr snapshot with configured secrets redacted.
@@ -393,16 +597,20 @@ impl StdioClient {
         &self,
         cancel: &std::sync::atomic::AtomicBool,
     ) -> Result<Vec<crate::mcp_remote::RemoteTool>, StdioError> {
-        let tools = self
-            .run_cancel(cancel, bounded_list(&self.peer))
-            .await?
-            .into_iter()
-            .map(|tool| crate::mcp_remote::RemoteTool {
-                name: tool.name.to_string(),
-                description: tool.description.map(|d| d.to_string()),
-                input_schema: serde_json::Value::Object(tool.input_schema.as_ref().clone()),
-            })
-            .collect();
+        let tools = tokio::select! {
+            biased;
+            _ = wait_cancelled(cancel) => return Err(StdioError::Cancelled),
+            result = tokio::time::timeout(self.config.timeout, bounded_list(&self.peer)) => {
+                result.map_err(|_| StdioError::Deadline)??
+            }
+        }
+        .into_iter()
+        .map(|tool| crate::mcp_remote::RemoteTool {
+            name: tool.name.to_string(),
+            description: tool.description.map(|d| d.to_string()),
+            input_schema: serde_json::Value::Object(tool.input_schema.as_ref().clone()),
+        })
+        .collect();
         Ok(tools)
     }
 
@@ -413,8 +621,12 @@ impl StdioClient {
         arguments: serde_json::Value,
         cancel: &std::sync::atomic::AtomicBool,
     ) -> Result<String, StdioError> {
+        let arguments = arguments
+            .as_object()
+            .cloned()
+            .ok_or(StdioError::NonObjectArguments)?;
         let mut params = rmcp::model::CallToolRequestParams::new(tool.to_string());
-        params.arguments = arguments.as_object().cloned();
+        params.arguments = Some(arguments);
         let outcome = self
             .run_cancel(cancel, self.peer.call_tool_once(params))
             .await?;
@@ -423,39 +635,56 @@ impl StdioClient {
                 if result.is_error == Some(true) {
                     return Err(StdioError::ToolFailed);
                 }
+                if result.structured_content.is_some() {
+                    return Err(StdioError::UnsupportedModality);
+                }
                 let mut text = String::new();
                 for block in &result.content {
-                    if let rmcp::model::ContentBlock::Text(t) = block {
-                        if !text.is_empty() {
-                            text.push('\n');
-                        }
-                        text.push_str(&t.text);
+                    let rmcp::model::ContentBlock::Text(t) = block else {
+                        return Err(StdioError::UnsupportedModality);
+                    };
+                    let separator = usize::from(!text.is_empty());
+                    if text
+                        .len()
+                        .saturating_add(separator)
+                        .saturating_add(t.text.len())
+                        > RESULT_TEXT_BYTES_CAP
+                    {
+                        return Err(StdioError::BadResult);
                     }
+                    if !text.is_empty() {
+                        text.push('\n');
+                    }
+                    text.push_str(&t.text);
                 }
-                if text.is_empty() && result.content.is_empty() {
+                if text.is_empty() {
                     return Err(StdioError::BadResult);
                 }
                 Ok(text)
             }
-            _ => Err(StdioError::Transport),
+            _ => Err(StdioError::UnsupportedModality),
         }
     }
 
-    /// Shutdown ladder: SIGTERM, grace, then transport cancel (kill
-    /// fallback + reap). Only the direct child pid is signalled; the
-    /// runner group is never touched.
+    /// Explicitly close rmcp, terminate the owned process group, reap the
+    /// wrapper, and finish the bounded stderr drain.
     pub async fn shutdown(mut self) -> Result<(), StdioError> {
-        if let Some(pid) = self.pid {
-            // SAFETY: kill with SIGTERM to our direct child pid only; ESRCH ignored.
-            unsafe {
-                libc::kill(pid as libc::pid_t, libc::SIGTERM);
+        if let Some(running) = self.running.as_ref() {
+            running.cancellation_token().cancel();
+        }
+        let terminated = self.process_group.terminate().await;
+        let closed = if let Some(mut running) = self.running.take() {
+            match running.close_with_timeout(SERVICE_CLOSE_TIMEOUT).await {
+                Ok(Some(_)) => Ok(()),
+                Ok(None) | Err(_) => Err(StdioError::Transport),
             }
-            tokio::time::sleep(TERM_GRACE).await;
-        }
-        if let Some(running) = self.running.take() {
-            // Drop closes the transport: stdin EOF, kill fallback, reap.
-            drop(running);
-        }
+        } else {
+            Ok(())
+        };
+        await_stderr(&mut self.stderr_task).await;
+        terminated?;
+        closed?;
+        self.process_group.disarm();
         Ok(())
     }
 
@@ -463,7 +692,7 @@ impl StdioClient {
     pub async fn restart(self) -> Result<Self, StdioError> {
         let generation = self.generation + 1;
         let config = self.config.clone();
-        let _ = self.shutdown().await;
+        self.shutdown().await?;
         Self::launch_generation(&config, generation).await
     }
 
@@ -490,22 +719,26 @@ async fn wait_cancelled(cancel: &std::sync::atomic::AtomicBool) {
     }
 }
 
-async fn bounded_list(
-    peer: &McpPeer,
-) -> Result<Vec<rmcp::model::Tool>, rmcp::service::ServiceError> {
+async fn bounded_list(peer: &McpPeer) -> Result<Vec<rmcp::model::Tool>, StdioError> {
     let mut tools = Vec::new();
     let mut cursor: Option<String> = None;
-    for _ in 0..MAX_LIST_PAGES {
+    for page_index in 0..MAX_LIST_PAGES {
         let params = rmcp::model::PaginatedRequestParams::default().with_cursor(cursor);
-        let page = peer.list_tools(Some(params)).await?;
-        if tools.len() + page.tools.len() > TOOLS_CAP {
-            break;
+        let page = peer
+            .list_tools(Some(params))
+            .await
+            .map_err(|_| StdioError::Transport)?;
+        if tools.len().saturating_add(page.tools.len()) > TOOLS_CAP {
+            return Err(StdioError::CatalogLimited);
         }
         tools.extend(page.tools);
         cursor = page.next_cursor;
         if cursor.is_none() {
-            break;
+            return Ok(tools);
+        }
+        if page_index + 1 == MAX_LIST_PAGES {
+            return Err(StdioError::CatalogLimited);
         }
     }
-    Ok(tools)
+    Err(StdioError::CatalogLimited)
 }

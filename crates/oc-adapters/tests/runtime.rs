@@ -1069,6 +1069,288 @@ time.sleep(30)
 }
 
 #[tokio::test]
+async fn aud23_generation_reuse_then_reload_disable_reaps_the_single_child() {
+    let (harness, mut generation) = make_harness(allow_all());
+    let script = harness._project.path().join("generation_mcp.py");
+    let lifecycle = harness._project.path().join("generation.log");
+    std::fs::write(
+        &script,
+        r#"import json, os, sys
+with open(sys.argv[1], 'a') as f: f.write('spawn %d\n' % os.getpid())
+for line in sys.stdin:
+    r = json.loads(line); method = r.get('method'); result = None
+    if method == 'initialize':
+        result = {'protocolVersion':'2025-11-25','capabilities':{'tools':{}},'serverInfo':{'name':'generation','version':'1'}}
+    elif method == 'tools/list':
+        result = {'tools':[{'name':'ping','description':'ping','inputSchema':{'type':'object'}}]}
+    if result is not None:
+        print(json.dumps({'jsonrpc':'2.0','id':r['id'],'result':result}), flush=True)
+"#,
+    )
+    .unwrap();
+    generation.mcp.insert(
+        "counted".into(),
+        McpEntry {
+            kind: "local".into(),
+            url: None,
+            enabled: true,
+            oauth: false,
+            headers: BTreeMap::new(),
+            command: vec![
+                "/usr/bin/python3".into(),
+                script.to_string_lossy().into_owned(),
+                lifecycle.to_string_lossy().into_owned(),
+            ],
+            timeout: Some(2_000),
+            codemode: None,
+        },
+    );
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s").unwrap();
+    let (base, _) = Fake::start(vec![sse_delta("ok") + &sse_completed()], Duration::ZERO);
+    for prompt in ["first", "second"] {
+        assert_eq!(
+            runtime
+                .run_turn(params(
+                    "s",
+                    prompt,
+                    &harness,
+                    provider_of(&base),
+                    &NO_CANCEL,
+                ))
+                .await
+                .unwrap()
+                .status,
+            TurnStatus::Completed
+        );
+    }
+    let log = std::fs::read_to_string(&lifecycle).unwrap();
+    let pids = log
+        .lines()
+        .filter_map(|line| line.strip_prefix("spawn "))
+        .map(|pid| pid.parse::<libc::pid_t>().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(pids.len(), 1, "one child per generation: {log}");
+    // SAFETY: signal 0 only probes the fixture child recorded by that child.
+    assert_eq!(unsafe { libc::kill(pids[0], 0) }, 0);
+
+    runtime
+        .reload(Generation {
+            providers: BTreeMap::new(),
+            mcp: BTreeMap::new(),
+            permissions: allow_all(),
+            provenance: BTreeMap::new(),
+            warnings: Vec::new(),
+        })
+        .await
+        .unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(1);
+    // SAFETY: signal 0 only probes the fixture child pid.
+    while unsafe { libc::kill(pids[0], 0) } == 0 && std::time::Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    // SAFETY: final liveness probe only.
+    let alive = unsafe { libc::kill(pids[0], 0) };
+    assert_ne!(alive, 0, "reload left MCP child");
+    assert_eq!(
+        runtime
+            .run_turn(params(
+                "s",
+                "disabled",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ))
+            .await
+            .unwrap()
+            .status,
+        TurnStatus::Completed
+    );
+    assert_eq!(
+        std::fs::read_to_string(&lifecycle)
+            .unwrap()
+            .lines()
+            .filter(|line| line.starts_with("spawn "))
+            .count(),
+        1,
+        "disabled generation respawned the server"
+    );
+    runtime.shutdown_mcp().await.unwrap();
+}
+
+#[tokio::test]
+async fn aud23_tool_list_changed_relists_without_reinitializing() {
+    let (harness, mut generation) = make_harness(allow_all());
+    let script = harness._project.path().join("list_changed.py");
+    let lifecycle = harness._project.path().join("list_changed.log");
+    std::fs::write(
+        &script,
+        r#"import json, os, sys
+count = 0
+with open(sys.argv[1], 'a') as f: f.write('spawn %d\n' % os.getpid())
+for line in sys.stdin:
+    r=json.loads(line); method=r.get('method'); result=None
+    if method == 'initialize':
+        with open(sys.argv[1], 'a') as f: f.write('initialize\n')
+        result={'protocolVersion':'2025-11-25','capabilities':{'tools':{'listChanged':True}},'serverInfo':{'name':'changed','version':'1'}}
+    elif method == 'tools/list':
+        count += 1
+        with open(sys.argv[1], 'a') as f: f.write('list\n')
+        result={'tools':[{'name':('old' if count == 1 else 'new'),'description':'changed','inputSchema':{'type':'object'}}]}
+    if result is not None:
+        print(json.dumps({'jsonrpc':'2.0','id':r['id'],'result':result}), flush=True)
+        if method == 'tools/list' and count == 1:
+            print(json.dumps({'jsonrpc':'2.0','method':'notifications/tools/list_changed'}), flush=True)
+"#,
+    )
+    .unwrap();
+    generation.mcp.insert(
+        "changed".into(),
+        McpEntry {
+            kind: "local".into(),
+            url: None,
+            enabled: true,
+            oauth: false,
+            headers: BTreeMap::new(),
+            command: vec![
+                "/usr/bin/python3".into(),
+                script.to_string_lossy().into_owned(),
+                lifecycle.to_string_lossy().into_owned(),
+            ],
+            timeout: Some(2_000),
+            codemode: None,
+        },
+    );
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s").unwrap();
+    let (base, _, requests) =
+        Fake::start_recording(vec![sse_delta("ok") + &sse_completed()], Duration::ZERO);
+    runtime
+        .run_turn(params(
+            "s",
+            "first",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    runtime
+        .run_turn(params(
+            "s",
+            "second",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    {
+        let requests = requests.lock().unwrap();
+        let names = |request: &serde_json::Value| {
+            request["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter_map(|tool| tool["name"].as_str().map(str::to_string))
+                .collect::<Vec<_>>()
+        };
+        assert!(names(&requests[0]).contains(&"changed__old".to_string()));
+        assert!(!names(&requests[0]).contains(&"changed__new".to_string()));
+        assert!(names(&requests[1]).contains(&"changed__new".to_string()));
+        assert!(!names(&requests[1]).contains(&"changed__old".to_string()));
+    }
+    let log = std::fs::read_to_string(&lifecycle).unwrap();
+    assert_eq!(log.lines().filter(|line| *line == "initialize").count(), 1);
+    assert_eq!(log.lines().filter(|line| *line == "list").count(), 2);
+    runtime.shutdown_mcp().await.unwrap();
+}
+
+#[tokio::test]
+async fn aud23_partial_attach_failure_reaps_previously_connected_child() {
+    let (harness, mut generation) = make_harness(allow_all());
+    let script = harness._project.path().join("partial_attach.py");
+    let pid_file = harness._project.path().join("partial.pid");
+    std::fs::write(
+        &script,
+        r#"import json, os, sys
+with open(sys.argv[1], 'w') as f: f.write(str(os.getpid()))
+for line in sys.stdin:
+    r=json.loads(line); method=r.get('method'); result=None
+    if method == 'initialize':
+        result={'protocolVersion':'2025-11-25','capabilities':{'tools':{}},'serverInfo':{'name':'partial','version':'1'}}
+    elif method == 'tools/list': result={'tools':[]}
+    if result is not None: print(json.dumps({'jsonrpc':'2.0','id':r['id'],'result':result}), flush=True)
+"#,
+    )
+    .unwrap();
+    generation.mcp.insert(
+        "a-good".into(),
+        McpEntry {
+            kind: "local".into(),
+            url: None,
+            enabled: true,
+            oauth: false,
+            headers: BTreeMap::new(),
+            command: vec![
+                "/usr/bin/python3".into(),
+                script.to_string_lossy().into_owned(),
+                pid_file.to_string_lossy().into_owned(),
+            ],
+            timeout: Some(2_000),
+            codemode: None,
+        },
+    );
+    generation.mcp.insert(
+        "b-bad".into(),
+        McpEntry {
+            kind: "remote".into(),
+            url: Some("http://127.0.0.1:9/v1/mcp".into()),
+            enabled: true,
+            oauth: false,
+            headers: BTreeMap::from([(
+                "Authorization".into(),
+                "Bearer fixture-not-a-secret".into(),
+            )]),
+            command: Vec::new(),
+            timeout: Some(200),
+            codemode: None,
+        },
+    );
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s").unwrap();
+    let result = runtime
+        .run_turn(params(
+            "s",
+            "must not start",
+            &harness,
+            provider_of("http://127.0.0.1:9"),
+            &NO_CANCEL,
+        ))
+        .await;
+    assert_eq!(
+        result.unwrap_err(),
+        oc_adapters::runtime::RuntimeError::McpAttach {
+            server: "b-bad".into()
+        }
+    );
+    let pid = std::fs::read_to_string(&pid_file)
+        .unwrap()
+        .parse::<libc::pid_t>()
+        .unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(1);
+    // SAFETY: signal 0 only probes the fixture child pid.
+    while unsafe { libc::kill(pid, 0) } == 0 && std::time::Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    // SAFETY: final fixture liveness probe only.
+    let alive = unsafe { libc::kill(pid, 0) };
+    assert_ne!(alive, 0, "partial attach leaked child");
+    assert_eq!(harness.db.history_len("s").unwrap(), 0);
+}
+
+#[tokio::test]
 async fn mcp_attach_failure_is_loud() {
     let (harness, mut generation) = make_harness(allow_all());
     generation.mcp.insert(
@@ -1154,6 +1436,7 @@ async fn reload_applies_new_policy_and_guards_active_turn() {
             provenance: BTreeMap::new(),
             warnings: Vec::new(),
         })
+        .await
         .expect("reload");
     assert_eq!(id, 2);
     let report = runtime
@@ -1176,13 +1459,15 @@ async fn reload_applies_new_policy_and_guards_active_turn() {
     let (reload_result, turn_result) = tokio::join!(
         async {
             tokio::time::sleep(Duration::from_millis(300)).await;
-            runtime.reload(Generation {
-                providers: BTreeMap::new(),
-                mcp: BTreeMap::new(),
-                permissions: BTreeMap::new(),
-                provenance: BTreeMap::new(),
-                warnings: Vec::new(),
-            })
+            runtime
+                .reload(Generation {
+                    providers: BTreeMap::new(),
+                    mcp: BTreeMap::new(),
+                    permissions: BTreeMap::new(),
+                    provenance: BTreeMap::new(),
+                    warnings: Vec::new(),
+                })
+                .await
         },
         runtime.run_turn(params(
             "s",

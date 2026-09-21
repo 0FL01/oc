@@ -9,8 +9,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use oc_adapters::mcp_remote::{
-    CLIENT_TIMEOUT, CodexWebClient, CodexWebConfig, McpError, map_registry, merge_registries,
-    search_args,
+    CLIENT_TIMEOUT, CatalogError, CodexWebClient, CodexWebConfig, McpError, map_registry,
+    merge_registries, search_args,
 };
 use serde_json::{Value, json};
 
@@ -31,6 +31,10 @@ enum Mode {
     VersionMismatch,
     Always401,
     InvalidJson,
+    Tools65,
+    Pages17,
+    DuplicateTool,
+    OversizedSchema,
 }
 
 #[derive(Clone)]
@@ -195,6 +199,40 @@ impl Fake {
                     .get("params")
                     .and_then(|params| params.get("cursor"))
                     .and_then(Value::as_str);
+                if self.mode == Mode::Tools65 {
+                    let tools = (0..65)
+                        .map(|index| tool(&format!("tool-{index}"), "tool"))
+                        .collect::<Vec<_>>();
+                    return reply(json!({"tools": tools}));
+                }
+                if self.mode == Mode::Pages17 {
+                    let page = cursor
+                        .and_then(|value| value.strip_prefix('p'))
+                        .and_then(|value| value.parse::<usize>().ok())
+                        .unwrap_or(1);
+                    let next = (page < 17).then(|| format!("p{}", page + 1));
+                    return reply(json!({
+                        "tools": [tool(&format!("tool-{page}"), "tool")],
+                        "nextCursor": next,
+                    }));
+                }
+                if self.mode == Mode::DuplicateTool {
+                    return reply(json!({
+                        "tools": [tool("duplicate", "first"), tool("duplicate", "second")],
+                    }));
+                }
+                if self.mode == Mode::OversizedSchema {
+                    return reply(json!({
+                        "tools": [{
+                            "name": "oversized",
+                            "description": "too large",
+                            "inputSchema": {
+                                "type": "object",
+                                "description": "x".repeat(33 * 1024),
+                            },
+                        }],
+                    }));
+                }
                 let mut first = vec![
                     tool("search", "Search the web"),
                     tool("fetch", "Fetch a URL"),
@@ -230,6 +268,51 @@ impl Fake {
                     return reply(json!({
                         "content": [{"type": "text", "text": "nope"}],
                         "isError": true,
+                    }));
+                }
+                if query == "image" {
+                    return reply(json!({
+                        "content": [{
+                            "type": "image",
+                            "data": "AA==",
+                            "mimeType": "image/png",
+                        }],
+                        "isError": false,
+                    }));
+                }
+                if query == "structured" {
+                    return reply(json!({
+                        "content": [{"type": "text", "text": "text"}],
+                        "structuredContent": {"answer": 42},
+                        "isError": false,
+                    }));
+                }
+                if query == "empty" {
+                    return reply(json!({"content": [], "isError": false}));
+                }
+                if query == "input-required" {
+                    return reply(json!({
+                        "resultType": "input_required",
+                        "requestState": "opaque",
+                    }));
+                }
+                if query == "task" {
+                    return reply(json!({
+                        "resultType": "task",
+                        "taskId": "task-1",
+                        "status": "working",
+                        "createdAt": "2026-09-21T00:00:00Z",
+                        "lastUpdatedAt": "2026-09-21T00:00:00Z",
+                        "ttlMs": null,
+                    }));
+                }
+                if query == "transport" {
+                    return (200, b"not json".to_vec(), Some("application/json"));
+                }
+                if query == "oversized-text" {
+                    return reply(json!({
+                        "content": [{"type": "text", "text": "x".repeat(1024 * 1024 + 1)}],
+                        "isError": false,
                     }));
                 }
                 let result = json!({
@@ -275,6 +358,7 @@ fn config_for(url: &str) -> CodexWebConfig {
     CodexWebConfig {
         url: url.to_string(),
         bearer: "test-key".to_string(),
+        custom_headers: Default::default(),
         timeout: CLIENT_TIMEOUT,
         allow_private: true,
     }
@@ -290,7 +374,7 @@ async fn handshake_uses_exact_url_and_bearer() {
     let client = CodexWebClient::connect(&config_for(&url))
         .await
         .expect("connect");
-    drop(client);
+    client.close().await.expect("close");
     let seen = records_of(&records);
     assert!(!seen.is_empty(), "handshake must hit the server");
     for record in &seen {
@@ -361,8 +445,7 @@ async fn list_paginates_and_maps_registry() {
         .into_iter()
         .map(|tool| (tool.name, tool.description, tool.input_schema))
         .collect();
-    let (entries, skipped) = map_registry("codex", triples);
-    assert!(skipped.is_empty());
+    let entries = map_registry("codex", triples).expect("map complete catalog");
     let namespaced: Vec<&str> = entries
         .iter()
         .map(|entry| entry.namespaced.as_str())
@@ -371,6 +454,65 @@ async fn list_paginates_and_maps_registry() {
         namespaced,
         ["codex__search", "codex__fetch", "codex__summarize"]
     );
+    client.close().await.expect("close");
+}
+
+#[tokio::test]
+async fn catalog_tool_and_page_limits_are_errors_without_partial_success() {
+    let cancel = AtomicBool::new(false);
+
+    let (url, _) = Fake::start(Mode::Tools65, Duration::ZERO);
+    let client = CodexWebClient::connect(&config_for(&url))
+        .await
+        .expect("connect 65 tools");
+    assert_eq!(
+        client.list_tools(&cancel).await,
+        Err(McpError::CatalogLimited)
+    );
+    client.close().await.expect("close 65 tools");
+
+    let (url, records) = Fake::start(Mode::Pages17, Duration::ZERO);
+    let client = CodexWebClient::connect(&config_for(&url))
+        .await
+        .expect("connect 17 pages");
+    assert_eq!(
+        client.list_tools(&cancel).await,
+        Err(McpError::CatalogLimited)
+    );
+    let list_requests = records_of(&records)
+        .iter()
+        .filter(|record| record.body.contains("tools/list"))
+        .count();
+    assert_eq!(list_requests, 16, "cursor after page 16 must fail");
+    client.close().await.expect("close 17 pages");
+}
+
+#[tokio::test]
+async fn invalid_catalogs_are_typed_attach_errors() {
+    let cancel = AtomicBool::new(false);
+    let (url, _) = Fake::start(Mode::DuplicateTool, Duration::ZERO);
+    let client = CodexWebClient::connect(&config_for(&url))
+        .await
+        .expect("connect duplicate catalog");
+    assert_eq!(
+        client.list_tools(&cancel).await,
+        Err(McpError::Catalog(CatalogError::DuplicateTool(
+            "duplicate".to_string()
+        )))
+    );
+    client.close().await.expect("close duplicate catalog");
+
+    let (url, _) = Fake::start(Mode::OversizedSchema, Duration::ZERO);
+    let client = CodexWebClient::connect(&config_for(&url))
+        .await
+        .expect("connect oversized catalog");
+    assert_eq!(
+        client.list_tools(&cancel).await,
+        Err(McpError::Catalog(CatalogError::SchemaTooLarge(
+            "oversized".to_string()
+        )))
+    );
+    client.close().await.expect("close oversized catalog");
 }
 
 #[tokio::test]
@@ -381,7 +523,7 @@ async fn search_returns_text_and_surfaces_is_error() {
         .expect("connect");
     let cancel = AtomicBool::new(false);
     let text = client
-        .search("rust", Some(3), &cancel)
+        .search("rust", Some("short"), &cancel)
         .await
         .expect("search");
     assert_eq!(text, "result for rust");
@@ -396,11 +538,67 @@ async fn search_returns_text_and_surfaces_is_error() {
         Some("2025-11-25"),
         "version header on tool calls",
     );
+    let call_body: Value = serde_json::from_str(&call.body).expect("call json");
+    assert_eq!(
+        call_body["params"]["arguments"],
+        json!({"query": "rust", "response_length": "short"}),
+    );
+    assert!(
+        call_body["params"]["arguments"].get("limit").is_none(),
+        "the server schema has no limit argument",
+    );
     let error = client
         .search("boom", None, &cancel)
         .await
         .expect_err("isError must fail");
     assert_eq!(error, McpError::ToolFailed);
+    client.close().await.expect("close");
+}
+
+#[tokio::test]
+async fn result_modalities_arguments_and_transport_have_distinct_errors() {
+    let (url, records) = Fake::start(Mode::Ok, Duration::ZERO);
+    let client = CodexWebClient::connect(&config_for(&url))
+        .await
+        .expect("connect");
+    let cancel = AtomicBool::new(false);
+
+    let calls_before = records_of(&records)
+        .iter()
+        .filter(|record| record.body.contains("tools/call"))
+        .count();
+    assert_eq!(
+        client
+            .call_tool("search", json!(["not", "an", "object"]), &cancel)
+            .await,
+        Err(McpError::InvalidArguments)
+    );
+    let calls_after = records_of(&records)
+        .iter()
+        .filter(|record| record.body.contains("tools/call"))
+        .count();
+    assert_eq!(calls_after, calls_before, "bad arguments fail before I/O");
+
+    for query in ["image", "structured", "input-required", "task"] {
+        assert_eq!(
+            client.search(query, None, &cancel).await,
+            Err(McpError::UnsupportedResult),
+            "query {query}"
+        );
+    }
+    assert_eq!(
+        client.search("empty", None, &cancel).await,
+        Err(McpError::BadResult)
+    );
+    assert_eq!(
+        client.search("transport", None, &cancel).await,
+        Err(McpError::Transport)
+    );
+    assert_eq!(
+        client.search("oversized-text", None, &cancel).await,
+        Err(McpError::BadResult)
+    );
+    client.close().await.expect("close");
 }
 
 #[tokio::test]
@@ -438,6 +636,7 @@ fn config_validation_needs_no_network() {
         let config = CodexWebConfig {
             url: url.to_string(),
             bearer: "k".to_string(),
+            custom_headers: Default::default(),
             timeout: CLIENT_TIMEOUT,
             allow_private: true,
         };
@@ -450,6 +649,7 @@ fn config_validation_needs_no_network() {
     let config = CodexWebConfig {
         url: "https://example.com/v1/mcp".to_string(),
         bearer: "".to_string(),
+        custom_headers: Default::default(),
         timeout: CLIENT_TIMEOUT,
         allow_private: true,
     };
@@ -475,17 +675,31 @@ async fn private_host_refused_without_test_flag() {
 #[test]
 fn registry_bounds_and_collisions() {
     let big = Value::String("x".repeat(64 * 1024));
-    let (entries, skipped) = map_registry(
+    let duplicate = map_registry(
         "codex",
         vec![
             ("a".to_string(), None, json!({"type": "object"})),
             ("a".to_string(), None, json!({"type": "object"})),
-            ("big".to_string(), None, big),
         ],
+    )
+    .expect_err("duplicates fail the entire catalog");
+    assert_eq!(
+        duplicate,
+        McpError::Catalog(CatalogError::DuplicateTool("a".to_string()))
     );
-    assert_eq!(entries.len(), 1);
-    assert_eq!(entries[0].namespaced, "codex__a");
-    assert_eq!(skipped, ["a", "big"]);
+    let oversized = map_registry("codex", vec![("big".to_string(), None, big)])
+        .expect_err("oversized schema fails the entire catalog");
+    assert_eq!(
+        oversized,
+        McpError::Catalog(CatalogError::SchemaTooLarge("big".to_string()))
+    );
+    let too_many = (0..65)
+        .map(|index| (format!("tool-{index}"), None, json!({"type": "object"})))
+        .collect();
+    assert_eq!(
+        map_registry("codex", too_many),
+        Err(McpError::CatalogLimited)
+    );
     let merged = merge_registries(vec![
         vec![oc_adapters::mcp_remote::RegistryEntry {
             namespaced: "codex__search".to_string(),
@@ -501,9 +715,46 @@ fn registry_bounds_and_collisions() {
             description: None,
             input_schema: json!({}),
         }],
-    ]);
+    ])
+    .expect("bounded merged registry");
     assert_eq!(merged[0].namespaced, "codex__search");
     assert_eq!(merged[1].namespaced, "codex__search__2");
+    assert_eq!(
+        (merged[0].server.as_str(), merged[0].tool.as_str()),
+        ("codex", "search")
+    );
+    assert_eq!(
+        (merged[1].server.as_str(), merged[1].tool.as_str()),
+        ("other", "search")
+    );
+    let encoded = map_registry(
+        "unsafe server",
+        vec![("tool/with spaces".into(), None, json!({"type": "object"}))],
+    )
+    .expect("unsafe identity gets provider-safe wire name");
+    assert!(encoded[0].namespaced.len() <= 64);
+    assert!(
+        encoded[0]
+            .namespaced
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+    );
+    assert_eq!(encoded[0].server, "unsafe server");
+    assert_eq!(encoded[0].tool, "tool/with spaces");
+    let many = (0..3)
+        .map(|server| {
+            (0..64)
+                .map(|tool| oc_adapters::mcp_remote::RegistryEntry {
+                    namespaced: format!("s{server}__t{tool}"),
+                    server: format!("s{server}"),
+                    tool: format!("t{tool}"),
+                    description: None,
+                    input_schema: json!({"type": "object"}),
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    assert_eq!(merge_registries(many), Err(McpError::CatalogLimited));
 }
 
 #[tokio::test]
@@ -548,7 +799,116 @@ async fn invalid_replies_are_transport_errors() {
 #[test]
 fn search_args_shape() {
     assert_eq!(search_args("q", None), json!({"query": "q"}));
-    assert_eq!(search_args("q", Some(5)), json!({"query": "q", "limit": 5}));
+    assert_eq!(
+        search_args("q", Some("long")),
+        json!({"query": "q", "response_length": "long"})
+    );
+    assert!(search_args("q", Some("long")).get("limit").is_none());
+}
+
+#[tokio::test]
+async fn entry_authorization_and_custom_headers_reach_the_strict_endpoint() {
+    use oc_adapters::config::McpEntry;
+
+    let (url, records) = Fake::start(Mode::Ok, Duration::ZERO);
+    let entry: McpEntry = serde_json::from_value(json!({
+        "type": "remote",
+        "url": url,
+        "enabled": true,
+        "oauth": false,
+        "headers": {
+            "Authorization": "Bearer entry-key",
+            "X-Workspace": "workspace-secret",
+            "Content-Type": "text/plain",
+            "Accept": "text/plain",
+        },
+        "timeout": 5_000,
+    }))
+    .expect("JSONC-compatible MCP entry");
+    let mut config = CodexWebConfig::from_entry(&entry).expect("normalize entry");
+    config.allow_private = true;
+    let debug = format!("{config:?}");
+    assert!(!debug.contains("entry-key"));
+    assert!(!debug.contains("workspace-secret"));
+
+    let client = CodexWebClient::connect(&config).await.expect("connect");
+    let cancel = AtomicBool::new(false);
+    client.list_tools(&cancel).await.expect("list");
+    assert_eq!(
+        client.search("headers", Some("medium"), &cancel).await,
+        Ok("result for headers".to_string())
+    );
+    client.close().await.expect("close");
+
+    let seen = records_of(&records);
+    assert!(!seen.is_empty());
+    for record in seen {
+        assert_eq!(record.path, "/v1/mcp", "exact URL path");
+        assert_eq!(record.method, "POST", "no OAuth or GET probe");
+        assert_eq!(
+            record.headers.get("authorization").map(String::as_str),
+            Some("Bearer entry-key")
+        );
+        assert_eq!(
+            record.headers.get("x-workspace").map(String::as_str),
+            Some("workspace-secret")
+        );
+        assert_eq!(
+            record.headers.get("content-type").map(String::as_str),
+            Some("application/json"),
+            "rmcp controls the body media type"
+        );
+        let accept = record.headers.get("accept").cloned().unwrap_or_default();
+        assert!(accept.contains("application/json"));
+        assert!(accept.contains("text/event-stream"));
+    }
+}
+
+#[test]
+fn header_names_are_case_insensitive_and_conflicts_are_explicit() {
+    use oc_adapters::config::McpEntry;
+    use std::collections::BTreeMap;
+
+    let base = |headers| McpEntry {
+        kind: "remote".to_string(),
+        url: Some("https://mcp.example.com/v1/mcp".to_string()),
+        enabled: true,
+        oauth: false,
+        headers,
+        command: Vec::new(),
+        timeout: None,
+        codemode: None,
+    };
+    for spelling in ["authorization", "Authorization", "aUtHoRiZaTiOn"] {
+        let headers = [(spelling.to_string(), "Bearer key".to_string())]
+            .into_iter()
+            .collect();
+        assert_eq!(
+            CodexWebConfig::from_entry(&base(headers))
+                .expect("authorization spelling")
+                .bearer,
+            "key"
+        );
+    }
+
+    let same_values = [
+        ("Authorization".to_string(), "Bearer key".to_string()),
+        ("authorization".to_string(), "Bearer key".to_string()),
+    ]
+    .into_iter()
+    .collect();
+    CodexWebConfig::from_entry(&base(same_values)).expect("equivalent duplicates collapse");
+
+    let conflicting_values: BTreeMap<_, _> = [
+        ("Authorization".to_string(), "Bearer first".to_string()),
+        ("authorization".to_string(), "Bearer second".to_string()),
+    ]
+    .into_iter()
+    .collect();
+    assert_eq!(
+        CodexWebConfig::from_entry(&base(conflicting_values)),
+        Err(McpError::ConflictingHeader("authorization".to_string()))
+    );
 }
 
 #[test]
@@ -557,7 +917,9 @@ fn entry_mapping_refuses_oauth_and_keeps_exact_url() {
     use std::collections::BTreeMap;
 
     let mut headers = BTreeMap::new();
-    headers.insert("authorization".to_string(), "Bearer live-key".to_string());
+    headers.insert("Authorization".to_string(), "Bearer live-key".to_string());
+    headers.insert("X-Tenant".to_string(), "tenant-secret".to_string());
+    headers.insert("Content-Type".to_string(), "text/plain".to_string());
     let entry = McpEntry {
         kind: "remote".to_string(),
         url: Some("https://mcp.example.com/v1/mcp".to_string()),
@@ -572,9 +934,24 @@ fn entry_mapping_refuses_oauth_and_keeps_exact_url() {
     assert_eq!(config.url, "https://mcp.example.com/v1/mcp");
     assert_eq!(config.bearer, "live-key");
     assert_eq!(config.timeout, Duration::from_millis(5_000));
+    assert_eq!(
+        config
+            .custom_headers
+            .get("x-tenant")
+            .and_then(|value| value.to_str().ok()),
+        Some("tenant-secret")
+    );
+    assert!(
+        config.custom_headers.get("content-type").is_none(),
+        "native content controls win"
+    );
     assert!(
         !format!("{config:?}").contains("live-key"),
         "bearer redacted"
+    );
+    assert!(
+        !format!("{config:?}").contains("tenant-secret"),
+        "custom header values redacted"
     );
 
     let mut oauth = entry.clone();
@@ -624,6 +1001,7 @@ async fn live_search_harness() {
     let config = CodexWebConfig {
         url,
         bearer: key,
+        custom_headers: Default::default(),
         timeout: CLIENT_TIMEOUT,
         allow_private: false,
     };
@@ -634,7 +1012,7 @@ async fn live_search_harness() {
     let tools = client.list_tools(&cancel).await.expect("live list");
     assert!(!tools.is_empty(), "live catalog must be non-empty");
     let text = client
-        .search("oc smoke probe", Some(3), &cancel)
+        .search("oc smoke probe", Some("short"), &cancel)
         .await
         .expect("live search");
     assert!(!text.trim().is_empty(), "live search must return text");

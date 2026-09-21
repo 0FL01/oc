@@ -115,7 +115,7 @@ pub struct ProviderEntry {
 }
 
 /// Single MCP entry (trusted-shape subset for T07).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct McpEntry {
     /// `remote` or `local`.
@@ -142,6 +142,24 @@ pub struct McpEntry {
     /// Explicit Code Mode flag: only absent/false allowed here.
     #[serde(default)]
     pub codemode: Option<bool>,
+}
+
+impl std::fmt::Debug for McpEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("McpEntry")
+            .field("kind", &self.kind)
+            .field("url", &self.url.as_ref().map(|_| "<configured>"))
+            .field("enabled", &self.enabled)
+            .field("oauth", &self.oauth)
+            .field("header_names", &self.headers.keys().collect::<Vec<_>>())
+            .field(
+                "command",
+                &format_args!("<redacted:{}>", self.command.len()),
+            )
+            .field("timeout", &self.timeout)
+            .field("codemode", &self.codemode)
+            .finish()
+    }
 }
 
 fn default_true() -> bool {

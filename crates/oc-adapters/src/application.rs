@@ -274,6 +274,7 @@ async fn worker(
             message => query(db, runtime, message),
         }
     }
+    let _ = runtime.shutdown_mcp().await;
 }
 
 fn resolve_submission(

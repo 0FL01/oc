@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-21T15:19:07+00:00
-Active: T37
-
-Сверить Git status/diff до выполнения команд.
-Task: T37 — MCP config, registry и владение ресурсами
-Spec: audit/repairs/T37.md
-Evidence target: evidence/T37/report.md
-
-Закрыть F10, F11 по audit/repairs/T37.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 ## Result
 
 T37 paused at a substantial verified but incomplete slice on base `839279c`.
@@ -62,9 +48,3 @@ review diff, write `evidence/T37/report.md`, finish T37, then continue T38.
 Audit fragments were already merged once and must not be rerun. Current changes
 are intended to be committed/pushed as a resumable partial slice; Git is source
 of truth for the exact commit and branch.
-
-
-Ready (до 5): нет
-Blocked: T27
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.
