@@ -24,6 +24,16 @@ use thiserror::Error;
 pub const DEFAULT_BLOB_QUOTA_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 /// Schema version applied by T04.
 pub const SCHEMA_VERSION: i64 = 1;
+/// Additive child-session schema version (T43): nullable `sessions` columns
+/// plus a `parent_id` index. Version 2 is the DCP migration.
+pub const CHILD_SESSION_SCHEMA_VERSION: i64 = 3;
+/// Nullable `sessions` columns added by [`CHILD_SESSION_SCHEMA_VERSION`].
+const CHILD_SESSION_COLUMNS: [(&str, &str); 4] = [
+    ("parent_id", "TEXT"),
+    ("agent", "TEXT"),
+    ("model", "TEXT"),
+    ("title", "TEXT"),
+];
 
 /// Typed storage errors (redacted; no paths with secrets, no raw payloads).
 #[derive(Debug, Error)]
@@ -134,6 +144,22 @@ impl Drop for RootLock {
         // until exec closes its inherited descriptor. Release it explicitly.
         let _ = fs2::FileExt::unlock(&self.0);
     }
+}
+
+/// Stored metadata of one session row (`sessions` table, child columns).
+///
+/// A root session has all-`None` metadata; a child session records its
+/// `parent_id` plus the agent/model/title it was created with.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SessionMeta {
+    /// Parent session id; `None` for a root session.
+    pub parent_id: Option<String>,
+    /// Agent id the session runs as.
+    pub agent: Option<String>,
+    /// Model id the session was created with (`provider/model[#variant]`).
+    pub model: Option<String>,
+    /// Human title (the subagent call's short description).
+    pub title: Option<String>,
 }
 
 /// One tool operation row for TUI tool cards (T22).
@@ -284,27 +310,66 @@ impl Db {
         &self.root
     }
 
-    /// Create a session; duplicate ids fail.
+    /// Create a root session; duplicate ids fail.
     pub fn create_session(&self, id: &str) -> Result<(), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let now = now_rfc3339();
-        let mut stmt =
-            conn.prepare_cached("INSERT INTO sessions(id, created_at) VALUES (?1, ?2)")?;
-        let res = stmt.execute(params![id, now]);
-        match res {
-            Ok(_) => {}
-            Err(rusqlite::Error::SqliteFailure(err, _))
-                if err.extended_code == rusqlite::ffi::SQLITE_CONSTRAINT_PRIMARYKEY =>
-            {
-                return Err(StorageError::SessionAlreadyExists);
-            }
-            Err(other) => return Err(StorageError::Sqlite(other)),
-        }
+        Self::insert_session_row(&conn, id, None, None, None, None)?;
         conn.prepare_cached(
             "INSERT INTO events(session_id, kind, payload) VALUES (?1, 'session_created', ?2)",
         )?
         .execute(params![id, "{}"])?;
         Ok(())
+    }
+
+    /// Create a child session owned by `parent`; duplicate ids fail.
+    ///
+    /// The parent must exist ([`StorageError::SessionNotFound`]); its
+    /// history is never touched. `agent`, `model` and `title` are stored
+    /// verbatim and read back through [`Db::session_meta`].
+    pub fn create_child_session(
+        &self,
+        parent: &str,
+        id: &str,
+        agent: Option<&str>,
+        model: Option<&str>,
+        title: Option<&str>,
+    ) -> Result<(), StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        Self::require_session(&tx, parent)?;
+        Self::insert_session_row(&tx, id, Some(parent), agent, model, title)?;
+        tx.execute(
+            "INSERT INTO events(session_id, kind, payload) VALUES (?1, 'session_created', ?2)",
+            params![id, "{}"],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// Insert one `sessions` row; duplicate ids map to `SessionAlreadyExists`.
+    fn insert_session_row(
+        conn: &Connection,
+        id: &str,
+        parent: Option<&str>,
+        agent: Option<&str>,
+        model: Option<&str>,
+        title: Option<&str>,
+    ) -> Result<(), StorageError> {
+        let now = now_rfc3339();
+        let res = conn.execute(
+            "INSERT INTO sessions(id, created_at, parent_id, agent, model, title)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![id, now, parent, agent, model, title],
+        );
+        match res {
+            Ok(_) => Ok(()),
+            Err(rusqlite::Error::SqliteFailure(err, _))
+                if err.extended_code == rusqlite::ffi::SQLITE_CONSTRAINT_PRIMARYKEY =>
+            {
+                Err(StorageError::SessionAlreadyExists)
+            }
+            Err(other) => Err(StorageError::Sqlite(other)),
+        }
     }
 
     /// Append a message and durable event in one transaction.
@@ -380,11 +445,53 @@ impl Db {
         Ok(out)
     }
 
-    /// List sessions in sorted order.
+    /// List every session id (roots and children) sorted by id ascending.
+    ///
+    /// Ordering and query are unchanged for legacy callers; child rows are
+    /// included because no `parent_id` filter is applied. Hierarchy-aware
+    /// callers use [`Db::session_meta`] / [`Db::children_of`].
     pub fn list_sessions(&self) -> Result<Vec<String>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let mut stmt = conn.prepare_cached("SELECT id FROM sessions ORDER BY id ASC")?;
         let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+        let mut out = Vec::new();
+        for row in rows {
+            out.push(row?);
+        }
+        Ok(out)
+    }
+
+    /// Read one session's stored metadata; unknown ids are `SessionNotFound`.
+    pub fn session_meta(&self, session: &str) -> Result<SessionMeta, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        conn.query_row(
+            "SELECT parent_id, agent, model, title FROM sessions WHERE id = ?1",
+            params![session],
+            |row| {
+                Ok(SessionMeta {
+                    parent_id: row.get(0)?,
+                    agent: row.get(1)?,
+                    model: row.get(2)?,
+                    title: row.get(3)?,
+                })
+            },
+        )
+        .optional()?
+        .ok_or(StorageError::SessionNotFound)
+    }
+
+    /// Direct child session ids of `parent` in insertion order.
+    ///
+    /// Only direct children are returned. Order is the `sessions` row
+    /// insertion order (`rowid` ascending); this store never runs `VACUUM`,
+    /// so the order is stable for the lifetime of the database. The parent
+    /// must exist ([`StorageError::SessionNotFound`]).
+    pub fn children_of(&self, parent: &str) -> Result<Vec<String>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Self::require_session(&conn, parent)?;
+        let mut stmt =
+            conn.prepare_cached("SELECT id FROM sessions WHERE parent_id = ?1 ORDER BY rowid ASC")?;
+        let rows = stmt.query_map(params![parent], |row| row.get::<_, String>(0))?;
         let mut out = Vec::new();
         for row in rows {
             out.push(row?);
@@ -1788,6 +1895,46 @@ fn is_older_than(path: &Path, grace: Duration) -> Result<bool, StorageError> {
     Ok(age >= grace)
 }
 
+/// Apply the additive child-session migration (schema version 3).
+///
+/// Adds nullable `parent_id`/`agent`/`model`/`title` columns and the
+/// `parent_id` index to `sessions`. Idempotent: a database that already
+/// recorded version 3 is left untouched, and a fresh database reaches the
+/// same schema as an upgraded one. `ALTER TABLE ... ADD COLUMN` cannot
+/// express `IF NOT EXISTS`, so columns are checked before being added.
+fn apply_child_session_schema(conn: &Connection) -> Result<(), StorageError> {
+    let applied: Option<i64> = conn
+        .query_row(
+            "SELECT version FROM schema_migrations WHERE version = ?1",
+            params![CHILD_SESSION_SCHEMA_VERSION],
+            |row| row.get(0),
+        )
+        .optional()?;
+    if applied.is_some() {
+        return Ok(());
+    }
+    for (column, decl) in CHILD_SESSION_COLUMNS {
+        if !column_exists(conn, "sessions", column)? {
+            conn.execute_batch(&format!("ALTER TABLE sessions ADD COLUMN {column} {decl}"))?;
+        }
+    }
+    conn.execute_batch("CREATE INDEX IF NOT EXISTS sessions_parent ON sessions(parent_id)")?;
+    conn.execute(
+        "INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?1, 't43')",
+        params![CHILD_SESSION_SCHEMA_VERSION],
+    )?;
+    Ok(())
+}
+
+/// Whether `table` already has a column named `column`.
+fn column_exists(conn: &Connection, table: &str, column: &str) -> Result<bool, StorageError> {
+    let mut stmt = conn.prepare("SELECT 1 FROM pragma_table_info(?1) WHERE name = ?2")?;
+    let found: Option<i64> = stmt
+        .query_row(params![table, column], |row| row.get(0))
+        .optional()?;
+    Ok(found.is_some())
+}
+
 fn apply_schema(conn: &Connection) -> Result<(), StorageError> {
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
@@ -1809,16 +1956,52 @@ fn apply_schema(conn: &Connection) -> Result<(), StorageError> {
          CREATE TABLE IF NOT EXISTS prefs(key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL);
          INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (1, 't04');",
     )?;
+    apply_child_session_schema(conn)?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Db, StorageError};
+    use super::{Db, SessionMeta, StorageError};
+    use rusqlite::OptionalExtension as _;
     use std::fs;
     use std::os::unix::fs::PermissionsExt as _;
     use std::path::Path;
     use std::time::Duration;
+
+    /// `(name, type)` of a table's columns in declaration order.
+    fn session_columns(db: &Db) -> Vec<(String, String)> {
+        let conn = db.conn.lock().expect("db mutex");
+        let mut stmt = conn
+            .prepare("SELECT name, type FROM pragma_table_info('sessions') ORDER BY cid ASC")
+            .expect("prepare");
+        let rows = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+            .expect("rows");
+        rows.collect::<Result<Vec<_>, _>>().expect("columns")
+    }
+
+    /// `(seq, role, text)` rows as stored, never via a projection.
+    fn raw_history(db: &Db, session: &str) -> Vec<(i64, String, String)> {
+        let conn = db.conn.lock().expect("db mutex");
+        let mut stmt = conn
+            .prepare("SELECT seq, role, text FROM messages WHERE session_id = ?1 ORDER BY seq ASC")
+            .expect("prepare");
+        let rows = stmt
+            .query_map([session], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+            .expect("rows");
+        rows.collect::<Result<Vec<_>, _>>().expect("rows")
+    }
+
+    /// Applied migration versions in order.
+    fn migrations(db: &Db) -> Vec<i64> {
+        let conn = db.conn.lock().expect("db mutex");
+        let mut stmt = conn
+            .prepare("SELECT version FROM schema_migrations ORDER BY version ASC")
+            .expect("prepare");
+        let rows = stmt.query_map([], |row| row.get(0)).expect("rows");
+        rows.collect::<Result<Vec<_>, _>>().expect("rows")
+    }
 
     fn tmp_root(name: &str) -> tempfile::TempDir {
         let dir = tempfile::tempdir().expect("tempdir");
@@ -2008,5 +2191,224 @@ mod tests {
         );
         db.set_pref("tui.x", "v2").expect("overwrite");
         assert_eq!(db.get_pref("tui.x").expect("get"), Some("v2".to_string()));
+    }
+
+    #[test]
+    fn child_schema_migration_is_idempotent_across_reopen() {
+        let tmp = tmp_root("child-migrate");
+        let root = tmp.path().join("data");
+        let fresh = {
+            let db = Db::open(&root).expect("open");
+            let columns = session_columns(&db);
+            let names: Vec<&str> = columns.iter().map(|(name, _)| name.as_str()).collect();
+            assert_eq!(
+                names,
+                ["id", "created_at", "parent_id", "agent", "model", "title"]
+            );
+            assert!(columns.iter().all(|(_, ty)| ty == "TEXT"));
+            assert_eq!(db.list_sessions().expect("list"), Vec::<String>::new());
+            // One `sessions` row per session; the index exists even on fresh DBs.
+            let conn = db.conn.lock().expect("db mutex");
+            let index: Option<String> = conn
+                .query_row(
+                    "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'sessions_parent'",
+                    [],
+                    |row| row.get(0),
+                )
+                .optional()
+                .expect("index lookup");
+            assert_eq!(index.as_deref(), Some("sessions_parent"));
+            // Sentinel proves a reopen skips the migration instead of
+            // re-running the guarded ALTERs.
+            conn.execute(
+                "UPDATE schema_migrations SET applied_at = 'sentinel' WHERE version = 3",
+                [],
+            )
+            .expect("mark");
+            columns
+        };
+        let db = Db::open(&root).expect("reopen");
+        assert_eq!(session_columns(&db), fresh, "reopen keeps the schema");
+        assert_eq!(migrations(&db), vec![1, 3]);
+        let conn = db.conn.lock().expect("db mutex");
+        let applied: String = conn
+            .query_row(
+                "SELECT applied_at FROM schema_migrations WHERE version = 3",
+                [],
+                |row| row.get(0),
+            )
+            .expect("v3 row");
+        assert_eq!(applied, "sentinel", "reopen re-applied migration 3");
+    }
+
+    #[test]
+    fn child_schema_upgrades_legacy_database_to_same_schema() {
+        let tmp = tmp_root("child-upgrade");
+        let root = tmp.path().join("data");
+        fs::create_dir_all(&root).expect("root");
+        // A v1 database: sessions without the child columns, migration 1 only.
+        {
+            let conn = rusqlite::Connection::open(root.join("oc.sqlite")).expect("legacy sqlite");
+            conn.execute_batch(
+                "CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
+                 CREATE TABLE sessions(id TEXT PRIMARY KEY, created_at TEXT NOT NULL);
+                 INSERT INTO schema_migrations(version, applied_at) VALUES (1, 't04');
+                 INSERT INTO sessions(id, created_at) VALUES ('legacy', '1');",
+            )
+            .expect("legacy schema");
+        }
+        let db = Db::open(&root).expect("open legacy");
+        assert_eq!(migrations(&db), vec![1, 3]);
+        let legacy = db.session_meta("legacy").expect("legacy meta");
+        assert_eq!(
+            legacy,
+            SessionMeta {
+                parent_id: None,
+                agent: None,
+                model: None,
+                title: None,
+            }
+        );
+        assert_eq!(
+            db.children_of("legacy").expect("children"),
+            Vec::<String>::new()
+        );
+
+        let fresh_root = tmp.path().join("fresh");
+        let fresh = Db::open(&fresh_root).expect("fresh open");
+        assert_eq!(
+            session_columns(&db),
+            session_columns(&fresh),
+            "upgraded schema equals fresh schema"
+        );
+    }
+
+    #[test]
+    fn child_rows_persist_across_reopen() {
+        let tmp = tmp_root("child-persist");
+        let root = tmp.path().join("data");
+        {
+            let db = Db::open(&root).expect("open");
+            db.create_session("root").expect("root");
+            db.create_child_session(
+                "root",
+                "kid",
+                Some("explore"),
+                Some("openai/gpt-5#low"),
+                Some("Review code"),
+            )
+            .expect("child");
+            db.append_message("kid", "user", "hello").expect("msg");
+        }
+        let db = Db::open(&root).expect("reopen");
+        assert_eq!(
+            db.session_meta("kid").expect("meta"),
+            SessionMeta {
+                parent_id: Some("root".to_string()),
+                agent: Some("explore".to_string()),
+                model: Some("openai/gpt-5#low".to_string()),
+                title: Some("Review code".to_string()),
+            }
+        );
+        assert_eq!(
+            db.children_of("root").expect("children"),
+            vec!["kid".to_string()]
+        );
+        assert_eq!(
+            db.read_history("kid").expect("history"),
+            vec![("user".to_string(), "hello".to_string())]
+        );
+        let root_meta = db.session_meta("root").expect("root meta");
+        assert_eq!(root_meta.parent_id, None);
+        assert_eq!(root_meta.agent, None);
+        assert_eq!(root_meta.model, None);
+        assert_eq!(root_meta.title, None);
+    }
+
+    #[test]
+    fn children_of_returns_only_direct_children_in_insertion_order() {
+        let tmp = tmp_root("child-order");
+        let db = Db::open(&tmp.path().join("data")).expect("open");
+        db.create_session("p").expect("p");
+        db.create_session("other").expect("other");
+        // Ids are deliberately out of lexical order: insertion order wins.
+        db.create_child_session("p", "c-b", None, None, None)
+            .expect("c-b");
+        db.create_child_session("p", "c-a", None, None, None)
+            .expect("c-a");
+        db.create_child_session("other", "c-x", None, None, None)
+            .expect("c-x");
+        db.create_child_session("c-b", "g", None, None, None)
+            .expect("g");
+        db.create_child_session("p", "c-c", None, None, None)
+            .expect("c-c");
+        assert_eq!(db.children_of("p").expect("p"), vec!["c-b", "c-a", "c-c"]);
+        assert_eq!(db.children_of("c-b").expect("c-b"), vec!["g"]);
+        assert_eq!(db.children_of("other").expect("other"), vec!["c-x"]);
+        assert_eq!(db.children_of("g").expect("leaf"), Vec::<String>::new());
+        assert!(matches!(
+            db.children_of("ghost"),
+            Err(StorageError::SessionNotFound)
+        ));
+    }
+
+    #[test]
+    fn child_creation_never_touches_parent_history() {
+        let tmp = tmp_root("child-immutable");
+        let db = Db::open(&tmp.path().join("data")).expect("open");
+        db.create_session("p").expect("p");
+        db.append_message("p", "user", "one").expect("m1");
+        db.append_message("p", "assistant", "two").expect("m2");
+        let before = raw_history(&db, "p");
+        db.create_child_session("p", "k1", Some("general"), None, None)
+            .expect("k1");
+        db.append_message("k1", "user", "child text")
+            .expect("child msg");
+        db.create_child_session("p", "k2", None, Some("model"), Some("title"))
+            .expect("k2");
+        assert_eq!(raw_history(&db, "p"), before);
+        assert_eq!(db.history_len("p").expect("len"), 2);
+    }
+
+    #[test]
+    fn create_child_session_requires_parent_and_unique_ids() {
+        let tmp = tmp_root("child-errors");
+        let db = Db::open(&tmp.path().join("data")).expect("open");
+        assert!(matches!(
+            db.create_child_session("ghost", "k", None, None, None),
+            Err(StorageError::SessionNotFound)
+        ));
+        assert!(matches!(
+            db.session_meta("k"),
+            Err(StorageError::SessionNotFound)
+        ));
+        db.create_session("p").expect("p");
+        db.create_child_session("p", "k", None, None, None)
+            .expect("child");
+        assert!(matches!(
+            db.create_child_session("p", "k", None, None, None),
+            Err(StorageError::SessionAlreadyExists)
+        ));
+        assert!(matches!(
+            db.create_session("k"),
+            Err(StorageError::SessionAlreadyExists)
+        ));
+    }
+
+    #[test]
+    fn list_sessions_keeps_id_order_and_includes_children() {
+        let tmp = tmp_root("child-list");
+        let db = Db::open(&tmp.path().join("data")).expect("open");
+        db.create_session("a-root").expect("a-root");
+        db.create_session("z-root").expect("z-root");
+        db.create_child_session("a-root", "m-child", None, None, None)
+            .expect("m-child");
+        db.create_child_session("a-root", "b-child", None, None, None)
+            .expect("b-child");
+        // Legacy behavior: every session row, no parent filter, id ascending.
+        assert_eq!(
+            db.list_sessions().expect("list"),
+            vec!["a-root", "b-child", "m-child", "z-root"]
+        );
     }
 }
