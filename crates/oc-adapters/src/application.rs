@@ -19,7 +19,7 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 
 use crate::composition::{self, Composition};
 use crate::runtime::{
-    Runtime, RuntimeError, SubagentAgent, SubagentCatalog, TurnParams, TurnStatus,
+    Runtime, RuntimeError, SubagentAgent, SubagentCatalog, ToolCallEvent, TurnParams, TurnStatus,
 };
 use crate::storage::Db;
 use crate::tui_workspace::{AgentEntry as WorkspaceAgent, WorkspaceError, WorkspaceRegistry};
@@ -892,7 +892,7 @@ async fn worker(
                 let mut shutdown = false;
                 let result;
                 {
-                    let operation = runtime.run_turn_with_events(
+                    let operation = runtime.run_turn_with_tool_events(
                         params,
                         |id| {
                             let id = WorkerTurnId(id.to_string());
@@ -917,6 +917,37 @@ async fn worker(
                                 session: session.clone(),
                                 turn: WorkerTurnId(id.to_string()),
                                 delta: delta.to_string(),
+                            });
+                        },
+                        |id, event| {
+                            let turn = WorkerTurnId(id.to_string());
+                            let _ = events.send(match event {
+                                ToolCallEvent::Started { op, name, input } => {
+                                    CoreEvent::ToolCallStarted {
+                                        session: session.clone(),
+                                        turn,
+                                        op: op.clone(),
+                                        name: name.clone(),
+                                        input: input.clone(),
+                                    }
+                                }
+                                ToolCallEvent::Finished {
+                                    op,
+                                    name,
+                                    state,
+                                    output,
+                                    output_bytes,
+                                    output_truncated,
+                                } => CoreEvent::ToolCallFinished {
+                                    session: session.clone(),
+                                    turn,
+                                    op: op.clone(),
+                                    name: name.clone(),
+                                    state: state.clone(),
+                                    output: output.clone(),
+                                    output_bytes: *output_bytes,
+                                    output_truncated: *output_truncated,
+                                },
                             });
                         },
                     );

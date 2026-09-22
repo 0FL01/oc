@@ -541,6 +541,41 @@ pub struct CallRecord {
     pub output: String,
 }
 
+/// Tool-call lifecycle notification for live frontends (TUI tool cards).
+///
+/// Emitted only after the durable record exists: `Started` after the intent
+/// insert (before the side effect), `Finished` after the outcome update. The
+/// payloads are bounded by the recorded caps; `output` is capped at
+/// [`REPORT_OUTPUT_CAP`] with `output_bytes`/`output_truncated` describing the
+/// full stored value, so a frontend never sees an unbounded field.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ToolCallEvent {
+    /// Intent durably recorded; the call may now run.
+    Started {
+        /// Durable operation id.
+        op: String,
+        /// Registry tool name.
+        name: String,
+        /// Recorded arguments JSON (bounded by the tool argument caps).
+        input: String,
+    },
+    /// Terminal outcome durably recorded.
+    Finished {
+        /// Durable operation id.
+        op: String,
+        /// Registry tool name.
+        name: String,
+        /// Storage state (`completed`/`failed`/`denied`/`cancelled`/`no_gain`).
+        state: String,
+        /// Capped outcome preview.
+        output: String,
+        /// Full stored output size in bytes.
+        output_bytes: i64,
+        /// True when `output` is shorter than the stored value.
+        output_truncated: bool,
+    },
+}
+
 /// Turn outcome: durable records committed, transient report returned.
 #[derive(Debug, Clone)]
 pub struct TurnReport {
@@ -935,12 +970,30 @@ impl<'a> Runtime<'a> {
     /// Notify the application only after validated input is durably accepted.
     /// `text_delta` and `reasoning_delta` forward provider deltas while the
     /// turn streams; reasoning text is never persisted, only projected.
+    /// Tool-call lifecycle notifications are not forwarded here (use
+    /// [`Runtime::run_turn_with_tool_events`] when a frontend renders cards).
     pub async fn run_turn_with_events(
+        &self,
+        params: TurnParams<'_>,
+        accepted: impl FnMut(&str) + Send,
+        text_delta: impl FnMut(&str, &str) + Send,
+        reasoning_delta: impl FnMut(&str, &str) + Send,
+    ) -> Result<TurnReport, RuntimeError> {
+        self.run_turn_with_tool_events(params, accepted, text_delta, reasoning_delta, |_, _| {})
+            .await
+    }
+
+    /// Like [`Runtime::run_turn_with_events`] but also forwards one
+    /// [`ToolCallEvent`] per recorded tool intent/outcome, in execution order.
+    /// `tool_event` fires after the durable write, so a frontend can never
+    /// show a card for a call that was not recorded.
+    pub async fn run_turn_with_tool_events(
         &self,
         params: TurnParams<'_>,
         mut accepted: impl FnMut(&str) + Send,
         mut text_delta: impl FnMut(&str, &str) + Send,
         mut reasoning_delta: impl FnMut(&str, &str) + Send,
+        mut tool_event: impl FnMut(&str, &ToolCallEvent) + Send,
     ) -> Result<TurnReport, RuntimeError> {
         let started = std::time::Instant::now();
         let _lease = self.begin_active()?;
@@ -958,6 +1011,7 @@ impl<'a> Runtime<'a> {
                 &mut accepted,
                 &mut text_delta,
                 &mut reasoning_delta,
+                &mut tool_event,
             )
             .await;
         drop(mcp);
@@ -1132,6 +1186,7 @@ impl<'a> Runtime<'a> {
         Ok((after_seq, active.rows))
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn run_turn_inner(
         &self,
         params: TurnParams<'_>,
@@ -1140,6 +1195,7 @@ impl<'a> Runtime<'a> {
         accepted: &mut (dyn FnMut(&str) + Send),
         text_delta: &mut (dyn FnMut(&str, &str) + Send),
         reasoning_delta: &mut (dyn FnMut(&str, &str) + Send),
+        tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
     ) -> Result<TurnReport, RuntimeError> {
         let published = self.current.read().expect("generation lock").clone();
         self.open_session(&params.session)?;
@@ -1479,6 +1535,7 @@ impl<'a> Runtime<'a> {
                     &mut turn_log,
                     &state_key,
                     &mut tool_projection,
+                    tool_event,
                 )
                 .await?;
             calls.extend(round_calls);
@@ -1592,6 +1649,7 @@ impl<'a> Runtime<'a> {
             &mut |_: &str| {},
             &mut |_: &str, _: &str| {},
             &mut |_: &str, _: &str| {},
+            &mut |_: &str, _: &ToolCallEvent| {},
         )
         .await
     }
@@ -1809,6 +1867,7 @@ impl<'a> Runtime<'a> {
         turn_log: &mut TurnLog,
         nudge_key: &str,
         tool_projection: &mut crate::storage::DcpToolProjection,
+        tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
     ) -> Result<(Vec<CallRecord>, bool), RuntimeError> {
         let mut records = Vec::new();
         let mut projection_changed = false;
@@ -1857,6 +1916,14 @@ impl<'a> Runtime<'a> {
             // Fail closed. No built-in or MCP dispatch can precede this commit.
             self.db
                 .record_tool_intent(&op, session, Some(turn_id), name, &input)?;
+            tool_event(
+                turn_id,
+                &ToolCallEvent::Started {
+                    op: op.clone(),
+                    name: name.to_string(),
+                    input: input.clone(),
+                },
+            );
             if rejection.is_none()
                 && let Assembled::Call(call) = unit
                 && call.name == COMPRESS_TOOL
@@ -1957,12 +2024,9 @@ impl<'a> Runtime<'a> {
                                 call_id: id.clone(),
                                 output: output.clone(),
                             });
-                            self.db.tool_outcome_with_log(
-                                &op,
-                                "no_gain",
-                                &output,
-                                turn_id,
-                                &turn_log.to_json().to_string(),
+                            record_tool_finish(
+                                self.db, tool_event, &op, name, "no_gain", &output, turn_id,
+                                turn_log,
                             )?;
                             records.push(CallRecord {
                                 name: name.to_string(),
@@ -2030,6 +2094,7 @@ impl<'a> Runtime<'a> {
                         });
                         debug_assert!(!report.blocks.is_empty());
                         projection_changed = true;
+                        emit_tool_finish(tool_event, turn_id, &op, name, "completed", &output);
                         continue;
                     }
                     Err(crate::dcp::DcpError::NoGain {
@@ -2046,12 +2111,8 @@ impl<'a> Runtime<'a> {
                             call_id: id.clone(),
                             output: output.clone(),
                         });
-                        self.db.tool_outcome_with_log(
-                            &op,
-                            "no_gain",
-                            &output,
-                            turn_id,
-                            &turn_log.to_json().to_string(),
+                        record_tool_finish(
+                            self.db, tool_event, &op, name, "no_gain", &output, turn_id, turn_log,
                         )?;
                         records.push(CallRecord {
                             name: name.to_string(),
@@ -2066,12 +2127,8 @@ impl<'a> Runtime<'a> {
                             call_id: id.clone(),
                             output: output.clone(),
                         });
-                        self.db.tool_outcome_with_log(
-                            &op,
-                            "failed",
-                            &output,
-                            turn_id,
-                            &turn_log.to_json().to_string(),
+                        record_tool_finish(
+                            self.db, tool_event, &op, name, "failed", &output, turn_id, turn_log,
                         )?;
                         records.push(CallRecord {
                             name: name.to_string(),
@@ -2099,12 +2156,8 @@ impl<'a> Runtime<'a> {
                 call_id: id.clone(),
                 output: output.clone(),
             });
-            self.db.tool_outcome_with_log(
-                &op,
-                state,
-                &output,
-                turn_id,
-                &turn_log.to_json().to_string(),
+            record_tool_finish(
+                self.db, tool_event, &op, name, state, &output, turn_id, turn_log,
             )?;
             records.push(CallRecord {
                 name: name.to_string(),
@@ -2797,6 +2850,47 @@ fn output_state(output: &str) -> &'static str {
     } else {
         "completed"
     }
+}
+
+/// Forward one terminal tool-call state to the live event sink, bounded
+/// exactly like the turn report.
+fn emit_tool_finish(
+    tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
+    turn_id: &str,
+    op: &str,
+    name: &str,
+    state: &str,
+    output: &str,
+) {
+    tool_event(
+        turn_id,
+        &ToolCallEvent::Finished {
+            op: op.to_string(),
+            name: name.to_string(),
+            state: state.to_string(),
+            output: truncate(output, REPORT_OUTPUT_CAP),
+            output_bytes: output.len() as i64,
+            output_truncated: output.len() > REPORT_OUTPUT_CAP,
+        },
+    );
+}
+
+/// Persist one tool outcome, then notify the live event sink. The event can
+/// never describe an outcome that was not durably recorded.
+#[allow(clippy::too_many_arguments)]
+fn record_tool_finish(
+    db: &Db,
+    tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
+    op: &str,
+    name: &str,
+    state: &str,
+    output: &str,
+    turn_id: &str,
+    turn_log: &TurnLog,
+) -> Result<(), RuntimeError> {
+    db.tool_outcome_with_log(op, state, output, turn_id, &turn_log.to_json().to_string())?;
+    emit_tool_finish(tool_event, turn_id, op, name, state, output);
+    Ok(())
 }
 
 fn remote_mcp_failure(error: McpError, cancel: &AtomicBool) -> (&'static str, String) {

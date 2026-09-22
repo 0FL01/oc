@@ -368,6 +368,31 @@ async fn handle_worker_event(
         CoreEvent::ReasoningDelta { turn, delta, .. } => {
             state.apply_reasoning_delta(&turn, &delta);
         }
+        CoreEvent::ToolCallStarted {
+            turn,
+            op,
+            name,
+            input,
+            ..
+        } => state.apply_tool_started(&turn, &op, &name, &input),
+        CoreEvent::ToolCallFinished {
+            turn,
+            op,
+            name,
+            state: tool_state,
+            output,
+            output_bytes,
+            output_truncated,
+            ..
+        } => state.apply_tool_finished(
+            &turn,
+            &op,
+            &name,
+            &tool_state,
+            &output,
+            output_bytes,
+            output_truncated,
+        ),
         CoreEvent::TurnUsage {
             turn,
             input_tokens,

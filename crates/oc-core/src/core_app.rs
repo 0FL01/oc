@@ -65,6 +65,42 @@ pub enum CoreEvent {
         /// (upstream `time.streamed - time.created` per assistant step).
         streamed_ms: u64,
     },
+    /// One tool call intent was recorded durably (before the side effect);
+    /// the transcript renders a running card. The input is the recorded
+    /// arguments JSON, bounded by the tool argument caps (the view bounds
+    /// its own previews).
+    ToolCallStarted {
+        /// Session that owns the turn.
+        session: SessionId,
+        /// Active turn id.
+        turn: WorkerTurnId,
+        /// Durable operation id.
+        op: String,
+        /// Registry tool name.
+        name: String,
+        /// Recorded arguments JSON.
+        input: String,
+    },
+    /// One tool call reached a terminal state (durable outcome recorded);
+    /// the transcript updates the card in place.
+    ToolCallFinished {
+        /// Session that owns the turn.
+        session: SessionId,
+        /// Active turn id.
+        turn: WorkerTurnId,
+        /// Durable operation id.
+        op: String,
+        /// Registry tool name.
+        name: String,
+        /// `completed` / `failed` / `denied` / `cancelled` / `no_gain`.
+        state: String,
+        /// Outcome preview (bounded by the producer at the report cap).
+        output: String,
+        /// Full stored output size in bytes.
+        output_bytes: i64,
+        /// True when [`CoreEvent::ToolCallFinished::output`] is a preview.
+        output_truncated: bool,
+    },
     /// Turn completed; assistant message is now in history.
     TurnFinished {
         /// Session that owns the turn.
@@ -829,7 +865,9 @@ mod tests {
                 }
                 CoreEvent::TurnStarted { .. }
                 | CoreEvent::ReasoningDelta { .. }
-                | CoreEvent::TurnUsage { .. } => {}
+                | CoreEvent::TurnUsage { .. }
+                | CoreEvent::ToolCallStarted { .. }
+                | CoreEvent::ToolCallFinished { .. } => {}
                 CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             }
         }
@@ -929,7 +967,9 @@ mod tests {
                 CoreEvent::TextDelta { .. }
                 | CoreEvent::TurnStarted { .. }
                 | CoreEvent::ReasoningDelta { .. }
-                | CoreEvent::TurnUsage { .. } => {}
+                | CoreEvent::TurnUsage { .. }
+                | CoreEvent::ToolCallStarted { .. }
+                | CoreEvent::ToolCallFinished { .. } => {}
                 CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             }
         }

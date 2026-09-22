@@ -665,10 +665,17 @@ impl Theme {
         self.roles.diff_line_number
     }
 
+    /// Raised surface, upstream `background.raised.base`: user message rows
+    /// (`routes/session/index.tsx:2298-2345`) and block tool cards
+    /// (`:2784-2866`) share it.
+    pub fn background_raised(&self) -> Color {
+        self.roles.background_raised
+    }
+
     /// User message surface; upstream renders user rows on
     /// `background.raised.base` (`routes/session/index.tsx:2298-2345`).
     pub fn user_message_background(&self) -> Color {
-        self.roles.background_raised
+        self.background_raised()
     }
 
     /// Assistant body text, upstream `markdown.text`

@@ -13,13 +13,15 @@ use std::time::{Duration, Instant};
 use oc_adapters::models::ModelCatalog;
 use oc_core::core_app::{CoreApp, CoreEvent, WorkerTurnId};
 use oc_core::domain::SessionId;
-use oc_core::queries::{AgentEntry, CatalogSnapshot, DcpSnapshot, HistoryPage, SkillCard};
+use oc_core::queries::{
+    AgentEntry, CatalogSnapshot, DcpSnapshot, HistoryPage, SkillCard, ToolOpView,
+};
 use oc_core::session::CoreError;
 
 use crate::commands::{CommandAction, dispatch};
 use crate::dcp_panel::{DcpOutcome, DcpPanelState};
 use crate::events::KeyAction;
-use crate::history::{HistoryRow, HistoryWindow, ToolCard, WINDOW_BYTES};
+use crate::history::{HistoryRow, HistoryWindow, ToolCard, WINDOW_BYTES, card_from_row};
 use crate::messages::{AssistantMeta, ReasoningBlock};
 use crate::picker::ModelPicker;
 use crate::styled::Line;
@@ -32,6 +34,9 @@ pub const VIEWPORT_LINES: usize = 20;
 pub const MAX_INPUT_BYTES: usize = oc_core::session::MAX_INPUT_BYTES;
 /// Max card rows retained by the Cards panel.
 pub const CARDS_MAX: usize = 160;
+/// Max live turn parts kept before the oldest is evicted (defensive: the
+/// runtime caps rounds, so a real turn stays far below this).
+pub const LIVE_PARTS_MAX: usize = 64;
 
 /// Provider-reported usage for the active turn.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -131,6 +136,77 @@ pub struct KeyOutcome {
     pub consumed_input: bool,
 }
 
+/// One live part of the streaming turn, in arrival order (upstream message
+/// parts: reasoning, text, tool — `routes/session/index.tsx:1433-1481`).
+///
+/// Text/reasoning segments freeze when a tool call starts so tool cards keep
+/// their upstream position between the text parts; the transient recorded
+/// input stays with an in-flight card until its outcome arrives, then the
+/// card is rebuilt and the input dropped (bounded live state).
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum LivePart {
+    /// Frozen assistant text segment.
+    Text(String),
+    /// Frozen reasoning segment with its measured window.
+    Reasoning {
+        text: String,
+        duration_ms: Option<u64>,
+    },
+    /// One tool call card plus the recorded input of an in-flight call.
+    Tool { card: Box<ToolCard>, input: String },
+}
+
+impl LivePart {
+    /// Bounded bytes retained by this part (the transient in-flight input is
+    /// excluded: it is dropped as soon as the outcome arrives).
+    fn retained_bytes(&self) -> usize {
+        match self {
+            LivePart::Text(text) | LivePart::Reasoning { text, .. } => text.len(),
+            LivePart::Tool { card, .. } => card.input_preview.len() + card.output_preview.len(),
+        }
+    }
+
+    /// Render this part as a transcript row.
+    fn to_row(&self, agent: Option<String>) -> HistoryRow {
+        match self {
+            LivePart::Text(text) => HistoryRow {
+                seq: i64::MAX,
+                role: "assistant".to_string(),
+                text: text.clone(),
+                agent,
+                chips: Vec::new(),
+                reasoning: None,
+                meta: None,
+                tool: None,
+            },
+            LivePart::Reasoning { text, duration_ms } => HistoryRow {
+                seq: i64::MAX,
+                role: "assistant".to_string(),
+                text: String::new(),
+                agent,
+                chips: Vec::new(),
+                reasoning: Some(ReasoningBlock {
+                    text: text.clone(),
+                    duration_ms: *duration_ms,
+                    running: false,
+                }),
+                meta: None,
+                tool: None,
+            },
+            LivePart::Tool { card, .. } => HistoryRow {
+                seq: i64::MAX,
+                role: "tool".to_string(),
+                text: String::new(),
+                agent,
+                chips: Vec::new(),
+                reasoning: None,
+                meta: None,
+                tool: Some((**card).clone()),
+            },
+        }
+    }
+}
+
 /// Bounded chat state bound to one session on the shared handle.
 pub struct TuiState {
     app: CoreApp,
@@ -142,6 +218,9 @@ pub struct TuiState {
     live_text: String,
     /// Reasoning text streamed for the active turn (never persisted).
     live_reasoning: String,
+    /// Frozen live parts (text/reasoning segments and tool cards) of the
+    /// active turn, in arrival order.
+    live_parts: Vec<LivePart>,
     /// First reasoning delta of the active turn, for the collapsed header's
     /// duration (`part.time.created` upstream).
     reasoning_started: Option<Instant>,
@@ -196,6 +275,7 @@ impl TuiState {
             window: HistoryWindow::new(),
             live_text: String::new(),
             live_reasoning: String::new(),
+            live_parts: Vec::new(),
             reasoning_started: None,
             reasoning_finished: None,
             turn_usage: None,
@@ -260,6 +340,7 @@ impl TuiState {
         self.window = HistoryWindow::new();
         self.live_text.clear();
         self.live_reasoning.clear();
+        self.live_parts.clear();
         self.reasoning_started = None;
         self.reasoning_finished = None;
         self.turn_usage = None;
@@ -342,9 +423,18 @@ impl TuiState {
         self.panel = TuiPanel::None;
     }
 
-    /// Window bytes plus live text plus input; bounded by the window caps.
+    /// Window bytes plus live text, live parts and input; bounded by the
+    /// window caps.
     pub fn retained_bytes(&self) -> usize {
-        self.window.retained_bytes() + self.live_text.len() + self.input.len()
+        self.window.retained_bytes()
+            + self.live_text.len()
+            + self.live_reasoning.len()
+            + self
+                .live_parts
+                .iter()
+                .map(LivePart::retained_bytes)
+                .sum::<usize>()
+            + self.input.len()
     }
 
     /// Visible viewport lines (bounded, scroll-aware, live answer last).
@@ -365,10 +455,14 @@ impl TuiState {
         texts[start..end].to_vec()
     }
 
-    /// Render rows of the transcript: the bounded window plus the live answer
-    /// (reasoning block and streaming text) while a turn is active.
+    /// Render rows of the transcript: the bounded window plus the live parts
+    /// (frozen text/reasoning segments and tool cards) and the open live
+    /// answer (reasoning block and streaming text) while a turn is active.
     pub fn transcript_rows(&self) -> Vec<HistoryRow> {
         let mut rows = self.window.rows().to_vec();
+        for part in &self.live_parts {
+            rows.push(part.to_row(self.active_agent.clone()));
+        }
         let live = !self.live_text.is_empty() || !self.live_reasoning.is_empty();
         if live {
             rows.push(HistoryRow {
@@ -383,6 +477,7 @@ impl TuiState {
                     running: true,
                 }),
                 meta: None,
+                tool: None,
             });
         }
         rows
@@ -526,6 +621,7 @@ impl TuiState {
         self.input.clear();
         self.live_text.clear();
         self.live_reasoning.clear();
+        self.live_parts.clear();
         self.reasoning_started = None;
         self.reasoning_finished = None;
         self.turn_usage = None;
@@ -689,6 +785,7 @@ impl TuiState {
                 self.window.push_synthetic("user", &text);
                 self.live_text.clear();
                 self.live_reasoning.clear();
+                self.live_parts.clear();
                 self.reasoning_started = None;
                 self.reasoning_finished = None;
                 self.turn_usage = None;
@@ -932,7 +1029,10 @@ impl TuiState {
     }
 
     /// Apply a worker turn-finished event: commit the live answer with its
-    /// reasoning block and footer metadata, then release the turn.
+    /// reasoning block and footer metadata, then release the turn. When tool
+    /// cards or frozen segments exist, every part keeps its upstream position
+    /// and the footer becomes its own row after them; the committed text is
+    /// the concatenation of the frozen segments (the deltas already shown).
     pub fn apply_finished(&mut self, turn: &WorkerTurnId, text: &str, duration_ms: u64) {
         if Some(turn) != self.active_turn.as_ref() {
             return;
@@ -941,20 +1041,28 @@ impl TuiState {
         let reasoning = self.take_reasoning();
         self.active_turn = None;
         self.status = TuiStatus::Idle;
-        self.live_text.clear();
-        self.live_reasoning.clear();
-        self.reasoning_started = None;
-        self.reasoning_finished = None;
-        self.turn_usage = None;
-        self.window.push_row(HistoryRow {
-            seq: i64::MAX,
-            role: "assistant".to_string(),
-            text: text.to_string(),
-            agent: self.active_agent.clone(),
-            chips: Vec::new(),
-            reasoning,
-            meta: Some(meta),
-        });
+        if self.live_parts.is_empty() {
+            self.live_text.clear();
+            self.live_reasoning.clear();
+            self.reasoning_started = None;
+            self.reasoning_finished = None;
+            self.turn_usage = None;
+            self.window.push_row(HistoryRow {
+                seq: i64::MAX,
+                role: "assistant".to_string(),
+                text: text.to_string(),
+                agent: self.active_agent.clone(),
+                chips: Vec::new(),
+                reasoning,
+                meta: Some(meta),
+                tool: None,
+            });
+            return;
+        }
+        let parts = self.commit_live_parts(reasoning);
+        self.push_committed_parts(parts);
+        self.window
+            .push_row(footer_row(self.active_agent.clone(), meta));
     }
 
     /// Apply a worker turn-interrupted event: keep the partial text (never
@@ -968,20 +1076,29 @@ impl TuiState {
         let reasoning = self.take_reasoning();
         self.active_turn = None;
         self.status = TuiStatus::Cancelled;
-        self.live_text.clear();
-        self.live_reasoning.clear();
-        self.reasoning_started = None;
-        self.reasoning_finished = None;
-        self.turn_usage = None;
-        self.window.push_row(HistoryRow {
-            seq: i64::MAX,
-            role: "assistant".to_string(),
-            text: partial.to_string(),
-            agent: self.active_agent.clone(),
-            chips: Vec::new(),
-            reasoning,
-            meta: Some(meta),
-        });
+        if self.live_parts.is_empty() {
+            self.live_text.clear();
+            self.live_reasoning.clear();
+            self.reasoning_started = None;
+            self.reasoning_finished = None;
+            self.turn_usage = None;
+            self.window.push_row(HistoryRow {
+                seq: i64::MAX,
+                role: "assistant".to_string(),
+                text: partial.to_string(),
+                agent: self.active_agent.clone(),
+                chips: Vec::new(),
+                reasoning,
+                meta: Some(meta),
+                tool: None,
+            });
+            return;
+        }
+        // The partial text is already the frozen trailing segment.
+        let parts = self.commit_live_parts(reasoning);
+        self.push_committed_parts(parts);
+        self.window
+            .push_row(footer_row(self.active_agent.clone(), meta));
     }
 
     /// Release a failed turn and show its error, never a successful answer.
@@ -996,7 +1113,160 @@ impl TuiState {
         self.reasoning_finished = None;
         self.turn_usage = None;
         self.status = TuiStatus::Idle;
+        if !self.live_parts.is_empty() {
+            // Cards already shown stay visible; the error follows them.
+            let parts = std::mem::take(&mut self.live_parts);
+            self.push_committed_parts(parts);
+        }
         self.window.push_synthetic("", &format!("(error: {error})"));
+    }
+
+    /// Freeze the open live segments and return the whole part list in
+    /// arrival order; a completed reasoning block becomes the leading part
+    /// (upstream reasoning precedes text and tools).
+    fn commit_live_parts(&mut self, reasoning: Option<ReasoningBlock>) -> Vec<LivePart> {
+        self.freeze_reasoning();
+        self.freeze_text();
+        self.live_reasoning.clear();
+        self.reasoning_started = None;
+        self.reasoning_finished = None;
+        self.turn_usage = None;
+        let mut parts = std::mem::take(&mut self.live_parts);
+        if let Some(reasoning) = reasoning {
+            // Reasoning precedes every text/tool part upstream; the open
+            // reasoning segment was already frozen by `freeze_reasoning`.
+            parts.insert(
+                0,
+                LivePart::Reasoning {
+                    text: reasoning.text,
+                    duration_ms: reasoning.duration_ms,
+                },
+            );
+        }
+        parts
+    }
+
+    /// Push committed part rows into the window (bounded like any row).
+    fn push_committed_parts(&mut self, parts: Vec<LivePart>) {
+        for part in parts {
+            self.window.push_row(part.to_row(self.active_agent.clone()));
+        }
+    }
+
+    /// Freeze the open text segment (a tool call follows it).
+    fn freeze_text(&mut self) {
+        if !self.live_text.is_empty() {
+            self.live_parts
+                .push(LivePart::Text(std::mem::take(&mut self.live_text)));
+        }
+    }
+
+    /// Freeze the open reasoning segment with its measured window.
+    fn freeze_reasoning(&mut self) {
+        if self.live_reasoning.is_empty() {
+            return;
+        }
+        let duration_ms = match (
+            self.reasoning_started.take(),
+            self.reasoning_finished.take(),
+        ) {
+            (Some(started), Some(finished)) => {
+                Some(finished.saturating_duration_since(started).as_millis() as u64)
+            }
+            (Some(started), None) => Some(started.elapsed().as_millis() as u64),
+            (None, _) => None,
+        };
+        self.live_parts.push(LivePart::Reasoning {
+            text: std::mem::take(&mut self.live_reasoning),
+            duration_ms,
+        });
+    }
+
+    /// Apply a recorded tool-call intent: freeze the open segments, then
+    /// append the running card in upstream part order.
+    pub fn apply_tool_started(&mut self, turn: &WorkerTurnId, op: &str, name: &str, input: &str) {
+        if Some(turn) != self.active_turn.as_ref() {
+            return;
+        }
+        self.freeze_reasoning();
+        self.freeze_text();
+        let card = card_from_row(&ToolOpView {
+            rowid: 0,
+            op: op.to_string(),
+            name: name.to_string(),
+            state: "started".to_string(),
+            input: Some(input.to_string()),
+            output: None,
+            output_bytes: 0,
+            output_truncated: false,
+        });
+        self.live_parts.push(LivePart::Tool {
+            card: Box::new(card),
+            input: input.to_string(),
+        });
+        self.enforce_parts();
+    }
+
+    /// Apply a recorded tool-call outcome: rebuild the matching card from the
+    /// stored input plus the outcome, then drop the transient input.
+    #[allow(clippy::too_many_arguments)]
+    pub fn apply_tool_finished(
+        &mut self,
+        turn: &WorkerTurnId,
+        op: &str,
+        name: &str,
+        state: &str,
+        output: &str,
+        output_bytes: i64,
+        output_truncated: bool,
+    ) {
+        if Some(turn) != self.active_turn.as_ref() {
+            return;
+        }
+        let outcome = ToolOpView {
+            rowid: 0,
+            op: op.to_string(),
+            name: name.to_string(),
+            state: state.to_string(),
+            input: None,
+            output: Some(output.to_string()),
+            output_bytes,
+            output_truncated,
+        };
+        if let Some(LivePart::Tool { card, input }) = self
+            .live_parts
+            .iter_mut()
+            .rev()
+            .find(|part| matches!(part, LivePart::Tool { card, .. } if card.op == op))
+        {
+            let mut row = outcome;
+            row.name = card.name.clone();
+            row.input = Some(std::mem::take(input));
+            **card = card_from_row(&row);
+            return;
+        }
+        // The intent event was not observed (e.g. a late subscription): the
+        // card appears with the outcome only, never with an invented input.
+        self.live_parts.push(LivePart::Tool {
+            card: Box::new(card_from_row(&outcome)),
+            input: String::new(),
+        });
+        self.enforce_parts();
+    }
+
+    /// Evict oldest live parts while the count or byte cap is exceeded; the
+    /// parts are transient (a reload restores committed history).
+    fn enforce_parts(&mut self) {
+        while self.live_parts.len() > LIVE_PARTS_MAX
+            || self
+                .live_parts
+                .iter()
+                .map(LivePart::retained_bytes)
+                .sum::<usize>()
+                > WINDOW_BYTES
+        {
+            self.live_parts.remove(0);
+        }
     }
 
     /// Footer metadata for the finished turn from real state: the effective
@@ -1134,6 +1404,23 @@ fn card_row(card: &ToolCard) -> HistoryRow {
         chips: Vec::new(),
         reasoning: None,
         meta: None,
+        tool: None,
+    }
+}
+
+/// Assistant footer row: no text, no reasoning, footer metadata only; the
+/// upstream footer follows every part of the assistant message
+/// (`routes/session/index.tsx:1934-1985`).
+fn footer_row(agent: Option<String>, meta: AssistantMeta) -> HistoryRow {
+    HistoryRow {
+        seq: i64::MAX,
+        role: "assistant".to_string(),
+        text: String::new(),
+        agent,
+        chips: Vec::new(),
+        reasoning: None,
+        meta: Some(meta),
+        tool: None,
     }
 }
 
@@ -1218,6 +1505,35 @@ impl ScriptDriver {
                 Ok(Ok(CoreEvent::ReasoningDelta { turn, delta, .. })) => {
                     state.apply_reasoning_delta(&turn, &delta);
                 }
+                Ok(Ok(CoreEvent::ToolCallStarted {
+                    turn,
+                    op,
+                    name,
+                    input,
+                    ..
+                })) => {
+                    state.apply_tool_started(&turn, &op, &name, &input);
+                }
+                Ok(Ok(CoreEvent::ToolCallFinished {
+                    turn,
+                    op,
+                    name,
+                    state: tool_state,
+                    output,
+                    output_bytes,
+                    output_truncated,
+                    ..
+                })) => {
+                    state.apply_tool_finished(
+                        &turn,
+                        &op,
+                        &name,
+                        &tool_state,
+                        &output,
+                        output_bytes,
+                        output_truncated,
+                    );
+                }
                 Ok(Ok(CoreEvent::TurnUsage {
                     turn,
                     input_tokens,
@@ -1272,8 +1588,8 @@ pub enum PumpOutcome {
 #[cfg(test)]
 mod tests {
     use super::{
-        KeyOutcome, MAX_INPUT_BYTES, PanelIntent, PumpOutcome, ScriptDriver, TuiPanel, TuiState,
-        TuiStatus, VIEWPORT_LINES,
+        KeyOutcome, LIVE_PARTS_MAX, MAX_INPUT_BYTES, PanelIntent, PumpOutcome, ScriptDriver,
+        TuiPanel, TuiState, TuiStatus, VIEWPORT_LINES,
     };
     use crate::events::KeyAction;
     use crate::history::{WINDOW_BYTES, WINDOW_ROWS};
@@ -1665,6 +1981,134 @@ mod tests {
             .pump_until_idle(&mut state, Duration::from_secs(5))
             .await;
         assert_eq!(state.status(), &TuiStatus::Idle);
+    }
+
+    /// Tool-call events build transcript cards from real event payloads, in
+    /// upstream part order (text, tool, text) and survive the turn finish as
+    /// committed rows with the footer after them.
+    #[tokio::test]
+    async fn tool_events_build_transcript_cards_in_part_order() {
+        let mut state = fresh_state("s-tools-ui").await;
+        state.active_agent = Some("build".to_string());
+        state.active_turn = Some(WorkerTurnId("t-ui-tools".to_string()));
+        state.status = TuiStatus::Streaming;
+
+        state.apply_delta(&WorkerTurnId("t-ui-tools".to_string()), "working");
+        let patch = "*** Begin Patch\n*** Update File: a.txt\n@@\n-old\n+new\n*** End Patch";
+        let input = serde_json::json!({"patchText": patch}).to_string();
+        state.apply_tool_started(
+            &WorkerTurnId("t-ui-tools".to_string()),
+            "op-1",
+            "apply_patch",
+            &input,
+        );
+        // The running card is already a transcript row with the parsed diff.
+        let rows = state.transcript_rows();
+        assert_eq!(rows.len(), 2, "text part then tool card: {rows:?}");
+        assert_eq!(rows[0].role, "assistant");
+        assert_eq!(rows[0].text, "working");
+        assert_eq!(rows[1].role, "tool");
+        assert_eq!(rows[1].tool.as_ref().expect("card").state, "started");
+        let lines = state.transcript_lines(0, 80);
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.plain_text().contains("← Patched a.txt")),
+            "the diff card is visible while running"
+        );
+
+        state.apply_tool_finished(
+            &WorkerTurnId("t-ui-tools".to_string()),
+            "op-1",
+            "apply_patch",
+            "completed",
+            "Update a.txt (hash_before=x, hash_after=y)",
+            42,
+            false,
+        );
+        state.apply_delta(&WorkerTurnId("t-ui-tools".to_string()), "after tool");
+        let rows = state.transcript_rows();
+        assert_eq!(rows.len(), 3, "text, card, open text: {rows:?}");
+        assert_eq!(rows[1].tool.as_ref().expect("card").state, "completed");
+        assert_eq!(rows[2].text, "after tool");
+
+        state.apply_finished(
+            &WorkerTurnId("t-ui-tools".to_string()),
+            "workingafter tool",
+            2500,
+        );
+        assert!(!state.is_busy());
+        let window = state.history().rows();
+        assert_eq!(window.len(), 4, "three parts plus the footer: {window:?}");
+        assert_eq!(window[0].role, "assistant");
+        assert_eq!(window[0].text, "working");
+        assert_eq!(window[1].role, "tool");
+        assert_eq!(window[1].tool.as_ref().expect("card").state, "completed");
+        assert_eq!(window[2].text, "after tool");
+        assert_eq!(window[3].role, "assistant");
+        assert!(window[3].text.is_empty(), "footer row carries no text");
+        assert_eq!(
+            window[3].meta.as_ref().expect("meta").duration_ms,
+            Some(2500)
+        );
+        // Footer renders after every part (`routes/session/index.tsx:1934-1985`).
+        let lines = state.transcript_lines(0, 80);
+        let texts: Vec<String> = lines.iter().map(|line| line.plain_text()).collect();
+        let footer = texts
+            .iter()
+            .position(|text| text.contains("Build"))
+            .expect("footer");
+        let diff = texts
+            .iter()
+            .position(|text| text.contains("← Patched"))
+            .expect("diff");
+        assert!(footer > diff, "footer follows the parts: {texts:?}");
+    }
+
+    /// Live parts stay bounded when a hostile stream floods tool events.
+    #[tokio::test]
+    async fn live_parts_stay_bounded_under_tool_flood() {
+        let mut state = fresh_state("s-tools-flood").await;
+        state.active_turn = Some(WorkerTurnId("t-flood".to_string()));
+        state.status = TuiStatus::Streaming;
+        for index in 0..(LIVE_PARTS_MAX + 20) {
+            state.apply_tool_started(
+                &WorkerTurnId("t-flood".to_string()),
+                &format!("op-{index}"),
+                "read",
+                &serde_json::json!({"path": format!("f{index}")}).to_string(),
+            );
+            state.apply_tool_finished(
+                &WorkerTurnId("t-flood".to_string()),
+                &format!("op-{index}"),
+                "read",
+                "completed",
+                "ok",
+                2,
+                false,
+            );
+        }
+        assert!(state.live_parts.len() <= LIVE_PARTS_MAX);
+        assert!(state.retained_bytes() <= 2 * WINDOW_BYTES + MAX_INPUT_BYTES);
+        assert!(state.viewport().len() <= VIEWPORT_LINES);
+    }
+
+    /// A stale turn can never grow cards into the transcript.
+    #[tokio::test]
+    async fn stale_tool_events_are_ignored() {
+        let mut state = fresh_state("s-tools-stale").await;
+        state.active_turn = Some(WorkerTurnId("t-live".to_string()));
+        state.status = TuiStatus::Streaming;
+        let stale = WorkerTurnId("t-stale".to_string());
+        state.apply_tool_started(
+            &stale,
+            "op",
+            "bash",
+            &serde_json::json!({"argv": ["ls"]}).to_string(),
+        );
+        state.apply_tool_finished(&stale, "op", "bash", "completed", "ok", 2, false);
+        assert!(state.live_parts.is_empty());
+        assert!(state.transcript_rows().is_empty());
     }
 
     #[tokio::test]

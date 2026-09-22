@@ -14,7 +14,9 @@ use oc_adapters::dcp_auto::DcpConfig;
 use oc_adapters::models::ModelCatalog;
 use oc_adapters::patch::ProtectedGlobs;
 use oc_adapters::provider::ResponsesConfig;
-use oc_adapters::runtime::{COMMAND_BYTES_CAP, Runtime, TurnParams, TurnStatus, expand_command};
+use oc_adapters::runtime::{
+    COMMAND_BYTES_CAP, Runtime, ToolCallEvent, TurnParams, TurnStatus, expand_command,
+};
 use oc_adapters::storage::Db;
 use oc_core::context_plan::ProtectedSpec;
 
@@ -2666,6 +2668,8 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             CoreEvent::TurnStarted { .. }
             | CoreEvent::TextDelta { .. }
+            | CoreEvent::ToolCallStarted { .. }
+            | CoreEvent::ToolCallFinished { .. }
             | CoreEvent::TurnInterrupted { .. } => {}
         }
     };
@@ -2681,6 +2685,206 @@ async fn dto_application_events_surface_reasoning_and_usage() {
     );
     assert_eq!(text, "visible");
     assert!(duration_ms >= 20, "turn duration is measured");
+    app.shutdown().await.expect("shutdown");
+    guard.join().await.expect("join");
+}
+
+/// TUI tool cards are built from real runtime state: one `apply_patch` call
+/// produces `Started` then `Finished` events after the durable records, and
+/// the recorded operation carries the patch text the transcript renders.
+#[tokio::test]
+async fn dto_tool_events_surface_started_and_finished_with_a_patch() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s-tools").unwrap();
+    std::fs::write(harness._project.path().join("old.txt"), "old\n").unwrap();
+    let patch = "*** Begin Patch\n*** Add File: added.txt\n+hello\n*** Update File: old.txt\n@@\n-old\n+new\n*** End Patch";
+    let (base, _) = Fake::start(
+        vec![
+            sse_tool_call(
+                "call-patch",
+                "apply_patch",
+                &serde_json::json!({"patchText": patch}),
+            ) + &sse_completed(),
+            sse_delta("patched") + &sse_completed(),
+        ],
+        Duration::from_millis(5),
+    );
+    let mut events = Vec::new();
+    let mut text = String::new();
+    let report = runtime
+        .run_turn_with_tool_events(
+            params(
+                "s-tools",
+                "patch it",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ),
+            |_| {},
+            |_, delta| text.push_str(delta),
+            |_, _| {},
+            |_, event| events.push(event.clone()),
+        )
+        .await
+        .expect("turn");
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(text, "patched");
+    assert_eq!(events.len(), 2, "one intent and one outcome: {events:?}");
+    match &events[0] {
+        ToolCallEvent::Started { op, name, input } => {
+            assert_eq!(name, "apply_patch");
+            assert!(!op.is_empty());
+            assert!(
+                input.contains("*** Add File: added.txt"),
+                "the recorded input carries the patch: {input}"
+            );
+        }
+        other => panic!("expected Started, got {other:?}"),
+    }
+    match &events[1] {
+        ToolCallEvent::Finished {
+            op,
+            name,
+            state,
+            output,
+            output_bytes,
+            output_truncated,
+        } => {
+            assert_eq!(name, "apply_patch");
+            assert_eq!(state, "completed");
+            assert!(!op.is_empty());
+            assert!(output.contains("added.txt"), "{output}");
+            assert!(*output_bytes > 0);
+            assert!(!output_truncated, "small outputs are not truncated");
+        }
+        other => panic!("expected Finished, got {other:?}"),
+    }
+    // The patch really ran and the operation is durably recorded.
+    assert_eq!(
+        std::fs::read_to_string(harness._project.path().join("added.txt")).unwrap(),
+        "hello\n"
+    );
+    assert_eq!(
+        std::fs::read_to_string(harness._project.path().join("old.txt")).unwrap(),
+        "new\n"
+    );
+    let ops = harness.db.list_tool_ops("s-tools").unwrap();
+    assert_eq!(ops.len(), 1);
+    assert_eq!(ops[0].name, "apply_patch");
+    assert_eq!(ops[0].state, "completed");
+    assert!(
+        ops[0]
+            .input
+            .as_deref()
+            .is_some_and(|input| input.contains("*** Add File: added.txt")),
+        "the durable intent keeps the patch text the card renders"
+    );
+}
+
+/// End to end through the real application worker: `application::spawn_with_env`
+/// broadcasts the tool-call events next to the text/turn events, so the TUI
+/// transcript can render a patch card from live state.
+#[tokio::test]
+async fn dto_application_events_surface_tool_calls() {
+    use oc_adapters::application;
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+
+    let project = tempfile::tempdir().expect("project");
+    let data = tempfile::tempdir().expect("data");
+    let home = tempfile::tempdir().expect("home");
+    let patch = "*** Begin Patch\n*** Add File: added.txt\n+hello\n*** End Patch";
+    let (base, _) = Fake::start(
+        vec![
+            sse_tool_call(
+                "call-patch",
+                "apply_patch",
+                &serde_json::json!({"patchText": patch}),
+            ) + &sse_completed(),
+            sse_delta("done") + &sse_completed(),
+        ],
+        Duration::from_millis(5),
+    );
+    let config = serde_json::json!({
+        "model": "fixture/fixture-model",
+        "provider": {"fixture": {
+            "npm": "@ai-sdk/openai",
+            "options": {"baseURL": base, "apiKey": "test-key"},
+            "models": {"fixture-model": {
+                "name": "DTO fixture",
+                "limit": {"context": 65536, "output": 4096},
+            }},
+        }},
+        "permissions": {"apply_patch": "allow"},
+    });
+    std::fs::write(project.path().join("opencode.json"), config.to_string()).expect("config");
+    let env: BTreeMap<String, String> = [
+        ("HOME", home.path().to_string_lossy().to_string()),
+        ("OC_TEST_ALLOW_LOOPBACK", "1".to_string()),
+    ]
+    .into_iter()
+    .map(|(key, value)| (key.to_string(), value))
+    .collect();
+    let (app, guard, _diagnostics) = application::spawn_with_env(project.path(), data.path(), env)
+        .await
+        .expect("application");
+    let session = SessionId::new("s-app-tools").expect("session id");
+    app.create_session(session.clone()).await.expect("create");
+    let mut rx = app.subscribe();
+    app.submit(session.clone(), "patch it".to_string())
+        .await
+        .expect("submit");
+
+    let mut started = None;
+    let mut finished = None;
+    loop {
+        let event = tokio::time::timeout(Duration::from_secs(10), rx.recv())
+            .await
+            .expect("event timeout")
+            .expect("event channel");
+        match event {
+            CoreEvent::ToolCallStarted {
+                op, name, input, ..
+            } => started = Some((op, name, input)),
+            CoreEvent::ToolCallFinished {
+                op,
+                name,
+                state,
+                output,
+                ..
+            } => finished = Some((op, name, state, output)),
+            CoreEvent::TurnFinished { text, .. } => {
+                assert_eq!(text, "done");
+                break;
+            }
+            CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
+            CoreEvent::TurnStarted { .. }
+            | CoreEvent::TextDelta { .. }
+            | CoreEvent::ReasoningDelta { .. }
+            | CoreEvent::TurnUsage { .. }
+            | CoreEvent::TurnInterrupted { .. } => {}
+        }
+    }
+    let (started_op, started_name, started_input) = started.expect("tool call started event");
+    let (finished_op, finished_name, finished_state, finished_output) =
+        finished.expect("tool call finished event");
+    assert_eq!(started_name, "apply_patch");
+    assert_eq!(finished_name, "apply_patch");
+    assert_eq!(
+        started_op, finished_op,
+        "both events share the operation id"
+    );
+    assert_eq!(finished_state, "completed");
+    assert!(
+        started_input.contains("*** Add File: added.txt"),
+        "the event input carries the patch text the card renders: {started_input}"
+    );
+    assert!(finished_output.contains("added.txt"), "{finished_output}");
+    assert_eq!(
+        std::fs::read_to_string(project.path().join("added.txt")).unwrap(),
+        "hello\n"
+    );
     app.shutdown().await.expect("shutdown");
     guard.join().await.expect("join");
 }

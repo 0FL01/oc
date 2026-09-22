@@ -363,6 +363,168 @@ fn finish_file(summary: &mut DiffSummary, file: Option<DiffFile>) {
     }
 }
 
+/// Max rendered diff lines kept per file for a tool card (bounded UI state).
+pub const DIFF_RENDER_LINES_CAP: usize = 60;
+/// Max rendered hunks kept per file for a tool card.
+pub const DIFF_RENDER_HUNKS_CAP: usize = 8;
+
+/// One rendered diff line kind (`diff.text.{added,removed,context}` roles).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DiffLineKind {
+    /// Unchanged context line.
+    Context,
+    /// Added line (`+`).
+    Added,
+    /// Removed line (`-`).
+    Removed,
+}
+
+/// One bounded rendered diff line.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DiffLine {
+    /// Added / removed / context.
+    pub kind: DiffLineKind,
+    /// Line text without the diff marker.
+    pub text: String,
+    /// Exact 1-based line number in the resulting file for added content of
+    /// an Add-file op (the file did not exist before, so the numbering is
+    /// exact). `None` for updates and deletes: this patch grammar matches
+    /// hunks by context, so the base position is unknown before execution and
+    /// is never invented.
+    pub line_number: Option<usize>,
+}
+
+/// One bounded rendered hunk.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DiffHunk {
+    /// `@@` anchor context, when the hunk header carried one.
+    pub anchor: Option<String>,
+    /// Rendered lines.
+    pub lines: Vec<DiffLine>,
+    /// True when lines were dropped at [`DIFF_RENDER_LINES_CAP`].
+    pub truncated: bool,
+}
+
+/// One bounded per-file diff for rendering.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DiffFileRender {
+    /// Op path as written in the patch (never invented).
+    pub path: String,
+    /// Add / Update / Delete.
+    pub change: &'static str,
+    /// Rename target, when the op moves a file.
+    pub move_to: Option<String>,
+    /// Bounded hunks (Add-file content is one synthetic hunk).
+    pub hunks: Vec<DiffHunk>,
+    /// Exact added-line total for this op.
+    pub additions: usize,
+    /// Exact removed-line total for this op.
+    pub removals: usize,
+    /// True when hunks or lines were dropped at the render caps.
+    pub truncated: bool,
+}
+
+/// Bounded per-file hunks for rendering one `apply_patch` payload.
+///
+/// Parsed from the same grammar as execution and never touching the
+/// filesystem. State is bounded by [`DIFF_FILES_CAP`] files,
+/// [`DIFF_RENDER_HUNKS_CAP`] hunks and [`DIFF_RENDER_LINES_CAP`] lines per
+/// file; a malformed payload yields an empty vector (the caller keeps the raw
+/// error text instead of an invented diff).
+pub fn diff_render(patch_text: &str) -> Vec<DiffFileRender> {
+    let Ok(ops) = parse_plan(patch_text) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    for op in ops.iter().take(DIFF_FILES_CAP) {
+        let mut render = DiffFileRender {
+            path: op.path().to_string(),
+            change: match op {
+                FileOp::Add { .. } => "Add",
+                FileOp::Update { .. } => "Update",
+                FileOp::Delete { .. } => "Delete",
+            },
+            move_to: op.move_to().map(str::to_string),
+            hunks: Vec::new(),
+            additions: 0,
+            removals: 0,
+            truncated: false,
+        };
+        match op {
+            FileOp::Add { content, .. } => {
+                render.additions = content.len();
+                let mut lines = Vec::new();
+                for (index, text) in content.iter().enumerate() {
+                    if lines.len() >= DIFF_RENDER_LINES_CAP {
+                        render.truncated = true;
+                        break;
+                    }
+                    lines.push(DiffLine {
+                        kind: DiffLineKind::Added,
+                        text: text.clone(),
+                        line_number: Some(index + 1),
+                    });
+                }
+                render.hunks.push(DiffHunk {
+                    anchor: None,
+                    truncated: render.truncated,
+                    lines,
+                });
+            }
+            FileOp::Update { hunks, .. } => {
+                render.additions = hunks
+                    .iter()
+                    .flat_map(|hunk| hunk.lines.iter())
+                    .filter(|line| matches!(line, HunkLine::Add(_)))
+                    .count();
+                render.removals = hunks
+                    .iter()
+                    .flat_map(|hunk| hunk.lines.iter())
+                    .filter(|line| matches!(line, HunkLine::Remove(_)))
+                    .count();
+                for hunk in hunks.iter().take(DIFF_RENDER_HUNKS_CAP) {
+                    let mut rendered = DiffHunk {
+                        anchor: hunk.context.clone(),
+                        lines: Vec::new(),
+                        truncated: false,
+                    };
+                    for line in &hunk.lines {
+                        if rendered.lines.len() >= DIFF_RENDER_LINES_CAP {
+                            rendered.truncated = true;
+                            render.truncated = true;
+                            break;
+                        }
+                        match line {
+                            HunkLine::Context(text) => rendered.lines.push(DiffLine {
+                                kind: DiffLineKind::Context,
+                                text: text.clone(),
+                                line_number: None,
+                            }),
+                            HunkLine::Add(text) => rendered.lines.push(DiffLine {
+                                kind: DiffLineKind::Added,
+                                text: text.clone(),
+                                line_number: None,
+                            }),
+                            HunkLine::Remove(text) => rendered.lines.push(DiffLine {
+                                kind: DiffLineKind::Removed,
+                                text: text.clone(),
+                                line_number: None,
+                            }),
+                        }
+                    }
+                    render.hunks.push(rendered);
+                }
+                if hunks.len() > DIFF_RENDER_HUNKS_CAP {
+                    render.truncated = true;
+                }
+            }
+            FileOp::Delete { .. } => {}
+        }
+        out.push(render);
+    }
+    out
+}
+
 /// Parse `patchText` into an execution plan (no filesystem access).
 fn parse_plan(text: &str) -> Result<Vec<FileOp>, ApplyFailure> {
     if text.len() > PATCH_BYTES_CAP {
@@ -1120,8 +1282,8 @@ fn matches_at(lines: &[String], pos: usize, hunk: &[HunkLine]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        AllowAll, ApplyFailure, DIFF_FILES_CAP, FileResult, MODEL_TOOL_NAMES, PatchError,
-        ProtectedGlobs, apply_patch, diff_summary,
+        AllowAll, ApplyFailure, DIFF_FILES_CAP, DIFF_RENDER_LINES_CAP, DiffLineKind, FileResult,
+        MODEL_TOOL_NAMES, PatchError, ProtectedGlobs, apply_patch, diff_render, diff_summary,
     };
     use std::fs;
     use std::os::unix::fs::PermissionsExt as _;
@@ -1473,5 +1635,73 @@ mod tests {
         // Non-patch payloads are marked, never invented.
         let summary = diff_summary("{\"not\":\"a patch\"}");
         assert!(summary.files.is_empty() && summary.malformed);
+    }
+
+    #[test]
+    fn diff_render_keeps_hunks_bounded_and_never_invents_line_numbers() {
+        let patch = concat!(
+            "*** Begin Patch\n",
+            "*** Update File: src/lib.rs\n",
+            "@@ fn main\n",
+            " ctx\n",
+            "-old\n",
+            "+new\n",
+            "*** Add File: tests/new.rs\n",
+            "+x\n",
+            "+y\n",
+            "*** Delete File: old.txt\n",
+            "*** End Patch",
+        );
+        let files = diff_render(patch);
+        assert_eq!(files.len(), 3);
+        assert_eq!(files[0].path, "src/lib.rs");
+        assert_eq!(files[0].change, "Update");
+        assert_eq!((files[0].additions, files[0].removals), (1, 1));
+        assert_eq!(files[0].hunks.len(), 1);
+        assert_eq!(files[0].hunks[0].anchor.as_deref(), Some("fn main"));
+        let kinds: Vec<DiffLineKind> = files[0].hunks[0]
+            .lines
+            .iter()
+            .map(|line| line.kind)
+            .collect();
+        assert_eq!(
+            kinds,
+            vec![
+                DiffLineKind::Context,
+                DiffLineKind::Removed,
+                DiffLineKind::Added
+            ]
+        );
+        assert!(
+            files[0].hunks[0]
+                .lines
+                .iter()
+                .all(|line| line.line_number.is_none()),
+            "update hunk positions are unknown before execution"
+        );
+
+        // Add-file content is numbered exactly from 1.
+        assert_eq!(files[1].change, "Add");
+        assert_eq!(files[1].hunks[0].lines[0].line_number, Some(1));
+        assert_eq!(files[1].hunks[0].lines[1].line_number, Some(2));
+        assert_eq!(files[1].additions, 2);
+        // Delete carries no body in this grammar: nothing is invented.
+        assert_eq!(files[2].change, "Delete");
+        assert!(files[2].hunks.is_empty());
+
+        // Caps: per-file lines and hunks stay bounded, counts stay exact.
+        let mut big = String::from("*** Begin Patch\n*** Update File: big.rs\n@@\n");
+        for index in 0..(DIFF_RENDER_LINES_CAP + 5) {
+            big.push_str(&format!("+line {index}\n"));
+        }
+        big.push_str("*** End Patch");
+        let files = diff_render(&big);
+        assert_eq!(files[0].hunks[0].lines.len(), DIFF_RENDER_LINES_CAP);
+        assert!(files[0].truncated && files[0].hunks[0].truncated);
+        assert_eq!(files[0].additions, DIFF_RENDER_LINES_CAP + 5);
+
+        // Malformed payloads render nothing instead of an invented diff.
+        assert!(diff_render("not a patch").is_empty());
+        assert!(diff_render("*** Begin Patch\n*** End Patch").is_empty());
     }
 }

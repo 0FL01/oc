@@ -19,6 +19,7 @@ pub mod smoke;
 pub mod styled;
 pub mod terminal;
 pub mod theme;
+pub mod tools;
 pub mod views;
 
 pub use smoke::{render_smoke_frame, tui_name};

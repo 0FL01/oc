@@ -12,6 +12,7 @@ use oc_core::queries::{HistoryMessage, HistoryPage, ToolOpView};
 use oc_core::session::Role;
 
 use crate::messages::{AssistantMeta, Chip, ReasoningBlock};
+use crate::tools::ToolRender;
 
 /// Max rows retained by the window.
 pub const WINDOW_ROWS: usize = 240;
@@ -44,6 +45,9 @@ pub struct HistoryRow {
     /// Assistant footer data (live turns only; never invented for committed
     /// history rows).
     pub meta: Option<AssistantMeta>,
+    /// Tool card attached to a `tool` row (live turns and cards panel rows
+    /// stay plain text; the transcript renders the card).
+    pub tool: Option<ToolCard>,
 }
 
 /// Which end of the deque is dropped when a cap is exceeded.
@@ -159,6 +163,7 @@ impl HistoryWindow {
             chips: Vec::new(),
             reasoning: None,
             meta: None,
+            tool: None,
         });
         self.has_newer = false;
         if self.enforce(Evict::Oldest) {
@@ -207,6 +212,7 @@ fn row_from_page(row: &HistoryMessage) -> HistoryRow {
         chips: Vec::new(),
         reasoning: None,
         meta: None,
+        tool: None,
     }
 }
 
@@ -234,6 +240,9 @@ pub struct ToolCard {
     /// Bounded diff representation for `apply_patch` (counts and paths only,
     /// never a second copy of the patch bytes); `None` for other tools.
     pub diff: Option<oc_adapters::patch::DiffSummary>,
+    /// Presentation data parsed once from the recorded input/output
+    /// (bounded); the transcript renders the card from it.
+    pub render: ToolRender,
 }
 
 /// Build one bounded card from a recorded tool operation.
@@ -241,6 +250,12 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
     let files = patch_files(&row.name, row.input.as_deref());
     let files_truncated = files.len() > CARD_FILES;
     let diff = patch_diff(&row.name, row.input.as_deref());
+    let render = ToolRender::parse(
+        &row.name,
+        row.input.as_deref(),
+        row.output.as_deref(),
+        &row.state,
+    );
     ToolCard {
         op: row.op.clone(),
         name: row.name.clone(),
@@ -252,6 +267,7 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
         files: files.into_iter().take(CARD_FILES).collect(),
         files_truncated,
         diff,
+        render,
     }
 }
 

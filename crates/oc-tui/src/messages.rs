@@ -127,6 +127,16 @@ pub fn transcript(
                 terminal_width,
                 &agent_color,
             )),
+            "tool" => {
+                if let Some(card) = &row.tool {
+                    // Every upstream row has `marginTop=1`
+                    // (`routes/session/index.tsx:1435`).
+                    out.push(Line::plain(""));
+                    out.extend(crate::tools::tool_block(card, theme, width));
+                } else {
+                    out.extend(notice_block(row));
+                }
+            }
             _ => out.extend(notice_block(row)),
         }
     }
@@ -916,6 +926,7 @@ mod tests {
             chips,
             reasoning: None,
             meta: None,
+            tool: None,
         }
     }
 
@@ -928,6 +939,7 @@ mod tests {
             chips: Vec::new(),
             reasoning: None,
             meta: None,
+            tool: None,
         }
     }
 
