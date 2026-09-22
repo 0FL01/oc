@@ -285,8 +285,27 @@ pub struct LocationSnapshot {
     pub session: String,
     /// Catalog for the new generation.
     pub catalog: CatalogSnapshot,
-    /// Non-fatal diagnostics from the target generation (never secrets).
+    /// Detailed diagnostics for existing application API callers. May contain
+    /// configured paths/keys; frontends must use `notices` instead.
     pub diagnostics: Vec<String>,
+    /// Source-based, allowlisted warnings for interactive presentation.
+    pub notices: Vec<StartupNotice>,
+}
+
+/// Source of non-fatal composition/persisted-selection diagnostics. Never
+/// contains user input or text from the underlying error.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StartupNotice {
+    /// Agent, skill or command definition could not be admitted.
+    Definitions,
+    /// A plugin marker was ignored without executing it.
+    Plugin,
+    /// Native DCP settings include ignored or unsupported options.
+    Dcp,
+    /// Ordered instruction sources produced diagnostics.
+    Instructions,
+    /// A stored model/agent selection could not be applied.
+    SavedSelection,
 }
 
 /// Skill catalog card: metadata only, never bodies.

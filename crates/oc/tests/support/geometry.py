@@ -111,7 +111,7 @@ print('session query error route PASS')
 (home / 'config/opencode/opencode.json').write_text('{"model":"DO-NOT-LEAK-KEY", INVALID}')
 child, fd = launch(None)
 failed = drain(fd, .8)
-assert 'Native startup error' in failed and 'Configuration / runtime initialization failed' in failed, failed
+assert 'Native startup error' in failed and 'Configuration load failed' in failed, failed
 assert 'DO-NOT-LEAK-KEY' not in failed and 'Context' not in failed and '█▀▀█' not in failed, failed
 os.write(fd, b'\x03')
 drain(fd)

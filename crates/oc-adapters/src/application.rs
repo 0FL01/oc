@@ -12,16 +12,16 @@ use oc_core::core_app::{CoreApp, CoreEvent, InboxMsg, WorkerGuard, WorkerTurnId}
 use oc_core::domain::SessionId;
 use oc_core::queries::{
     AgentEntry, CatalogSnapshot, DcpSnapshot, HistoryMessage, HistoryPage, LocationSnapshot,
-    ModelEntry, SkillCard, ToolOpPage, ToolOpView, VariantEntry,
+    ModelEntry, SkillCard, StartupNotice, ToolOpPage, ToolOpView, VariantEntry,
 };
-use oc_core::session::{CoreError, MAX_QUEUE_ITEMS, MessageId, Role};
+use oc_core::session::{CoreError, LocationSwitchFailure, MAX_QUEUE_ITEMS, MessageId, Role};
 use tokio::sync::{broadcast, mpsc, oneshot};
 
 use crate::composition::{self, Composition};
 use crate::runtime::{
     Runtime, RuntimeError, SubagentAgent, SubagentCatalog, ToolCallEvent, TurnParams, TurnStatus,
 };
-use crate::storage::Db;
+use crate::storage::{Db, StorageError};
 use crate::tui_workspace::{AgentEntry as WorkspaceAgent, WorkspaceError, WorkspaceRegistry};
 
 #[path = "application_selection.rs"]
@@ -35,6 +35,49 @@ pub const HISTORY_PAGE_LIMIT: usize = 100;
 pub const TOOL_OPS_PAGE_LIMIT: usize = 100;
 /// Byte cap for the DCP token estimate input.
 const ESTIMATE_BYTES: usize = 4 * 1024 * 1024;
+
+/// Allowlisted stage/category for an interactive startup failure. No paths,
+/// config values, provider responses or underlying error text cross this API.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SpawnFailure {
+    /// Loading or validating the configured generation failed.
+    Configuration,
+    /// Another process currently owns the exclusive data-root lock.
+    DataRootBusy,
+    /// Data-root validation refused an unsafe path or ownership.
+    UnsafeDataRoot,
+    /// The data directory cannot be opened or created.
+    DataRootUnavailable,
+    /// SQLite initialization failed after the data root was opened.
+    Storage,
+    /// Recovery of interrupted operations failed.
+    Recovery,
+    /// Native runtime construction/publication failed.
+    Runtime,
+}
+
+#[derive(Debug)]
+struct SpawnIssue {
+    category: SpawnFailure,
+    // Only the legacy headless route may consume this detail. TUI uses the
+    // category alone, never Display/Debug of this issue.
+    detail: String,
+}
+
+impl SpawnIssue {
+    fn new(category: SpawnFailure, detail: String) -> Self {
+        Self { category, detail }
+    }
+}
+
+fn storage_failure(error: &StorageError) -> SpawnFailure {
+    match error {
+        StorageError::DataRootBusy => SpawnFailure::DataRootBusy,
+        StorageError::UnsafeRoot(_) => SpawnFailure::UnsafeDataRoot,
+        StorageError::Io(_) => SpawnFailure::DataRootUnavailable,
+        _ => SpawnFailure::Storage,
+    }
+}
 
 /// Compose and start one application. Both frontends use this entry point.
 pub async fn spawn(
@@ -56,25 +99,61 @@ pub async fn spawn_with_env(
     data: &Path,
     env: BTreeMap<String, String>,
 ) -> Result<(CoreApp, WorkerGuard, Vec<String>), String> {
-    let composition = composition::load_with_env(project, env).await?;
+    spawn_inner(project, data, env)
+        .await
+        .map(|(app, guard, diagnostics, _)| (app, guard, diagnostics))
+        .map_err(|issue| issue.detail)
+}
+
+/// Start the same application for a TUI, exposing only a static category on
+/// failure; successful workers and their normal diagnostics are unchanged.
+pub async fn spawn_diagnostic(
+    project: &Path,
+    data: &Path,
+) -> Result<(CoreApp, WorkerGuard, Vec<StartupNotice>), SpawnFailure> {
+    let env = std::env::vars_os()
+        .filter_map(|(key, value)| Some((key.into_string().ok()?, value.into_string().ok()?)))
+        .collect();
+    spawn_inner(project, data, env)
+        .await
+        .map(|(app, guard, _, notices)| (app, guard, notices))
+        .map_err(|issue| issue.category)
+}
+
+async fn spawn_inner(
+    project: &Path,
+    data: &Path,
+    env: BTreeMap<String, String>,
+) -> Result<(CoreApp, WorkerGuard, Vec<String>, Vec<StartupNotice>), SpawnIssue> {
+    let composition = composition::load_with_env(project, env)
+        .await
+        .map_err(|detail| SpawnIssue::new(SpawnFailure::Configuration, detail))?;
     let mut diagnostics = composition.diagnostics.clone();
-    let db = Db::open(data).map_err(|e| format!("storage: {e}"))?;
+    let mut notices = composition.startup_notices.clone();
+    let db = Db::open(data)
+        .map_err(|e| SpawnIssue::new(storage_failure(&e), format!("storage: {e}")))?;
     db.recover_interrupted_tools()
-        .map_err(|e| format!("recovery: {e}"))?;
+        .map_err(|e| SpawnIssue::new(SpawnFailure::Recovery, format!("recovery: {e}")))?;
     let (app, inbox, events) = CoreApp::channel(MAX_QUEUE_ITEMS);
     let (ready, ready_rx) = oneshot::channel();
     let handle = tokio::spawn(start_worker(db, composition, inbox, events, ready));
     let guard = WorkerGuard::from_task(handle);
     match ready_rx.await {
         Ok(Ok(worker_diagnostics)) => {
+            if !worker_diagnostics.is_empty() {
+                notices.push(StartupNotice::SavedSelection);
+            }
             diagnostics.extend(worker_diagnostics);
-            Ok((app, guard, diagnostics))
+            Ok((app, guard, diagnostics, notices))
         }
         result => {
             let _ = guard.join().await;
             Err(match result {
-                Ok(Err(error)) => error,
-                _ => "application worker closed".to_string(),
+                Ok(Err(issue)) => issue,
+                _ => SpawnIssue::new(
+                    SpawnFailure::Runtime,
+                    "application worker closed".to_string(),
+                ),
             })
         }
     }
@@ -402,18 +481,26 @@ async fn start_worker(
     mut composition: Composition,
     mut inbox: mpsc::Receiver<InboxMsg>,
     events: broadcast::Sender<CoreEvent>,
-    ready: oneshot::Sender<Result<Vec<String>, String>>,
+    ready: oneshot::Sender<Result<Vec<String>, SpawnIssue>>,
 ) -> Result<(), String> {
     let mut runtime = match build_runtime(&db, &composition) {
         Ok(runtime) => runtime,
         Err(error) => {
-            let _ = ready.send(Err(error));
+            let _ = ready.send(Err(SpawnIssue::new(SpawnFailure::Runtime, error)));
             return Ok(());
         }
     };
     let mut effective = Effective::from_composition(&composition);
-    effective.legacy_epoch =
-        selection::legacy_epoch(&db, &composition).map_err(|e| e.to_string())?;
+    effective.legacy_epoch = match selection::legacy_epoch(&db, &composition) {
+        Ok(epoch) => epoch,
+        Err(error) => {
+            let _ = ready.send(Err(SpawnIssue::new(
+                SpawnFailure::Storage,
+                error.to_string(),
+            )));
+            return Ok(());
+        }
+    };
     let mut registry = WorkspaceRegistry::bind(
         runtime.generation_id(),
         runtime.location(),
@@ -425,7 +512,10 @@ async fn start_worker(
     let mut diagnostics = effective.apply_persisted_model(&db, &composition);
     diagnostics.extend(effective.apply_persisted_agent(&db, &composition, &mut registry));
     if let Err(error) = publish_workspace(&runtime, &composition, &effective) {
-        let _ = ready.send(Err(error.to_string()));
+        let _ = ready.send(Err(SpawnIssue::new(
+            SpawnFailure::Runtime,
+            error.to_string(),
+        )));
         return Ok(());
     }
     if ready.send(Ok(diagnostics)).is_err() {
@@ -464,6 +554,10 @@ async fn start_worker(
                         runtime = next;
                         let location = runtime.location().to_string();
                         let catalog = next_effective.snapshot(&next_composition);
+                        let mut notices = next_composition.startup_notices.clone();
+                        if notes.len() > next_composition.diagnostics.len() {
+                            notices.push(StartupNotice::SavedSelection);
+                        }
                         composition = next_composition;
                         effective = next_effective;
                         registry = next_registry;
@@ -472,10 +566,19 @@ async fn start_worker(
                             session: session.0,
                             catalog,
                             diagnostics: notes,
+                            notices,
                         }));
                     }
-                    Err(error) => {
-                        let _ = ack.send(Err(app_error(error)));
+                    Err(issue) => {
+                        let category = match issue.category {
+                            SpawnFailure::Configuration => LocationSwitchFailure::Configuration,
+                            SpawnFailure::Storage => LocationSwitchFailure::Storage,
+                            _ => LocationSwitchFailure::Runtime,
+                        };
+                        let _ = ack.send(Err(CoreError::LocationSwitch {
+                            category,
+                            detail: issue.detail,
+                        }));
                     }
                 }
             }
@@ -503,13 +606,16 @@ async fn switch_target<'a>(
         SessionId,
         Vec<String>,
     ),
-    String,
+    SpawnIssue,
 > {
-    let composition = composition::load_with_env(Path::new(path), env).await?;
-    let runtime = build_runtime(db, &composition)?;
+    let composition = composition::load_with_env(Path::new(path), env)
+        .await
+        .map_err(|detail| SpawnIssue::new(SpawnFailure::Configuration, detail))?;
+    let runtime = build_runtime(db, &composition)
+        .map_err(|detail| SpawnIssue::new(SpawnFailure::Runtime, detail))?;
     let mut effective = Effective::from_composition(&composition);
-    effective.legacy_epoch =
-        selection::legacy_epoch(db, &composition).map_err(|e| e.to_string())?;
+    effective.legacy_epoch = selection::legacy_epoch(db, &composition)
+        .map_err(|e| SpawnIssue::new(SpawnFailure::Storage, e.to_string()))?;
     let mut registry = WorkspaceRegistry::bind(
         runtime.generation_id(),
         runtime.location(),
@@ -520,7 +626,8 @@ async fn switch_target<'a>(
     let mut notes = composition.diagnostics.clone();
     notes.extend(effective.apply_persisted_model(db, &composition));
     notes.extend(effective.apply_persisted_agent(db, &composition, &mut registry));
-    publish_workspace(&runtime, &composition, &effective).map_err(|error| error.to_string())?;
+    publish_workspace(&runtime, &composition, &effective)
+        .map_err(|error| SpawnIssue::new(SpawnFailure::Runtime, error.to_string()))?;
     // Sessions stay Location-bound: a return to a visited Location reopens
     // its recorded session, a first visit mints one for the new Location.
     let location = runtime.location().to_string();
@@ -528,14 +635,14 @@ async fn switch_target<'a>(
         Some(id) => {
             runtime
                 .open_session(&id)
-                .map_err(|error| error.to_string())?;
+                .map_err(|error| SpawnIssue::new(SpawnFailure::Storage, error.to_string()))?;
             SessionId(id)
         }
         None => {
             let id = format!("s-loc-{}", nanos());
             runtime
                 .create_session(&id)
-                .map_err(|error| error.to_string())?;
+                .map_err(|error| SpawnIssue::new(SpawnFailure::Storage, error.to_string()))?;
             sessions.insert(location, id.clone());
             SessionId(id)
         }

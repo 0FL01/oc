@@ -59,6 +59,18 @@ pub struct Message {
     pub text: String,
 }
 
+/// Safe stage of a refused Location switch; details belong to the application
+/// owner, never to a TUI rendering path.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LocationSwitchFailure {
+    /// Target Location/config/model could not be loaded or validated.
+    Configuration,
+    /// Persisted selection/session state could not be read or written.
+    Storage,
+    /// Native runtime for the target could not be constructed or published.
+    Runtime,
+}
+
 /// Typed core errors for the T03 slice.
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum CoreError {
@@ -89,6 +101,15 @@ pub enum CoreError {
     /// Native application/storage error; no secrets or provider payloads.
     #[error("application: {0}")]
     Application(String),
+    /// Application-owned Location-switch stage; detailed text is retained for
+    /// existing non-TUI callers, while interactive UIs use only `category`.
+    #[error("application: {detail}")]
+    LocationSwitch {
+        /// Bounded, allowlisted failure category.
+        category: LocationSwitchFailure,
+        /// Existing detailed diagnostic for non-TUI API consumers.
+        detail: String,
+    },
 }
 
 /// Initial smoke caps for T03 (see `examples/oc-rs.toml` for product caps).

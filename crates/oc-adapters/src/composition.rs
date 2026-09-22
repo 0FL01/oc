@@ -11,6 +11,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
 use crate::{config, dcp_auto, defs, discovery, models, provider};
+use oc_core::queries::StartupNotice;
 
 /// Fully built application configuration. Contains credentials and must not be logged.
 pub struct Composition {
@@ -52,6 +53,8 @@ pub struct Composition {
     pub native_modules: BTreeSet<String>,
     /// Non-fatal definition diagnostics for frontend display.
     pub diagnostics: Vec<String>,
+    /// Source-based warning categories for interactive surfaces.
+    pub startup_notices: Vec<StartupNotice>,
     /// Effective native DCP policy loaded with this application generation.
     pub dcp_config: dcp_auto::DcpConfig,
     /// Context-preservation policy; independent of filesystem permissions.
@@ -521,6 +524,19 @@ pub(crate) async fn load_with_env(
         .values()
         .map(|command| (command.id.clone(), command.body.clone()))
         .collect();
+    let mut startup_notices = Vec::new();
+    if !loaded_defs.diagnostics.is_empty() {
+        startup_notices.push(StartupNotice::Definitions);
+    }
+    if !plugin_diagnostics.is_empty() {
+        startup_notices.push(StartupNotice::Plugin);
+    }
+    if !dcp_warnings.is_empty() {
+        startup_notices.push(StartupNotice::Dcp);
+    }
+    if !instruction_diagnostics.is_empty() {
+        startup_notices.push(StartupNotice::Instructions);
+    }
     let mut diagnostics: Vec<String> = loaded_defs
         .diagnostics
         .iter()
@@ -613,6 +629,7 @@ pub(crate) async fn load_with_env(
         commands,
         native_modules,
         diagnostics,
+        startup_notices,
         dcp_config,
         dcp_protected,
     })

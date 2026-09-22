@@ -47,8 +47,8 @@ pub const TOAST_RIGHT_MARGIN: u16 = 2;
 /// Safe startup capability states. Never carry raw configuration/provider errors.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StartupFailure {
-    /// Native in-process configuration/runtime construction failed.
-    Preflight,
+    /// Native application preflight stage/category (no raw error text).
+    Preflight(oc_adapters::application::SpawnFailure),
     /// The native application's session/history/catalog query failed.
     Query,
 }
@@ -62,10 +62,36 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
         area,
     );
     let (reason, action) = match failure {
-        StartupFailure::Preflight => (
-            "Configuration / runtime initialization failed",
-            "Check opencode.json/jsonc, cli.json/jsonc and data-directory access, then restart.",
-        ),
+        StartupFailure::Preflight(category) => match category {
+            oc_adapters::application::SpawnFailure::Configuration => (
+                "Configuration load failed",
+                "Check opencode.json/jsonc, cli.json/jsonc and selected model, then restart.",
+            ),
+            oc_adapters::application::SpawnFailure::DataRootBusy => (
+                "Data root busy",
+                "Close the other oc process using this data directory, then retry.",
+            ),
+            oc_adapters::application::SpawnFailure::UnsafeDataRoot => (
+                "Unsafe data root",
+                "Choose a private, owned data directory without symlinks, then retry.",
+            ),
+            oc_adapters::application::SpawnFailure::DataRootUnavailable => (
+                "Data root unavailable",
+                "Check data-directory access and the --data-dir setting, then retry.",
+            ),
+            oc_adapters::application::SpawnFailure::Storage => (
+                "Storage or saved selection failed",
+                "Check the data directory and saved model selection, then retry.",
+            ),
+            oc_adapters::application::SpawnFailure::Recovery => (
+                "Storage recovery failed",
+                "Check data-directory access and available disk space, then retry.",
+            ),
+            oc_adapters::application::SpawnFailure::Runtime => (
+                "Native runtime initialization failed",
+                "Check the configured Location and native runtime settings, then retry.",
+            ),
+        },
         StartupFailure::Query => (
             "Session / catalog query failed",
             "Check the session's Location and data-directory access, then restart.",

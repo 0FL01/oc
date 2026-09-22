@@ -17,6 +17,8 @@ use oc_adapters::application::{HISTORY_PAGE_LIMIT, TOOL_OPS_PAGE_LIMIT};
 use oc_core::core_app::{CoreApp, CoreEvent};
 use oc_core::domain::SessionId;
 use oc_core::queries::SessionSelectionAction as SelectionAction;
+use oc_core::queries::StartupNotice;
+use oc_core::session::{CoreError, LocationSwitchFailure};
 use oc_tui::app::{KeyOutcome, PanelIntent, TuiPanel, TuiState, TuiStatus};
 use oc_tui::dcp_panel::DcpOutcome;
 use oc_tui::events::{UiEvent, map_event};
@@ -62,18 +64,18 @@ async fn run_inner(data_dir: &Path, session_opt: Option<String>) -> Result<ExitC
         Some(raw) => SessionId::new(raw).ok_or_else(|| "invalid session id".to_string())?,
         None => SessionId::new(format!("s-tui-{}", nanos())).ok_or("id".to_string())?,
     };
-    let (app, guard, diagnostics) = match oc_adapters::application::spawn(&project, data_dir).await
-    {
-        Ok(runtime) => runtime,
-        Err(_) => {
-            let _term = enter()?;
-            let mut terminal = Terminal::new(CrosstermBackend::new(std::io::stdout()))
-                .map_err(|e| format!("terminal: {e}"))?;
-            return startup_failure(&mut terminal, StartupFailure::Preflight);
-        }
-    };
-    for diagnostic in diagnostics {
-        eprintln!("warning: {diagnostic}");
+    let (app, guard, notices) =
+        match oc_adapters::application::spawn_diagnostic(&project, data_dir).await {
+            Ok(runtime) => runtime,
+            Err(category) => {
+                let _term = enter()?;
+                let mut terminal = Terminal::new(CrosstermBackend::new(std::io::stdout()))
+                    .map_err(|e| format!("terminal: {e}"))?;
+                return startup_failure(&mut terminal, StartupFailure::Preflight(category));
+            }
+        };
+    for notice in notices {
+        eprintln!("warning: {}", startup_notice(notice));
     }
     let result = drive_ui(&app, session, home).await;
     let _ = app.shutdown().await;
@@ -161,6 +163,17 @@ async fn drive_ui(app: &CoreApp, session: SessionId, home: bool) -> Result<ExitC
 fn at_tty() -> bool {
     use std::io::IsTerminal as _;
     std::io::stdin().is_terminal()
+}
+
+/// Static source/operation guidance: no raw configuration or persisted values.
+fn startup_notice(source: StartupNotice) -> &'static str {
+    match source {
+        StartupNotice::Definitions => "agent/skill/command definitions need review",
+        StartupNotice::Plugin => "configured plugin marker was ignored; review plugin settings",
+        StartupNotice::Dcp => "DCP settings have unsupported entries; review native dcp settings",
+        StartupNotice::Instructions => "instruction sources need review",
+        StartupNotice::SavedSelection => "saved model/agent selection needs review",
+    }
 }
 
 async fn initial_state(
@@ -407,30 +420,39 @@ async fn apply_intent(
             if state.is_busy() {
                 return Err("turn active; location switch refused".to_string());
             }
-            let snapshot = app.switch_location(path).await.map_err(|e| e.to_string())?;
+            let snapshot = app.switch_location(path).await.map_err(|error| match error {
+                CoreError::LocationSwitch { category, .. } => match category {
+                    LocationSwitchFailure::Configuration =>
+                        "Location configuration failed; check the target directory, opencode.json/jsonc and selected model".to_string(),
+                    LocationSwitchFailure::Storage =>
+                        "Location storage failed; check the data directory and saved selection".to_string(),
+                    LocationSwitchFailure::Runtime =>
+                        "Location runtime failed; check the target's native settings".to_string(),
+                },
+                CoreError::TurnBusy => "turn active; location switch refused".to_string(),
+                _ => "Location switch unavailable; retry after checking the data directory".to_string(),
+            })?;
             let target = SessionId::new(snapshot.session.clone())
                 .ok_or_else(|| "bad session id".to_string())?;
             let page = app
                 .history_page(target.clone(), None, None, HISTORY_PAGE_LIMIT)
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|_| {
+                    "Location history unavailable; check data-directory access".to_string()
+                })?;
+            let catalog = app
+                .session_selection(target.clone(), false, SelectionAction::Current)
+                .await
+                .map_err(|_| "Location selection unavailable; check saved selection".to_string())?;
             state.reset_workspace();
             state.set_session(target);
             state.attach_page(&page);
-            state.apply_catalog(
-                app.session_selection(
-                    state.session().clone(),
-                    state.home,
-                    SelectionAction::Current,
-                )
-                .await
-                .map_err(|e| e.to_string())?,
-            );
+            state.apply_catalog(catalog);
             state.close_panel();
             loop_state.cards_before = None;
             state.push_note(&format!("location: {}", snapshot.location));
-            for diagnostic in snapshot.diagnostics {
-                state.push_note(&format!("warning: {diagnostic}"));
+            for notice in snapshot.notices {
+                state.push_note(&format!("warning: {}", startup_notice(notice)));
             }
         }
         PanelIntent::LoadOlder => {
