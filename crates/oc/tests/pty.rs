@@ -307,11 +307,6 @@ struct PtySession {
 }
 
 impl PtySession {
-    fn spawn(cols: u16, rows: u16, term: Option<&str>, with_reader: bool) -> Self {
-        let data_dir = tempfile::TempDir::new().expect("tempdir");
-        Self::spawn_in(cols, rows, term, with_reader, data_dir, &[], None)
-    }
-
     #[allow(clippy::too_many_arguments)]
     fn spawn_in(
         cols: u16,
@@ -1015,7 +1010,17 @@ fn pty_unicode_and_paste_roundtrip() {
 
 #[test]
 fn pty_resize_redraws_full_frame() {
-    let mut pty = PtySession::spawn(80, 24, Some("xterm-256color"), true);
+    // This test qualifies full-width session chrome. Bare launches now show
+    // the centered, 75-cell Home composer (qualified separately by V03).
+    let mut pty = PtySession::spawn_in(
+        80,
+        24,
+        Some("xterm-256color"),
+        true,
+        tempfile::TempDir::new().expect("tempdir"),
+        &["--session", "s-resize"],
+        None,
+    );
     pty.wait_for(&underline_run(80), DEADLINE);
     pty.resize(100, 30);
     pty.wait_for(&underline_run(100), DEADLINE);

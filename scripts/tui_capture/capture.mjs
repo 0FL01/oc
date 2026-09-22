@@ -23,7 +23,7 @@ const canonical = value => JSON.stringify(value, (_, v) => v && typeof v === 'ob
 const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.stringify(value, null, 2) + '\n');
 const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
-const fixtureSha = sha(canonical({files: fixtureFiles, protocol: sha(fs.readFileSync(path.join(here,'bridge.py')))}));
+const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', protocol: sha(fs.readFileSync(path.join(here,'bridge.py')))}));
 const commands = [];
 commands.push({argv:[process.execPath,...process.argv.slice(1)],role:'capture runner invocation',exit_code:null});
 const execute = (argv, options={}) => {
@@ -60,12 +60,13 @@ try {
     font_family: 'DejaVu Sans Mono', font_match: execute(['fc-match','-f','%{family}|%{style}|%{file}|%{fontversion}', 'DejaVu Sans Mono']).stdout,
     fallback_fonts: null,
     font_size: 14, device_scale_factor: 1, dpi: 96, padding: 0, opacity: 1, ligatures: false,
-    columns: 160, rows: 48, TERM: 'xterm-256color', COLORTERM: 'truecolor', locale: 'C.UTF-8',
+    columns: Number(args.columns || 160), rows: Number(args.rows || 48), TERM: 'xterm-256color', COLORTERM: 'truecolor', locale: 'C.UTF-8',
     unicode_width_policy: '@xterm/addon-unicode11 0.9.0 (Unicode 11)',
-    settings: {theme: 'opencode', mode: 'dark', sidebar: 'auto', devtools: false,
+    settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',
       clock_policy: 'real application wall clock; fixed provider created_at; no masking or clock claim',
       animations: 'original supported animations=false; completed states only; terminal cursorBlink=false'}};
   for (const origin of ['upstream','oc']) {
+    profile.columns = Number(args.columns || 160); profile.rows = Number(args.rows || 48);
     const binary = args[origin === 'upstream' ? 'reference' : 'oc'];
     if (!binary) { lock.attempts.push({origin, status: 'SKIPPED', reason: 'No explicit binary supplied'}); continue; }
     if (!path.isAbsolute(binary)) throw Error('Binary must be an explicit absolute path');
@@ -73,7 +74,10 @@ try {
     if (origin === 'upstream' && hash !== '2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a') throw Error('Reference binary SHA mismatch');
     const dir = path.join(output, origin);
     fs.mkdirSync(dir);
-    const spec = {binary, origin, columns: profile.columns, rows: profile.rows, isolated_root: isolated, fixture};
+    const spec = {binary, origin, columns: profile.columns, rows: profile.rows, isolated_root: isolated, fixture,
+      sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,
+      tabs: profile.settings.tabs, startup_error: args['startup-error'] === 'true',
+      seed_root: args['seed-root'], session: args.session};
     fs.writeFileSync(path.join(dir,'bridge-spec.json'), JSON.stringify(spec, null, 2));
     lock[origin] = {...lock[origin], executable_path: binary, executable_sha256: hash};
     const page = await browser.newPage({viewport: {width: 1800, height: 1100}, deviceScaleFactor: 1});
@@ -141,13 +145,99 @@ try {
       lock.profile=profile; json('capture.lock.json',lock);
     };
     try {
-      await waitFor(f => /Build|Untitled session/.test(f.text), 'initial prompt');
+      if(args['startup-error'] === 'true' || args['seed-root']) {
+        const expected = args['startup-error'] === 'true' || args.session === 'foreign' ? 'Native startup error' : origin==='upstream' ? 'Geometry parent' : 'Geometry child';
+        const f = await waitFor(f => f.text.includes(expected) && (origin!=='upstream' || f.text.includes('Subagents')), 'native route / original child composer');
+        if(f.text.includes('DO-NOT-LEAK-KEY')) throw Error('unsafe config detail reached terminal');
+        if(f.text.includes('Context')) throw Error('unexpected sidebar on child/error route');
+        const rightBackground = f.cells[10].at(-1).bg;
+        if(rightBackground!=='#0a0a0a') throw Error('unexpected styled sidebar boundary on child/error route');
+        fs.writeFileSync(path.join(dir,'chrome-checks.json'),JSON.stringify({route:args.session || 'preflight',right_background:rightBackground,sidebar_absent:true,expected_marker:expected},null,2)+'\n');
+        await capture(args['startup-error'] === 'true' ? 'preflight-error' : 'session-'+args.session, f, 'CAPTURED_NATIVE_CAPABILITY');
+        lock.attempts.push({origin,status:origin==='oc'?'EXECUTED_NATIVE_ROUTE':'EXECUTED_ORIGINAL_CHILD_ROUTE'});
+        continue;
+      }
+      const initial = await waitFor(f => /Build|Untitled session|MiMo-V2.6-Flash Free/.test(f.text), 'initial prompt');
+      if(args.geometry === 'true') await capture('home', initial, 'CAPTURED');
       send('\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\x1b[201~','prompt_paste');
       await sleep(200); send('\r','submit');
-      const done = await waitFor(f => f.text.includes('Через Code Mode') &&
-        (origin==='upstream' ? /Build · MiMo-V2.6-Flash Free · \d/.test(f.text) : /fixture\/fixture-model-1 · \d/.test(f.text)) &&
+      const marker = args.sample === 'short' ? 'GEOMETRY-SHORT' : args.sample === 'rows' ? 'ROW-089' : 'Через Code Mode';
+      const done = await waitFor(f => f.text.includes(marker) &&
+        /MiMo-V2.6-Flash Free · \d/.test(f.text) &&
         logs.some(e => e.kind==='provider_completed' && e.operation==='transcript'), 'completed transcript');
       await capture('session-wide-completed',done,'CAPTURED');
+      if(args.tabs==='vertical') {
+        const sidebarAbsent = !done.text.includes('Context') && done.cells[10].at(-1).bg==='#0a0a0a';
+        const sidebarPresent = done.text.includes('Context') && done.cells[10].at(-1).bg==='#141414';
+        const expectedSidebar = profile.settings.sidebar!=='hide' && profile.columns-42>120;
+        fs.writeFileSync(path.join(dir,'chrome-checks.json'),JSON.stringify({tabs:'vertical',columns:profile.columns,expected_sidebar:expectedSidebar,sidebar_absent:sidebarAbsent,sidebar_present:sidebarPresent,right_background:done.cells[10].at(-1).bg},null,2)+'\n');
+        if(expectedSidebar ? !sidebarPresent : !sidebarAbsent) throw Error('vertical rail styled sidebar breakpoint differs');
+      }
+      if(args['scroll-resize'] === 'true') {
+        const checks = [];
+        const markers = f => [...f.text.matchAll(/ROW-(\d+)/g)].map(m=>Number(m[1]));
+        const check = async (name, predicate) => {
+          const f = await waitFor(predicate, name);
+          await capture(name, f, 'CAPTURED_SCROLL_GEOMETRY');
+          const draftRow = f.cells.findIndex(row=>row.map(c=>c.symbol).join('').includes('scroll-draft'));
+          const rowText = draftRow < 0 ? '' : f.cells[draftRow].map(c=>c.symbol).join('');
+          const draftX = rowText.indexOf('scroll-draft');
+          const c = {scenario:name, markers:markers(f), cursor:f.cursor, draft_row:draftRow,
+            cursor_at_draft_end:f.cursor.visible && f.cursor.x===draftX+12 && f.cursor.y===draftRow};
+          checks.push(c);
+          fs.writeFileSync(path.join(dir,'scroll-checks.json'),JSON.stringify(checks,null,2)+'\n');
+          if(!c.cursor_at_draft_end) throw Error('draft/cursor lost: '+name);
+          return c;
+        };
+        send('scroll-draft','single_line_draft');
+        await check('scroll-pinned-draft',f=>f.text.includes('scroll-draft') && f.text.includes('ROW-089'));
+        send((origin==='oc' ? '\x1b[A' : '\x1b\x19').repeat(12),'scroll_away_12_lines');
+        const away = await check('scroll-away',f=>f.text.includes('scroll-draft') && markers(f).length>0 && !f.text.includes('ROW-089'));
+        for(const [columns,rows,name] of [[80,24,'scroll-shrink'],[160,48,'scroll-grow']]) {
+          profile.columns=columns; profile.rows=rows;
+          await page.evaluate(({columns,rows})=>term.resize(columns,rows),{columns,rows});
+          child.stdin.write(JSON.stringify({kind:'resize',columns,rows})+'\n');
+          const c = await check(name,f=>f.columns===columns && f.rows===rows && f.text.includes('scroll-draft') && !f.text.includes('ROW-089'));
+          if(origin==='oc' && c.markers.at(-1)!==away.markers.at(-1)) throw Error('native scroll offset lost during resize');
+        }
+        send(origin==='oc' ? '\x1b[B' : '\x1b\x05','scroll_down_one');
+        const down = await check('scroll-down-one',f=>markers(f).at(-1)===away.markers.at(-1)+1);
+        send((origin==='oc' ? '\x1b[B' : '\x1b\x05').repeat(100),'scroll_repin');
+        await check('scroll-repinned',f=>f.text.includes('ROW-089') && f.text.includes('scroll-draft'));
+        if(origin==='oc') {
+          send('\x1b[A'.repeat(150),'scroll_to_top');
+          await check('scroll-top',f=>f.text.includes('ROW-000') && !f.text.includes('ROW-089'));
+          profile.rows=80;
+          await page.evaluate(()=>term.resize(160,80));
+          child.stdin.write(JSON.stringify({kind:'resize',columns:160,rows:80})+'\n');
+          const top = await check('scroll-top-grow',f=>f.rows===80 && f.text.includes('ROW-000') && !f.text.includes('ROW-089'));
+          send('\x1b[B','scroll_down_after_clamp');
+          await check('scroll-clamped-down',f=>markers(f).at(-1)===top.markers.at(-1)+1);
+        }
+        lock.attempts.push({origin,status:'SCROLL_RESIZE_CHECKS_PASS',one_line_down:down.markers.at(-1)});
+      }
+      if(args.matrix === 'true') {
+        const checks = [];
+        for(const [columns, rows] of [[80,24],[120,40],[160,48],[43,48],[44,48],[119,48],[120,48],[121,48],[120,80],[160,48]]) {
+          profile.columns=columns; profile.rows=rows;
+          await page.evaluate(({columns,rows}) => term.resize(columns,rows), {columns,rows});
+          child.stdin.write(JSON.stringify({kind:'resize',columns,rows})+'\n');
+          const f = await waitFor(f=>f.columns===columns && f.rows===rows && /MiMo-V2.6-Flash Free/.test(f.text), 'resize '+columns+'x'+rows);
+          const name = 'resize-'+columns+'x'+rows+'-'+checks.length;
+          await capture(name, f, 'CAPTURED');
+          const count = (f.text.match(/ROW-\d+/g)||[]).length;
+          checks.push({scenario:name, columns, rows, visible_row_markers:count,
+            viewport_check:args.sample==='rows' && rows>=40 ? (count>20?'PASS':'FAIL') : 'NOT_APPLICABLE',
+            sidebar_present:f.text.includes('Context')});
+          fs.writeFileSync(path.join(dir,'geometry-checks.json'),JSON.stringify(checks,null,2)+'\n');
+        }
+        send('\x1b[200~draft-one\ndraft-two\ndraft-three\x1b[201~','multiline_draft');
+        const draft = await waitFor(f=>f.text.includes('draft-three') || f.text.includes('[Pasted ~3 lines]'),'multiline draft or upstream paste chip');
+        await capture('multiline-draft', draft, draft.text.includes('[Pasted ~3 lines]') ? 'CAPTURED_PASTE_CHIP' : 'CAPTURED_MULTILINE_TEXT');
+        fs.writeFileSync(path.join(dir,'geometry-checks.json'),JSON.stringify(checks,null,2)+'\n');
+        if(checks.some(c=>c.viewport_check==='FAIL')) result=1;
+      }
+      if(args.geometry !== 'true') {
       send('\x10','CTRL_P');
       let commandsOpened = false;
       try { await capture('commands-over-session',await waitFor(f=>f.text.includes('Commands'),'Commands',7000),'CAPTURED'); commandsOpened = true; }
@@ -156,6 +246,7 @@ try {
       send('\x18','CTRL_X'); await sleep(100); send('m','m');
       try { await capture('models-over-session',await waitFor(f=>f.text.includes('Select model'),'Select model',7000),'CAPTURED'); }
       catch(e) {await capture('models-over-session',await frame(),'FAILED_STATE'); lock.attempts.push({origin,scenario:'models-over-session',status:'FAILED',reason:e.message}); result=1;}
+      }
       lock.attempts.push({origin,status:'EXECUTED',provider_contract:logs.filter(e=>e.kind==='provider').every(e=>e.valid)});
     } catch(e) {
       result=1; lock.attempts.push({origin,status:'FAILED',reason:e.message});
@@ -185,7 +276,7 @@ try {
       'Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states'],
     mcp_error_and_stall: 'NOT_RUN (V00 three-screen capture only)'
   };
-  for (const scenario of ['session-wide-completed','commands-over-session','models-over-session']) {
+  for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))] : ['session-wide-completed','commands-over-session','models-over-session']) {
     for (const mode of ['grid','png']) {
       const ext=mode==='grid'?'cells.json':'png';
       const ref=path.join(output,'upstream',scenario+'.'+ext), actual=path.join(output,'oc',scenario+'.'+ext);

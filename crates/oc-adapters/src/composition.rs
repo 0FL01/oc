@@ -14,6 +14,8 @@ use crate::{config, dcp_auto, defs, discovery, models, provider};
 
 /// Fully built application configuration. Contains credentials and must not be logged.
 pub struct Composition {
+    /// Safe, generation-pinned CLI presentation settings.
+    pub tui_chrome: oc_core::queries::TuiChrome,
     /// Immutable effective config for this application instance.
     pub generation: config::Generation,
     /// Selected provider's effective static/discovered models.
@@ -567,7 +569,44 @@ pub(crate) async fn load_with_env(
             );
         }
     }
+    let mut tui_chrome = oc_core::queries::TuiChrome {
+        location: Some(project.to_string_lossy().into_owned()),
+        build_channel: if cfg!(debug_assertions) {
+            oc_core::queries::TuiBuildChannel::Local
+        } else {
+            oc_core::queries::TuiBuildChannel::Packaged
+        },
+        ..Default::default()
+    };
+    // Use the existing admitted-root reader, not arbitrary TUI-side filesystem access.
+    for root in &roots {
+        for name in ["cli.json", "cli.jsonc"] {
+            let Some(text) = read_native_config(root, name)? else {
+                continue;
+            };
+            let value = config::parse_jsonc(&text, &root.join(name).to_string_lossy())
+                .map_err(|e| e.to_string())?;
+            if let Some(v) = value.pointer("/debug/devtools") {
+                tui_chrome.devtools = Some(v.as_bool().ok_or("debug.devtools must be boolean")?);
+            }
+            if let Some(v) = value.pointer("/session/sidebar") {
+                tui_chrome.sidebar_hidden = match v.as_str() {
+                    Some("auto") => false,
+                    Some("hide") => true,
+                    _ => return Err("session.sidebar must be auto or hide".into()),
+                };
+            }
+            if let Some(v) = value.pointer("/tabs/layout") {
+                tui_chrome.vertical_tabs_width = match v.as_str() {
+                    Some("horizontal") => 0,
+                    Some("vertical") => 42,
+                    _ => return Err("tabs.layout must be horizontal or vertical".into()),
+                };
+            }
+        }
+    }
     Ok(Composition {
+        tui_chrome,
         generation,
         catalog,
         model_id: model_id.to_string(),

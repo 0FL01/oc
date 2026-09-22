@@ -451,6 +451,7 @@ mod tests {
 
     fn page(rows: Vec<HistoryMessage>, total: usize, older: bool, newer: bool) -> HistoryPage {
         HistoryPage {
+            parent_id: None,
             title: None,
             rows,
             total,

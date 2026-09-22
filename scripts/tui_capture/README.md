@@ -105,3 +105,44 @@ Source contract anchors (pinned upstream source):
 `packages/core/src/plugin/agent.ts` (title request),
 `packages/tui/src/config/index.tsx` (theme/animations/sidebar/devtools),
 `packages/cli/src/server-process.ts` (environment controls).
+
+## V03 geometry modes
+
+`--geometry true` captures actual Home and completed-session screens and skips
+dialog inputs. `--sample short` supplies a one-line answer; `--sample rows` supplies
+a 90-line code block. The selected sample participates in the fixture hash.
+`--matrix true` then resizes both real PTYs through 80×24,120×40,160×48,
+43/44/119/120/121×48,120×80 and back to 160×48. Per-side
+`geometry-checks.json` records observed row-marker counts and sidebar presence;
+these targeted predicates are not full-grid parity. The final identical paste
+is shown as an upstream paste chip versus Rust multiline text (V05 remains open).
+`--columns`, `--rows`, `--sidebar hide`, and `--devtools true` select paired profiles.
+Both sides receive explicit CLI presentation settings in admitted `cli.json`.
+Native title requests now use the real tools-empty, 256-token title contract;
+completed-footer predicates use the V02 model display name.
+
+`--scroll-resize true --sample rows --geometry true` captures a single-line
+draft/cursor, scroll-away, 80×24 shrink, 160×48 grow, one-row Down and bottom
+re-pin in each executable. `scroll-checks.json` records actual row markers and
+cursor-at-draft-end assertions. Original uses its supported Ctrl+Alt+Y/E scroll
+bindings; native uses its existing Up/Down. This does not qualify keymap parity.
+Native additionally checks a top-offset clamp after growing to 160×80.
+
+`--tabs vertical --columns 162` and `--columns 163` check both sides of the
+42-cell rail-adjusted auto-sidebar breakpoint using text **and styled blank
+backgrounds**. `--devtools unset` omits the explicit override; native debug builds
+then show native diagnostics, while the packaged original defaults to hidden.
+Explicit `true`/`false` overrides the default in either application. These are
+honest effective-channel differences, not identical-state comparisons.
+
+`--startup-error true` with only `--oc` captures a real malformed-config native
+preflight error. For supported child routes and real Location query failures,
+`OC_V03_CAPTURE_OUTPUT=/absolute/fresh-attempt-prefix cargo test --locked -p oc
+--test recovery_v03 -- --nocapture` optionally seeds native storage through its
+storage API, imports original parent/child sessions using the original supported
+`session import --standalone` command, and saves `-child` and `-query` attempts.
+The normal Cargo test has no Node/browser dependency. These modes preserve raw
+VT, styled grids, commands/import results, failures and nonzero comparison exits.
+The native in-process startup error is not the original service-attach route.
+Original child composer/root-tab behavior also remains different. No near-limit
+PTY paste or editor/paste-chip equivalence is claimed by V03; that is V05 work.

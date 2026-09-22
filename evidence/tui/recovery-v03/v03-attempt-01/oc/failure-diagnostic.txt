@@ -1,0 +1,48 @@
+ 1 У меня есть два набора инстру                                                                                                                                
+  ┃                                                                                                                                                             
+  ┃  Какие тебе тулы доступны?                                                                                          У меня есть два набора инструментов:    
+  ┃                                                                                                                     напрямую и через Code Mode              
+                                                                                                                        (execute).                              
+     У меня есть два набора инструментов: напрямую и через Code Mode (execute).                                                                                 
+                                                                                                                        Context                                 
+     Напрямую                                                                                                           6,763 tokens                            
+                                                                                                                        3% used                                 
+     | Инструмент | Назначение |                                                                                                                                
+     | --- | --- |                                                                                                                                              
+     | glob | Поиск файлов по шаблону (например, src/**/*.tsx) |                                                                                                
+     | grep | Поиск по содержимому файлов (regex или точная строка) |                                                                                           
+     | read | Чтение файлов, директорий, картинок и PDF |                                                                                                       
+     | write | Создание/полная перезапись файла |                                                                                                               
+     | edit | Точечные правки в файле (замена фрагмента) |                                                                                                      
+     | shell | Выполнение команд в bash |                                                                                                                       
+     | webfetch | Загрузка страницы по URL (markdown/html/text) |                                                                                               
+     | websearch | Поиск в интернете |                                                                                                                          
+     | skill | Загрузка инструкций скилла (доступны opencode и report) |                                                                                        
+     | question | Задать вам вопрос с вариантами выбора |                                                                                                       
+     | subagent | Запуск дочернего агента (explore — исследование кодовой базы, general — универсальный) |                                                      
+                                                                                                                                                                
+     Через Code Mode (execute)                                                                                                                                  
+                                                                                                                                                                
+     - browser (45 инструментов, часть показана) — управление вкладками браузера: tabs.open/list/focus, navigate,                                               
+     back, forward, reload, stop, preview (показ файла в панели Review) и др.                                                                                   
+                                                                                                                                                                
+     MiMo-V2.6-Flash Free · 74ms · 13386.0 tok/s                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+  ┃                                                                                                                                                             
+  ┃                                                                                                                                                             
+  ┃                                                                                                                                                             
+  ┃  MiMo-V2.6-Flash Free OpenCode Zen                                                                                                                          
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                                            
+  /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/v03-attempt-01/   shift+tab agents  ctrl+p commands    /home/opencode/.cache/opencode-tmp/ope  
+                                                                                                                                                                

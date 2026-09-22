@@ -968,7 +968,9 @@ fn tool_names(body: &serde_json::Value) -> Vec<String> {
 fn aud38_bare_oc_launches_the_local_tui() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(fixture.clone(), &fixture.project_a(), &[], None);
-    pty.wait_visible(READY, DEADLINE);
+    // Bare launch is Home; a session tab exists only after submitting.
+    pty.wait_visible("█▀▀█", DEADLINE);
+    pty.wait_visible("T42 model fixture", DEADLINE);
     let off = submit(&mut pty, "hello bare");
     pty.wait_visible_after(off, "echo: hello bare", DEADLINE);
     pty.send(b"/quit\r");

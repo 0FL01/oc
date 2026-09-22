@@ -28,6 +28,10 @@ root = Path(spec['isolated_root'])
 fixture = Path(spec['fixture'])
 prompt = (fixture / 'input.txt').read_text().strip()
 answer = (fixture / 'transcript.md').read_text().strip()
+if spec.get('sample') == 'short':
+    answer = 'GEOMETRY-SHORT: one short answer.'
+elif spec.get('sample') == 'rows':
+    answer = '```text\n' + '\n'.join(f'ROW-{i:03}' for i in range(90)) + '\n```'
 catalog = json.loads((fixture / 'model-catalog.json').read_text())
 title = json.loads((fixture / 'scenarios.json').read_text())['base']['title']
 
@@ -42,7 +46,9 @@ class Provider(BaseHTTPRequestHandler):
         valid = self.path == '/v1/responses' and body.get('model') == 'fixture-model-1' and body.get('stream') is True
         # Title requests are real upstream auxiliary operations, not another transcript.
         system = str(body.get('instructions', '')) + json.dumps([x for x in body.get('input', []) if x.get('role') in ('system', 'developer')], ensure_ascii=False)
-        is_title = 'You are a title generator. You output ONLY a thread title.' in system
+        is_title = ('You are a title generator. You output ONLY a thread title.' in system or
+                    (not body.get('tools') and body.get('max_output_tokens') == 256 and
+                     'title' in system.lower()))
         text = title if is_title else answer
         valid = valid and (is_title or prompt in serialized)
         record = {'kind': 'provider', 'path': self.path, 'model': body.get('model'),
@@ -104,16 +110,30 @@ if spec['origin'] == 'upstream':
               'providers': {'fixture': {'name': catalog['provider']['name'],
               'package': '@opencode/ai/providers/openai/responses', 'settings': settings, 'models': models}}}
     cli_config = {'theme': {'name': 'opencode', 'mode': 'dark'}, 'animations': False,
-                  'session': {'sidebar': 'auto', 'tps': False}, 'debug': {'devtools': False},
+                   'session': {'sidebar': spec.get('sidebar', 'auto'), 'tps': False},
+                   'tabs': {'layout': spec.get('tabs', 'horizontal')},
                   'attention': {'notifications': False, 'sound': False},
                   'cursor': {'style': 'block', 'blinking': False}}
-    (home / 'config/opencode/cli.json').write_text(json.dumps(cli_config))
     argv = [spec['binary'], '--standalone']
 else:
     config = {'model': 'fixture/fixture-model-1', 'provider': {'fixture': {
         'name': catalog['provider']['name'], 'npm': '@ai-sdk/openai', 'options': settings, 'models': models}}}
     argv = [spec['binary'], 'tui']
+    cli_config = {
+        'session': {'sidebar': spec.get('sidebar', 'auto')},
+        'tabs': {'layout': spec.get('tabs', 'horizontal')}}
+if spec.get('devtools') is not None:
+    cli_config['debug'] = {'devtools': spec['devtools']}
+(home / 'config/opencode/cli.json').write_text(json.dumps(cli_config))
 (home / 'config/opencode/opencode.json').write_text(json.dumps(config))
+if spec.get('startup_error'):
+    (home / 'config/opencode/opencode.json').write_text('{"model":"DO-NOT-LEAK-KEY", INVALID}')
+if spec.get('seed_root'):
+    if spec['origin'] == 'oc':
+        home = Path(spec['seed_root']) / 'home'
+    project = Path(spec['seed_root']) / 'project'
+    argv += ['--session', spec['session']]
+    (home / 'config/opencode/cli.json').write_text(json.dumps(cli_config))
 env = {'HOME': str(home), 'XDG_CONFIG_HOME': str(home / 'config'), 'XDG_CACHE_HOME': str(home / 'cache'),
        'XDG_DATA_HOME': str(home / 'data'), 'XDG_STATE_HOME': str(home / 'state'),
        'PATH': '/usr/bin:/bin', 'SHELL': '/bin/sh', 'TERM': 'xterm-256color', 'COLORTERM': 'truecolor',
@@ -122,6 +142,24 @@ env = {'HOME': str(home), 'XDG_CONFIG_HOME': str(home / 'config'), 'XDG_CACHE_HO
        'OPENCODE_DISABLE_MODELS_FETCH': 'true', 'OPENCODE_DISABLE_FILEWATCHER': 'true',
        'OPENCODE_CONFIG_CONTENT': json.dumps(config), 'OPENCODE_CONFIG_PROJECT_DISABLE': 'true'}
 version = subprocess.run([spec['binary'], '--version'], env=env, cwd=project, capture_output=True, timeout=20)
+if spec.get('seed_root') and spec['origin'] == 'upstream':
+    # Supported import CLI with real parent metadata; no source-rendered frame,
+    # renderer replacement or direct upstream database mutation.
+    for session_id, parent in [('ses_v03_parent', None), ('ses_v03_child', 'ses_v03_parent')]:
+        info = {'id': session_id, 'projectID': 'global', 'cost': 0,
+                'tokens': {'input': 0, 'output': 0, 'reasoning': 0, 'cache': {'read': 0, 'write': 0}},
+                'time': {'created': 1700000000000, 'updated': 1700000000000},
+                'title': 'Geometry child' if parent else 'Geometry parent',
+                'location': {'directory': str(project)}}
+        if parent: info['parentID'] = parent
+        payload = {'info': info, 'messages': []}
+        source = home / (session_id + '.json')
+        source.write_text(json.dumps(payload))
+        imported = subprocess.run([spec['binary'], 'session', 'import', '--standalone', str(source)],
+                                  env=env, cwd=project, capture_output=True, timeout=30)
+        emit({'kind': 'session_import', 'session': session_id, 'payload': payload,
+              'exit_code': imported.returncode, 'stdout': imported.stdout.decode(), 'stderr': imported.stderr.decode()})
+        if imported.returncode: raise RuntimeError('supported session import failed')
 emit({'kind': 'launch', 'argv': argv, 'cwd': str(project), 'env': env,
       'version': version.stdout.decode().strip(), 'version_exit': version.returncode})
 master, slave = pty.openpty()
@@ -157,6 +195,10 @@ try:
                 command = json.loads(line)
                 if command['kind'] == 'input':
                     os.write(master, base64.b64decode(command['data']))
+                elif command['kind'] == 'resize':
+                    fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', command['rows'], command['columns'], 0, 0))
+                    os.killpg(child.pid, signal.SIGWINCH)
+                    emit({'kind': 'resize', 'columns': command['columns'], 'rows': command['rows']})
                 elif command['kind'] == 'stop':
                     stop = True
             if stop:

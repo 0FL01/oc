@@ -1,0 +1,337 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-22T12:21:04.543Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "7265dc5f9ed5d5a10d1d48d3cdc6348bf53cab08f3fd555127fa90d0ec853795",
+    "frontend.js": "422f93bd137f00b2b677e2b5e1f8f31170cccffd9330eab2c66f26528820f6ee",
+    "bridge.py": "81f05987e225099b2f7d74fb91d5487cce92e3112a1d6919690da21c504755e1"
+  },
+  "fixture_sha256": "c522ff8ac277b86fb52733ce322b3eb8ed1fa26fd73f6ded7155f81e6db39b1a",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9"
+  },
+  "oc": {
+    "commit": "a4bb3612f8d90bf12097a8d774be784d3f29cb58",
+    "tree": "45738b5d3232f1e1579de327fc7ae2708ad1787a",
+    "dirty_diff_sha256": "06bd2257acf0e8b553cec878394881eaafac84b33fd4a951c9c6ed23a642c150",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "90b04e2e1d64cd4553cfbf09144af421107620faf5016ec022d9887dd6a1ab77",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "SKIPPED",
+      "reason": "No explicit binary supplied"
+    },
+    {
+      "origin": "oc",
+      "status": "FAILED",
+      "reason": "Timed out waiting for scroll-clamped-down"
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-pinned-draft",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-pinned-draft",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-away",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-away",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-shrink",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-shrink",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-grow",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-grow",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-down-one",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-down-one",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-repinned",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-repinned",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-top",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-top",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-top-grow",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-top-grow",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "failure-diagnostic",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "failure-diagnostic",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "919fd56bb6846c52642e4c6b34d53593b0a1d09282b186af3a1ecd6d39875303",
+      "png_sha256": "850a92ce175871f466b0c9fab45a6cd3d5e942393d99d45fef1770048031dc84",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "c4017806ee8f39aa301f87f44462acdfdc40116813da30d944343b3380e0657c",
+      "png_sha256": "04574a32781b11032ff970412a4f6f837f01a662d35c6ba91cf5bf60fb188af1",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-pinned-draft",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "d04ae07d0aeba6de312c4d541d05b7f4f7f5c61fd55b6318364a19a444b27ecf",
+      "png_sha256": "1a9e7a0eafa18eac5e4213a0df237be36f93817faca12e83ecaf04ff3e839252",
+      "path": "oc/scroll-pinned-draft"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-away",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "198687054ce4fe55e4a283a2ec368cfe2d5c4fa6082f4e694a02395f26edffaa",
+      "png_sha256": "635caeb682f0e69da170dd5845cfa2dd99411587aff205e02d6a0c8991b6a133",
+      "path": "oc/scroll-away"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-shrink",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "6aa890173f389a18364888fb2a4199d1af74e42ac4a735ef7e961a7f3d8a9ef5",
+      "cells_sha256": "fdd95ae71401681260bbcead23bc15e807fce6ded5c454609fb8569ba0034838",
+      "png_sha256": "92282cdd9b5deef35e830a8bebb5bb77e06ed290df4efea353af2d29338ac514",
+      "path": "oc/scroll-shrink"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-grow",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "bf4c4f3bccc1228c76cdb4c066fce5d3caa9ae244fcfef1caaf07217f6d045d2",
+      "png_sha256": "635caeb682f0e69da170dd5845cfa2dd99411587aff205e02d6a0c8991b6a133",
+      "path": "oc/scroll-grow"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-down-one",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "6cce0f65b8e9debf706dcc4a44ac20c1e3d0d874992c323b9e1c54ce1791e52c",
+      "png_sha256": "c2c3b0f8f5ca462e3180f3708d621eaafa0b03ffa789537a571d3f05aaafad00",
+      "path": "oc/scroll-down-one"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-repinned",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "5ceb071c86541df5a2f93cdbc6229a51c4604fb5f3d7d164bdee3f42c92b27cf",
+      "png_sha256": "1a9e7a0eafa18eac5e4213a0df237be36f93817faca12e83ecaf04ff3e839252",
+      "path": "oc/scroll-repinned"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-top",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "50756d4d602ce2c73955b70dae3f7ec4d772ad7ee8c67c442c30b42c4b511b08",
+      "png_sha256": "ae266bb7657e3d325aa86194538b59db691d65d5516fe2fbdacd8358cc52343f",
+      "path": "oc/scroll-top"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-top-grow",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "43d004c5d836fd3133bbdabdee3b05806c8c26d9b687e0a1a2669a1240b3bccd",
+      "cells_sha256": "2789fbc06eec4a82a3ce39c08394b6b7e9244956c3f9dde83e0100303ab7089e",
+      "png_sha256": "bb24dafec8a8b70b3211c150581855b1992e3cf736658f6e93e995558b195032",
+      "path": "oc/scroll-top-grow"
+    },
+    {
+      "origin": "oc",
+      "scenario": "failure-diagnostic",
+      "status": "FAILED_STATE",
+      "environment_id": "43d004c5d836fd3133bbdabdee3b05806c8c26d9b687e0a1a2669a1240b3bccd",
+      "cells_sha256": "8a817b5bc24ec67a2dc39b9e1e5c7c52ecb342f75b9e558cf6631a0f8929f9c9",
+      "png_sha256": "bb24dafec8a8b70b3211c150581855b1992e3cf736658f6e93e995558b195032",
+      "path": "oc/failure-diagnostic"
+    }
+  ],
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 160,
+    "rows": 80,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "auto",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "pixel_width": 1349,
+    "pixel_height": 1280,
+    "measured_cell_width": 8.43125,
+    "measured_cell_height": 16
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "auto",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-22T12:22:30.009Z",
+  "exit_code": 1
+}

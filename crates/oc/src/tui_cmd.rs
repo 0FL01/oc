@@ -19,6 +19,7 @@ use oc_core::domain::SessionId;
 use oc_tui::app::{KeyOutcome, PanelIntent, TuiPanel, TuiState, TuiStatus};
 use oc_tui::dcp_panel::DcpOutcome;
 use oc_tui::events::{UiEvent, map_event};
+use oc_tui::shell::{StartupFailure, render_startup_failure};
 use oc_tui::terminal::{enter, install_panic_hook};
 use oc_tui::views::render_frame;
 
@@ -55,15 +56,25 @@ async fn run_inner(data_dir: &Path, session_opt: Option<String>) -> Result<ExitC
         );
     }
     let project = std::env::current_dir().map_err(|e| e.to_string())?;
+    let home = session_opt.is_none();
     let session = match session_opt {
         Some(raw) => SessionId::new(raw).ok_or_else(|| "invalid session id".to_string())?,
         None => SessionId::new(format!("s-tui-{}", nanos())).ok_or("id".to_string())?,
     };
-    let (app, guard, diagnostics) = oc_adapters::application::spawn(&project, data_dir).await?;
+    let (app, guard, diagnostics) = match oc_adapters::application::spawn(&project, data_dir).await
+    {
+        Ok(runtime) => runtime,
+        Err(_) => {
+            let _term = enter()?;
+            let mut terminal = Terminal::new(CrosstermBackend::new(std::io::stdout()))
+                .map_err(|e| format!("terminal: {e}"))?;
+            return startup_failure(&mut terminal, StartupFailure::Preflight);
+        }
+    };
     for diagnostic in diagnostics {
         eprintln!("warning: {diagnostic}");
     }
-    let result = drive_ui(&app, session).await;
+    let result = drive_ui(&app, session, home).await;
     let _ = app.shutdown().await;
     guard
         .join()
@@ -82,31 +93,19 @@ struct LoopState {
     dcp_seen: bool,
 }
 
-async fn drive_ui(app: &CoreApp, session: SessionId) -> Result<ExitCode, String> {
+async fn drive_ui(app: &CoreApp, session: SessionId, home: bool) -> Result<ExitCode, String> {
     let _term = enter()?;
     if std::env::var_os(PANIC_PROBE_ENV).is_some() {
         panic!("{PANIC_PROBE_ENV} probe");
     }
     let backend = CrosstermBackend::new(std::io::stdout());
     let mut terminal = Terminal::new(backend).map_err(|e| format!("terminal: {e}"))?;
-    app.create_session(session.clone())
-        .await
-        .map_err(|e| e.to_string())?;
-    let mut state = TuiState::new(app.clone(), session.clone());
+    let mut state = match initial_state(app, session, home).await {
+        Ok(state) => state,
+        Err(failure) => return startup_failure(&mut terminal, failure),
+    };
     let mut rx = app.subscribe();
     let mut loop_state = LoopState::default();
-    // Seed the viewport from the newest durable page (resume shows prior
-    // turns without ever loading the whole transcript).
-    let page = app
-        .history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
-        .await
-        .map_err(|e| e.to_string())?;
-    state.attach_page(&page);
-    // The catalog is cheap (no provider call) and tells the view which
-    // workspace commands the application owns.
-    if let Ok(snapshot) = app.catalog().await {
-        state.apply_catalog(snapshot);
-    }
 
     loop {
         state.poll_submission();
@@ -161,6 +160,46 @@ async fn drive_ui(app: &CoreApp, session: SessionId) -> Result<ExitCode, String>
 fn at_tty() -> bool {
     use std::io::IsTerminal as _;
     std::io::stdin().is_terminal()
+}
+
+async fn initial_state(
+    app: &CoreApp,
+    session: SessionId,
+    home: bool,
+) -> Result<TuiState, StartupFailure> {
+    app.create_session(session.clone())
+        .await
+        .map_err(|_| StartupFailure::Query)?;
+    let page = app
+        .history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
+        .await
+        .map_err(|_| StartupFailure::Query)?;
+    let mut state = TuiState::new(app.clone(), session);
+    state.attach_page(&page);
+    state.home = home && page.total == 0;
+    // A failed catalog is an initialization error, never a usable empty snapshot.
+    state.apply_catalog(app.catalog().await.map_err(|_| StartupFailure::Query)?);
+    Ok(state)
+}
+
+fn startup_failure(
+    terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>,
+    failure: StartupFailure,
+) -> Result<ExitCode, String> {
+    use crossterm::event::{KeyCode, KeyModifiers};
+    loop {
+        terminal
+            .draw(|frame| render_startup_failure(frame, failure))
+            .map_err(|e| format!("draw: {e}"))?;
+        if event::poll(Duration::from_millis(100)).map_err(|e| format!("input: {e}"))?
+            && let CEvent::Key(key) = event::read().map_err(|e| format!("input: {e}"))?
+            && (matches!(key.code, KeyCode::Esc | KeyCode::Char('q'))
+                || (key.code == KeyCode::Char('c')
+                    && key.modifiers.contains(KeyModifiers::CONTROL)))
+        {
+            return Ok(ExitCode::from(1));
+        }
+    }
 }
 
 /// True when bare `oc` may launch the interactive TUI: both ends must be a
@@ -535,6 +574,30 @@ mod tests {
     use super::*;
     use oc_core::core_app::WorkerTurnId;
     use oc_tui::events::KeyAction;
+
+    #[tokio::test]
+    async fn v03_catalog_failure_is_not_an_empty_usable_session() {
+        use oc_core::core_app::InboxMsg;
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::Create { ack, .. }) = inbox.recv().await else {
+                panic!("create")
+            };
+            ack.send(Ok(())).unwrap();
+            let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
+                panic!("history")
+            };
+            ack.send(Ok(Default::default())).unwrap();
+            let Some(InboxMsg::Catalog { ack }) = inbox.recv().await else {
+                panic!("catalog")
+            };
+            ack.send(Err(oc_core::session::CoreError::Shutdown))
+                .unwrap();
+        });
+        let result = initial_state(&app, SessionId::new("catalog-failure").unwrap(), true).await;
+        assert!(matches!(result, Err(StartupFailure::Query)));
+        worker.await.unwrap();
+    }
 
     #[tokio::test]
     async fn pending_submission_refuses_session_and_location_switches() {

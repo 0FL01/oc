@@ -278,6 +278,7 @@ impl Effective {
             })
             .collect();
         CatalogSnapshot {
+            chrome: composition.tui_chrome.clone(),
             // RuntimePolicy has allow/deny/ask-as-denial, no pending request
             // queue or reply API. That is not upstream's autoaccept mode.
             auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
@@ -717,6 +718,7 @@ fn query(
                     })
                     .collect::<Result<Vec<_>, CoreError>>()?;
                 Ok(HistoryPage {
+                    parent_id: db.session_meta(&session.0).map_err(app_error)?.parent_id,
                     title: db.session_meta(&session.0).map_err(app_error)?.title,
                     rows,
                     total,

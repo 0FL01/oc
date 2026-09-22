@@ -147,6 +147,7 @@ mod tests {
     fn page(rows: Vec<HistoryMessage>) -> HistoryPage {
         let total = rows.len();
         HistoryPage {
+            parent_id: None,
             title: None,
             rows,
             total,
@@ -172,6 +173,10 @@ mod tests {
 
     fn catalog() -> CatalogSnapshot {
         CatalogSnapshot {
+            chrome: oc_core::queries::TuiChrome {
+                devtools: Some(true),
+                ..Default::default()
+            },
             auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
             provider: "ludka2".to_string(),
             models: vec![ModelEntry {
@@ -344,8 +349,8 @@ mod tests {
         assert_eq!(buffer[(11, 2)].bg, theme.background_raised_high());
         assert_eq!(buffer[(11, 2)].fg, theme.text());
         // Prompt footer: `esc` in base text, `interrupt` muted.
-        assert_eq!(buffer[(2, 21)].fg, theme.text());
-        assert_eq!(buffer[(6, 21)].fg, theme.text_muted());
+        assert_eq!(buffer[(2, 22)].fg, theme.text());
+        assert_eq!(buffer[(6, 22)].fg, theme.text_muted());
 
         // A paused/streaming scroll shows the upstream jump affordance in the
         // status row (`routes/session/index.tsx:1344-1348`).
@@ -364,7 +369,7 @@ mod tests {
             .expect("draw");
         let buffer = terminal.backend().buffer();
         // Content is 2..67 wide at 70 columns; the affordance is right-aligned.
-        assert_eq!(buffer[(67, 15)].fg, theme.action_secondary());
+        assert_eq!(buffer[(67, 16)].fg, theme.action_secondary());
     }
 
     #[tokio::test]
@@ -385,7 +390,7 @@ mod tests {
             .draw(|frame| super::render_frame(frame, &state))
             .expect("draw");
         let buffer = terminal.backend().buffer();
-        let shell = layout::shell_regions(buffer.area);
+        let shell = layout::configured_shell_regions(buffer.area, false, 0);
         let regions = layout::session_regions(shell.session, 0);
         // Tab strip surface: decrease(background.raised.base).
         assert_eq!(buffer[(0, 0)].bg, theme.decrease(theme.background_panel()));
@@ -399,10 +404,7 @@ mod tests {
             buffer[(regions.underline.x + 1, regions.underline.y)].fg,
             theme.decrease(theme.background_panel())
         );
-        // Devtools bar background: decrease(background.base).
-        assert_eq!(
-            buffer[(0, shell.devtools.y)].bg,
-            theme.decrease(theme.background())
-        );
+        // Production mode does not allocate a debug row.
+        assert_eq!(shell.devtools.height, 0);
     }
 }

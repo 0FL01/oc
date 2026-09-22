@@ -6,9 +6,9 @@
 //!
 //! Root column (`packages/tui/src/app.tsx:1310-1376`): the main row grows,
 //! the optional devtools bar keeps its fixed row, and overlays sit on top.
-//! Vertical tabs and the pane resize handle only appear with a right pane or
-//! vertical tab layout (`app.tsx:1336-1372`, `component/session-frame.tsx:383`);
-//! this build has neither, so those regions are not allocated.
+//! The configured vertical rail consumes width before sidebar auto-visibility.
+//! Sidebar separation is its raised surface, not an invented border column;
+//! upstream only allocates a resize handle for terminal/panel right panes.
 //!
 //! Inside the session route (`packages/tui/src/routes/session/index.tsx:1273-1419`):
 //! content padding, scrollbox, height-1 status row, then the bottom stack
@@ -48,7 +48,7 @@ pub const SESSION_BOTTOM_PADDING: u16 = 1;
 /// `component/prompt/metadata.tsx:110-111`, `feature-plugins/prompt/footer.tsx:53`).
 pub const NARROW_WIDTH: u16 = 44;
 /// Sidebar auto-shows when `width - tabsWidth > 120`
-/// (`component/session-frame.tsx:106`); not rendered yet (no right pane).
+/// (`component/session-frame.tsx:106`). Call with the width after the tabs rail.
 pub const SIDEBAR_AUTO_WIDTH: u16 = 120;
 /// Dialog panel widths and the select-dialog footer breakpoint are recorded
 /// for iteration 4; they are deliberately not implemented here
@@ -92,8 +92,7 @@ pub fn shows_prompt_hints(width: u16) -> bool {
 
 /// Sidebar auto-visibility predicate (`component/session-frame.tsx:106`).
 pub fn sidebar_auto(width: u16) -> bool {
-    // `dimensions().width - props.verticalTabsWidth > 120`; this build has no
-    // vertical tabs, so the tab column is 0.
+    // Callers subtract the actual vertical rail before evaluating this predicate.
     width > SIDEBAR_AUTO_WIDTH
 }
 
@@ -119,7 +118,24 @@ pub struct ShellRegions {
 
 /// Fixed root regions for one frame area.
 pub fn shell_regions(area: Rect) -> ShellRegions {
-    let main_height = area.height.saturating_sub(DEVTOOLS_BAR_HEIGHT);
+    configured_shell_regions(area, true, 0)
+}
+
+pub fn configured_shell_regions(area: Rect, devtools: bool, vertical_tabs: u16) -> ShellRegions {
+    let main_height = area.height.saturating_sub(u16::from(devtools));
+    if vertical_tabs > 0 {
+        let width = vertical_tabs.min(area.width.saturating_sub(SESSION_CONTENT_MIN_WIDTH));
+        return ShellRegions {
+            tabs: Rect::new(area.x, area.y, width, main_height),
+            session: Rect::new(area.x + width, area.y, area.width - width, main_height),
+            devtools: Rect::new(
+                area.x,
+                area.y + main_height,
+                area.width,
+                area.height - main_height,
+            ),
+        };
+    }
     let tabs_height = TABS_RAIL_HEIGHT.min(main_height);
     let tabs = Rect::new(area.x, area.y, area.width, tabs_height);
     let session = Rect::new(
@@ -181,10 +197,18 @@ pub fn content_box(area: Rect) -> Rect {
 /// transcript keeps one row and the bottom stack is clipped, so the message
 /// stream stays observable (port decision below the upstream 24-row target).
 pub fn session_regions(area: Rect, panel_height: u16) -> SessionRegions {
+    dynamic_session_regions(area, panel_height, PROMPT_BOX_HEIGHT)
+}
+
+pub fn dynamic_session_regions(
+    area: Rect,
+    panel_height: u16,
+    prompt_height: u16,
+) -> SessionRegions {
     let content = content_box(area);
     let fixed = panel_height
         .saturating_add(STATUS_ROW_HEIGHT)
-        .saturating_add(PROMPT_BOX_HEIGHT)
+        .saturating_add(prompt_height)
         .saturating_add(PROMPT_UNDERLINE_HEIGHT)
         .saturating_add(1);
     let transcript_height = if content.height == 0 {
@@ -204,7 +228,7 @@ pub fn session_regions(area: Rect, panel_height: u16) -> SessionRegions {
         transcript: take(transcript_height),
         panel: take(panel_height),
         status: take(STATUS_ROW_HEIGHT),
-        prompt: take(PROMPT_BOX_HEIGHT),
+        prompt: take(prompt_height),
         underline: take(PROMPT_UNDERLINE_HEIGHT),
         footer: take(1),
     }

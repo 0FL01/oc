@@ -88,6 +88,8 @@ pub enum TranscriptPart {
 /// One contiguous, bounded history page (oldest-first for rendering).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct HistoryPage {
+    /// Durable hierarchy; child sessions suppress the automatic sidebar.
+    pub parent_id: Option<String>,
     /// Existing session metadata; None honestly denotes an untitled session.
     pub title: Option<String>,
     /// Rows in render order.
@@ -181,6 +183,8 @@ pub enum AutoAcceptState {
 /// Catalog plus effective next-turn and session capability state.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CatalogSnapshot {
+    /// Safe presentation settings and canonical admitted Location.
+    pub chrome: TuiChrome,
     /// Honest autoaccept capability/state, never inferred from permission rules.
     pub auto_accept: AutoAcceptState,
     /// Selected provider id.
@@ -197,6 +201,59 @@ pub struct CatalogSnapshot {
     pub agent_id: Option<String>,
     /// Workspace command ids (templates stay in the application).
     pub commands: Vec<String>,
+}
+
+/// Presentation-only settings; no runtime policy or credentials.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct TuiChrome {
+    /// Canonical application Location, unknown in mock workers.
+    pub location: Option<String>,
+    /// Explicit debug.devtools override; absence uses the build channel.
+    pub devtools: Option<bool>,
+    /// Effective native build channel, projected by the composition owner.
+    pub build_channel: TuiBuildChannel,
+    /// session.sidebar == hide.
+    pub sidebar_hidden: bool,
+    /// Width occupied by configured vertical tabs (zero for horizontal).
+    pub vertical_tabs_width: u16,
+}
+
+/// Native debug builds map to upstream's local channel; release builds to packaged.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum TuiBuildChannel {
+    /// Locally built debug executable.
+    Local,
+    /// Packaged/release executable (also the neutral mock default).
+    #[default]
+    Packaged,
+}
+
+impl TuiChrome {
+    /// Match upstream `debug.devtools ?? channel == local` without fake controls.
+    pub fn devtools_visible(&self) -> bool {
+        self.devtools
+            .unwrap_or(self.build_channel == TuiBuildChannel::Local)
+    }
+}
+
+#[cfg(test)]
+mod chrome_tests {
+    use super::*;
+
+    #[test]
+    fn v03_devtools_override_and_channel_default() {
+        for channel in [TuiBuildChannel::Local, TuiBuildChannel::Packaged] {
+            let mut chrome = TuiChrome {
+                build_channel: channel,
+                ..Default::default()
+            };
+            assert_eq!(chrome.devtools_visible(), channel == TuiBuildChannel::Local);
+            chrome.devtools = Some(false);
+            assert!(!chrome.devtools_visible());
+            chrome.devtools = Some(true);
+            assert!(chrome.devtools_visible());
+        }
+    }
 }
 
 /// Result of one successful Location switch inside a running application.

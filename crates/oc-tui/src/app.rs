@@ -223,6 +223,11 @@ struct PendingSubmission {
 
 /// Bounded chat state bound to one session on the shared handle.
 pub struct TuiState {
+    pub chrome: oc_core::queries::TuiChrome,
+    pub parent_id: Option<String>,
+    /// New interactive launch, distinct from an explicitly attached session.
+    pub home: bool,
+    viewport_max_scroll: std::cell::Cell<Option<usize>>,
     /// Current session's durable human title, refreshed with history.
     pub session_title: Option<String>,
     /// Session autoaccept capability supplied by the application.
@@ -295,6 +300,10 @@ impl TuiState {
     /// Bind to a session; the session must already exist on the handle.
     pub fn new(app: CoreApp, session: SessionId) -> Self {
         Self {
+            chrome: Default::default(),
+            parent_id: None,
+            home: false,
+            viewport_max_scroll: std::cell::Cell::new(None),
             session_title: None,
             auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
             app,
@@ -354,6 +363,8 @@ impl TuiState {
     /// workspace commands) belongs to the previous Location: the next panel
     /// open must reload from the new generation instead of showing it.
     pub fn reset_workspace(&mut self) {
+        self.chrome = Default::default();
+        self.parent_id = None;
         self.auto_accept = oc_core::queries::AutoAcceptState::Unsupported;
         self.session_title = None;
         self.generation += 1;
@@ -378,6 +389,9 @@ impl TuiState {
     }
 
     pub fn set_session(&mut self, session: SessionId) {
+        self.viewport_max_scroll.set(None);
+        self.parent_id = None;
+        self.home = false;
         self.session_title = None;
         self.generation += 1;
         self.invalidate_submission();
@@ -438,6 +452,11 @@ impl TuiState {
         self.scroll
     }
 
+    /// Effective offset in the last drawn viewport; requested offset survives resize.
+    pub fn display_scroll(&self) -> usize {
+        self.scroll.min(self.max_scroll())
+    }
+
     /// True while a submission awaits acceptance or a turn streams.
     pub fn is_busy(&self) -> bool {
         self.active_turn.is_some() || self.pending.is_some()
@@ -450,6 +469,8 @@ impl TuiState {
 
     /// Newest page becomes the whole window; scroll pins to the newest row.
     pub fn attach_page(&mut self, page: &HistoryPage) {
+        self.viewport_max_scroll.set(None);
+        self.parent_id = page.parent_id.clone();
         self.session_title = page.title.clone();
         self.window.reset(page);
         self.scroll = 0;
@@ -457,11 +478,13 @@ impl TuiState {
 
     /// Add an older page at the front of the window.
     pub fn prepend_page(&mut self, page: &HistoryPage) {
+        self.viewport_max_scroll.set(None);
         self.window.prepend_older(page);
     }
 
     /// Add a newer page at the back of the window.
     pub fn append_page(&mut self, page: &HistoryPage) {
+        self.viewport_max_scroll.set(None);
         self.window.append_newer(page);
     }
 
@@ -570,6 +593,17 @@ impl TuiState {
         )
     }
 
+    /// Bounded wrapped content, including the scrollbox's top padding. Padding
+    /// scrolls away with long history; short history starts below that one row.
+    pub fn rendered_transcript(&self, width: u16, terminal_width: u16) -> Vec<Line> {
+        let mut lines = vec![Line::plain("")];
+        lines.extend(crate::styled::wrap_lines(
+            &self.transcript_lines(width, terminal_width),
+            width as usize,
+        ));
+        lines
+    }
+
     /// Categorical agent color (`context/local.tsx:75-133`): the agent's index
     /// in the generation's full admitted agent list (the catalog pins the slot),
     /// and the first categorical color for an
@@ -592,6 +626,7 @@ impl TuiState {
 
     /// Apply a catalog snapshot: picker, agents and the effective selection.
     pub fn apply_catalog(&mut self, snapshot: CatalogSnapshot) {
+        self.chrome = snapshot.chrome.clone();
         self.auto_accept = snapshot.auto_accept;
         let mut picker = ModelPicker::new(catalog_from_snapshot(&snapshot));
         if !snapshot.model_id.is_empty() {
@@ -853,6 +888,7 @@ impl TuiState {
             }
             KeyAction::Up => {
                 let max_scroll = self.max_scroll();
+                self.scroll = self.scroll.min(max_scroll);
                 if self.scroll < max_scroll {
                     self.scroll += 1;
                 }
@@ -865,7 +901,9 @@ impl TuiState {
             }
             KeyAction::Down => {
                 if self.scroll > 0 {
-                    self.scroll -= 1;
+                    // Resize can clamp the displayed position below the retained
+                    // request. The first Down must move from that visible row.
+                    self.scroll = self.display_scroll().saturating_sub(1);
                     KeyOutcome::default()
                 } else {
                     KeyOutcome {
@@ -964,6 +1002,7 @@ impl TuiState {
                 self.live_terminal_status = None;
                 self.live_agent_color_index = None;
                 if !pending.compress {
+                    self.home = false;
                     self.window.push_synthetic("user", pending.draft.trim());
                 }
                 self.compress_turn = pending.compress.then(|| turn.clone());
@@ -1516,7 +1555,38 @@ impl TuiState {
     }
 
     fn max_scroll(&self) -> usize {
-        self.line_count().saturating_sub(VIEWPORT_LINES)
+        self.viewport_max_scroll
+            .get()
+            .unwrap_or_else(|| self.line_count().saturating_sub(VIEWPORT_LINES))
+    }
+
+    /// Actual rendered geometry for input-driven row scrolling.
+    pub fn observe_viewport(&self, height: u16, rendered_rows: usize) {
+        self.viewport_max_scroll
+            .set(Some(rendered_rows.saturating_sub(height as usize)));
+    }
+
+    /// Latest measured context, never DCP's estimate or a renderer constant.
+    pub fn context_usage(&self) -> Option<(u64, Option<u64>)> {
+        let rows = self.transcript_rows();
+        let usage = self
+            .turn_usage
+            .as_ref()
+            .map(|u| (u.input_tokens, u.output_tokens))
+            .or_else(|| {
+                rows.iter().rev().find_map(|r| {
+                    let m = r.meta.as_ref()?;
+                    Some((m.input_tokens?, m.output_tokens?))
+                })
+            })?;
+        let limit = self
+            .picker
+            .as_ref()
+            .and_then(|p| p.selection())
+            .and_then(|s| s.entry.pointer("/limit/context"))
+            .and_then(|v| v.as_u64())
+            .filter(|v| *v > 0);
+        Some((usage.0.saturating_add(usage.1), limit))
     }
 }
 
@@ -1824,6 +1894,7 @@ mod tests {
 
     fn page(rows: Vec<HistoryMessage>, total: usize, older: bool, newer: bool) -> HistoryPage {
         HistoryPage {
+            parent_id: None,
             title: None,
             rows,
             total,
@@ -1988,6 +2059,7 @@ mod tests {
 
     fn snapshot() -> CatalogSnapshot {
         CatalogSnapshot {
+            chrome: Default::default(),
             auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
             provider: "ludka2".to_string(),
             models: vec![

@@ -1,29 +1,10 @@
 //! Upstream v2.0.12 shell: root regions, session area, prompt box, status
 //! row, prompt footer and devtools bar.
 //!
-//! Geometry is frozen in [`crate::layout`]; this module only turns state into
-//! widgets. Slots whose data is not in our DTOs are rendered empty, never
-//! invented:
-//!
-//! - the tab title uses durable metadata, with upstream `Untitled session`
-//!   fallback (`component/session-tabs.tsx:1561`);
-//! - the prompt left border keeps `border.base`; upstream tints it with the
-//!   active agent color (`component/prompt/index.tsx:1576`); the slot is now
-//!   available from the DTO, while border treatment belongs to V03;
-//! - the prompt footer left slot shows the interrupt hint while a turn
-//!   streams, otherwise the DCP notice, otherwise nothing: the current
-//!   Location label upstream renders there (`component/prompt/index.tsx:1920-1935`)
-//!   is not in the view state;
-//! - the status row shows `Jump to latest ↓` when the stream is detached
-//!   (`routes/session/index.tsx:1331-1350`); `Loading session history…` needs
-//!   a paging-in-flight flag the view does not have;
-//! - prompt metadata and categorical agent slot come from the catalog snapshot.
-//!   `auto` means session permission autoaccept (upstream permission.tsx), not
-//!   agent permissions. Native policy reports Unsupported, so no false marker;
-//! - devtools items show the upstream labels (`component/devtools-bar.tsx:245-445`);
-//!   the Server connection icon has no client-connection state (in-process
-//!   runtime) and keeps its cell empty, while the UI runtime icon is honest
-//!   for "no samples yet" (`runtimeStatus([]) === "normal"`).
+//! Geometry uses actual frame dimensions and bounded transcript rows. Safe DTOs
+//! supply the title, Location, parent relationship, model/agent and measured usage.
+//! Native debug chrome follows the override/build channel and labels the in-process runtime: upstream
+//! server/Theme/Tools/Experiments actions are not advertised as working controls.
 //!
 //! Transient notes render as the upstream toast (`ui/toast.tsx:48-50`), the
 //! only overlay this iteration adds; picker panes stay the inline port block
@@ -65,6 +46,52 @@ pub const TOAST_MAX_WIDTH: u16 = 60;
 /// Toast right margin (`ui/toast.tsx:49`: `right={2}`).
 pub const TOAST_RIGHT_MARGIN: u16 = 2;
 
+/// Safe startup capability states. Never carry raw configuration/provider errors.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StartupFailure {
+    /// Native in-process configuration/runtime construction failed.
+    Preflight,
+    /// The native application's session/history/catalog query failed.
+    Query,
+}
+
+/// Distinct native error route; upstream service attach is not a native capability.
+pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
+    let theme = Theme::dark();
+    let area = frame.area();
+    frame.render_widget(
+        Block::default().style(Style::default().bg(theme.background())),
+        area,
+    );
+    let (reason, action) = match failure {
+        StartupFailure::Preflight => (
+            "Configuration / runtime initialization failed",
+            "Check opencode.json/jsonc, cli.json/jsonc and data-directory access, then restart.",
+        ),
+        StartupFailure::Query => (
+            "Session / catalog query failed",
+            "Check the session's Location and data-directory access, then restart.",
+        ),
+    };
+    let text = vec![
+        Line::from("Native startup error").style(Style::default().add_modifier(Modifier::BOLD)),
+        Line::from(""),
+        Line::from(reason),
+        Line::from(action),
+        Line::from(""),
+        Line::from("Native runtime is in-process; service attach is unsupported."),
+        Line::from("Raw configuration and provider details are not displayed."),
+        Line::from(""),
+        Line::from("esc / q / ctrl+c  exit"),
+    ];
+    frame.render_widget(
+        Paragraph::new(text)
+            .style(Style::default().fg(theme.text()).bg(theme.background()))
+            .wrap(ratatui::widgets::Wrap { trim: false }),
+        area.inner(ratatui::layout::Margin::new(2, 2)),
+    );
+}
+
 /// Render one whole frame: root background, tab strip, session area,
 /// devtools bar, then the toast overlay.
 pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
@@ -75,9 +102,47 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         Block::default().style(Style::default().bg(theme.background())),
         area,
     );
-    let regions = layout::shell_regions(area);
-    render_tabs(frame, theme, regions.tabs, state.session_title.as_deref());
-    render_session(frame, state, theme, regions.session);
+    let mut regions = layout::configured_shell_regions(
+        area,
+        state.chrome.devtools_visible(),
+        state.chrome.vertical_tabs_width,
+    );
+    if state.home {
+        regions.session = Rect {
+            height: area.height.saturating_sub(regions.devtools.height),
+            ..area
+        };
+    } else {
+        render_tabs(frame, theme, regions.tabs, state.session_title.as_deref());
+    }
+    let sidebar = !state.home
+        && state.parent_id.is_none()
+        && !state.chrome.sidebar_hidden
+        && layout::sidebar_auto(regions.session.width);
+    let main = if sidebar {
+        let main = Rect {
+            width: regions
+                .session
+                .width
+                .saturating_sub(layout::SESSION_SIDEBAR_WIDTH),
+            ..regions.session
+        };
+        render_sidebar(
+            frame,
+            state,
+            theme,
+            Rect::new(
+                main.right(),
+                main.y,
+                layout::SESSION_SIDEBAR_WIDTH,
+                main.height,
+            ),
+        );
+        main
+    } else {
+        regions.session
+    };
+    render_session(frame, state, theme, main);
     render_devtools(frame, theme, regions.devtools);
     render_toast(frame, state, theme, area);
 }
@@ -113,6 +178,12 @@ fn render_tabs(frame: &mut Frame<'_>, theme: &Theme, area: Rect, title: Option<&
     if area.height == 0 || area.width == 0 {
         return;
     }
+    if area.height > 1 {
+        frame.render_widget(
+            Block::default().style(Style::default().bg(theme.background_panel())),
+            area,
+        );
+    }
     let strip = Rect {
         width: layout::single_tab_width(area.width),
         ..area
@@ -121,14 +192,22 @@ fn render_tabs(frame: &mut Frame<'_>, theme: &Theme, area: Rect, title: Option<&
 }
 
 fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {
+    if state.home && *state.panel() == crate::app::TuiPanel::None {
+        render_home(frame, state, theme, area);
+        return;
+    }
     let panel = panel_lines(state);
     let panel_height = if panel.is_empty() {
         0
     } else {
         ((panel.len() + 2) as u16).min(12)
     };
-    let regions = layout::session_regions(area, panel_height);
-    render_transcript(frame, state, regions.transcript, area.width);
+    let input = prompt_lines(state, area.width);
+    let input_height = (input.len() as u16)
+        .min((frame.area().height / 3).max(6))
+        .max(1);
+    let regions = layout::dynamic_session_regions(area, panel_height, input_height + 3);
+    render_transcript(frame, state, regions.transcript, frame.area().width);
     if regions.panel.height > 0 {
         // Port extension until iteration 4: the picker panes stay an inline
         // bordered block between the transcript and the status row.
@@ -155,8 +234,286 @@ fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
     render_footer(frame, state, theme, regions.footer, area.width);
 }
 
-/// Sticky-bottom transcript: newest row on the transcript's last row, and
-/// new rows keep it pinned while the stream is at the bottom
+fn prompt_lines(state: &TuiState, width: u16) -> Vec<crate::styled::Line> {
+    let pad = layout::session_padding(width);
+    let text_width = width.saturating_sub(4 * pad + 1).max(1);
+    state
+        .input()
+        .split('\n')
+        .flat_map(|line| {
+            crate::styled::wrap_line(&crate::styled::Line::plain(line), text_width as usize)
+        })
+        .collect()
+}
+
+fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {
+    frame.render_widget(
+        Block::default().style(Style::default().bg(theme.background_panel())),
+        area,
+    );
+    let inner = Rect::new(
+        area.x + 2,
+        area.y + 1,
+        area.width.saturating_sub(4),
+        area.height.saturating_sub(2),
+    );
+    let title = wrap_text(
+        state.session_title.as_deref().unwrap_or(UNTITLED_SESSION),
+        inner.width.saturating_sub(2) as usize,
+    );
+    let mut lines: Vec<Line<'static>> = title
+        .into_iter()
+        .map(|t| {
+            Line::styled(
+                t,
+                Style::default()
+                    .fg(theme.text())
+                    .add_modifier(Modifier::BOLD),
+            )
+        })
+        .collect();
+    lines.push(Line::default());
+    lines.push(Line::styled(
+        "Context",
+        Style::default()
+            .fg(theme.text())
+            .add_modifier(Modifier::BOLD),
+    ));
+    match state.context_usage() {
+        Some((tokens, limit)) => {
+            lines.push(Line::from(format!("{} tokens", thousands(tokens))));
+            lines.push(Line::from(limit.map_or_else(
+                || "Limit unknown".into(),
+                |l| {
+                    format!(
+                        "{}% used",
+                        (tokens as f64 / l as f64 * 100.0).round() as u64
+                    )
+                },
+            )));
+        }
+        None => lines.push(Line::from("Usage unknown")),
+    }
+    frame.render_widget(
+        Paragraph::new(lines).style(Style::default().fg(theme.text_muted())),
+        inner,
+    );
+    if inner.height > 0 {
+        frame.render_widget(
+            Paragraph::new(compact_path(
+                state
+                    .chrome
+                    .location
+                    .as_deref()
+                    .unwrap_or("Location unknown"),
+                inner.width as usize,
+            ))
+            .style(Style::default().fg(theme.text_muted())),
+            Rect {
+                y: inner.bottom() - 1,
+                height: 1,
+                ..inner
+            },
+        );
+    }
+}
+
+fn thousands(n: u64) -> String {
+    let s = n.to_string();
+    s.chars()
+        .enumerate()
+        .fold(String::new(), |mut out, (i, c)| {
+            if i > 0 && (s.len() - i).is_multiple_of(3) {
+                out.push(',');
+            }
+            out.push(c);
+            out
+        })
+}
+
+fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {
+    let width = area
+        .width
+        .saturating_sub(2 * layout::session_padding(area.width))
+        .min(75);
+    let x = area.x + area.width.saturating_sub(width).div_ceil(2);
+    let input_height = (prompt_lines(state, width + 2 * layout::session_padding(area.width)).len()
+        as u16)
+        .min((frame.area().height / 3).max(6))
+        .max(1);
+    let h = input_height + 3;
+    let logo = home_logo(theme, area.width, area.height);
+    let logo_height = logo.len() as u16;
+    // Home's two equal flex spacers surround a 3-row top spacer, logo,
+    // 2-row gap and the prompt/footer; home footer keeps its final 2 rows.
+    let y = area.y + area.height.saturating_sub(h + logo_height + 9) / 2 + 3;
+    let logo_width = logo.iter().map(Line::width).max().unwrap_or(0) as u16;
+    frame.render_widget(
+        Paragraph::new(logo),
+        Rect::new(
+            area.x + area.width.saturating_sub(logo_width).div_ceil(2),
+            y,
+            logo_width.min(area.width),
+            logo_height.min(area.bottom().saturating_sub(y)),
+        ),
+    );
+    let prompt_y = (y + logo_height + 2).min(area.bottom());
+    let body = Rect::new(
+        x,
+        prompt_y,
+        width,
+        h.min(area.bottom().saturating_sub(prompt_y)),
+    );
+    let underline = Rect::new(
+        x,
+        body.bottom(),
+        width,
+        u16::from(body.bottom() < area.bottom()),
+    );
+    render_prompt(
+        frame,
+        state,
+        theme,
+        body,
+        underline,
+        width + 2 * layout::session_padding(area.width),
+    );
+    let footer = Rect::new(
+        x,
+        underline.bottom(),
+        width,
+        u16::from(underline.bottom() < area.bottom()),
+    );
+    render_footer(frame, state, theme, footer, area.width);
+    if area.height >= 2 {
+        frame.render_widget(
+            Paragraph::new(env!("CARGO_PKG_VERSION"))
+                .alignment(Alignment::Right)
+                .style(Style::default().fg(theme.text_muted())),
+            Rect::new(area.x, area.bottom() - 2, area.width.saturating_sub(2), 1),
+        );
+    }
+}
+
+/// Upstream logo.ts/component/logo.tsx glyphs; theme-derived shadow cells.
+fn home_logo(theme: &Theme, width: u16, height: u16) -> Vec<Line<'static>> {
+    if height < 12 {
+        return Vec::new();
+    }
+    let left = [
+        "                   ",
+        "█▀▀█ █▀▀█ █▀▀█ █▀▀▄",
+        "█__█ █__█ █^^^ █__█",
+        "▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀~~▀",
+    ];
+    let right = [
+        "             ▄     ",
+        "█▀▀▀ █▀▀█ █▀▀█ █▀▀█",
+        "█___ █__█ █__█ █^^^",
+        "▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀",
+    ];
+    let part = |s: &str, fg, bold| {
+        let shadow = tint(theme.background(), fg, 0.25);
+        s.chars()
+            .map(|c| {
+                let mut style = Style::default().fg(fg);
+                if bold {
+                    style = style.add_modifier(Modifier::BOLD);
+                }
+                let glyph = match c {
+                    '_' => {
+                        style = style.bg(shadow);
+                        ' '
+                    }
+                    '^' => {
+                        style = style.bg(shadow);
+                        '▀'
+                    }
+                    '~' => {
+                        style = style.fg(shadow);
+                        '▀'
+                    }
+                    c => c,
+                };
+                Span::styled(glyph.to_string(), style)
+            })
+            .collect::<Vec<_>>()
+    };
+    if width < 22 {
+        return ["█▀▀█", "█__█", "▀▀▀▀"]
+            .iter()
+            .map(|s| Line::from(part(s, theme.text(), true)))
+            .collect();
+    }
+    if width < 44 {
+        return left[1..]
+            .iter()
+            .map(|s| Line::from(part(s, theme.text_muted(), false)))
+            .chain(
+                right
+                    .iter()
+                    .map(|s| Line::from(part(s, theme.text(), true))),
+            )
+            .collect();
+    }
+    left.iter()
+        .zip(right)
+        .map(|(l, r)| {
+            let mut spans = part(l, theme.text_muted(), false);
+            spans.push(Span::raw(" "));
+            spans.extend(part(r, theme.text(), true));
+            Line::from(spans)
+        })
+        .collect()
+}
+
+fn take_cells(text: &str, width: usize) -> String {
+    let mut used = 0;
+    text.chars()
+        .take_while(|c| {
+            used += crate::styled::char_width(*c);
+            used <= width
+        })
+        .collect()
+}
+
+/// Keep the basename and as much of the trailing Location as fits.
+fn compact_path(path: &str, width: usize) -> String {
+    if text_width(path) <= width {
+        return path.to_string();
+    }
+    let prefix = if path.starts_with('/') {
+        "/…/"
+    } else {
+        "…/"
+    };
+    let mut segments = path.split('/').filter(|s| !s.is_empty()).rev();
+    let Some(base) = segments.next() else {
+        return take_cells(path, width);
+    };
+    let available = width.saturating_sub(text_width(prefix));
+    if text_width(base) > available {
+        return take_cells(
+            &format!("{prefix}{}…", take_cells(base, available.saturating_sub(1))),
+            width,
+        );
+    }
+    let mut tail = base.to_string();
+    for segment in segments {
+        let remaining = width.saturating_sub(text_width(prefix) + text_width(&tail) + 1);
+        if text_width(segment) > remaining {
+            if remaining > 1 {
+                tail = format!("{}…/{tail}", take_cells(segment, remaining - 1));
+            }
+            break;
+        }
+        tail = format!("{segment}/{tail}");
+    }
+    take_cells(&format!("{prefix}{tail}"), width)
+}
+
+/// Sticky scroll: long history pins to the newest row; short history starts
+/// at the top (independently captured in recovery-v03/v03-attempt-04).
 /// (`routes/session/index.tsx:1299-1300` `stickyScroll stickyStart="bottom"`).
 /// Rows come from the upstream message renderer ([`crate::messages`]) and are
 /// wrapped to the content width before the sticky slice.
@@ -165,25 +522,16 @@ fn render_transcript(frame: &mut Frame<'_>, state: &TuiState, area: Rect, termin
         return;
     }
     let rows = area.height as usize;
-    let lines = crate::styled::wrap_lines(
-        &state.transcript_lines(area.width, terminal_width),
-        area.width as usize,
-    );
+    let lines = state.rendered_transcript(area.width, terminal_width);
     let total = lines.len();
-    let max_scroll = total.saturating_sub(crate::app::VIEWPORT_LINES);
+    state.observe_viewport(area.height, total);
+    let max_scroll = total.saturating_sub(rows);
     let scroll = state.scroll().min(max_scroll);
     let end = total - scroll;
-    let start = end.saturating_sub(crate::app::VIEWPORT_LINES);
+    let start = end.saturating_sub(rows);
     let visible = &lines[start..end];
-    let skip = visible.len().saturating_sub(rows);
-    let pad = rows.saturating_sub(visible.len());
-    let target = Rect {
-        y: area.y.saturating_add(pad as u16),
-        height: area.height.saturating_sub(pad as u16),
-        ..area
-    };
-    let text = crate::styled::Lines::from(visible[skip..].to_vec()).into_text();
-    frame.render_widget(Paragraph::new(text), target);
+    let text = crate::styled::Lines::from(visible.to_vec()).into_text();
+    frame.render_widget(Paragraph::new(text), area);
 }
 
 /// Height-1 right-aligned status row (`routes/session/index.tsx:1331-1350`).
@@ -196,7 +544,7 @@ fn render_status(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: R
 
 fn status_line(state: &TuiState, theme: &Theme) -> Option<Line<'static>> {
     // `text.action.secondary.base` (`routes/session/index.tsx:1344-1348`).
-    (state.scroll() > 0).then(|| {
+    (state.display_scroll() > 0).then(|| {
         Line::styled(
             JUMP_TO_LATEST,
             Style::default().fg(theme.action_secondary()),
@@ -216,7 +564,9 @@ fn render_prompt(
     terminal_width: u16,
 ) {
     let prompt_bg = theme.decrease(theme.background_panel());
-    let border_style = Style::default().fg(theme.border());
+    let border_style = Style::default().fg(state
+        .active_agent()
+        .map_or(theme.border(), |a| state.agent_color(Some(a))));
     if body.height > 0 && body.width > 0 {
         frame.render_widget(
             Block::default()
@@ -244,18 +594,38 @@ fn render_prompt(
             height: 1,
         };
         if body.height > 1 {
+            let input_lines = prompt_lines(state, terminal_width);
+            let visible = body.height.saturating_sub(3) as usize;
+            let start = input_lines.len().saturating_sub(visible);
             frame.render_widget(
-                Paragraph::new(state.input().to_string())
-                    .style(Style::default().fg(theme.text()).bg(prompt_bg)),
-                row(1),
+                Paragraph::new(
+                    crate::styled::Lines::from(input_lines[start..].to_vec()).into_text(),
+                )
+                .style(Style::default().fg(theme.text()).bg(prompt_bg)),
+                Rect {
+                    height: body.height.saturating_sub(3),
+                    ..row(1)
+                },
             );
+            if visible > 0 && text_width > 0 {
+                let cursor_x = input_lines.last().map_or(0, |l| {
+                    l.plain_text()
+                        .chars()
+                        .map(crate::styled::char_width)
+                        .sum::<usize>()
+                });
+                frame.set_cursor_position((
+                    text_x + (cursor_x as u16).min(text_width - 1),
+                    body.y + 1 + (input_lines.len().saturating_sub(start + 1) as u16),
+                ));
+            }
         }
         if body.height > 3
             && let Some(line) = metadata_line(state, theme, terminal_width)
         {
             frame.render_widget(
                 Paragraph::new(line).style(Style::default().fg(theme.text())),
-                row(3),
+                row(body.height - 1),
             );
         }
     }
@@ -352,6 +722,49 @@ fn footer_line(
     layout_width: u16,
     terminal_width: u16,
 ) -> Line<'static> {
+    let muted = Style::default().fg(theme.text_muted());
+    let mut hints = Vec::new();
+    let commands_visible;
+    if let Some((tokens, limit)) = state.context_usage() {
+        let percent = limit
+            .map(|l| format!(" ({}%)", (tokens as f64 / l as f64 * 100.0).round() as u64))
+            .unwrap_or_default();
+        let tokens = if tokens >= 1000 {
+            format!("{:.1}K", tokens as f64 / 1000.0)
+        } else {
+            tokens.to_string()
+        };
+        let usage = format!("{tokens}{percent}");
+        // PromptFooter's usage-aware layout reserves space for Location.
+        let available = terminal_width.saturating_sub(8) as usize;
+        let available = available.saturating_sub(28.min(available / 2));
+        if text_width(&usage) <= available {
+            hints.push(Span::styled(usage.clone(), muted));
+        }
+        commands_visible =
+            text_width(&usage) + 3 + text_width(COMMANDS_HINT.0) + text_width(COMMANDS_HINT.1)
+                <= available;
+    } else {
+        commands_visible = layout::shows_prompt_hints(terminal_width);
+        if commands_visible {
+            hints.push(Span::styled(
+                AGENTS_HINT.0,
+                Style::default().fg(theme.text()),
+            ));
+            hints.push(Span::styled(AGENTS_HINT.1, muted));
+        }
+    }
+    if commands_visible {
+        hints.extend([
+            Span::raw("  "),
+            Span::styled(COMMANDS_HINT.0, Style::default().fg(theme.text())),
+            Span::styled(COMMANDS_HINT.1, muted),
+        ]);
+    }
+    let hints = Line::from(hints);
+    let hints_visible = !hints.spans.is_empty();
+    let left_width =
+        (layout_width as usize).saturating_sub(hints.width() + usize::from(hints_visible) * 2);
     let mut spans: Vec<Span<'static>> = Vec::new();
     if state.status() == &TuiStatus::Streaming {
         let (key, label) = ESC_INTERRUPT;
@@ -362,20 +775,15 @@ fn footer_line(
             notice.to_string(),
             Style::default().fg(theme.info()),
         ));
+    } else if let Some(location) = &state.chrome.location {
+        spans.push(Span::styled(compact_path(location, left_width), muted));
     }
     let mut line = Line::from(spans);
     // The hints breakpoint reads the terminal width, the alignment the row
     // width (`feature-plugins/prompt/footer.tsx:53`).
-    if !layout::shows_prompt_hints(terminal_width) {
+    if !hints_visible {
         return line;
     }
-    let hints = Line::from(vec![
-        Span::styled(AGENTS_HINT.0, Style::default().fg(theme.text())),
-        Span::styled(AGENTS_HINT.1, Style::default().fg(theme.text_muted())),
-        Span::styled("  ", Style::default()),
-        Span::styled(COMMANDS_HINT.0, Style::default().fg(theme.text())),
-        Span::styled(COMMANDS_HINT.1, Style::default().fg(theme.text_muted())),
-    ]);
     let gap = layout_width
         .saturating_sub(line.width() as u16)
         .saturating_sub(hints.width() as u16);
@@ -395,14 +803,10 @@ fn render_devtools(frame: &mut Frame<'_>, theme: &Theme, area: Rect) {
     let bar_bg = theme.decrease(theme.background());
     let muted = Style::default().fg(theme.text_muted());
     let line = Line::from(vec![
-        // `Server` keeps the empty connection-icon cell: there is no client
-        // connection to indicate in-process (`devtools-bar.tsx:245-293`).
-        Span::styled("  Server ", muted),
+        // Informational native diagnostics, not inert upstream action labels.
+        Span::styled("  Native runtime ", muted),
         // `statusIcon(runtimeStatus(no samples))` is the normal `○` (`:294-340,581-586`).
         Span::styled(" ○ UI ", muted),
-        Span::styled(" Theme ", muted),
-        Span::styled(" Tools ", muted),
-        Span::styled(" Experiments ", muted),
     ]);
     frame.render_widget(
         Paragraph::new(line).style(Style::default().bg(bar_bg)),
@@ -533,6 +937,7 @@ mod tests {
     fn page(rows: Vec<HistoryMessage>) -> HistoryPage {
         let total = rows.len();
         HistoryPage {
+            parent_id: None,
             title: None,
             rows,
             total,
@@ -543,6 +948,10 @@ mod tests {
 
     fn catalog() -> CatalogSnapshot {
         CatalogSnapshot {
+            chrome: oc_core::queries::TuiChrome {
+                devtools: Some(true),
+                ..Default::default()
+            },
             auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
             provider: "ludka2".to_string(),
             models: vec![ModelEntry {
@@ -586,6 +995,120 @@ mod tests {
             msg(2, Role::Assistant, "hi there"),
         ]));
         state
+    }
+
+    #[tokio::test]
+    async fn v03_tall_viewport_and_short_top_placement() {
+        let mut state = golden_state().await;
+        let short = screen(&state, 120, 80);
+        assert!(
+            short[3].contains("hello"),
+            "short history starts below one-row top padding"
+        );
+        let text = (0..70).map(|i| format!("ROW-{i:03}\n")).collect::<String>();
+        state.attach_page(&page(vec![msg(1, Role::Assistant, &text)]));
+        let tall = screen(&state, 120, 80);
+        assert!(tall.iter().filter(|r| r.contains("ROW-")).count() > 35);
+        let wide = screen(&state, 160, 48);
+        assert!(wide.iter().any(|r| r.contains("Context")), "actual sidebar");
+    }
+
+    #[tokio::test]
+    async fn v03_paste_expands_prompt() {
+        let mut state = golden_state().await;
+        state.handle_paste("draft-one\ndraft-two\ndraft-three");
+        let frame = screen(&state, 80, 24).join("\n");
+        assert!(frame.contains("draft-one"));
+        assert!(frame.contains("draft-two"));
+        assert!(frame.contains("draft-three"));
+    }
+
+    #[tokio::test]
+    async fn v03_rendered_row_scroll_and_chrome_conditions() {
+        let mut state = golden_state().await;
+        let long = format!(
+            "FIRST-ANCHOR {} LAST-ANCHOR",
+            "wrapped payload ".repeat(800)
+        );
+        state.attach_page(&page(vec![msg(1, Role::Assistant, &long)]));
+        assert!(!screen(&state, 80, 40).join("\n").contains("FIRST-ANCHOR"));
+        for _ in 0..300 {
+            state.handle_key(KeyAction::Up).await;
+        }
+        assert!(screen(&state, 80, 40).join("\n").contains("FIRST-ANCHOR"));
+        let detached = state.scroll();
+        state.handle_paste("draft-one\ndraft-two");
+        for width in [80, 120, 160, 43, 44, 119, 120, 121, 160] {
+            let frame = screen(&state, width, 48).join("\n");
+            assert_eq!(frame.contains("Context"), width > 120, "{width}");
+            assert_eq!(state.scroll(), detached);
+            assert!(frame.contains("draft-two"));
+        }
+        let displayed = state.display_scroll();
+        assert!(
+            state.scroll() > displayed,
+            "resize clamps the retained request"
+        );
+        state.handle_key(KeyAction::Down).await;
+        assert_eq!(state.scroll(), displayed - 1);
+        state.chrome.sidebar_hidden = true;
+        assert!(!screen(&state, 160, 48).join("\n").contains("Context"));
+        state.chrome.sidebar_hidden = false;
+        state.parent_id = Some("parent".into());
+        assert!(!screen(&state, 160, 48).join("\n").contains("Context"));
+        state.parent_id = None;
+        state.chrome.vertical_tabs_width = 42;
+        assert!(!screen(&state, 160, 48).join("\n").contains("Context"));
+        assert!(screen(&state, 163, 48).join("\n").contains("Context"));
+        state.chrome.devtools = Some(false);
+        let hidden = screen(&state, 120, 40);
+        assert!(!hidden.join("\n").contains("Native runtime"));
+        assert!(hidden[38].contains("ctrl+p commands"));
+        state.chrome.devtools = Some(true);
+        let shown = screen(&state, 120, 40);
+        assert!(shown[39].contains("Native runtime"));
+        assert!(shown[37].contains("ctrl+p commands"));
+    }
+
+    #[tokio::test]
+    async fn v03_sidebar_uses_dto_title_usage_and_styled_boundary() {
+        use ratatui::{Terminal, backend::TestBackend};
+        let mut state = golden_state().await;
+        state.chrome.devtools = Some(false);
+        state.chrome.location = Some("/workspace/real-project".into());
+        state.session_title = Some("Actual title".into());
+        state.begin_compress_turn(oc_core::core_app::WorkerTurnId("usage".into()));
+        state.apply_usage(
+            &oc_core::core_app::WorkerTurnId("usage".into()),
+            300,
+            20,
+            100,
+        );
+        let mut terminal = Terminal::new(TestBackend::new(160, 48)).unwrap();
+        terminal.draw(|f| render(f, &state)).unwrap();
+        let b = terminal.backend().buffer();
+        assert_eq!(b[(117, 10)].bg, Theme::dark().background());
+        assert_eq!(b[(118, 10)].bg, Theme::dark().background_panel());
+        let text = screen(&state, 160, 48).join("\n");
+        for value in [
+            "Actual title",
+            "320 tokens",
+            "32% used",
+            "/workspace/real-project",
+        ] {
+            assert!(text.contains(value), "{value}");
+        }
+        for width in [43, 44] {
+            let footer = footer_line(&state, Theme::dark(), width - 4, width).to_string();
+            assert!(footer.contains("320 (32%)"));
+            assert!(!footer.contains("ctrl+p"));
+        }
+        state.parent_id = Some("parent".into());
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_eq!(
+            terminal.backend().buffer()[(118, 10)].bg,
+            Theme::dark().background()
+        );
     }
 
     /// The buffer rows with trailing spaces removed, so snapshots stay small
@@ -637,11 +1160,11 @@ mod tests {
         // border with 1/2 padding (`routes/session/index.tsx:2298-2335`), the
         // assistant text sits at paddingLeft=3 and each upstream row has
         // `marginTop=1` (`routes/session/index.tsx:1435`).
-        expected[10] = "  ┃".to_string();
-        expected[11] = "  ┃  hello".to_string();
-        expected[12] = "  ┃".to_string();
-        expected[13] = String::new();
-        expected[14] = "     hi there".to_string();
+        expected[2] = "  ┃".to_string();
+        expected[3] = "  ┃  hello".to_string();
+        expected[4] = "  ┃".to_string();
+        expected[5] = String::new();
+        expected[6] = "     hi there".to_string();
         // Status row is empty while pinned; prompt box rows follow.
         expected[16] = "  ┃".to_string();
         expected[17] = "  ┃".to_string();
@@ -651,7 +1174,7 @@ mod tests {
         expected[21] = format!("  {}", right_aligned(hints, 76));
         expected[22] = String::new();
         // Devtools bar (local channel default), height 1.
-        expected[23] = "  Server  ○ UI  Theme  Tools  Experiments".to_string();
+        expected[23] = "  Native runtime  ○ UI".to_string();
         assert_eq!(screen(&state, 80, 24), expected);
     }
 
@@ -662,18 +1185,18 @@ mod tests {
         let mut expected = vec![String::new(); 40];
         expected[0] = " 1 Untitled session".to_string();
         // Same message presentation as 80x24, just taller.
-        expected[26] = "  ┃".to_string();
-        expected[27] = "  ┃  hello".to_string();
-        expected[28] = "  ┃".to_string();
-        expected[29] = String::new();
-        expected[30] = "     hi there".to_string();
+        expected[2] = "  ┃".to_string();
+        expected[3] = "  ┃  hello".to_string();
+        expected[4] = "  ┃".to_string();
+        expected[5] = String::new();
+        expected[6] = "     hi there".to_string();
         expected[32] = "  ┃".to_string();
         expected[33] = "  ┃".to_string();
         expected[34] = "  ┃".to_string();
         expected[35] = "  ┃  x · a ludka2 · low".to_string();
         expected[36] = format!("  ╹{}", "▀".repeat(115));
         expected[37] = format!("  {}", right_aligned(hints, 116));
-        expected[39] = "  Server  ○ UI  Theme  Tools  Experiments".to_string();
+        expected[39] = "  Native runtime  ○ UI".to_string();
         assert_eq!(screen(&state, 120, 40), expected);
     }
 
@@ -835,7 +1358,7 @@ mod tests {
             "{:?}",
             state.viewport()
         );
-        assert!(frame[14] == "     X · a · 1.5s · interrupted", "{frame:?}");
+        assert!(frame[13] == "     X · a · 1.5s · interrupted", "{frame:?}");
     }
 
     #[tokio::test]

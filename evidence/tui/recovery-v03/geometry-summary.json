@@ -1,0 +1,1013 @@
+{
+  "scope": "Targeted geometry observations only. Full grid/PNG diffs remain DIFFERENT; no VIS or T44 PASS.",
+  "pairs": [
+    {
+      "attempt": "v03-attempt-05",
+      "scenario": "session-wide-completed",
+      "reference": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": {
+          "x": 118,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "actual": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": {
+          "x": 118,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-05",
+      "scenario": "resize-80x24-0",
+      "reference": {
+        "columns": 80,
+        "rows": 24,
+        "sidebar": null,
+        "visible_row_markers": 13,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 21,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 22
+      },
+      "actual": {
+        "columns": 80,
+        "rows": 24,
+        "sidebar": null,
+        "visible_row_markers": 13,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 21,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 22
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-05",
+      "scenario": "resize-120x40-1",
+      "reference": {
+        "columns": 120,
+        "rows": 40,
+        "sidebar": null,
+        "visible_row_markers": 29,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 37,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 38
+      },
+      "actual": {
+        "columns": 120,
+        "rows": 40,
+        "sidebar": null,
+        "visible_row_markers": 29,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 37,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 38
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-05",
+      "scenario": "resize-160x48-2",
+      "reference": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": {
+          "x": 118,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "actual": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": {
+          "x": 118,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-05",
+      "scenario": "resize-43x48-3",
+      "reference": {
+        "columns": 43,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": -1
+      },
+      "actual": {
+        "columns": 43,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 36,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": -1
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-05",
+      "scenario": "resize-44x48-4",
+      "reference": {
+        "columns": 44,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": -1
+      },
+      "actual": {
+        "columns": 44,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 36,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 46
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": false
+      }
+    },
+    {
+      "attempt": "v03-attempt-05",
+      "scenario": "resize-119x48-5",
+      "reference": {
+        "columns": 119,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 46
+      },
+      "actual": {
+        "columns": 119,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 46
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-05",
+      "scenario": "resize-120x48-6",
+      "reference": {
+        "columns": 120,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 46
+      },
+      "actual": {
+        "columns": 120,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 46
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-05",
+      "scenario": "resize-121x48-7",
+      "reference": {
+        "columns": 121,
+        "rows": 48,
+        "sidebar": {
+          "x": 79,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "actual": {
+        "columns": 121,
+        "rows": 48,
+        "sidebar": {
+          "x": 79,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-05",
+      "scenario": "resize-120x80-8",
+      "reference": {
+        "columns": 120,
+        "rows": 80,
+        "sidebar": null,
+        "visible_row_markers": 69,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 77,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 78
+      },
+      "actual": {
+        "columns": 120,
+        "rows": 80,
+        "sidebar": null,
+        "visible_row_markers": 69,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 77,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 78
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-05",
+      "scenario": "resize-160x48-9",
+      "reference": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": {
+          "x": 118,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "actual": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": {
+          "x": 118,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-06",
+      "scenario": "session-wide-completed",
+      "reference": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": {
+          "x": 118,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 0,
+        "short_answer_y": 6,
+        "user_prompt_y": 3,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "actual": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": {
+          "x": 118,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 0,
+        "short_answer_y": 6,
+        "user_prompt_y": 3,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-07",
+      "scenario": "session-wide-completed",
+      "reference": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 0,
+        "short_answer_y": 6,
+        "user_prompt_y": 3,
+        "underline_y": 44,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 45
+      },
+      "actual": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 0,
+        "short_answer_y": 6,
+        "user_prompt_y": 3,
+        "underline_y": 44,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 45
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-08",
+      "scenario": "session-wide-completed",
+      "reference": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": {
+          "x": 118,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "actual": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": {
+          "x": 118,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-08",
+      "scenario": "resize-80x24-0",
+      "reference": {
+        "columns": 80,
+        "rows": 24,
+        "sidebar": null,
+        "visible_row_markers": 13,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 21,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 22
+      },
+      "actual": {
+        "columns": 80,
+        "rows": 24,
+        "sidebar": null,
+        "visible_row_markers": 13,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 21,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 22
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-08",
+      "scenario": "resize-120x40-1",
+      "reference": {
+        "columns": 120,
+        "rows": 40,
+        "sidebar": null,
+        "visible_row_markers": 29,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 37,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 38
+      },
+      "actual": {
+        "columns": 120,
+        "rows": 40,
+        "sidebar": null,
+        "visible_row_markers": 29,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 37,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 38
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-08",
+      "scenario": "resize-160x48-2",
+      "reference": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": {
+          "x": 118,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "actual": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": {
+          "x": 118,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-08",
+      "scenario": "resize-43x48-3",
+      "reference": {
+        "columns": 43,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": -1
+      },
+      "actual": {
+        "columns": 43,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 36,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": -1
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-08",
+      "scenario": "resize-44x48-4",
+      "reference": {
+        "columns": 44,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": -1
+      },
+      "actual": {
+        "columns": 44,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 36,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": -1
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-08",
+      "scenario": "resize-119x48-5",
+      "reference": {
+        "columns": 119,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 46
+      },
+      "actual": {
+        "columns": 119,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 46
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-08",
+      "scenario": "resize-120x48-6",
+      "reference": {
+        "columns": 120,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 46
+      },
+      "actual": {
+        "columns": 120,
+        "rows": 48,
+        "sidebar": null,
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 46
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-08",
+      "scenario": "resize-121x48-7",
+      "reference": {
+        "columns": 121,
+        "rows": 48,
+        "sidebar": {
+          "x": 79,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "actual": {
+        "columns": 121,
+        "rows": 48,
+        "sidebar": {
+          "x": 79,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-08",
+      "scenario": "resize-120x80-8",
+      "reference": {
+        "columns": 120,
+        "rows": 80,
+        "sidebar": null,
+        "visible_row_markers": 69,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 77,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 78
+      },
+      "actual": {
+        "columns": 120,
+        "rows": 80,
+        "sidebar": null,
+        "visible_row_markers": 69,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 77,
+        "context_y": -1,
+        "usage_y": -1,
+        "footer_y": 78
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    },
+    {
+      "attempt": "v03-attempt-08",
+      "scenario": "resize-160x48-9",
+      "reference": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": {
+          "x": 118,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "actual": {
+        "columns": 160,
+        "rows": 48,
+        "sidebar": {
+          "x": 118,
+          "width": 42,
+          "bg": "#141414"
+        },
+        "visible_row_markers": 37,
+        "short_answer_y": -1,
+        "user_prompt_y": -1,
+        "underline_y": 45,
+        "context_y": 5,
+        "usage_y": 6,
+        "footer_y": 46
+      },
+      "equal_geometry_fields": {
+        "columns": true,
+        "rows": true,
+        "sidebar": true,
+        "short_answer_y": true,
+        "user_prompt_y": true,
+        "underline_y": true,
+        "context_y": true,
+        "usage_y": true,
+        "footer_y": true
+      }
+    }
+  ]
+}
