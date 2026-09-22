@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-22T07:27:15.004Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "6d62e75c6a83a69cc2f9d81af80c4fa3ead822dd56fc1a8707359f2b193dc669",
+    "frontend.js": "422f93bd137f00b2b677e2b5e1f8f31170cccffd9330eab2c66f26528820f6ee",
+    "bridge.py": "a33cca0e9b50ab7b738b0bbae988e6af70a367f5d7123372f2dbf9b31a6cd34d"
+  },
+  "fixture_sha256": "ed3822cd47c54b5102e6b6a658909cd5a87596827be5e3d598ab08ce7760f64a",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9"
+  },
+  "oc": {
+    "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+    "tree": "9033d587782a4d58b33113c43c25492f79d3de3e",
+    "dirty_diff_sha256": "79e70a250e91bad3522d68a83e4610d62ca75571c5fc90cc15fdfbe3008da3fc",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "e36d2307361e56fc6a69d36a836a0f642c982a0b26340511add90d77ac715660",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "scenario": "commands-over-session",
+      "status": "FAILED",
+      "reason": "Timed out waiting for Commands"
+    },
+    {
+      "origin": "oc",
+      "scenario": "models-over-session",
+      "status": "FAILED",
+      "reason": "Timed out waiting for Select model"
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "commands-over-session",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "commands-over-session",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "models-over-session",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "models-over-session",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "f3c1c2ec327aecf934a1fba05ce841c09ae1bb4d7f0904b12123fa1b563654bc",
+      "cells_sha256": "138c6bc8fa67124218c56ca71324dfec44eb2e5f64198972f76e872cca4ef64c",
+      "png_sha256": "01ce20ccc6a9ecb1e48033892994e0f8ad653406f891a8b48e5830219d179432",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "commands-over-session",
+      "status": "CAPTURED",
+      "environment_id": "f3c1c2ec327aecf934a1fba05ce841c09ae1bb4d7f0904b12123fa1b563654bc",
+      "cells_sha256": "6fe4d79b1115ced58e80b23f7b8167248917d9ecfad50043498db7d6ac08edb5",
+      "png_sha256": "dc9c6a10220531338d1faf04e8b26e498c399f450c7c6c50a15ad9e0c4e34548",
+      "path": "upstream/commands-over-session"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "models-over-session",
+      "status": "CAPTURED",
+      "environment_id": "f3c1c2ec327aecf934a1fba05ce841c09ae1bb4d7f0904b12123fa1b563654bc",
+      "cells_sha256": "b845dbe7ea085657d5793dbc64876dc61a4299e26eefb71c4f8e956cd13c07e9",
+      "png_sha256": "56ad79cca80d38e4e54fe2627324b24364df0a72fccacebc0e4886bf068807be",
+      "path": "upstream/models-over-session"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "f3c1c2ec327aecf934a1fba05ce841c09ae1bb4d7f0904b12123fa1b563654bc",
+      "cells_sha256": "c83b3ed5d1ae2f044351b22a4002843fce18cb67c018b6fae9d8e79eb1525d37",
+      "png_sha256": "a01a84dd548536c0cda2449e857b2aa6e8368f1665ebaf52eb49ae875327d090",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "commands-over-session",
+      "status": "FAILED_STATE",
+      "environment_id": "f3c1c2ec327aecf934a1fba05ce841c09ae1bb4d7f0904b12123fa1b563654bc",
+      "cells_sha256": "4058792c4fc4040e0de36ebddf71d02f31c42c7a28b578990fb4044ca759ab2c",
+      "png_sha256": "8ddbc2bf2b28aacdd41fd893795fba13536c5c11b313edccedf3ef77ac93be4c",
+      "path": "oc/commands-over-session"
+    },
+    {
+      "origin": "oc",
+      "scenario": "models-over-session",
+      "status": "FAILED_STATE",
+      "environment_id": "f3c1c2ec327aecf934a1fba05ce841c09ae1bb4d7f0904b12123fa1b563654bc",
+      "cells_sha256": "485bdd613b0c92bfcd336fe5a86ca2f3fbc968ae7f57bdf49aa2baf4fb0ac28c",
+      "png_sha256": "37947cfbeb5449499d9ce802a944fd97c5fd1ad1d34d8c86902fc57b3bf975e8",
+      "path": "oc/models-over-session"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 160,
+    "rows": 48,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "auto",
+      "devtools": false,
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "pixel_width": 1349,
+    "pixel_height": 768,
+    "measured_cell_width": 8.43125,
+    "measured_cell_height": 16
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "auto",
+      "devtools": false,
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-22T07:27:58.497Z",
+  "exit_code": 1
+}

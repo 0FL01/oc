@@ -1,0 +1,7 @@
+{
+  "status": "INTERRUPTED_RUNNER",
+  "command_exit": "tool timeout at 120000 ms",
+  "reason": "Runner awaited an already-emitted bridge close event after Escape exited the Rust application. Original Session/Commands/Models and Rust diagnostic captures had been saved; no final comparator ran in this attempt.",
+  "recovery": "Establish close promise immediately on spawn and only send modal Escape when Commands was actually observed. Preserve attempt-02 artifacts unchanged.",
+  "cleanup": "Subsequent process listing showed no runner, reference executable, Rust test executable, or Chromium from this attempt remaining."
+}

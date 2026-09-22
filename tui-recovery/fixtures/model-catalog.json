@@ -1,0 +1,145 @@
+{
+  "purpose": "offline UI fixture only; not public specifications",
+  "provider": {
+    "id": "fixture",
+    "name": "OpenCode Zen"
+  },
+  "models": [
+    {
+      "id": "fixture-model-1",
+      "name": "MiMo-V2.6-Flash Free",
+      "cost": {
+        "input": 0,
+        "output": 0
+      },
+      "variants": {},
+      "limit": {
+        "context": 225000,
+        "output": 4096
+      }
+    },
+    {
+      "id": "fixture-model-2",
+      "name": "Muse Spark 1.3 Free",
+      "cost": {
+        "input": 0,
+        "output": 0
+      },
+      "variants": {},
+      "limit": {
+        "context": 225000,
+        "output": 4096
+      }
+    },
+    {
+      "id": "fixture-model-3",
+      "name": "Ling 3.0 Flash Free",
+      "cost": {
+        "input": 0,
+        "output": 0
+      },
+      "variants": {},
+      "limit": {
+        "context": 225000,
+        "output": 4096
+      }
+    },
+    {
+      "id": "fixture-model-4",
+      "name": "Nemotron 3.5 Lightning Free",
+      "cost": {
+        "input": 0,
+        "output": 0
+      },
+      "variants": {},
+      "limit": {
+        "context": 225000,
+        "output": 4096
+      }
+    },
+    {
+      "id": "fixture-model-5",
+      "name": "Muse Spark 1.2 Free",
+      "cost": {
+        "input": 0,
+        "output": 0
+      },
+      "variants": {},
+      "limit": {
+        "context": 225000,
+        "output": 4096
+      }
+    },
+    {
+      "id": "fixture-model-6",
+      "name": "Nemotron 3 Ultra Free",
+      "cost": {
+        "input": 0,
+        "output": 0
+      },
+      "variants": {},
+      "limit": {
+        "context": 225000,
+        "output": 4096
+      }
+    },
+    {
+      "id": "fixture-model-7",
+      "name": "MiMo V2.5 Free",
+      "cost": {
+        "input": 0,
+        "output": 0
+      },
+      "variants": {},
+      "limit": {
+        "context": 225000,
+        "output": 4096
+      }
+    },
+    {
+      "id": "fixture-model-8",
+      "name": "Big Pickle",
+      "cost": {
+        "input": 0,
+        "output": 0
+      },
+      "variants": {},
+      "limit": {
+        "context": 225000,
+        "output": 4096
+      }
+    }
+  ],
+  "additional_negative_cases": [
+    {
+      "id": "vendor/nested/opaque-id",
+      "name": "Readable name from metadata",
+      "cost": null,
+      "variants": {
+        "low": {
+          "reasoningEffort": "low"
+        },
+        "high": {
+          "reasoningEffort": "high"
+        }
+      },
+      "limit": {
+        "context": 500000,
+        "output": 32000
+      }
+    },
+    {
+      "id": "unknown-price",
+      "name": "No tariff metadata",
+      "cost": null
+    },
+    {
+      "id": "long-name",
+      "name": "Очень длинное имя модели — проверка ширины 🦀 界",
+      "cost": {
+        "input": 1,
+        "output": 2
+      }
+    }
+  ]
+}

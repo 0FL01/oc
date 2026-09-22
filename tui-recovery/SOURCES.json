@@ -1,0 +1,228 @@
+{
+  "port_commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+  "ui_reference_tag": "v2.0.12",
+  "ui_reference_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "note": "The value formerly described as a tree SHA is a commit SHA according to the tag ref. User screenshot version/terminal metadata are not supplied.",
+  "sources": [
+    {
+      "id": "P01",
+      "repository": "0FL01/oc",
+      "path": "docs/goals/2026-09-21-tui-pixel-parity.md",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "R1–R6; Material Decisions",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/docs/goals/2026-09-21-tui-pixel-parity.md",
+      "purpose": "Current T44 acceptance; self-generated goldens; verified R3/R4 and residuals"
+    },
+    {
+      "id": "P02",
+      "repository": "0FL01/oc",
+      "path": "progress/NOW.md",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "T44 checkpoint",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/progress/NOW.md",
+      "purpose": "Self-reported progress and flaky tests; not independently executed"
+    },
+    {
+      "id": "P03",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/views.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "render_test; panel_lines",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-tui/src/views.rs",
+      "purpose": "Symbol-only test extraction; inline textual panels"
+    },
+    {
+      "id": "P04",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/layout.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "shell_regions; session_regions; sidebar_auto",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-tui/src/layout.rs",
+      "purpose": "No sidebar allocation; unconditional devtools; fixed prompt"
+    },
+    {
+      "id": "P05",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/shell.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "render; render_tabs; render_transcript; golden_screen_80x24/120x40",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-tui/src/shell.rs",
+      "purpose": "Always dark; hardcoded untitled tab; 20-line clipping; self-authored expected arrays"
+    },
+    {
+      "id": "P06",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/messages.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "markdown; AssistantMeta; assistant_block",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-tui/src/messages.rs",
+      "purpose": "Tables fallback to text; limited markdown; historical metadata absent"
+    },
+    {
+      "id": "P07",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/events.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "map_key; map_event",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-tui/src/events.rs",
+      "purpose": "Control/Alt contains semantics; no palette action; Enter ignores modifiers"
+    },
+    {
+      "id": "P08",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/app.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "handle_key; handle_enter; transcript_rows; retained_bytes",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-tui/src/app.rs",
+      "purpose": "Submit awaited on UI path; history replay; cumulative rendering allocations"
+    },
+    {
+      "id": "P09",
+      "repository": "0FL01/oc",
+      "path": "crates/oc/src/tui_cmd.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "drive_ui; handle_event; interactive_ready",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc/src/tui_cmd.rs",
+      "purpose": "Actual terminal loop waits on event handler; bare startup"
+    },
+    {
+      "id": "P10",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-core/src/queries.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "HistoryMessage; ModelEntry; AgentEntry; CatalogSnapshot",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-core/src/queries.rs",
+      "purpose": "Missing durable presentation metadata and model display names"
+    },
+    {
+      "id": "P11",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-adapters/src/runtime.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "RuntimeError; run_turn_with_tool_events; attach_mcp",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-adapters/src/runtime.rs",
+      "purpose": "MCP attach before input acceptance; error kind loss"
+    },
+    {
+      "id": "P12",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-adapters/src/mcp_remote.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "CodexWebConfig::validate/from_entry; CodexWebClient::connect",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-adapters/src/mcp_remote.rs",
+      "purpose": "Mandatory bearer and exact protocol in shared remote path"
+    },
+    {
+      "id": "P13",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-adapters/src/composition.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "load_with_env, lines 87–135",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-adapters/src/composition.rs",
+      "purpose": "Canonical source check but local root itself may resolve outside project; reads before checking"
+    },
+    {
+      "id": "P14",
+      "repository": "0FL01/oc",
+      "path": "GOAL.md",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "A08; owner scope amendment",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/GOAL.md",
+      "purpose": "Earlier pixel parity exemption; now mandatory subagents via amendment"
+    },
+    {
+      "id": "P15",
+      "repository": "0FL01/oc",
+      "path": "progress/STATE.json",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "T42–T45",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/progress/STATE.json",
+      "purpose": "T42 done; T43 blocked; T44 active; T45 todo"
+    },
+    {
+      "id": "P16",
+      "repository": "0FL01/oc",
+      "path": "crates/oc/src/bootstrap.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "run",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc/src/bootstrap.rs",
+      "purpose": "Bare oc now launches TUI if both streams are TTY"
+    },
+    {
+      "id": "U01",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/ui/dialog.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "dialogWidth; Dialog",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/ui/dialog.tsx",
+      "purpose": "Widths 60/88/116; top H/4 by default; black overlay alpha 150/255"
+    },
+    {
+      "id": "U02",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/config/keybind.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "Definitions; LeaderDefault",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/config/keybind.ts",
+      "purpose": "Canonical command IDs and key chords"
+    },
+    {
+      "id": "U03",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/session-frame.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "wide; sidebarVisible; rightPane",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/session-frame.tsx",
+      "purpose": "Sidebar auto threshold >120 minus vertical tabs; child-session exception"
+    },
+    {
+      "id": "U04",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "lines 1240–1425; SessionRowView",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx",
+      "purpose": "Transcript scrollbox; prompt/footer placement; sticky scrolling"
+    },
+    {
+      "id": "U05",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-model.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "options; title; onSelect",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-model.tsx",
+      "purpose": "Display names, current selection, favorites/recents, real metadata"
+    },
+    {
+      "id": "U06",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/app.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "App, line 472",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/app.tsx",
+      "purpose": "Devtools conditional on config or local channel, not unconditional"
+    }
+  ],
+  "external_primary_sources": [
+    {
+      "id": "D01",
+      "url": "https://ratatui.rs/recipes/testing/snapshots/",
+      "purpose": "TestBackend vs actual-binary PTY; string snapshots do not assert colors"
+    },
+    {
+      "id": "D02",
+      "url": "https://docs.rs/ratatui/latest/ratatui/backend/struct.TestBackend.html",
+      "purpose": "Buffer/style/cursor testing"
+    },
+    {
+      "id": "D03",
+      "url": "https://docs.rs/crossterm/latest/crossterm/event/struct.KeyModifiers.html",
+      "purpose": "contains vs intersects"
+    },
+    {
+      "id": "D04",
+      "url": "https://docs.rs/pulldown-cmark/latest/pulldown_cmark/struct.Options.html",
+      "purpose": "Markdown parser with tables; version must be pinned in compile spike"
+    }
+  ]
+}

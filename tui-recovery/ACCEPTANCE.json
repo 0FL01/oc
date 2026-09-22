@@ -1,0 +1,338 @@
+{
+  "schema_version": 1,
+  "purpose": "specifications, not executed product results",
+  "snapshot": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+  "tracking": "T44 via existing progress.py; not a second engine",
+  "cases": [
+    {
+      "id": "VIS01",
+      "step": "V00",
+      "title": "Independent original capture",
+      "expected": "Reference binary/version/hash and terminal profile resolved; independent upstream frames captured. No own-renderer expected substituted for original.",
+      "sources": [
+        "P01",
+        "U01"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS02",
+      "step": "V00",
+      "title": "Equivalent state and provenance",
+      "expected": "Paired scenario/fixture/profile hashes match. Different state or dimensions are INVALID, not PASS; supplied images used only as visual targets.",
+      "sources": [
+        "P01"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS03",
+      "step": "V03",
+      "title": "Bare oc and route states",
+      "expected": "Actual bare oc opens TUI in TTY; non-TTY explicit error. Home/empty/populated/error states follow captured reference without mock fallback.",
+      "sources": [
+        "P16",
+        "U04"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS04",
+      "step": "V03",
+      "title": "Wide layout and sidebar",
+      "expected": "Original and oc paired wide frame has sidebar/title/context/location with correct geometry at >120 when enabled; no fixed 20-row viewport.",
+      "sources": [
+        "P04",
+        "P05",
+        "U03"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS05",
+      "step": "V03",
+      "title": "Resize and viewport",
+      "expected": "80x24,120x40,160x48 and widths43/44/119/120/121; >35-row transcript uses visible height, shrink/grow preserves cursor/scroll/draft.",
+      "sources": [
+        "P04",
+        "P05",
+        "U03",
+        "U04"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS06",
+      "step": "V02",
+      "title": "Data-driven chrome",
+      "expected": "Session title, model/provider display names, agent color, usage and known/unknown pricing come from actual DTOs, not renderer constants.",
+      "sources": [
+        "P05",
+        "P10",
+        "U05"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS07",
+      "step": "V03",
+      "title": "Conditional devtools",
+      "expected": "Normal/reference production profile has matching debug bar visibility; hidden bar reserves no row; shown actions correspond to real capabilities.",
+      "sources": [
+        "P04",
+        "P05",
+        "U06"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS08",
+      "step": "V04",
+      "title": "Command palette actual hotkey",
+      "expected": "Raw Ctrl+P opens overlay Commands with focused Search, categories, right shortcuts and no transcript reflow. Selected action really executes.",
+      "sources": [
+        "P03",
+        "P07",
+        "U01",
+        "U02"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS09",
+      "step": "V04",
+      "title": "Model dialog search and selection",
+      "expected": "Select model uses display metadata, current-dot vs focus, scrolling beyond8 rows, actual model/variant choice in captured provider request.",
+      "sources": [
+        "P03",
+        "P10",
+        "U05"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS10",
+      "step": "V04",
+      "title": "Modal focus and backdrop",
+      "expected": "Cell styles reflect correct backdrop/surface, dimensions60/88/116 constrained by width; Esc restores draft/focus and does not quit app.",
+      "sources": [
+        "P05",
+        "P07",
+        "U01"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS11",
+      "step": "V05",
+      "title": "Keyboard modifiers and events",
+      "expected": "Ctrl/Alt do not leak printable chars; Press/Repeat/Release rules tested, leader shortcuts correct per focus, no duplicate submission.",
+      "sources": [
+        "P07",
+        "U02"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS12",
+      "step": "V05",
+      "title": "Multiline Unicode editor",
+      "expected": "Raw newline/cursor/history/paste/edit sequence preserves graphemes, drafts, selection and single durable Enter acceptance.",
+      "sources": [
+        "P07",
+        "P08",
+        "U02"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS13",
+      "step": "V06",
+      "title": "Markdown table fidelity",
+      "expected": "2-column11-row Russian tool table rendered with reference borders/wrap/styles; escaped pipes, wide glyphs and long cells covered.",
+      "sources": [
+        "P06",
+        "U04"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS14",
+      "step": "V06",
+      "title": "Markdown streaming and code",
+      "expected": "Fences/headings/lists/inline spans match reference including incomplete stream; completed blocks not globally reparsed every frame.",
+      "sources": [
+        "P06"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS15",
+      "step": "V06",
+      "title": "Reasoning and footer truth",
+      "expected": "Collapsed/running/complete/error reasoning and known duration/usage visible; opaque encrypted continuation absent from UI/logs.",
+      "sources": [
+        "P06",
+        "P10",
+        "P11"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS16",
+      "step": "V06",
+      "title": "Tool cards and partial patch",
+      "expected": "Live real operation events create correctly ordered cards/hunks/error/unknown/truncation. Incomplete/partial patch is never displayed as full success.",
+      "sources": [
+        "P08",
+        "P10",
+        "P11"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS17",
+      "step": "V06",
+      "title": "Durable replay parity",
+      "expected": "Same session parts/cards/metadata render equivalently after page reload, session switch and process restart, with one durable owner.",
+      "sources": [
+        "P01",
+        "P06",
+        "P10"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS18",
+      "step": "V01",
+      "title": "Pending submit responsiveness",
+      "expected": "Stalled MCP initialize before accepted; actual PTY resize/cancel works within recorded bound, draft retained, no duplicate turn or orphan.",
+      "sources": [
+        "P08",
+        "P09",
+        "P11"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS19",
+      "step": "V01",
+      "title": "MCP failure diagnostics",
+      "expected": "crw or faithful sanitized fixture exposes server+stage+safe cause; required failure not hidden; disabled zero spawn; exact auth/protocol per actual server.",
+      "sources": [
+        "P11",
+        "P12"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS20",
+      "step": "V07",
+      "title": "Source boundary",
+      "expected": "Discovered local .opencode symlink cannot admit external config; no outside content read/network before admission; explicit global root positive case.",
+      "sources": [
+        "P13"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS21",
+      "step": "V07",
+      "title": "Control-sequence and secret safety",
+      "expected": "CSI/OSC/BEL and secrets in fake outputs do not become terminal actions or leak into reports; Unicode/text remain usable.",
+      "sources": [
+        "P06",
+        "P08",
+        "P09"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS22",
+      "step": "V07",
+      "title": "Session and child integrity",
+      "expected": "Late events routed by request/turn/session/generation, permissions remain narrowed, subagent state genuine; Location switch does not import stale local state.",
+      "sources": [
+        "P08",
+        "P10",
+        "P11",
+        "P14"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS23",
+      "step": "V07",
+      "title": "Resource qualification after TUI change",
+      "expected": "Equal active context with growing archive measured on final real binary; styles/markdown caches/liveparts/queues bounded, not hidden by20 rows.",
+      "sources": [
+        "P04",
+        "P05",
+        "P08",
+        "P11"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS24",
+      "step": "V09",
+      "title": "Paired visual and final behavioral qualification",
+      "expected": "Session/Commands/Models paired cells+PNG exact under lock, all preceding cases accounted, fresh fmt/clippy/tests/build/PTY/golden and failed attempts retained; no premature READY.",
+      "sources": [
+        "P01",
+        "P02",
+        "P14",
+        "P15"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    }
+  ]
+}

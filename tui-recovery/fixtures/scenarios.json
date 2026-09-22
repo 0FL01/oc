@@ -1,0 +1,61 @@
+{
+  "execution_status": "NOT_RUN",
+  "reference_screenshot_version": "unknown; capture pinned upstream anew",
+  "base": {
+    "input": "input.txt",
+    "assistant_markdown": "transcript.md",
+    "title": "Какие инструменты доступны ассистенту",
+    "reasoning_duration_ms": 6800,
+    "context_tokens": 6763,
+    "context_percent_display": "3%",
+    "agent_label": "Build",
+    "model_catalog": "model-catalog.json",
+    "selected_model": "fixture-model-1",
+    "location_label": "/tmp/space",
+    "animations": "freeze or matching supported setting, record in profile"
+  },
+  "screens": [
+    {
+      "id": "session-wide-completed",
+      "state": "completed transcript, sidebar visible, empty draft",
+      "capture_after": "terminal stable completion predicate"
+    },
+    {
+      "id": "commands-over-session",
+      "state": "same transcript, command palette open",
+      "keys": [
+        "CTRL_P"
+      ],
+      "capture_after": "Commands dialog focused"
+    },
+    {
+      "id": "models-over-session",
+      "state": "same transcript, model dialog open",
+      "keys": [
+        "CTRL_X",
+        "m"
+      ],
+      "capture_after": "Select model dialog focused"
+    },
+    {
+      "id": "mcp-attach-error",
+      "state": "failed pre-accept attach, draft retained, typed sanitized error",
+      "keys": [
+        "TYPE_PROMPT",
+        "ENTER"
+      ],
+      "capture_after": "MCP error + no accepted turn"
+    },
+    {
+      "id": "mcp-attach-stall",
+      "state": "pending pre-accept attach",
+      "keys": [
+        "TYPE_PROMPT",
+        "ENTER",
+        "RESIZE",
+        "ESCAPE"
+      ],
+      "capture_after": "UI remains responsive and request cancelled"
+    }
+  ]
+}

@@ -1,16 +1,23 @@
 # Goal: TUI pixel parity with opencode v2.0.12
 
 Status: active
-Source: user instruction 2026-09-21 ("реализовать полный пиксель перфект TUI для opencode rust; полностью скопировать интерфейс с оригинального opencode 2"), reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (tree SHA `2670273ff17da96f85c5826ced57aa1b368754fa`).
-Last updated: 2026-09-21
+Source: user instructions 2026-09-21 and reviewed recovery amendment 2026-09-22, reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`).
+Last updated: 2026-09-22
 
 ## Objective
 
-The `oc` TUI renders the upstream opencode v2.0.12 interface: same layout regions, same theme colors, same component inventory (message stream, tool cards, dialogs, command palette, session list, status/footer), same keybindings and visible strings, verified by golden screen snapshots derived from the upstream sources.
+The `oc` TUI renders the upstream opencode v2.0.12 interface: same layout regions, same theme colors, same component inventory (message stream, tool cards, dialogs, command palette, session list, status/footer), same keybindings and visible strings, verified against the running pinned original using identical fixtures, state and terminal profile. Rust's own goldens are regression tests, not proof of external pixel parity.
 
 ## Execution Directive
 
 Complete the frozen Required Outcomes using the listed Change Envelope and Primary Evidence. Work on the smallest unresolved outcome. Do not add requirements from reviews, tests, tools, speculative risks, or optional source text. Finish when every required outcome is resolved and affected constraints remain satisfied.
+
+The owner's reviewed [T44 amendment](../../tui-recovery/T44_CONTRACT_AMENDMENT.md)
+supersedes the weaker self-authored interpretation below. Execute V00–V09 from
+[IMPLEMENTATION_GUIDE](../../tui-recovery/IMPLEMENTATION_GUIDE.md), all mandatory
+VIS01–VIS24 in [ACCEPTANCE.json](../../tui-recovery/ACCEPTANCE.json), and
+[SAFETY_REGRESSIONS](../../tui-recovery/SAFETY_REGRESSIONS.md). These are specifications,
+not executed results or a second task engine. `progress.py` remains the task-state owner.
 
 ## Frozen Contract
 
@@ -20,25 +27,25 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: user instruction (recon by part of @general).
   - Acceptance: `evidence/tui/upstream-inventory.md` documents the upstream v2.0.12 TUI: file/component inventory (`packages/tui/src/**`, `packages/theme/src/tui/**`), exact theme colors, layout regions, keymap, and visible strings, each with source path + quoted snippet; `evidence/tui/current-gaps.md` maps our `crates/oc-tui` against it with concrete gaps.
   - Primary evidence: the two files + a reviewer can trace every claim to an upstream path.
-  - Status: verified
+  - Status: source inventory verified; executable capture lock pending
   - Evidence: `evidence/tui/upstream-inventory.md` (147 lines, `path:line`-cited: default theme `opencode` dark, 74 token slots + hue scales, ~45 components, layout regions, keymap source, visible strings) and `evidence/tui/current-gaps.md` (171 lines, gap table + test-infrastructure analysis).
 
 - R2: Theme parity — the palette (colors, backgrounds, borders, syntax accents) matches upstream v2.0.12 values, including per-element roles (text, muted, primary, error/warning/success, panel, border, diff add/remove, user/assistant roles).
   - Acceptance: a test asserts our resolved palette equals the upstream values extracted in R1; TUI renders with those colors under a truecolor terminal.
   - Primary evidence: unit test over the palette + PTY snapshot showing colored regions.
-  - Status: verified
+  - Status: palette unit tests verified; final rendered colors unverified pending paired frames
   - Evidence: iteration 1 commit `b75e063`; `crates/oc-tui/assets/upstream/v2/opencode.json` (byte-faithful, SHA-256 recorded in `PROVENANCE.md`), `theme.rs::palette_matches_vendored_asset` walks the merged JSON generically (74 slots / 99 hue slots / 173 palette entries per mode), `rendered_frame_carries_theme_styles` asserts colors on a TestBackend frame.
 
 - R3: Layout parity — screen regions (header/logo area, message stream, input editor, status/footer bar, side panels/dialogs) occupy the same positions and respond to resize like upstream.
-  - Acceptance: golden snapshots at fixed terminal sizes (e.g. 80x24, 120x40) match the upstream layout spec from R1.
-  - Primary evidence: PTY snapshot tests at two sizes + resize behavior test.
-  - Status: verified
+  - Acceptance: paired styled-cell and PNG captures at 80x24, 120x40, 160x48 and established screenshot grid, plus edge widths 43/44/119/120/121; full-height viewport, sidebar, conditional devtools and real dialogs match the executable reference.
+  - Primary evidence: identical-profile original/Rust PTY captures, comparator reports, independent review and resize behavior tests.
+  - Status: implemented-partial/unverified
   - Evidence: iteration 2; `crates/oc-tui/src/layout.rs` (upstream geometry constants with source citations) + `shell.rs` golden frames at 80x24 and 120x40, breakpoint resize test, sticky-bottom test; workspace 381 passed / 0 failed / 4 ignored.
 
 - R4: Message rendering parity — user/assistant messages, markdown (headings, lists, code blocks, inline code), reasoning/thinking blocks, tool call cards (command, patch/diff, search, read), errors, and pending/running/completed states match upstream presentation and visible strings.
-  - Acceptance: golden snapshots for a scripted transcript covering each element; no raw escape noise; content wraps correctly.
-  - Primary evidence: snapshot tests over scripted transcripts.
-  - Status: verified
+  - Acceptance: paired captures for scripted transcripts including Markdown tables; live and durable replay restore the same semantic parts/cards/metadata; no raw escape noise; content wraps correctly.
+  - Primary evidence: original/Rust paired styled cells and PNG plus real protocol/operation/restart assertions.
+  - Status: implemented-partial/unverified
   - Evidence: iterations 3a+3b (committed): `crates/oc-tui/src/messages.rs` renders user blocks with `┃`/raised background/chips, assistant markdown (paddingLeft 3, headings/lists/code fences with syntax colors/blockquotes), collapsed reasoning (`Thinking` → `Thought: … · duration`), and the `agent · model · dur · tok/s · interrupted` footer; additive DTOs `ReasoningDelta`/`TurnUsage`/`duration_ms` wired through the provider stream (2 adapter end-to-end tests). Tool cards: inline rows (read/glob/grep/webfetch/skill/generic with upstream labels and spinner), shell `$ cmd` with stdout/stderr/exit/truncation, apply_patch `# Created`/`← Patched`/`# Deleted` with diff hunks using `diff.text.*` roles, subagent card parsed from the real `<subagent …>` wrapper, pending/running/completed/error/cancelled states; additive `ToolCallStarted/Finished` events emitted after durable writes. Known R4 residual: committed history rows carry no tool cards after a page reload (live turns only).
 
 - R5: Interaction parity — keybindings, command palette, dialogs (session list, model, agent, help, error details), input editor behavior (multi-line, paste, history), and status hints match upstream.
@@ -57,43 +64,47 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 ### Constraints
 
 - C1: Rust 2024, modular monolith, `oc-core` independent of UI, KISS/YAGNI; no Node/Bun/JS host in production; ratatui-based rendering.
-- C2: No hardcoded model IDs; no secrets in logs/snapshots.
+- C2: No hardcoded screenshot text/model labels/Free/Context in production; chrome comes from real DTOs, with honest unknown metadata. No secrets in logs/snapshots.
 - C3: Do not weaken existing audited contracts (PTY/terminal restore, DCP panel, permissions, session persistence, accessibility of terminal state).
 - C4: `scripts/progress.py` remains the only status source; one active task.
+- C5: Application owns acceptance/history/permissions/durability. No capture-only substitution of tool/runtime outcomes or hidden required MCP failures. Missing backend actions require explicit capability mapping/owner scope decision, or a blocked full-parity gate; unavailable actions must not appear working.
+- C6: Preserve four crates and current T43/T45 subagent scope. T44 verification does not imply product READY; mandatory live gates, FINAL and fresh security/resource qualification remain required.
 
 ### Non-goals
 
-- Web/desktop UI, plugin SDK, sound/clipboard OS integration beyond what upstream TUI visibly shows, animations requiring non-terminal capabilities, upstream Go/Bun runtime.
+- Web/desktop UI, plugin SDK, sound/clipboard OS integration beyond what upstream TUI visibly shows, animations requiring non-terminal capabilities, upstream Go/Bun production runtime. Original Bun/Node/build dependencies are permitted in an isolated reference/test environment.
 
 ## Change Envelope
 
 - Target: `crates/oc-tui/src/**`, `crates/oc/src/{tui_cmd.rs,bootstrap.rs}`, theme/config plumbing in `crates/oc-adapters/src/{config.rs,composition.rs}` if needed, `docs/*`, `evidence/tui/*`, tests under `crates/oc/tests/**` and `crates/oc-tui/src/**`.
+- Reviewed extension: minimal existing application DTO/runtime/storage projections in `oc-core`/`oc-adapters`, async submission and safe MCP diagnostics, and test-only reference capture tooling. No second transcript, event bus, plugin host or progress engine.
 - Expected paths, symbols, and direct consumers: `views.rs`, `app.rs`, `picker.rs`, `history.rs`, `dcp_panel.rs`, `events.rs`, `commands.rs`, `terminal.rs`; new modules for theme, components, snapshots.
 - Allowed and forbidden artifacts: source/tests/docs/evidence. Forbidden: editing GOAL.md gates, deleting tests, adding JS runtime, committing secrets.
 - User or harness budget: commits+pushes per slice; iterative rounds; no attempt limit.
 
 ## Current Checkpoint
 
-- Closes: R1
-- Smallest next action: run two reconnaissance subagents (upstream inventory + our gap analysis).
-- Expected evidence: `evidence/tui/upstream-inventory.md`, `evidence/tui/current-gaps.md`.
-- Stop or replan if: upstream TUI source is unavailable or its rendering cannot be expressed in a terminal (then record the deviation and continue with the closest faithful rendering).
+- Closes: no visual gate yet.
+- Smallest next action: verify static findings at current HEAD, obtain executable reference/profile (V00), reproduce stalled pre-acceptance submit through raw PTY (V01).
+- Expected evidence: capture lock, independent original frames, commands/exit codes and raw input/application effects; exact checkpoint after each slice.
+- Stop or replan if: reference/profile unavailable → BLOCKED_REFERENCE, never closest-rendering parity. Independent fixes remain executable.
 
 ## Current State
 
-- Resolved: goal registered; subagent slices 1–4 landed (T43) before this goal.
-- Last relevant evidence: upstream tree contains the TUI at `packages/tui/src/**` (452 tui-related files, `.tsx` components + `packages/theme/src/tui/**`); our TUI is 3378 lines across 10 modules.
-- Blocker: none.
-- Next: R1 recon, then iterative implementation slices (theme → layout → message rendering → interaction).
+- Resolved: source/theme/component groundwork landed through `d232baa`; historical reports remain unchanged.
+- Last relevant evidence: reviewed recovery packet audits `d232baa`; no paired executable captures or new qualification yet. VIS01–VIS24 initially NOT_RUN.
+- Blocker: reference executability/profile under investigation; no external blocker asserted yet.
+- Next: V00 then V01, one slice at a time; R3/R4 remain unverified until fixes and paired frames.
 
 ## Material Decisions
 
-- 2026-09-21: "Pixel-perfect" is interpreted as: exact palette values, region geometry, component inventory, visible strings and keymap extracted from upstream sources, locked by golden snapshots of our renderer (upstream itself cannot be executed in this environment: it needs Bun + its dependency tree). Deviations are recorded explicitly, never silently.
+- 2026-09-22 (supersedes the 2026-09-21 source-derived-golden interpretation): pixel-perfect requires the running pinned upstream and Rust under identical fixture/state/profile, exact symbols/styles/colors/cursor/geometry and interaction, paired PNG and styled-cell dumps, comparator and independent review. Own TestBackend expected values cannot establish external parity. Bun/Node are allowed only for the isolated reference. Missing runnable reference/profile means BLOCKED_REFERENCE, not verified R3/R4/R5. Preserve failed/ignored/blocked attempts and rerun full qualification on the final code SHA. TUI_IMPLEMENTED_UNVERIFIED and TUI_PARITY_VERIFIED are reporting labels, not runtime enums; neither overrides product READY gates.
 
 ## Checkpoint History
 
 - 2026-09-21: contract frozen; recon delegated.
 - 2026-09-21: R1 verified (both recon artifacts); iteration 1 (theme foundation) committed `b75e063`; iteration 2 (layout shell + goldens) committed next.
+- 2026-09-22: owner-reviewed recovery amendment accepted; R2 rendered colors and R3/R4 reopened as unverified, historical reports not rewritten.
 
 ## Completion
 

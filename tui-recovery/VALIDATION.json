@@ -1,0 +1,39 @@
+{
+  "validated_at_utc": "2026-09-22T06:37:05+00:00",
+  "audited_branch": "agent/oc-rust-port",
+  "audited_commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+  "branch_rechecked_same_head": true,
+  "reference_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "inspection": "GitHub source review and supplied PNG measurements, not runtime audit",
+  "not_executed": [
+    "Rust build",
+    "Rust unit/integration tests",
+    "real oc PTY",
+    "upstream TUI",
+    "live provider/MCP",
+    "paired reference capture"
+  ],
+  "auxiliary_python_tests": {
+    "attempted": 23,
+    "executed": 23,
+    "passed": 23,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "package_checks": [
+    "JSON and UTF-8 parse",
+    "source IDs unique",
+    "VIS01-VIS24 unique and source-linked",
+    "all product cases NOT_RUN",
+    "Python AST parsed",
+    "original supplied image hashes/dimensions checked",
+    "wrong-size images refused by comparator"
+  ],
+  "source_entries": 22,
+  "external_primary_docs": 4,
+  "product_acceptance_specifications": 24,
+  "reference_images": 4,
+  "files_delivered": "Documentation, static fixtures, original supplied PNGs and comparison utility; no Rust product patch and no font files",
+  "remote_repository_modified": false
+}

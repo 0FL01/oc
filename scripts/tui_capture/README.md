@@ -1,0 +1,107 @@
+# V00 actual-executable capture tooling
+
+This is **test-only** Python/Node tooling. It adds no production dependencies.
+`bridge.py` runs each explicitly supplied executable in a real PTY with a newly
+constructed environment, isolated HOME/XDG state, and a local HTTP Responses
+fixture. `capture.mjs` routes every PTY byte through the same xterm.js/Chromium
+frontend, saves full styled cells and PNGs, and invokes the recovery comparator.
+`frontend.js` reads xterm's VT buffer; it does not draw an application screen.
+
+## External prerequisites
+
+Use the approved external directory (no `npm install` in this workspace):
+
+```sh
+npm install --prefix /home/opencode/.cache/opencode-tmp/opencode/t44-reference --save-exact @xterm/xterm@6.0.0 @xterm/addon-unicode11@0.9.0 playwright@1.58.2
+PLAYWRIGHT_BROWSERS_PATH=/home/opencode/.cache/opencode-tmp/opencode/t44-reference/browsers /home/opencode/.cache/opencode-tmp/opencode/t44-reference/node_modules/.bin/playwright install chromium
+node scripts/tui_capture/check_frontend.mjs
+```
+
+Python 3 stdlib, Pillow (PNG comparator), fontconfig and DejaVu Sans Mono must be
+available. No fonts, browser, node_modules, or reference executable are vendored.
+The tooling npm lock is copied into each evidence attempt. The original binary
+is explicitly supplied and checked against the pinned SHA-256; the authoring
+agent binary/configuration is never discovered or used.
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc \
+  --build-oc true \
+  --output /home/opencode/ai/oc/evidence/tui/recovery-v00/attempt-05
+```
+
+Output directories are immutable attempts: an existing directory is rejected.
+Choose a fresh attempt name. `--tools ABSOLUTE_DIR` selects the external tooling
+directory. Omitting either executable explicitly records that side as skipped;
+missing pairs stay blocked. `--build-oc true` runs `cargo build --locked` and
+records it; otherwise the association of an existing Rust binary with the source
+commit is **not attested**. CLI exit `1` retains mismatches/failed predicates;
+exit `2` denotes a runner blocker. Neither is parity success.
+
+## What is captured
+
+* 160 × 48 real PTY; xterm.js 6.0.0 / Unicode11 addon / Chromium 145.0.7632.6,
+  14px DejaVu Sans Mono, device scale 1. Pixel geometry is measured from the
+  terminal DOM, independently of the cell geometry supplied to both PTYs.
+* Identical public fixture prompt, transcript, model IDs/display names, costs,
+  limits and usage (6000 input + 763 output = 6763). The fixture accepts only
+  loopback `/v1/responses`, selected model, streaming, and fixture prompt. It
+  records request hashes, safe contract facts and actual registered tool names,
+  never raw request prompts or credentials.
+* Original uses normal `--standalone`, native
+  `@opencode/ai/providers/openai/responses`, schema-v2 `providers/settings`.
+  Rust uses normal `oc tui`, `@ai-sdk/openai` alias, `provider/options`.
+* Original's normal title-generation request receives the fixture title; its
+  exact title-agent instruction distinguishes it from the transcript request.
+  Built-in models.dev catalog is disabled by the supported
+  `plugins: ["-opencode.models.dev"]` directive so only the eight fixture models
+  appear. This is configuration, not a replaced renderer or seeded DB.
+* Bracketed paste + Enter; then Ctrl+P; Escape only if Commands actually opened;
+  Ctrl+X followed by `m`. Each input and terminal-generated reply is recorded.
+* Stable full-grid/cursor polling plus semantic markers, fixture completion and
+  completed-turn footer precede capture. A post-PNG grid check detects changes
+  during screenshot. Failed dialog predicates retain the actual screen with
+  `FAILED_STATE`; they cannot count as completed dialogs.
+* `.cells.json` preserves every blank cell and resolved RGB, modifiers, wide
+  continuations, and cursor. `.txt` is review convenience only. `.vt` contains
+  the actual bytes up to capture, `raw.vt` the full run. `protocol.json`,
+  `inputs.json`, `commands.json`, and `capture.lock.json` preserve provenance.
+
+The common environment ID is SHA-256 of recursively key-sorted JSON profile;
+it excludes executable identity. Fixture hash covers hashes of the entire
+supplied fixture directory plus bridge source (including both config adapters
+and fake-protocol implementation). Per-side launch records contain the actual
+derived config and local endpoint. Per-side binary SHA, version, Rust commit/tree
+and tracked dirty-diff hash are locked; runner source hashes cover uncommitted
+test tooling. Parent-owned changes remain parent-owned.
+
+`check_frontend.mjs` separately qualifies RGB, styled blank backgrounds,
+bold/dim/italic/underline/blink/inverse/hidden/strike, CJK width-2/width-0 cells,
+combining text, cursor hide/show/position/shape, and terminal DSR replies.
+These synthetic checks are never labelled upstream captures. xterm represents
+blink as one attribute (rapid/slow blink are not separately qualified); pinned
+private xterm cursor/theme APIs are protected by this check. Fallback fonts are
+explicitly unknown rather than guessed. The supplied captures use Cyrillic and
+box drawing covered by DejaVu Sans Mono.
+
+## Known qualification boundaries
+
+Original disables animations and devtools through supported CLI config; Rust's
+effective settings may differ and are visible in the captures. Profile settings
+are requested settings, not proof that Rust implements them. Applications retain
+real elapsed-time/token-rate fields. Those are neither frozen nor masked, and
+the requested 6800ms reasoning state is not synthesized. Both run sequentially
+in one empty isolated project, with separate HOME/data; the actual location is
+recorded instead of pretending it is `/tmp/space`. New attempt paths also change
+the displayed location. Therefore exact repeat-run or pair parity remains open.
+MCP attach error/stall and broader VIS qualification are not executed here.
+
+Source contract anchors (pinned upstream source):
+`packages/cli/src/commands/commands.ts` (`--standalone`),
+`packages/schema/src/config/provider.ts`,
+`packages/core/test/config/provider.test.ts` (native Responses package),
+`packages/core/src/config/plugin/source.ts:113-120` (remove directive),
+`packages/core/src/plugin/agent.ts` (title request),
+`packages/tui/src/config/index.tsx` (theme/animations/sidebar/devtools),
+`packages/cli/src/server-process.ts` (environment controls).

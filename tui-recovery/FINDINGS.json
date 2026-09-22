@@ -1,0 +1,147 @@
+{
+  "port_commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+  "inspection": "source review; no Rust/PTY/live execution by this auditor",
+  "findings": [
+    {
+      "id": "UI01",
+      "severity": "P1",
+      "verification": "statically_confirmed",
+      "title": "Подмена эталона собственными snapshots",
+      "sources": [
+        "P01",
+        "P03",
+        "P05"
+      ],
+      "observed": "T44 разрешает source-derived goldens собственного renderer вместо запуска upstream. R3/R4 verified при признанном отсутствии sidebar/dialogs и replay tool cards. render_test сохраняет только symbol; screen trim_end удаляет хвостовые клетки.",
+      "required_change": "Вернуть R3/R4 в implemented-unverified. Завести парные captures original/oc; проверять glyph, fg, bg, modifiers, cursor и state, а не только строки."
+    },
+    {
+      "id": "UI02",
+      "severity": "P1",
+      "verification": "statically_confirmed",
+      "title": "Видимая область обрезается до 20 строк",
+      "sources": [
+        "P04",
+        "P05",
+        "U03",
+        "U04"
+      ],
+      "observed": "render_transcript вычисляет rows из Rect, но start/end/max_scroll режет по VIEWPORT_LINES. Сверху добавляется pad при коротком transcript. Sidebar не выделяется даже при ширине >120.",
+      "required_change": "Viewport равен фактической высоте; short transcript следует top-origin reference; sticky bottom — scroll policy при переполнении. Включить настоящий sidebar и resize/toggle."
+    },
+    {
+      "id": "UI03",
+      "severity": "P1",
+      "verification": "statically_confirmed",
+      "title": "Диалоги остаются inline текстовыми панелями",
+      "sources": [
+        "P03",
+        "P05",
+        "U01",
+        "U05"
+      ],
+      "observed": "panel_lines выдаёт model |, agents |, первые 8 записей; shell вставляет bordered panel между transcript и input вместо upstream modal.",
+      "required_change": "Один reusable Dialog/Select overlay с search, cursor/scroll, selection, footer, backdrop и focus capture; все действия доходят до application."
+    },
+    {
+      "id": "UI04",
+      "severity": "P1",
+      "verification": "statically_confirmed",
+      "title": "Нарисованные shortcuts не соответствуют keymap",
+      "sources": [
+        "P05",
+        "P07",
+        "U02"
+      ],
+      "observed": "Hint Ctrl+P присутствует, но KeyAction не содержит palette. !contains(CONTROL | ALT) запрещает только комбинацию обоих флагов, поэтому один Ctrl или Alt попадает в Char arm. Enter игнорирует modifiers; KeyEventKind не фильтруется.",
+      "required_change": "Нормализовать press/repeat/release, выбрать modal/editor/application layer; unknown Ctrl/Alt не вставлять. Отдельно newline vs submit; regressions по raw PTY keys."
+    },
+    {
+      "id": "UI05",
+      "severity": "P1",
+      "verification": "statically_confirmed",
+      "title": "Markdown tables отсутствуют",
+      "sources": [
+        "P06"
+      ],
+      "observed": "messages::markdown прямо документирует tables render as paragraph rows. На первом пользовательском эталоне таблица является основным content block.",
+      "required_change": "Нативный Markdown parser + таблицы с border, header, inline code, width allocation/wrap/scroll; streamed partial tables/fences и huge content без квадратичного reparse."
+    },
+    {
+      "id": "UI06",
+      "severity": "P1",
+      "verification": "statically_confirmed",
+      "title": "Красивые live cards не восстанавливаются из истории",
+      "sources": [
+        "P01",
+        "P06",
+        "P10"
+      ],
+      "observed": "HistoryMessage содержит seq/role/text. T44 признаёт потерю tool cards после reload; метаданные model/duration/reasoning также не в history DTO.",
+      "required_change": "Один durable view projection с stable IDs/parts на live и replay. Не дублировать transcript; aggregate pages с tool/result/diff references."
+    },
+    {
+      "id": "UI07",
+      "severity": "P2",
+      "verification": "statically_confirmed",
+      "title": "Нет данных для достоверного chrome",
+      "sources": [
+        "P05",
+        "P10",
+        "U05",
+        "U06"
+      ],
+      "observed": "Один hardcoded Untitled session tab; нет model.name/provider display name/agent.color в DTO; footer без Location; devtools всегда рисуются. Theme::dark вызывается на каждом render.",
+      "required_change": "Минимально расширить presentation DTO; tab/title/current model/agent/path/context брать из application. Debug bar условный. Не подставлять Free/числа/id-display фиктивно."
+    },
+    {
+      "id": "UI08",
+      "severity": "P1",
+      "verification": "statically_confirmed_call_path",
+      "title": "UI ждёт submit и MCP attach в обработчике клавиши",
+      "sources": [
+        "P08",
+        "P09",
+        "P11"
+      ],
+      "observed": "handle_event await handle_key → handle_enter await app.submit. Runtime attach выполняет до run_turn_inner/accepted. Пока запрос не завершится, этот UI loop не читает новые клавиши/resize.",
+      "required_change": "Submission intent с correlation ID и pending state; network/oneshot completion обрабатывается через select/очередь без остановки event loop. Не подтверждать durable input заранее; cancel/close доступны во время initialize."
+    },
+    {
+      "id": "UI09",
+      "severity": "P1",
+      "verification": "compatibility_constraint_cause_unproven",
+      "title": "MCP ошибка не объясняет причину",
+      "sources": [
+        "P11",
+        "P12"
+      ],
+      "observed": "McpAttach содержит только server. Shared remote path требует Bearer и exact 2025-11-25. Скриншот показывает crw, но transport/config/причина crw не известны аудитору.",
+      "required_change": "Добавить sanitized stage/error kind/retryability. Agent проверяет локальный crw без печати секретов. Не выключать сервер молча; generic MCP не подменять частным codex_web контрактом."
+    },
+    {
+      "id": "UI10",
+      "severity": "P1",
+      "verification": "statically_confirmed_boundary_gap",
+      "title": "Symlink local root всё ещё может стать trusted outside root",
+      "sources": [
+        "P13"
+      ],
+      "observed": "Для project/.opencode canonical_root выводится из самого root, без проверки containment в canonical project. Если root symlink наружу, file canonical.starts_with(canonical_root) проходит. read_to_string также вызывается до canonical validation.",
+      "required_change": "Проверить/закрепить admitted root относительно project до чтения. Различать explicit owner global root и project-discovered root; no-follow/handle-relative reads и negative source tests."
+    },
+    {
+      "id": "UI11",
+      "severity": "P1",
+      "verification": "evidence_gap",
+      "title": "Qualification не подтверждает новую визуальную ветку",
+      "sources": [
+        "P01",
+        "P02",
+        "P15"
+      ],
+      "observed": "T42 исторически done, T44 меняет renderer/core events. NOW сообщает 413 pass и pre-existing flaky PTY; GitHub Actions API при проверке вернул 0 runs.",
+      "required_change": "Повторная full qualification на новом code SHA; журналы всех попыток. Причину flakes исправить/изолировать доказуемо; targeted rerun не превращает failed campaign в green."
+    }
+  ]
+}
