@@ -11,6 +11,7 @@ pub mod commands;
 pub mod dcp_panel;
 pub mod dialog;
 pub mod events;
+mod fuzzy;
 pub mod history;
 pub mod layout;
 pub mod messages;

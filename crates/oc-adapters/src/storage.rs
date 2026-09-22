@@ -980,12 +980,21 @@ impl Db {
 
     /// Upsert a namespaced UI preference (callers use `tui.*` keys).
     pub fn set_pref(&self, key: &str, value: &str) -> Result<(), StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
-        conn.prepare_cached(
+        self.set_prefs(&[(key.to_string(), value.to_string())])
+    }
+
+    /// Atomically persist a selection and its associated model preference.
+    pub fn set_prefs(&self, values: &[(String, String)]) -> Result<(), StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        for (key, value) in values {
+            tx.prepare_cached(
             "INSERT INTO prefs(key, value, updated_at) VALUES (?1, ?2, ?3)
              ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
         )?
         .execute(params![key, value, now_rfc3339()])?;
+        }
+        tx.commit()?;
         Ok(())
     }
 

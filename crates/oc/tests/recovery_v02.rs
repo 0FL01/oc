@@ -325,7 +325,7 @@ async fn scenario(
         state
             .modal_options()
             .iter()
-            .any(|option| option.title == model_name && option.category == provider_name)
+            .any(|option| option.title == model_name && option.category.is_empty())
             && picker.contains(&model_name)
             && picker.contains(&provider_name),
         "{picker}"

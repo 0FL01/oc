@@ -10,6 +10,7 @@
 //! falls back to another model.
 
 use oc_adapters::models::{self, ModelCatalog, Selection};
+use std::{cell::OnceCell, rc::Rc};
 
 /// Prefs key holding the persisted selection JSON.
 pub const PREF_MODEL: &str = oc_core::queries::PREF_MODEL_SELECTION;
@@ -58,14 +59,17 @@ pub struct ModelPicker {
     refresh: RefreshStatus,
     refresh_count: u64,
     last_error: Option<String>,
-    /// Explicit variant cycle position (0 = model default).
-    variant_cursor: usize,
-    variant_changed: bool,
+    options: OnceCell<Rc<Vec<crate::dialog::SelectOption>>>,
 }
 
 impl ModelPicker {
     /// Complete catalog options; the shared SelectList owns filtering/viewport.
-    pub fn options(&self) -> Vec<crate::dialog::SelectOption> {
+    pub fn options(&self) -> Rc<Vec<crate::dialog::SelectOption>> {
+        self.options
+            .get_or_init(|| Rc::new(self.build_options()))
+            .clone()
+    }
+    fn build_options(&self) -> Vec<crate::dialog::SelectOption> {
         let mut options: Vec<_> = self
             .catalog
             .models
@@ -77,12 +81,11 @@ impl ModelPicker {
                     .filter(|s| !s.is_empty())
                     .unwrap_or(id)
                     .to_string();
-                let category = spec
-                    .get("provider_name")
-                    .and_then(|v| v.as_str())
-                    .filter(|s| !s.is_empty())
-                    .unwrap_or(&self.catalog.provider)
-                    .to_string();
+                // This catalog is bound to one configured provider; it has no
+                // connected-integration sections. Pinned DialogModel omits its
+                // category in that state (useConnected), including the reference
+                // standalone single-provider fixture. Never invent a provider heading.
+                let category = String::new();
                 let number = |v: &serde_json::Value| {
                     v.as_f64()
                         .or_else(|| v.as_str().and_then(|s| s.parse::<f64>().ok()))
@@ -107,6 +110,64 @@ impl ModelPicker {
         });
         options
     }
+
+    pub fn has_variants(&self) -> bool {
+        self.selected
+            .as_ref()
+            .and_then(|selection| selection.entry.get("variants"))
+            .and_then(|variants| variants.as_object())
+            .is_some_and(|variants| {
+                variants
+                    .values()
+                    .any(|v| v.get("disabled") != Some(&serde_json::Value::Bool(true)))
+            })
+    }
+
+    /// Pinned dialog-variant.tsx: Default clears the overlay; a declared `none`
+    /// remains a real named choice. `default` is reserved by the upstream UI.
+    pub fn variant_options(&self) -> Vec<crate::dialog::SelectOption> {
+        let Some(selection) = &self.selected else {
+            return Vec::new();
+        };
+        let current = selection
+            .variant
+            .as_ref()
+            .map(|v| v.name.as_str())
+            .or_else(|| self.retired_variant())
+            .unwrap_or("default");
+        let mut names = vec!["default".to_string()];
+        if let Some(variants) = selection.entry.get("variants").and_then(|v| v.as_object()) {
+            names.extend(
+                variants
+                    .iter()
+                    .filter(|(name, v)| {
+                        name.as_str() != "default"
+                            && v.get("disabled") != Some(&serde_json::Value::Bool(true))
+                    })
+                    .map(|(name, _)| name.clone()),
+            );
+        }
+        names
+            .into_iter()
+            .map(|name| crate::dialog::SelectOption {
+                title: if name == "default" {
+                    "Default".into()
+                } else {
+                    name.clone()
+                },
+                current: current == name,
+                footer: if name == "default" {
+                    self.retired_variant()
+                        .map(|variant| format!("{variant} unavailable"))
+                        .unwrap_or_default()
+                } else {
+                    String::new()
+                },
+                value: name,
+                category: String::new(),
+            })
+            .collect()
+    }
     /// Bind to a catalog; a stored record loads separately via
     /// [`ModelPicker::load_persisted_raw`].
     pub fn new(catalog: ModelCatalog) -> Self {
@@ -118,8 +179,7 @@ impl ModelPicker {
             refresh: RefreshStatus::Fresh(0),
             refresh_count: 0,
             last_error: None,
-            variant_cursor: 0,
-            variant_changed: false,
+            options: OnceCell::new(),
         }
     }
 
@@ -164,6 +224,17 @@ impl ModelPicker {
     /// Last error for the view (selection failures are visible, not silent).
     pub fn last_error(&self) -> Option<&str> {
         self.last_error.as_deref()
+    }
+
+    /// The persisted named overlay was removed or disabled. `None` is not a
+    /// selected Default until the user explicitly accepts Default or another
+    /// admitted variant; keep the old name visible and omit the current dot.
+    pub fn retired_variant(&self) -> Option<&str> {
+        let persisted = self.persisted.as_ref()?;
+        let selected = self.selected.as_ref()?;
+        (selected.id == persisted.id && selected.variant.is_none() && self.last_error.is_some())
+            .then_some(persisted.variant.as_deref())
+            .flatten()
     }
 
     /// Sorted ids for the bounded browse window around the cursor.
@@ -216,8 +287,6 @@ impl ModelPicker {
         {
             Some(position) => {
                 self.cursor = position;
-                self.variant_cursor = 0;
-                self.variant_changed = false;
                 true
             }
             None => false,
@@ -249,27 +318,6 @@ impl ModelPicker {
         names
     }
 
-    /// Pending explicit variant choice (None = model default).
-    pub fn pending_variant(&self) -> Option<String> {
-        if self.variant_cursor == 0 {
-            return None;
-        }
-        self.variants().get(self.variant_cursor - 1).cloned()
-    }
-
-    pub fn variant_changed(&self) -> bool {
-        self.variant_changed
-    }
-
-    /// Cycle the pending variant of the model under the cursor:
-    /// default -> variant 1 -> … -> variant N -> default.
-    pub fn cycle_variant(&mut self, delta: isize) {
-        self.variant_changed = true;
-        let count = self.variants().len() + 1;
-        let next = self.variant_cursor as isize + delta;
-        self.variant_cursor = next.rem_euclid(count as isize) as usize;
-    }
-
     /// Move the browse cursor (clamped, never wraps silently past the end).
     pub fn move_cursor(&mut self, delta: isize) {
         let len = self.sorted_ids().len();
@@ -279,7 +327,6 @@ impl ModelPicker {
         }
         let next = self.cursor as isize + delta;
         self.cursor = next.clamp(0, len as isize - 1) as usize;
-        self.variant_cursor = 0;
     }
 
     /// Choose the model under the cursor by exact id. Persisting the
@@ -298,6 +345,7 @@ impl ModelPicker {
         let base = models::select_model(&self.catalog, id).map_err(|e| e.to_string())?;
         let selection = models::select_variant(&base, variant).map_err(|e| e.to_string())?;
         self.selected = Some(selection);
+        self.options.take();
         self.persisted = Some(Persisted {
             provider: self.catalog.provider.clone(),
             id: id.to_string(),
@@ -345,6 +393,7 @@ impl ModelPicker {
     }
 
     fn reresolve(&mut self) {
+        self.options.take();
         let Some(wanted) = self.persisted.clone() else {
             return;
         };
@@ -365,8 +414,11 @@ impl ModelPicker {
                     self.last_error = Some(e.to_string());
                 }
             },
-            Err(_) => {
+            Err(error) => {
                 self.selected = None;
+                self.last_error = Some(format!(
+                    "selected model unavailable: {error}; choose an admitted model"
+                ));
             }
         }
         self.focus_selected();
@@ -453,7 +505,7 @@ mod tests {
         let a = options.iter().find(|o| o.value == "a").unwrap();
         assert_eq!(
             (&*a.title, &*a.category, &*a.footer),
-            ("Human A", "Provider A", "Free")
+            ("Human A", "", "Free")
         );
         assert!(
             options
@@ -466,13 +518,29 @@ mod tests {
         );
         p.focus_id("b");
         assert_eq!(p.variants(), ["low"]);
-        p.cycle_variant(1);
-        assert_eq!(p.pending_variant().as_deref(), Some("low"));
-        p.cycle_variant(1);
-        assert!(
-            p.variant_changed() && p.pending_variant().is_none(),
-            "explicit catalog default differs from no edit"
+        p.choose_id("b", Some("low")).unwrap();
+        assert_eq!(
+            p.variant_options()
+                .iter()
+                .map(|o| (&*o.title, o.current))
+                .collect::<Vec<_>>(),
+            [("Default", false), ("low", true)]
         );
+        p.choose_id("b", None).unwrap();
+        assert_eq!(
+            p.variant_options()
+                .iter()
+                .map(|o| (&*o.title, o.current))
+                .collect::<Vec<_>>(),
+            [("Default", true), ("low", false)]
+        );
+        // The pinned model flow tests the declared list before DialogVariant
+        // removes its reserved `default` name from the displayed choices.
+        p.catalog.models.get_mut("b").unwrap()["variants"] = json!({"default": {}});
+        p.choose_id("b", None).unwrap();
+        assert!(p.has_variants());
+        assert_eq!(p.variant_options().len(), 1);
+        assert!(p.variant_options()[0].current);
     }
 
     #[test]

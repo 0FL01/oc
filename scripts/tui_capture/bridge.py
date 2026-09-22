@@ -104,6 +104,13 @@ for path in [home, project, *[home / x for x in ('config/opencode', 'cache', 'da
     path.mkdir(parents=True, exist_ok=True)
 settings = {'baseURL': f'http://127.0.0.1:{server.server_port}/v1', 'apiKey': 'fixture-not-a-secret'}
 models = {m['id']: {k: v for k, v in m.items() if k not in ('id', 'variants')} for m in catalog['models']}
+if spec.get('variants'):
+    variants = json.loads((fixture / 'variant-dialog.json').read_text())
+    # Equivalent native input shapes; original v2 uses id/settings arrays while
+    # native config retains the documented named object form.
+    models[catalog['models'][0]['id']]['variants'] = (
+        [{'id': name, 'settings': settings} for name, settings in variants.items()]
+        if spec['origin'] == 'upstream' else variants)
 if spec['origin'] == 'upstream':
     config = {'model': 'fixture/fixture-model-1', 'share': 'disabled', 'update': 'disable',
               'plugins': ['-opencode.models.dev'],

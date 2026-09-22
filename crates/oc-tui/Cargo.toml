@@ -17,6 +17,8 @@ thiserror.workspace = true
 anyhow.workspace = true
 ratatui.workspace = true
 crossterm.workspace = true
+unicode-normalization = "0.1"
+unicode-script = "0.5"
 
 [lints]
 workspace = true

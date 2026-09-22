@@ -146,3 +146,19 @@ VT, styled grids, commands/import results, failures and nonzero comparison exits
 The native in-process startup error is not the original service-attach route.
 Original child composer/root-tab behavior also remains different. No near-limit
 PTY paste or editor/paste-chip equivalence is claimed by V03; that is V05 work.
+
+## V04 variant and search follow-up
+
+`--variants true --sample short` adds the explicit fixture in
+`tui-recovery/fixtures/variant-dialog.json` to the active model using each
+application's native config schema, then captures `/variants` after the model
+dialog. Default and declared `none` must both appear. This does not submit a
+variant-bearing turn; the Rust raw PTY integration test qualifies actual HTTP
+and durable selection effects, including restart. Run separate fresh attempts
+with `--columns 160 --rows 48`, `--columns 80 --rows 24` and
+`--columns 121 --rows 41` for paired dialog geometry.
+
+`fuzzy_oracle.mjs` is a test-only generator using external `fuzzysort@3.1.0`
+(the pinned original's dependency). Its JSON output is checked in at
+`crates/oc-tui/assets/fuzzysort-oracle.json`. Cargo tests compare native scores
+and heap ordering without Node; the Rust port retains the upstream MIT notice.

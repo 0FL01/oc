@@ -1088,7 +1088,7 @@ fn aud38_location_switch_is_one_lifecycle() {
     wait_screen_row(&pty, &message_needle("┃  ", "slow stream"), DEADLINE);
     let beta = fixture.project_b().canonicalize().expect("b path");
     pty.send(format!("/location {}\r", beta.display()).as_bytes());
-    wait_screen_row(&pty, "turn active; location switch refused", DEADLINE);
+    wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
     pty.wait_visible_after(off, "answer:slow stream", DEADLINE);
     // The refused command keeps the typed input (nothing is lost): clear it
     // before retrying with the same target.

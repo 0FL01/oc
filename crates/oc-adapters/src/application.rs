@@ -24,6 +24,9 @@ use crate::runtime::{
 use crate::storage::Db;
 use crate::tui_workspace::{AgentEntry as WorkspaceAgent, WorkspaceError, WorkspaceRegistry};
 
+#[path = "application_selection.rs"]
+mod selection;
+
 /// Bounded focus bytes accepted for a manual compress request.
 pub const COMPRESS_FOCUS_MAX: usize = 256;
 /// Bounded rows served per history page.
@@ -78,12 +81,14 @@ pub async fn spawn_with_env(
 }
 
 /// Effective model/variant/agent selection for the next turn.
+#[derive(Clone)]
 struct Effective {
     model_id: String,
     variant: Option<String>,
     agent_id: Option<String>,
     agent_prompt: Option<String>,
     agent_digest: Option<String>,
+    legacy_epoch: u64,
 }
 
 impl Effective {
@@ -94,6 +99,7 @@ impl Effective {
             agent_id: composition.default_agent.clone(),
             agent_prompt: composition.agent_prompt.clone(),
             agent_digest: composition.agent_digest.clone(),
+            legacy_epoch: 0,
         }
     }
 
@@ -125,7 +131,13 @@ impl Effective {
                 self.variant = selection.variant.map(|variant| variant.name);
                 Vec::new()
             }
-            Err(error) => vec![format!("selected model {id} is unavailable: {error}")],
+            Err(error) => {
+                // Preserve the exact retired choice. A stale global preference
+                // must not silently authorize the configured fallback either.
+                self.model_id = id.to_string();
+                self.variant = variant.map(str::to_string);
+                vec![format!("selected model {id} is unavailable: {error}")]
+            }
         }
     }
 
@@ -400,6 +412,8 @@ async fn start_worker(
         }
     };
     let mut effective = Effective::from_composition(&composition);
+    effective.legacy_epoch =
+        selection::legacy_epoch(&db, &composition).map_err(|e| e.to_string())?;
     let mut registry = WorkspaceRegistry::bind(
         runtime.generation_id(),
         runtime.location(),
@@ -494,6 +508,8 @@ async fn switch_target<'a>(
     let composition = composition::load_with_env(Path::new(path), env).await?;
     let runtime = build_runtime(db, &composition)?;
     let mut effective = Effective::from_composition(&composition);
+    effective.legacy_epoch =
+        selection::legacy_epoch(db, &composition).map_err(|e| e.to_string())?;
     let mut registry = WorkspaceRegistry::bind(
         runtime.generation_id(),
         runtime.location(),
@@ -785,6 +801,22 @@ fn query(
         InboxMsg::Catalog { ack } => {
             let _ = ack.send(Ok(effective.snapshot(composition)));
         }
+        InboxMsg::SessionSelection {
+            session,
+            home,
+            action,
+            ack,
+        } => {
+            let result = (|| {
+                if runtime.turn_active() {
+                    return Err(CoreError::TurnBusy);
+                }
+                runtime.open_session(&session.0).map_err(app_error)?;
+                selection::apply(db, composition, effective, &session.0, home, action)
+                    .map(|selected| selected.snapshot(composition))
+            })();
+            let _ = ack.send(result);
+        }
         InboxMsg::Skills { ack } => {
             let _ = ack.send(Ok(skill_cards(composition)));
         }
@@ -802,8 +834,16 @@ fn query(
                     "id": selection.id,
                     "variant": selection.variant.as_ref().map(|variant| variant.name.clone()),
                 });
-                db.set_pref(oc_core::queries::PREF_MODEL_SELECTION, &record.to_string())
-                    .map_err(app_error)?;
+                let (epoch_key, epoch_value) = selection::next_legacy_epoch(db, composition)?;
+                db.set_prefs(&[
+                    (
+                        oc_core::queries::PREF_MODEL_SELECTION.into(),
+                        record.to_string(),
+                    ),
+                    (epoch_key, epoch_value),
+                ])
+                .map_err(app_error)?;
+                effective.legacy_epoch += 1;
                 effective.model_id = selection.id.clone();
                 effective.variant = selection.variant.map(|variant| variant.name);
                 Ok(effective.snapshot(composition))
@@ -819,6 +859,9 @@ fn query(
                     .select_primary(&id, runtime.generation_id(), db)
                     .map_err(|error| app_error(error.to_string()))?;
                 effective.set_agent(composition, &id)?;
+                let (epoch_key, epoch_value) = selection::next_legacy_epoch(db, composition)?;
+                db.set_pref(&epoch_key, &epoch_value).map_err(app_error)?;
+                effective.legacy_epoch += 1;
                 publish_workspace(runtime, composition, effective).map_err(app_error)?;
                 Ok(effective.snapshot(composition))
             })();
@@ -868,16 +911,17 @@ fn query(
                     }
                     crate::runtime::estimate_tokens(&text)
                 };
+                let selected = selection::for_turn(db, composition, effective, &session.0)?;
                 let model_context = composition
                     .catalog
                     .models
-                    .get(&effective.model_id)
+                    .get(&selected.model_id)
                     .and_then(|spec| spec.pointer("/limit/context"))
                     .and_then(serde_json::Value::as_u64)
                     .unwrap_or(0);
                 let thresholds = composition
                     .dcp_config
-                    .effective_for_context(&effective.model_id, model_context);
+                    .effective_for_context(&selected.model_id, model_context);
                 Ok(DcpSnapshot {
                     estimated_tokens,
                     max_context: thresholds.max_context,
@@ -948,6 +992,27 @@ async fn worker(
                     }
                 };
                 let cancel = AtomicBool::new(false);
+                // Resolve from the owning session, never whichever TUI tab was
+                // most recently viewed. Title and inherited child requests use
+                // this same selection and agent workspace.
+                let turn_selection =
+                    match selection::for_turn(db, composition, effective, &session.0).and_then(
+                        |selected| {
+                            let base = crate::models::select_model(&composition.catalog, &selected.model_id)
+                                .and_then(|base| crate::models::select_variant(&base, selected.variant.as_deref()))
+                                .map_err(|e| app_error(format!("selected model/variant unavailable; select an admitted replacement or Default: {e}")))?;
+                            let _ = base;
+                            publish_workspace(runtime, composition, &selected)
+                                .map_err(app_error)?;
+                            Ok(selected)
+                        },
+                    ) {
+                        Ok(selected) => selected,
+                        Err(error) => {
+                            let _ = ack.send(Err(error));
+                            continue;
+                        }
+                    };
                 // Resolve before accepting a turn: an invalid configured title
                 // profile is a configuration error, never a silent fallback.
                 let title_agent = composition.agents.get("title");
@@ -964,10 +1029,10 @@ async fn worker(
                             )
                         } else {
                             (
-                                effective.model_id.clone(),
+                                turn_selection.model_id.clone(),
                                 title_agent
                                     .and_then(|a| a.variant.clone())
-                                    .or(effective.variant.clone()),
+                                    .or(turn_selection.variant.clone()),
                             )
                         };
                     crate::models::select_model(&composition.catalog, &id)
@@ -986,8 +1051,8 @@ async fn worker(
                     prompt,
                     invocation,
                     catalog: &composition.catalog,
-                    model_id: effective.model_id.clone(),
-                    variant: effective.variant.clone(),
+                    model_id: turn_selection.model_id.clone(),
+                    variant: turn_selection.variant.clone(),
                     // The runtime resolves its native default against known
                     // metadata and fallback caps; capacity is not a request.
                     max_output: 0,

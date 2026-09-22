@@ -805,6 +805,65 @@ async fn t47_unknown_limits_use_configured_caps_without_variant_overlay() {
     }
 }
 
+#[tokio::test]
+async fn v04_model_change_projects_public_history_without_foreign_tool_state() {
+    let (mut harness, generation) = make_harness(allow_all());
+    harness
+        .catalog
+        .models
+        .insert("other".into(), harness.catalog.models["m"].clone());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("model-change").unwrap();
+    let (base, _, requests) = Fake::start_recording(
+        vec![
+            sse_tool_call(
+                "old-model-call",
+                "read",
+                &serde_json::json!({"filePath":"missing-fixture"}),
+            ) + &sse_completed(),
+            sse_delta("public original answer") + &sse_completed(),
+            sse_delta("public second answer") + &sse_completed(),
+            sse_delta("returned original") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    for (model, prompt) in [
+        ("m", "first public input"),
+        ("other", "second public input"),
+        ("m", "third public input"),
+    ] {
+        let mut turn = params(
+            "model-change",
+            prompt,
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        );
+        turn.model_id = model.into();
+        assert_eq!(
+            runtime.run_turn(turn).await.unwrap().status,
+            TurnStatus::Completed
+        );
+    }
+    let requests = requests.lock().unwrap();
+    assert_eq!(requests.len(), 4);
+    assert!(requests[1]["input"].to_string().contains("old-model-call"));
+    let changed = requests[2]["input"].to_string();
+    assert!(changed.contains("first public input") && changed.contains("public original answer"));
+    assert!(!changed.contains("old-model-call") && !changed.contains("function_call"));
+    assert_eq!(requests[2]["model"], "other");
+    assert!(
+        requests[3]["input"].to_string().contains("old-model-call"),
+        "original wire lane retained durably"
+    );
+    assert!(
+        requests[3]["input"]
+            .to_string()
+            .contains("public second answer")
+    );
+    assert_eq!(harness.db.read_history("model-change").unwrap().len(), 6);
+}
+
 fn dcp_nudge_count(request: &serde_json::Value) -> usize {
     request["input"]
         .to_string()

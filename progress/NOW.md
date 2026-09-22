@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-22T16:59:05+00:00
+State updated: 2026-09-22T19:17:12+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,69 +12,79 @@ Evidence target: evidence/T44/report.md
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 resumed V04 / backend integration
+# T44 V04 interaction and scoped-selection continuation
 
 ## Result
 
-Resumed from actual HEAD `15719e976030a8fdaadd843ac13556de237f559d`, not the
-pre-pause `1105f67`. V04 and D13 MCP degradation were already committed by other
-work. Preserved the complete uncommitted T47/T43/T46/T27 backend delivery and its
-historical reports. Owner's resume instruction accepts integration of that work.
-Untracked `.opencode/` and owner ZIP were neither read nor staged.
-
-Reproduced exactly three T44 failures: fixture selected `None` but expected `low`.
-The geometry fixture now explicitly selects `low`, preserving every expected
-geometry row. A separate test asserts no label/overlay for `None`. The actual PTY
-fixture now makes named `none` observably nonempty, executes it (wire effort low),
-then executes Default (no wire effort, durable selection JSON null). This removes
-the old false positive where named `none:{}` was indistinguishable from Default.
-No production fallback/permission/discovery behavior was reverted.
-
-Read-only independent V04 review completed after the paused review was cancelled.
-Confirmed actual medium modal coordinates/cursor and real model application path;
-found remaining blank-cell styles, separate variant-dialog flow, model grouping,
-fuzzy search, registry aliases/action availability, modal focus/mouse and paired
-size coverage gaps. These remain work, not optional omissions. Unsupported backend
-capabilities remain mapped in capabilities.md, not fake working actions.
+Base `931792ef8009ae6ad024cf09c780db029b3c8ef2`; active T44. Original
+reference remains pinned at commit `2670273ff17da96f85c5826ced57aa1b368754fa`.
+Implemented real separate Select variant, Default versus declared `none`, one
+command registry with working `/new`, `/clear`, `/continue`, `/variants`,
+`/thinking`, `/effort` and Ctrl+X n; unsupported commands are not advertised.
+Application owns persisted session+agent model drafts, per-model variant choice,
+headless selection precedence, refusal of retired choices before side effects,
+and same-provider immutable public-history projection after switching models.
+Independent review exposed retired model/variant startup failure and headless
+selection overridden by earlier drafts; both corrected and covered by real
+wire/SQLite/PTY tests. Pinned fuzzy ranking has a source-derived external
+oracle, cached 10k/8 MiB catalog query and bounded debug/release CPU checks.
+No production JS host, second history owner or permission broadening.
 
 ## Checks
 
-- Before correction: `cargo test --locked -p oc-tui shell::tests -- --nocapture`,
-  exit101, 11 passed/3 failed, exactly the stale implicit-low expectations.
-- After correction: same shell suite exit0, 15 passed; actual PTY
-  `cargo test --locked -p oc --test pty_t39 v04_raw_dialogs -- --nocapture`,
-  exit0, 1 passed. No new ignores.
-- `cargo test --locked --workspace --no-fail-fast --quiet`: exit0,
-  **488 passed, 0 failed, 5 ignored**. Four explicit external/live-server tests
-  plus the internal catalog probe (covered in subprocess by offline harness).
-- `cargo fmt --all -- --check`, workspace all-target clippy with `--locked` and
-  `-D warnings`, `cargo build --locked`, `target/debug/oc --help`: exit0.
-- `python3 scripts/check_docs.py`: exit0, 48 tasks/125 detailed specifications.
-  `python3 scripts/progress.py check`: exit0 (structure only).
-  `python3 -m unittest discover -s scripts -p 'test_*.py'`: exit0, 29 passed.
-  `git diff --check`: exit0.
-- Parent reviewed backend model/admission/application/MCP projection and ordered
-  permission source plus the additive backend integration reports. Independent
-  V04 reviewer ran modal-state and actual PTY tests, both exit0.
+- Parent `cargo test --locked -p oc-tui --lib`: exit 0, 112 passed.
+  `cargo test --locked -p oc --test pty_t39 -- --nocapture`: exit 0, eight
+  actual PTY cases including explicit named/default variant, scoped A→B→A,
+  new-session aliases, retired-choice recovery, headless precedence/restart.
+- Final parent `cargo fmt --all -- --check && cargo test --locked --workspace
+  --no-fail-fast --quiet && cargo clippy --locked --workspace --all-targets --
+  -D warnings && cargo build --locked && target/debug/oc --help && python3
+  scripts/check_docs.py && python3 scripts/progress.py check && python3 -m
+  unittest discover -s scripts -p 'test_*.py' && node
+  scripts/tui_capture/check_frontend.mjs && node --check
+  scripts/tui_capture/capture.mjs && node --check
+  scripts/tui_capture/fuzzy_oracle.mjs && git diff --check`: exit 0 at every
+  step; workspace 498 passed, 0 failed, 5 preexisting ignored; Python 29
+  passed; docs 48 tasks/125 specifications; journal structure check only.
+  Prior failures, corrections and the optimized CPU gate are recorded, without
+  rewriting history, in `followup-interactions.md`.
+- Painted blank cells initially reset their foreground; actual paired frames
+  exposed xterm default `#eeeeee` versus upstream explicit `#ffffff`.
+  `Color::White` gave ANSI `#eeeeec` in the shared frontend. Replaced it with
+  truecolor RGB(255,255,255); parent tests and real captures confirm white
+  blank foreground without suppressing any differences. Earlier attempts
+  `followup-postreview-160x48` and `followup-finalpaint-160x48` remain intact.
+- Fresh final-code paired captures `followup-truecolor-{160x48,80x24,121x41}`:
+  each capture command in `commands.json`, exit **1**; original and Rust
+  provider contracts executed, all four Session/Commands/Models/Variants frames
+  CAPTURED with normal executables, raw PTY, PNG, styled-cell dumps, input bytes,
+  fixture/profile/source manifests. All eight grid/PNG comparator runs per size
+  report DIFFERENT, not invalid capture or accepted VIS. Independent visual
+  inspection of 160×48 variant PNGs shows matching modal geometry/content/cursor,
+  but differing session metadata and terminal frame. Source manifest seals
+  tracked and new Rust/tool inputs without reading `.opencode/` or owner ZIP.
 
 ## Risks
 
-No final VIS/comparator acceptance; previous paired frames remain DIFFERENT.
-Owner reports a live visual inspection looked good; this is attributed user
-feedback without captured profile/artifacts, not an automated parity result.
-D13 supersedes fatal per-server attach semantics: warnings must remain visible;
-cancellation/cleanup/caps remain fatal. D14 None means no variant overlay.
-T27's durable campaign enforcement is unfinished engineering, and an isolated
-authorized product config remains a live prerequisite; no external request made.
-T45/MCP remaining scope, in-flight tools/call cancellation, config admission,
-Unicode editor/Markdown and final qualification remain open. No task finish/READY.
+R3/R4/R5 and VIS01–VIS24 remain unverified; component tests and positive
+modal-specific visual observations cannot replace an exact whole-frame
+comparison. Original Commands inventory includes service/integration/sharing
+and missing native owner actions. Those are recorded in `capabilities.md`, not
+drawn as working controls. Missing release/status/favorites/recents metadata,
+modal mouse/focus details and tab/project/session actions are still V04 scope or
+explicit owner decisions; full behavioral parity is not claimed. Fixture path,
+duration and token rates are dynamic across captures; reasoning requested
+6800ms state still unavailable. V05–V09 and independent final qualification
+remain. D13 degraded MCP attach with visible warnings, D14 no implicit variant,
+D15 resource narrowing preserved. No product READY.
 
 ## Next
 
-Continue V04 required dialog interactions first (separate variant selection,
-registry-driven aliases/availability and genuine new-session action), using raw
-PTY/application effects and paired captures. Then V05–V09, one verified slice and
-existing journal checkpoint/commit at a time. Retain all earlier failed reports.
+Continue smallest V04 dialog gap with actual owner effects and paired evidence:
+modal focus/mouse and admitted session/project capabilities; do not mimic
+unsupported service controls. Then V05 Unicode editor, V06 Markdown/cards,
+V07 safety and V08–V09 full paired acceptance/qualification, checkpoint each
+verified slice. Preserve all failed and ignored attempts.
 
 
 Ready (до 5): T45, T46, T47

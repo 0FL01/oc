@@ -11,6 +11,23 @@ pub const PREF_MODEL_SELECTION: &str = "tui.model_selection";
 /// Prefs key holding the persisted primary agent JSON.
 pub const PREF_PRIMARY_AGENT: &str = "tui.primary_agent";
 
+/// Scoped frontend selection action. Selecting a model restores its preference;
+/// selecting `Variant(None)` explicitly clears the overlay. Legacy headless
+/// `select_model` remains an exact model/variant action.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SessionSelectionAction {
+    /// Read/initialize the session's selection.
+    Current,
+    /// Select a model, retaining the current choice or its remembered variant.
+    Model(String),
+    /// Select an exact variant, including explicit Default (`None`).
+    Variant(Option<String>),
+    /// Select an agent and restore that session/agent's model draft.
+    Agent(String),
+    /// Initialize a new Home route for the current agent.
+    New(Option<String>),
+}
+
 /// One committed history row with its durable sequence number.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HistoryMessage {

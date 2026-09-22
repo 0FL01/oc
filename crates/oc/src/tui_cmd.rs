@@ -16,6 +16,7 @@ use ratatui::backend::CrosstermBackend;
 use oc_adapters::application::{HISTORY_PAGE_LIMIT, TOOL_OPS_PAGE_LIMIT};
 use oc_core::core_app::{CoreApp, CoreEvent};
 use oc_core::domain::SessionId;
+use oc_core::queries::SessionSelectionAction as SelectionAction;
 use oc_tui::app::{KeyOutcome, PanelIntent, TuiPanel, TuiState, TuiStatus};
 use oc_tui::dcp_panel::DcpOutcome;
 use oc_tui::events::{UiEvent, map_event};
@@ -178,7 +179,15 @@ async fn initial_state(
     state.attach_page(&page);
     state.home = home && page.total == 0;
     // A failed catalog is an initialization error, never a usable empty snapshot.
-    state.apply_catalog(app.catalog().await.map_err(|_| StartupFailure::Query)?);
+    state.apply_catalog(
+        app.session_selection(
+            state.session().clone(),
+            state.home,
+            SelectionAction::Current,
+        )
+        .await
+        .map_err(|_| StartupFailure::Query)?,
+    );
     Ok(state)
 }
 
@@ -273,7 +282,10 @@ async fn apply_intent(
     let session = state.session().clone();
     match intent {
         PanelIntent::LoadCatalog => {
-            let snapshot = app.catalog().await.map_err(|e| e.to_string())?;
+            let snapshot = app
+                .session_selection(session, state.home, SelectionAction::Current)
+                .await
+                .map_err(|e| e.to_string())?;
             state.apply_catalog(snapshot);
         }
         PanelIntent::LoadSessions => {
@@ -297,18 +309,56 @@ async fn apply_intent(
             }
             loop_state.cards_before = page.rows.last().map(|row| row.rowid);
         }
-        PanelIntent::ChooseModel { id, variant } => {
+        PanelIntent::SelectModel { id } => {
             let snapshot = app
-                .select_model(id, variant)
+                .session_selection(session, state.home, SelectionAction::Model(id))
                 .await
                 .map_err(|e| e.to_string())?;
             let note = format!("model: {}", snapshot.model_id);
-            state.apply_catalog(snapshot);
-            state.close_panel();
+            state.model_choice_applied(snapshot);
             state.push_note(&note);
         }
+        PanelIntent::ChooseModel { variant, .. } => {
+            let snapshot = app
+                .session_selection(session, state.home, SelectionAction::Variant(variant))
+                .await
+                .map_err(|e| e.to_string())?;
+            state.model_choice_applied(snapshot);
+        }
+        PanelIntent::NewSession => {
+            if state.is_busy() {
+                return Err("turn active; action unavailable".into());
+            }
+            let target = SessionId::new(format!("tui-{}", nanos())).ok_or("bad session id")?;
+            app.create_session(target.clone())
+                .await
+                .map_err(|e| e.to_string())?;
+            let page = app
+                .history_page(target.clone(), None, None, HISTORY_PAGE_LIMIT)
+                .await
+                .map_err(|e| e.to_string())?;
+            let snapshot = app
+                .session_selection(
+                    target.clone(),
+                    true,
+                    SelectionAction::New(state.active_agent().map(str::to_string)),
+                )
+                .await
+                .map_err(|e| e.to_string())?;
+            state.set_session(target);
+            state.attach_page(&page);
+            state.apply_catalog(snapshot);
+            state.home = true;
+            loop_state.cards_before = None;
+            loop_state.dcp_seen = false;
+            let session = state.session().clone();
+            refresh_dcp(app, state, &session).await;
+        }
         PanelIntent::SelectAgent { id } => {
-            let snapshot = app.select_agent(id).await.map_err(|e| e.to_string())?;
+            let snapshot = app
+                .session_selection(session, state.home, SelectionAction::Agent(id))
+                .await
+                .map_err(|e| e.to_string())?;
             let note = match &snapshot.agent_id {
                 Some(agent) => format!("agent: {agent}"),
                 None => "agent: none".to_string(),
@@ -324,12 +374,17 @@ async fn apply_intent(
                 return Err("turn active; session switch refused".to_string());
             }
             let target = SessionId::new(id).ok_or_else(|| "bad session id".to_string())?;
+            let snapshot = app
+                .session_selection(target.clone(), false, SelectionAction::Current)
+                .await
+                .map_err(|e| e.to_string())?;
             let page = app
                 .history_page(target.clone(), None, None, HISTORY_PAGE_LIMIT)
                 .await
                 .map_err(|e| e.to_string())?;
             state.set_session(target);
             state.attach_page(&page);
+            state.apply_catalog(snapshot);
             state.close_panel();
         }
         PanelIntent::SwitchLocation { path } => {
@@ -348,7 +403,15 @@ async fn apply_intent(
             state.reset_workspace();
             state.set_session(target);
             state.attach_page(&page);
-            state.apply_catalog(snapshot.catalog);
+            state.apply_catalog(
+                app.session_selection(
+                    state.session().clone(),
+                    state.home,
+                    SelectionAction::Current,
+                )
+                .await
+                .map_err(|e| e.to_string())?,
+            );
             state.close_panel();
             loop_state.cards_before = None;
             state.push_note(&format!("location: {}", snapshot.location));
@@ -597,7 +660,7 @@ mod tests {
                 panic!("history")
             };
             ack.send(Ok(Default::default())).unwrap();
-            let Some(InboxMsg::Catalog { ack }) = inbox.recv().await else {
+            let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
                 panic!("catalog")
             };
             ack.send(Err(oc_core::session::CoreError::Shutdown))

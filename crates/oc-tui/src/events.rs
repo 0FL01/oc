@@ -38,9 +38,9 @@ pub enum KeyAction {
     Up,
     /// Scroll viewport.
     Down,
-    /// Move the panel cursor left (variant cycle in the model picker).
+    /// Left arrow (reserved in selectors).
     Left,
-    /// Move the panel cursor right (variant cycle in the model picker).
+    /// Right arrow (reserved in selectors).
     Right,
     /// Exit the TUI.
     Quit,
@@ -72,12 +72,20 @@ pub fn map_key(event: KeyEvent) -> Option<KeyAction> {
     {
         return None;
     }
+    if let Some(action) = crate::commands::direct(event) {
+        return match action {
+            crate::commands::CommandAction::OpenCommands => Some(KeyAction::Commands),
+            crate::commands::CommandAction::OpenAgents => Some(KeyAction::Agents),
+            crate::commands::CommandAction::Quit if event.code == KeyCode::Char('c') => {
+                Some(KeyAction::Interrupt)
+            }
+            crate::commands::CommandAction::Quit => Some(KeyAction::Quit),
+            _ => None,
+        };
+    }
     match (event.code, event.modifiers) {
-        (KeyCode::Char('p'), KeyModifiers::CONTROL) => Some(KeyAction::Commands),
         (KeyCode::Char('x'), KeyModifiers::CONTROL) => Some(KeyAction::Leader),
         (KeyCode::Char('n'), KeyModifiers::CONTROL) => Some(KeyAction::Down),
-        (KeyCode::Char('c'), m) if m.contains(KeyModifiers::CONTROL) => Some(KeyAction::Interrupt),
-        (KeyCode::Char('d'), m) if m.contains(KeyModifiers::CONTROL) => Some(KeyAction::Quit),
         (KeyCode::Esc, _) => Some(KeyAction::Cancel),
         (KeyCode::Enter, _) => Some(KeyAction::Enter),
         (KeyCode::Backspace, _) => Some(KeyAction::Backspace),
@@ -89,7 +97,6 @@ pub fn map_key(event: KeyEvent) -> Option<KeyAction> {
         (KeyCode::PageDown, _) => Some(KeyAction::PageDown),
         (KeyCode::Home, _) => Some(KeyAction::Home),
         (KeyCode::End, _) => Some(KeyAction::End),
-        (KeyCode::BackTab, _) => Some(KeyAction::Agents),
         (KeyCode::Char(c), m) if !m.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) => {
             Some(KeyAction::Char(c))
         }

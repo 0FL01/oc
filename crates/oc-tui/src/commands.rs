@@ -21,6 +21,10 @@ pub enum CommandAction {
     Quit,
     /// Open the model picker.
     OpenModelPicker,
+    /// Open the declared variants of the effective model.
+    OpenVariants,
+    /// Create and attach a genuine empty application session.
+    NewSession,
     /// Open the primary agent selector.
     OpenAgents,
     /// Open the session list.
@@ -54,32 +58,23 @@ pub fn dispatch(input: &str) -> Option<CommandAction> {
         return Some(CommandAction::Help(None));
     }
     let args = args.get(..args.len().min(COMMAND_ARGS_MAX)).unwrap_or("");
-    if args.is_empty()
-        && let Some(command) = REGISTRY.iter().find(|c| c.aliases.contains(&name))
-    {
-        return Some(command.action.clone());
-    }
-    match name {
-        "commands" => Some(CommandAction::OpenCommands),
-        "quit" => Some(CommandAction::Quit),
-        "model" => Some(CommandAction::OpenModelPicker),
-        "agents" => Some(CommandAction::OpenAgents),
-        "sessions" => Some(CommandAction::OpenSessions),
-        "skills" => Some(CommandAction::OpenSkills),
-        "cards" => Some(CommandAction::OpenCards),
-        "location" => Some(CommandAction::SwitchLocation {
+    let Some(command) = REGISTRY.iter().find(|c| c.aliases.contains(&name)) else {
+        return Some(CommandAction::Help(None));
+    };
+    Some(match command.action {
+        CommandAction::SwitchLocation { .. } => CommandAction::SwitchLocation {
             path: args.to_string(),
-        }),
-        "dcp-compress" => Some(CommandAction::DcpCompress {
+        },
+        CommandAction::DcpCompress { .. } => CommandAction::DcpCompress {
             focus: args.to_string(),
-        }),
-        "help" => Some(CommandAction::Help(if args.is_empty() {
+        },
+        CommandAction::Help(_) => CommandAction::Help(if args.is_empty() {
             None
         } else {
             Some(args.to_string())
-        })),
-        _ => Some(CommandAction::Help(None)),
-    }
+        }),
+        _ => command.action.clone(),
+    })
 }
 
 /// Single registry for selectable palette actions, aliases, and binding labels.
@@ -88,9 +83,68 @@ pub struct CommandSpec {
     pub id: &'static str,
     pub title: &'static str,
     pub group: &'static str,
-    pub shortcut: &'static str,
+    pub shortcuts: &'static [&'static str],
     pub aliases: &'static [&'static str],
     pub action: CommandAction,
+}
+
+impl CommandSpec {
+    /// Availability is shared by palette, slash and bindings, checked again on activation.
+    pub fn unavailable(&self, busy: bool, has_variants: bool) -> Option<&'static str> {
+        if busy
+            && matches!(
+                self.action,
+                CommandAction::NewSession
+                    | CommandAction::OpenSessions
+                    | CommandAction::OpenModelPicker
+                    | CommandAction::OpenVariants
+                    | CommandAction::OpenAgents
+                    | CommandAction::SwitchLocation { .. }
+                    | CommandAction::DcpCompress { .. }
+            )
+        {
+            return Some("turn active; action unavailable");
+        }
+        if self.action == CommandAction::OpenVariants && !has_variants {
+            return Some("No variants available");
+        }
+        None
+    }
+
+    pub fn in_palette(&self, has_variants: bool) -> bool {
+        !matches!(
+            self.action,
+            CommandAction::OpenCommands | CommandAction::SwitchLocation { .. }
+        ) && (self.action != CommandAction::OpenVariants || has_variants)
+    }
+}
+
+pub fn spec(action: &CommandAction) -> &'static CommandSpec {
+    REGISTRY
+        .iter()
+        .find(|c| std::mem::discriminant(&c.action) == std::mem::discriminant(action))
+        .expect("every builtin action has one registry entry")
+}
+
+/// Match the displayed binding itself, so a label cannot drift from its handler.
+pub fn direct(event: crossterm::event::KeyEvent) -> Option<CommandAction> {
+    use crossterm::event::{KeyCode, KeyModifiers};
+    REGISTRY
+        .iter()
+        .find(|c| {
+            c.shortcuts.iter().any(|binding| {
+                let (code, modifiers) = match *binding {
+                    "shift+tab" => (KeyCode::BackTab, KeyModifiers::SHIFT),
+                    s if s.starts_with("ctrl+") && s.len() == 6 => (
+                        KeyCode::Char(s.as_bytes()[5] as char),
+                        KeyModifiers::CONTROL,
+                    ),
+                    _ => return false,
+                };
+                event.code == code && event.modifiers == modifiers
+            })
+        })
+        .map(|c| c.action.clone())
 }
 
 pub const COMMANDS_BINDING: &str = "ctrl+p";
@@ -98,18 +152,34 @@ pub const AGENTS_BINDING: &str = "shift+tab";
 
 pub const REGISTRY: &[CommandSpec] = &[
     CommandSpec {
+        id: "commands.show",
+        title: "Show command palette",
+        group: "System",
+        shortcuts: &[COMMANDS_BINDING],
+        aliases: &["commands"],
+        action: CommandAction::OpenCommands,
+    },
+    CommandSpec {
         id: "session.list",
         title: "Switch session",
         group: "Session",
-        shortcut: "ctrl+x l",
-        aliases: &["sessions", "session", "resume"],
+        shortcuts: &["ctrl+x l"],
+        aliases: &["sessions", "session", "resume", "continue"],
         action: CommandAction::OpenSessions,
+    },
+    CommandSpec {
+        id: "session.new",
+        title: "New session",
+        group: "Session",
+        shortcuts: &["ctrl+x n"],
+        aliases: &["new", "clear"],
+        action: CommandAction::NewSession,
     },
     CommandSpec {
         id: "session.sidebar.toggle",
         title: "Toggle sidebar",
         group: "Session",
-        shortcut: "ctrl+x b",
+        shortcuts: &["ctrl+x b"],
         aliases: &["sidebar"],
         action: CommandAction::ToggleSidebar,
     },
@@ -117,15 +187,23 @@ pub const REGISTRY: &[CommandSpec] = &[
         id: "model.list",
         title: "Switch model",
         group: "Agent",
-        shortcut: "ctrl+x m",
+        shortcuts: &["ctrl+x m"],
         aliases: &["model", "models"],
         action: CommandAction::OpenModelPicker,
+    },
+    CommandSpec {
+        id: "variant.list",
+        title: "Switch model variant",
+        group: "Agent",
+        shortcuts: &[],
+        aliases: &["variants", "thinking", "effort"],
+        action: CommandAction::OpenVariants,
     },
     CommandSpec {
         id: "agent.list",
         title: "Switch agent",
         group: "Agent",
-        shortcut: "ctrl+x a",
+        shortcuts: &["ctrl+x a", AGENTS_BINDING],
         aliases: &["agents", "agent"],
         action: CommandAction::OpenAgents,
     },
@@ -133,7 +211,7 @@ pub const REGISTRY: &[CommandSpec] = &[
         id: "skill.list",
         title: "Skills",
         group: "Agent",
-        shortcut: "",
+        shortcuts: &[],
         aliases: &["skills"],
         action: CommandAction::OpenSkills,
     },
@@ -141,15 +219,35 @@ pub const REGISTRY: &[CommandSpec] = &[
         id: "native.cards",
         title: "Tool cards",
         group: "Native",
-        shortcut: "",
+        shortcuts: &[],
         aliases: &["cards"],
         action: CommandAction::OpenCards,
+    },
+    CommandSpec {
+        id: "native.location",
+        title: "Change location",
+        group: "Native",
+        shortcuts: &[],
+        aliases: &["location"],
+        action: CommandAction::SwitchLocation {
+            path: String::new(),
+        },
+    },
+    CommandSpec {
+        id: "native.compress",
+        title: "Compress DCP context",
+        group: "Native",
+        shortcuts: &[],
+        aliases: &["dcp-compress"],
+        action: CommandAction::DcpCompress {
+            focus: String::new(),
+        },
     },
     CommandSpec {
         id: "help.show",
         title: "Help",
         group: "System",
-        shortcut: "",
+        shortcuts: &[],
         aliases: &["help"],
         action: CommandAction::Help(None),
     },
@@ -157,31 +255,22 @@ pub const REGISTRY: &[CommandSpec] = &[
         id: "app.exit",
         title: "Exit the app",
         group: "System",
-        shortcut: "ctrl+c ctrl+d",
+        shortcuts: &["ctrl+c", "ctrl+d"],
         aliases: &["quit", "exit"],
         action: CommandAction::Quit,
     },
 ];
 
-/// Built-in command names for completion (exact table, sorted).
-pub const BUILTINS: [&str; 8] = [
-    "agents",
-    "dcp-compress",
-    "help",
-    "location",
-    "model",
-    "quit",
-    "sessions",
-    "skills",
-];
-
 /// Complete a `/prefix` against the built-in table.
 pub fn complete(prefix: &str) -> Vec<&'static str> {
     let needle = prefix.strip_prefix('/').unwrap_or(prefix);
-    BUILTINS
-        .into_iter()
+    let mut names: Vec<_> = REGISTRY
+        .iter()
+        .flat_map(|c| c.aliases.iter().copied())
         .filter(|name| name.starts_with(needle))
-        .collect()
+        .collect();
+    names.sort_unstable();
+    names
 }
 
 #[cfg(test)]
@@ -223,21 +312,17 @@ mod tests {
 
     #[test]
     fn completes_prefix() {
-        assert_eq!(complete("/s"), ["sessions", "skills"]);
-        assert_eq!(complete("/a"), ["agents"]);
+        assert_eq!(complete("/s"), ["session", "sessions", "sidebar", "skills"]);
+        assert_eq!(complete("/a"), ["agent", "agents"]);
         assert_eq!(complete("/d"), ["dcp-compress"]);
-        assert_eq!(
-            complete("/"),
-            [
-                "agents",
-                "dcp-compress",
-                "help",
-                "location",
-                "model",
-                "quit",
-                "sessions",
-                "skills"
-            ]
-        );
+        for command in super::REGISTRY {
+            for alias in command.aliases {
+                assert!(complete("/").contains(alias));
+                assert_eq!(dispatch(&format!("/{alias}")), Some(command.action.clone()));
+            }
+        }
+        for unsupported in ["open", "projects", "project", "mcps"] {
+            assert!(!complete("/").contains(&unsupported));
+        }
     }
 }

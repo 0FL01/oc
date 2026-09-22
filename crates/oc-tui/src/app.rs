@@ -70,6 +70,8 @@ pub enum TuiPanel {
     None,
     /// Model picker (UI02).
     Model,
+    /// Declared variants of the effective application model, including Default.
+    Variant,
     /// Primary agent selector.
     Agents,
     /// Session list with resume (UI03).
@@ -95,6 +97,13 @@ pub enum PanelIntent {
     LoadSkills,
     /// Load the newest tool-card page.
     LoadCards,
+    /// Create an empty application session and attach its Home route.
+    NewSession,
+    /// Select a model, restoring the owner's remembered variant preference.
+    SelectModel {
+        /// Exact model id.
+        id: String,
+    },
     /// Apply an exact model + variant choice.
     ChooseModel {
         /// Exact model id.
@@ -444,7 +453,7 @@ impl TuiState {
     }
 
     /// Safe options from actual snapshots. Filtering never changes runtime selection.
-    pub fn modal_options(&self) -> Vec<crate::dialog::SelectOption> {
+    pub fn modal_options(&self) -> std::rc::Rc<Vec<crate::dialog::SelectOption>> {
         use crate::dialog::SelectOption;
         let item =
             |value: String, title: String, category: &str, footer: String, current| SelectOption {
@@ -462,34 +471,52 @@ impl TuiState {
                         crate::commands::REGISTRY
                             .iter()
                             .filter(|c| {
-                                c.id == "model.list" || (c.id == "session.list" && !self.home)
+                                c.id == "model.list"
+                                    || ((c.id == "session.list" || c.id == "session.new")
+                                        && !self.home)
                             })
                             .map(|c| {
                                 item(
                                     c.id.into(),
                                     c.title.into(),
                                     "Suggested",
-                                    c.shortcut.into(),
+                                    self.command_footer(c),
                                     false,
                                 )
                             }),
                     );
                 }
-                options.extend(crate::commands::REGISTRY.iter().map(|c| {
-                    item(
-                        c.id.into(),
-                        c.title.into(),
-                        c.group,
-                        c.shortcut.into(),
-                        false,
-                    )
-                }));
+                options.extend(
+                    crate::commands::REGISTRY
+                        .iter()
+                        .filter(|c| {
+                            c.in_palette(self.picker.as_ref().is_some_and(|p| p.has_variants()))
+                        })
+                        .map(|c| {
+                            item(
+                                c.id.into(),
+                                c.title.into(),
+                                c.group,
+                                self.command_footer(c),
+                                false,
+                            )
+                        }),
+                );
                 options
             }
-            TuiPanel::Model => self
+            TuiPanel::Model => {
+                return self.select.filter_for(
+                    self.picker
+                        .as_ref()
+                        .map(|p| p.options())
+                        .unwrap_or_default(),
+                    &self.panel,
+                );
+            }
+            TuiPanel::Variant => self
                 .picker
                 .as_ref()
-                .map(|p| p.options())
+                .map(|p| p.variant_options())
                 .unwrap_or_default(),
             TuiPanel::Agents => self
                 .agents
@@ -537,7 +564,59 @@ impl TuiState {
                 .map(|(i, s)| item(i.to_string(), s, "", String::new(), false))
                 .collect(),
         };
-        self.select.filter(options)
+        self.select
+            .filter_for(std::rc::Rc::new(options), &self.panel)
+    }
+
+    pub fn command_unavailable(&self, action: &CommandAction) -> Option<&'static str> {
+        crate::commands::spec(action).unavailable(
+            self.is_busy(),
+            self.picker.as_ref().is_some_and(|p| p.has_variants()),
+        )
+    }
+
+    fn command_footer(&self, command: &crate::commands::CommandSpec) -> String {
+        self.command_unavailable(&command.action)
+            .map(str::to_string)
+            .unwrap_or_else(|| command.shortcuts.join(" "))
+    }
+
+    /// Called only after a successful application selection. The original applies
+    /// the model before replacing its dialog; Escape here never rolls it back.
+    pub fn model_choice_applied(&mut self, snapshot: CatalogSnapshot) {
+        let selecting_model = self.panel == TuiPanel::Model;
+        self.apply_catalog(snapshot);
+        if selecting_model
+            && self.picker.as_ref().is_some_and(|p| {
+                p.has_variants() && p.selection().is_some_and(|s| s.variant.is_none())
+            })
+        {
+            self.open_variants();
+        } else {
+            self.close_panel();
+        }
+    }
+
+    fn open_variants(&mut self) {
+        self.panel = TuiPanel::Variant;
+        self.select.reset();
+        self.select.cursor = self
+            .modal_options()
+            .iter()
+            .position(|o| o.current)
+            .unwrap_or(0);
+    }
+
+    fn changed_modal_query(&mut self) {
+        self.select.changed_query();
+        if self.panel == TuiPanel::Variant && self.select.query.is_empty() {
+            self.select.cursor = self
+                .modal_options()
+                .iter()
+                .position(|o| o.current)
+                .unwrap_or(0);
+        }
+        self.sync_modal_cursor();
     }
 
     fn sync_modal_cursor(&mut self) {
@@ -778,6 +857,9 @@ impl TuiState {
             picker.load_persisted_raw(Some(&record.to_string()));
             picker.focus_id(&snapshot.model_id);
         }
+        if let Some(error) = picker.last_error() {
+            self.push_note(error);
+        }
         self.picker = Some(picker);
         self.commands = snapshot.commands;
         self.active_agent = snapshot.agent_id.clone();
@@ -846,8 +928,7 @@ impl TuiState {
                     .chars()
                     .filter(|c| !c.is_control()),
             );
-            self.select.changed_query();
-            self.sync_modal_cursor();
+            self.changed_modal_query();
             return KeyOutcome::default();
         }
         let room = MAX_INPUT_BYTES.saturating_sub(self.input.len());
@@ -951,9 +1032,6 @@ impl TuiState {
     pub fn picker_selection(&self) -> Option<(String, Option<String>)> {
         let picker = self.picker.as_ref()?;
         let id = picker.cursor_id()?;
-        if picker.variant_changed() {
-            return Some((id, picker.pending_variant()));
-        }
         let variant = picker
             .selection()
             .filter(|selection| selection.id == id)
@@ -965,7 +1043,11 @@ impl TuiState {
     /// Effective model id and variant name from the catalog snapshot (the
     /// resolved selection, never the picker cursor).
     pub fn active_model_label(&self) -> Option<(String, Option<String>)> {
-        let selection = self.picker.as_ref()?.selection()?;
+        let picker = self.picker.as_ref()?;
+        if let crate::picker::PickerState::Retired { wanted, .. } = picker.state() {
+            return Some((format!("{wanted} (unavailable)"), None));
+        }
+        let selection = picker.selection()?;
         Some((
             selection
                 .entry
@@ -976,7 +1058,12 @@ impl TuiState {
             selection
                 .variant
                 .as_ref()
-                .map(|variant| variant.name.clone()),
+                .map(|variant| variant.name.clone())
+                .or_else(|| {
+                    picker
+                        .retired_variant()
+                        .map(|name| format!("{name} (unavailable)"))
+                }),
         ))
     }
 
@@ -1035,7 +1122,7 @@ impl TuiState {
             let command = if let KeyAction::Char(key) = action {
                 crate::commands::REGISTRY
                     .iter()
-                    .find(|c| c.shortcut == format!("ctrl+x {key}"))
+                    .find(|c| c.shortcuts.contains(&format!("ctrl+x {key}").as_str()))
                     .map(|c| c.action.clone())
             } else {
                 None
@@ -1135,6 +1222,14 @@ impl TuiState {
             return KeyOutcome::default();
         }
         if self.pending.is_some() {
+            if let Some(action) = dispatch(self.input.trim())
+                && let Some(reason) = self.command_unavailable(&action)
+            {
+                return KeyOutcome {
+                    note: Some(reason.into()),
+                    ..KeyOutcome::default()
+                };
+            }
             return KeyOutcome {
                 note: Some("submission pending; Esc to cancel".into()),
                 ..KeyOutcome::default()
@@ -1153,6 +1248,7 @@ impl TuiState {
                     || matches!(
                         self.panel,
                         TuiPanel::Model
+                            | TuiPanel::Variant
                             | TuiPanel::Agents
                             | TuiPanel::Sessions
                             | TuiPanel::Skills
@@ -1233,6 +1329,12 @@ impl TuiState {
     }
 
     fn run_command(&mut self, action: CommandAction) -> KeyOutcome {
+        if let Some(reason) = self.command_unavailable(&action) {
+            return KeyOutcome {
+                note: Some(reason.into()),
+                ..KeyOutcome::default()
+            };
+        }
         self.select.reset();
         let mut outcome = KeyOutcome::default();
         match action {
@@ -1252,17 +1354,19 @@ impl TuiState {
                 self.panel = TuiPanel::Model;
                 open_snapshot(&mut outcome, self.catalog_loaded, PanelIntent::LoadCatalog);
             }
+            CommandAction::OpenVariants => self.open_variants(),
+            CommandAction::NewSession => {
+                outcome.intent = Some(PanelIntent::NewSession);
+            }
             CommandAction::OpenAgents => {
                 self.panel = TuiPanel::Agents;
                 open_snapshot(&mut outcome, self.catalog_loaded, PanelIntent::LoadCatalog);
             }
             CommandAction::OpenSessions => {
                 self.panel = TuiPanel::Sessions;
-                open_snapshot(
-                    &mut outcome,
-                    self.sessions_loaded,
-                    PanelIntent::LoadSessions,
-                );
+                // Sessions can be created by the application since the last opening.
+                outcome.intent = Some(PanelIntent::LoadSessions);
+                outcome.consumed_input = self.sessions_loaded;
             }
             CommandAction::OpenSkills => {
                 self.panel = TuiPanel::Skills;
@@ -1301,14 +1405,12 @@ impl TuiState {
                 if self.select.query.len() + c.len_utf8() <= 512 {
                     self.select.query.push(c);
                 }
-                self.select.changed_query();
-                self.sync_modal_cursor();
+                self.changed_modal_query();
                 return KeyOutcome::default();
             }
             KeyAction::Backspace => {
                 self.select.query.pop();
-                self.select.changed_query();
-                self.sync_modal_cursor();
+                self.changed_modal_query();
                 return KeyOutcome::default();
             }
             KeyAction::Interrupt
@@ -1327,7 +1429,7 @@ impl TuiState {
                     self.close_panel();
                 } else {
                     self.select.reset();
-                    self.sync_modal_cursor();
+                    self.changed_modal_query();
                 }
                 return KeyOutcome::default();
             }
@@ -1342,6 +1444,7 @@ impl TuiState {
                     self.panel,
                     TuiPanel::Commands
                         | TuiPanel::Model
+                        | TuiPanel::Variant
                         | TuiPanel::Agents
                         | TuiPanel::Sessions
                         | TuiPanel::Skills
@@ -1376,14 +1479,7 @@ impl TuiState {
                 self.panel = TuiPanel::None;
                 KeyOutcome::default()
             }
-            KeyAction::Left => {
-                self.cycle_panel_variant(-1);
-                KeyOutcome::default()
-            }
-            KeyAction::Right => {
-                self.cycle_panel_variant(1);
-                KeyOutcome::default()
-            }
+            KeyAction::Left | KeyAction::Right => KeyOutcome::default(),
             KeyAction::Up => {
                 self.move_panel_cursor(-1);
                 let intent = (self.panel == TuiPanel::Cards
@@ -1401,15 +1497,6 @@ impl TuiState {
             }
             KeyAction::Enter => self.panel_enter(),
             _ => KeyOutcome::default(),
-        }
-    }
-
-    /// Cycle the pending variant of the model under the cursor (Model panel).
-    fn cycle_panel_variant(&mut self, delta: isize) {
-        if self.panel == TuiPanel::Model
-            && let Some(picker) = self.picker.as_mut()
-        {
-            picker.cycle_variant(delta);
         }
     }
 
@@ -1447,16 +1534,45 @@ impl TuiState {
                         .iter()
                         .find(|c| c.id == option.value)
                 {
-                    self.close_panel();
                     return self.run_command(command.action.clone());
                 }
             }
+            TuiPanel::Model if self.is_busy() => {
+                outcome.note = self
+                    .command_unavailable(&CommandAction::OpenModelPicker)
+                    .map(str::to_string)
+            }
+            TuiPanel::Variant if self.is_busy() => {
+                outcome.note = self
+                    .command_unavailable(&CommandAction::OpenVariants)
+                    .map(str::to_string)
+            }
+            TuiPanel::Agents if self.is_busy() => {
+                outcome.note = self
+                    .command_unavailable(&CommandAction::OpenAgents)
+                    .map(str::to_string)
+            }
+            TuiPanel::Sessions if self.is_busy() => {
+                outcome.note = self
+                    .command_unavailable(&CommandAction::OpenSessions)
+                    .map(str::to_string)
+            }
             TuiPanel::Model => match self.picker_selection() {
-                Some((id, variant)) => {
-                    outcome.intent = Some(PanelIntent::ChooseModel { id, variant });
+                Some((id, _)) => {
+                    outcome.intent = Some(PanelIntent::SelectModel { id });
                 }
                 None => outcome.note = Some("no model selected".to_string()),
             },
+            TuiPanel::Variant => {
+                if let Some(option) = self.modal_options().get(self.select.cursor)
+                    && let Some(selection) = self.picker.as_ref().and_then(|p| p.selection())
+                {
+                    outcome.intent = Some(PanelIntent::ChooseModel {
+                        id: selection.id.clone(),
+                        variant: (option.value != "default").then(|| option.value.clone()),
+                    });
+                }
+            }
             TuiPanel::Agents => match self.selected_agent() {
                 Some(id) => outcome.intent = Some(PanelIntent::SelectAgent { id }),
                 None => outcome.note = Some("no agent selected".to_string()),
@@ -2453,7 +2569,15 @@ mod tests {
         for command in ["/model", "/agents", "/sessions", "/skills"] {
             type_text(&mut state, command).await;
             let outcome = state.handle_key(KeyAction::Enter).await;
-            assert_eq!(outcome.intent, None, "{command}");
+            assert_eq!(
+                outcome.intent,
+                if command == "/sessions" {
+                    Some(PanelIntent::LoadSessions)
+                } else {
+                    None
+                },
+                "{command}"
+            );
             assert!(outcome.consumed_input, "{command}");
             assert!(state.input().is_empty(), "{command}");
             state.close_panel();
@@ -2497,6 +2621,84 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn v04_pending_command_availability_preserves_receipt_focus_and_draft() {
+        use crate::commands::CommandAction;
+        use oc_core::core_app::InboxMsg;
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("v04-pending"));
+        state.apply_catalog(snapshot());
+        type_text(&mut state, "pending prompt").await;
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+            panic!("submit")
+        };
+        state.handle_key(KeyAction::Commands).await;
+        state.handle_paste("New session");
+        assert!(state.modal_options()[0].footer.contains("turn active"));
+        let outcome = state.handle_panel_key(KeyAction::Enter);
+        assert_eq!(outcome.intent, None);
+        assert_eq!(
+            outcome.note.as_deref(),
+            Some("turn active; action unavailable")
+        );
+        assert_eq!(state.panel(), &TuiPanel::Commands);
+        state.handle_panel_key(KeyAction::Cancel);
+        assert_eq!(state.input(), "pending prompt");
+        assert_eq!(state.status(), &TuiStatus::PendingSubmission);
+        for action in [
+            CommandAction::NewSession,
+            CommandAction::OpenSessions,
+            CommandAction::OpenModelPicker,
+            CommandAction::OpenVariants,
+            CommandAction::OpenAgents,
+        ] {
+            let outcome = state.run_command(action);
+            assert_eq!(outcome.intent, None);
+            assert!(outcome.note.unwrap().contains("turn active"));
+            assert_eq!(state.panel(), &TuiPanel::None);
+        }
+        assert!(inbox.try_recv().is_err());
+        ack.send(Ok(WorkerTurnId("receipt-intact".into()))).unwrap();
+        state.poll_submission();
+        assert_eq!(
+            state.active_turn(),
+            Some(&WorkerTurnId("receipt-intact".into()))
+        );
+        assert_eq!(state.history().rows()[0].text, "pending prompt");
+        assert!(state.input().is_empty());
+    }
+
+    #[tokio::test]
+    async fn v04_variant_current_focus_restores_after_clearing_search() {
+        use crate::commands::CommandAction;
+        let mut state = fresh_state("v04-variant").await;
+        let mut catalog = snapshot();
+        catalog.variant = Some("none".into());
+        catalog.models[0].variants.push(VariantEntry {
+            name: "none".into(),
+            disabled: false,
+            reasoning_effort: Some("low".into()),
+        });
+        state.apply_catalog(catalog.clone());
+        state.run_command(CommandAction::OpenVariants);
+        assert!(state.modal_options()[state.select.cursor].current);
+        state.handle_paste("Default");
+        assert!(!state.modal_options()[state.select.cursor].current);
+        state.handle_panel_key(KeyAction::Interrupt);
+        assert!(state.modal_options()[state.select.cursor].current);
+        let outcome = state.handle_panel_key(KeyAction::Enter);
+        assert_eq!(
+            outcome.intent,
+            Some(PanelIntent::ChooseModel {
+                id: "a".into(),
+                variant: Some("none".into())
+            })
+        );
+        state.model_choice_applied(catalog);
+        assert_eq!(state.panel(), &TuiPanel::None);
+    }
+
+    #[tokio::test]
     async fn v04_modal_search_scroll_focus_and_draft() {
         use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
         use ratatui::{Terminal, backend::TestBackend};
@@ -2525,7 +2727,14 @@ mod tests {
         state.handle_key(key).await;
         assert_eq!(state.panel(), &TuiPanel::Commands);
         state.handle_paste("model");
-        assert_eq!(state.modal_options().len(), 1);
+        assert_eq!(
+            state
+                .modal_options()
+                .iter()
+                .map(|o| o.title.as_str())
+                .collect::<Vec<_>>(),
+            ["Switch model"]
+        );
         state.handle_panel_key(KeyAction::Enter);
         assert_eq!(state.panel(), &TuiPanel::Model);
         terminal
@@ -2541,7 +2750,19 @@ mod tests {
                 );
                 assert_eq!(
                     modal[(x, y)].fg,
-                    crate::dialog::backdrop(base[(x, y)].fg, crate::theme::Theme::dark().text())
+                    if base[(x, y)].symbol() == " " {
+                        ratatui::style::Color::Rgb(255, 255, 255)
+                    } else {
+                        crate::dialog::backdrop(base[(x, y)].fg, crate::theme::Theme::dark().text())
+                    }
+                );
+                assert_eq!(
+                    modal[(x, y)].modifier,
+                    if base[(x, y)].symbol() == " " {
+                        ratatui::style::Modifier::empty()
+                    } else {
+                        base[(x, y)].modifier
+                    }
                 );
                 assert_eq!(
                     modal[(x, y)].bg,
@@ -2593,9 +2814,8 @@ mod tests {
         let outcome = state.handle_panel_key(KeyAction::Enter);
         assert_eq!(
             outcome.intent,
-            Some(PanelIntent::ChooseModel {
+            Some(PanelIntent::SelectModel {
                 id: "b".to_string(),
-                variant: None
             })
         );
         assert_eq!(state.picker_selection(), Some(("b".to_string(), None)));

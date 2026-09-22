@@ -1,0 +1,14 @@
+{
+  "binary": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+  "origin": "upstream",
+  "columns": 121,
+  "rows": 41,
+  "isolated_root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/followup-121x41",
+  "fixture": "/home/opencode/ai/oc/tui-recovery/fixtures",
+  "sample": "short",
+  "sidebar": "auto",
+  "devtools": false,
+  "tabs": "horizontal",
+  "variants": true,
+  "startup_error": false
+}

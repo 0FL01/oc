@@ -268,6 +268,17 @@ pub enum InboxMsg {
         /// Query result.
         ack: oneshot::Sender<Result<CatalogSnapshot, CoreError>>,
     },
+    /// Read/change a session/agent model draft in the existing application owner.
+    SessionSelection {
+        /// Owning session.
+        session: SessionId,
+        /// Home selections additionally remember the Location/agent draft.
+        home: bool,
+        /// Exact action; model selection is distinct from clearing a variant.
+        action: crate::queries::SessionSelectionAction,
+        /// Actual accepted selection and catalog.
+        ack: oneshot::Sender<Result<CatalogSnapshot, CoreError>>,
+    },
     /// Skill catalog cards (metadata only).
     Skills {
         /// Query result.
@@ -569,6 +580,27 @@ impl CoreApp {
             .await
             .map_err(|_| CoreError::Shutdown)?;
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Read/change the durable session/agent selection. Home model choices also
+    /// remember the Location/agent draft; no transcript is copied or modified.
+    pub async fn session_selection(
+        &self,
+        session: SessionId,
+        home: bool,
+        action: crate::queries::SessionSelectionAction,
+    ) -> Result<CatalogSnapshot, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::SessionSelection {
+                session,
+                home,
+                action,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
     }
 
     /// Switch the running application to another Location (project path).
@@ -880,7 +912,7 @@ fn scripted_unsupported(message: InboxMsg) {
         InboxMsg::ToolOps { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
-        InboxMsg::Catalog { ack } => {
+        InboxMsg::Catalog { ack } | InboxMsg::SessionSelection { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::Skills { ack } => {

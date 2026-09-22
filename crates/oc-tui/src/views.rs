@@ -41,15 +41,27 @@ pub fn render_test(state: &TuiState, width: u16, height: u16) -> Vec<String> {
 pub fn panel_lines(state: &TuiState) -> Vec<String> {
     const ROWS: usize = 8;
     match state.panel() {
-        TuiPanel::Commands => state.modal_options().into_iter().map(|o|o.title).collect(),
+        TuiPanel::Commands => state
+            .modal_options()
+            .iter()
+            .map(|o| o.title.clone())
+            .collect(),
+        TuiPanel::Variant => state
+            .modal_options()
+            .iter()
+            .map(|o| o.title.clone())
+            .collect(),
         TuiPanel::None => Vec::new(),
         TuiPanel::Model => match &state.picker {
             Some(picker) => {
                 let mut out = vec![format!("model | {}", picker.status_line())];
-                if let Some(variant) = picker.pending_variant() {
-                    out.push(format!("variant: {variant}"));
-                }
-                out.extend(picker.window().into_iter().take(ROWS).map(|id|picker.display_label(&id)));
+                out.extend(
+                    picker
+                        .window()
+                        .into_iter()
+                        .take(ROWS)
+                        .map(|id| picker.display_label(&id)),
+                );
                 if let Some(error) = picker.last_error() {
                     out.push(format!("note: {error}"));
                 }
@@ -99,7 +111,11 @@ pub fn panel_lines(state: &TuiState) -> Vec<String> {
             Some(topic) => vec![format!("help | {topic}"), help_topic(topic.as_str())],
             None => vec![
                 "help | commands".to_string(),
-                "/model /agents /sessions /skills /cards /location <path> /dcp-compress /help /quit".to_string(),
+                crate::commands::REGISTRY
+                    .iter()
+                    .map(|c| format!("/{}", c.aliases[0]))
+                    .collect::<Vec<_>>()
+                    .join(" "),
             ],
         },
         TuiPanel::Dcp => {

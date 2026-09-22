@@ -1684,7 +1684,10 @@ for line in sys.stdin:
         .unwrap();
     assert_eq!(messages, 0);
     fs::write(&release, "release").unwrap();
-    tui.wait_visible("cancelled");
+    // Registry availability toasts may leave unchanged letters in-place. The
+    // current screen, not contiguous bytes in ratatui's delta stream, proves
+    // that the cancellation diagnostic is actually visible.
+    tui.wait_screen("cancelled", IO_TIMEOUT);
     let offset = tui.send_line(""); // retry exact retained, edited draft
     tui.wait_visible_after(
         offset,

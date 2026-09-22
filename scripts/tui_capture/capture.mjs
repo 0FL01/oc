@@ -23,7 +23,7 @@ const canonical = value => JSON.stringify(value, (_, v) => v && typeof v === 'ob
 const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.stringify(value, null, 2) + '\n');
 const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
-const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', protocol: sha(fs.readFileSync(path.join(here,'bridge.py')))}));
+const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true', protocol: sha(fs.readFileSync(path.join(here,'bridge.py')))}));
 const commands = [];
 commands.push({argv:[process.execPath,...process.argv.slice(1)],role:'capture runner invocation',exit_code:null});
 const execute = (argv, options={}) => {
@@ -35,9 +35,20 @@ const execute = (argv, options={}) => {
 const commit = execute(['git', 'rev-parse', 'HEAD']).stdout.trim();
 const tree = execute(['git', 'rev-parse', 'HEAD^{tree}']).stdout.trim();
 const diff = execute(['git', 'diff', '--binary']).stdout;
+// Seal actual inputs, including new Rust modules not yet staged. Deliberately
+// restrict discovery to source/tool paths: never inspect authoring .opencode or
+// product credentials. HEAD + tracked diff alone does not attest untracked code.
+const sourcePaths = execute(['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard', '--',
+  'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml', 'crates', 'scripts/tui_capture']);
+if (sourcePaths.status !== 0) throw Error('Source input enumeration failed');
+const sourceManifest = Object.fromEntries([...new Set(sourcePaths.stdout.split('\0').filter(Boolean))].sort()
+  .filter(name => fs.existsSync(path.join(repo,name)))
+  .map(name => [name,sha(fs.readFileSync(path.join(repo,name)))]));
+json('source-manifest.json', sourceManifest);
 const lock = {schema_version: 1, started: new Date().toISOString(), runner_version: 1,
   runner_hashes: Object.fromEntries(['capture.mjs','frontend.js','bridge.py'].map(n => [n, sha(fs.readFileSync(path.join(here,n)))])),
-  fixture_sha256: fixtureSha, fixture_files: fixtureFiles, oc: {commit, tree, dirty_diff_sha256: sha(diff)},
+  fixture_sha256: fixtureSha, fixture_files: fixtureFiles, oc: {commit, tree, dirty_diff_sha256: sha(diff),
+    source_manifest_sha256: sha(canonical(sourceManifest))},
   sources: {upstream_commit: '2670273ff17da96f85c5826ced57aa1b368754fa'}, attempts: [], captures: []};
 if(args['build-oc'] === 'true') {
   const build = execute(['cargo', 'build', '--locked']);
@@ -76,7 +87,7 @@ try {
     fs.mkdirSync(dir);
     const spec = {binary, origin, columns: profile.columns, rows: profile.rows, isolated_root: isolated, fixture,
       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,
-      tabs: profile.settings.tabs, startup_error: args['startup-error'] === 'true',
+      tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
       seed_root: args['seed-root'], session: args.session};
     fs.writeFileSync(path.join(dir,'bridge-spec.json'), JSON.stringify(spec, null, 2));
     lock[origin] = {...lock[origin], executable_path: binary, executable_sha256: hash};
@@ -246,6 +257,14 @@ try {
       send('\x18','CTRL_X'); await sleep(100); send('m','m');
       try { await capture('models-over-session',await waitFor(f=>f.text.includes('Select model'),'Select model',7000),'CAPTURED'); }
       catch(e) {await capture('models-over-session',await frame(),'FAILED_STATE'); lock.attempts.push({origin,scenario:'models-over-session',status:'FAILED',reason:e.message}); result=1;}
+      if(args.variants === 'true') {
+        send('\x1b','ESCAPE'); await sleep(300);
+        send('/variants','SLASH_VARIANTS');
+        await waitFor(f=>f.text.includes('/variants'),'variant command draft');
+        send('\r','ENTER_VARIANTS');
+        try { await capture('variants-over-session',await waitFor(f=>f.text.includes('Select variant') && f.text.includes('Default') && f.text.includes('none'),'Select variant',7000),'CAPTURED'); }
+        catch(e) {await capture('variants-over-session',await frame(),'FAILED_STATE'); lock.attempts.push({origin,scenario:'variants-over-session',status:'FAILED',reason:e.message}); result=1;}
+      }
       }
       lock.attempts.push({origin,status:'EXECUTED',provider_contract:logs.filter(e=>e.kind==='provider').every(e=>e.valid)});
     } catch(e) {
@@ -276,7 +295,7 @@ try {
       'Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states'],
     mcp_error_and_stall: 'NOT_RUN (V00 three-screen capture only)'
   };
-  for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))] : ['session-wide-completed','commands-over-session','models-over-session']) {
+  for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))] : ['session-wide-completed','commands-over-session','models-over-session', ...(args.variants === 'true' ? ['variants-over-session'] : [])]) {
     for (const mode of ['grid','png']) {
       const ext=mode==='grid'?'cells.json':'png';
       const ref=path.join(output,'upstream',scenario+'.'+ext), actual=path.join(output,'oc',scenario+'.'+ext);

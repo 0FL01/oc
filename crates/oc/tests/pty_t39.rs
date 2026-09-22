@@ -158,7 +158,8 @@ impl Fixture {
             }
             assert!(
                 start.elapsed() < DEADLINE,
-                "missing configured HTTP request {count}"
+                "missing configured HTTP request {count}; fixture prompts: {:?}",
+                requests.iter().map(last_user_text).collect::<Vec<_>>()
             );
             std::thread::sleep(POLL);
         }
@@ -811,6 +812,7 @@ fn user_needle(text: &str) -> String {
 /// reconstructed screen grid: ratatui's cell diff skips unchanged cells on
 /// the wire, so raw byte needles are unreliable for new rows.
 fn submit(pty: &mut PtySession, text: &str) -> usize {
+    wait_idle(pty);
     let off = pty.snapshot().len();
     pty.send(text.as_bytes());
     pty.send(b"\r");
@@ -818,9 +820,347 @@ fn submit(pty: &mut PtySession, text: &str) -> usize {
     off
 }
 
+/// Echo bytes may be drawn before TurnFinished. Wait for the actual terminal
+/// status before starting the next idle action, rather than racing that event.
+fn wait_idle(pty: &PtySession) {
+    let start = Instant::now();
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|row| row.contains("esc interrupt") || row.contains("submission pending"))
+    {
+        assert!(start.elapsed() < DEADLINE, "turn did not become idle");
+        std::thread::sleep(POLL);
+    }
+}
+
 fn persisted(data_dir: &Path, session: &str) -> Vec<(String, String)> {
     let db = oc_adapters::storage::Db::open(data_dir).expect("db");
     db.read_history(session).expect("history")
+}
+
+fn saved_selection(
+    db: &oc_adapters::storage::Db,
+    fixture: &Fixture,
+    session: &str,
+    agent: &str,
+) -> serde_json::Value {
+    let key = format!(
+        "tui.selection.session:{}",
+        serde_json::json!([
+            fixture
+                .root
+                .path()
+                .join("project")
+                .canonicalize()
+                .unwrap()
+                .to_string_lossy(),
+            "fixture",
+            session
+        ])
+    );
+    let record: serde_json::Value =
+        serde_json::from_str(&db.get_pref(&key).unwrap().unwrap()).unwrap();
+    record["models"][agent].clone()
+}
+
+fn dismissed(pty: &PtySession, title: &str) {
+    let start = Instant::now();
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|r| r.contains(title))
+    {
+        assert!(start.elapsed() < DEADLINE, "modal did not dismiss: {title}");
+        std::thread::sleep(POLL);
+    }
+}
+
+fn choose_model(pty: &mut PtySession, title: &str) {
+    wait_idle(pty);
+    pty.send(b"/model\r");
+    wait_screen_row(pty, "Select model", DEADLINE);
+    pty.send(title.as_bytes());
+    wait_screen_row(pty, title, DEADLINE);
+    pty.send(b"\r");
+    dismissed(pty, "Select model");
+}
+
+fn choose_variant(pty: &mut PtySession, title: &str) {
+    wait_screen_row(pty, "Select variant", DEADLINE);
+    pty.send(title.as_bytes());
+    pty.send(b"\r");
+    dismissed(pty, "Select variant");
+}
+
+#[test]
+fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
+    for retired_model in [true, false] {
+        let fixture = Fixture::new();
+        let path = fixture
+            .root
+            .path()
+            .join("home/config/opencode/opencode.json");
+        let mut config: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        config["provider"]["fixture"]["models"][ALT_MODEL]["variants"]["none"] =
+            serde_json::json!({"reasoningEffort":"low"});
+        std::fs::write(&path, config.to_string()).unwrap();
+        let mut pty = PtySession::spawn(fixture.clone(), "retired", None);
+        pty.wait_visible(READY, DEADLINE);
+        choose_model(&mut pty, "T39 alt");
+        choose_variant(&mut pty, "fast");
+        pty.send(b"/quit\r");
+        assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+        let before = {
+            let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+            saved_selection(&db, &fixture, "retired", "")
+        };
+        assert_eq!(before, serde_json::json!({"id":ALT_MODEL,"variant":"fast"}));
+        if retired_model {
+            config["provider"]["fixture"]["models"]
+                .as_object_mut()
+                .unwrap()
+                .remove(ALT_MODEL);
+        } else {
+            config["provider"]["fixture"]["models"][ALT_MODEL]["variants"]["fast"]["disabled"] =
+                true.into();
+        }
+        std::fs::write(&path, config.to_string()).unwrap();
+        let mut pty = PtySession::spawn(
+            fixture.clone(),
+            if retired_model { "retired" } else { "healthy" },
+            None,
+        );
+        if !retired_model {
+            pty.wait_visible(READY, DEADLINE);
+            pty.send(b"/continue\r");
+            wait_screen_row(&pty, "Switch session", DEADLINE);
+            pty.send(b"retired\r");
+            dismissed(&pty, "Switch session");
+        }
+        wait_screen_row(&pty, "unavailable", DEADLINE);
+        if !retired_model {
+            wait_screen_row(&pty, "fast (unavailable)", DEADLINE);
+            pty.send(b"/variants\r");
+            wait_screen_row(&pty, "fast unavailable", DEADLINE);
+            assert!(
+                !render_screen(&pty.snapshot())
+                    .rows()
+                    .iter()
+                    .any(|row| row.contains("● Default")),
+                "retired fast must not show Default as selected"
+            );
+            pty.send(b"\x1b");
+            dismissed(&pty, "Select variant");
+        }
+        assert!(fixture.requests.lock().unwrap().is_empty());
+        pty.send(b"blocked draft\r");
+        wait_screen_row(&pty, "select an admitted replacement", DEADLINE);
+        wait_screen_row(&pty, "blocked draft", DEADLINE);
+        assert!(
+            fixture.requests.lock().unwrap().is_empty(),
+            "retired selection never submits"
+        );
+        pty.send(&vec![0x7f; "blocked draft".len()]);
+        pty.send(b"/quit\r");
+        assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+        let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+        assert_eq!(
+            saved_selection(&db, &fixture, "retired", ""),
+            before,
+            "read and refused submit do not rewrite prefs"
+        );
+        assert!(db.read_history("retired").unwrap().is_empty());
+        drop(db);
+        let mut pty = PtySession::spawn(fixture.clone(), "retired", None);
+        wait_screen_row(&pty, "unavailable", DEADLINE);
+        if retired_model {
+            choose_model(&mut pty, "T39 model");
+        } else {
+            pty.send(b"/variants\r");
+            choose_variant(&mut pty, "Default");
+        }
+        let off = submit(&mut pty, "accepted after replacement");
+        pty.wait_visible_after(off, "echo: accepted after replacement", DEADLINE);
+        let request = fixture.wait_requests(1);
+        assert_eq!(
+            request[0]["model"],
+            if retired_model { MODEL } else { ALT_MODEL }
+        );
+        assert!(
+            request[0]["reasoning"]["effort"].is_null(),
+            "explicit replacement cleared retired overlay"
+        );
+        pty.send(b"/quit\r");
+        assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+        let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+        assert_eq!(
+            saved_selection(&db, &fixture, "retired", ""),
+            serde_json::json!({"id":if retired_model {MODEL} else {ALT_MODEL},"variant":null})
+        );
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn v04_legacy_headless_api_supersedes_older_scoped_session_drafts() {
+    use oc_core::queries::SessionSelectionAction as Action;
+    let fixture = Fixture::new();
+    let home = fixture.root.path().join("home");
+    let env = std::collections::BTreeMap::from([
+        ("HOME".to_string(), home.to_string_lossy().into_owned()),
+        (
+            "XDG_CONFIG_HOME".to_string(),
+            home.join("config").to_string_lossy().into_owned(),
+        ),
+        (
+            "XDG_DATA_HOME".to_string(),
+            home.join("data").to_string_lossy().into_owned(),
+        ),
+        ("OC_FIXTURE_KEY".to_string(), "fixture-not-a-secret".into()),
+        ("OC_TEST_ALLOW_LOOPBACK".to_string(), "1".into()),
+    ]);
+    let project = fixture.root.path().join("project");
+    let session = oc_core::domain::SessionId("scoped-headless".into());
+    let (app, guard, _) =
+        oc_adapters::application::spawn_with_env(&project, &fixture.data_dir(), env.clone())
+            .await
+            .unwrap();
+    app.create_session(session.clone()).await.unwrap();
+    app.session_selection(session.clone(), false, Action::Current)
+        .await
+        .unwrap();
+    app.session_selection(session.clone(), false, Action::Model(ALT_MODEL.into()))
+        .await
+        .unwrap();
+    app.session_selection(session.clone(), false, Action::Variant(Some("fast".into())))
+        .await
+        .unwrap();
+    let home_session = oc_core::domain::SessionId("old-home".into());
+    app.create_session(home_session.clone()).await.unwrap();
+    app.session_selection(home_session, true, Action::Model(ALT_MODEL.into()))
+        .await
+        .unwrap();
+    let snapshot = app.select_model(MODEL.into(), None).await.unwrap();
+    assert_eq!(snapshot.model_id, MODEL);
+    assert_eq!(
+        app.session_selection(session.clone(), false, Action::Current)
+            .await
+            .unwrap()
+            .model_id,
+        MODEL
+    );
+    let fresh = oc_core::domain::SessionId("fresh-headless".into());
+    app.create_session(fresh.clone()).await.unwrap();
+    assert_eq!(
+        app.session_selection(fresh, false, Action::Current)
+            .await
+            .unwrap()
+            .model_id,
+        MODEL,
+        "older Home draft cannot mask explicit headless selection in a fresh session"
+    );
+    let mut events = app.subscribe();
+    let turn = app
+        .submit(session.clone(), "legacy model".into())
+        .await
+        .unwrap();
+    loop {
+        match tokio::time::timeout(DEADLINE, events.recv())
+            .await
+            .unwrap()
+            .unwrap()
+        {
+            oc_core::core_app::CoreEvent::TurnFinished { turn: id, .. } if id == turn => break,
+            oc_core::core_app::CoreEvent::TurnFailed { error, .. } => {
+                panic!("legacy turn failed: {error}")
+            }
+            _ => {}
+        }
+    }
+    let request = fixture.wait_requests(1);
+    assert_eq!(request[0]["model"], MODEL);
+    assert!(request[0]["reasoning"]["effort"].is_null());
+    let snapshot = app
+        .select_model(ALT_MODEL.into(), Some("fast".into()))
+        .await
+        .unwrap();
+    assert_eq!(snapshot.model_id, ALT_MODEL);
+    assert_eq!(snapshot.variant.as_deref(), Some("fast"));
+    let turn = app
+        .submit(session.clone(), "legacy variant".into())
+        .await
+        .unwrap();
+    loop {
+        match tokio::time::timeout(DEADLINE, events.recv())
+            .await
+            .unwrap()
+            .unwrap()
+        {
+            oc_core::core_app::CoreEvent::TurnFinished { turn: id, .. } if id == turn => break,
+            oc_core::core_app::CoreEvent::TurnFailed { error, .. } => {
+                panic!("legacy variant failed: {error}")
+            }
+            _ => {}
+        }
+    }
+    let request = fixture.wait_requests(2);
+    assert_eq!(request[1]["model"], ALT_MODEL);
+    assert_eq!(request[1]["reasoning"]["effort"], "high");
+    let snapshot = app.select_agent("t39agent".into()).await.unwrap();
+    assert_eq!(snapshot.agent_id.as_deref(), Some("t39agent"));
+    assert_eq!(
+        app.session_selection(session.clone(), false, Action::Current)
+            .await
+            .unwrap()
+            .model_id,
+        ALT_MODEL
+    );
+    let turn = app
+        .submit(session.clone(), "legacy agent".into())
+        .await
+        .unwrap();
+    loop {
+        match tokio::time::timeout(DEADLINE, events.recv())
+            .await
+            .unwrap()
+            .unwrap()
+        {
+            oc_core::core_app::CoreEvent::TurnFinished { turn: id, .. } if id == turn => break,
+            oc_core::core_app::CoreEvent::TurnFailed { error, .. } => {
+                panic!("legacy agent failed: {error}")
+            }
+            _ => {}
+        }
+    }
+    let request = fixture.wait_requests(3);
+    assert_eq!(request[2]["model"], ALT_MODEL);
+    assert_eq!(request[2]["reasoning"]["effort"], "high");
+    assert!(request[2]["input"].to_string().contains(AGENT_PROMPT));
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    assert_eq!(
+        saved_selection(&db, &fixture, &session.0, ""),
+        serde_json::json!({"id":ALT_MODEL,"variant":"fast"}),
+        "legacy API does not erase old scoped records"
+    );
+    drop(db);
+    let (app, guard, _) =
+        oc_adapters::application::spawn_with_env(&project, &fixture.data_dir(), env)
+            .await
+            .unwrap();
+    assert_eq!(
+        app.session_selection(session, false, Action::Current)
+            .await
+            .unwrap()
+            .agent_id
+            .as_deref(),
+        Some("t39agent"),
+        "legacy precedence survives restart"
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
 }
 
 fn seed_session(data_dir: &Path, project: &Path, session: &str, messages: usize) {
@@ -934,11 +1274,19 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
     wait_screen_row(&pty, "Select model", DEADLINE);
     pty.send(b"Modal 29");
     wait_screen_row(&pty, "Modal 29", DEADLINE);
-    pty.send(b"\x1b[C");
-    wait_screen_row(&pty, "variant: fast", DEADLINE);
     pty.send(b"\r");
+    wait_screen_row(&pty, "Select variant", DEADLINE);
+    wait_screen_row(&pty, "● Default", DEADLINE);
+    // Model is already applied; Escape from its separate variant dialog leaves
+    // the chosen model with no overlay, preserving the original prompt draft.
+    pty.send(b"\x1b");
+    dismissed(&pty, "Select variant");
+    wait_screen_row(&pty, "draft-kept", DEADLINE);
+    pty.send(b"\x10Switch model variant\r");
+    wait_screen_row(&pty, "Select variant", DEADLINE);
+    pty.send(b"fast\r");
     wait_screen_row(&pty, "model: modal-29", DEADLINE);
-    dismissed(&pty, "Select model");
+    dismissed(&pty, "Select variant");
     wait_screen_row(&pty, "draft-kept", DEADLINE);
     pty.send(b"\r");
     pty.wait_visible("echo: draft-kept", DEADLINE);
@@ -951,37 +1299,57 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
     wait_screen_row(&pty, "Select model", DEADLINE);
     pty.send(b"Modal 29");
     wait_screen_row(&pty, "Modal 29", DEADLINE);
-    pty.send(b"\x1b[C");
-    wait_screen_row(&pty, "variant: fast", DEADLINE);
-    pty.send(b"\x1b[C");
-    wait_screen_row(&pty, "variant: none", DEADLINE);
+    // Existing valid fast is retained; the pinned model flow closes directly.
     pty.send(b"\r");
     dismissed(&pty, "Select model");
+    pty.send(b"/variants\r");
+    wait_screen_row(&pty, "Select variant", DEADLINE);
+    wait_screen_row(&pty, "● fast", DEADLINE);
+    pty.send(b"none\r");
+    dismissed(&pty, "Select variant");
     let off = submit(&mut pty, "named none variant");
     pty.wait_visible_after(off, "echo: named none variant", DEADLINE);
     assert_eq!(fixture.wait_requests(2)[1]["reasoning"]["effort"], "low");
-    pty.send(b"/model\r");
-    wait_screen_row(&pty, "Select model", DEADLINE);
-    pty.send(b"Modal 29");
-    wait_screen_row(&pty, "Modal 29", DEADLINE);
-    // Current none -> fast -> none -> Default; Default must remove the overlay.
-    pty.send(b"\x1b[C\x1b[C\x1b[C");
-    wait_screen_row(&pty, "variant: default", DEADLINE);
+    pty.send(b"/quit\r");
+    let (status, out) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && contains(&out, ALT_LEAVE) && pty.restored());
+    {
+        let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+        let saved = saved_selection(&db, &fixture, "v04-modal", "");
+        assert_eq!(saved["id"], "modal-29");
+        assert_eq!(
+            saved["variant"], "none",
+            "named none is persisted, not null"
+        );
+    }
+    let mut pty = PtySession::spawn(fixture.clone(), "v04-modal", None);
+    pty.wait_visible("Fixture session title", DEADLINE);
+    pty.send(b"/thinking\r");
+    wait_screen_row(&pty, "Select variant", DEADLINE);
+    wait_screen_row(&pty, "● none", DEADLINE);
+    // Focus-current means Enter re-applies none, not the first Default row.
     pty.send(b"\r");
-    wait_screen_row(&pty, "model: modal-29", DEADLINE);
-    dismissed(&pty, "Select model");
+    dismissed(&pty, "Select variant");
+    let off = submit(&mut pty, "none after restart");
+    pty.wait_visible_after(off, "echo: none after restart", DEADLINE);
+    assert_eq!(fixture.wait_requests(3)[2]["reasoning"]["effort"], "low");
+    wait_idle(&pty);
+    pty.send(b"/effort\r");
+    wait_screen_row(&pty, "Select variant", DEADLINE);
+    pty.send(b"Default\r");
+    dismissed(&pty, "Select variant");
     let off = submit(&mut pty, "default variant");
     pty.wait_visible_after(off, "echo: default variant", DEADLINE);
-    let requests = fixture.wait_requests(3);
-    assert_eq!(requests[2]["model"], "modal-29");
+    let requests = fixture.wait_requests(4);
+    assert_eq!(requests[3]["model"], "modal-29");
     assert!(
-        requests[2]["reasoning"]["effort"].is_null(),
+        requests[3]["reasoning"]["effort"].is_null(),
         "explicit default must clear the previous variant: effort={} prompt={:?}",
-        requests[2]["reasoning"]["effort"],
-        last_user_text(&requests[2])
+        requests[3]["reasoning"]["effort"],
+        last_user_text(&requests[3])
     );
     let off = submit(&mut pty, "slow stream");
-    fixture.wait_requests(4);
+    fixture.wait_requests(5);
     let started = Instant::now();
     pty.send(b"\x10");
     wait_screen_row(&pty, "Commands", Duration::from_millis(900));
@@ -996,12 +1364,7 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
     let (status, out) = pty.wait_exit(DEADLINE);
     assert!(status.success() && contains(&out, ALT_LEAVE) && pty.restored());
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
-    let selection: serde_json::Value = serde_json::from_str(
-        &db.get_pref(oc_core::queries::PREF_MODEL_SELECTION)
-            .unwrap()
-            .unwrap(),
-    )
-    .unwrap();
+    let selection = saved_selection(&db, &fixture, "v04-modal", "");
     assert_eq!(selection["id"], "modal-29");
     assert_eq!(selection["variant"], serde_json::Value::Null);
     assert!(
@@ -1009,6 +1372,384 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
             .unwrap()
             .iter()
             .any(|(role, text)| role == "user" && text == "draft-kept")
+    );
+    drop(db);
+    let mut pty = PtySession::spawn(fixture.clone(), "v04-modal", None);
+    pty.wait_visible("Fixture session title", DEADLINE);
+    pty.send(b"/variants\r");
+    wait_screen_row(&pty, "Select variant", DEADLINE);
+    wait_screen_row(&pty, "● Default", DEADLINE);
+    pty.send(b"\r");
+    dismissed(&pty, "Select variant");
+    let off = submit(&mut pty, "default after restart");
+    pty.wait_visible_after(off, "echo: default after restart", DEADLINE);
+    assert!(fixture.wait_requests(6)[5]["reasoning"]["effort"].is_null());
+    pty.send(b"/quit\r");
+    let (status, out) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && contains(&out, ALT_LEAVE) && pty.restored());
+}
+
+/// All new-session entry points call the real app operation; busy variants of
+/// those same routes keep the current session, draft and provider turn intact.
+#[test]
+fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "v04-new", None);
+    pty.wait_visible(READY, DEADLINE);
+    pty.send(b"\x10variant");
+    wait_screen_row(&pty, "No results found", DEADLINE);
+    assert!(
+        fixture.requests.lock().unwrap().is_empty(),
+        "no-variant command is absent from palette"
+    );
+    pty.send(b"\x1b");
+    dismissed(&pty, "Commands");
+    pty.send(b"/variants\r");
+    wait_screen_row(&pty, "No variants available", DEADLINE);
+    assert!(fixture.requests.lock().unwrap().is_empty());
+    pty.send(&[0x7f; 9]); // edit the unavailable /variants draft via real Backspace
+    pty.send(b"/model\r");
+    wait_screen_row(&pty, "Select model", DEADLINE);
+    pty.send(b"T39 alt\r");
+    wait_screen_row(&pty, "Select variant", DEADLINE);
+    pty.send(b"fast\r");
+    wait_screen_row(&pty, "model: alt-model", DEADLINE);
+    let off = submit(&mut pty, "original session");
+    pty.wait_visible_after(off, "echo: original session", DEADLINE);
+    let routes: &[&[u8]] = &[b"/new\r", b"/clear\r", b"\x18n", b"\x10New session\r"];
+    for (i, route) in routes.iter().enumerate() {
+        wait_idle(&pty);
+        pty.send(route);
+        wait_screen_row(&pty, "█▀▀█ █▀▀█", DEADLINE); // pinned New session returns Home
+        assert!(
+            !render_screen(&pty.snapshot())
+                .rows()
+                .iter()
+                .any(|row| row.contains("echo:")),
+            "new session has no old transcript"
+        );
+        if i == 1 {
+            choose_model(&mut pty, "T39 alt");
+            // Home model draft is separate from any session and restores the
+            // existing per-model fast preference without reopening variants.
+            assert!(
+                !render_screen(&pty.snapshot())
+                    .rows()
+                    .iter()
+                    .any(|r| r.contains("Select variant"))
+            );
+        }
+        let text = format!("new route {i}");
+        let off = submit(&mut pty, &text);
+        pty.wait_visible_after(off, &format!("echo: {text}"), DEADLINE);
+    }
+    wait_idle(&pty);
+    pty.send(b"/continue\r");
+    wait_screen_row(&pty, "Switch session", DEADLINE);
+    pty.send(b"v04-new\r");
+    wait_screen_row(&pty, "echo: original session", DEADLINE);
+    let off = submit(&mut pty, "slow stream");
+    fixture.wait_requests(6);
+    // Slash, chord and palette routes all consult the same availability policy.
+    let mut draft_len = 0;
+    for command in [
+        "/new",
+        "/clear",
+        "/model",
+        "/variants",
+        "/agents",
+        "/continue",
+        "/thinking",
+        "/effort",
+    ] {
+        pty.send(&vec![0x7f; draft_len]);
+        pty.send(command.as_bytes());
+        wait_screen_row(&pty, command, DEADLINE);
+        pty.send(b"\r");
+        wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
+        draft_len = command.len();
+    }
+    pty.send(&vec![0x7f; draft_len]);
+    for route in [b"\x18n".as_slice(), b"\x18m", b"\x18a", b"\x18l"] {
+        pty.send(route);
+        wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
+    }
+    pty.send(b"\x10New session");
+    wait_screen_row(&pty, "Commands", DEADLINE);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
+    assert!(
+        render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|r| r.contains("Commands")),
+        "disabled palette action stays open"
+    );
+    pty.send(b"\x1b");
+    pty.wait_visible_after(off, "answer:slow stream", DEADLINE);
+    wait_idle(&pty);
+    let off = submit(&mut pty, "continued same session");
+    pty.wait_visible_after(off, "echo: continued same session", DEADLINE);
+    pty.send(b"/quit\r");
+    let (status, out) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && contains(&out, ALT_LEAVE) && pty.restored());
+    let requests = fixture.wait_requests(7);
+    assert_eq!(
+        requests.len(),
+        7,
+        "navigation and unavailable actions never submit"
+    );
+    for (i, request) in requests.iter().enumerate() {
+        if i != 1 {
+            assert_eq!(request["model"], ALT_MODEL);
+            assert_eq!(
+                request["reasoning"]["effort"], "high",
+                "original session restored"
+            );
+        } else {
+            assert_eq!(
+                request["model"], MODEL,
+                "new Home uses its own draft/configured fallback"
+            );
+            assert!(request["reasoning"]["effort"].is_null());
+        }
+    }
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    let saved = saved_selection(&db, &fixture, "v04-new", "");
+    let draft_key = format!(
+        "tui.selection.draft:{}",
+        serde_json::json!([
+            fixture
+                .root
+                .path()
+                .join("project")
+                .canonicalize()
+                .unwrap()
+                .to_string_lossy(),
+            "fixture",
+            ""
+        ])
+    );
+    let draft: serde_json::Value =
+        serde_json::from_str(&db.get_pref(&draft_key).unwrap().unwrap()).unwrap();
+    assert_eq!(
+        draft["id"], ALT_MODEL,
+        "subsequent Home routes restore the persisted Location/agent model draft"
+    );
+    assert_eq!(saved["id"], ALT_MODEL);
+    assert_eq!(
+        saved["variant"], "fast",
+        "disabled actions did not mutate stored selection"
+    );
+    let sessions = db.list_sessions().unwrap();
+    assert_eq!(
+        sessions.len(),
+        5,
+        "exactly four new sessions, none created while busy"
+    );
+    for i in 0..4 {
+        let text = format!("new route {i}");
+        let owners: Vec<_> = sessions
+            .iter()
+            .filter(|id| {
+                db.read_history(id)
+                    .unwrap()
+                    .iter()
+                    .any(|(role, t)| role == "user" && t == &text)
+            })
+            .collect();
+        assert_eq!(owners.len(), 1);
+        assert_ne!(owners[0], "v04-new");
+        assert_eq!(
+            db.read_history(owners[0]).unwrap().len(),
+            2,
+            "new session contains only its own turn"
+        );
+    }
+    let original = db.read_history("v04-new").unwrap();
+    assert_eq!(
+        original
+            .iter()
+            .filter(|(role, _)| role == "user")
+            .map(|(_, text)| text.as_str())
+            .collect::<Vec<_>>(),
+        ["original session", "slow stream", "continued same session"]
+    );
+}
+
+/// AUD29 continues to qualify native actions through their modal surfaces.
+#[test]
+fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
+    let fixture = Fixture::new();
+    let path = fixture
+        .root
+        .path()
+        .join("home/config/opencode/opencode.json");
+    let mut config: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    config["default_agent"] = "plain".into();
+    config["agent"]["plain"] =
+        serde_json::json!({"mode":"primary","prompt":"Plain fixture agent."});
+    config["provider"]["fixture"]["models"][ALT_MODEL]["variants"]["none"] =
+        serde_json::json!({"reasoningEffort":"low"});
+    std::fs::write(path, config.to_string()).unwrap();
+    seed_session(
+        &fixture.data_dir(),
+        &fixture.root.path().join("project"),
+        "scope-b",
+        0,
+    );
+    let mut pty = PtySession::spawn(fixture.clone(), "scope-a", None);
+    pty.wait_visible(READY, DEADLINE);
+    choose_model(&mut pty, "T39 alt");
+    choose_variant(&mut pty, "none");
+    let off = submit(&mut pty, "A named none");
+    pty.wait_visible_after(off, "echo: A named none", DEADLINE);
+    wait_idle(&pty);
+    pty.send(b"/continue\rscope-b\r");
+    dismissed(&pty, "Switch session");
+    wait_screen_row(&pty, "T39 model fixture", DEADLINE);
+    let off = submit(&mut pty, "B different model");
+    pty.wait_visible_after(off, "echo: B different model", DEADLINE);
+    wait_idle(&pty);
+    pty.send(b"/continue\rscope-a\r");
+    wait_screen_row(&pty, "echo: A named none", DEADLINE);
+    pty.send(b"/variants\r");
+    wait_screen_row(&pty, "● none", DEADLINE);
+    pty.send(b"\r"); // current focus, not merely a displayed dot
+    dismissed(&pty, "Select variant");
+    let off = submit(&mut pty, "A restored");
+    pty.wait_visible_after(off, "echo: A restored", DEADLINE);
+    choose_model(&mut pty, "T39 model");
+    choose_model(&mut pty, "T39 alt"); // preferred none restores; no variant dialog
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|r| r.contains("Select variant"))
+    );
+    let off = submit(&mut pty, "A per model preference");
+    pty.wait_visible_after(off, "echo: A per model preference", DEADLINE);
+    wait_idle(&pty);
+    pty.send(b"/agents\rt39agent\r");
+    wait_screen_row(&pty, "agent: t39agent", DEADLINE);
+    choose_model(&mut pty, "T39 model"); // agent-specific override
+    let off = submit(&mut pty, "A second agent override");
+    pty.wait_visible_after(off, "echo: A second agent override", DEADLINE);
+    wait_idle(&pty);
+    pty.send(b"/agents\rplain\r");
+    wait_screen_row(&pty, "agent: plain", DEADLINE);
+    let off = submit(&mut pty, "A first agent restored");
+    pty.wait_visible_after(off, "echo: A first agent restored", DEADLINE);
+    pty.send(b"/quit\r");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+
+    let mut pty = PtySession::spawn(fixture.clone(), "scope-a", None);
+    pty.wait_visible("Fixture session title", DEADLINE);
+    pty.send(b"/thinking\r");
+    wait_screen_row(&pty, "● none", DEADLINE);
+    pty.send(b"\r");
+    dismissed(&pty, "Select variant");
+    let off = submit(&mut pty, "A restart current");
+    pty.wait_visible_after(off, "echo: A restart current", DEADLINE);
+    wait_idle(&pty);
+    pty.send(b"/effort\r");
+    choose_variant(&mut pty, "Default");
+    choose_model(&mut pty, "T39 model");
+    choose_model(&mut pty, "T39 alt"); // explicit Default erased the named preference
+    wait_screen_row(&pty, "● Default", DEADLINE);
+    pty.send(b"\r");
+    dismissed(&pty, "Select variant");
+    let off = submit(&mut pty, "A cleared preference");
+    pty.wait_visible_after(off, "echo: A cleared preference", DEADLINE);
+    wait_idle(&pty);
+    pty.send(b"/agents\rt39agent\r");
+    wait_screen_row(&pty, "agent: t39agent", DEADLINE);
+    let off = submit(&mut pty, "A second agent restart");
+    pty.wait_visible_after(off, "echo: A second agent restart", DEADLINE);
+    wait_idle(&pty);
+    pty.send(b"/continue\rscope-b\r");
+    wait_screen_row(&pty, "echo: B different model", DEADLINE);
+    let off = submit(&mut pty, "B restart unchanged");
+    pty.wait_visible_after(off, "echo: B restart unchanged", DEADLINE);
+    pty.send(b"/quit\r");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+    let requests = fixture.wait_requests(10);
+    assert_eq!(requests.len(), 10);
+    for (i, request) in requests.iter().enumerate() {
+        let low = [0, 2, 3, 5, 6].contains(&i);
+        assert_eq!(
+            request["model"],
+            if low || i == 7 { ALT_MODEL } else { MODEL },
+            "request {i}"
+        );
+        assert_eq!(
+            request["reasoning"]["effort"],
+            if low {
+                serde_json::json!("low")
+            } else {
+                serde_json::Value::Null
+            },
+            "request {i}"
+        );
+        assert_eq!(
+            request["input"].to_string().contains(AGENT_PROMPT),
+            [4, 8].contains(&i),
+            "rightful agent {i}"
+        );
+    }
+    // Inherited title selection must follow each new session, too.
+    let titles: Vec<_> = fixture
+        .requests
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|r| title::is_title(r))
+        .cloned()
+        .collect();
+    assert_eq!(titles.len(), 2);
+    assert_eq!(titles[0]["model"], ALT_MODEL);
+    assert_eq!(titles[0]["reasoning"]["effort"], "low");
+    assert_eq!(titles[1]["model"], MODEL);
+    assert!(titles[1]["reasoning"]["effort"].is_null());
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    assert_eq!(
+        saved_selection(&db, &fixture, "scope-a", "plain"),
+        serde_json::json!({"id":ALT_MODEL,"variant":null})
+    );
+    assert_eq!(
+        saved_selection(&db, &fixture, "scope-a", "t39agent")["id"],
+        MODEL
+    );
+    let untouched_key = format!(
+        "tui.selection.session:{}",
+        serde_json::json!([
+            fixture
+                .root
+                .path()
+                .join("project")
+                .canonicalize()
+                .unwrap()
+                .to_string_lossy(),
+            "fixture",
+            "scope-b"
+        ])
+    );
+    assert!(
+        db.get_pref(&untouched_key).unwrap().is_none(),
+        "reading an untouched session does not create a preference"
+    );
+    assert_eq!(
+        db.get_pref("tui.selection.variant:[\"fixture\",\"alt-model\"]")
+            .unwrap()
+            .as_deref(),
+        Some("null")
+    );
+    assert!(
+        db.get_pref(oc_core::queries::PREF_MODEL_SELECTION)
+            .unwrap()
+            .is_none(),
+        "scoped TUI never overwrites legacy global preference"
     );
 }
 
@@ -1026,9 +1767,9 @@ fn aud29_pty_panels_change_runtime_state() {
     wait_screen_row(&pty, "Select model", DEADLINE);
     wait_screen_row(&pty, "T39 alt", DEADLINE);
     pty.send(b"T39 alt"); // Search selects the same genuine catalog entry.
-    pty.send(b"\x1b[C"); // Right: cycle to the declared variant
-    wait_screen_row(&pty, "variant: fast", DEADLINE);
     pty.send(b"\r");
+    wait_screen_row(&pty, "Select variant", DEADLINE);
+    pty.send(b"fast\r");
     pty.wait_visible("model: alt-model", DEADLINE);
 
     let off = submit(&mut pty, "hello model");
@@ -1055,6 +1796,7 @@ fn aud29_pty_panels_change_runtime_state() {
     // Custom command: the template is expanded by the application.
     let off = submit(&mut pty, "/t39cmd hello");
     pty.wait_visible_after(off, "echo: custom command payload for hello", DEADLINE);
+    wait_idle(&pty); // echo may precede the terminal completion/receipt
 
     // Manual DCP compress: the model calls the compress tool, the runtime
     // stores a block and reports real saved tokens.
@@ -1152,10 +1894,14 @@ fn aud30_pty_paste_resize_error_recovery() {
     pty.resize(100, 30);
     // A session switch during a stream is explicitly refused, never silent.
     pty.send(b"/sessions\r");
-    wait_screen_row(&pty, "Switch session", DEADLINE);
-    pty.send(b"\r");
-    wait_screen_row(&pty, "turn active; session switch refused", DEADLINE);
-    pty.send(b"\x1b"); // Esc closes the panel
+    wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|r| r.contains("Switch session"))
+    );
+    pty.send(&[0x7f; 9]); // refused /sessions leaves the draft available for editing
     pty.wait_visible_after(off, "answer:slow stream", DEADLINE);
 
     pty.send(b"\x03"); // Ctrl-C quits from idle

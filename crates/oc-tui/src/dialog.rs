@@ -1,6 +1,9 @@
 //! Shared native modal surface and searchable, scrolling selection list.
 //! Geometry/spacing follows pinned upstream ui/dialog{,-select}.tsx.
-use std::cell::Cell;
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
 use ratatui::{
     Frame,
@@ -22,6 +25,9 @@ pub enum DialogSize {
 }
 
 pub struct DialogFrame;
+// OpenTUI writes a truecolor white foreground for the overlay canvas. ANSI
+// Color::White resolves to #eeeeec in the shared xterm profile, not #ffffff.
+const CANVAS_FOREGROUND: Color = Color::Rgb(255, 255, 255);
 impl DialogFrame {
     pub fn rect(area: Rect, size: DialogSize, height: u16) -> Rect {
         let wanted = match size {
@@ -40,16 +46,23 @@ impl DialogFrame {
     }
 
     fn paint(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
-        // Composite over actual rendered RGB cells, including styled blanks.
+        // The pinned OpenTUI overlay paints untinted blank glyphs with its white
+        // canvas foreground (#fff), not the xterm frontend's default #eee.
+        // Visible glyphs retain dimmed RGB and attributes (paired V04 cells).
         for cell in &mut frame.buffer_mut().content {
-            cell.fg = backdrop(cell.fg, theme.text());
+            if cell.symbol() == " " {
+                cell.fg = CANVAS_FOREGROUND;
+                cell.modifier = Modifier::empty();
+            } else {
+                cell.fg = backdrop(cell.fg, theme.text());
+            }
             cell.bg = backdrop(cell.bg, theme.background());
         }
         frame.render_widget(Clear, area);
         frame.render_widget(
             Block::default().style(
                 Style::default()
-                    .fg(slot(theme, "text.base"))
+                    .fg(CANVAS_FOREGROUND)
                     .bg(slot(theme, "background.base")),
             ),
             area,
@@ -76,7 +89,7 @@ fn slot(theme: &Theme, path: &str) -> Color {
         .unwrap_or(theme.text())
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SelectOption {
     pub value: String,
     pub title: String,
@@ -90,21 +103,103 @@ pub struct SelectList {
     pub query: String,
     pub cursor: usize,
     offset: Cell<usize>,
+    cache: RefCell<Option<FilterCache>>,
+}
+
+struct FilterCache {
+    source: Rc<Vec<SelectOption>>,
+    prepared: Vec<Vec<crate::fuzzy::Target>>,
+    query: String,
+    panel: TuiPanel,
+    result: Rc<Vec<SelectOption>>,
 }
 
 impl SelectList {
     pub fn reset(&mut self) {
         *self = Self::default();
     }
-    pub fn filter(&self, options: Vec<SelectOption>) -> Vec<SelectOption> {
-        let needle = self.query.to_lowercase();
-        options
-            .into_iter()
-            .filter(|o| {
-                let hay = format!("{} {} {}", o.title, o.category, o.value).to_lowercase();
-                needle.split_whitespace().all(|part| hay.contains(part))
+    pub fn filter_for(
+        &self,
+        options: Rc<Vec<SelectOption>>,
+        panel: &TuiPanel,
+    ) -> Rc<Vec<SelectOption>> {
+        if self.query.is_empty() {
+            return options;
+        }
+        let model = *panel == TuiPanel::Model;
+        let commands = *panel == TuiPanel::Commands;
+        let query = if model {
+            self.query.trim().to_string()
+        } else {
+            self.query.to_lowercase()
+        };
+        if model && query.is_empty() {
+            return options;
+        }
+        let mut slot = self.cache.borrow_mut();
+        // Exactly one catalog and one query result, replaced on invalidation.
+        // Model options are snapshot-owned Rc: repeated frames cost O(1).
+        let changed = slot.as_ref().is_none_or(|c| {
+            c.panel != *panel || (!Rc::ptr_eq(&c.source, &options) && *c.source != *options)
+        });
+        if changed {
+            let prepared = options
+                .iter()
+                .map(|o| {
+                    let keys = [
+                        &*o.title,
+                        &*o.category,
+                        if commands { &*o.value } else { "" },
+                    ];
+                    keys[..if model { 2 } else { 3 }]
+                        .iter()
+                        .map(|s| {
+                            if model {
+                                crate::fuzzy::Target::membership(s)
+                            } else {
+                                crate::fuzzy::Target::new(s)
+                            }
+                        })
+                        .collect()
+                })
+                .collect();
+            *slot = Some(FilterCache {
+                source: options,
+                prepared,
+                query: String::new(),
+                panel: panel.clone(),
+                result: Rc::default(),
+            });
+        }
+        let cache = slot.as_mut().expect("initialized");
+        if cache.query == query {
+            return cache.result.clone();
+        }
+        let compiled = crate::fuzzy::Query::new(&query);
+        let scores: Vec<_> = cache
+            .prepared
+            .iter()
+            .enumerate()
+            .filter_map(|(i, keys)| {
+                (if model {
+                    compiled.matches(keys).then_some(1.0)
+                } else {
+                    compiled.score(keys, true)
+                })
+                .filter(|score| !commands || *score >= 0.7)
+                .map(|score| (i, score))
             })
-            .collect()
+            .collect();
+        let order = if model {
+            // DialogModel applies its metadata sort *after* fuzzy membership.
+            // Keep the already metadata-sorted catalog order, not fuzzy relevance.
+            scores.into_iter().map(|(i, _)| i).collect()
+        } else {
+            crate::fuzzy::rank(scores.into_iter())
+        };
+        cache.result = Rc::new(order.into_iter().map(|i| cache.source[i].clone()).collect());
+        cache.query = query;
+        cache.result.clone()
     }
     pub fn move_by(&mut self, delta: isize, count: usize) {
         self.cursor = if count == 0 {
@@ -158,8 +253,10 @@ impl SelectList {
         let line = |frame: &mut Frame<'_>, x, y, width, text: &str, style| {
             if y < area.bottom() {
                 frame.render_widget(
-                    Paragraph::new(text.chars().filter(|c| !c.is_control()).collect::<String>())
-                        .style(style),
+                    Paragraph::new(ratatui::text::Line::styled(
+                        text.chars().filter(|c| !c.is_control()).collect::<String>(),
+                        style,
+                    )),
                     Rect::new(x, y, width, 1),
                 );
             }
@@ -259,7 +356,11 @@ impl SelectList {
                 Style::default().fg(fg)
             };
             frame.render_widget(
-                Block::default().style(style),
+                Block::default().style(
+                    Style::default()
+                        .fg(CANVAS_FOREGROUND)
+                        .bg(style.bg.unwrap_or(slot(theme, "background.base"))),
+                ),
                 Rect::new(area.x + 1, y, area.width - 2, 1),
             );
             if option.current {
@@ -321,6 +422,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         TuiPanel::None => return,
         TuiPanel::Commands => "Commands",
         TuiPanel::Model => "Select model",
+        TuiPanel::Variant => "Select variant",
         TuiPanel::Agents => "Select agent",
         TuiPanel::Sessions => "Switch session",
         TuiPanel::Skills => "Skills",
@@ -328,40 +430,173 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         TuiPanel::Help(_) => "Help",
         TuiPanel::Dcp => "DCP context",
     };
-    let footer = if *state.panel() == TuiPanel::Model {
-        state
-            .picker
-            .as_ref()
-            .filter(|p| !p.variants().is_empty())
-            .map(|_| {
-                format!(
-                    "←/→ variant: {}",
-                    state
-                        .picker_selection()
-                        .and_then(|(_, v)| v)
-                        .unwrap_or_else(|| "default".into())
-                )
-            })
-    } else {
-        None
-    };
     let size = match state.panel() {
         TuiPanel::Cards => DialogSize::Xlarge,
         TuiPanel::Dcp | TuiPanel::Help(_) => DialogSize::Large,
         _ => DialogSize::Medium,
     };
-    state.select.render(
-        frame,
-        title,
-        size,
-        &state.modal_options(),
-        footer.as_deref(),
-    );
+    state
+        .select
+        .render(frame, title, size, &state.modal_options(), None);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn v04_full_catalog_cpu_and_bounded_cache() {
+        use std::time::{Duration, Instant};
+        let cold_limit = if cfg!(debug_assertions) {
+            Duration::from_secs(2)
+        } else {
+            Duration::from_millis(500)
+        };
+        let options = Rc::new(
+            (0..10_000)
+                .map(|i| SelectOption {
+                    value: format!("model-{i:05}"),
+                    title: format!("{} abcdefghijklmnopqrstuvwxyz {i:05}", "a".repeat(790)),
+                    category: String::new(),
+                    footer: String::new(),
+                    current: false,
+                })
+                .collect::<Vec<_>>(),
+        );
+        assert!(options.iter().map(|o| o.title.len()).sum::<usize>() <= 8 * 1024 * 1024);
+        let mut list = SelectList::default();
+        let queries = [
+            "a".repeat(512),
+            format!("{}z", "a".repeat(511)),
+            "not_present_Ω".repeat(30),
+            (0..128)
+                .map(|i| {
+                    format!(
+                        "a{}{}",
+                        (b'a' + (i / 26) as u8) as char,
+                        (b'a' + (i % 26) as u8) as char
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(" "),
+        ];
+        for (i, query) in queries.into_iter().enumerate() {
+            list.query = query;
+            let start = Instant::now();
+            let result = list.filter_for(options.clone(), &TuiPanel::Model);
+            let cold = start.elapsed();
+            if i < 2 {
+                assert_eq!(result.len(), 10_000, "no admissible model dropped");
+            }
+            let warm = Instant::now();
+            for _ in 0..100 {
+                assert!(Rc::ptr_eq(
+                    &result,
+                    &list.filter_for(options.clone(), &TuiPanel::Model)
+                ));
+            }
+            let warm = warm.elapsed();
+            eprintln!(
+                "V04 catalog=10000 text_bytes={} query_bytes={} cold={cold:?} cached100={warm:?}",
+                options.iter().map(|o| o.title.len()).sum::<usize>(),
+                list.query.len()
+            );
+            assert!(cold < cold_limit, "cold matching latency {cold:?}");
+            assert!(
+                warm < Duration::from_millis(50),
+                "unchanged frames recomputed matching"
+            );
+        }
+        assert_eq!(list.cache.borrow().as_ref().unwrap().prepared.len(), 10_000);
+        // Every distinct query word matches: exercise the non-short-circuit
+        // multiword path, plus Latin decomposition and non-Latin UTF-16 targets.
+        for body in [
+            "abcdefghijklmnopqrstuvwxyz".repeat(31),
+            format!(
+                "{}{}",
+                "á".repeat(270),
+                "abcdefghijklmnopqrstuvwxyz".repeat(10)
+            ),
+            format!(
+                "{}{}",
+                "Ω".repeat(270),
+                "abcdefghijklmnopqrstuvwxyz".repeat(10)
+            ),
+        ] {
+            let options = Rc::new(
+                (0..10_000)
+                    .map(|i| SelectOption {
+                        value: i.to_string(),
+                        title: format!("{body}{i:05}"),
+                        category: String::new(),
+                        footer: String::new(),
+                        current: false,
+                    })
+                    .collect::<Vec<_>>(),
+            );
+            let start = Instant::now();
+            let result = list.filter_for(options.clone(), &TuiPanel::Model);
+            let elapsed = start.elapsed();
+            assert_eq!(result.len(), 10_000);
+            eprintln!(
+                "V04 all-words-match text_bytes={} cold={elapsed:?}",
+                options.iter().map(|o| o.title.len()).sum::<usize>()
+            );
+            assert!(elapsed < cold_limit, "cold matching latency {elapsed:?}");
+        }
+        list.reset();
+        assert!(list.cache.borrow().is_none());
+    }
+    #[test]
+    fn captured_backdrop_blanks_and_modal_padding_keep_default_foreground() {
+        use ratatui::{Terminal, backend::TestBackend, text::Line};
+        let mut terminal = Terminal::new(TestBackend::new(160, 48)).unwrap();
+        terminal
+            .draw(|frame| {
+                frame.render_widget(
+                    Paragraph::new(Line::styled(
+                        "A B",
+                        Style::default()
+                            .fg(Color::Rgb(238, 238, 238))
+                            .add_modifier(Modifier::BOLD),
+                    )),
+                    Rect::new(0, 0, 3, 1),
+                );
+                SelectList::default().render(
+                    frame,
+                    "Select variant",
+                    DialogSize::Medium,
+                    &[SelectOption {
+                        value: String::new(),
+                        title: "Default".into(),
+                        category: String::new(),
+                        footer: String::new(),
+                        current: true,
+                    }],
+                    None,
+                );
+            })
+            .unwrap();
+        let b = terminal.backend().buffer();
+        assert_eq!(b[(0, 0)].fg, Color::Rgb(98, 98, 98));
+        assert_eq!(b[(0, 0)].modifier, Modifier::BOLD);
+        for (x, y) in [(1, 0), (100, 1), (50, 12), (108, 13), (90, 17)] {
+            assert_eq!(b[(x, y)].symbol(), " ");
+            assert_eq!(
+                b[(x, y)].fg,
+                CANVAS_FOREGROUND,
+                "blank foreground at {x},{y}"
+            );
+            assert_eq!(
+                b[(x, y)].modifier,
+                Modifier::empty(),
+                "blank style at {x},{y}"
+            );
+        }
+        // A space that is part of newly drawn modal text keeps its text styling.
+        assert_eq!(b[(60, 13)].fg, Theme::dark().text());
+        assert_eq!(b[(60, 13)].modifier, Modifier::BOLD);
+    }
+
     #[test]
     fn modal_surface_erases_underlay_symbols() {
         use ratatui::{Terminal, backend::TestBackend};

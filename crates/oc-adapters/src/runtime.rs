@@ -2068,13 +2068,13 @@ impl<'a> Runtime<'a> {
             {
                 continue;
             }
-            if log.model != model || log.provider != provider {
+            if log.provider != provider {
                 return Err(RuntimeError::InvalidArgs(
                     "session wire history belongs to a different provider/model".to_string(),
                 ));
             }
-            if log.agent_digest.as_deref() != agent_digest {
-                // Agent behavior changed: start a fresh provider causality lane
+            if log.model != model || log.agent_digest.as_deref() != agent_digest {
+                // Model or agent behavior changed: start a fresh causality lane
                 // from immutable raw messages, never replay old opaque/tool state.
                 continue;
             }
