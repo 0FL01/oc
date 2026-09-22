@@ -322,7 +322,12 @@ async fn scenario(
     state.handle_key(oc_tui::events::KeyAction::Enter).await;
     let picker = oc_tui::views::render_test(&state, 120, 40).join("\n");
     assert!(
-        picker.contains(&format!("{model_name} · {provider_name}")),
+        state
+            .modal_options()
+            .iter()
+            .any(|option| option.title == model_name && option.category == provider_name)
+            && picker.contains(&model_name)
+            && picker.contains(&provider_name),
         "{picker}"
     );
     assert_eq!(picker.contains("Free"), price == Some((0, 0)), "{picker}");

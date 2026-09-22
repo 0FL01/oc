@@ -60,9 +60,53 @@ pub struct ModelPicker {
     last_error: Option<String>,
     /// Explicit variant cycle position (0 = model default).
     variant_cursor: usize,
+    variant_changed: bool,
 }
 
 impl ModelPicker {
+    /// Complete catalog options; the shared SelectList owns filtering/viewport.
+    pub fn options(&self) -> Vec<crate::dialog::SelectOption> {
+        let mut options: Vec<_> = self
+            .catalog
+            .models
+            .iter()
+            .map(|(id, spec)| {
+                let title = spec
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or(id)
+                    .to_string();
+                let category = spec
+                    .get("provider_name")
+                    .and_then(|v| v.as_str())
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or(&self.catalog.provider)
+                    .to_string();
+                let number = |v: &serde_json::Value| {
+                    v.as_f64()
+                        .or_else(|| v.as_str().and_then(|s| s.parse::<f64>().ok()))
+                };
+                let free = spec.get("cost").is_some_and(|p| {
+                    number(&p["input"]) == Some(0.0) && number(&p["output"]) == Some(0.0)
+                });
+                crate::dialog::SelectOption {
+                    value: id.clone(),
+                    title,
+                    category,
+                    footer: if free { "Free".into() } else { String::new() },
+                    current: self.selected.as_ref().is_some_and(|s| s.id == *id),
+                }
+            })
+            .collect();
+        options.sort_by(|a, b| {
+            a.category
+                .cmp(&b.category)
+                .then_with(|| b.footer.cmp(&a.footer))
+                .then_with(|| a.title.cmp(&b.title))
+        });
+        options
+    }
     /// Bind to a catalog; a stored record loads separately via
     /// [`ModelPicker::load_persisted_raw`].
     pub fn new(catalog: ModelCatalog) -> Self {
@@ -75,6 +119,7 @@ impl ModelPicker {
             refresh_count: 0,
             last_error: None,
             variant_cursor: 0,
+            variant_changed: false,
         }
     }
 
@@ -172,6 +217,7 @@ impl ModelPicker {
             Some(position) => {
                 self.cursor = position;
                 self.variant_cursor = 0;
+                self.variant_changed = false;
                 true
             }
             None => false,
@@ -211,9 +257,14 @@ impl ModelPicker {
         self.variants().get(self.variant_cursor - 1).cloned()
     }
 
+    pub fn variant_changed(&self) -> bool {
+        self.variant_changed
+    }
+
     /// Cycle the pending variant of the model under the cursor:
     /// default -> variant 1 -> … -> variant N -> default.
     pub fn cycle_variant(&mut self, delta: isize) {
+        self.variant_changed = true;
         let count = self.variants().len() + 1;
         let next = self.variant_cursor as isize + delta;
         self.variant_cursor = next.rem_euclid(count as isize) as usize;
@@ -388,6 +439,40 @@ mod tests {
             .into_iter()
             .collect(),
         }
+    }
+
+    #[test]
+    fn modal_options_use_known_prices_and_declared_variants_only() {
+        let mut c = catalog();
+        c.models.get_mut("a").unwrap()["name"] = json!("Human A");
+        c.models.get_mut("a").unwrap()["provider_name"] = json!("Provider A");
+        c.models.get_mut("a").unwrap()["cost"] = json!({"input":"0","output":"0"});
+        c.models.get_mut("b").unwrap()["cost"] = json!({"input":0});
+        let mut p = ModelPicker::new(c);
+        let options = p.options();
+        let a = options.iter().find(|o| o.value == "a").unwrap();
+        assert_eq!(
+            (&*a.title, &*a.category, &*a.footer),
+            ("Human A", "Provider A", "Free")
+        );
+        assert!(
+            options
+                .iter()
+                .find(|o| o.value == "b")
+                .unwrap()
+                .footer
+                .is_empty(),
+            "unknown output price is not Free"
+        );
+        p.focus_id("b");
+        assert_eq!(p.variants(), ["low"]);
+        p.cycle_variant(1);
+        assert_eq!(p.pending_variant().as_deref(), Some("low"));
+        p.cycle_variant(1);
+        assert!(
+            p.variant_changed() && p.pending_variant().is_none(),
+            "explicit catalog default differs from no edit"
+        );
     }
 
     #[test]

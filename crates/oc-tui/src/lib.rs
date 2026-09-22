@@ -9,6 +9,7 @@
 pub mod app;
 pub mod commands;
 pub mod dcp_panel;
+pub mod dialog;
 pub mod events;
 pub mod history;
 pub mod layout;

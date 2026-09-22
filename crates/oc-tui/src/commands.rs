@@ -13,6 +13,10 @@ pub const COMMAND_ARGS_MAX: usize = 512;
 /// Dispatched built-in command.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CommandAction {
+    /// Search genuine native commands.
+    OpenCommands,
+    /// Toggle the existing native sidebar.
+    ToggleSidebar,
     /// Exit the TUI.
     Quit,
     /// Open the model picker.
@@ -50,7 +54,13 @@ pub fn dispatch(input: &str) -> Option<CommandAction> {
         return Some(CommandAction::Help(None));
     }
     let args = args.get(..args.len().min(COMMAND_ARGS_MAX)).unwrap_or("");
+    if args.is_empty()
+        && let Some(command) = REGISTRY.iter().find(|c| c.aliases.contains(&name))
+    {
+        return Some(command.action.clone());
+    }
     match name {
+        "commands" => Some(CommandAction::OpenCommands),
         "quit" => Some(CommandAction::Quit),
         "model" => Some(CommandAction::OpenModelPicker),
         "agents" => Some(CommandAction::OpenAgents),
@@ -71,6 +81,87 @@ pub fn dispatch(input: &str) -> Option<CommandAction> {
         _ => Some(CommandAction::Help(None)),
     }
 }
+
+/// Single registry for selectable palette actions, aliases, and binding labels.
+/// Unsupported original capabilities are inventoried in recovery-v04/capabilities.md.
+pub struct CommandSpec {
+    pub id: &'static str,
+    pub title: &'static str,
+    pub group: &'static str,
+    pub shortcut: &'static str,
+    pub aliases: &'static [&'static str],
+    pub action: CommandAction,
+}
+
+pub const COMMANDS_BINDING: &str = "ctrl+p";
+pub const AGENTS_BINDING: &str = "shift+tab";
+
+pub const REGISTRY: &[CommandSpec] = &[
+    CommandSpec {
+        id: "session.list",
+        title: "Switch session",
+        group: "Session",
+        shortcut: "ctrl+x l",
+        aliases: &["sessions", "session", "resume"],
+        action: CommandAction::OpenSessions,
+    },
+    CommandSpec {
+        id: "session.sidebar.toggle",
+        title: "Toggle sidebar",
+        group: "Session",
+        shortcut: "ctrl+x b",
+        aliases: &["sidebar"],
+        action: CommandAction::ToggleSidebar,
+    },
+    CommandSpec {
+        id: "model.list",
+        title: "Switch model",
+        group: "Agent",
+        shortcut: "ctrl+x m",
+        aliases: &["model", "models"],
+        action: CommandAction::OpenModelPicker,
+    },
+    CommandSpec {
+        id: "agent.list",
+        title: "Switch agent",
+        group: "Agent",
+        shortcut: "ctrl+x a",
+        aliases: &["agents", "agent"],
+        action: CommandAction::OpenAgents,
+    },
+    CommandSpec {
+        id: "skill.list",
+        title: "Skills",
+        group: "Agent",
+        shortcut: "",
+        aliases: &["skills"],
+        action: CommandAction::OpenSkills,
+    },
+    CommandSpec {
+        id: "native.cards",
+        title: "Tool cards",
+        group: "Native",
+        shortcut: "",
+        aliases: &["cards"],
+        action: CommandAction::OpenCards,
+    },
+    CommandSpec {
+        id: "help.show",
+        title: "Help",
+        group: "System",
+        shortcut: "",
+        aliases: &["help"],
+        action: CommandAction::Help(None),
+    },
+    CommandSpec {
+        id: "app.exit",
+        title: "Exit the app",
+        group: "System",
+        shortcut: "ctrl+c ctrl+d",
+        aliases: &["quit", "exit"],
+        action: CommandAction::Quit,
+    },
+];
 
 /// Built-in command names for completion (exact table, sorted).
 pub const BUILTINS: [&str; 8] = [

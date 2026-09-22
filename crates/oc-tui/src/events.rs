@@ -5,11 +5,27 @@
 //! qualification stays T26). Pastes are accepted as bounded text so a large
 //! terminal paste can never grow the view state without limit.
 
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 /// Minimal actions the chat view understands.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KeyAction {
+    /// Open Commands (previous item when a modal owns focus).
+    Commands,
+    /// Begin the configured upstream default leader chord.
+    Leader,
+    /// Ctrl+C: clear search or dismiss a modal; exit at the root.
+    Interrupt,
+    /// Open the native agent selector.
+    Agents,
+    /// Modal page navigation.
+    PageUp,
+    /// Modal page navigation.
+    PageDown,
+    /// Modal first item.
+    Home,
+    /// Modal last item.
+    End,
     /// Printable input.
     Char(char),
     /// Backspace.
@@ -47,8 +63,20 @@ pub enum UiEvent {
 /// `Esc` cancels a stream (or quits when idle — resolved by `TuiState`);
 /// `Ctrl-C`/`Ctrl-D` always quit; `/quit` typed at idle also quits.
 pub fn map_key(event: KeyEvent) -> Option<KeyAction> {
+    if event.kind == KeyEventKind::Release {
+        return None;
+    }
+    if event.kind == KeyEventKind::Repeat
+        && (matches!(event.code, KeyCode::Enter | KeyCode::Esc)
+            || event.modifiers.contains(KeyModifiers::CONTROL))
+    {
+        return None;
+    }
     match (event.code, event.modifiers) {
-        (KeyCode::Char('c'), m) if m.contains(KeyModifiers::CONTROL) => Some(KeyAction::Quit),
+        (KeyCode::Char('p'), KeyModifiers::CONTROL) => Some(KeyAction::Commands),
+        (KeyCode::Char('x'), KeyModifiers::CONTROL) => Some(KeyAction::Leader),
+        (KeyCode::Char('n'), KeyModifiers::CONTROL) => Some(KeyAction::Down),
+        (KeyCode::Char('c'), m) if m.contains(KeyModifiers::CONTROL) => Some(KeyAction::Interrupt),
         (KeyCode::Char('d'), m) if m.contains(KeyModifiers::CONTROL) => Some(KeyAction::Quit),
         (KeyCode::Esc, _) => Some(KeyAction::Cancel),
         (KeyCode::Enter, _) => Some(KeyAction::Enter),
@@ -57,7 +85,12 @@ pub fn map_key(event: KeyEvent) -> Option<KeyAction> {
         (KeyCode::Down, _) => Some(KeyAction::Down),
         (KeyCode::Left, _) => Some(KeyAction::Left),
         (KeyCode::Right, _) => Some(KeyAction::Right),
-        (KeyCode::Char(c), m) if !m.contains(KeyModifiers::CONTROL | KeyModifiers::ALT) => {
+        (KeyCode::PageUp, _) => Some(KeyAction::PageUp),
+        (KeyCode::PageDown, _) => Some(KeyAction::PageDown),
+        (KeyCode::Home, _) => Some(KeyAction::Home),
+        (KeyCode::End, _) => Some(KeyAction::End),
+        (KeyCode::BackTab, _) => Some(KeyAction::Agents),
+        (KeyCode::Char(c), m) if !m.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) => {
             Some(KeyAction::Char(c))
         }
         _ => None,
@@ -89,9 +122,24 @@ mod tests {
         assert_eq!(map_key(key(KeyCode::Esc)), Some(KeyAction::Cancel));
         assert_eq!(
             map_key(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL)),
-            Some(KeyAction::Quit)
+            Some(KeyAction::Interrupt)
         );
         assert_eq!(map_key(key(KeyCode::Char('a'))), Some(KeyAction::Char('a')));
+    }
+
+    #[test]
+    fn dialog_routing_rejects_modifier_text_and_release() {
+        for modifier in [KeyModifiers::CONTROL, KeyModifiers::ALT] {
+            assert_eq!(map_key(KeyEvent::new(KeyCode::Char('z'), modifier)), None);
+        }
+        assert_eq!(
+            map_key(KeyEvent::new_with_kind(
+                KeyCode::Enter,
+                KeyModifiers::NONE,
+                crossterm::event::KeyEventKind::Release
+            )),
+            None
+        );
     }
 
     #[test]

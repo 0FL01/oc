@@ -1078,6 +1078,10 @@ fn aud38_location_switch_is_one_lifecycle() {
 
     // A switch while a turn streams is refused, not raced.
     let off = submit(&mut pty, "slow stream");
+    // The prompt is visible before async acceptance. Synchronize on the real
+    // provider request so this remains a streaming-switch test, not an edit
+    // of the draft awaiting acceptance (which intentionally preserves edits).
+    fixture.wait_requests(2);
     // Row assertions use the reconstructed screen grid: ratatui's cell diff
     // can skip cells whose content coincides with the previous frame, which
     // fragments raw byte needles (see `wait_screen_row`).

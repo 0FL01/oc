@@ -229,11 +229,9 @@ async fn handle_event(
             apply_outcome(app, state, loop_state, outcome).await;
         }
         Some(UiEvent::Paste(text)) => {
-            if *state.panel() == TuiPanel::None {
-                let outcome = state.handle_paste(&text);
-                if let Some(note) = outcome.note {
-                    state.push_note(&note);
-                }
+            let outcome = state.handle_paste(&text);
+            if let Some(note) = outcome.note {
+                state.push_note(&note);
             }
         }
         Some(UiEvent::Resize) | None => {}
@@ -255,10 +253,7 @@ async fn apply_outcome(
         return;
     };
     // Scrolling intents never consume typed input; commands do.
-    let consumes = !matches!(
-        intent,
-        PanelIntent::LoadOlder | PanelIntent::LoadNewer | PanelIntent::Compress { .. }
-    );
+    let consumes = matches!(intent, PanelIntent::SwitchLocation { .. });
     match apply_intent(app, state, loop_state, intent).await {
         Ok(()) => {
             if consumes {
@@ -466,6 +461,7 @@ async fn handle_worker_event(
             turn,
             text,
             duration_ms,
+            warnings,
             ..
         } => {
             let current = state.active_turn() == Some(&turn);

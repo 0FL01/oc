@@ -41,6 +41,7 @@ pub fn render_test(state: &TuiState, width: u16, height: u16) -> Vec<String> {
 pub fn panel_lines(state: &TuiState) -> Vec<String> {
     const ROWS: usize = 8;
     match state.panel() {
+        TuiPanel::Commands => state.modal_options().into_iter().map(|o|o.title).collect(),
         TuiPanel::None => Vec::new(),
         TuiPanel::Model => match &state.picker {
             Some(picker) => {
@@ -165,6 +166,7 @@ mod tests {
     }
 
     async fn open(state: &mut TuiState, command: &str) {
+        state.close_panel(); // dismiss the prior modal before typing a new slash alias
         for c in command.chars() {
             state.handle_key(KeyAction::Char(c)).await;
         }
@@ -247,7 +249,7 @@ mod tests {
         assert!(lines.iter().any(|l| l.contains("model |")), "{lines:?}");
         assert!(lines.iter().any(|l| l == "a · ludka2"), "{lines:?}");
         let frame = render_test(&state, 60, 24);
-        assert!(frame.join("\n").contains("model |"), "panel pane renders");
+        assert!(frame.join("\n").contains("Select model"), "modal renders");
 
         open(&mut state, "/agents").await;
         let lines = panel_lines(&state);
@@ -284,6 +286,16 @@ mod tests {
 
         state.handle_panel_key(KeyAction::Cancel);
         assert!(panel_lines(&state).is_empty());
+    }
+
+    #[tokio::test]
+    async fn model_is_overlay_with_focused_search() {
+        let mut state = view_state("modal-v04").await;
+        state.apply_catalog(catalog());
+        open(&mut state, "/model").await;
+        let frame = render_test(&state, 120, 40);
+        assert!(frame[11].contains("Select model"), "{}", frame.join("\n"));
+        assert!(frame[13].contains("Search"));
     }
 
     #[tokio::test]
@@ -335,6 +347,7 @@ mod tests {
         let turn = WorkerTurnId("t-title".to_string());
         state.begin_compress_turn(turn.clone());
         state.push_note("something happened");
+        state.close_panel(); // inspect the undimmed toast/footer, not an open modal
 
         let backend = TestBackend::new(70, 24);
         let mut terminal = Terminal::new(backend).expect("backend");

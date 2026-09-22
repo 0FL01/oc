@@ -6,9 +6,8 @@
 //! Native debug chrome follows the override/build channel and labels the in-process runtime: upstream
 //! server/Theme/Tools/Experiments actions are not advertised as working controls.
 //!
-//! Transient notes render as the upstream toast (`ui/toast.tsx:48-50`), the
-//! only overlay this iteration adds; picker panes stay the inline port block
-//! until iteration 4 replaces them with upstream dialogs.
+//! Transient notes render as the upstream toast (`ui/toast.tsx:48-50`). Shared
+//! modal dialogs composite last, without reserving any transcript/prompt rows.
 
 use ratatui::{
     Frame,
@@ -22,7 +21,6 @@ use ratatui::{
 use crate::app::{TuiState, TuiStatus};
 use crate::layout;
 use crate::theme::{Theme, tint};
-use crate::views::panel_lines;
 
 /// Prompt left border: upstream `SplitBorder` vertical `┃`
 /// (`component/prompt/index.tsx:1653-1656`).
@@ -38,9 +36,9 @@ pub const JUMP_TO_LATEST: &str = "Jump to latest ↓";
 /// Interrupt hint while a turn streams (`component/prompt/index.tsx:139-142`).
 pub const ESC_INTERRUPT: (&str, &str) = ("esc ", "interrupt");
 /// Prompt footer shortcuts (`feature-plugins/prompt/footer.tsx:89-104`).
-pub const AGENTS_HINT: (&str, &str) = ("shift+tab ", "agents");
+pub const AGENTS_HINT: (&str, &str) = (crate::commands::AGENTS_BINDING, "agents");
 /// Prompt footer shortcuts (`feature-plugins/prompt/footer.tsx:89-104`).
-pub const COMMANDS_HINT: (&str, &str) = ("ctrl+p ", "commands");
+pub const COMMANDS_HINT: (&str, &str) = (crate::commands::COMMANDS_BINDING, "commands");
 /// Toast max width (`ui/toast.tsx:50`: `min(60, width - 6)`).
 pub const TOAST_MAX_WIDTH: u16 = 60;
 /// Toast right margin (`ui/toast.tsx:49`: `right={2}`).
@@ -145,6 +143,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     render_session(frame, state, theme, main);
     render_devtools(frame, theme, regions.devtools);
     render_toast(frame, state, theme, area);
+    crate::dialog::render(frame, state);
 }
 
 /// Single active tab in the horizontal strip
@@ -192,36 +191,16 @@ fn render_tabs(frame: &mut Frame<'_>, theme: &Theme, area: Rect, title: Option<&
 }
 
 fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {
-    if state.home && *state.panel() == crate::app::TuiPanel::None {
+    if state.home {
         render_home(frame, state, theme, area);
         return;
     }
-    let panel = panel_lines(state);
-    let panel_height = if panel.is_empty() {
-        0
-    } else {
-        ((panel.len() + 2) as u16).min(12)
-    };
     let input = prompt_lines(state, area.width);
     let input_height = (input.len() as u16)
         .min((frame.area().height / 3).max(6))
         .max(1);
-    let regions = layout::dynamic_session_regions(area, panel_height, input_height + 3);
+    let regions = layout::dynamic_session_regions(area, 0, input_height + 3);
     render_transcript(frame, state, regions.transcript, frame.area().width);
-    if regions.panel.height > 0 {
-        // Port extension until iteration 4: the picker panes stay an inline
-        // bordered block between the transcript and the status row.
-        let widget = Paragraph::new(crate::styled::Lines::from(panel).into_text()).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme.border_active()))
-                .title(Line::styled(
-                    "panel",
-                    Style::default().fg(theme.text_muted()),
-                )),
-        );
-        frame.render_widget(widget, regions.panel);
-    }
     render_status(frame, state, theme, regions.status);
     render_prompt(
         frame,
@@ -742,13 +721,13 @@ fn footer_line(
             hints.push(Span::styled(usage.clone(), muted));
         }
         commands_visible =
-            text_width(&usage) + 3 + text_width(COMMANDS_HINT.0) + text_width(COMMANDS_HINT.1)
+            text_width(&usage) + 4 + text_width(COMMANDS_HINT.0) + text_width(COMMANDS_HINT.1)
                 <= available;
     } else {
         commands_visible = layout::shows_prompt_hints(terminal_width);
         if commands_visible {
             hints.push(Span::styled(
-                AGENTS_HINT.0,
+                format!("{} ", AGENTS_HINT.0),
                 Style::default().fg(theme.text()),
             ));
             hints.push(Span::styled(AGENTS_HINT.1, muted));
@@ -757,7 +736,10 @@ fn footer_line(
     if commands_visible {
         hints.extend([
             Span::raw("  "),
-            Span::styled(COMMANDS_HINT.0, Style::default().fg(theme.text())),
+            Span::styled(
+                format!("{} ", COMMANDS_HINT.0),
+                Style::default().fg(theme.text()),
+            ),
             Span::styled(COMMANDS_HINT.1, muted),
         ]);
     }
@@ -1078,6 +1060,7 @@ mod tests {
         state.chrome.location = Some("/workspace/real-project".into());
         state.session_title = Some("Actual title".into());
         state.begin_compress_turn(oc_core::core_app::WorkerTurnId("usage".into()));
+        state.close_panel(); // inspect the base chrome, without the modal backdrop
         state.apply_usage(
             &oc_core::core_app::WorkerTurnId("usage".into()),
             300,
@@ -1370,6 +1353,7 @@ mod tests {
         let turn = oc_core::core_app::WorkerTurnId("t-title".to_string());
         state.begin_compress_turn(turn.clone());
         state.push_note("something happened");
+        state.close_panel(); // the toast/footer underlay is qualified independently
 
         let backend = TestBackend::new(80, 24);
         let mut terminal = Terminal::new(backend).expect("backend");

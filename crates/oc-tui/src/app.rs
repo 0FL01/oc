@@ -64,6 +64,8 @@ pub enum TuiStatus {
 /// Open TUI panel (bounded view state; one at a time).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TuiPanel {
+    /// Genuine native command registry.
+    Commands,
     /// No panel (chat view).
     None,
     /// Model picker (UI02).
@@ -236,6 +238,8 @@ pub struct TuiState {
     session: SessionId,
     status: TuiStatus,
     panel: TuiPanel,
+    pub(crate) select: crate::dialog::SelectList,
+    leader: Option<Instant>,
     input: String,
     window: HistoryWindow,
     live_text: String,
@@ -310,6 +314,8 @@ impl TuiState {
             session,
             status: TuiStatus::Idle,
             panel: TuiPanel::None,
+            select: Default::default(),
+            leader: None,
             input: String::new(),
             window: HistoryWindow::new(),
             live_text: String::new(),
@@ -435,6 +441,140 @@ impl TuiState {
     /// Open panel, if any.
     pub fn panel(&self) -> &TuiPanel {
         &self.panel
+    }
+
+    /// Safe options from actual snapshots. Filtering never changes runtime selection.
+    pub fn modal_options(&self) -> Vec<crate::dialog::SelectOption> {
+        use crate::dialog::SelectOption;
+        let item =
+            |value: String, title: String, category: &str, footer: String, current| SelectOption {
+                value,
+                title,
+                category: category.into(),
+                footer,
+                current,
+            };
+        let options = match &self.panel {
+            TuiPanel::Commands => {
+                let mut options = Vec::new();
+                if self.select.query.is_empty() {
+                    options.extend(
+                        crate::commands::REGISTRY
+                            .iter()
+                            .filter(|c| {
+                                c.id == "model.list" || (c.id == "session.list" && !self.home)
+                            })
+                            .map(|c| {
+                                item(
+                                    c.id.into(),
+                                    c.title.into(),
+                                    "Suggested",
+                                    c.shortcut.into(),
+                                    false,
+                                )
+                            }),
+                    );
+                }
+                options.extend(crate::commands::REGISTRY.iter().map(|c| {
+                    item(
+                        c.id.into(),
+                        c.title.into(),
+                        c.group,
+                        c.shortcut.into(),
+                        false,
+                    )
+                }));
+                options
+            }
+            TuiPanel::Model => self
+                .picker
+                .as_ref()
+                .map(|p| p.options())
+                .unwrap_or_default(),
+            TuiPanel::Agents => self
+                .agents
+                .iter()
+                .map(|a| {
+                    item(
+                        a.id.clone(),
+                        a.id.clone(),
+                        "Agents",
+                        a.description.clone(),
+                        self.active_agent.as_ref() == Some(&a.id),
+                    )
+                })
+                .collect(),
+            TuiPanel::Sessions => self
+                .sessions
+                .iter()
+                .map(|s| {
+                    item(
+                        s.clone(),
+                        s.clone(),
+                        "Sessions",
+                        String::new(),
+                        s == &self.session.0,
+                    )
+                })
+                .collect(),
+            TuiPanel::Skills => self
+                .skills
+                .iter()
+                .map(|s| {
+                    item(
+                        s.id.clone(),
+                        format!("{} — {}", s.id, s.name),
+                        "Skills",
+                        s.description.clone(),
+                        false,
+                    )
+                })
+                .collect(),
+            TuiPanel::None => Vec::new(),
+            _ => crate::views::panel_lines(self)
+                .into_iter()
+                .enumerate()
+                .map(|(i, s)| item(i.to_string(), s, "", String::new(), false))
+                .collect(),
+        };
+        self.select.filter(options)
+    }
+
+    fn sync_modal_cursor(&mut self) {
+        let options = self.modal_options();
+        self.select.cursor = self.select.cursor.min(options.len().saturating_sub(1));
+        let Some(option) = options.get(self.select.cursor) else {
+            return;
+        };
+        match self.panel {
+            TuiPanel::Model => {
+                if let Some(p) = &mut self.picker {
+                    p.focus_id(&option.value);
+                }
+            }
+            TuiPanel::Agents => {
+                self.agents_cursor = self
+                    .agents
+                    .iter()
+                    .position(|a| a.id == option.value)
+                    .unwrap_or(0)
+            }
+            TuiPanel::Sessions => {
+                self.sessions_cursor = self
+                    .sessions
+                    .iter()
+                    .position(|s| s == &option.value)
+                    .unwrap_or(0)
+            }
+            TuiPanel::Skills => {
+                self.skills_cursor = self
+                    .skills
+                    .iter()
+                    .position(|s| s.id == option.value)
+                    .unwrap_or(0)
+            }
+            _ => {}
+        }
     }
 
     /// Current input buffer.
@@ -648,6 +788,7 @@ impl TuiState {
             .and_then(|id| self.agents.iter().position(|agent| &agent.id == id))
             .unwrap_or(0);
         self.catalog_loaded = true;
+        self.sync_modal_cursor();
     }
 
     /// Apply the session list snapshot.
@@ -655,6 +796,7 @@ impl TuiState {
         self.sessions = sessions;
         self.sessions_cursor = 0;
         self.sessions_loaded = true;
+        self.sync_modal_cursor();
     }
 
     /// Apply the skill card snapshot (bodies never reach the view).
@@ -662,6 +804,7 @@ impl TuiState {
         self.skills = cards;
         self.skills_cursor = 0;
         self.skills_loaded = true;
+        self.sync_modal_cursor();
     }
 
     /// Apply a DCP context/stats snapshot.
@@ -694,6 +837,17 @@ impl TuiState {
     /// Handle a bracketed paste as one bounded event (never per-char).
     pub fn handle_paste(&mut self, text: &str) -> KeyOutcome {
         if self.status == TuiStatus::Quit {
+            return KeyOutcome::default();
+        }
+        if self.panel != TuiPanel::None {
+            let room = 512_usize.saturating_sub(self.select.query.len());
+            self.select.query.extend(
+                crate::truncate_utf8(text, room)
+                    .chars()
+                    .filter(|c| !c.is_control()),
+            );
+            self.select.changed_query();
+            self.sync_modal_cursor();
             return KeyOutcome::default();
         }
         let room = MAX_INPUT_BYTES.saturating_sub(self.input.len());
@@ -797,8 +951,8 @@ impl TuiState {
     pub fn picker_selection(&self) -> Option<(String, Option<String>)> {
         let picker = self.picker.as_ref()?;
         let id = picker.cursor_id()?;
-        if let Some(pending) = picker.pending_variant() {
-            return Some((id, Some(pending)));
+        if picker.variant_changed() {
+            return Some((id, picker.pending_variant()));
         }
         let variant = picker
             .selection()
@@ -872,8 +1026,35 @@ impl TuiState {
     /// consumed.
     pub async fn handle_key(&mut self, action: KeyAction) -> KeyOutcome {
         self.poll_submission();
+        if self.panel != TuiPanel::None {
+            return self.handle_panel_key(action);
+        }
+        if let Some(start) = self.leader.take()
+            && start.elapsed() < std::time::Duration::from_secs(2)
+        {
+            let command = if let KeyAction::Char(key) = action {
+                crate::commands::REGISTRY
+                    .iter()
+                    .find(|c| c.shortcut == format!("ctrl+x {key}"))
+                    .map(|c| c.action.clone())
+            } else {
+                None
+            };
+            return command.map_or_else(KeyOutcome::default, |c| self.run_command(c));
+        }
         match action {
-            KeyAction::Left | KeyAction::Right => KeyOutcome::default(),
+            KeyAction::Commands => self.run_command(CommandAction::OpenCommands),
+            KeyAction::Agents => self.run_command(CommandAction::OpenAgents),
+            KeyAction::Leader => {
+                self.leader = Some(Instant::now());
+                KeyOutcome::default()
+            }
+            KeyAction::Left
+            | KeyAction::Right
+            | KeyAction::Home
+            | KeyAction::End
+            | KeyAction::PageUp
+            | KeyAction::PageDown => KeyOutcome::default(),
             KeyAction::Char(c) => {
                 if self.input.len() + c.len_utf8() <= MAX_INPUT_BYTES {
                     self.input.push(c);
@@ -919,7 +1100,7 @@ impl TuiState {
                     }
                 }
             }
-            KeyAction::Quit => {
+            KeyAction::Quit | KeyAction::Interrupt => {
                 self.status = TuiStatus::Quit;
                 KeyOutcome::default()
             }
@@ -967,7 +1148,23 @@ impl TuiState {
             // Workspace commands reach the application, which owns their
             // templates; the built-in table only routes known commands.
             if !matches!(action, CommandAction::Help(None)) || !self.is_workspace_command(&text) {
-                return self.run_command(action);
+                let outcome = self.run_command(action);
+                if outcome.consumed_input
+                    || matches!(
+                        self.panel,
+                        TuiPanel::Model
+                            | TuiPanel::Agents
+                            | TuiPanel::Sessions
+                            | TuiPanel::Skills
+                            | TuiPanel::Commands
+                            | TuiPanel::Cards
+                            | TuiPanel::Help(_)
+                    )
+                {
+                    self.input.clear();
+                    self.input_revision += 1;
+                }
+                return outcome;
             }
         }
         if self.active_turn.is_some() {
@@ -1036,8 +1233,17 @@ impl TuiState {
     }
 
     fn run_command(&mut self, action: CommandAction) -> KeyOutcome {
+        self.select.reset();
         let mut outcome = KeyOutcome::default();
         match action {
+            CommandAction::OpenCommands => {
+                self.panel = TuiPanel::Commands;
+            }
+            CommandAction::ToggleSidebar => {
+                self.chrome.sidebar_hidden = !self.chrome.sidebar_hidden;
+                self.panel = TuiPanel::None;
+                outcome.consumed_input = true;
+            }
             CommandAction::Quit => {
                 self.status = TuiStatus::Quit;
                 outcome.consumed_input = true;
@@ -1083,15 +1289,84 @@ impl TuiState {
                 outcome.intent = Some(PanelIntent::Compress { focus });
             }
         }
-        if outcome.consumed_input {
-            self.input.clear();
-        }
+        self.sync_modal_cursor();
         outcome
     }
 
     /// Panel navigation: Up/Down move the panel cursor, Enter chooses,
-    /// Esc closes. Char input inside a panel is a no-op.
+    /// Esc closes; text and paste belong to the focused modal search.
     pub fn handle_panel_key(&mut self, action: KeyAction) -> KeyOutcome {
+        match action {
+            KeyAction::Char(c) => {
+                if self.select.query.len() + c.len_utf8() <= 512 {
+                    self.select.query.push(c);
+                }
+                self.select.changed_query();
+                self.sync_modal_cursor();
+                return KeyOutcome::default();
+            }
+            KeyAction::Backspace => {
+                self.select.query.pop();
+                self.select.changed_query();
+                self.sync_modal_cursor();
+                return KeyOutcome::default();
+            }
+            KeyAction::Interrupt
+                if matches!(
+                    self.panel,
+                    TuiPanel::Dcp | TuiPanel::Cards | TuiPanel::Help(_)
+                ) =>
+            {
+                // Preserve native operation/shutdown controls on informational
+                // panels; searchable selectors own Ctrl+C filter/dismiss.
+                self.status = TuiStatus::Quit;
+                return KeyOutcome::default();
+            }
+            KeyAction::Interrupt => {
+                if self.select.query.is_empty() {
+                    self.close_panel();
+                } else {
+                    self.select.reset();
+                    self.sync_modal_cursor();
+                }
+                return KeyOutcome::default();
+            }
+            KeyAction::Commands
+            | KeyAction::Up
+            | KeyAction::Down
+            | KeyAction::PageUp
+            | KeyAction::PageDown
+            | KeyAction::Home
+            | KeyAction::End
+                if matches!(
+                    self.panel,
+                    TuiPanel::Commands
+                        | TuiPanel::Model
+                        | TuiPanel::Agents
+                        | TuiPanel::Sessions
+                        | TuiPanel::Skills
+                ) =>
+            {
+                let count = self.modal_options().len();
+                match action {
+                    KeyAction::Home => self.select.cursor = 0,
+                    KeyAction::End => self.select.cursor = count.saturating_sub(1),
+                    _ => self.select.move_by(
+                        match action {
+                            KeyAction::Commands | KeyAction::Up => -1,
+                            KeyAction::PageUp => -10,
+                            KeyAction::PageDown => 10,
+                            _ => 1,
+                        },
+                        count,
+                    ),
+                }
+                self.sync_modal_cursor();
+                return KeyOutcome::default();
+            }
+            KeyAction::Enter if self.modal_options().is_empty() => return KeyOutcome::default(),
+            _ => {}
+        }
         match action {
             KeyAction::Quit => {
                 self.status = TuiStatus::Quit;
@@ -1165,6 +1440,17 @@ impl TuiState {
     fn panel_enter(&mut self) -> KeyOutcome {
         let mut outcome = KeyOutcome::default();
         match self.panel.clone() {
+            TuiPanel::Commands => {
+                let options = self.modal_options();
+                if let Some(option) = options.get(self.select.cursor)
+                    && let Some(command) = crate::commands::REGISTRY
+                        .iter()
+                        .find(|c| c.id == option.value)
+                {
+                    self.close_panel();
+                    return self.run_command(command.action.clone());
+                }
+            }
             TuiPanel::Model => match self.picker_selection() {
                 Some((id, variant)) => {
                     outcome.intent = Some(PanelIntent::ChooseModel { id, variant });
@@ -2121,7 +2407,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn slash_commands_return_intents_and_keep_input() {
+    async fn slash_overlay_commands_consume_alias_but_compress_keeps_input() {
         let mut state = fresh_state("s-slash").await;
         for (command, intent) in [
             ("/model", PanelIntent::LoadCatalog),
@@ -2132,10 +2418,15 @@ mod tests {
             type_text(&mut state, command).await;
             let outcome = state.handle_key(KeyAction::Enter).await;
             assert_eq!(outcome.intent, Some(intent), "{command}");
-            assert!(!outcome.consumed_input, "{command} keeps the input");
-            assert_eq!(state.input(), command);
+            assert!(!outcome.consumed_input, "snapshot still pending");
+            assert_eq!(
+                state.input(),
+                "",
+                "opening an overlay consumes the alias, not its search query"
+            );
             assert_eq!(outcome.note, None);
             state.accept_intent();
+            state.close_panel();
         }
 
         type_text(&mut state, "/dcp-compress draft span").await;
@@ -2165,6 +2456,7 @@ mod tests {
             assert_eq!(outcome.intent, None, "{command}");
             assert!(outcome.consumed_input, "{command}");
             assert!(state.input().is_empty(), "{command}");
+            state.close_panel();
         }
         type_text(&mut state, "/quit").await;
         let outcome = state.handle_key(KeyAction::Enter).await;
@@ -2205,6 +2497,91 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn v04_modal_search_scroll_focus_and_draft() {
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+        use ratatui::{Terminal, backend::TestBackend};
+        let mut state = fresh_state("v04-draft").await;
+        let mut catalog = snapshot();
+        let model = catalog.models[0].clone();
+        catalog.models = (0..30)
+            .map(|i| {
+                let mut m = model.clone();
+                m.id = format!("m{i:02}");
+                m.display_name = format!("Display {i:02}");
+                m.provider_name = "Real provider".into();
+                m
+            })
+            .collect();
+        catalog.model_id = "m04".into();
+        state.apply_catalog(catalog);
+        type_text(&mut state, "kept draft 🌍").await;
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal
+            .draw(|f| crate::views::render_frame(f, &state))
+            .unwrap();
+        let base = terminal.backend().buffer().clone();
+        let key = crate::events::map_key(KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL))
+            .unwrap();
+        state.handle_key(key).await;
+        assert_eq!(state.panel(), &TuiPanel::Commands);
+        state.handle_paste("model");
+        assert_eq!(state.modal_options().len(), 1);
+        state.handle_panel_key(KeyAction::Enter);
+        assert_eq!(state.panel(), &TuiPanel::Model);
+        terminal
+            .draw(|f| crate::views::render_frame(f, &state))
+            .unwrap();
+        let modal = terminal.backend().buffer();
+        for y in [0, 1, 35, 39] {
+            for x in 0..120 {
+                assert_eq!(
+                    base[(x, y)].symbol(),
+                    modal[(x, y)].symbol(),
+                    "underlay reflow at {x},{y}"
+                );
+                assert_eq!(
+                    modal[(x, y)].fg,
+                    crate::dialog::backdrop(base[(x, y)].fg, crate::theme::Theme::dark().text())
+                );
+                assert_eq!(
+                    modal[(x, y)].bg,
+                    crate::dialog::backdrop(
+                        base[(x, y)].bg,
+                        crate::theme::Theme::dark().background()
+                    )
+                );
+            }
+        }
+        for _ in 0..25 {
+            state.handle_panel_key(KeyAction::Down);
+        }
+        assert_eq!(state.picker_selection().unwrap().0, "m25");
+        let text = crate::views::render_test(&state, 120, 40).join("\n");
+        assert!(text.contains("Display 25") && !text.contains("Display 00"));
+        state.handle_paste("missing-no-results");
+        assert!(state.modal_options().is_empty());
+        assert_eq!(state.handle_panel_key(KeyAction::Enter).intent, None);
+        assert!(
+            crate::views::render_test(&state, 120, 40)
+                .join("\n")
+                .contains("No results found")
+        );
+        state.handle_panel_key(KeyAction::Interrupt); // clears only the filter
+        state.handle_paste("Display 29");
+        assert_eq!(state.modal_options().len(), 1);
+        assert_eq!(state.picker_selection().unwrap().0, "m29");
+        state.handle_panel_key(KeyAction::Cancel);
+        assert_eq!(state.input(), "kept draft 🌍");
+        assert_eq!(state.active_model_label().unwrap().0, "Display 04");
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        state.handle_key(KeyAction::Leader).await;
+        state.handle_key(KeyAction::Char('m')).await;
+        assert_eq!(state.panel(), &TuiPanel::Model);
+        state.handle_panel_key(KeyAction::Cancel);
+        assert_eq!(state.input(), "kept draft 🌍");
+    }
+
+    #[tokio::test]
     async fn panel_enter_returns_selection_intents() {
         let mut state = fresh_state("s-panels").await;
         state.apply_catalog(snapshot());
@@ -2223,6 +2600,7 @@ mod tests {
         );
         assert_eq!(state.picker_selection(), Some(("b".to_string(), None)));
         state.accept_intent();
+        state.close_panel();
 
         type_text(&mut state, "/agents").await;
         state.handle_key(KeyAction::Enter).await;
@@ -2238,6 +2616,7 @@ mod tests {
         state.accept_intent();
 
         state.apply_sessions(vec!["s1".to_string(), "s2".to_string()]);
+        state.close_panel();
         type_text(&mut state, "/sessions").await;
         state.handle_key(KeyAction::Enter).await;
         assert_eq!(state.panel(), &TuiPanel::Sessions);

@@ -1609,6 +1609,26 @@ for line in sys.stdin:
             std::thread::sleep(POLL);
         }
     }
+    // V04: route the real command modal while acceptance is stalled, before
+    // any release file exists. Its Escape must dismiss, leaving cancellation
+    // and the retained draft to the root layer below.
+    tui.raw(b"\x10");
+    tui.wait_screen("Commands", IO_TIMEOUT);
+    tui.raw(b"no-such-command");
+    tui.wait_screen("No results found", IO_TIMEOUT);
+    tui.raw(b"\x1b");
+    let modal_deadline = Instant::now() + IO_TIMEOUT;
+    while tui
+        .screen()
+        .iter()
+        .any(|row| row.contains("No results found"))
+    {
+        assert!(
+            Instant::now() < modal_deadline,
+            "V04 modal dismissal blocked by pending acceptance"
+        );
+        std::thread::sleep(POLL);
+    }
     let resize_offset = tui.output.lock().unwrap().len();
     tui.raw(b"\r"); // duplicate Enter while acceptance is stalled
     tui.resize(120, 40);

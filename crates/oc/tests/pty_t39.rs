@@ -854,6 +854,147 @@ fn seed_tool_ops(data_dir: &Path, session: &str, ops: usize) {
 
 /// AUD29: panels reach the runtime and really change the next request.
 #[test]
+fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
+    let dismissed = |pty: &PtySession, title: &str| {
+        let start = Instant::now();
+        while render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|r| r.contains(title))
+        {
+            assert!(start.elapsed() < DEADLINE, "modal did not dismiss: {title}");
+            std::thread::sleep(POLL);
+        }
+    };
+    let fixture = Fixture::new();
+    let path = fixture
+        .root
+        .path()
+        .join("home/config/opencode/opencode.json");
+    let mut config: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    for i in 0..30 {
+        config["provider"]["fixture"]["models"][format!("modal-{i:02}")] = serde_json::json!({
+            "name":format!("Modal {i:02}"), "limit":{"context":32768,"output":4096},
+            "variants":{"none":{},"fast":{"reasoningEffort":"high"}}
+        });
+    }
+    std::fs::write(&path, config.to_string()).unwrap();
+    let mut pty = PtySession::spawn(fixture.clone(), "v04-modal", None);
+    pty.wait_visible(READY, DEADLINE);
+    pty.send(b"draft-kept");
+    wait_screen_row(&pty, "draft-kept", DEADLINE);
+    pty.send(b"\x10"); // actual Ctrl+P, never a direct TuiState call
+    wait_screen_row(&pty, "Commands", DEADLINE);
+    wait_screen_row(&pty, "Search", DEADLINE);
+    pty.send(b"Switch model");
+    wait_screen_row(&pty, "Switch model", DEADLINE);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "Select model", DEADLINE);
+    pty.send(b"missing-no-results");
+    wait_screen_row(&pty, "No results found", DEADLINE);
+    pty.send(b"\r"); // zero-result Enter has no application effect
+    pty.send(b"\x03"); // clear query only
+    wait_screen_row(&pty, "Modal 00", DEADLINE);
+    pty.send(b"Modal");
+    pty.send(b"\x1b[F"); // beyond the viewport, not just the first eight
+    wait_screen_row(&pty, "Modal 29", DEADLINE);
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|r| r.contains("Modal 00"))
+    );
+    pty.send(b"\x1b");
+    dismissed(&pty, "Select model");
+    wait_screen_row(&pty, "draft-kept", DEADLINE);
+    assert!(
+        pty.child.try_wait().unwrap().is_none(),
+        "Esc dismisses, not quits"
+    );
+    let dismissed_screen = render_screen(&pty.snapshot()).rows();
+    assert!(
+        dismissed_screen
+            .iter()
+            .any(|r| r.contains("1 Untitled session")),
+        "Esc preserves attached tab"
+    );
+    assert!(
+        dismissed_screen
+            .iter()
+            .any(|r| r.contains("T39 model fixture")),
+        "Esc preserves the effective model"
+    );
+    assert!(
+        fixture.requests.lock().unwrap().is_empty(),
+        "browsing does not submit"
+    );
+    pty.send(b"\x18m"); // actual Ctrl+X, m
+    wait_screen_row(&pty, "Select model", DEADLINE);
+    pty.send(b"Modal 29");
+    wait_screen_row(&pty, "Modal 29", DEADLINE);
+    pty.send(b"\x1b[C");
+    wait_screen_row(&pty, "variant: fast", DEADLINE);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "model: modal-29", DEADLINE);
+    dismissed(&pty, "Select model");
+    wait_screen_row(&pty, "draft-kept", DEADLINE);
+    pty.send(b"\r");
+    pty.wait_visible("echo: draft-kept", DEADLINE);
+    let first = fixture.wait_requests(1);
+    assert_eq!(first[0]["model"], "modal-29");
+    assert_eq!(first[0]["reasoning"]["effort"], "high");
+    assert_eq!(last_user_text(&first[0]).as_deref(), Some("draft-kept"));
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    pty.send(b"/model\r"); // slash and raw keys converge on the same selector
+    wait_screen_row(&pty, "Select model", DEADLINE);
+    pty.send(b"Modal 29");
+    wait_screen_row(&pty, "Modal 29", DEADLINE);
+    pty.send(b"\x1b[C");
+    wait_screen_row(&pty, "variant: fast", DEADLINE);
+    pty.send(b"\x1b[C");
+    wait_screen_row(&pty, "variant: none", DEADLINE);
+    pty.send(b"\x1b[C"); // explicit native default resolves to the enabled `none`
+    wait_screen_row(&pty, "variant: default", DEADLINE);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "model: modal-29", DEADLINE);
+    dismissed(&pty, "Select model");
+    let off = submit(&mut pty, "default variant");
+    pty.wait_visible_after(off, "echo: default variant", DEADLINE);
+    let requests = fixture.wait_requests(2);
+    assert_eq!(requests[1]["model"], "modal-29");
+    assert!(
+        requests[1]["reasoning"]["effort"].is_null(),
+        "explicit default must clear the previous variant: effort={} prompt={:?}",
+        requests[1]["reasoning"]["effort"],
+        last_user_text(&requests[1])
+    );
+    let off = submit(&mut pty, "slow stream");
+    fixture.wait_requests(3);
+    let started = Instant::now();
+    pty.send(b"\x10");
+    wait_screen_row(&pty, "Commands", Duration::from_millis(900));
+    assert!(
+        started.elapsed() < Duration::from_secs(1),
+        "overlay responsive while provider pending"
+    );
+    pty.send(b"\x1b");
+    dismissed(&pty, "Commands");
+    pty.wait_visible_after(off, "answer:slow stream", DEADLINE);
+    pty.send(b"\x03");
+    let (status, out) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && contains(&out, ALT_LEAVE) && pty.restored());
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    assert!(
+        db.read_history("v04-modal")
+            .unwrap()
+            .iter()
+            .any(|(role, text)| role == "user" && text == "draft-kept")
+    );
+}
+
+/// AUD29 continues to qualify native actions through their modal surfaces.
+#[test]
 fn aud29_pty_panels_change_runtime_state() {
     let fixture = Fixture::new();
     let project = fixture.root.path().join("project");
@@ -863,9 +1004,9 @@ fn aud29_pty_panels_change_runtime_state() {
 
     // Model picker: the effective model changes for the next turn.
     pty.send(b"/model\r");
-    wait_screen_row(&pty, "model |", DEADLINE);
-    wait_screen_row(&pty, "T39 alt · fixture", DEADLINE);
-    pty.send(b"\x1b[A"); // Up: cursor moves to the alphabetically first id
+    wait_screen_row(&pty, "Select model", DEADLINE);
+    wait_screen_row(&pty, "T39 alt", DEADLINE);
+    pty.send(b"T39 alt"); // Search selects the same genuine catalog entry.
     pty.send(b"\x1b[C"); // Right: cycle to the declared variant
     wait_screen_row(&pty, "variant: fast", DEADLINE);
     pty.send(b"\r");
@@ -877,7 +1018,7 @@ fn aud29_pty_panels_change_runtime_state() {
 
     // Agent picker: prompt and pinned model come from the agent definition.
     pty.send(b"/agents\r");
-    wait_screen_row(&pty, "agents |", DEADLINE);
+    wait_screen_row(&pty, "Select agent", DEADLINE);
     wait_screen_row(&pty, "t39agent", DEADLINE);
     pty.send(b"\r");
     pty.wait_visible("agent: t39agent", DEADLINE);
@@ -887,8 +1028,8 @@ fn aud29_pty_panels_change_runtime_state() {
 
     // Skill catalog: real cards from the runtime (bodies stay behind).
     pty.send(b"/skills\r");
-    wait_screen_row(&pty, "skills |", DEADLINE);
-    wait_screen_row(&pty, "t39skill", DEADLINE);
+    wait_screen_row(&pty, "Skills", DEADLINE);
+    wait_screen_row(&pty, "T39 skill", DEADLINE);
     pty.send(b"\x1b"); // Esc closes
     std::thread::sleep(Duration::from_millis(200));
 
@@ -906,7 +1047,7 @@ fn aud29_pty_panels_change_runtime_state() {
 
     // Session switch: the attached session (and its history) really changes.
     pty.send(b"/sessions\r");
-    wait_screen_row(&pty, "sessions |", DEADLINE);
+    wait_screen_row(&pty, "Switch session", DEADLINE);
     pty.send(b"\x1b[B"); // Down: cursor moves off the first id
     pty.send(b"\r");
     pty.wait_visible(READY, DEADLINE);
@@ -992,7 +1133,7 @@ fn aud30_pty_paste_resize_error_recovery() {
     pty.resize(100, 30);
     // A session switch during a stream is explicitly refused, never silent.
     pty.send(b"/sessions\r");
-    wait_screen_row(&pty, "sessions |", DEADLINE);
+    wait_screen_row(&pty, "Switch session", DEADLINE);
     pty.send(b"\r");
     wait_screen_row(&pty, "turn active; session switch refused", DEADLINE);
     pty.send(b"\x1b"); // Esc closes the panel
@@ -1068,7 +1209,7 @@ fn aud31_pty_bounded_backing_state() {
 
     // Switch sessions: the window is replaced, not accumulated.
     pty.send(b"/sessions\r");
-    wait_screen_row(&pty, "sessions |", DEADLINE);
+    wait_screen_row(&pty, "Switch session", DEADLINE);
     pty.send(b"\x1b[B"); // Down: cursor moves off the first id
     pty.send(b"\r");
     pty.wait_visible(READY, DEADLINE);
