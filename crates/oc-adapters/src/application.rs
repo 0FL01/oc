@@ -252,6 +252,7 @@ impl Effective {
                 context_known: spec
                     .pointer("/limit/context")
                     .and_then(serde_json::Value::as_u64)
+                    .filter(|value| *value > 0)
                     .is_some(),
                 output: spec
                     .pointer("/limit/output")
@@ -260,6 +261,7 @@ impl Effective {
                 output_known: spec
                     .pointer("/limit/output")
                     .and_then(serde_json::Value::as_u64)
+                    .filter(|value| *value > 0)
                     .is_some(),
             })
             .collect();
@@ -351,6 +353,8 @@ fn subagent_catalog(composition: &Composition) -> Option<SubagentCatalog> {
                     variant: agent.variant.clone(),
                     prompt: agent.body.clone(),
                     permissions: agent.permissions.clone(),
+                    permission_rules: agent.permission_rules.clone(),
+                    hidden: agent.hidden,
                     digest: Some(crate::defs::agent_digest(agent)),
                 },
             )
@@ -530,12 +534,16 @@ fn nanos() -> u128 {
         .as_nanos()
 }
 
-/// Publish the agent prompt, instructions and pinned skills for the next turn.
+/// Publish the effective agent's prompt and policy with instructions and skills.
 fn publish_workspace(
     runtime: &Runtime<'_>,
     composition: &Composition,
     effective: &Effective,
 ) -> Result<(), RuntimeError> {
+    let agent = effective
+        .agent_id
+        .as_ref()
+        .and_then(|id| composition.agents.get(id));
     runtime.publish_workspace(
         effective.agent_prompt.as_deref(),
         &composition.instructions,
@@ -547,6 +555,12 @@ fn publish_workspace(
             .agent_id
             .as_ref()
             .and_then(|id| composition.agents.values().position(|a| &a.id == id)),
+        agent
+            .map(|agent| agent.permissions.clone())
+            .unwrap_or_default(),
+        agent
+            .map(|agent| agent.permission_rules.clone())
+            .unwrap_or_default(),
     )
 }
 
@@ -967,13 +981,6 @@ async fn worker(
                         continue;
                     }
                 };
-                let max_output = composition
-                    .catalog
-                    .models
-                    .get(&effective.model_id)
-                    .and_then(|spec| spec.pointer("/limit/output"))
-                    .and_then(serde_json::Value::as_u64)
-                    .unwrap_or(0);
                 let params = TurnParams {
                     session: session.0.clone(),
                     prompt,
@@ -981,7 +988,9 @@ async fn worker(
                     catalog: &composition.catalog,
                     model_id: effective.model_id.clone(),
                     variant: effective.variant.clone(),
-                    max_output,
+                    // The runtime resolves its native default against known
+                    // metadata and fallback caps; capacity is not a request.
+                    max_output: 0,
                     provider: composition.provider.clone(),
                     cancel: &cancel,
                     max_rounds: crate::runtime::MAX_ROUNDS,
@@ -993,7 +1002,7 @@ async fn worker(
                 let result;
                 {
                     let operation = async {
-                        let report = runtime
+                        let mut report = runtime
                             .run_turn_with_tool_events(
                                 params,
                                 |id| {
@@ -1081,6 +1090,16 @@ async fn worker(
                             && db.session_meta(&session.0)?.title.is_none()
                         {
                             let selection = &title_selection;
+                            let fallback = composition
+                                .generation
+                                .providers
+                                .get(&composition.catalog.provider)
+                                .map(|provider| provider.options.native_fallback_limits)
+                                .unwrap_or_default();
+                            let budget = crate::models::budget(selection, 256, fallback);
+                            if let Some(warning) = &budget.warning {
+                                report.warnings.push(format!("title generation: {warning}"));
+                            }
                             let input = vec![
                                     crate::provider::InputItem::message(
                                         crate::provider::InputRole::Developer,
@@ -1091,15 +1110,26 @@ async fn worker(
                                         &title_prompt[..title_prompt.floor_char_boundary(title_prompt.len().min(8192))],
                                     ),
                                 ];
-                            if let Ok(Ok(generation)) = tokio::time::timeout(
+                            let tools = [];
+                            let input_tokens = crate::runtime::estimate_tokens(
+                                &serde_json::to_string(&(&input, &tools))
+                                    .map_err(|_| RuntimeError::Storage)?,
+                            );
+                            if let Err(error) =
+                                crate::models::admit_budget(selection, input_tokens, &budget)
+                            {
+                                report
+                                    .warnings
+                                    .push(format!("title generation skipped: {error}"));
+                            } else if let Ok(Ok(generation)) = tokio::time::timeout(
                                 std::time::Duration::from_secs(10),
                                 crate::provider::stream_input_observed(
                                     &composition.provider,
                                     &selection.id,
                                     selection.variant.as_ref(),
                                     &input,
-                                    &[],
-                                    256,
+                                    &tools,
+                                    budget.output,
                                     &cancel,
                                     &mut |_| {},
                                 ),

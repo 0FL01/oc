@@ -876,7 +876,8 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
     for i in 0..30 {
         config["provider"]["fixture"]["models"][format!("modal-{i:02}")] = serde_json::json!({
             "name":format!("Modal {i:02}"), "limit":{"context":32768,"output":4096},
-            "variants":{"none":{},"fast":{"reasoningEffort":"high"}}
+            // Named `none` is an explicit overlay, NOT the absence of a selection.
+            "variants":{"none":{"reasoningEffort":"low"},"fast":{"reasoningEffort":"high"}}
         });
     }
     std::fs::write(&path, config.to_string()).unwrap();
@@ -954,23 +955,33 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
     wait_screen_row(&pty, "variant: fast", DEADLINE);
     pty.send(b"\x1b[C");
     wait_screen_row(&pty, "variant: none", DEADLINE);
-    pty.send(b"\x1b[C"); // explicit native default resolves to the enabled `none`
+    pty.send(b"\r");
+    dismissed(&pty, "Select model");
+    let off = submit(&mut pty, "named none variant");
+    pty.wait_visible_after(off, "echo: named none variant", DEADLINE);
+    assert_eq!(fixture.wait_requests(2)[1]["reasoning"]["effort"], "low");
+    pty.send(b"/model\r");
+    wait_screen_row(&pty, "Select model", DEADLINE);
+    pty.send(b"Modal 29");
+    wait_screen_row(&pty, "Modal 29", DEADLINE);
+    // Current none -> fast -> none -> Default; Default must remove the overlay.
+    pty.send(b"\x1b[C\x1b[C\x1b[C");
     wait_screen_row(&pty, "variant: default", DEADLINE);
     pty.send(b"\r");
     wait_screen_row(&pty, "model: modal-29", DEADLINE);
     dismissed(&pty, "Select model");
     let off = submit(&mut pty, "default variant");
     pty.wait_visible_after(off, "echo: default variant", DEADLINE);
-    let requests = fixture.wait_requests(2);
-    assert_eq!(requests[1]["model"], "modal-29");
+    let requests = fixture.wait_requests(3);
+    assert_eq!(requests[2]["model"], "modal-29");
     assert!(
-        requests[1]["reasoning"]["effort"].is_null(),
+        requests[2]["reasoning"]["effort"].is_null(),
         "explicit default must clear the previous variant: effort={} prompt={:?}",
-        requests[1]["reasoning"]["effort"],
-        last_user_text(&requests[1])
+        requests[2]["reasoning"]["effort"],
+        last_user_text(&requests[2])
     );
     let off = submit(&mut pty, "slow stream");
-    fixture.wait_requests(3);
+    fixture.wait_requests(4);
     let started = Instant::now();
     pty.send(b"\x10");
     wait_screen_row(&pty, "Commands", Duration::from_millis(900));
@@ -985,6 +996,14 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
     let (status, out) = pty.wait_exit(DEADLINE);
     assert!(status.success() && contains(&out, ALT_LEAVE) && pty.restored());
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    let selection: serde_json::Value = serde_json::from_str(
+        &db.get_pref(oc_core::queries::PREF_MODEL_SELECTION)
+            .unwrap()
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(selection["id"], "modal-29");
+    assert_eq!(selection["variant"], serde_json::Value::Null);
     assert!(
         db.read_history("v04-modal")
             .unwrap()

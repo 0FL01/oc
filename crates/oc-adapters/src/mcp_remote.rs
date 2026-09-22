@@ -108,6 +108,9 @@ pub enum McpError {
     /// Tool reported `isError`.
     #[error("tool error")]
     ToolFailed,
+    /// Tool failure with a fixed, payload-free diagnostic category.
+    #[error("tool error: {0}")]
+    ToolFailedDetail(crate::mcp_result::FailureDetail),
     /// Tool arguments were not a JSON object.
     #[error("invalid tool arguments")]
     InvalidArguments,
@@ -462,6 +465,8 @@ pub struct CodexWebClient {
     timeout: Duration,
     tools_changed: Arc<AtomicBool>,
     cleanup: lifecycle::Cleanup,
+    secrets: Vec<String>,
+    instructions: Option<String>,
 }
 
 impl CodexWebClient {
@@ -482,6 +487,15 @@ impl CodexWebClient {
         config: &CodexWebConfig,
         codex_web: bool,
         cancel: &AtomicBool,
+    ) -> Result<Self, McpError> {
+        Self::connect_redacted(config, codex_web, cancel, &[]).await
+    }
+
+    pub(crate) async fn connect_redacted(
+        config: &CodexWebConfig,
+        codex_web: bool,
+        cancel: &AtomicBool,
+        redactions: &[String],
     ) -> Result<Self, McpError> {
         config.validate_profile(codex_web)?;
         let (host, port) = split_host_port(&config.url)?;
@@ -555,13 +569,32 @@ impl CodexWebClient {
             return Err(McpError::ProtocolMismatch);
         }
         let peer = running.peer().clone();
+        let mut secrets = vec![config.url.clone(), config.bearer.clone()];
+        secrets.extend_from_slice(redactions);
+        secrets.extend(
+            config
+                .custom_headers
+                .values()
+                .filter_map(|v| v.to_str().ok())
+                .map(str::to_string),
+        );
+        let instructions = peer.peer_info().and_then(|info| {
+            crate::mcp_result::instructions(info.instructions.as_deref(), &secrets)
+        });
         Ok(Self {
             peer,
             running,
             timeout: config.timeout,
             tools_changed,
             cleanup,
+            secrets,
+            instructions,
         })
+    }
+
+    /// Bounded, configured-value-redacted server guidance from initialize.
+    pub fn instructions(&self) -> Option<&str> {
+        self.instructions.as_deref()
     }
 
     /// Atomically claim a pending tools/list refresh. A notification that
@@ -629,50 +662,24 @@ impl CodexWebClient {
             .run_cancel(
                 cancel,
                 async {
-                    self.peer
-                        .call_tool_once(params)
-                        .await
-                        .map_err(|_| McpError::Transport)
+                    self.peer.call_tool_once(params).await.map_err(|error| {
+                        crate::mcp_result::rpc_failure(&error)
+                            .map_or(McpError::Transport, McpError::ToolFailedDetail)
+                    })
                 },
                 "call",
             )
             .await?;
         match outcome {
             rmcp::model::CallToolResponse::Complete(result) => {
-                if result.is_error == Some(true) {
-                    return Err(McpError::ToolFailed);
-                }
-                if result.structured_content.is_some() {
-                    return Err(McpError::UnsupportedResult);
-                }
-                if result.content.is_empty() {
-                    return Err(McpError::BadResult);
-                }
-                let mut text = String::new();
-                for block in &result.content {
-                    match block {
-                        rmcp::model::ContentBlock::Text(value) => {
-                            if value.text.trim().is_empty() {
-                                return Err(McpError::BadResult);
-                            }
-                            let separator = usize::from(!text.is_empty());
-                            if text
-                                .len()
-                                .saturating_add(separator)
-                                .saturating_add(value.text.len())
-                                > RESULT_TEXT_BYTES_CAP
-                            {
-                                return Err(McpError::BadResult);
-                            }
-                            if !text.is_empty() {
-                                text.push('\n');
-                            }
-                            text.push_str(&value.text);
-                        }
-                        _ => return Err(McpError::UnsupportedResult),
+                crate::mcp_result::project(result, &self.secrets).map_err(|error| match error {
+                    crate::mcp_result::ResultError::Failed(Some(detail)) => {
+                        McpError::ToolFailedDetail(detail)
                     }
-                }
-                Ok(text)
+                    crate::mcp_result::ResultError::Failed(None) => McpError::ToolFailed,
+                    crate::mcp_result::ResultError::Unsupported => McpError::UnsupportedResult,
+                    crate::mcp_result::ResultError::BadResult => McpError::BadResult,
+                })
             }
             _ => Err(McpError::UnsupportedResult),
         }

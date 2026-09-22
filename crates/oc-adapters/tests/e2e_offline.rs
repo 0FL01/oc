@@ -152,6 +152,7 @@ fn make_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generati
         providers: BTreeMap::new(),
         mcp: BTreeMap::new(),
         permissions,
+        permission_rules: Default::default(),
         provenance: BTreeMap::new(),
         warnings: Vec::new(),
     };
@@ -541,6 +542,7 @@ async fn e2e01_seeded_coding_fix() {
         providers: BTreeMap::new(),
         mcp: BTreeMap::new(),
         permissions: allow_all(),
+        permission_rules: Default::default(),
         provenance: BTreeMap::new(),
         warnings: Vec::new(),
     };

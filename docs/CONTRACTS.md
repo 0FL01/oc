@@ -54,6 +54,17 @@ Project config/AGENTS, agent body, command template и skill body могут в�
 
 `output_budget = min(requested_or_default, model.output)`; допустимый input не больше `min(model.input если задан, model.context - output_budget) - safety_margin`. Если model limit отсутствует, не выдумывать модельную ёмкость по имени: UI указывает unknown; generation использует явно configured native fallback cap и предупреждение. В fallback caps нет утверждения о реальной upstream модели.
 
+Native policy (D14/T47): `provider.<id>.options.nativeFallbackLimits` accepts positive
+`context`/`output`, defaults 32768/4096; context must exceed output + 1024 reserve.
+Missing fields use defaults; unknown option keys/types are rejected. These values
+are request policy, never discovery metadata or provider wire options. Each known
+positive model limit remains authoritative. The configured output is also the
+default output request for known models; explicit output requests are clamped.
+The same budget/admission applies to primary, child, every tool continuation and
+title requests. Missing/zero metadata produces visible fallback warnings; title
+admission failure skips only the ancillary title. No selected variant means no
+reasoning overlay; an explicitly selected variant must be enabled.
+
 Универсального точного токенизатора для всех aliases не предполагается. Использовать доступный validated tokenizer или conservative estimate с отметкой estimated, затем калибровку по usage. В estimate входят instructions, tool schemas, summaries, opaque items и attachments (для неизвестной image token cost — дополнительный reserve, не нулевой учёт). Provider остаётся окончательным арбитром context error.
 
 DCP soft nudges не равны hard admission. При превышении hard cap разрешён максимум один явный recovery/compress attempt только с context, который можно отправить; если неприменимо, ContextLimit и сохранённая история. Нельзя пытаться послать уже переполненный запрос бесконечно или тайно truncate protected messages.

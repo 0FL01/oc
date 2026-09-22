@@ -90,6 +90,10 @@ pub struct AgentDef {
     pub body: String,
     /// Agent-specific permission narrowing, normalized to runtime tool names.
     pub permissions: BTreeMap<String, Permission>,
+    /// Ordered resource-aware narrowing, retained independently of the summary.
+    pub permission_rules: crate::permissions::PermissionRules,
+    /// Omitted from automatic subagent discovery, still explicitly addressable.
+    pub hidden: bool,
     /// Admitted mode (`primary`) when explicitly configured.
     pub mode: Option<String>,
     /// Winning source origin.
@@ -438,6 +442,12 @@ fn permission_map(
     if value.is_null() {
         return Ok(BTreeMap::new());
     }
+    if value.is_string() {
+        return Ok(BTreeMap::from([(
+            "*".into(),
+            normalize_permission("*", value).map_err(|error| error.to_string())?,
+        )]));
+    }
     let object = value
         .as_object()
         .ok_or_else(|| "must be an object".to_string())?;
@@ -458,6 +468,13 @@ fn permission_map(
             .or_insert(level);
     }
     Ok(permissions)
+}
+
+fn metadata_bool(value: Option<&serde_json::Value>) -> Result<bool, String> {
+    match value {
+        None => Ok(false),
+        Some(value) => value.as_bool().ok_or_else(|| "must be boolean".into()),
+    }
 }
 
 /// Merge authoritative top-level config `agent` and `command` domains.
@@ -508,6 +525,11 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                     "model",
                     "variant",
                     "permission",
+                    "permissions",
+                    "tools",
+                    "hidden",
+                    "disable",
+                    "disabled",
                     "mode",
                 ];
                 if let Some(field) = object.keys().find(|key| !allowed.contains(&key.as_str())) {
@@ -532,10 +554,35 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                     let variant = optional_string(object, "variant")?;
                     let mode = agent_mode(optional_string(object, "mode")?)?;
                     let permissions = permission_map(object.get("permission"))?;
-                    Ok::<_, String>((description, model, variant, body, permissions, mode))
+                    let permission_rules = crate::permissions::PermissionRules::from_config(raw)
+                        .map_err(|error| error.to_string())?;
+                    let hidden = metadata_bool(raw.get("hidden"))?;
+                    let disabled =
+                        metadata_bool(raw.get("disable"))? | metadata_bool(raw.get("disabled"))?;
+                    Ok::<_, String>((
+                        description,
+                        model,
+                        variant,
+                        body,
+                        permissions,
+                        mode,
+                        permission_rules,
+                        hidden,
+                        disabled,
+                    ))
                 })();
                 match parsed {
-                    Ok((description, model, variant, body, permissions, mode)) => insert_agent(
+                    Ok((
+                        description,
+                        model,
+                        variant,
+                        body,
+                        permissions,
+                        mode,
+                        permission_rules,
+                        hidden,
+                        disabled,
+                    )) => insert_agent(
                         &mut out,
                         &root,
                         AgentInput {
@@ -546,6 +593,9 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                             body,
                             permissions,
                             mode,
+                            permission_rules,
+                            hidden,
+                            disabled,
                         },
                         source_path,
                     ),
@@ -724,10 +774,19 @@ struct AgentInput {
     variant: Option<String>,
     body: String,
     permissions: BTreeMap<String, Permission>,
+    permission_rules: crate::permissions::PermissionRules,
+    hidden: bool,
+    disabled: bool,
     mode: Option<String>,
 }
 
 fn insert_agent(out: &mut Collector, root: &DefRoot, input: AgentInput, path: &Path) {
+    if input.disabled {
+        if let Some(previous) = out.defs.agents.remove(&input.id) {
+            out.total_bytes = out.total_bytes.saturating_sub(previous.body.len());
+        }
+        return;
+    }
     if out.defs.agents.len() >= MAX_DEFS_PER_KIND && !out.defs.agents.contains_key(&input.id) {
         out.defs
             .diagnostics
@@ -758,6 +817,8 @@ fn insert_agent(out: &mut Collector, root: &DefRoot, input: AgentInput, path: &P
             variant: input.variant.filter(|s| !s.is_empty()),
             body: input.body,
             permissions: input.permissions,
+            permission_rules: input.permission_rules,
+            hidden: input.hidden,
             mode: input.mode,
             origin: root.origin.clone(),
         },
@@ -932,7 +993,18 @@ fn load_entry(out: &mut Collector, root: &DefRoot, kind: &str, dir: &Path, name:
             if kind == "agent" {
                 if let Some(field) = unsupported_field(
                     &frontmatter.fields,
-                    &["description", "model", "variant", "mode", "permission"],
+                    &[
+                        "description",
+                        "model",
+                        "variant",
+                        "mode",
+                        "permission",
+                        "permissions",
+                        "tools",
+                        "hidden",
+                        "disable",
+                        "disabled",
+                    ],
                 ) {
                     out.defs.diagnostics.push(diag(
                         &path,
@@ -956,6 +1028,15 @@ fn load_entry(out: &mut Collector, root: &DefRoot, kind: &str, dir: &Path, name:
                         variant: field_string(&frontmatter.fields, "variant")?,
                         body: body.to_string(),
                         permissions: permission_map(frontmatter.fields.get("permission"))?,
+                        permission_rules: crate::permissions::PermissionRules::from_config(
+                            &serde_json::Value::Object(
+                                frontmatter.fields.clone().into_iter().collect(),
+                            ),
+                        )
+                        .map_err(|error| error.to_string())?,
+                        hidden: metadata_bool(frontmatter.fields.get("hidden"))?,
+                        disabled: metadata_bool(frontmatter.fields.get("disable"))?
+                            | metadata_bool(frontmatter.fields.get("disabled"))?,
                         mode: agent_mode(field_string(&frontmatter.fields, "mode")?)?,
                     })
                 })();
@@ -1062,6 +1143,10 @@ pub fn agent_digest(agent: &AgentDef) -> String {
             Permission::Deny => b"deny",
         });
     }
+    hash_bytes(
+        &serde_json::to_vec(&agent.permission_rules).expect("serializable permission rules"),
+    );
+    hash_bytes(if agent.hidden { b"hidden" } else { b"visible" });
     let mut out = String::with_capacity(16);
     let _ = write!(out, "{hash:016x}");
     out
@@ -1271,7 +1356,7 @@ mod tests {
             loaded
                 .diagnostics
                 .iter()
-                .any(|d| d.field.contains("tools") && d.reason.contains("unsupported"))
+                .any(|d| d.path.ends_with("danger.md") && d.reason.contains("invalid config tools"))
         );
         // Execution fields are parsed and stored; the commands stay loadable.
         assert_eq!(loaded.commands["delegate"].subtask, Some(true));

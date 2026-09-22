@@ -244,6 +244,7 @@ fn make_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generati
         providers: BTreeMap::new(),
         mcp: BTreeMap::new(),
         permissions,
+        permission_rules: Default::default(),
         provenance: BTreeMap::new(),
         warnings: Vec::new(),
     };
@@ -332,11 +333,561 @@ fn params<'c>(
 
 static NO_CANCEL: AtomicBool = AtomicBool::new(false);
 
+#[tokio::test]
+async fn resource_permissions_gate_real_dispatch_before_side_effects() {
+    let (harness, mut generation) = make_harness(allow_all());
+    generation.permission_rules =
+        oc_adapters::permissions::PermissionRules::from_config(&serde_json::json!({
+            "permission": {
+                "read": {"*":"deny", "safe/*":"allow", "safe/secret*":"deny"},
+                "edit": {"safe/*":"allow", "safe/secret*":"deny"},
+                "bash": {"/bin/echo ok":"allow"}
+            }
+        }))
+        .unwrap();
+    std::fs::create_dir(harness._project.path().join("safe")).unwrap();
+    std::fs::write(
+        harness._project.path().join("safe/input"),
+        "allowed content",
+    )
+    .unwrap();
+    std::fs::write(harness._project.path().join("private"), "private canary").unwrap();
+    std::fs::write(
+        harness._project.path().join("safe/secret*keys"),
+        "star canary\n",
+    )
+    .unwrap();
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("resources").unwrap();
+    let calls = [
+        ("read-ok", "read", serde_json::json!({"path": "safe/input"})),
+        (
+            "read-no",
+            "read",
+            serde_json::json!({"path":"safe/../private"}),
+        ),
+        (
+            "patch-ok",
+            "apply_patch",
+            serde_json::json!({"patchText":"*** Begin Patch\n*** Add File: safe/new\n+allowed\n*** End Patch"}),
+        ),
+        (
+            "patch-no",
+            "apply_patch",
+            serde_json::json!({"patchText":"*** Begin Patch\n*** Update File: safe/input\n*** Move to: escaped\n@@\n-allowed content\n+changed\n*** End Patch"}),
+        ),
+        (
+            "bash-ok",
+            "bash",
+            serde_json::json!({"argv":["/bin/echo","ok"]}),
+        ),
+        (
+            "bash-no",
+            "bash",
+            serde_json::json!({"argv":["/bin/touch","marker"]}),
+        ),
+        (
+            "read-star",
+            "read",
+            serde_json::json!({"path":"safe/secret*keys"}),
+        ),
+        (
+            "patch-star",
+            "apply_patch",
+            serde_json::json!({"patchText":"*** Begin Patch\n*** Delete File: safe/secret*keys\n*** End Patch"}),
+        ),
+    ];
+    let script = calls
+        .iter()
+        .map(|(id, tool, args)| sse_tool_call(id, tool, args))
+        .collect::<String>()
+        + &sse_completed();
+    let (base, _, requests) = Fake::start_recording(
+        vec![script, sse_delta("done") + &sse_completed()],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "resources",
+            "tools",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(
+        report
+            .calls
+            .iter()
+            .map(|call| call.state.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "completed",
+            "failed",
+            "completed",
+            "failed",
+            "completed",
+            "failed",
+            "failed",
+            "failed"
+        ],
+        "{:?}",
+        report.calls
+    );
+    assert!(report.calls[3].output.contains("approval required"));
+    assert!(report.calls[5].output.contains("approval required"));
+    assert_eq!(report.calls[6].output, "error: denied read");
+    assert_eq!(report.calls[7].output, "error: denied apply_patch");
+    assert_eq!(
+        std::fs::read_to_string(harness._project.path().join("safe/secret*keys")).unwrap(),
+        "star canary\n"
+    );
+    assert!(
+        !requests.lock().unwrap()[1]
+            .to_string()
+            .contains("star canary")
+    );
+    assert!(harness._project.path().join("safe/new").exists());
+    assert!(!harness._project.path().join("escaped").exists());
+    assert!(!harness._project.path().join("marker").exists());
+    assert_eq!(
+        std::fs::read_to_string(harness._project.path().join("safe/input")).unwrap(),
+        "allowed content"
+    );
+    assert!(
+        !requests.lock().unwrap()[1]
+            .to_string()
+            .contains("private canary")
+    );
+}
+
+#[tokio::test]
+async fn primary_selection_and_restore_narrow_dispatch_guidance_and_children() {
+    use oc_adapters::application;
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    let mcp_script = project.path().join("permissions_mcp.py");
+    std::fs::write(&mcp_script, r#"import json, sys
+for line in sys.stdin:
+    r=json.loads(line); method=r.get('method'); result=None
+    if method == 'initialize':
+        result={'protocolVersion':'2025-11-25','capabilities':{'tools':{}},'serverInfo':{'name':'fixture','version':'1'},'instructions':'PRIMARY_POLICY_GUIDANCE'}
+    elif method == 'tools/list':
+        result={'tools':[{'name':'query','inputSchema':{'type':'object'}}]}
+    elif method == 'tools/call':
+        with open(sys.argv[1], 'a') as f: f.write('called\n')
+        result={'content':[{'type':'text','text':'MCP allowed'}]}
+    if result is not None:
+        print(json.dumps({'jsonrpc':'2.0','id':r['id'],'result':result}),flush=True)
+"#).unwrap();
+    let batch = |prefix: &str, child: bool| {
+        let mut result = sse_tool_call(
+            &format!("{prefix}-bash"),
+            "bash",
+            &serde_json::json!({"argv":["/bin/touch", format!("{prefix}-marker")]}),
+        ) + &sse_tool_call(
+            &format!("{prefix}-mcp"),
+            "fixture__query",
+            &serde_json::json!({}),
+        );
+        if child {
+            result += &sse_tool_call(
+                "spawn",
+                "subagent",
+                &serde_json::json!({
+                    "agent":"helper", "description":"Check inherited policy", "prompt":"try tools"
+                }),
+            );
+        }
+        result + &sse_completed()
+    };
+    let done = || sse_delta("done") + &sse_completed();
+    let (base, _, requests) = Fake::start_recording(
+        vec![
+            batch("startup", false),
+            done(),
+            done(), // First turn also generates a title.
+            batch("build", false),
+            done(),
+            batch("review", true),
+            batch("child", false),
+            done(),
+            done(),
+            batch("restored", false),
+            done(),
+        ],
+        Duration::ZERO,
+    );
+    let mut config = serde_json::json!({
+        "model":"fixture/main", "default_agent":"review",
+        "provider":{"fixture":{
+            "npm":"@ai-sdk/openai", "options":{"baseURL":base,"apiKey":"fixture-key"},
+            "models":{"main":{"limit":{"context":65536,"output":4096}}}
+        }},
+        "permission":"allow",
+        "agent":{
+            "build":{"mode":"primary", "prompt":"BUILD_PRIMARY", "permission":"allow"},
+            "review":{"mode":"primary", "prompt":"REVIEW_PRIMARY", "tools":{"bash":false,"fixture_query":false}},
+            "helper":{"mode":"subagent", "prompt":"HELPER_CHILD", "permission":"allow"}
+        },
+        "mcp":{"fixture":{"type":"local", "command":["/usr/bin/python3",mcp_script,project.path().join("mcp-calls")], "timeout":2000}}
+    });
+    let config_path = project.path().join("opencode.json");
+    std::fs::write(&config_path, config.to_string()).unwrap();
+    let env = BTreeMap::from([
+        ("HOME".into(), home.path().to_string_lossy().into_owned()),
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+    ]);
+    let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env.clone())
+        .await
+        .unwrap();
+    let session = SessionId::new("primary-policy").unwrap();
+    app.create_session(session.clone()).await.unwrap();
+    let mut events = app.subscribe();
+    for selected in [None, Some("build"), Some("review")] {
+        if let Some(id) = selected {
+            assert_eq!(
+                app.select_agent(id.into())
+                    .await
+                    .unwrap()
+                    .agent_id
+                    .as_deref(),
+                Some(id)
+            );
+        }
+        app.submit(session.clone(), "try tools".into())
+            .await
+            .unwrap();
+        loop {
+            match tokio::time::timeout(Duration::from_secs(10), events.recv())
+                .await
+                .unwrap()
+                .unwrap()
+            {
+                CoreEvent::TurnFinished { .. } => break,
+                CoreEvent::TurnFailed { error, .. } => panic!("turn failed: {error}"),
+                _ => {}
+            }
+        }
+    }
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+
+    // Restore a non-default selection, including when no spawnable catalog exists.
+    config["default_agent"] = "build".into();
+    config["agent"].as_object_mut().unwrap().remove("helper");
+    std::fs::write(&config_path, config.to_string()).unwrap();
+    let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env)
+        .await
+        .unwrap();
+    assert_eq!(
+        app.catalog().await.unwrap().agent_id.as_deref(),
+        Some("review")
+    );
+    let mut events = app.subscribe();
+    app.submit(session, "try restored tools".into())
+        .await
+        .unwrap();
+    loop {
+        match tokio::time::timeout(Duration::from_secs(10), events.recv())
+            .await
+            .unwrap()
+            .unwrap()
+        {
+            CoreEvent::TurnFinished { .. } => break,
+            CoreEvent::TurnFailed { error, .. } => panic!("restored turn failed: {error}"),
+            _ => {}
+        }
+    }
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+
+    assert!(
+        project.path().join("build-marker").exists(),
+        "startup review constraints stuck to central authority"
+    );
+    for denied in ["startup", "review", "child", "restored"] {
+        assert!(
+            !project.path().join(format!("{denied}-marker")).exists(),
+            "{denied} widened bash"
+        );
+    }
+    assert_eq!(
+        std::fs::read_to_string(project.path().join("mcp-calls")).unwrap(),
+        "called\n"
+    );
+    let captured = requests.lock().unwrap();
+    assert_eq!(captured.len(), 11);
+    for (index, prefix) in [
+        (1, "startup"),
+        (7, "child"),
+        (8, "review"),
+        (10, "restored"),
+    ] {
+        assert_eq!(
+            function_output(&captured[index], &format!("{prefix}-bash")),
+            Some("error: denied bash")
+        );
+        assert_eq!(
+            function_output(&captured[index], &format!("{prefix}-mcp")),
+            Some("error: denied fixture__query")
+        );
+    }
+    assert!(
+        function_output(&captured[4], "build-bash")
+            .unwrap()
+            .contains("exit 0")
+    );
+    assert!(
+        function_output(&captured[4], "build-mcp")
+            .unwrap()
+            .contains("MCP allowed")
+    );
+    assert!(
+        function_output(&captured[8], "spawn")
+            .unwrap()
+            .contains("done")
+    );
+    for (index, request) in captured.iter().enumerate() {
+        assert_eq!(
+            request.to_string().contains("PRIMARY_POLICY_GUIDANCE"),
+            matches!(index, 3 | 4),
+            "guidance in request {index}"
+        );
+    }
+    assert!(captured[6]["input"].to_string().contains("HELPER_CHILD"));
+    assert!(captured[9]["input"].to_string().contains("REVIEW_PRIMARY"));
+}
+
+#[tokio::test]
+async fn primary_workspace_policy_also_bounds_manual_compress() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("primary-compress").unwrap();
+    let start = harness
+        .db
+        .append_message("primary-compress", "user", &"input ".repeat(100))
+        .unwrap();
+    let end = harness
+        .db
+        .append_message("primary-compress", "assistant", &"output ".repeat(100))
+        .unwrap();
+    harness
+        .db
+        .append_message("primary-compress", "user", "next task")
+        .unwrap();
+    let args = serde_json::json!({"topic":"finished", "content":[{"startId":start,"endId":end,"summary":"done"}]});
+    let spec = ProtectedSpec {
+        protect_user_messages: false,
+        protect_tags: false,
+        ..ProtectedSpec::default()
+    };
+    let rules = oc_adapters::permissions::PermissionRules::from_config(
+        &serde_json::json!({"tools":{"compress":false}}),
+    )
+    .unwrap();
+    runtime
+        .publish_workspace(
+            None,
+            "",
+            Vec::new(),
+            BTreeMap::new(),
+            None,
+            Some("review".into()),
+            None,
+            BTreeMap::new(),
+            rules,
+        )
+        .unwrap();
+    assert_eq!(
+        runtime
+            .run_compress("primary-compress", &args, &spec)
+            .unwrap_err(),
+        oc_adapters::runtime::RuntimeError::PermissionDenied {
+            tool: "compress".into()
+        }
+    );
+    assert!(
+        harness
+            .db
+            .list_tool_ops("primary-compress")
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        harness
+            .db
+            .load_compression_blocks("primary-compress")
+            .unwrap()
+            .is_empty()
+    );
+    runtime
+        .publish_workspace(
+            None,
+            "",
+            Vec::new(),
+            BTreeMap::new(),
+            None,
+            Some("build".into()),
+            None,
+            BTreeMap::new(),
+            Default::default(),
+        )
+        .unwrap();
+    assert!(
+        runtime
+            .run_compress("primary-compress", &args, &spec)
+            .unwrap()
+            .shrank
+    );
+}
+
+#[tokio::test]
+async fn t47_unknown_limits_use_configured_caps_without_variant_overlay() {
+    for limit in [
+        serde_json::Value::Null,
+        serde_json::json!({"context": 16_384}),
+        serde_json::json!({"output": 128}),
+        serde_json::json!({"output": 100_000}),
+        serde_json::json!({"context": 0, "output": 0}),
+        serde_json::json!({"context": 16_384, "output": 0}),
+        serde_json::json!({"context": 0, "output": 128}),
+    ] {
+        let (mut harness, _) = make_harness(allow_all());
+        let entry = serde_json::json!({"limit": limit, "variants": {"low": {"reasoningEffort": "low"}, "custom": {"reasoningEffort": "deep"}}});
+        harness.catalog.models.insert("m".into(), entry.clone());
+        let mut generation = oc_adapters::config::assemble(&[oc_adapters::config::Source {
+            path: "test.json".into(), trusted: true,
+            text: serde_json::json!({"provider":{"test":{"options":{"apiKey":"test-key", "nativeFallbackLimits":{"context":16_384,"output":256}}}}}).to_string(),
+        }], &BTreeMap::new(), None).unwrap();
+        generation.permissions = allow_all();
+        let runtime = runtime_of(&harness, generation, Vec::new());
+        runtime.create_session("s").unwrap();
+        let (base, hits, requests) =
+            Fake::start_recording(vec![sse_delta("ok") + &sse_completed()], Duration::ZERO);
+        let mut turn = params("s", "hello", &harness, provider_of(&base), &NO_CANCEL);
+        turn.max_output = 0; // Application's absent-output path.
+        let report = runtime.run_turn(turn).await.unwrap();
+        assert_eq!(report.status, TurnStatus::Completed, "{report:?}");
+        assert_eq!(report.warnings.len(), 1);
+        assert!(report.warnings[0].contains("unknown"));
+        assert!(report.warnings[0].contains("native fallback caps (context=16384, output=256)"));
+        assert_eq!(harness.catalog.models["m"], entry);
+        let expected_output = limit
+            .get("output")
+            .and_then(serde_json::Value::as_u64)
+            .filter(|n| *n > 0)
+            .unwrap_or(256)
+            .min(256);
+        {
+            let requests = requests.lock().unwrap();
+            assert_eq!(requests.len(), 1);
+            assert_eq!(requests[0]["max_output_tokens"], expected_output);
+            assert!(requests[0].get("reasoning").is_none(), "{:?}", requests[0]);
+        }
+        let huge = "x".repeat(80_000);
+        let result = runtime
+            .run_turn(params("s", &huge, &harness, provider_of(&base), &NO_CANCEL))
+            .await;
+        assert!(result.unwrap_err().to_string().contains("exceeds context"));
+        assert_eq!(
+            *hits.lock().unwrap(),
+            1,
+            "over-budget request reached provider"
+        );
+        runtime.shutdown_mcp().await.unwrap();
+    }
+}
+
 fn dcp_nudge_count(request: &serde_json::Value) -> usize {
     request["input"]
         .to_string()
         .matches("exceeds soft limit")
         .count()
+}
+
+#[tokio::test]
+async fn t47_admission_counts_tool_schemas_and_rechecks_tool_results() {
+    for (context, expected_calls) in [(1_200, 0), (8_192, 1)] {
+        let (mut harness, mut generation) = make_harness(allow_all());
+        harness
+            .catalog
+            .models
+            .insert("m".into(), serde_json::json!({}));
+        generation.providers.insert(
+            "test".into(),
+            serde_json::from_value(serde_json::json!({
+                "options":{"nativeFallbackLimits":{"context":context,"output":64}}
+            }))
+            .unwrap(),
+        );
+        let large = harness._project.path().join("large.txt");
+        std::fs::write(
+            &large,
+            "large fact with retained original detail\n".repeat(4_000),
+        )
+        .unwrap();
+        let runtime = runtime_with_dcp(
+            &harness,
+            generation,
+            Vec::new(),
+            DcpConfig {
+                enabled: false,
+                ..DcpConfig::default()
+            },
+        );
+        runtime.create_session("s").unwrap();
+        let script = sse_tool_call(
+            "read-large",
+            "read",
+            &serde_json::json!({"path":"large.txt", "limit":4_000}),
+        ) + &sse_completed();
+        let (base, hits, _) = Fake::start_recording(vec![script], Duration::ZERO);
+        let report = runtime
+            .run_turn(params(
+                "s",
+                "read",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(report.status, TurnStatus::Failed, "{report:?}");
+        assert!(
+            report
+                .diagnostic
+                .as_deref()
+                .unwrap()
+                .contains("exceeds context")
+        );
+        assert_eq!(report.rounds, expected_calls);
+        assert_eq!(*hits.lock().unwrap(), expected_calls as usize);
+        assert_eq!(report.warnings.len(), 1);
+        if expected_calls > 0 {
+            let operations = harness.db.list_tool_ops("s").unwrap();
+            assert_eq!(operations.len(), 1);
+            assert_eq!(operations[0].state, "completed");
+            assert!(
+                operations[0]
+                    .output
+                    .as_deref()
+                    .unwrap()
+                    .contains("large fact")
+            );
+            assert!(
+                operations[0].output_bytes > 32_768,
+                "oversized result must stay durable"
+            );
+        }
+        runtime.shutdown_mcp().await.unwrap();
+    }
 }
 
 fn function_call<'a>(
@@ -1158,6 +1709,7 @@ for line in sys.stdin:
             providers: BTreeMap::new(),
             mcp: BTreeMap::new(),
             permissions: allow_all(),
+            permission_rules: Default::default(),
             provenance: BTreeMap::new(),
             warnings: Vec::new(),
         })
@@ -1193,6 +1745,185 @@ for line in sys.stdin:
             .count(),
         1,
         "disabled generation respawned the server"
+    );
+    runtime.shutdown_mcp().await.unwrap();
+}
+
+#[tokio::test]
+async fn backend_parity_mcp_projection_permissions_history_and_error_canaries() {
+    let (harness, mut generation) = make_harness(allow_all());
+    let script = harness._project.path().join("parity.py");
+    std::fs::write(&script, r#"import json, sys
+server = sys.argv[1]
+for line in sys.stdin:
+    r=json.loads(line); method=r.get('method'); result=None
+    if method == 'initialize':
+        result={'protocolVersion':'2025-11-25','capabilities':{'tools':{}},'serverInfo':{'name':'fixture','version':'1'},'instructions':'GUIDANCE_'+server.upper()+' use query; PROVIDER-CANARY HEADER-CANARY'}
+    elif method == 'tools/list':
+        if server == 'broken':
+            print(json.dumps({'jsonrpc':'2.0','id':r['id'],'error':{'code':-32603,'message':'UNKNOWN-CANARY'}}),flush=True)
+            continue
+        result={'tools':[] if server == 'empty' else [{'name':'query','inputSchema':{'type':'object','properties':{'fail':{'type':'boolean'}}}}]}
+    elif method == 'tools/call':
+        if r['params']['arguments'].get('fail'):
+            result={'isError':True,'structuredContent':{'error':{'code':'INVALID_ARGUMENTS'}},'content':[{'type':'text','text':'invalid argument: missing parameter query; UNKNOWN-CANARY PROVIDER-CANARY HEADER-CANARY'}]}
+        else:
+            result={'content':[{'type':'text','text':'Useful explanation '+sys.argv[2]},{'type':'resource','resource':{'uri':'file:///fixture','text':'Embedded content'}}],'structuredContent':{'answer':42,'echo':'PROVIDER-CANARY HEADER-CANARY','argvEcho':sys.argv[2],'token':'UNKNOWN-CANARY'}}
+    if result is not None:
+        print(json.dumps({'jsonrpc':'2.0','id':r['id'],'result':result}),flush=True)
+"#).unwrap();
+    for (server, permission) in [
+        ("good", Permission::Allow),
+        ("denied", Permission::Deny),
+        ("ask", Permission::Ask),
+        ("empty", Permission::Allow),
+        ("broken", Permission::Allow),
+        ("disabled", Permission::Allow),
+        ("unlisted", Permission::Deny),
+    ] {
+        generation.mcp.insert(
+            server.into(),
+            McpEntry {
+                kind: "local".into(),
+                enabled: server != "disabled",
+                command: vec![
+                    "/usr/bin/python3".into(),
+                    script.to_string_lossy().into_owned(),
+                    server.into(),
+                    "CONFIG-CANARY".into(),
+                ],
+                headers: BTreeMap::from([("x-fixture".into(), "HEADER-CANARY".into())]),
+                timeout: Some(2_000),
+                ..McpEntry::default()
+            },
+        );
+        if server != "unlisted" {
+            generation
+                .permissions
+                .insert(format!("{server}__query"), permission);
+        }
+    }
+    generation.providers.insert(
+        "test".into(),
+        oc_adapters::config::ProviderEntry {
+            npm: None,
+            name: None,
+            models: BTreeMap::new(),
+            options: oc_adapters::config::ProviderOptions {
+                api_key: "PROVIDER-CANARY".into(),
+                ..Default::default()
+            },
+        },
+    );
+    let runtime = runtime_of(&harness, generation.clone(), Vec::new());
+    runtime.create_session("s").unwrap();
+    let (base, _, requests) = Fake::start_recording(
+        vec![
+            sse_tool_call("data", "good__query", &serde_json::json!({}))
+                + &sse_tool_call("failed", "good__query", &serde_json::json!({"fail":true}))
+                + &sse_completed(),
+            sse_delta("done") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "s",
+            "first",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(report.calls.len(), 2);
+    assert_eq!(report.calls[0].state, "completed");
+    assert_eq!(report.calls[1].state, "failed");
+    assert!(
+        report.calls[1]
+            .output
+            .contains("invalid arguments; check the tool schema")
+    );
+    assert_eq!(
+        report.warnings,
+        ["mcp broken tools-list: transport (retryable=true)"]
+    );
+    let captured = requests.lock().unwrap().clone();
+    assert_eq!(captured.len(), 2);
+    for request in &captured {
+        let wire = request.to_string();
+        assert_eq!(wire.matches("GUIDANCE_GOOD").count(), 1);
+        for absent in [
+            "GUIDANCE_DENIED",
+            "GUIDANCE_ASK",
+            "GUIDANCE_EMPTY",
+            "GUIDANCE_BROKEN",
+            "GUIDANCE_DISABLED",
+            "GUIDANCE_UNLISTED",
+            "PROVIDER-CANARY",
+            "HEADER-CANARY",
+            "UNKNOWN-CANARY",
+            "CONFIG-CANARY",
+        ] {
+            assert!(!wire.contains(absent), "leaked {absent}");
+        }
+    }
+    let outputs: Vec<&serde_json::Value> = captured[1]["input"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|item| item["type"] == "function_call_output")
+        .collect();
+    assert_eq!(outputs.len(), 2);
+    let data = outputs[0]["output"].as_str().unwrap();
+    assert!(data.contains("Useful explanation"));
+    assert!(data.contains("Embedded content"));
+    assert!(data.contains("\"answer\":42"));
+    assert!(data.contains("[redacted]"));
+    let original = harness.db.read_history_full("s").unwrap();
+    let stored = format!(
+        "{original:?} {:?}",
+        harness.db.turn_result(&report.turn_id).unwrap()
+    );
+    assert!(
+        !stored.contains("GUIDANCE_"),
+        "instructions must not enter durable history"
+    );
+    assert!(!stored.contains("CANARY"));
+
+    // Resource-specific authority cannot inherit the scalar compatibility allow
+    // when projecting whole-server guidance into a turn.
+    generation.permission_rules = oc_adapters::permissions::PermissionRules::from_config(
+        &serde_json::json!({"permission":{"good__query":{"*":"deny","special":"allow"}}}),
+    )
+    .unwrap();
+    runtime.reload(generation).await.unwrap();
+    let report = runtime
+        .run_turn(params(
+            "s",
+            "second",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert!(
+        !requests
+            .lock()
+            .unwrap()
+            .last()
+            .unwrap()
+            .to_string()
+            .contains("GUIDANCE_")
+    );
+    let after = harness.db.read_history_full("s").unwrap();
+    assert_eq!(
+        &after[..original.len()],
+        original.as_slice(),
+        "projection must not rewrite history"
     );
     runtime.shutdown_mcp().await.unwrap();
 }
@@ -1649,6 +2380,7 @@ async fn reload_applies_new_policy_and_guards_active_turn() {
             permissions: [("read".to_string(), Permission::Allow)]
                 .into_iter()
                 .collect(),
+            permission_rules: Default::default(),
             provenance: BTreeMap::new(),
             warnings: Vec::new(),
         })
@@ -1680,6 +2412,7 @@ async fn reload_applies_new_policy_and_guards_active_turn() {
                     providers: BTreeMap::new(),
                     mcp: BTreeMap::new(),
                     permissions: BTreeMap::new(),
+                    permission_rules: Default::default(),
                     provenance: BTreeMap::new(),
                     warnings: Vec::new(),
                 })

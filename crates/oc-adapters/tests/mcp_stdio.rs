@@ -128,8 +128,14 @@ async fn launch_list_call_with_exact_argv_and_minimal_env() {
         .call_tool("env", serde_json::json!({}), &cancel)
         .await
         .expect("env dump");
-    assert!(dump.contains("PATH=/usr/bin:/bin"), "working PATH retained");
-    assert!(dump.contains("HOME=/tmp"), "working HOME retained");
+    assert!(
+        dump.contains("PATH=[redacted]"),
+        "working PATH value withheld"
+    );
+    assert!(
+        dump.contains("HOME=[redacted]"),
+        "working HOME value withheld"
+    );
     for banned in [
         "OC_T21_POISON=poison-value",
         "LUDKA2_API_KEY=",
@@ -152,8 +158,11 @@ async fn launch_list_call_with_exact_argv_and_minimal_env() {
         .call_tool("args", serde_json::json!({}), &cancel)
         .await
         .expect("args echo");
-    assert!(echoed.contains("--flag=kept"), "argv tail kept: {echoed}");
-    assert!(echoed.contains("two words"), "no shell split: {echoed}");
+    assert_eq!(
+        echoed.lines().collect::<Vec<_>>(),
+        ["[redacted]", "[redacted]"],
+        "two intact argv entries echoed and redacted; no shell split"
+    );
 
     let error = client
         .call_tool("boom", serde_json::json!({}), &cancel)
@@ -658,7 +667,7 @@ while IFS= read -r line; do
     [ -z "$id" ] && id=null
     case "$method" in
         initialize)
-            result='{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"result-fixture","version":"test"}}'
+            result='{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"result-fixture","version":"test"},"instructions":"Use exact queries; ENV-CANARY CONFIG-CANARY"}'
             ;;
         notifications/initialized)
             continue
@@ -672,6 +681,10 @@ while IFS= read -r line; do
                 text) result='{"content":[{"type":"text","text":"ok"}],"isError":false}' ;;
                 image) result='{"content":[{"type":"image","data":"aGVsbG8=","mimeType":"image/png"}],"isError":false}' ;;
                 structured) result='{"content":[{"type":"text","text":"hidden"}],"structuredContent":{"value":1},"isError":false}' ;;
+                structured-only) result='{"content":[],"structuredContent":{"value":42,"echo":"ENV-CANARY","argvEcho":"CONFIG-CANARY","password":"UNKNOWN-CANARY"}}' ;;
+                text-canary) result='{"content":[{"type":"text","text":"Useful text CONFIG-CANARY ENV-CANARY"}]}' ;;
+                resource) result='{"content":[{"type":"resource","resource":{"uri":"file:///fixture","text":"Embedded content"}}]}' ;;
+                useful-error) result='{"content":[{"type":"text","text":"invalid parameter ENV-CANARY CONFIG-CANARY UNKNOWN-CANARY"}],"structuredContent":{"code":"RATE_LIMITED"},"isError":true}' ;;
                 empty) result='{"content":[{"type":"text","text":""}],"isError":false}' ;;
                 failed) result='{"content":[{"type":"text","text":"nope"}],"isError":true}' ;;
                 disconnect) exit 0 ;;
@@ -716,7 +729,14 @@ async fn tool_results_and_arguments_have_distinct_typed_failures() {
             .await,
         Err(StdioError::ToolFailed)
     );
-    for tool in ["image", "structured"] {
+    assert_eq!(
+        client
+            .call_tool("structured", serde_json::json!({}), &cancel)
+            .await
+            .unwrap(),
+        "hidden\n{\"structuredContent\":{\"value\":1}}"
+    );
+    for tool in ["image"] {
         assert_eq!(
             client.call_tool(tool, serde_json::json!({}), &cancel).await,
             Err(StdioError::UnsupportedModality)
@@ -735,6 +755,52 @@ async fn tool_results_and_arguments_have_distinct_typed_failures() {
         Err(StdioError::Transport)
     );
     let _ = client.shutdown().await;
+}
+
+#[tokio::test]
+async fn backend_parity_stdio_data_instructions_and_redacted_errors() {
+    use oc_adapters::mcp_result::FailureDetail;
+    let temp = tempfile::tempdir().unwrap();
+    let server = temp.path().join("parity-mcp");
+    write_result_server(&server);
+    let mut config = local_config(&server, &[], Duration::from_secs(2));
+    config.argv.push("CONFIG-CANARY".into());
+    config.secrets.push("ENV-CANARY".into());
+    let client = StdioClient::launch(&config).await.unwrap();
+    let cancel = AtomicBool::new(false);
+    assert_eq!(
+        client.instructions(),
+        Some("Use exact queries; [redacted] [redacted]")
+    );
+    let output = client
+        .call_tool("structured-only", serde_json::json!({}), &cancel)
+        .await
+        .unwrap();
+    let output: serde_json::Value = serde_json::from_str(&output).unwrap();
+    assert_eq!(output["structuredContent"]["value"], 42);
+    assert_eq!(output["structuredContent"]["echo"], "[redacted]");
+    assert_eq!(output["structuredContent"]["argvEcho"], "[redacted]");
+    assert_eq!(output["structuredContent"]["password"], "[redacted]");
+    let text = client
+        .call_tool("text-canary", serde_json::json!({}), &cancel)
+        .await
+        .unwrap();
+    assert_eq!(text, "Useful text [redacted] [redacted]");
+    let resource = client
+        .call_tool("resource", serde_json::json!({}), &cancel)
+        .await
+        .unwrap();
+    assert!(resource.contains("Embedded content"));
+    let error = client
+        .call_tool("useful-error", serde_json::json!({}), &cancel)
+        .await
+        .unwrap_err();
+    assert_eq!(
+        error,
+        StdioError::ToolFailedDetail(FailureDetail::RateLimited)
+    );
+    assert!(!format!("{error} {error:?}").contains("CANARY"));
+    client.shutdown().await.unwrap();
 }
 
 /// Explicitly selected real smoke (MCP05): only runs when `MCP_SMOKE_ARGV`

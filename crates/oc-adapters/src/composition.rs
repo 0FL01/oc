@@ -433,24 +433,12 @@ pub(crate) async fn load_with_env(
     let selected_providers = HashSet::from([provider_id.to_string()]);
     let mut generation = config::assemble(&sources, &parent_env, Some(&selected_providers))
         .map_err(|e| e.to_string())?;
-    if let Some(agent) = &selected_agent {
-        for (tool, level) in &agent.permissions {
-            generation
-                .permissions
-                .entry(tool.clone())
-                .and_modify(|current| {
-                    if permission_rank(*level) > permission_rank(*current) {
-                        *current = *level;
-                    }
-                })
-                .or_insert(*level);
-            generation.provenance.insert(
-                format!("permissions.{tool}"),
-                format!("agent.{}@{}", agent.id, agent.origin),
-            );
-        }
-    }
+    // Keep central authority independent of the startup primary selection.
+    // The effective primary's constraints are snapshotted with its workspace.
     if let Some(level) = dcp_config.compress_permission {
+        generation
+            .permission_rules
+            .module_permission("compress", level);
         generation
             .permissions
             .entry("compress".to_string())

@@ -86,6 +86,9 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Material Decisions
 
+- 2026-09-22: D13 in `docs/DECISIONS.md` supersedes only C3's historical fatal-MCP-attach clause; cancellation/cleanup/caps and all security invariants remain. D15 and `evidence/T43/backend-permissions.md` restore ordered resource semantics, including selected primary and child narrowing.
+- 2026-09-22: T43 owns R1/R2 + foreground slices 1–4 and permission/config prerequisites. T45 owns remaining R3 slices 5–8, built-in agents and outstanding typed metadata semantics. T45 no longer depends on T43 being marked done: foreground code already landed in `7895f43`; no circular completion requirement. Full R3 remains pending, not waived. Current backend work does not modify T44 or claim TUI closure.
+
 - 2026-09-21: Limits interpretation — remove the artificial caps that caused owner-visible warnings; keep a single 4 MiB total guard as a documented resource safety net (narrowest safe reading of "убрать лимиты"). If the owner rejects even that, remove it.
 - 2026-09-21: `mode: subagent`/`all` definitions must load now (no diagnostic) even before execution lands, because the owner config uses them and requested "не блокировать".
 

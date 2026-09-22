@@ -38,6 +38,17 @@ upstream v2.0.12: сервер получает статус failed с сани�
 
 ## Constraints
 
+### Backend follow-up (2026-09-22)
+
+R1–R3 code is delivered in `3ce5e03`/`b7ab06d`; historical report is not a new
+full-live PASS. Current additive evidence: `evidence/T46/backend-parity.md`.
+Required backend repair adds structured JSON/textual resource/link tool results,
+safe fixed error categories, and bounded permission-filtered initialize guidance
+in provider projection only. Existing fatal lifecycle/caps and redaction hold.
+R4 remains pending until full bounded owner-live evidence. Media tool outputs,
+MCP prompts/resource catalogs remain explicit open parity work, not silently
+excluded by the older non-goals list. This follow-up does not change T44 surfaces.
+
 - C1: остаются фатальными: `Cancelled`, ошибки cleanup/`McpShutdown`, `MAX_MCP_SERVERS` и generation-капы каталога; AUD23 reaping ранее подключённых серверов сохраняется.
 - C2: диагностика санитизирована: только server id, stage и safe code; никаких URL, заголовков и значений.
 - C3: изменение прежней политики (fatal attach) фиксируется записью D13; тесты переписываются как осознанное изменение контракта, а не ради зелени.

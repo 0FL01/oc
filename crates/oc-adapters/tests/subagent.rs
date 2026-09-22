@@ -253,6 +253,7 @@ fn make_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generati
         providers: BTreeMap::new(),
         mcp: BTreeMap::new(),
         permissions,
+        permission_rules: Default::default(),
         provenance: BTreeMap::new(),
         warnings: Vec::new(),
     };
@@ -328,6 +329,92 @@ fn params<'c>(
 
 static NO_CANCEL: AtomicBool = AtomicBool::new(false);
 
+#[tokio::test]
+async fn nested_resource_constraints_and_filtered_catalog_remain_inherited() {
+    let (harness, mut generation) = make_harness(allow_all());
+    generation.permission_rules =
+        oc_adapters::permissions::PermissionRules::from_config(&serde_json::json!({
+            "permission":{"*":"allow", "subagent":{"*":"allow", "blocked":"deny"}}
+        }))
+        .unwrap();
+    let runtime = runtime_of(&harness, generation);
+    let mut restricted = agent("restricted", false, None);
+    restricted.permission_rules =
+        oc_adapters::permissions::PermissionRules::from_config(&serde_json::json!({
+            "permission":{"bash":{"*":"deny", "/bin/echo hi":"allow"}}
+        }))
+        .unwrap();
+    let mut free = agent("free", false, None);
+    free.permission_rules = oc_adapters::permissions::PermissionRules::from_config(
+        &serde_json::json!({"permission":"allow"}),
+    )
+    .unwrap();
+    let mut hidden = agent("hidden", false, None);
+    hidden.hidden = true;
+    runtime
+        .publish_subagents(Some(catalog(
+            3,
+            vec![restricted, free, hidden, agent("blocked", false, None)],
+        )))
+        .unwrap();
+    runtime.create_session("parent").unwrap();
+    let (base, requests) = Fake::start(vec![
+        subagent_call(
+            "parent-child",
+            serde_json::json!({"agent":"restricted", "description":"Child", "prompt":"child"}),
+        ) + &sse_completed(),
+        subagent_call(
+            "child-grandchild",
+            serde_json::json!({"agent":"free", "description":"Grandchild", "prompt":"grandchild"}),
+        ) + &sse_completed(),
+        sse_tool_call(
+            "grandchild-ok",
+            "bash",
+            &serde_json::json!({"argv":["/bin/echo","hi"]}),
+        ) + &sse_tool_call(
+            "grandchild-no",
+            "bash",
+            &serde_json::json!({"argv":["/bin/touch","marker"]}),
+        ) + &sse_completed(),
+        sse_delta("grandchild done") + &sse_completed(),
+        sse_delta("child done") + &sse_completed(),
+        sse_delta("parent done") + &sse_completed(),
+    ]);
+    let report = runtime
+        .run_turn(params(
+            "parent",
+            "spawn",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert!(!harness._project.path().join("marker").exists());
+    let captured = child_requests(&requests);
+    assert!(
+        function_output(&captured[3], "grandchild-ok")
+            .unwrap()
+            .contains("hi")
+    );
+    assert_eq!(
+        function_output(&captured[3], "grandchild-no"),
+        Some("error: denied bash")
+    );
+    let tools = captured[0]["tools"].as_array().unwrap();
+    let description = tools
+        .iter()
+        .find(|tool| tool["name"] == "subagent")
+        .unwrap()["description"]
+        .as_str()
+        .unwrap();
+    assert!(description.contains("- restricted:"));
+    assert!(description.contains("- free:"));
+    assert!(!description.contains("- hidden:"));
+    assert!(!description.contains("- blocked:"));
+}
+
 fn agent(id: &str, primary: bool, model: Option<&str>) -> SubagentAgent {
     SubagentAgent {
         id: id.to_string(),
@@ -337,6 +424,8 @@ fn agent(id: &str, primary: bool, model: Option<&str>) -> SubagentAgent {
         variant: None,
         prompt: format!("You are {id}."),
         permissions: BTreeMap::new(),
+        permission_rules: Default::default(),
+        hidden: false,
         digest: Some(format!("{id}-digest")),
     }
 }
@@ -375,6 +464,57 @@ fn turn_status(db: &Db, session: &str) -> String {
 
 fn messages(db: &Db, session: &str) -> Vec<(String, String)> {
     db.read_history(session).expect("history")
+}
+
+#[tokio::test]
+async fn t47_child_unknown_limits_keep_fallback_warning_in_tool_result() {
+    let (mut harness, generation) = make_harness(allow_all());
+    harness.catalog.models.insert(
+        "agent-model".into(),
+        serde_json::json!({
+            "variants":{"low":{"reasoningEffort":"low"}}
+        }),
+    );
+    let runtime = runtime_of(&harness, generation);
+    runtime
+        .publish_subagents(Some(catalog(
+            1,
+            vec![agent("helper", false, Some("test/agent-model"))],
+        )))
+        .unwrap();
+    runtime.create_session("parent").unwrap();
+    let (base, requests) = Fake::start(vec![
+        subagent_call(
+            "call-sub",
+            serde_json::json!({"agent":"helper", "description":"Check", "prompt":"check"}),
+        ) + &sse_completed(),
+        sse_delta("child answer") + &sse_completed(),
+        sse_delta("parent final") + &sse_completed(),
+    ]);
+    let report = runtime
+        .run_turn(params(
+            "parent",
+            "work",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    let captured = child_requests(&requests);
+    assert_eq!(captured.len(), 3);
+    assert_eq!(captured[1]["model"], "agent-model");
+    assert_eq!(captured[1]["max_output_tokens"], 4096);
+    assert!(captured[1].get("reasoning").is_none());
+    let output = function_output(&captured[2], "call-sub").unwrap();
+    assert!(output.contains("native fallback caps (context=32768, output=4096)"));
+    assert!(output.contains("child answer"));
+    assert!(
+        report.calls[0]
+            .output
+            .contains("unknown context and output limits")
+    );
 }
 
 #[tokio::test]

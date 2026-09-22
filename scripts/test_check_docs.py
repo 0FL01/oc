@@ -12,7 +12,14 @@ class DocumentationTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name) / "kit"
-        shutil.copytree(ROOT, self.root, ignore=shutil.ignore_patterns("__pycache__", ".lock"))
+        # Copy documentation inputs, never build trees or local credential/config
+        # directories. Production validation reads exactly these repo surfaces.
+        self.root.mkdir()
+        for name in ("planning", "progress", "examples", "prompts", "docs", "roadmap", "audit", "references", "evidence"):
+            shutil.copytree(ROOT / name, self.root / name,
+                            ignore=shutil.ignore_patterns("__pycache__", ".lock", "tui"))
+        for name in ("GOAL.md", "README.md", "AGENTS.md", "OPENCODE_RUST_MASTER_PLAN.md"):
+            shutil.copyfile(ROOT / name, self.root / name)
 
     def tearDown(self):
         self.temp.cleanup()
@@ -38,7 +45,7 @@ class DocumentationTests(unittest.TestCase):
     def test_unassigned_scenario_rejected(self):
         acceptance_path = self.root / "planning/acceptance.json"
         acceptance = json.loads(acceptance_path.read_text())
-        acceptance["tests"][-1]["id"] = "EXTRA01"
+        acceptance["tests"].append({"id": "EXTRA01", "title": "Unassigned", "expected": "Must have an owner"})
         acceptance_path.write_text(json.dumps(acceptance))
         tasks_path = self.root / "planning/tasks.json"
         tasks = json.loads(tasks_path.read_text())
@@ -54,6 +61,38 @@ class DocumentationTests(unittest.TestCase):
         data["tasks"][1]["tests"].append("ENV01")
         path.write_text(json.dumps(data))
         with self.assertRaisesRegex(AssertionError, "one owner"):
+            validate(self.root)
+
+    def test_shared_goal_gate_references_are_not_detailed_owners(self):
+        path = self.root / "planning/tasks.json"
+        data = json.loads(path.read_text())
+        for task in data["tasks"][:2]:
+            task["tests"].append("A13")
+        path.write_text(json.dumps(data))
+        validate(self.root)
+
+    def test_unknown_goal_gate_is_rejected(self):
+        path = self.root / "planning/tasks.json"
+        data = json.loads(path.read_text())
+        data["tasks"][0]["tests"].append("A14")
+        path.write_text(json.dumps(data))
+        with self.assertRaisesRegex(AssertionError, "Unknown test"):
+            validate(self.root)
+
+    def test_goal_gate_cannot_shadow_a_detailed_test(self):
+        path = self.root / "planning/acceptance.json"
+        data = json.loads(path.read_text())
+        data["tests"].append({"id": "A02", "title": "Shadow", "expected": "Invalid namespace"})
+        path.write_text(json.dumps(data))
+        with self.assertRaisesRegex(AssertionError, "shadow GOAL"):
+            validate(self.root)
+
+    def test_duplicate_reference_is_rejected(self):
+        path = self.root / "planning/tasks.json"
+        data = json.loads(path.read_text())
+        data["tasks"][0]["tests"].append(data["tasks"][0]["tests"][0])
+        path.write_text(json.dumps(data))
+        with self.assertRaisesRegex(AssertionError, "Duplicate test reference"):
             validate(self.root)
 
     def test_generic_objective_has_no_codex_size_cap(self):

@@ -85,7 +85,7 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 ## Current Checkpoint
 
 - Closes: no visual gate yet.
-- Smallest next action: V04 real modal Dialog/Select, command capability registry and actual model selection; preserve responsive pending submission.
+- Smallest next action: finish V04 review gaps: separate variant selector, registry-driven aliases/availability and genuine new-session action, then remaining dialog behavior; preserve responsive pending submission.
 - Expected evidence: capture lock, independent original frames, commands/exit codes and raw input/application effects; exact checkpoint after each slice.
 - Stop or replan if: reference/profile unavailable → BLOCKED_REFERENCE, never closest-rendering parity. Independent fixes remain executable.
 
@@ -94,10 +94,11 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 - Resolved: source/theme/component groundwork landed through `d232baa`; historical reports remain unchanged.
 - Last relevant evidence: V00 real diagnostic paired captures in `evidence/tui/recovery-v00` (all comparisons unequal); V01 raw PTY stalled MCP prompt and manual compression cancellation/retry plus safe diagnostics in `evidence/tui/recovery-v01/report.md`. These do not qualify VIS01–VIS24.
 - Blocker: no external blocker asserted. Exact capture freeze and missing backend capability mapping remain open; in-flight MCP tool-call cancellation is a known V07/S08 gap.
-- Next: V04 then remaining ordered slices; R3/R4 remain unverified until fixes and paired frames. V03 actual viewport/sidebar/conditional devtools and safe startup error routes implemented, paired geometry and parent PTY passed; whole-frame comparisons remain unequal. Final workspace/live qualification pending. V02 title generation uses a real ancillary provider request. Explicit native autoaccept Unsupported mapping is recorded in `evidence/tui/recovery-v02/auto-capability.md` and blocks that behavioral parity, not data plumbing.
+- Next: V04 review corrections then remaining ordered slices; R3/R4 remain unverified until fixes and paired frames. V04 functional modals delivered at `15719e9`; backend integration now passes fresh workspace (488/0/5), see `evidence/tui/recovery-v04/integration-checkpoint.md`. User reports positive live visual inspection, not a waiver of paired gates. Explicit native autoaccept Unsupported mapping remains in `evidence/tui/recovery-v02/auto-capability.md`; missing backend capabilities are not declared working.
 
 ## Material Decisions
 
+- 2026-09-22 resume: incorporate other-agent D13–D15/backend delivery per owner instruction. D13 visible per-server MCP degradation supersedes the earlier fatal attach rule (not cancellation/cleanup/caps). D14 absent variant means no overlay and unknown limits remain metadata-unknown with bounded native request policy. Resource-aware permissions only narrow. Keep historical V01/V04 reports as executed; current tests follow the newer contract. T44 is still the sole active journal task; other task scope is not marked done by integration.
 - 2026-09-22 (supersedes the 2026-09-21 source-derived-golden interpretation): pixel-perfect requires the running pinned upstream and Rust under identical fixture/state/profile, exact symbols/styles/colors/cursor/geometry and interaction, paired PNG and styled-cell dumps, comparator and independent review. Own TestBackend expected values cannot establish external parity. Bun/Node are allowed only for the isolated reference. Missing runnable reference/profile means BLOCKED_REFERENCE, not verified R3/R4/R5. Preserve failed/ignored/blocked attempts and rerun full qualification on the final code SHA. TUI_IMPLEMENTED_UNVERIFIED and TUI_PARITY_VERIFIED are reporting labels, not runtime enums; neither overrides product READY gates.
 
 ## Checkpoint History
@@ -108,6 +109,7 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 - 2026-09-22: V00 committed/pushed `679e683`; V01 reproduced both submit/compress freezes, added shared nonblocking receipts and owned MCP attach cleanup. Independent parent PTY verification: 5 passed, fmt/diff checks exit 0. See V01 report and checkpoint; no visual gate closed.
 - 2026-09-22: V01 delivered `4c1a0bc`; V02 safe durable projections/title/model/usage and live/replay parts implemented. Parent actual binary recovery test passed twice including final agent-switch correction; full implementation workspace 436 passed/4 existing live ignores. Exact limitations/attempts in V02 report, no parity claim.
 - 2026-09-22: V02 delivered `a4bb361`; V03 actual measured viewport, sidebar, dynamic prompt and conditional devtools implemented. Review fixed safe startup/query routes, clamped Down scrolling and channel defaults. Parent binary PTY test/fmt/diff exit 0; implementation workspace 443 passed/4 existing live ignores. Paired attempts 16–20 retain actual scroll/cursor/child/vertical evidence; all whole-frame parity remains open.
+- 2026-09-22: resumed at `15719e9` (V04 committed during pause). Preserved backend T47/T43/T46/T27 work; reproduced and corrected three explicit-variant fixture expectations, strengthened raw PTY default-versus-named-none wire/durability check. Fresh workspace 488 passed/0 failed/5 existing ignores, fmt/clippy/build/docs/journal/Python gates passed. Independent V04 review recorded further in-scope dialog gaps; no VIS closure.
 
 ## Completion
 

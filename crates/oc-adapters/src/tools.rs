@@ -81,6 +81,12 @@ pub enum ToolError {
         /// Tool name.
         tool: String,
     },
+    /// Ask is not an allow; this runtime has no interactive approval channel.
+    #[error("denied {tool}: approval required (no approval channel)")]
+    ApprovalRequired {
+        /// Tool name.
+        tool: String,
+    },
     /// Tool ran and failed visibly.
     #[error("tool {tool} failed: {reason}")]
     Failed {
@@ -109,6 +115,79 @@ pub enum BatchError {
 pub trait ToolPolicy: Sync {
     /// Authorize a tool invocation or deny it.
     fn check(&self, tool: &str) -> Result<(), ToolError>;
+    /// Authorize the actual tool resource, rather than just its action name.
+    fn check_resource(&self, tool: &str, _resource: &str) -> Result<(), ToolError> {
+        self.check(tool)
+    }
+    /// Every resource must pass before any invocation side effect.
+    fn check_call(&self, call: &ToolCall) -> Result<(), ToolError> {
+        for resource in permission_resources(call)? {
+            self.check_resource(&call.name, &resource)?;
+        }
+        Ok(())
+    }
+}
+
+/// v2.0.12 resource semantics, adapted to the native argv-only shell API.
+fn permission_resources(call: &ToolCall) -> Result<Vec<String>, ToolError> {
+    let invalid = || ToolError::InvalidArgs {
+        tool: call.name.clone(),
+        reason: "missing permission resource".into(),
+    };
+    let string = |key| {
+        call.arguments
+            .get(key)
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string)
+            .ok_or_else(|| ToolError::InvalidArgs {
+                tool: call.name.clone(),
+                reason: format!("missing {key}"),
+            })
+    };
+    Ok(match call.name.as_str() {
+        "read" => vec![string("path")?],
+        "glob" | "grep" => vec![string("pattern")?],
+        "webfetch" => vec![string("url")?],
+        "skill" => vec![string("id")?],
+        "subagent" => vec![string("agent")?],
+        "apply_patch" => {
+            crate::patch::affected_paths(&string("patchText")?).map_err(|_| invalid())?
+        }
+        "bash" => {
+            let argv = call
+                .arguments
+                .get("argv")
+                .and_then(serde_json::Value::as_array)
+                .ok_or_else(invalid)?;
+            if argv.is_empty() {
+                return Err(invalid());
+            }
+            let args = argv
+                .iter()
+                .map(|arg| arg.as_str().ok_or_else(invalid))
+                .collect::<Result<Vec<_>, _>>()?;
+            // Preserve argument boundaries. A shell -c payload is quoted as one
+            // argument, not mistaken for an independently allowed bare command.
+            vec![
+                args.iter()
+                    .map(|arg| {
+                        if !arg.is_empty()
+                            && arg
+                                .chars()
+                                .all(|c| c.is_ascii_alphanumeric() || "_./-=:,@%+".contains(c))
+                        {
+                            (*arg).to_string()
+                        } else {
+                            format!("'{}'", arg.replace('\'', "'\\''"))
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" "),
+            ]
+        }
+        // MCP uses the namespaced action with literal wildcard resource.
+        _ => vec!["*".into()],
+    })
 }
 
 /// Allow-everything policy (tests).
@@ -427,10 +506,12 @@ pub struct ToolRoots {
 struct PolicyBridge<'a>(&'a dyn ToolPolicy);
 
 impl WritePolicy for PolicyBridge<'_> {
-    fn check(&self, _path: &str) -> Result<(), PatchError> {
-        self.0.check("apply_patch").map_err(|_| PatchError::Denied {
-            path: "apply_patch".to_string(),
-        })
+    fn check(&self, path: &str) -> Result<(), PatchError> {
+        self.0
+            .check_resource("apply_patch", path)
+            .map_err(|_| PatchError::Denied {
+                path: path.to_string(),
+            })
     }
 }
 
@@ -475,7 +556,7 @@ pub async fn execute_batch(
 }
 
 async fn execute_call(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
-    if let Err(e) = ctx.policy.check(&call.name) {
+    if let Err(e) = ctx.policy.check_call(call) {
         return format!("error: {e}");
     }
     match call.name.as_str() {
@@ -912,7 +993,7 @@ fn tool_skill(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
     if id.is_empty() {
         return "error: invalid arguments for skill: missing id".to_string();
     }
-    if let Err(e) = ctx.policy.check("skill") {
+    if let Err(e) = ctx.policy.check_call(call) {
         return format!("error: {e}");
     }
     match ctx.snapshot.entries.get(id) {

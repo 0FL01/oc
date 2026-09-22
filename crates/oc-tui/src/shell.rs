@@ -952,7 +952,8 @@ mod tests {
                 output: 100,
             }],
             model_id: "a".to_string(),
-            variant: None,
+            // Geometry goldens include a variant label only because it is selected.
+            variant: Some("low".to_string()),
             agents: vec![AgentEntry {
                 color_index: 0,
                 id: "x".to_string(),
@@ -1129,6 +1130,28 @@ mod tests {
         }
         state.reset_workspace();
         assert_eq!(state.auto_accept, AutoAcceptState::Unsupported);
+    }
+
+    #[tokio::test]
+    async fn no_selected_variant_has_no_metadata_label_or_overlay() {
+        let mut state = golden_state().await;
+        let mut snapshot = catalog();
+        snapshot.variant = None;
+        state.apply_catalog(snapshot);
+        for width in [44, 80, 120, 160] {
+            let metadata = metadata_line(&state, Theme::dark(), width).unwrap();
+            assert_eq!(metadata.to_string(), "x · a ludka2");
+        }
+        assert!(
+            state
+                .picker
+                .as_ref()
+                .unwrap()
+                .selection()
+                .unwrap()
+                .variant
+                .is_none()
+        );
     }
 
     #[tokio::test]

@@ -98,6 +98,9 @@ pub struct ProviderOptions {
     /// Extra generation headers; native auth and transport headers take precedence.
     #[serde(default)]
     pub headers: BTreeMap<String, String>,
+    /// Native admission caps for unknown model limits (never discovery metadata).
+    #[serde(rename = "nativeFallbackLimits", default)]
+    pub native_fallback_limits: crate::models::FallbackLimits,
 }
 
 /// Single provider entry.
@@ -177,8 +180,10 @@ pub struct Generation {
     pub providers: BTreeMap<String, ProviderEntry>,
     /// MCP entries by id in sorted order.
     pub mcp: BTreeMap<String, McpEntry>,
-    /// Central permission policy.
+    /// Legacy scalar policy/summary; runtime also requires `permission_rules`.
     pub permissions: BTreeMap<String, Permission>,
+    /// Ordered resource-aware authority; `permissions` is a legacy summary.
+    pub permission_rules: crate::permissions::PermissionRules,
     /// Per-section provenance (section → source path).
     pub provenance: BTreeMap<String, String>,
     /// Warnings (e.g. empty substitution on unused keys).
@@ -461,6 +466,7 @@ pub fn assemble(
     let mut unknown_options: Vec<String> = Vec::new();
     let mut mcp: BTreeMap<String, (McpEntry, String)> = BTreeMap::new();
     let mut permissions: BTreeMap<String, (Permission, String)> = BTreeMap::new();
+    let mut permission_rules = crate::permissions::PermissionRules::default();
 
     for source in sources {
         let value = parse_jsonc(&source.text, &source.path)?;
@@ -506,7 +512,12 @@ pub fn assemble(
             }
         }
 
-        if let Some(perm_raw) = obj.get("permissions") {
+        let mut source_rules = crate::permissions::PermissionRules::from_config(&value)?;
+        if let Some(home) = env.get("HOME") {
+            source_rules.expand_home(home);
+        }
+        permission_rules.extend(source_rules);
+        if let Some(perm_raw) = obj.get("permissions").filter(|raw| raw.is_object()) {
             let map = perm_raw.as_object().ok_or_else(|| ConfigError::Invalid {
                 field: "permissions".to_string(),
                 reason: "must be an object".to_string(),
@@ -592,6 +603,7 @@ pub fn assemble(
         providers: out_providers,
         mcp: out_mcp,
         permissions: out_perm,
+        permission_rules,
         provenance,
         warnings: unknown_options,
     })
@@ -605,6 +617,7 @@ const PROVIDER_OPTION_KEYS: &[&str] = &[
     "chunkTimeout",
     "setCacheKey",
     "headers",
+    "nativeFallbackLimits",
 ];
 
 fn unknown_option_keys(options: Option<&serde_json::Value>) -> Vec<String> {
@@ -618,6 +631,18 @@ fn unknown_option_keys(options: Option<&serde_json::Value>) -> Vec<String> {
 }
 
 fn validate_provider(id: &str, entry: &ProviderEntry) -> Result<(), ConfigError> {
+    let fallback = entry.options.native_fallback_limits;
+    if fallback
+        .output
+        .get()
+        .saturating_add(crate::models::SAFETY_MARGIN)
+        >= fallback.context.get()
+    {
+        return Err(ConfigError::Invalid {
+            field: format!("provider.{id}.options.nativeFallbackLimits"),
+            reason: "context must exceed output plus the 1024-token safety margin".to_string(),
+        });
+    }
     if let Some(npm) = &entry.npm
         && npm != "@ai-sdk/openai"
     {
@@ -674,7 +699,8 @@ fn validate_dcp(raw: &serde_json::Value) -> Result<(), ConfigError> {
     Ok(())
 }
 
-/// Normalize a permission value, mapping legacy `write`/`edit` to patch.
+/// Legacy scalar summary for diagnostics and older callers. Runtime authority
+/// MUST use `PermissionRules`, which retains the ordered resource maps.
 ///
 /// Upstream `Rule = Union([Action, Record(String, Action)])` with a
 /// `Record(String, Rule)` catch-all: a scalar `allow|ask|deny` is accepted
@@ -724,7 +750,8 @@ fn action_level(key: &str, text: &str) -> Result<Permission, ConfigError> {
 /// Legacy `write`/`edit` keys normalize to `apply_patch` operations.
 pub fn legacy_key(key: &str) -> &str {
     match key {
-        "write" | "edit" => "apply_patch",
+        "write" | "edit" | "patch" => "apply_patch",
+        "shell" => "bash",
         // v1 `task` is the v2.0.12 `subagent` action.
         "task" => "subagent",
         _ => key,
@@ -1103,6 +1130,51 @@ pub fn parse_native_profile(text: &str) -> Result<NativeProfile, ConfigError> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn native_fallback_limits_are_explicit_validated_options() {
+        let assemble_caps = |caps: serde_json::Value| {
+            super::assemble(&[super::Source {
+                path: "fallback.json".into(), trusted: true,
+                text: serde_json::json!({"provider":{"fixture":{"options":{"apiKey":"fixture-key","nativeFallbackLimits":caps}}}}).to_string(),
+            }], &std::collections::BTreeMap::new(), None)
+        };
+        let generation =
+            assemble_caps(serde_json::json!({"context": 16_384, "output": 512})).unwrap();
+        assert!(generation.warnings.is_empty());
+        assert_eq!(
+            generation.providers["fixture"]
+                .options
+                .native_fallback_limits
+                .context
+                .get(),
+            16_384
+        );
+        assert_eq!(
+            generation.providers["fixture"]
+                .options
+                .native_fallback_limits
+                .output
+                .get(),
+            512
+        );
+        for caps in [
+            serde_json::json!({"context":0}),
+            serde_json::json!({"output":0}),
+            serde_json::json!({"output":-1}),
+            serde_json::json!({"context":"32768"}),
+            serde_json::json!({"context":1024, "output":512}),
+            serde_json::json!({"context":u64::MAX, "output":u64::MAX}),
+            serde_json::json!({"typo":100}),
+        ] {
+            assert!(assemble_caps(caps).is_err());
+        }
+        let defaults = assemble_caps(serde_json::json!({})).unwrap();
+        assert_eq!(
+            defaults.providers["fixture"].options.native_fallback_limits,
+            crate::models::FallbackLimits::default()
+        );
+    }
+
     use super::{
         ConfigError, Permission, Source, assemble, classify_plugin, explain_redacted, legacy_key,
         parse_jsonc, parse_native_profile, parse_skill, split_frontmatter_value, strip_jsonc,

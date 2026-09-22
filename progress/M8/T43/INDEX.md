@@ -1,4 +1,4 @@
-# T43 — Config compatibility parity и subagent system
+# T43 — Config compatibility и foreground subagent prerequisites
 
 Status: blocked
 Spec: ../../../docs/goals/2026-09-21-config-compat-and-subagents.md

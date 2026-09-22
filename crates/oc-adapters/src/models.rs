@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 
 use thiserror::Error;
 
-/// Standard variant order used for defaults and diagnostics.
+/// Standard variant order used for diagnostics.
 pub const STANDARD_VARIANTS: [&str; 7] =
     ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
 
@@ -178,64 +178,118 @@ pub fn select_variant(
                 })
             }
         },
-        None => {
-            // Default: `none` when enabled, else first enabled standard, else
-            // first enabled custom, else no variant at all.
-            let pick = ["none"]
-                .into_iter()
-                .chain(STANDARD_VARIANTS)
-                .map(String::from)
-                .chain(enabled.keys().cloned().collect::<Vec<_>>())
-                .find(|name| enabled.contains_key(name));
-            Ok(Selection {
-                id: selection.id.clone(),
-                entry: selection.entry.clone(),
-                variant: pick.map(|name| SelectedVariant {
-                    reasoning_effort: enabled.get(&name).cloned().flatten(),
-                    name,
-                }),
-            })
+        None => Ok(Selection {
+            id: selection.id.clone(),
+            entry: selection.entry.clone(),
+            variant: None,
+        }),
+    }
+}
+
+/// Native fallback caps and default output request; never catalog capacities.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct FallbackLimits {
+    /// Estimated total context cap, in tokens.
+    pub context: std::num::NonZeroU64,
+    /// Output cap when unknown, and default requested output, in tokens.
+    pub output: std::num::NonZeroU64,
+}
+
+impl Default for FallbackLimits {
+    fn default() -> Self {
+        Self {
+            context: std::num::NonZeroU64::new(32_768).expect("positive constant"),
+            output: std::num::NonZeroU64::new(4_096).expect("positive constant"),
         }
     }
 }
 
-/// Admit an estimated workload against the entry context+output limit.
-///
-/// Both limits must be positive integers (mirrors the discovery deletion
-/// rule: incomplete limits were never published, so their absence here is
-/// an error, not a silent pass).
-pub fn admit(selection: &Selection, input_tokens: u64, max_output: u64) -> Result<(), SelectError> {
-    let limit = selection.entry.get("limit");
-    let context = limit
-        .and_then(|l| l.get("context"))
-        .and_then(|v| v.as_u64())
-        .filter(|v| *v > 0);
-    let output = limit
-        .and_then(|l| l.get("output"))
-        .and_then(|v| v.as_u64())
-        .filter(|v| *v > 0);
-    match (context, output) {
-        (Some(context), Some(output)) => {
-            if input_tokens > context {
-                return Err(SelectError::OverContext {
-                    id: selection.id.clone(),
-                    input: input_tokens,
-                    context,
-                });
-            }
-            if max_output > output {
-                return Err(SelectError::OverOutput {
-                    id: selection.id.clone(),
-                    output: max_output,
-                    limit: output,
-                });
-            }
-            Ok(())
-        }
-        _ => Err(SelectError::MissingLimit {
-            id: selection.id.clone(),
-        }),
+/// Reserve for estimation uncertainty, in addition to output reservation.
+pub const SAFETY_MARGIN: u64 = 1_024;
+
+/// Request-local admission policy, separate from published model metadata.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AdmissionBudget {
+    /// Known context or explicitly native fallback cap.
+    pub context: u64,
+    /// Clamped output tokens to send on the wire.
+    pub output: u64,
+    /// Maximum estimated input after output and safety reservation.
+    pub input: u64,
+    /// Visible diagnostic when either capacity is unknown.
+    pub warning: Option<String>,
+}
+
+/// Resolve a bounded workload without changing the model snapshot. Zero requested
+/// output means the native default, including for callers with unknown metadata.
+pub fn budget(
+    selection: &Selection,
+    requested_output: u64,
+    fallback: FallbackLimits,
+) -> AdmissionBudget {
+    let positive = |key| {
+        selection
+            .entry
+            .pointer(key)
+            .and_then(serde_json::Value::as_u64)
+            .filter(|n| *n > 0)
+    };
+    let known_context = positive("/limit/context");
+    let known_output = positive("/limit/output");
+    let context = known_context.unwrap_or(fallback.context.get());
+    let output_cap = known_output.unwrap_or(fallback.output.get());
+    let output = if requested_output == 0 {
+        fallback.output.get()
+    } else {
+        requested_output
     }
+    .min(output_cap);
+    let input = positive("/limit/input")
+        .unwrap_or(u64::MAX)
+        .min(context.saturating_sub(output))
+        .saturating_sub(SAFETY_MARGIN);
+    let warning = (known_context.is_none() || known_output.is_none()).then(|| {
+        let unknown = match (known_context, known_output) {
+            (None, None) => "context and output",
+            (None, _) => "context",
+            _ => "output",
+        };
+        format!("model {} has unknown {unknown} limits; using native fallback caps (context={}, output={}); request budget context={context}, output={output}, estimated input<={input}; these are not discovered model capacities", selection.id, fallback.context, fallback.output)
+    });
+    AdmissionBudget {
+        context,
+        output,
+        input,
+        warning,
+    }
+}
+
+/// Enforce a resolved request budget (including optional model input limit).
+pub fn admit_budget(
+    selection: &Selection,
+    input_tokens: u64,
+    budget: &AdmissionBudget,
+) -> Result<(), SelectError> {
+    if input_tokens > budget.input || budget.output.saturating_add(SAFETY_MARGIN) >= budget.context
+    {
+        return Err(SelectError::OverContext {
+            id: selection.id.clone(),
+            input: input_tokens,
+            context: budget.input,
+        });
+    }
+    Ok(())
+}
+
+/// Admit with the native defaults. Runtime callers retain the resolved budget
+/// so the wire uses the same clamped output and exposes its warning.
+pub fn admit(selection: &Selection, input_tokens: u64, max_output: u64) -> Result<(), SelectError> {
+    admit_budget(
+        selection,
+        input_tokens,
+        &budget(selection, max_output, FallbackLimits::default()),
+    )
 }
 
 /// Diagnose unknown top-level metadata keys (visible, non-fatal).
@@ -331,9 +385,15 @@ mod tests {
         // Unknown names name the enabled set instead of guessing.
         let err = select_variant(&selection, Some("ultra")).expect_err("ultra");
         assert!(err.to_string().contains("low"));
-        // Default skips disabled `none` for the first enabled standard.
+        // No selection means no overlay, even with enabled variants.
         let defaulted = select_variant(&selection, None).expect("default");
-        assert_eq!(defaulted.variant.as_ref().expect("v").name, "low");
+        assert!(defaulted.variant.is_none());
+        assert!(
+            select_variant(&with, None)
+                .expect("clear")
+                .variant
+                .is_none()
+        );
         // Entries without variants admit no variant at all.
         let plain = select_model(&catalog, "org/plain").expect("plain");
         assert!(
@@ -351,9 +411,68 @@ mod tests {
         let selection = select_model(&catalog, "org/future").expect("model");
         assert!(admit(&selection, 1000, 1000).is_ok());
         assert!(admit(&selection, 500_001, 10).is_err());
-        assert!(admit(&selection, 10, 32_001).is_err());
+        assert!(admit(&selection, 10, 32_001).is_ok());
         let plain = select_model(&catalog, "org/plain").expect("plain");
-        assert!(admit(&plain, 10, 10).is_err());
+        assert!(admit(&plain, 10, 10).is_ok());
+    }
+
+    #[test]
+    fn fallback_budget_preserves_metadata_and_bounds_partial_zero_limits() {
+        use super::{FallbackLimits, SAFETY_MARGIN, admit_budget, budget};
+        let fallback: FallbackLimits =
+            serde_json::from_value(serde_json::json!({"context": 16_384, "output": 2_048}))
+                .unwrap();
+        for (limit, context, output) in [
+            (serde_json::Value::Null, 16_384, 2_048),
+            (serde_json::json!({"context": 8_192}), 8_192, 2_048),
+            (serde_json::json!({"output": 512}), 16_384, 512),
+            (
+                serde_json::json!({"context": 0, "output": 0}),
+                16_384,
+                2_048,
+            ),
+            (
+                serde_json::json!({"context": 8_192, "output": 0}),
+                8_192,
+                2_048,
+            ),
+            (
+                serde_json::json!({"context": 0, "output": 512}),
+                16_384,
+                512,
+            ),
+        ] {
+            let selection = super::Selection {
+                id: "future".into(),
+                entry: serde_json::json!({"limit": limit}),
+                variant: None,
+            };
+            let before = selection.entry.clone();
+            let resolved = budget(&selection, 99_999, fallback);
+            assert_eq!((resolved.context, resolved.output), (context, output));
+            assert_eq!(resolved.input, context - output - SAFETY_MARGIN);
+            assert!(
+                resolved
+                    .warning
+                    .as_deref()
+                    .unwrap()
+                    .contains("not discovered model capacities")
+            );
+            assert!(admit_budget(&selection, resolved.input, &resolved).is_ok());
+            assert!(admit_budget(&selection, resolved.input + 1, &resolved).is_err());
+            assert_eq!(selection.entry, before);
+        }
+        let selection = super::Selection {
+            id: "known".into(),
+            entry: serde_json::json!({"limit": {"context": 8_192, "input": 3_000, "output": 1_000}}),
+            variant: None,
+        };
+        let resolved = budget(&selection, 10_000, fallback);
+        assert_eq!(resolved.input, 3_000 - SAFETY_MARGIN);
+        assert_eq!(resolved.output, 1_000);
+        assert!(resolved.warning.is_none());
+        assert_eq!(budget(&selection, 0, fallback).output, 1_000);
+        assert_eq!(budget(&selection, 100, fallback).output, 100);
     }
 
     #[test]

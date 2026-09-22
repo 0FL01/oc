@@ -292,6 +292,7 @@ impl Fake {
                     "protocolVersion": version,
                     "capabilities": {"tools": {"listChanged": true}},
                     "serverInfo": {"name": "fake-codex-web", "version": "test"},
+                    "instructions": format!("Search guidance test-key HEADER-CANARY {}", "界".repeat(4000)),
                 }))
             }
             "notifications/initialized" => (202, Vec::new(), None),
@@ -387,6 +388,26 @@ impl Fake {
                         "structuredContent": {"answer": 42},
                         "isError": false,
                     }));
+                }
+                if query == "structured-only" {
+                    return reply(
+                        json!({"content": [], "structuredContent": {"answer":42, "nested":{"token":"UNKNOWN-CANARY"}, "echo":"test-key HEADER-CANARY"}}),
+                    );
+                }
+                if query == "resources" {
+                    return reply(json!({"content": [
+                        {"type":"text", "text":"Useful explanation"},
+                        {"type":"resource", "resource":{"uri":"file:///fixture", "mimeType":"text/plain", "text":"Embedded content"}},
+                        {"type":"resource_link", "uri":"https://example.org/fixture", "name":"Reference", "description":"Read later"}
+                    ]}));
+                }
+                if query == "useful-error" {
+                    return reply(
+                        json!({"isError":true, "structuredContent":{"error":{"code":"INVALID_ARGUMENTS"}}, "content":[{"type":"text", "text":"invalid argument: required parameter query; test-key HEADER-CANARY UNKNOWN-CANARY https://secret.invalid/path"}]}),
+                    );
+                }
+                if query == "rpc-error" {
+                    return (200, json!({"jsonrpc":"2.0", "id":id, "error":{"code":-32602, "message":"UNKNOWN-CANARY", "data":{"headers":"HEADER-CANARY"}}}).to_string().into_bytes(), Some("application/json"));
                 }
                 if query == "empty" {
                     return reply(json!({"content": [], "isError": false}));
@@ -701,7 +722,11 @@ async fn result_modalities_arguments_and_transport_have_distinct_errors() {
         .count();
     assert_eq!(calls_after, calls_before, "bad arguments fail before I/O");
 
-    for query in ["image", "structured", "input-required", "task"] {
+    assert_eq!(
+        client.search("structured", None, &cancel).await.unwrap(),
+        "text\n{\"structuredContent\":{\"answer\":42}}"
+    );
+    for query in ["image", "input-required", "task"] {
         assert_eq!(
             client.search(query, None, &cancel).await,
             Err(McpError::UnsupportedResult),
@@ -721,6 +746,56 @@ async fn result_modalities_arguments_and_transport_have_distinct_errors() {
         Err(McpError::BadResult)
     );
     client.close().await.expect("close");
+}
+
+#[tokio::test]
+async fn backend_parity_structured_resources_instructions_and_safe_errors() {
+    use oc_adapters::mcp_result::{FailureDetail, INSTRUCTIONS_BYTES_CAP};
+    let (url, _) = Fake::start(Mode::Ok, Duration::ZERO);
+    let mut config = config_for(&url);
+    config
+        .custom_headers
+        .insert("x-fixture", "HEADER-CANARY".parse().unwrap());
+    let client = CodexWebClient::connect(&config).await.unwrap();
+    let cancel = AtomicBool::new(false);
+    let instructions = client.instructions().unwrap();
+    assert!(instructions.starts_with("Search guidance [redacted] [redacted]"));
+    assert!(instructions.len() <= INSTRUCTIONS_BYTES_CAP);
+    assert!(instructions.ends_with("[MCP instructions truncated]"));
+    let output = client
+        .search("structured-only", None, &cancel)
+        .await
+        .unwrap();
+    let output: Value = serde_json::from_str(&output).unwrap();
+    assert_eq!(output["structuredContent"]["answer"], 42);
+    assert_eq!(output["structuredContent"]["nested"]["token"], "[redacted]");
+    assert_eq!(output["structuredContent"]["echo"], "[redacted] [redacted]");
+    let resources = client.search("resources", None, &cancel).await.unwrap();
+    for expected in [
+        "Useful explanation",
+        "Embedded content",
+        "https://example.org/fixture",
+        "Read later",
+    ] {
+        assert!(resources.contains(expected));
+    }
+    for query in ["useful-error", "rpc-error"] {
+        let error = client.search(query, None, &cancel).await.unwrap_err();
+        assert_eq!(
+            error,
+            McpError::ToolFailedDetail(FailureDetail::InvalidArguments)
+        );
+        let rendered = format!("{error:?} {error}");
+        for secret in [
+            "test-key",
+            "HEADER-CANARY",
+            "UNKNOWN-CANARY",
+            "secret.invalid",
+        ] {
+            assert!(!rendered.contains(secret));
+        }
+    }
+    client.close().await.unwrap();
 }
 
 #[tokio::test]

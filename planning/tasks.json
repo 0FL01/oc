@@ -451,7 +451,7 @@
         "E2E04",
         "MCP06"
       ],
-      "work": "Явно opt-in выполнить готовый bounded live campaign: coding без edits вне fixture, reopen/next command, compress/resume, webfetch и codex_web search с counters/watchdog; optional browser smoke only explicit opt-in. Product/harness code здесь не добавлять; report remaining models unqualified.",
+      "work": "Явно opt-in выполнить bounded live campaign: coding без edits вне fixture, reopen/next command, compress/resume, webfetch и codex_web search с counters/watchdog; optional browser smoke only explicit opt-in. Разрешены минимальные offline-tested исправления harness для actual product config/catalog, exact model/variant, durable MCP evidence и non-success при blocked/unexecuted. Не выдумывать model limits и не расширять live budget; report remaining models unqualified. Актуальный backend checkpoint: evidence/T27/backend-harness.md; старый attach blocker опровергнут T46/D13.",
       "evidence": "evidence/T27/report.md",
       "spec": "roadmap/M5.md"
     },
@@ -497,13 +497,18 @@
       "title": "Final handoff и delivery",
       "depends_on": [
         "T29",
-        "T42"
+        "T42",
+        "T27",
+        "T43",
+        "T45",
+        "T46",
+        "T47"
       ],
       "tests": [
         "OPS02",
         "OPS03"
       ],
-      "work": "Заполнить FINAL по A01–A13 и связать authoritative executable evidence без полного перезапуска suites. При missing mandatory live evidence записать BUILD_READY_LIVE_BLOCKED и block T30; после T16/T27 resume и finish. Выполнить final staged secret review, reviewed own-branch push и отдельный delivery status.",
+      "work": "Заполнить FINAL по A01–A13 и связать authoritative executable evidence. После backend-изменений повторить AUD38/AUD39 qualification на итоговом code commit (ownership остаётся T42); старый PASS не заменяет проверки нового кода. При missing mandatory live evidence записать BUILD_READY_LIVE_BLOCKED и block T30. Выполнить final staged secret review, reviewed own-branch push и отдельный delivery status; не объявлять READY при открытом обязательном scope.",
       "evidence": "evidence/T30/report.md",
       "spec": "roadmap/M6.md"
     },
@@ -706,14 +711,15 @@
     {
       "id": "T43",
       "phase": "M8",
-      "title": "Config compatibility parity и subagent system",
+      "title": "Config compatibility и foreground subagent prerequisites",
       "depends_on": [],
       "tests": [
         "A02",
         "A03",
-        "A05"
+        "A05",
+        "AUD42"
       ],
-      "work": "Закрыть owner-visible config warnings по upstream v2.0.12 (комментарии YAML, glob-map permissions, опциональный skill frontmatter, тихий skip каталогов без SKILL.md, flat skills, command agent/model/subagent/subtask, mode subagent/all), убрать искусственные size-лимиты, затем полностью реализовать subagent system по upstream v2.0.12 (spawn/child sessions/notices/reap/permissions/command routing/DCP allowSubAgents). Коммит и push каждого среза.",
+      "work": "R1/R2 config compatibility и foreground slices 1–4 (7895f43); resource-aware ordered permissions с неизменным central/agent/child narrowing, hidden/disabled metadata и фильтр каталога. Additive evidence: evidence/T43/backend-permissions.md. R3 background/notices/reap/command routing/DCP remainder принадлежит T45, не условие finish этого prerequisite slice. Полный owner scope R3 не сокращается. Общие gates A02/A03/A05 остаются в spec; AUD42 проверяет новую resource-семантику.",
       "evidence": "evidence/T43/report.md",
       "spec": "docs/goals/2026-09-21-config-compat-and-subagents.md"
     },
@@ -733,13 +739,11 @@
       "id": "T45",
       "phase": "M8",
       "title": "Остаток subagent system (T43 slices 5-8)",
-      "depends_on": [
-        "T43"
-      ],
+      "depends_on": [],
       "tests": [
         "A02"
       ],
-      "work": "Background subagents + synthetic notices + reap, command routing (agent/model/subagent/subtask), DCP allowSubAgents для child turns, TUI/history child rows. Источник: evidence/subagents/upstream-v2.0.12-plan.md (срезы 5-8).",
+      "work": "Background subagents + synthetic notices + reap, command routing (agent/model/subagent/subtask), DCP allowSubAgents для child turns, TUI/history child rows. Built-in build/general/explore и остаток typed upstream agent fields (color/steps/system/request) с реальной семантикой, не silent acceptance; hidden/permission-filtered catalog опирается на T43 backend regression. Foreground prerequisite уже в 7895f43; removed T43 done-dependency устраняет взаимоблокировку, не объявляет остаток выполненным. Источник: evidence/subagents/upstream-v2.0.12-plan.md (срезы 5-8). TUI-часть координировать с владельцем T44, не менять в backend-blockers slice.",
       "evidence": "evidence/T45/report.md",
       "spec": "docs/goals/2026-09-21-config-compat-and-subagents.md"
     },
@@ -748,10 +752,20 @@
       "phase": "M8",
       "title": "MCP attach parity: per-server degradation + outbound User-Agent",
       "depends_on": [],
-      "tests": [],
-      "work": "Заменить фатальный MCP attach на per-server деградацию по upstream v2.0.12 (статус failed со stage/code, turn продолжается, инструменты упавшего сервера не публикуются), сделать деградацию видимой (TurnReport.warnings -> TUI note/headless warning), добавить User-Agent на outbound HTTP-клиенты. Сохранить фатальными Cancelled/cleanup/caps и AUD23 reaping.",
+      "tests": ["MCP07"],
+      "work": "D13 per-server attach degradation + visible warnings/User-Agent уже в 3ce5e03/b7ab06d (evidence/T46/report.md). Backend remainder: structured/textual-resource results, bounded permission-filtered initialize instructions и безопасные error categories (evidence/T46/backend-parity.md). Сохранить fatal Cancelled/cleanup/caps, AUD23 reaping и redaction. Full live R4 остаётся обязательным; media-output/prompts/resource catalog parity остаётся открытой, не выдавать этот срез за full MCP parity.",
       "evidence": "evidence/T46/report.md",
       "spec": "docs/goals/2026-09-22-mcp-attach-parity.md"
+    },
+    {
+      "id": "T47",
+      "phase": "M8",
+      "title": "Model admission: unknown limits и explicit variant parity",
+      "depends_on": [],
+      "tests": ["AUD41"],
+      "work": "Не отклонять model без limit/context до turn. Native configurable fallback caps + warning без изменения discovery metadata/DISC05; request-local output/input admission, включая child/title requests; отсутствие selected variant означает отсутствие overlay. Контракт D14 и docs/CONTRACTS.md; общий backend checkpoint docs/goals/2026-09-22-backend-blockers.md. Пока T44 active, delivery фиксируется additive evidence без подмены task status.",
+      "evidence": "evidence/T47/report.md",
+      "spec": "docs/goals/2026-09-22-backend-blockers.md"
     }
   ]
 }

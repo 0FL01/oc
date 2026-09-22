@@ -61,6 +61,9 @@ pub enum StdioError {
     /// Tool reported `isError`.
     #[error("tool error")]
     ToolFailed,
+    /// Tool failure with a fixed, payload-free diagnostic category.
+    #[error("tool error: {0}")]
+    ToolFailedDetail(crate::mcp_result::FailureDetail),
     /// tools/list exceeded the tool or page bound; no partial catalog returned.
     #[error("tool catalog limit exceeded")]
     CatalogLimited,
@@ -518,6 +521,8 @@ pub struct StdioClient {
     config: StdioConfig,
     generation: u64,
     tools_changed: Arc<std::sync::atomic::AtomicBool>,
+    instructions: Option<String>,
+    redactions: Vec<String>,
 }
 
 impl StdioClient {
@@ -541,6 +546,16 @@ impl StdioClient {
         cancel: &std::sync::atomic::AtomicBool,
     ) -> Result<Self, StdioError> {
         Self::launch_cancellable_generation(config, 1, cancel).await
+    }
+
+    pub(crate) async fn launch_redacted(
+        config: &StdioConfig,
+        cancel: &std::sync::atomic::AtomicBool,
+        redactions: &[String],
+    ) -> Result<Self, StdioError> {
+        let mut config = config.clone();
+        config.secrets.extend_from_slice(redactions);
+        Self::launch_cancellable_generation(&config, 1, cancel).await
     }
 
     async fn launch_cancellable_generation(
@@ -572,6 +587,12 @@ impl StdioClient {
             }
         };
         let peer = running.peer().clone();
+        let mut redactions = config.secrets.clone();
+        redactions.extend(config.extra_env.iter().map(|(_, value)| value.clone()));
+        redactions.extend(config.argv.iter().cloned());
+        let instructions = peer.peer_info().and_then(|info| {
+            crate::mcp_result::instructions(info.instructions.as_deref(), &redactions)
+        });
         Ok(Self {
             peer,
             child: Box::new(child),
@@ -579,7 +600,14 @@ impl StdioClient {
             config: config.clone(),
             generation,
             tools_changed,
+            instructions,
+            redactions,
         })
+    }
+
+    /// Bounded, configured-value-redacted server guidance from initialize.
+    pub fn instructions(&self) -> Option<&str> {
+        self.instructions.as_deref()
     }
 
     /// Atomically claim a pending tools/list refresh. A notification that
@@ -650,35 +678,14 @@ impl StdioClient {
             .await?;
         match outcome {
             rmcp::model::CallToolResponse::Complete(result) => {
-                if result.is_error == Some(true) {
-                    return Err(StdioError::ToolFailed);
-                }
-                if result.structured_content.is_some() {
-                    return Err(StdioError::UnsupportedModality);
-                }
-                let mut text = String::new();
-                for block in &result.content {
-                    let rmcp::model::ContentBlock::Text(t) = block else {
-                        return Err(StdioError::UnsupportedModality);
-                    };
-                    let separator = usize::from(!text.is_empty());
-                    if text
-                        .len()
-                        .saturating_add(separator)
-                        .saturating_add(t.text.len())
-                        > RESULT_TEXT_BYTES_CAP
-                    {
-                        return Err(StdioError::BadResult);
+                crate::mcp_result::project(result, &self.redactions).map_err(|error| match error {
+                    crate::mcp_result::ResultError::Failed(Some(detail)) => {
+                        StdioError::ToolFailedDetail(detail)
                     }
-                    if !text.is_empty() {
-                        text.push('\n');
-                    }
-                    text.push_str(&t.text);
-                }
-                if text.is_empty() {
-                    return Err(StdioError::BadResult);
-                }
-                Ok(text)
+                    crate::mcp_result::ResultError::Failed(None) => StdioError::ToolFailed,
+                    crate::mcp_result::ResultError::Unsupported => StdioError::UnsupportedModality,
+                    crate::mcp_result::ResultError::BadResult => StdioError::BadResult,
+                })
             }
             _ => Err(StdioError::UnsupportedModality),
         }
@@ -728,7 +735,7 @@ impl StdioClient {
             _ = wait_cancelled(cancel) => Err(StdioError::Cancelled),
             result = tokio::time::timeout(self.config.timeout, future) => match result {
                 Err(_) => Err(StdioError::Deadline),
-                Ok(Err(_)) => Err(StdioError::Transport),
+                Ok(Err(error)) => Err(crate::mcp_result::rpc_failure(&error).map_or(StdioError::Transport, StdioError::ToolFailedDetail)),
                 Ok(Ok(value)) => Ok(value),
             },
         }

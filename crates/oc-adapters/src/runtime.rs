@@ -172,24 +172,133 @@ pub struct PublishedGeneration {
 /// none for the TUI either — the denial names the tool.
 pub struct RuntimePolicy<'a> {
     permissions: &'a BTreeMap<String, Permission>,
+    rules: Option<&'a crate::permissions::PermissionRules>,
+    root: Option<&'a std::path::Path>,
+    mcp: &'a [mcp_remote::RegistryEntry],
 }
 
 impl<'a> RuntimePolicy<'a> {
     /// Bridge one permission map.
     pub fn new(permissions: &'a BTreeMap<String, Permission>) -> Self {
-        Self { permissions }
+        Self {
+            permissions,
+            rules: None,
+            root: None,
+            mcp: &[],
+        }
+    }
+
+    /// Bridge ordered action/resource rules (scalar map is compatibility fallback).
+    pub fn with_rules(
+        permissions: &'a BTreeMap<String, Permission>,
+        rules: &'a crate::permissions::PermissionRules,
+    ) -> Self {
+        Self {
+            permissions,
+            rules: Some(rules),
+            root: None,
+            mcp: &[],
+        }
+    }
+
+    /// Bind path resources to the immutable Location directory.
+    pub fn with_root(mut self, root: &'a std::path::Path) -> Self {
+        self.root = Some(root);
+        self
+    }
+
+    /// Preserve upstream MCP action identity separately from provider wire names.
+    pub fn with_mcp(mut self, entries: &'a [mcp_remote::RegistryEntry]) -> Self {
+        self.mcp = entries;
+        self
+    }
+
+    /// Resolve the permission effect without turning ask into allow.
+    pub fn effect(&self, tool: &str, resource: &str) -> Permission {
+        let alias = self
+            .mcp
+            .iter()
+            .find(|entry| entry.namespaced == tool)
+            .map(|entry| {
+                let sanitize = |value: &str| {
+                    value
+                        .chars()
+                        .map(|c| {
+                            if c.is_ascii_alphanumeric() || matches!(c, '_' | '-') {
+                                c
+                            } else {
+                                '_'
+                            }
+                        })
+                        .collect::<String>()
+                };
+                format!("{}_{}", sanitize(&entry.server), sanitize(&entry.tool))
+            });
+        let mut actions = vec![tool];
+        if let Some(alias) = &alias {
+            actions.push(alias);
+        }
+        self.rules.map_or_else(
+            || {
+                crate::permissions::PermissionRules::default().evaluate_actions(
+                    self.permissions,
+                    &actions,
+                    resource,
+                )
+            },
+            |rules| rules.evaluate_actions(self.permissions, &actions, resource),
+        )
     }
 }
 
 impl ToolPolicy for RuntimePolicy<'_> {
     fn check(&self, tool: &str) -> Result<(), ToolError> {
-        match self.permissions.get(tool) {
-            Some(Permission::Allow) => Ok(()),
-            Some(Permission::Deny) | Some(Permission::Ask) | None => Err(ToolError::Denied {
+        self.check_resource(tool, "*")
+    }
+
+    fn check_resource(&self, tool: &str, resource: &str) -> Result<(), ToolError> {
+        let normalized;
+        let resource = if matches!(tool, "read" | "apply_patch") && resource != "*" {
+            normalized = permission_path(self.root, resource);
+            normalized.as_str()
+        } else {
+            resource
+        };
+        match self.effect(tool, resource) {
+            Permission::Allow => Ok(()),
+            Permission::Ask => Err(ToolError::ApprovalRequired {
+                tool: tool.to_string(),
+            }),
+            Permission::Deny => Err(ToolError::Denied {
                 tool: tool.to_string(),
             }),
         }
     }
+}
+
+fn permission_path(root: Option<&std::path::Path>, resource: &str) -> String {
+    use std::path::{Component, Path, PathBuf};
+    let path = Path::new(resource);
+    let path = match root {
+        Some(root) => root.join(path),
+        None => path.to_path_buf(),
+    };
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if !normalized.pop() {
+                    normalized.push("..");
+                }
+            }
+            _ => normalized.push(component.as_os_str()),
+        }
+    }
+    root.and_then(|root| normalized.strip_prefix(root).ok())
+        .unwrap_or(&normalized)
+        .to_string_lossy()
+        .into_owned()
 }
 
 /// Map a policy denial to the runtime error (same path, all tool kinds).
@@ -691,7 +800,8 @@ pub struct TurnParams<'c> {
     pub model_id: String,
     /// Requested variant, if any.
     pub variant: Option<String>,
-    /// Requested max output tokens (admission).
+    /// Requested output tokens, clamped during admission; zero selects the
+    /// configured native default (4096 unless overridden).
     pub max_output: u64,
     /// Provider connection (exact configured URL inside).
     pub provider: ResponsesConfig,
@@ -708,6 +818,8 @@ struct RuntimeWorkspace {
     fixed_input: Vec<InputItem>,
     skills: SkillSnapshot,
     agent_digest: Option<String>,
+    agent_permissions: BTreeMap<String, Permission>,
+    agent_permission_rules: crate::permissions::PermissionRules,
     instructions: String,
     skills_projection: Option<String>,
     subagents: Option<SubagentCatalog>,
@@ -723,6 +835,7 @@ struct TurnLane {
     fixed_input: Vec<InputItem>,
     agent_digest: Option<String>,
     permissions: BTreeMap<String, Permission>,
+    permission_rules: crate::permissions::PermissionRules,
 }
 
 /// One spawnable agent profile snapshotted for the `subagent` tool.
@@ -742,6 +855,10 @@ pub struct SubagentAgent {
     pub prompt: String,
     /// Agent permission rules; they can only narrow the parent lane.
     pub permissions: BTreeMap<String, Permission>,
+    /// Ordered resource-aware narrowing.
+    pub permission_rules: crate::permissions::PermissionRules,
+    /// Hidden from discovery but explicitly callable if permitted.
+    pub hidden: bool,
     /// Behavior digest pinning the child wire lane.
     pub digest: Option<String>,
 }
@@ -921,7 +1038,7 @@ impl<'a> Runtime<'a> {
         Ok(())
     }
 
-    /// Publish fixed instructions, primary prompt and pinned skills together.
+    /// Publish fixed instructions, primary prompt/policy and pinned skills together.
     #[allow(clippy::too_many_arguments)]
     pub fn publish_workspace(
         &self,
@@ -932,6 +1049,8 @@ impl<'a> Runtime<'a> {
         agent_digest: Option<String>,
         agent_id: Option<String>,
         agent_color_index: Option<usize>,
+        agent_permissions: BTreeMap<String, Permission>,
+        mut agent_permission_rules: crate::permissions::PermissionRules,
     ) -> Result<(), RuntimeError> {
         if self.active.load(Ordering::Relaxed) {
             return Err(RuntimeError::TurnActive);
@@ -949,10 +1068,15 @@ impl<'a> Runtime<'a> {
         };
         let fixed_input =
             lane_fixed_input(agent_prompt, instructions, skills_projection.as_deref());
+        if let Some(home) = self.parent_env.get("HOME") {
+            agent_permission_rules.expand_home(home);
+        }
         let mut workspace = self.workspace.write().expect("workspace lock");
         workspace.fixed_input = fixed_input;
         workspace.skills = skills;
         workspace.agent_digest = agent_digest;
+        workspace.agent_permissions = agent_permissions;
+        workspace.agent_permission_rules = agent_permission_rules;
         workspace.agent_id = agent_id;
         workspace.agent_color_index = agent_color_index;
         workspace.instructions = instructions.to_string();
@@ -1080,7 +1204,7 @@ impl<'a> Runtime<'a> {
         let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
         result.and_then(|mut report| {
             report.duration_ms = duration_ms;
-            report.warnings = mcp_warnings;
+            report.warnings.extend(mcp_warnings);
             self.db.update_turn_display(
                 &report.turn_id,
                 &serde_json::json!({
@@ -1095,12 +1219,20 @@ impl<'a> Runtime<'a> {
     /// Fixed input + policy of the primary (published) lane.
     fn primary_lane(&self, published: &PublishedGeneration) -> TurnLane {
         let workspace = self.workspace.read().expect("workspace lock");
+        let permissions = published.config.permissions.clone();
+        let mut permission_rules = published.config.permission_rules.clone();
+        permission_rules.narrow(
+            &permissions,
+            &workspace.agent_permissions,
+            &workspace.agent_permission_rules,
+        );
         TurnLane {
             agent_id: workspace.agent_id.clone(),
             agent_color_index: workspace.agent_color_index,
             fixed_input: workspace.fixed_input.clone(),
             agent_digest: workspace.agent_digest.clone(),
-            permissions: published.config.permissions.clone(),
+            permissions,
+            permission_rules,
         }
     }
 
@@ -1122,8 +1254,9 @@ impl<'a> Runtime<'a> {
         spec: &ProtectedSpec,
     ) -> Result<CompressReport, RuntimeError> {
         let published = self.current.read().expect("generation lock").clone();
+        let lane = self.primary_lane(&published);
         {
-            let policy = RuntimePolicy::new(&published.config.permissions);
+            let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules);
             if policy.check(COMPRESS_TOOL).is_err() {
                 return Err(denied(COMPRESS_TOOL));
             }
@@ -1270,6 +1403,46 @@ impl<'a> Runtime<'a> {
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
     ) -> Result<TurnReport, RuntimeError> {
         let published = self.current.read().expect("generation lock").clone();
+        let base = models::select_model(params.catalog, &params.model_id)
+            .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+        let fallback = published
+            .config
+            .providers
+            .get(&params.catalog.provider)
+            .map(|provider| provider.options.native_fallback_limits)
+            .unwrap_or_default();
+        let budget = models::budget(&base, params.max_output, fallback);
+        let mut report = self
+            .run_turn_admitted(
+                params,
+                lane,
+                attached,
+                accepted,
+                text_delta,
+                reasoning_delta,
+                tool_event,
+                &budget,
+            )
+            .await?;
+        if let Some(warning) = budget.warning {
+            report.warnings.push(warning);
+        }
+        Ok(report)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn run_turn_admitted(
+        &self,
+        params: TurnParams<'_>,
+        lane: &TurnLane,
+        attached: &McpGeneration,
+        accepted: &mut (dyn FnMut(&str) + Send),
+        text_delta: &mut (dyn FnMut(&str, &str) + Send),
+        reasoning_delta: &mut (dyn FnMut(&str, &str) + Send),
+        tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
+        budget: &models::AdmissionBudget,
+    ) -> Result<TurnReport, RuntimeError> {
+        let published = self.current.read().expect("generation lock").clone();
         self.open_session(&params.session)?;
         // Exact model selection + admission before any side effect.
         let base = models::select_model(params.catalog, &params.model_id)
@@ -1296,14 +1469,10 @@ impl<'a> Runtime<'a> {
         let dcp_config = self.dcp_config.read().expect("dcp lock").clone();
         let compress_available = dcp_config.enabled
             && !dcp_config.manual_mode
-            && lane.permissions.get(COMPRESS_TOOL) == Some(&Permission::Allow);
-        let model_context = selection
-            .entry
-            .pointer("/limit/context")
-            .and_then(serde_json::Value::as_u64)
-            .ok_or_else(|| {
-                RuntimeError::InvalidArgs("selected model has no context limit".into())
-            })?;
+            && RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules)
+                .check(COMPRESS_TOOL)
+                .is_ok();
+        let model_context = budget.context;
         let dcp_model_key = format!("{}/{}", params.catalog.provider, selection.id);
         let dcp_thresholds = dcp_config.effective_for_context(&dcp_model_key, model_context);
         if dcp_thresholds.min_context > dcp_thresholds.max_context {
@@ -1331,13 +1500,23 @@ impl<'a> Runtime<'a> {
             }
         }
         let mut nudge_hint = None;
-        // Admission against the entry limits with the assembled estimate.
+        // Early admission before durable intent; full request admission is
+        // repeated below for every round, including tool schemas and results.
+        let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules)
+            .with_root(&self.roots.project)
+            .with_mcp(&attached.entries);
+        let mut fixed_input = lane.fixed_input.clone();
+        fixed_input.extend(mcp_instruction_input(attached, &policy));
         let assembled_estimate = estimate_tokens(
-            &serde_json::to_string(&(lane.fixed_input.as_slice(), history.as_slice()))
+            &serde_json::to_string(&(fixed_input.as_slice(), history.as_slice()))
                 .map_err(|_| RuntimeError::Storage)?,
         ) + estimate_tokens(&params.prompt);
-        models::admit(&selection, assembled_estimate, params.max_output)
-            .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+        models::admit_budget(&selection, assembled_estimate, budget).map_err(|error| {
+            RuntimeError::InvalidArgs(match &budget.warning {
+                Some(warning) => format!("{error}; {warning}"),
+                None => error.to_string(),
+            })
+        })?;
         // Durable intent before any side effect.
         let turn_id = next_turn_id(&params.session, millis());
         let user_text = params.invocation.as_deref().unwrap_or(&params.prompt);
@@ -1345,17 +1524,13 @@ impl<'a> Runtime<'a> {
             self.db
                 .accept_turn(&turn_id, &params.session, &params.prompt, user_text)?;
         accepted(&turn_id);
-        let policy = RuntimePolicy::new(&lane.permissions);
         let mut tool_defs = builtin_tool_defs();
         if !compress_available {
             tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
         }
         let subagents = workspace.subagents.clone();
         if let Some(catalog) = &subagents {
-            tool_defs.push(subagent_tool_def(
-                catalog,
-                policy.check(SUBAGENT_TOOL).is_ok(),
-            ));
+            tool_defs.push(subagent_tool_def(catalog, &policy));
         }
         for entry in &attached.entries {
             tool_defs.push(ToolDef {
@@ -1378,6 +1553,7 @@ impl<'a> Runtime<'a> {
             cancel: params.cancel,
             attached,
             subagents: catalog.clone(),
+            parent_lane: lane,
         });
         let ctx = ToolContext {
             files: &self.files,
@@ -1430,7 +1606,7 @@ impl<'a> Runtime<'a> {
             let (nudge, persisted_nudge) = {
                 let estimate = estimate_tokens(
                     &serde_json::to_string(&(
-                        lane.fixed_input.as_slice(),
+                        fixed_input.as_slice(),
                         history.as_slice(),
                         turn_log.input.as_slice(),
                     ))
@@ -1470,8 +1646,7 @@ impl<'a> Runtime<'a> {
                 nudge_hint = Some(nudge.text.clone());
                 self.stats.lock().expect("stats lock").nudges_emitted += 1;
             }
-            let input: Vec<InputItem> = workspace
-                .fixed_input
+            let input: Vec<InputItem> = fixed_input
                 .iter()
                 .chain(nudge_input.iter())
                 .chain(anchors.iter())
@@ -1479,6 +1654,26 @@ impl<'a> Runtime<'a> {
                 .chain(&turn_log.input)
                 .cloned()
                 .collect();
+            let request_estimate = estimate_tokens(
+                &serde_json::to_string(&(&input, &tool_defs)).map_err(|_| RuntimeError::Storage)?,
+            );
+            if let Err(error) = models::admit_budget(&selection, request_estimate, budget) {
+                let mut report = self.commit_turn(
+                    &turn_log,
+                    turn_id,
+                    &params.session,
+                    TurnStatus::Failed,
+                    text,
+                    rounds,
+                    streamed_ms(streamed),
+                    usage,
+                    calls,
+                    nudge_hint,
+                    &published,
+                )?;
+                report.diagnostic = Some(error.to_string());
+                return Ok(report);
+            }
             let stream_started = std::time::Instant::now();
             let generation = match crate::provider::stream_input_observed(
                 &params.provider,
@@ -1486,7 +1681,7 @@ impl<'a> Runtime<'a> {
                 selection.variant.as_ref(),
                 &input,
                 &tool_defs,
-                params.max_output,
+                budget.output,
                 params.cancel,
                 &mut |item| match item {
                     crate::provider::StreamItem::TextDelta(delta) => text_delta(&turn_id, delta),
@@ -1698,6 +1893,7 @@ impl<'a> Runtime<'a> {
     async fn run_child_turn(
         &self,
         agent: &SubagentAgent,
+        parent_lane: &TurnLane,
         session: &str,
         prompt: String,
         model: &ResolvedModel,
@@ -1707,11 +1903,16 @@ impl<'a> Runtime<'a> {
         attached: &McpGeneration,
         cancel: &AtomicBool,
     ) -> Result<TurnReport, RuntimeError> {
-        let published = self.current.read().expect("generation lock").clone();
         let workspace = self.workspace.read().expect("workspace lock").clone();
         // Parent generation ∩ child agent rules: an agent rule can only make
         // the child lane stricter, never widen the caller's authority.
-        let mut permissions = published.config.permissions.clone();
+        let mut permissions = parent_lane.permissions.clone();
+        let mut permission_rules = parent_lane.permission_rules.clone();
+        let mut agent_rules = agent.permission_rules.clone();
+        if let Some(home) = self.parent_env.get("HOME") {
+            agent_rules.expand_home(home);
+        }
+        permission_rules.narrow(&permissions, &agent.permissions, &agent_rules);
         for (tool, level) in &agent.permissions {
             permissions
                 .entry(tool.clone())
@@ -1735,6 +1936,7 @@ impl<'a> Runtime<'a> {
             ),
             agent_digest: agent.digest.clone(),
             permissions,
+            permission_rules,
         };
         let params = TurnParams {
             session: session.to_string(),
@@ -2007,13 +2209,16 @@ impl<'a> Runtime<'a> {
                         "error: compress unavailable in disabled/manual DCP mode".to_string(),
                     ))
                 }
-                Assembled::Call(call) if policy.check(&call.name).is_err() => {
+                Assembled::Call(call) if policy.check_call(call).is_err() => {
                     let state = if is_builtin(&call.name) {
                         "failed"
                     } else {
                         "denied"
                     };
-                    Some((state, format!("error: denied {}", call.name)))
+                    Some((
+                        state,
+                        format!("error: {}", policy.check_call(call).expect_err("rejected")),
+                    ))
                 }
                 _ if cancel.load(Ordering::Relaxed) => {
                     Some(("cancelled", "error: cancelled".to_string()))
@@ -2387,6 +2592,7 @@ impl<'a> Runtime<'a> {
         let mut attached = Vec::new();
         let mut registries = Vec::new();
         let mut degraded = Vec::new();
+        let redactions = mcp_redactions(&published.config, &self.parent_env);
         let mut ids: Vec<&String> = published.config.mcp.keys().collect();
         ids.sort();
         for id in ids {
@@ -2413,10 +2619,14 @@ impl<'a> Runtime<'a> {
                 .map_err(|error| remote_attach_error_at(id, "config", error));
                 match config {
                     Ok(config) => {
-                        let client =
-                            CodexWebClient::connect_cancellable(&config, codex_web, cancel)
-                                .await
-                                .map_err(|error| remote_attach_error_at(id, "initialize", error));
+                        let client = CodexWebClient::connect_redacted(
+                            &config,
+                            codex_web,
+                            cancel,
+                            &redactions,
+                        )
+                        .await
+                        .map_err(|error| remote_attach_error_at(id, "initialize", error));
                         match client {
                             Ok(client) => match client.list_tools(cancel).await {
                                 Ok(tools) => {
@@ -2474,7 +2684,7 @@ impl<'a> Runtime<'a> {
                         .map_err(|error| stdio_attach_error_at(id, "config", error));
                 match config {
                     Ok(config) => {
-                        let client = StdioClient::launch_cancellable(&config, cancel)
+                        let client = StdioClient::launch_redacted(&config, cancel, &redactions)
                             .await
                             .map_err(|error| stdio_attach_error_at(id, "initialize", error));
                         match client {
@@ -2622,18 +2832,22 @@ fn lane_fixed_input(
 }
 
 /// `subagent` tool definition with the upstream `Available subagents` list.
-fn subagent_tool_def(catalog: &SubagentCatalog, list_available: bool) -> ToolDef {
+fn subagent_tool_def(catalog: &SubagentCatalog, policy: &RuntimePolicy<'_>) -> ToolDef {
     let mut description = String::from(
         "Spawns an agent in a child session to work on the specified task.\n\
          The output includes a sessionID you can pass back later to continue that specific conversation with the subagent.\n\
          New child sessions start with fresh context, so include all relevant context and instructions when you don't pass a sessionID.\n\
          Foreground (default) runs the subagent to completion and returns its final response.",
     );
-    if list_available {
+    {
         let available = catalog
             .agents
             .values()
-            .filter(|agent| !agent.primary)
+            .filter(|agent| {
+                !agent.primary
+                    && !agent.hidden
+                    && policy.effect(SUBAGENT_TOOL, &agent.id) != Permission::Deny
+            })
             .collect::<Vec<_>>();
         if !available.is_empty() {
             description.push_str("\n\nAvailable subagents:");
@@ -2806,6 +3020,7 @@ struct TurnSubagent<'r, 'a> {
     cancel: &'r AtomicBool,
     attached: &'r McpGeneration,
     subagents: SubagentCatalog,
+    parent_lane: &'r TurnLane,
 }
 
 impl SubagentRunner for TurnSubagent<'_, '_> {
@@ -2918,21 +3133,15 @@ impl TurnSubagent<'_, '_> {
         } else {
             request.prompt.clone()
         };
-        let max_output = self
-            .catalog
-            .models
-            .get(&model.id)
-            .and_then(|spec| spec.pointer("/limit/output"))
-            .and_then(serde_json::Value::as_u64)
-            .unwrap_or(0);
         let report = self
             .runtime
             .run_child_turn(
                 agent,
+                self.parent_lane,
                 &child_session,
                 prompt,
                 &model,
-                max_output,
+                0, // Resolve the same native output default as the primary turn.
                 self.catalog,
                 self.provider,
                 self.attached,
@@ -2943,23 +3152,33 @@ impl TurnSubagent<'_, '_> {
                 tool: SUBAGENT_TOOL.to_string(),
                 reason: error.to_string(),
             })?;
+        // Child warnings must survive the existing text-only tool result DTO.
+        let with_warnings = |text: String| {
+            if report.warnings.is_empty() {
+                text
+            } else {
+                format!("Warning: {}\n\n{text}", report.warnings.join("\nWarning: "))
+            }
+        };
         Ok(match report.status {
             TurnStatus::Completed => SubagentOutcome::Completed {
                 session_id: child_session,
-                text: if report.text.is_empty() {
+                text: with_warnings(if report.text.is_empty() {
                     SUBAGENT_NO_TEXT.to_string()
                 } else {
                     report.text
-                },
+                }),
             },
             TurnStatus::Cancelled => SubagentOutcome::Cancelled {
                 session_id: child_session,
             },
             _ => SubagentOutcome::Failed {
                 session_id: Some(child_session),
-                reason: report
-                    .diagnostic
-                    .unwrap_or_else(|| "subagent turn did not complete".to_string()),
+                reason: with_warnings(
+                    report
+                        .diagnostic
+                        .unwrap_or_else(|| "subagent turn did not complete".to_string()),
+                ),
             },
         })
     }
@@ -3024,11 +3243,87 @@ fn record_tool_finish(
     Ok(())
 }
 
+/// Initialize guidance belongs to the ephemeral request, never TurnLog/history.
+/// A server must own at least one attached tool permitted in this exact lane.
+fn mcp_instruction_input(attached: &McpGeneration, policy: &RuntimePolicy<'_>) -> Vec<InputItem> {
+    attached
+        .servers
+        .iter()
+        .filter_map(|server| {
+            let tools: Vec<&str> = attached
+                .entries
+                .iter()
+                .filter(|entry| {
+                    entry.server == server.server_id && policy.check(&entry.namespaced).is_ok()
+                })
+                .map(|entry| entry.namespaced.as_str())
+                .collect();
+            if tools.is_empty() {
+                return None;
+            }
+            let instructions = match &server.client {
+                AttachedServer::Remote(client) => client.instructions(),
+                AttachedServer::Stdio(client) => client.instructions(),
+            };
+            let instructions = instructions?;
+            Some(InputItem::message(
+                InputRole::Developer,
+                format!(
+                    "MCP server guidance for permitted tools [{}]:\n{instructions}",
+                    tools.join(", ")
+                ),
+            ))
+        })
+        .collect()
+}
+
+fn mcp_redactions(config: &Generation, parent_env: &BTreeMap<String, String>) -> Vec<String> {
+    let mut secrets: Vec<String> = parent_env
+        .iter()
+        .filter(|(name, _)| {
+            let name = name.to_ascii_uppercase();
+            [
+                "KEY",
+                "TOKEN",
+                "SECRET",
+                "PASSWORD",
+                "CREDENTIAL",
+                "AUTH",
+                "COOKIE",
+                "BEARER",
+            ]
+            .iter()
+            .any(|part| name.contains(part))
+        })
+        .map(|(_, value)| value.clone())
+        .collect();
+    for provider in config.providers.values() {
+        secrets.extend([
+            provider.options.api_key.clone(),
+            provider.options.base_url.clone(),
+        ]);
+        secrets.extend(provider.options.headers.values().cloned());
+    }
+    for entry in config.mcp.values() {
+        secrets.extend(entry.url.iter().cloned());
+        secrets.extend(entry.headers.values().cloned());
+        // A header may be reflected as its token without the Bearer prefix.
+        secrets.extend(
+            entry
+                .headers
+                .values()
+                .filter_map(|v| v.split_once(' ').map(|(_, token)| token.to_string())),
+        );
+    }
+    secrets
+}
+
 fn remote_mcp_failure(error: McpError, cancel: &AtomicBool) -> (&'static str, String) {
     if cancel.load(Ordering::Relaxed) || error == McpError::Cancelled {
         return ("cancelled", "error: cancelled".into());
     }
     let message = match error {
+        McpError::ToolFailedDetail(detail) => return ("failed", format!("error: mcp {detail}")),
         McpError::ToolFailed => "error: mcp tool reported failure",
         McpError::UnsupportedResult | McpError::BadResult => "error: unsupported mcp result",
         McpError::InvalidArguments => "error: invalid mcp arguments",
@@ -3042,6 +3337,7 @@ fn stdio_mcp_failure(error: StdioError, cancel: &AtomicBool) -> (&'static str, S
         return ("cancelled", "error: cancelled".into());
     }
     let message = match error {
+        StdioError::ToolFailedDetail(detail) => return ("failed", format!("error: mcp {detail}")),
         StdioError::ToolFailed => "error: mcp tool reported failure",
         StdioError::UnsupportedModality | StdioError::BadResult => "error: unsupported mcp result",
         StdioError::NonObjectArguments => "error: invalid mcp arguments",
@@ -3105,7 +3401,7 @@ fn remote_attach_error_at(server: &str, stage: &'static str, error: McpError) ->
         McpError::ProtocolMismatch => (stage, "protocol_mismatch", false),
         McpError::CatalogLimited => (stage, "catalog_limit", false),
         McpError::Catalog(_) => (stage, "invalid_catalog", false),
-        McpError::ToolFailed => (stage, "tool_failed", false),
+        McpError::ToolFailed | McpError::ToolFailedDetail(_) => (stage, "tool_failed", false),
         McpError::InvalidArguments => (stage, "invalid_arguments", false),
         McpError::BadResult => (stage, "bad_result", false),
         McpError::UnsupportedResult => (stage, "unsupported_result", false),
@@ -3128,7 +3424,7 @@ fn stdio_attach_error_at(server: &str, stage: &'static str, error: StdioError) -
         StdioError::Transport => (stage, "transport", true),
         StdioError::CleanupFailed => ("cleanup", "cleanup_failed", false),
         StdioError::CatalogLimited => (stage, "catalog_limit", false),
-        StdioError::ToolFailed => (stage, "tool_failed", false),
+        StdioError::ToolFailed | StdioError::ToolFailedDetail(_) => (stage, "tool_failed", false),
         StdioError::NonObjectArguments => (stage, "invalid_arguments", false),
         StdioError::UnsupportedModality => (stage, "unsupported_result", false),
         StdioError::BadResult => (stage, "bad_result", false),

@@ -112,6 +112,13 @@ def validate(root: Path = ROOT) -> dict[str, int]:
     by_id, test_ids = {t["id"]: t for t in tasks}, {t["id"] for t in tests}
     assert len(by_id) == len(tasks), "Duplicate task IDs"
     assert len(test_ids) == len(tests), "Duplicate test IDs"
+    acceptance = (root / "GOAL.md").read_text()
+    goal_gates = tuple(re.findall(r"^\*\*(A\d{2}) [^:]+:\*\*", acceptance, re.MULTILINE))
+    assert goal_gates == EXPECTED_GATES, "GOAL must contain exact A01-A13 gate headings"
+    # High-level gates are shared scope references, not detailed executable IDs.
+    # Keep detailed acceptance ownership strict without rewriting protected tasks.
+    gate_ids = set(goal_gates)
+    assert not test_ids & gate_ids, "Detailed test IDs must not shadow GOAL gates"
     for test in tests:
         for field in ("id", "title", "expected"):
             assert isinstance(test.get(field), str) and test[field].strip(), f"Missing acceptance field: {field}"
@@ -133,9 +140,11 @@ def validate(root: Path = ROOT) -> dict[str, int]:
         visit(task["id"])
         spec = root / task["spec"]
         assert spec.is_file(), f"Missing specification: {spec}"
-        assert set(task["tests"]) <= test_ids, f"Unknown test referenced by {task['id']}"
+        assert len(set(task["tests"])) == len(task["tests"]), f"Duplicate test reference: {task['id']}"
+        assert set(task["tests"]) <= test_ids | gate_ids, f"Unknown test referenced by {task['id']}"
         for test_id in task["tests"]:
-            owners[test_id].append(task["id"])
+            if test_id in test_ids:
+                owners[test_id].append(task["id"])
         assert task["evidence"] == f"evidence/{task['id']}/report.md", "Unexpected evidence target"
     assert all(owners.values()), f"Unassigned acceptance tests: {sorted(t for t, owner in owners.items() if not owner)}"
     duplicated = {test_id: owner for test_id, owner in owners.items() if len(owner) > 1}
@@ -146,9 +155,6 @@ def validate(root: Path = ROOT) -> dict[str, int]:
         text = (root / relative).read_text(encoding="utf-8")
         for marker in FORBIDDEN_RUNNER_MARKERS:
             assert not marker.search(text), f"Runner-specific authoring contract in {relative}"
-    acceptance = (root / "GOAL.md").read_text()
-    goal_gates = tuple(re.findall(r"^\*\*(A\d{2}) [^:]+:\*\*", acceptance, re.MULTILINE))
-    assert goal_gates == EXPECTED_GATES, "GOAL must contain exact A01-A13 gate headings"
     final_template = (root / "evidence/FINAL.template.md").read_text()
     final_gates = tuple(re.findall(r"^## (A\d{2})$", final_template, re.MULTILINE))
     assert final_gates == EXPECTED_GATES, "FINAL template must contain exact A01-A13 sections"

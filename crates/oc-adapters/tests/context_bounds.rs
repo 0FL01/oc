@@ -358,6 +358,7 @@ fn generation() -> Generation {
         providers: BTreeMap::new(),
         mcp: BTreeMap::new(),
         permissions: allow_all(),
+        permission_rules: Default::default(),
         provenance: BTreeMap::new(),
         warnings: Vec::new(),
     }
