@@ -10,6 +10,7 @@ pub mod app;
 pub mod commands;
 pub mod dcp_panel;
 pub mod dialog;
+mod editor;
 pub mod events;
 mod fuzzy;
 pub mod history;

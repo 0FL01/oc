@@ -915,6 +915,390 @@ fn wait_cursor(pty: &PtySession, wanted: (usize, usize)) {
 }
 
 #[test]
+fn v05_raw_unicode_multiline_focus_and_one_durable_submit() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "v05-unicode", None);
+    pty.wait_visible(READY, DEADLINE);
+    // UTF-8 combining character, a multi-codepoint ZWJ grapheme and Cyrillic.
+    pty.send("привет е\u{301}🧑‍💻 мир".as_bytes());
+    wait_screen_row(&pty, "мир", DEADLINE);
+    // Left over " мир", backspace removes the whole emoji, then reinsert it.
+    let original_cursor = render_screen(&pty.snapshot()).cursor;
+    pty.send(b"\x1b[D\x1b[D\x1b[D\x1b[D");
+    wait_cursor(&pty, (original_cursor.0, original_cursor.1 - 4));
+    pty.send(b"\x7f");
+    wait_cursor(&pty, (original_cursor.0, original_cursor.1 - 6));
+    pty.send("🧑‍💻".as_bytes());
+    wait_cursor(&pty, (original_cursor.0, original_cursor.1 - 4));
+    // Insert a genuine multiline break with raw Ctrl+J in the middle.
+    pty.send(b"\x0a");
+    pty.send("вторая".as_bytes());
+    wait_screen_row(&pty, "вторая", DEADLINE);
+    pty.send(b"\x1b[13;2u"); // Shift+Enter in terminals supporting CSI-u
+    pty.send("третья".as_bytes());
+    wait_screen_row(&pty, "третья", DEADLINE);
+    let before_paste = render_screen(&pty.snapshot()).cursor;
+    pty.send("\x1b[200~ из пасты\x1b[201~".as_bytes());
+    wait_screen_row(&pty, "из пасты", DEADLINE);
+    pty.send(b"\x1b[45;5u"); // CSI-u Ctrl+- undoes the whole paste
+    wait_cursor(&pty, before_paste);
+    let selected_from = render_screen(&pty.snapshot()).cursor;
+    pty.send(b"\x1b[1;2D"); // select the last grapheme
+    wait_cursor(&pty, (selected_from.0, selected_from.1 - 1));
+    pty.send(b"\x10");
+    wait_screen_row(&pty, "Commands", DEADLINE);
+    pty.send(b"\x1b");
+    dismissed(&pty, "Commands");
+    wait_cursor(&pty, (selected_from.0, selected_from.1 - 1));
+    pty.send(b"\x7f"); // delete retained selection, then restore it
+    pty.send("я".as_bytes());
+    wait_screen_row(&pty, "третья", DEADLINE);
+    let second_line_cursor = render_screen(&pty.snapshot()).cursor;
+    pty.send(b"\x1b[A\x1b[H"); // navigate the draft without scrolling history
+    let start = Instant::now();
+    while render_screen(&pty.snapshot()).cursor == second_line_cursor {
+        assert!(
+            start.elapsed() < DEADLINE,
+            "editor did not move inside first line"
+        );
+        std::thread::sleep(POLL);
+    }
+    let before = render_screen(&pty.snapshot()).cursor;
+    pty.send(b"\x10");
+    wait_screen_row(&pty, "Commands", DEADLINE);
+    pty.send(b"\x1b");
+    dismissed(&pty, "Commands");
+    wait_cursor(&pty, before);
+    pty.send(b"\x1b[13;1:3u"); // release of Enter must not submit
+    assert!(fixture.requests.lock().unwrap().is_empty());
+    pty.send(b"\r\r"); // a second Enter while pending/streaming cannot duplicate
+    let requests = fixture.wait_requests(1);
+    let prompt = last_user_text(&requests[0]).expect("provider prompt");
+    assert!(
+        prompt.contains("привет е\u{301}"),
+        "combining grapheme: {prompt:?}"
+    );
+    assert!(prompt.contains("🧑‍💻"), "ZWJ grapheme: {prompt:?}");
+    assert!(prompt.contains("вторая"), "multiline prompt: {prompt:?}");
+    assert!(
+        prompt.contains("вторая\nтретья"),
+        "CSI-u Shift+Enter: {prompt:?}"
+    );
+    assert!(
+        !prompt.contains("из пасты"),
+        "paste undo must be atomic: {prompt:?}"
+    );
+    assert!(
+        prompt.contains('\n'),
+        "newline on provider wire: {prompt:?}"
+    );
+    wait_screen_row(&pty, "echo:", DEADLINE);
+    wait_idle(&pty);
+    assert_eq!(
+        fixture
+            .requests
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|r| !title::is_title(r))
+            .count(),
+        1
+    );
+    // Up at the boundary recalls the last durable prompt; Down restores the
+    // unfinished draft. Neither navigation path submits a second turn.
+    pty.send(b"unfinished");
+    wait_screen_row(&pty, "unfinished", DEADLINE);
+    pty.send(b"\x1b[A");
+    let started = Instant::now();
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|row| row.contains("unfinished"))
+    {
+        assert!(started.elapsed() < DEADLINE, "Up did not recall history");
+        std::thread::sleep(POLL);
+    }
+    pty.send(b"\x1b[B");
+    wait_screen_row(&pty, "unfinished", DEADLINE);
+    pty.send(b"\x03");
+    let (status, out) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored() && contains(&out, ALT_LEAVE));
+    let rows = persisted(pty.data_dir(), "v05-unicode");
+    assert_eq!(
+        rows.iter().filter(|(role, _)| role == "user").count(),
+        1,
+        "{rows:?}"
+    );
+    assert_eq!(
+        rows.iter().find(|(role, _)| role == "user").unwrap().1,
+        prompt
+    );
+}
+
+#[test]
+fn v05_raw_capped_bracket_paste_is_visible_and_not_submitted() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "v05-paste", None);
+    pty.wait_visible(READY, DEADLINE);
+    let size = oc_core::session::MAX_INPUT_BYTES;
+    // One bracketed-paste event exceeding the application budget. No Enter.
+    pty.send(b"\x1b[200~");
+    pty.send(&vec![b'x'; size + 13]);
+    pty.send(b"\x1b[201~");
+    pty.wait_visible("paste truncated: 13 bytes dropped", DEADLINE);
+    assert!(fixture.requests.lock().unwrap().is_empty());
+    pty.send(b"\x03");
+    let (status, out) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored() && contains(&out, ALT_LEAVE));
+    assert!(persisted(pty.data_dir(), "v05-paste").is_empty());
+}
+
+#[test]
+fn v05_raw_paste_chip_keeps_original_on_wire_and_in_history() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "v05-paste-chip", None);
+    pty.wait_visible(READY, DEADLINE);
+    let pasted = "е\u{301}🧑‍💻\nвторая\nтретья";
+    pty.send(b"prefix ");
+    pty.send(format!("\x1b[200~{pasted}\x1b[201~").as_bytes());
+    wait_screen_row(&pty, "[Pasted ~3 lines]", DEADLINE);
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|r| r.contains("вторая"))
+    );
+    let end = render_screen(&pty.snapshot()).cursor;
+    pty.send(b"\x10");
+    wait_screen_row(&pty, "Commands", DEADLINE);
+    pty.send(b"\x1b");
+    dismissed(&pty, "Commands");
+    wait_cursor(&pty, end);
+    pty.send(b"\x1b[1;2D"); // select the chip
+    pty.send(b"\x10");
+    wait_screen_row(&pty, "Commands", DEADLINE);
+    pty.send(b"\x1b");
+    dismissed(&pty, "Commands");
+    wait_cursor(&pty, (end.0, end.1 - "[Pasted ~3 lines] ".len()));
+    pty.send(b"\x7f"); // saved selection deletes the entire chip
+    let started = Instant::now();
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|r| r.contains("[Pasted ~3 lines]"))
+    {
+        assert!(started.elapsed() < DEADLINE, "chip not deleted");
+        std::thread::sleep(POLL);
+    }
+    pty.send(b"\x1b[45;5u"); // undo restores the original bytes AND the chip
+    wait_screen_row(&pty, "[Pasted ~3 lines]", DEADLINE);
+    pty.send(b"\x1b[D"); // move over the entire chip
+    pty.send(b"X"); // insertion before chip shifts its mapped byte range
+    wait_screen_row(&pty, "X[Pasted ~3 lines]", DEADLINE);
+    let long = "z".repeat(151);
+    pty.send(format!("\x1b[200~{long}\x1b[201~").as_bytes());
+    wait_screen_row(&pty, "[Pasted ~1 lines]", DEADLINE);
+    assert!(fixture.requests.lock().unwrap().is_empty());
+    pty.send(b"\r\r");
+    let requests = fixture.wait_requests(1);
+    let expected = format!("prefix X{long}{pasted}");
+    assert_eq!(
+        last_user_text(&requests[0]).as_deref(),
+        Some(expected.as_str())
+    );
+    wait_idle(&pty);
+    pty.send(b"\x03");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+    let rows = persisted(pty.data_dir(), "v05-paste-chip");
+    assert_eq!(rows.iter().filter(|(role, _)| role == "user").count(), 1);
+    assert_eq!(
+        rows.iter().find(|(role, _)| role == "user").unwrap().1,
+        expected
+    );
+}
+
+#[test]
+fn v05_review_raw_chip_trim_matches_visible_draft_and_wire() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "v05-chip-trim", None);
+    pty.wait_visible(READY, DEADLINE);
+    pty.send(b"\x1b[200~a\nb\nc\n\x1b[201~");
+    wait_screen_row(&pty, "[Pasted ~3 lines]", DEADLINE);
+    assert!(
+        render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|r| r.contains("paste chip trimmed")),
+        "trimming hidden terminal paste whitespace must be observable"
+    );
+    pty.send(b"Z\r\r");
+    let requests = fixture.wait_requests(1);
+    assert_eq!(last_user_text(&requests[0]).as_deref(), Some("a\nb\ncZ"));
+    wait_idle(&pty);
+    pty.send(b"\x03");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+    assert_eq!(
+        persisted(pty.data_dir(), "v05-chip-trim")
+            .iter()
+            .filter(|(role, _)| role == "user")
+            .map(|(_, text)| text.as_str())
+            .collect::<Vec<_>>(),
+        vec!["a\nb\ncZ"]
+    );
+}
+
+#[test]
+fn v05_review_raw_history_edit_down_restores_chip_and_wire() {
+    let fixture = Fixture::new();
+    let project = fixture.root.path().join("project");
+    seed_session(&fixture.data_dir(), &project, "v05-history-chip", 1);
+    let mut pty = PtySession::spawn(fixture.clone(), "v05-history-chip", None);
+    pty.wait_visible(READY, DEADLINE);
+    let draft = "draft\nline\nchip";
+    pty.send(format!("\x1b[200~{draft}\x1b[201~").as_bytes());
+    wait_screen_row(&pty, "[Pasted ~3 lines]", DEADLINE);
+    pty.send(b"\x1b[A");
+    let started = Instant::now();
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|r| r.contains("[Pasted ~3 lines]"))
+    {
+        assert!(
+            started.elapsed() < DEADLINE,
+            "Up did not recall stored prompt"
+        );
+        std::thread::sleep(POLL);
+    }
+    pty.send(b" edited\x1b[B");
+    wait_screen_row(&pty, "[Pasted ~3 lines]", DEADLINE);
+    assert!(fixture.requests.lock().unwrap().is_empty());
+    pty.send(b"\r\r");
+    let requests = fixture.wait_requests(1);
+    assert_eq!(last_user_text(&requests[0]).as_deref(), Some(draft));
+    wait_idle(&pty);
+    pty.send(b"\x03");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+    let persisted = persisted(pty.data_dir(), "v05-history-chip");
+    assert_eq!(
+        persisted.iter().filter(|(role, _)| role == "user").count(),
+        2
+    );
+    assert!(
+        persisted
+            .iter()
+            .any(|(role, text)| role == "user" && text == "seeded row 00000 payload")
+    );
+    assert!(
+        !persisted
+            .iter()
+            .any(|(role, text)| role == "user" && text.contains("edited"))
+    );
+    assert_eq!(
+        persisted
+            .iter()
+            .rfind(|(role, _)| role == "user")
+            .map(|(_, text)| text.as_str()),
+        Some(draft)
+    );
+}
+
+#[test]
+fn v05_review_empty_editor_up_uses_history_on_wire() {
+    let fixture = Fixture::new();
+    let project = fixture.root.path().join("project");
+    seed_session(&fixture.data_dir(), &project, "v05-empty-up", 1);
+    let mut pty = PtySession::spawn(fixture.clone(), "v05-empty-up", None);
+    pty.wait_visible(READY, DEADLINE);
+    pty.send(b"\x1b[A\r"); // empty editor: Up recalls, Enter submits it
+    let requests = fixture.wait_requests(1);
+    assert_eq!(
+        last_user_text(&requests[0]).as_deref(),
+        Some("seeded row 00000 payload")
+    );
+    wait_idle(&pty);
+    pty.send(b"\x03");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+    assert_eq!(
+        persisted(pty.data_dir(), "v05-empty-up")
+            .iter()
+            .filter(|(role, _)| role == "user")
+            .count(),
+        2
+    );
+}
+
+#[test]
+fn v05_review_wheel_scroll_does_not_move_multiline_editor_caret() {
+    let fixture = Fixture::new();
+    let project = fixture.root.path().join("project");
+    seed_session(&fixture.data_dir(), &project, "v05-wheel", 70);
+    let mut pty = PtySession::spawn(fixture.clone(), "v05-wheel", None);
+    pty.wait_visible(READY, DEADLINE);
+    pty.send("\x1b[200~draft 🧑‍💻\nстрока\x1b[201~".as_bytes());
+    wait_screen_row(&pty, "строка", DEADLINE);
+    let caret = render_screen(&pty.snapshot()).cursor;
+    pty.send(b"\x1b[<64;1;1M"); // real xterm SGR wheel, not a keyboard Up
+    wait_screen_row(&pty, "Jump to latest", DEADLINE);
+    wait_cursor(&pty, caret);
+    pty.send(b"\x1b[<65;1;1M");
+    let started = Instant::now();
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|row| row.contains("Jump to latest"))
+    {
+        assert!(
+            started.elapsed() < DEADLINE,
+            "wheel down did not repin transcript"
+        );
+        std::thread::sleep(POLL);
+    }
+    wait_cursor(&pty, caret);
+    assert!(fixture.requests.lock().unwrap().is_empty());
+    pty.send(b"\x03");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+    assert_eq!(persisted(pty.data_dir(), "v05-wheel").len(), 70);
+}
+
+#[test]
+fn v05_review_shift_home_end_select_buffer_on_provider_wire() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "v05-buffer-edges", None);
+    pty.wait_visible(READY, DEADLINE);
+    pty.send("\x1b[200~один\nдва\x1b[201~".as_bytes());
+    wait_screen_row(&pty, "два", DEADLINE);
+    pty.send(b"\x1b[1;2H"); // Shift+Home selects from end to buffer start
+    pty.send("новый".as_bytes());
+    pty.send(b"\r");
+    assert_eq!(
+        last_user_text(&fixture.wait_requests(1)[0]).as_deref(),
+        Some("новый")
+    );
+    wait_idle(&pty);
+    pty.send("\x1b[200~первый\nвторой\x1b[201~".as_bytes());
+    wait_screen_row(&pty, "второй", DEADLINE);
+    pty.send(b"\x1b[A\x1b[F"); // end of the first logical line
+    pty.send(b"\x1b[1;2F"); // Shift+End selects through buffer end
+    pty.send(b"X\r");
+    let requests = fixture.wait_requests(2);
+    assert_eq!(last_user_text(&requests[1]).as_deref(), Some("первыйX"));
+    wait_idle(&pty);
+    pty.send(b"\x03");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+    assert_eq!(
+        persisted(pty.data_dir(), "v05-buffer-edges")
+            .iter()
+            .filter(|(role, _)| role == "user")
+            .count(),
+        2
+    );
+}
+
+#[test]
 fn v04_raw_sgr_mouse_backdrop_search_variant_and_actual_model() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(fixture.clone(), "v04-mouse", None);
@@ -2096,7 +2480,7 @@ fn aud31_pty_bounded_backing_state() {
     pty.wait_visible(READY, DEADLINE);
     // Page up through real rendering: older pages load and older rows evict.
     for _ in 0..40 {
-        pty.send(b"\x1b[A");
+        pty.send(b"\x1b[<64;1;1M"); // SGR wheel, distinct from editor history Up
         std::thread::sleep(Duration::from_millis(60));
     }
     pty.wait_visible("seeded row", DEADLINE);

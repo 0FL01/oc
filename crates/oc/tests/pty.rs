@@ -1121,13 +1121,15 @@ fn pty_long_history_starts_and_pages() {
     // ratatui's cell diff skips unchanged cells on the wire, so scrolled
     // rows arrive fragmented while the grid holds their true content.
     wait_screen_row(&pty, &message_needle("┃  ", &seed_row(2998)), DEADLINE);
-    // Page up through real rendering: older rows scroll into view. Iteration
+    // Wheel up through real rendering: older rows scroll into view. Iteration
     // 3a renders each message as a multi-line block, so scrolling counts
     // rendered lines; walk until the seeded row is visible.
     let needle = message_needle("   ", &seed_row(2979));
     let mut found = false;
     for _ in 0..20 {
-        pty.send(b"\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A"); // Up x5
+        for _ in 0..5 {
+            pty.send(b"\x1b[<64;1;1M"); // SGR wheel up; keyboard Up recalls prompt history
+        }
         std::thread::sleep(Duration::from_millis(150));
         if render_screen(&pty.snapshot())
             .rows()

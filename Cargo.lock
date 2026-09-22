@@ -1382,6 +1382,8 @@ dependencies = [
  "tokio",
  "unicode-normalization",
  "unicode-script",
+ "unicode-segmentation",
+ "unicode-width",
 ]
 
 [[package]]

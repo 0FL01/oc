@@ -254,6 +254,7 @@ pub struct TuiState {
     mouse_down: Option<crate::dialog::DialogHit>,
     leader: Option<Instant>,
     input: String,
+    editor: crate::editor::Editor,
     window: HistoryWindow,
     live_text: String,
     /// Reasoning text streamed for the active turn (never persisted).
@@ -331,6 +332,7 @@ impl TuiState {
             mouse_down: None,
             leader: None,
             input: String::new(),
+            editor: Default::default(),
             window: HistoryWindow::new(),
             live_text: String::new(),
             live_reasoning: String::new(),
@@ -419,6 +421,7 @@ impl TuiState {
         self.invalidate_submission();
         self.session = session;
         self.input.clear();
+        self.editor.clear();
         self.window = HistoryWindow::new();
         self.live_text.clear();
         self.live_reasoning.clear();
@@ -669,6 +672,11 @@ impl TuiState {
         &self.input
     }
 
+    /// Prompt layout and the insertion caret share the same grapheme/cell model.
+    pub fn prompt_layout(&self, width: usize) -> (Vec<crate::editor::PromptRow>, (usize, usize)) {
+        self.editor.layout(&self.input, width)
+    }
+
     /// Active turn, if any.
     pub fn active_turn(&self) -> Option<&WorkerTurnId> {
         self.active_turn.as_ref()
@@ -739,9 +747,7 @@ impl TuiState {
 
     /// The active dialog exclusively owns search/cursor input; when it is
     /// replaced (Model → Variant) the former owner is destroyed, and closing
-    /// the replacement restores the original prompt draft and insertion point.
-    /// The current prompt editor supports only an end-of-draft caret (V05 adds
-    /// movable multiline caret); no dialog key is dispatched to that editor.
+    /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
         use crate::dialog::DialogHit;
         if self.panel == TuiPanel::None {
@@ -821,6 +827,7 @@ impl TuiState {
                 .map(LivePart::retained_bytes)
                 .sum::<usize>()
             + self.input.len()
+            + self.editor.retained_bytes()
             + self
                 .pending
                 .as_ref()
@@ -1000,31 +1007,75 @@ impl TuiState {
 
     /// Handle a bracketed paste as one bounded event (never per-char).
     pub fn handle_paste(&mut self, text: &str) -> KeyOutcome {
+        use unicode_segmentation::UnicodeSegmentation as _;
         if self.status == TuiStatus::Quit {
             return KeyOutcome::default();
         }
         if self.panel != TuiPanel::None {
             let room = 512_usize.saturating_sub(self.select.query.len());
-            self.select.query.extend(
-                crate::truncate_utf8(text, room)
-                    .chars()
-                    .filter(|c| !c.is_control()),
-            );
+            let mut kept = 0;
+            for grapheme in text.graphemes(true) {
+                if kept + grapheme.len() > room {
+                    break;
+                }
+                if !grapheme.chars().any(char::is_control) {
+                    self.select.query.push_str(grapheme);
+                    kept += grapheme.len();
+                }
+            }
             self.changed_modal_query();
-            return KeyOutcome::default();
+            return KeyOutcome {
+                note: (text.len() > kept).then(|| "modal search truncated at 512 bytes".into()),
+                ..KeyOutcome::default()
+            };
         }
-        let room = MAX_INPUT_BYTES.saturating_sub(self.input.len());
-        let kept = crate::truncate_utf8(text, room);
-        let dropped = text.len().saturating_sub(kept.len());
-        self.input.push_str(kept);
-        self.input_revision += 1;
-        if dropped == 0 {
-            return KeyOutcome::default();
+        let mut clean = String::with_capacity(text.len().min(MAX_INPUT_BYTES));
+        let mut exceeded = false;
+        for grapheme in text.graphemes(true) {
+            let safe = match grapheme {
+                "\r\n" | "\r" => "\n",
+                "\t" => " ",
+                _ if grapheme.chars().any(char::is_control) && grapheme != "\n" => continue,
+                _ => grapheme,
+            };
+            if clean.len() + safe.len() > MAX_INPUT_BYTES {
+                exceeded = true;
+                break;
+            }
+            clean.push_str(safe);
+        }
+        let chip_count = self.editor.chip_count();
+        let paste = self.editor.paste(&mut self.input, &clean, MAX_INPUT_BYTES);
+        let dropped = text.len().saturating_sub(paste.inserted);
+        if paste.inserted > 0 {
+            self.input_revision += 1;
+        }
+        let mut notes = Vec::new();
+        if exceeded || clean.len() > paste.inserted + paste.trimmed {
+            notes.push(format!(
+                "paste truncated: {dropped} bytes dropped at the {MAX_INPUT_BYTES} byte input limit"
+            ));
+        } else if text.len() > clean.len() {
+            notes.push(format!(
+                "paste filtered: {} control/newline-normalization bytes",
+                text.len() - clean.len()
+            ));
+        }
+        if paste.trimmed > 0 {
+            notes.push(format!(
+                "paste chip trimmed: {} surrounding whitespace bytes removed",
+                paste.trimmed
+            ));
+        }
+        if paste.inserted > 0
+            && chip_count == crate::editor::MAX_PASTE_CHIPS
+            && crate::editor::chip_worthy(&clean[..paste.inserted + paste.trimmed]).is_some()
+        {
+            notes
+                .push("paste display chip limit reached; full pasted text remains in draft".into());
         }
         KeyOutcome {
-            note: Some(format!(
-                "paste truncated: {dropped} bytes dropped at the {MAX_INPUT_BYTES} byte input limit"
-            )),
+            note: (!notes.is_empty()).then(|| notes.join("; ")),
             ..KeyOutcome::default()
         }
     }
@@ -1043,6 +1094,7 @@ impl TuiState {
     /// Report that an intent was accepted and applied; clears the input.
     pub fn accept_intent(&mut self) {
         self.input.clear();
+        self.editor.clear();
     }
 
     /// The accepted compress turn starts streaming: status, turn, DCP panel.
@@ -1056,6 +1108,7 @@ impl TuiState {
         self.status = TuiStatus::Streaming;
         self.panel = TuiPanel::Dcp;
         self.input.clear();
+        self.editor.clear();
         self.live_text.clear();
         self.live_reasoning.clear();
         self.live_parts.clear();
@@ -1198,7 +1251,16 @@ impl TuiState {
         if self.panel != TuiPanel::None {
             return self.handle_panel_key(action);
         }
-        if let Some(start) = self.leader.take()
+        if matches!(
+            action,
+            KeyAction::Cancel
+                | KeyAction::Interrupt
+                | KeyAction::Quit
+                | KeyAction::Commands
+                | KeyAction::Agents
+        ) {
+            self.leader = None;
+        } else if let Some(start) = self.leader.take()
             && start.elapsed() < std::time::Duration::from_secs(2)
         {
             let command = if let KeyAction::Char(key) = action {
@@ -1220,13 +1282,64 @@ impl TuiState {
             }
             KeyAction::Left
             | KeyAction::Right
-            | KeyAction::Home
-            | KeyAction::End
-            | KeyAction::PageUp
-            | KeyAction::PageDown => KeyOutcome::default(),
+            | KeyAction::WordLeft
+            | KeyAction::WordRight
+            | KeyAction::SelectLeft
+            | KeyAction::SelectRight
+            | KeyAction::SelectWordLeft
+            | KeyAction::SelectWordRight => {
+                let right = matches!(
+                    action,
+                    KeyAction::Right
+                        | KeyAction::WordRight
+                        | KeyAction::SelectRight
+                        | KeyAction::SelectWordRight
+                );
+                let word = matches!(
+                    action,
+                    KeyAction::WordLeft
+                        | KeyAction::WordRight
+                        | KeyAction::SelectWordLeft
+                        | KeyAction::SelectWordRight
+                );
+                let select = matches!(
+                    action,
+                    KeyAction::SelectLeft
+                        | KeyAction::SelectRight
+                        | KeyAction::SelectWordLeft
+                        | KeyAction::SelectWordRight
+                );
+                self.editor.horizontal(&self.input, right, word, select);
+                KeyOutcome::default()
+            }
+            KeyAction::Home | KeyAction::End => {
+                self.editor
+                    .line_edge(&self.input, action == KeyAction::End, false);
+                KeyOutcome::default()
+            }
+            KeyAction::SelectHome | KeyAction::SelectEnd => {
+                self.editor.move_to(
+                    if action == KeyAction::SelectHome {
+                        0
+                    } else {
+                        self.input.len()
+                    },
+                    true,
+                );
+                KeyOutcome::default()
+            }
+            KeyAction::SelectUp | KeyAction::SelectDown => {
+                self.editor
+                    .vertical(&self.input, action == KeyAction::SelectDown, true);
+                KeyOutcome::default()
+            }
+            KeyAction::PageUp | KeyAction::PageDown => KeyOutcome::default(),
             KeyAction::Char(c) => {
-                if self.input.len() + c.len_utf8() <= MAX_INPUT_BYTES {
-                    self.input.push(c);
+                if self
+                    .editor
+                    .replace(&mut self.input, &c.to_string(), MAX_INPUT_BYTES)
+                    > 0
+                {
                     self.input_revision += 1;
                     KeyOutcome::default()
                 } else {
@@ -1239,37 +1352,63 @@ impl TuiState {
                 }
             }
             KeyAction::Backspace => {
-                self.input.pop();
-                self.input_revision += 1;
+                if self.editor.delete(&mut self.input, true, false) {
+                    self.input_revision += 1;
+                }
+                KeyOutcome::default()
+            }
+            KeyAction::DeleteOrQuit if self.input.is_empty() && !self.is_busy() => {
+                self.status = TuiStatus::Quit;
+                KeyOutcome::default()
+            }
+            KeyAction::Delete
+            | KeyAction::DeleteOrQuit
+            | KeyAction::WordBackspace
+            | KeyAction::WordDelete => {
+                if self.editor.delete(
+                    &mut self.input,
+                    action == KeyAction::WordBackspace,
+                    action != KeyAction::Delete,
+                ) {
+                    self.input_revision += 1;
+                }
+                KeyOutcome::default()
+            }
+            KeyAction::Newline => {
+                if self.editor.replace(&mut self.input, "\n", MAX_INPUT_BYTES) > 0 {
+                    self.input_revision += 1;
+                }
+                KeyOutcome::default()
+            }
+            KeyAction::Undo | KeyAction::Redo => {
+                if self.editor.undo(&mut self.input, action == KeyAction::Redo) {
+                    self.input_revision += 1;
+                }
                 KeyOutcome::default()
             }
             KeyAction::Up => {
-                let max_scroll = self.max_scroll();
-                self.scroll = self.scroll.min(max_scroll);
-                if self.scroll < max_scroll {
-                    self.scroll += 1;
+                if self.editor.vertical(&self.input, false, false) {
+                    return KeyOutcome::default();
                 }
-                let intent = (self.window.has_older() && self.scroll >= self.max_scroll())
-                    .then_some(PanelIntent::LoadOlder);
-                KeyOutcome {
-                    intent,
-                    ..KeyOutcome::default()
+                if self.recall_history(true) {
+                    return KeyOutcome::default();
                 }
+                self.scroll_transcript(true)
             }
             KeyAction::Down => {
-                if self.scroll > 0 {
-                    // Resize can clamp the displayed position below the retained
-                    // request. The first Down must move from that visible row.
-                    self.scroll = self.display_scroll().saturating_sub(1);
-                    KeyOutcome::default()
-                } else {
-                    KeyOutcome {
-                        intent: self.window.has_newer().then_some(PanelIntent::LoadNewer),
-                        ..KeyOutcome::default()
-                    }
+                if self.editor.vertical(&self.input, true, false) {
+                    return KeyOutcome::default();
                 }
+                if self.recall_history(false) {
+                    return KeyOutcome::default();
+                }
+                self.scroll_transcript(false)
             }
-            KeyAction::Quit | KeyAction::Interrupt => {
+            KeyAction::Quit => {
+                self.status = TuiStatus::Quit;
+                KeyOutcome::default()
+            }
+            KeyAction::Interrupt => {
                 self.status = TuiStatus::Quit;
                 KeyOutcome::default()
             }
@@ -1296,6 +1435,52 @@ impl TuiState {
                 }
             }
             KeyAction::Enter => self.handle_enter().await,
+        }
+    }
+
+    fn recall_history(&mut self, previous: bool) -> bool {
+        let entries: Vec<String> = self
+            .window
+            .rows()
+            .iter()
+            .filter(|row| row.role == "user")
+            .map(|row| row.text.clone())
+            .collect();
+        let changed = self.editor.recall(&mut self.input, previous, entries);
+        if changed {
+            self.input_revision += 1;
+        }
+        changed
+    }
+
+    /// Wheel/scrollbox navigation never changes the focused editor, even
+    /// when keyboard Up/Down would move its caret or recall prompt history.
+    pub fn scroll_transcript(&mut self, up: bool) -> KeyOutcome {
+        self.poll_submission();
+        if self.panel != TuiPanel::None {
+            return KeyOutcome::default();
+        }
+        if up {
+            let max_scroll = self.max_scroll();
+            self.scroll = self.scroll.min(max_scroll);
+            if self.scroll < max_scroll {
+                self.scroll += 1;
+            }
+            KeyOutcome {
+                intent: (self.window.has_older() && self.scroll >= self.max_scroll())
+                    .then_some(PanelIntent::LoadOlder),
+                ..KeyOutcome::default()
+            }
+        } else if self.scroll > 0 {
+            // Resize can clamp the displayed position below the retained
+            // request. The first Down must move from that visible row.
+            self.scroll = self.display_scroll().saturating_sub(1);
+            KeyOutcome::default()
+        } else {
+            KeyOutcome {
+                intent: self.window.has_newer().then_some(PanelIntent::LoadNewer),
+                ..KeyOutcome::default()
+            }
         }
     }
 
@@ -1340,6 +1525,7 @@ impl TuiState {
                     )
                 {
                     self.input.clear();
+                    self.editor.clear();
                     self.input_revision += 1;
                 }
                 return outcome;
@@ -1399,6 +1585,7 @@ impl TuiState {
                 self.scroll = 0;
                 if self.input_revision == pending.revision && !pending.cancelling {
                     self.input.clear();
+                    self.editor.clear();
                 }
                 self.dcp.clear_notice();
                 self.note = None;
@@ -2506,6 +2693,132 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn v05_review_overlimit_selection_during_pending_cannot_lose_draft() {
+        use oc_core::core_app::InboxMsg;
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("overlimit-pending"));
+        let mut full = "a".repeat(MAX_INPUT_BYTES - 1);
+        assert_eq!(state.handle_paste(&full).note, None);
+        assert_eq!(state.prompt_layout(80).0[0].text, "[Pasted ~1 lines] ");
+        state.handle_key(KeyAction::Char('z')).await;
+        full.push('z');
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::Submit { text, ack, .. }) = inbox.recv().await else {
+            panic!("submission")
+        };
+        assert_eq!(text.len(), MAX_INPUT_BYTES);
+        state.handle_key(KeyAction::SelectLeft).await;
+        let outcome = state.handle_key(KeyAction::Char('🦊')).await;
+        assert!(outcome.note.is_some(), "replacement cannot fit");
+        assert_eq!(
+            state.input(),
+            full,
+            "rejected replacement must not delete selection"
+        );
+        state.handle_key(KeyAction::Backspace).await;
+        assert_eq!(state.input().len(), MAX_INPUT_BYTES - 1);
+        assert_eq!(state.prompt_layout(80).0[0].text, "[Pasted ~1 lines] ");
+        ack.send(Ok(WorkerTurnId("accepted".into()))).unwrap();
+        state.poll_submission();
+        assert_eq!(
+            state.input().len(),
+            MAX_INPUT_BYTES - 1,
+            "acceptance must not clear revised draft"
+        );
+        assert_eq!(state.active_turn(), Some(&WorkerTurnId("accepted".into())));
+        assert_eq!(state.prompt_layout(80).0[0].text, "[Pasted ~1 lines] ");
+    }
+
+    #[tokio::test]
+    async fn v05_review_chip_trim_keeps_visible_and_submitted_draft_in_sync() {
+        use oc_core::core_app::InboxMsg;
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("chip-trim"));
+        let outcome = state.handle_paste("a\nb\nc\n");
+        assert!(
+            outcome
+                .note
+                .as_deref()
+                .is_some_and(|n| n.contains("trimmed"))
+        );
+        assert_eq!(state.input(), "a\nb\nc");
+        assert_eq!(state.prompt_layout(80).0[0].text, "[Pasted ~3 lines] ");
+        state.handle_key(KeyAction::Char('Z')).await;
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::Submit { text, ack, .. }) = inbox.recv().await else {
+            panic!("submission")
+        };
+        assert_eq!(text, "a\nb\ncZ");
+        ack.send(Ok(WorkerTurnId("accepted".into()))).unwrap();
+        state.poll_submission();
+        assert_eq!(state.history().rows()[0].text, text);
+
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("plain-paste"));
+        state.handle_paste("a\nb\n");
+        assert_eq!(state.input(), "a\nb\n", "non-chip paste retains whitespace");
+        assert_eq!(state.prompt_layout(80).0.len(), 3);
+    }
+
+    #[tokio::test]
+    async fn v05_review_trimmed_chip_edit_during_pending_keeps_receipt_immutable() {
+        use oc_core::core_app::InboxMsg;
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("trimmed-pending"));
+        assert!(state.handle_paste("a\nb\nc\n").note.is_some());
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::Submit { text, ack, .. }) = inbox.recv().await else {
+            panic!("submission")
+        };
+        assert_eq!(text, "a\nb\nc");
+        state.handle_key(KeyAction::Char('Z')).await;
+        state.handle_key(KeyAction::Enter).await; // pending cannot duplicate
+        assert!(inbox.try_recv().is_err());
+        ack.send(Ok(WorkerTurnId("accepted".into()))).unwrap();
+        state.poll_submission();
+        assert_eq!(state.input(), "a\nb\ncZ");
+        assert_eq!(state.prompt_layout(80).0[0].text, "[Pasted ~3 lines] Z");
+        assert_eq!(state.history().rows()[0].text, text);
+    }
+
+    #[tokio::test]
+    async fn v05_review_leader_cannot_swallow_exit() {
+        let mut state = fresh_state("leader-exit").await;
+        state.handle_key(KeyAction::Leader).await;
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.status(), &TuiStatus::Quit);
+    }
+
+    #[tokio::test]
+    async fn v05_review_shift_edges_select_entire_multiline_buffer() {
+        let mut state = fresh_state("buffer-edges").await;
+        state.handle_paste("один\nдва");
+        state.handle_key(KeyAction::SelectHome).await;
+        state.handle_key(KeyAction::Char('X')).await;
+        assert_eq!(state.input(), "X");
+        state.handle_key(KeyAction::Home).await;
+        state.handle_key(KeyAction::SelectEnd).await;
+        state.handle_key(KeyAction::Char('Y')).await;
+        assert_eq!(state.input(), "Y");
+    }
+
+    #[tokio::test]
+    async fn v05_review_empty_draft_up_recalls_durable_history() {
+        let mut state = fresh_state("empty-recall").await;
+        state.attach_page(&page(
+            vec![msg(1, Role::User, "stored prompt")],
+            1,
+            false,
+            false,
+        ));
+        assert_eq!(state.input(), "");
+        state.handle_key(KeyAction::Up).await;
+        assert_eq!(state.input(), "stored prompt");
+        state.handle_key(KeyAction::Down).await;
+        assert_eq!(state.input(), "");
+    }
+
+    #[tokio::test]
     async fn workspace_reset_invalidates_pending_state_without_waiting_for_old_receipt() {
         use oc_core::core_app::InboxMsg;
         let (app, mut inbox, _) = CoreApp::channel(4);
@@ -3062,7 +3375,7 @@ mod tests {
             false,
         ));
         assert!(state.needs_older());
-        let outcome = state.handle_key(KeyAction::Up).await;
+        let outcome = state.scroll_transcript(true);
         assert_eq!(outcome.intent, Some(PanelIntent::LoadOlder));
 
         // A window that evicted its newest rows asks for a newer page at the
@@ -3072,7 +3385,7 @@ mod tests {
             .collect();
         state.prepend_page(&page(bulk, 500, true, true));
         assert!(state.needs_newer());
-        let outcome = state.handle_key(KeyAction::Down).await;
+        let outcome = state.scroll_transcript(false);
         assert_eq!(outcome.intent, Some(PanelIntent::LoadNewer));
 
         state.append_page(&page(
@@ -3082,7 +3395,7 @@ mod tests {
             false,
         ));
         assert!(!state.needs_newer());
-        let outcome = state.handle_key(KeyAction::Up).await;
+        let outcome = state.scroll_transcript(true);
         assert_eq!(outcome.intent, None, "only the top edge loads older");
 
         let mut requested = None;
@@ -3090,7 +3403,7 @@ mod tests {
         // whole rendered transcript to reach the top edge.
         let max_scroll = state.max_scroll();
         for _ in 0..=max_scroll {
-            let outcome = state.handle_key(KeyAction::Up).await;
+            let outcome = state.scroll_transcript(true);
             if outcome.intent.is_some() {
                 requested = outcome.intent;
                 break;
@@ -3110,7 +3423,7 @@ mod tests {
         ));
         let max_scroll = state.max_scroll();
         for _ in 0..=max_scroll {
-            assert_eq!(state.handle_key(KeyAction::Up).await.intent, None);
+            assert_eq!(state.scroll_transcript(true).intent, None);
         }
         assert_eq!(state.scroll, state.max_scroll());
         assert!(!state.needs_older());

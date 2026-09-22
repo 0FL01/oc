@@ -19,7 +19,7 @@ use oc_core::domain::SessionId;
 use oc_core::queries::SessionSelectionAction as SelectionAction;
 use oc_tui::app::{KeyOutcome, PanelIntent, TuiPanel, TuiState, TuiStatus};
 use oc_tui::dcp_panel::DcpOutcome;
-use oc_tui::events::{KeyAction, UiEvent, map_event};
+use oc_tui::events::{UiEvent, map_event};
 use oc_tui::shell::{StartupFailure, render_startup_failure};
 use oc_tui::terminal::{enter, install_panic_hook};
 use oc_tui::views::render_frame;
@@ -246,8 +246,8 @@ async fn handle_event(
         Some(UiEvent::Mouse(mouse)) => {
             let outcome = if *state.panel() == TuiPanel::None {
                 match mouse.kind {
-                    MouseEventKind::ScrollUp => state.handle_key(KeyAction::Up).await,
-                    MouseEventKind::ScrollDown => state.handle_key(KeyAction::Down).await,
+                    MouseEventKind::ScrollUp => state.scroll_transcript(true),
+                    MouseEventKind::ScrollDown => state.scroll_transcript(false),
                     _ => KeyOutcome::default(),
                 }
             } else {

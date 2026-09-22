@@ -19,6 +19,8 @@ ratatui.workspace = true
 crossterm.workspace = true
 unicode-normalization = "0.1"
 unicode-script = "0.5"
+unicode-segmentation = "1.12"
+unicode-width = "0.2"
 
 [lints]
 workspace = true

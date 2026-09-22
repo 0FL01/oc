@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-22T19:49:57+00:00
+State updated: 2026-09-22T22:03:31+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,25 +12,24 @@ Evidence target: evidence/T44/report.md
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 V04 modal pointer and focus checkpoint
+# T44 V05 editor and paste checkpoint
 
 ## Result
 
-Base `0909f22182266755f132b93c316110b5327a6d04`, active T44. Mouse capture and restoration, modal-only pointer routing, geometry-aligned option hits, wheel scroll, hover and click, backdrop dismissal and Model→Variant focus replacement implemented. Raw xterm SGR PTY confirms actual selected model/variant on provider wire, retained draft, durable selection, and terminal restoration. Independent read-only review found that a DCP informational row triggered compression and a held press could activate a replacement Variant row; both corrected with unit regressions. Historical V04 attempts preserved in `modal-focus-report.md`.
+Base `f9a93b62e9be4ec1242094dced473dc5985a8406`, active T44. Grapheme-aware multiline editor, movable caret/selection, undo/history, focus-priority keymap, responsive pending draft revision, bounded one-event paste and an editor-only compact paste-chip projection over the actual application-owned prompt. Original `a\nb\nc` appears as `[Pasted ~3 lines]`; actual PTY submits the real text exactly once, not the marker. Independent read-only reviews identified and corrected five editor/cancellation/navigation defects and three chip/grapheme/history/trim defects; all reproductions and failures are preserved additively in `evidence/tui/recovery-v05/report.md`. No production JS runtime.
 
 ## Checks
 
-- Parent `cargo fmt --all && cargo test --locked -p oc-tui v04_mouse -- --nocapture && cargo test --locked -p oc --test pty_t39 v04_raw_ -- --nocapture && git diff --check`: exit 0, 2 unit tests + 3 raw PTY tests.
-- First full `cargo fmt --all -- --check && cargo test --locked --workspace --no-fail-fast --quiet` exit 101: existing 10k catalog debug latency gate observed 2.111s > 2s on one iteration amid concurrent tests (other 113 TUI tests passed); threshold/expectation unchanged. Follow-up full `cargo test --locked --workspace --no-fail-fast --quiet -- --test-threads=1 && cargo clippy --locked --workspace --all-targets -- -D warnings && cargo build --locked && cargo fmt --all -- --check && python3 scripts/check_docs.py && python3 scripts/progress.py check && git diff --check`: exit 0 at every step, all groups passed with 5 pre-existing ignores; docs 48 tasks/125 specs. Serial execution prevents competition for the fixed cold-search latency threshold, not suppression of the test.
-- Previous paired executable frames at `evidence/tui/recovery-v04/followup-truecolor-{160x48,80x24,121x41}` remain unequal; no new parity capture or VIS gate is claimed for this change.
+- Parent final `cargo fmt --all -- --check && cargo test --locked --workspace --no-fail-fast --quiet -- --test-threads=1 && cargo clippy --locked --workspace --all-targets -- -D warnings && cargo build --locked && target/debug/oc --help && python3 scripts/check_docs.py && python3 scripts/progress.py check && python3 -m unittest discover -s scripts -p 'test_*.py' && git diff --check`: exit 0 at every step, all workspace groups green, five existing ignored tests, Python 29 passed. Agent focused V05 15 editor/unit cases, 8 raw PTY cases, stalled-MCP pending test all exit 0. Initial post-chip workspace failure/fixture correction retained in report, no threshold/test disabled.
+- Parent final-code paired capture `paired-paste-chip-postreview` at 160x48 with 80x24–160x48 resize matrix: runner exit 1 DIFFERENT, both actual executables/protocol fixtures executed. Both multiline rows 43 contain `[Pasted ~3 lines]`; explicit unmasked comparator exits 1 for grid (7,293 differing cells of 7,680) and PNG (7,823 differing pixels of 1,036,032), cursor matches. Earlier `paired-editor-matrix`, `paired-paste-chip`, `paired-paste-chip-final` and `paired-paste-chip-utf16` remain immutable; all capture commands/exits and fixture/profile/source manifests in attempts.
 
 ## Risks
 
-Editor caret remains end-of-draft; in-draft grapheme editing/paste and full keymap are V05. Terminal mouse encodings beyond SGR and redirected-stderr interactive output not qualified. Missing genuine backend palette actions and exact full-frame parity remain open; VIS01–VIS24 NOT_RUN, R3/R4 unverified. No live provider qualification or product READY claim. `.opencode/` untracked and untouched.
+V05 raw PTY behavior and local text observation do not verify VIS11–VIS12, R3/R4, or whole-frame pixel parity. Full dialog actions and V06–V09 remain. User reports `target/release/oc` shows generic startup-error screen and exits; root cause unproved. Read-only investigation traced a discarded `spawn` error to the generic preflight renderer; no user `.opencode/`, real config or credentials were inspected. No product READY/live claim; five existing ignores remain, other ignored/failed capture attempts retained.
 
 ## Next
 
-V05 Unicode multiline editor, focus-priority bindings and bounded paste, tested through raw PTY with a single durable submission and cancellation guarantees. Continue V06–V09 separately with a factual checkpoint for each verified slice; unsupported service/OAuth commands remain undisplayed until an owner-scope decision.
+Reproduce release startup with isolated HOME/XDG/config/data and PTY, compare debug/release, preserve safe actionable stage/category without printing raw error data, and exercise success/failure through actual binary. Then V06 Markdown/tool/reasoning/diff live/replay, V07 safety, V08–V09 exact paired VIS and full qualification; checkpoint each verified slice separately.
 
 
 Ready (до 5): T45, T46, T47

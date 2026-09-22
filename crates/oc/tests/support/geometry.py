@@ -67,7 +67,7 @@ for mode in ['normal', 'hidden', 'child', 'debug', 'vertical', 'default-debug']:
             size(fd, width, height)
             os.kill(child.pid, signal.SIGWINCH)
             frame = drain(fd, .3)
-            assert 'draft-three' in frame, (mode, width, frame)
+            assert '[Pasted ~3 lines]' in frame and 'draft-three' not in frame, (mode, width, frame)
             expected = width > 120 and mode not in ['hidden', 'child', 'vertical']
             assert ('Context' in frame) == expected, (mode, width, frame)
             assert ('Native runtime' in frame) == (mode in ['debug', 'default-debug']), (mode, width)

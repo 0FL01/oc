@@ -1527,15 +1527,20 @@ fn aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns() {
 
 #[test]
 fn v01_pending_initialize_raw_pty_cancel_edit_duplicate_and_retry() {
-    pending_initialize_raw_pty(false);
+    pending_initialize_raw_pty(false, false);
 }
 
 #[test]
 fn v01_manual_compress_raw_pty_cancel_shutdown_and_retry() {
-    pending_initialize_raw_pty(true);
+    pending_initialize_raw_pty(true, false);
 }
 
-fn pending_initialize_raw_pty(manual_compress: bool) {
+#[test]
+fn v05_pending_unicode_edit_keeps_one_owner_and_retry() {
+    pending_initialize_raw_pty(false, true);
+}
+
+fn pending_initialize_raw_pty(manual_compress: bool, unicode_edit: bool) {
     let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
     let fixture = Fixture::new();
     let server = fixture.home.join("stalled-mcp");
@@ -1649,12 +1654,26 @@ for line in sys.stdin:
         "pending draft edited",
         deadline.saturating_duration_since(Instant::now()),
     );
+    if unicode_edit {
+        // Edit the still-pending revision in place. Ctrl+J is a real raw
+        // terminal key, not a synthetic editor call.
+        tui.raw(b"\x0a");
+        // A chip trims its own surrounding whitespace like the original;
+        // keep the intended separator as a real editor keystroke.
+        tui.raw("е\u{301}🧑‍💻 строка ".as_bytes());
+        tui.wait_screen("строка", IO_TIMEOUT);
+        tui.raw("\x1b[200~ новая\nвторая\nтретья\x1b[201~".as_bytes());
+        tui.wait_screen("[Pasted ~3 lines]", IO_TIMEOUT);
+    }
     assert!(
         tui.output.lock().unwrap()[resize_offset..]
             .windows(5)
             .any(|w| w == b"\x1b[40;"),
         "resize must actually render row 40 before fake release"
     );
+    if unicode_edit {
+        tui.raw(b"\x18"); // unresolved Ctrl+X leader must not consume Esc
+    }
     tui.raw(b"\x1b"); // actual Esc, no direct CoreApp cancellation
     loop {
         // SAFETY: signal zero probes only the pid recorded by our fake.
@@ -1702,6 +1721,13 @@ for line in sys.stdin:
             .unwrap()
             .contains("pending draft edited")
     );
+    if unicode_edit {
+        let wire = serde_json::to_string(&responses.requests()).unwrap();
+        assert!(
+            wire.contains("pending draft edited\\nе\u{301}🧑‍💻 строка новая\\nвторая\\nтретья"),
+            "edited revision absent on wire"
+        );
+    }
     let deadline = Instant::now() + IO_TIMEOUT;
     loop {
         let completed: i64 = db
@@ -1733,6 +1759,13 @@ for line in sys.stdin:
         .query_row("SELECT count(*) FROM messages", [], |r| r.get(0))
         .unwrap();
     assert_eq!(messages, 2);
+    if unicode_edit {
+        let db = oc_adapters::storage::Db::open(&fixture.home.join("data/oc")).unwrap();
+        let history = db.read_history("v01-pending").unwrap();
+        assert_eq!(history.iter().filter(|(role, _)| role == "user").count(), 1);
+        assert!(history.iter().any(|(role, text)| role == "user"
+            && text == "pending draft edited\nе\u{301}🧑‍💻 строка новая\nвторая\nтретья"));
+    }
     // Quit during a fresh stalled handshake. Application shutdown must finish
     // cleanup without accepting the prompt or waiting for the fake's release.
     fs::remove_file(&release).unwrap();
@@ -1753,6 +1786,9 @@ for line in sys.stdin:
     {
         assert!(Instant::now() < deadline, "quit handshake did not start");
         std::thread::sleep(POLL);
+    }
+    if unicode_edit {
+        quitting.raw(b"\x18"); // unresolved leader must not consume Ctrl+C
     }
     quitting.raw(b"\x03");
     while quitting.child.try_wait().unwrap().is_none() {

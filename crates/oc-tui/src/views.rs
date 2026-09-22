@@ -389,7 +389,7 @@ mod tests {
                 .collect(),
         ));
         for _ in 0..4 {
-            state.handle_key(KeyAction::Up).await;
+            state.scroll_transcript(true);
         }
         let backend = TestBackend::new(70, 24);
         let mut terminal = Terminal::new(backend).expect("backend");

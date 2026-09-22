@@ -217,10 +217,25 @@ fn prompt_lines(state: &TuiState, width: u16) -> Vec<crate::styled::Line> {
     let pad = layout::session_padding(width);
     let text_width = width.saturating_sub(4 * pad + 1).max(1);
     state
-        .input()
-        .split('\n')
-        .flat_map(|line| {
-            crate::styled::wrap_line(&crate::styled::Line::plain(line), text_width as usize)
+        .prompt_layout(text_width as usize)
+        .0
+        .into_iter()
+        .map(|row| {
+            crate::styled::Line::new(
+                row.spans
+                    .into_iter()
+                    .map(|(text, selected)| {
+                        crate::styled::Span::styled(
+                            text,
+                            if selected {
+                                Style::default().add_modifier(Modifier::REVERSED)
+                            } else {
+                                Style::default()
+                            },
+                        )
+                    })
+                    .collect(),
+            )
         })
         .collect()
 }
@@ -573,9 +588,32 @@ fn render_prompt(
             height: 1,
         };
         if body.height > 1 {
-            let input_lines = prompt_lines(state, terminal_width);
+            let (input_rows, caret) = state.prompt_layout(text_width as usize);
+            let input_lines: Vec<_> = input_rows
+                .into_iter()
+                .map(|row| {
+                    crate::styled::Line::new(
+                        row.spans
+                            .into_iter()
+                            .map(|(text, selected)| {
+                                crate::styled::Span::styled(
+                                    text,
+                                    if selected {
+                                        Style::default().add_modifier(Modifier::REVERSED)
+                                    } else {
+                                        Style::default()
+                                    },
+                                )
+                            })
+                            .collect(),
+                    )
+                })
+                .collect();
             let visible = body.height.saturating_sub(3) as usize;
-            let start = input_lines.len().saturating_sub(visible);
+            let start = caret
+                .0
+                .saturating_sub(visible.saturating_sub(1))
+                .min(input_lines.len().saturating_sub(visible));
             frame.render_widget(
                 Paragraph::new(
                     crate::styled::Lines::from(input_lines[start..].to_vec()).into_text(),
@@ -587,15 +625,9 @@ fn render_prompt(
                 },
             );
             if visible > 0 && text_width > 0 {
-                let cursor_x = input_lines.last().map_or(0, |l| {
-                    l.plain_text()
-                        .chars()
-                        .map(crate::styled::char_width)
-                        .sum::<usize>()
-                });
                 frame.set_cursor_position((
-                    text_x + (cursor_x as u16).min(text_width - 1),
-                    body.y + 1 + (input_lines.len().saturating_sub(start + 1) as u16),
+                    text_x + (caret.1 as u16).min(text_width - 1),
+                    body.y + 1 + caret.0.saturating_sub(start) as u16,
                 ));
             }
         }
@@ -997,13 +1029,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn v03_paste_expands_prompt() {
+    async fn v03_paste_keeps_full_draft_behind_compact_prompt() {
         let mut state = golden_state().await;
         state.handle_paste("draft-one\ndraft-two\ndraft-three");
         let frame = screen(&state, 80, 24).join("\n");
-        assert!(frame.contains("draft-one"));
-        assert!(frame.contains("draft-two"));
-        assert!(frame.contains("draft-three"));
+        assert_eq!(state.input(), "draft-one\ndraft-two\ndraft-three");
+        assert!(frame.contains("[Pasted ~3 lines]"));
+        assert!(!frame.contains("draft-one"));
+        assert!(!frame.contains("draft-two"));
+        assert!(!frame.contains("draft-three"));
     }
 
     #[tokio::test]
@@ -1016,7 +1050,7 @@ mod tests {
         state.attach_page(&page(vec![msg(1, Role::Assistant, &long)]));
         assert!(!screen(&state, 80, 40).join("\n").contains("FIRST-ANCHOR"));
         for _ in 0..300 {
-            state.handle_key(KeyAction::Up).await;
+            state.scroll_transcript(true);
         }
         assert!(screen(&state, 80, 40).join("\n").contains("FIRST-ANCHOR"));
         let detached = state.scroll();
@@ -1032,7 +1066,7 @@ mod tests {
             state.scroll() > displayed,
             "resize clamps the retained request"
         );
-        state.handle_key(KeyAction::Down).await;
+        state.scroll_transcript(false);
         assert_eq!(state.scroll(), displayed - 1);
         state.chrome.sidebar_hidden = true;
         assert!(!screen(&state, 160, 48).join("\n").contains("Context"));
@@ -1278,7 +1312,7 @@ mod tests {
         // Scrolling up detaches: the newest row leaves the viewport and the
         // upstream jump affordance appears in the status row.
         for _ in 0..5 {
-            state.handle_key(KeyAction::Up).await;
+            state.scroll_transcript(true);
         }
         assert_eq!(state.scroll(), 5);
         let frame = screen(&state, 80, 24);
@@ -1287,7 +1321,7 @@ mod tests {
 
         // Scrolling back to the bottom re-pins the stream.
         while state.scroll() > 0 {
-            state.handle_key(KeyAction::Down).await;
+            state.scroll_transcript(false);
         }
         let frame = screen(&state, 80, 24);
         assert!(frame.join("\n").contains("fresh line"), "{frame:?}");

@@ -85,7 +85,7 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 ## Current Checkpoint
 
 - Closes: no visual gate yet.
-- Smallest next action: V05 Unicode multiline editor and keymap/paste/history with raw PTY owner effects; V04 missing backend/service capabilities remain explicitly unavailable, not fabricated controls.
+- Smallest next action: diagnose user's release-binary `Native startup error` safely in isolated product config/PTY and preserve typed actionable diagnostic without leaking config; then V06 Markdown and live/replay cards. V04 missing backend/service capabilities remain unavailable, not fabricated controls.
 - Expected evidence: capture lock, independent original frames, commands/exit codes and raw input/application effects; exact checkpoint after each slice.
 - Stop or replan if: reference/profile unavailable → BLOCKED_REFERENCE, never closest-rendering parity. Independent fixes remain executable.
 
@@ -94,7 +94,7 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 - Resolved: source/theme/component groundwork landed through `d232baa`; historical reports remain unchanged.
 - Last relevant evidence: V00 real diagnostic paired captures in `evidence/tui/recovery-v00` (all comparisons unequal); V01 raw PTY stalled MCP prompt and manual compression cancellation/retry plus safe diagnostics in `evidence/tui/recovery-v01/report.md`. These do not qualify VIS01–VIS24.
 - Blocker: no external blocker asserted. Exact capture freeze and missing backend capability mapping remain open; in-flight MCP tool-call cancellation is a known V07/S08 gap.
-- Next: V04 modal focus/mouse raw PTY with real model/variant and selected-option effects passed, see `evidence/tui/recovery-v04/modal-focus-checkpoint.md`; independent review corrected DCP informational-row activation and press carried across Model→Variant. V05–V09 and missing genuine backend/service actions remain open; previous paired comparator results DIFFERENT, R3/R4 unverified. User's positive live visual inspection is not a waiver. Native autoaccept remains Unsupported (`evidence/tui/recovery-v02/auto-capability.md`).
+- Next: V05 Unicode editor, paste-chip projection, keymap, immutable pending revision, actual PTY provider/history and independent review corrections verified, see `evidence/tui/recovery-v05/checkpoint.md`. Paired original/Rust chip text matches at row 43 but whole-frame styled-cell/PNG comparators exit 1 DIFFERENT, VIS11–VIS12 unverified. Owner reports `target/release/oc` shows generic Native startup error then exits; cause not yet identified; isolate repro and add safe stage-specific diagnostics without reading user's `.opencode/`. V06–V09 and missing genuine backend/service actions remain open; R3/R4 unverified. User's positive live visual inspection is not a waiver. Native autoaccept remains Unsupported (`evidence/tui/recovery-v02/auto-capability.md`).
 
 ## Material Decisions
 
@@ -112,6 +112,7 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 - 2026-09-22: resumed at `15719e9` (V04 committed during pause). Preserved backend T47/T43/T46/T27 work; reproduced and corrected three explicit-variant fixture expectations, strengthened raw PTY default-versus-named-none wire/durability check. Fresh workspace 488 passed/0 failed/5 existing ignores, fmt/clippy/build/docs/journal/Python gates passed. Independent V04 review recorded further in-scope dialog gaps; no VIS closure.
 - 2026-09-22: V04 follow-up atop `931792e`: real separate variant/dialog registry/new session, app-owned scoped selection and headless precedence, retired choice refusal/recovery, pinned fuzzy oracle/cache and truecolor modal blank correction. Parent fresh workspace 498 passed/0 failed/5 existing ignores; PTY 8 passed; paired original/Rust Session/Commands/Models/Variants at 160x48, 80x24, 121x41 retained with comparator exit1 DIFFERENT. Full V04/backend actions and VIS still open; `evidence/tui/recovery-v04/followup-checkpoint.md`.
 - 2026-09-22: V04 modal mouse capture/restore, focus ownership and scroll/hover/select routed through real PTY. Review fixed informational-row compression and cross-dialog press/release. Full serial workspace green (5 existing ignores); no new paired parity qualification. See `evidence/tui/recovery-v04/modal-focus-checkpoint.md`; V05 next.
+- 2026-09-22: V05 grapheme editor, focus/keymap and actual compact paste-chip with underlying real prompt, pending revision preservation. Independent review fixed five editor and three chip/ownership defects; parent final serial workspace/clippy/build/fmt/docs/Python exit 0. Actual pinned-original/Rust chip frames match visible chip/cursor, whole-frame comparator grid/png FAIL; see `evidence/tui/recovery-v05/checkpoint.md`. Release startup user report is new next action, no private config read.
 
 ## Completion
 
