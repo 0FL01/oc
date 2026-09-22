@@ -7,6 +7,8 @@
 //! the opt-in view-metrics probe — never render snapshots alone.
 
 use std::io::{Read, Write};
+#[path = "support/title.rs"]
+mod title;
 use std::net::{TcpListener, TcpStream};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::path::{Path, PathBuf};
@@ -63,7 +65,7 @@ impl Fixture {
                 }
             }},
             "agent": {
-                "t39agent": {"description": "T39 fixture agent", "model": ALT_MODEL,
+                "t39agent": {"description": "T39 fixture agent", "model": format!("fixture/{ALT_MODEL}#fast"),
                              "mode": "primary", "prompt": AGENT_PROMPT}
             },
             "command": {
@@ -98,6 +100,9 @@ impl Fixture {
                             .expect("write timeout");
                         let body = read_request(&mut socket);
                         captured.lock().expect("requests").push(body.clone());
+                        if title::respond(&mut socket, &body) {
+                            continue;
+                        }
                         let scripted = script(&body);
                         let _ = respond(&mut socket, &scripted, &stopping);
                     }
@@ -139,7 +144,15 @@ impl Fixture {
     fn wait_requests(&self, count: usize) -> Vec<serde_json::Value> {
         let start = Instant::now();
         loop {
-            let requests = self.requests.lock().expect("requests").clone();
+            // Raw capture includes titles; this accessor counts main turns.
+            let requests: Vec<_> = self
+                .requests
+                .lock()
+                .expect("requests")
+                .iter()
+                .filter(|r| !title::is_title(r))
+                .cloned()
+                .collect();
             if requests.len() >= count {
                 return requests;
             }
@@ -851,7 +864,7 @@ fn aud29_pty_panels_change_runtime_state() {
     // Model picker: the effective model changes for the next turn.
     pty.send(b"/model\r");
     wait_screen_row(&pty, "model |", DEADLINE);
-    wait_screen_row(&pty, ALT_MODEL, DEADLINE);
+    wait_screen_row(&pty, "T39 alt · fixture", DEADLINE);
     pty.send(b"\x1b[A"); // Up: cursor moves to the alphabetically first id
     pty.send(b"\x1b[C"); // Right: cycle to the declared variant
     wait_screen_row(&pty, "variant: fast", DEADLINE);
@@ -860,6 +873,7 @@ fn aud29_pty_panels_change_runtime_state() {
 
     let off = submit(&mut pty, "hello model");
     pty.wait_visible_after(off, "echo: hello model", DEADLINE);
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
 
     // Agent picker: prompt and pinned model come from the agent definition.
     pty.send(b"/agents\r");
@@ -912,6 +926,10 @@ fn aud29_pty_panels_change_runtime_state() {
         "variant reached the request body"
     );
     assert_eq!(model_of(1), ALT_MODEL, "agent pinned model kept");
+    assert_eq!(
+        requests[1]["reasoning"]["effort"], "high",
+        "full agent model#variant reached the normal request"
+    );
     let agent_request = requests[1]["input"].to_string();
     assert!(
         agent_request.contains(AGENT_PROMPT),
@@ -965,6 +983,7 @@ fn aud30_pty_paste_resize_error_recovery() {
     pty.send(b"\r");
     pty.wait_visible_after(off, "┃привет🌍", DEADLINE);
     pty.wait_visible_after(off, "echo: привет 🌍", DEADLINE);
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
 
     // Resize while a stream is running: the frame follows the new size and
     // the turn still completes.

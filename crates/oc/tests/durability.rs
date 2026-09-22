@@ -203,6 +203,21 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
         ],
     );
     drop(socket);
+    let (mut title_socket, title_request) = accept_request(&listener);
+    assert!(
+        title_request["tools"]
+            .as_array()
+            .is_none_or(|v| v.is_empty())
+    );
+    assert_eq!(title_request["model"], MODEL);
+    respond(
+        &mut title_socket,
+        &[
+            json!({"type":"response.output_text.delta","delta":"Recovered shell session"}),
+            json!({"type":"response.completed","response":{"status":"completed","output":[]}}),
+        ],
+    );
+    drop(title_socket);
     assert!(restarted.wait().success(), "{}", restarted.diagnostics());
     assert_eq!(
         std::fs::read_to_string(&restarted.stdout)
@@ -249,6 +264,27 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
             ("assistant".into(), ANSWER.into()),
         ]
     );
+    drop(db);
+    // V02: the same actual-crash record is served through the application,
+    // including the unknown operation, rather than reconstructed as success.
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let env=std::collections::BTreeMap::from([
+            ("HOME".into(),home.display().to_string()),
+            ("XDG_CONFIG_HOME".into(),home.join("config").display().to_string()),
+            ("OC_TEST_ALLOW_LOOPBACK".into(),"1".into()),
+        ]);
+        let (app,guard,_)=oc_adapters::application::spawn_with_env(&project,&data,env).await.unwrap();
+        let session=oc_core::domain::SessionId(SESSION.to_string());
+        let page=app.history_page(session.clone(),None,None,100).await.unwrap();
+        let turn=page.rows[0].turn.as_ref().expect("crashed turn projection");
+        assert_eq!(turn.status,"unknown");
+        assert_eq!(turn.model_label,"Durability fixture");
+        assert!(turn.parts.iter().any(|part|matches!(part,oc_core::queries::TranscriptPart::Tool(op) if op.state=="unknown" && op.output.is_none())));
+        let mut state=oc_tui::app::TuiState::new(app.clone(),session);
+        state.attach_page(&page);
+        assert!(state.history().rows().iter().any(|row|row.tool.as_ref().is_some_and(|card|card.state=="unknown")));
+        app.shutdown().await.unwrap();guard.join().await.unwrap();
+    });
 }
 
 struct Process {

@@ -164,7 +164,7 @@ impl LivePart {
     fn retained_bytes(&self) -> usize {
         match self {
             LivePart::Text(text) | LivePart::Reasoning { text, .. } => text.len(),
-            LivePart::Tool { card, .. } => card.input_preview.len() + card.output_preview.len(),
+            LivePart::Tool { card, input } => card.retained_bytes() + input.len(),
         }
     }
 
@@ -223,6 +223,10 @@ struct PendingSubmission {
 
 /// Bounded chat state bound to one session on the shared handle.
 pub struct TuiState {
+    /// Current session's durable human title, refreshed with history.
+    pub session_title: Option<String>,
+    /// Session autoaccept capability supplied by the application.
+    pub auto_accept: oc_core::queries::AutoAcceptState,
     app: CoreApp,
     session: SessionId,
     status: TuiStatus,
@@ -235,6 +239,11 @@ pub struct TuiState {
     /// Frozen live parts (text/reasoning segments and tool cards) of the
     /// active turn, in arrival order.
     live_parts: Vec<LivePart>,
+    /// Explicit durable live identities; replaced at each application checkpoint.
+    pub live_part_states: Vec<oc_core::queries::PartState>,
+    live_agent_color_index: Option<usize>,
+    live_terminal_status: Option<String>,
+    live_preview_truncated: bool,
     /// First reasoning delta of the active turn, for the collapsed header's
     /// duration (`part.time.created` upstream).
     reasoning_started: Option<Instant>,
@@ -286,6 +295,8 @@ impl TuiState {
     /// Bind to a session; the session must already exist on the handle.
     pub fn new(app: CoreApp, session: SessionId) -> Self {
         Self {
+            session_title: None,
+            auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
             app,
             session,
             status: TuiStatus::Idle,
@@ -295,6 +306,10 @@ impl TuiState {
             live_text: String::new(),
             live_reasoning: String::new(),
             live_parts: Vec::new(),
+            live_part_states: Vec::new(),
+            live_agent_color_index: None,
+            live_terminal_status: None,
+            live_preview_truncated: false,
             reasoning_started: None,
             reasoning_finished: None,
             turn_usage: None,
@@ -339,6 +354,8 @@ impl TuiState {
     /// workspace commands) belongs to the previous Location: the next panel
     /// open must reload from the new generation instead of showing it.
     pub fn reset_workspace(&mut self) {
+        self.auto_accept = oc_core::queries::AutoAcceptState::Unsupported;
+        self.session_title = None;
         self.generation += 1;
         self.invalidate_submission();
         self.picker = None;
@@ -361,6 +378,7 @@ impl TuiState {
     }
 
     pub fn set_session(&mut self, session: SessionId) {
+        self.session_title = None;
         self.generation += 1;
         self.invalidate_submission();
         self.session = session;
@@ -381,6 +399,10 @@ impl TuiState {
     }
 
     fn invalidate_submission(&mut self) {
+        self.live_part_states.clear();
+        self.live_agent_color_index = None;
+        self.live_terminal_status = None;
+        self.live_preview_truncated = false;
         // Called only after an accepted switch (binary refuses busy switches).
         // Invalidate local receipts even if a caller has an old completion queued.
         self.pending = None;
@@ -428,6 +450,7 @@ impl TuiState {
 
     /// Newest page becomes the whole window; scroll pins to the newest row.
     pub fn attach_page(&mut self, page: &HistoryPage) {
+        self.session_title = page.title.clone();
         self.window.reset(page);
         self.scroll = 0;
     }
@@ -523,6 +546,12 @@ impl TuiState {
                 tool: None,
             });
         }
+        if self.active_turn.is_some() && self.live_preview_truncated {
+            rows.push(HistoryRow {
+                seq:i64::MAX,role:"assistant".into(),text:"[Live preview truncated; durable parts remain available through history and /cards]".into(),
+                agent:None,chips:Vec::new(),reasoning:None,meta:None,tool:None,
+            });
+        }
         rows
     }
 
@@ -542,11 +571,17 @@ impl TuiState {
     }
 
     /// Categorical agent color (`context/local.tsx:75-133`): the agent's index
-    /// in the visible agent list, and the first categorical color for an
+    /// in the generation's full admitted agent list (the catalog pins the slot),
+    /// and the first categorical color for an
     /// unknown/missing agent.
     pub fn agent_color(&self, agent: Option<&str>) -> ratatui::style::Color {
         let colors = Theme::dark().categorical_agents();
-        let index = agent.and_then(|id| self.agents.iter().position(|entry| entry.id == id));
+        let index = agent.and_then(|id| {
+            self.agents
+                .iter()
+                .find(|entry| entry.id == id)
+                .map(|entry| entry.color_index)
+        });
         match index {
             Some(index) => colors[index % colors.len()],
             None => colors[0],
@@ -557,6 +592,7 @@ impl TuiState {
 
     /// Apply a catalog snapshot: picker, agents and the effective selection.
     pub fn apply_catalog(&mut self, snapshot: CatalogSnapshot) {
+        self.auto_accept = snapshot.auto_accept;
         let mut picker = ModelPicker::new(catalog_from_snapshot(&snapshot));
         if !snapshot.model_id.is_empty() {
             let record = serde_json::json!({
@@ -659,6 +695,10 @@ impl TuiState {
 
     /// The accepted compress turn starts streaming: status, turn, DCP panel.
     pub fn begin_compress_turn(&mut self, turn: WorkerTurnId) {
+        self.live_preview_truncated = false;
+        self.live_part_states.clear();
+        self.live_terminal_status = None;
+        self.live_agent_color_index = None;
         self.compress_turn = Some(turn.clone());
         self.active_turn = Some(turn);
         self.status = TuiStatus::Streaming;
@@ -731,7 +771,12 @@ impl TuiState {
     pub fn active_model_label(&self) -> Option<(String, Option<String>)> {
         let selection = self.picker.as_ref()?.selection()?;
         Some((
-            selection.id.clone(),
+            selection
+                .entry
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or(&selection.id)
+                .to_string(),
             selection
                 .variant
                 .as_ref()
@@ -741,7 +786,14 @@ impl TuiState {
 
     /// Provider id of the loaded catalog, if any.
     pub fn active_provider(&self) -> Option<&str> {
-        Some(self.picker.as_ref()?.provider())
+        let picker = self.picker.as_ref()?;
+        Some(
+            picker
+                .selection()
+                .and_then(|s| s.entry.get("provider_name"))
+                .and_then(|v| v.as_str())
+                .unwrap_or(picker.provider()),
+        )
     }
 
     /// Effective agent id from the catalog snapshot, if any.
@@ -907,6 +959,10 @@ impl TuiState {
         }
         match result {
             Ok(turn) => {
+                self.live_preview_truncated = false;
+                self.live_part_states.clear();
+                self.live_terminal_status = None;
+                self.live_agent_color_index = None;
                 if !pending.compress {
                     self.window.push_synthetic("user", pending.draft.trim());
                 }
@@ -1131,6 +1187,22 @@ impl TuiState {
         }
     }
 
+    /// Adopt explicit checkpoint identities and pinned presentation only for
+    /// the current generation/turn. Deltas remain transient until checkpointed.
+    pub fn apply_presentation(
+        &mut self,
+        turn: &WorkerTurnId,
+        projection: &oc_core::queries::HistoryTurn,
+    ) {
+        if self.active_turn.as_ref() != Some(turn) || projection.id != turn.0 {
+            return;
+        }
+        self.live_part_states = projection.part_states.clone();
+        self.live_preview_truncated |= projection.truncated;
+        self.live_agent_color_index = projection.agent_color_index;
+        self.live_terminal_status = Some(projection.status.clone());
+    }
+
     /// Apply provider-reported usage for the active turn; without it the
     /// footer omits `tok/s` instead of inventing a rate.
     pub fn apply_usage(
@@ -1228,44 +1300,39 @@ impl TuiState {
         if Some(turn) != self.active_turn.as_ref() {
             return;
         }
+        let mut meta = self.finish_meta(false, 0);
+        if meta.status.is_none() {
+            meta.status = Some("failed".into());
+        }
+        let reasoning = self.take_reasoning();
+        let parts = self.commit_live_parts(reasoning);
         self.active_turn = None;
-        self.live_text.clear();
-        self.live_reasoning.clear();
-        self.reasoning_started = None;
-        self.reasoning_finished = None;
-        self.turn_usage = None;
         self.status = TuiStatus::Idle;
-        if !self.live_parts.is_empty() {
+        if !parts.is_empty() {
             // Cards already shown stay visible; the error follows them.
-            let parts = std::mem::take(&mut self.live_parts);
             self.push_committed_parts(parts);
         }
+        self.window
+            .push_row(footer_row(self.active_agent.clone(), meta));
         self.window.push_synthetic("", &format!("(error: {error})"));
     }
 
     /// Freeze the open live segments and return the whole part list in
-    /// arrival order; a completed reasoning block becomes the leading part
-    /// (upstream reasoning precedes text and tools).
+    /// arrival order, including reasoning after an earlier tool round.
     fn commit_live_parts(&mut self, reasoning: Option<ReasoningBlock>) -> Vec<LivePart> {
+        if let Some(reasoning) = reasoning {
+            self.live_parts.push(LivePart::Reasoning {
+                text: reasoning.text,
+                duration_ms: reasoning.duration_ms,
+            });
+        }
         self.freeze_reasoning();
         self.freeze_text();
         self.live_reasoning.clear();
         self.reasoning_started = None;
         self.reasoning_finished = None;
         self.turn_usage = None;
-        let mut parts = std::mem::take(&mut self.live_parts);
-        if let Some(reasoning) = reasoning {
-            // Reasoning precedes every text/tool part upstream; the open
-            // reasoning segment was already frozen by `freeze_reasoning`.
-            parts.insert(
-                0,
-                LivePart::Reasoning {
-                    text: reasoning.text,
-                    duration_ms: reasoning.duration_ms,
-                },
-            );
-        }
-        parts
+        std::mem::take(&mut self.live_parts)
     }
 
     /// Push committed part rows into the window (bounded like any row).
@@ -1388,6 +1455,7 @@ impl TuiState {
                 > WINDOW_BYTES
         {
             self.live_parts.remove(0);
+            self.live_preview_truncated = true;
         }
     }
 
@@ -1397,7 +1465,14 @@ impl TuiState {
     fn finish_meta(&mut self, interrupted: bool, duration_ms: u64) -> AssistantMeta {
         let model = self.picker.as_ref().and_then(|picker| {
             let selection = picker.selection()?;
-            Some(format!("{}/{}", picker.provider(), selection.id))
+            Some(
+                selection
+                    .entry
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(&selection.id)
+                    .to_string(),
+            )
         });
         let usage = self.turn_usage.take();
         AssistantMeta {
@@ -1407,6 +1482,8 @@ impl TuiState {
             output_tokens: usage.map(|usage| usage.output_tokens),
             streamed_ms: usage.map(|usage| usage.streamed_ms),
             interrupted,
+            status: self.live_terminal_status.take(),
+            agent_color_index: self.live_agent_color_index,
         }
     }
 
@@ -1577,7 +1654,10 @@ fn catalog_from_snapshot(snapshot: &CatalogSnapshot) -> ModelCatalog {
         models.insert(
             entry.id.clone(),
             serde_json::json!({
-                "limit": { "context": entry.context, "output": entry.output },
+                "name": if entry.display_name.is_empty() { &entry.id } else { &entry.display_name },
+                "provider_name": if entry.provider_name.is_empty() { &snapshot.provider } else { &entry.provider_name },
+                "cost": entry.price.as_ref().map(|p|serde_json::json!({"input":p.input,"output":p.output})),
+                "limit": { "context": entry.context_known.then_some(entry.context), "output": entry.output_known.then_some(entry.output) },
                 "variants": variants,
             }),
         );
@@ -1619,6 +1699,9 @@ impl ScriptDriver {
                 Err(_) => return PumpOutcome::Timeout,
                 Ok(Err(_)) => return PumpOutcome::Closed,
                 Ok(Ok(CoreEvent::TurnStarted { .. })) => {}
+                Ok(Ok(CoreEvent::TurnPresentation {
+                    turn, projection, ..
+                })) => state.apply_presentation(&turn, &projection),
                 Ok(Ok(CoreEvent::TurnFailed { turn, error, .. })) => {
                     state.apply_failed(&turn, &error);
                     return PumpOutcome::Closed;
@@ -1732,6 +1815,7 @@ mod tests {
 
     fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
         HistoryMessage {
+            turn: None,
             seq,
             role,
             text: text.to_string(),
@@ -1740,6 +1824,7 @@ mod tests {
 
     fn page(rows: Vec<HistoryMessage>, total: usize, older: bool, newer: bool) -> HistoryPage {
         HistoryPage {
+            title: None,
             rows,
             total,
             has_older: older,
@@ -1903,15 +1988,24 @@ mod tests {
 
     fn snapshot() -> CatalogSnapshot {
         CatalogSnapshot {
+            auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
             provider: "ludka2".to_string(),
             models: vec![
                 ModelEntry {
+                    display_name: String::new(),
+                    provider_name: String::new(),
+                    price: None,
                     id: "a".to_string(),
                     variants: Vec::new(),
                     context: 1000,
+                    context_known: true,
+                    output_known: true,
                     output: 100,
                 },
                 ModelEntry {
+                    display_name: String::new(),
+                    provider_name: String::new(),
+                    price: None,
                     id: "b".to_string(),
                     variants: vec![VariantEntry {
                         name: "low".to_string(),
@@ -1919,6 +2013,8 @@ mod tests {
                         reasoning_effort: Some("low".to_string()),
                     }],
                     context: 1000,
+                    context_known: true,
+                    output_known: true,
                     output: 100,
                 },
             ],
@@ -1927,12 +2023,14 @@ mod tests {
             agents: vec![
                 AgentEntry {
                     id: "x".to_string(),
+                    color_index: 0,
                     description: "first profile".to_string(),
                     model: None,
                     variant: None,
                 },
                 AgentEntry {
                     id: "y".to_string(),
+                    color_index: 1,
                     description: "second profile".to_string(),
                     model: Some("b".to_string()),
                     variant: None,
@@ -2196,6 +2294,44 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn v02_multiround_reasoning_keeps_arrival_order() {
+        let mut state = fresh_state("ordered").await;
+        let turn = WorkerTurnId("turn".into());
+        state.active_turn = Some(turn.clone());
+        state.apply_reasoning_delta(&turn, "first thought");
+        state.apply_tool_started(&turn, "op", "read", "{}");
+        state.apply_reasoning_delta(&turn, "second thought");
+        state.apply_delta(&turn, "answer");
+        state.apply_finished(&turn, "answer", 1);
+        let kinds: Vec<_> = state
+            .history()
+            .rows()
+            .iter()
+            .map(|r| {
+                if let Some(reasoning) = &r.reasoning {
+                    reasoning.text.as_str()
+                } else if r.tool.is_some() {
+                    "tool"
+                } else if r.meta.is_some() {
+                    "footer"
+                } else {
+                    r.text.as_str()
+                }
+            })
+            .collect();
+        assert_eq!(
+            kinds,
+            [
+                "first thought",
+                "tool",
+                "second thought",
+                "answer",
+                "footer"
+            ]
+        );
+    }
+
+    #[tokio::test]
     async fn stale_turn_events_are_ignored() {
         let mut state = fresh_state("s-stale").await;
         let mut driver = ScriptDriver::attach(&state.app);
@@ -2338,6 +2474,12 @@ mod tests {
             );
         }
         assert!(state.live_parts.len() <= LIVE_PARTS_MAX);
+        assert!(
+            state
+                .viewport()
+                .iter()
+                .any(|line| line.contains("Live preview truncated"))
+        );
         assert!(state.retained_bytes() <= 2 * WINDOW_BYTES + MAX_INPUT_BYTES);
         assert!(state.viewport().len() <= VIEWPORT_LINES);
     }

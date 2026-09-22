@@ -203,7 +203,31 @@ impl Fixture {
         let mut process = self.spawn(session, prompt, label);
         let (mut socket, _) = self.accept(&mut process);
         respond_text(&mut socket, answer);
-        assert!(process.wait().success(), "{}", process.diagnostics());
+        assert!(
+            self.wait_with_title(&mut process).success(),
+            "{}",
+            process.diagnostics()
+        );
+    }
+
+    fn wait_with_title(&self, process: &mut Process) -> ExitStatus {
+        let deadline = Instant::now() + TIMEOUT;
+        let mut titles = 0;
+        loop {
+            if let Some(status) = process.child.try_wait().unwrap() {
+                return status;
+            }
+            if let Ok((socket, _)) = self.listener.accept() {
+                let (mut socket, request) = read_request(socket);
+                titles += 1;
+                assert_eq!(titles, 1, "at most one title per completed turn");
+                assert!(request["tools"].as_array().is_none_or(|v| v.is_empty()));
+                assert_eq!(request["max_output_tokens"], 256);
+                respond_text(&mut socket, "DCP session");
+            }
+            assert!(Instant::now() < deadline, "{}", process.diagnostics());
+            std::thread::sleep(POLL);
+        }
     }
 }
 
@@ -604,7 +628,11 @@ fn aud19_aud20_aud21_binary_model_compress_nudges_and_restart() {
     let (mut socket, isolated_request) = fixture.accept(&mut isolated);
     assert_nudges(&isolated_request, 1, "independent session first iteration");
     respond_text(&mut socket, "isolated complete");
-    assert!(isolated.wait().success(), "{}", isolated.diagnostics());
+    assert!(
+        fixture.wait_with_title(&mut isolated).success(),
+        "{}",
+        isolated.diagnostics()
+    );
 
     fixture.write_dcp(true);
     let mut manual = fixture.spawn(
@@ -615,7 +643,11 @@ fn aud19_aud20_aud21_binary_model_compress_nudges_and_restart() {
     let (mut socket, manual_request) = fixture.accept(&mut manual);
     assert_nudges(&manual_request, 0, "manualMode=true");
     respond_text(&mut socket, "manual complete");
-    assert!(manual.wait().success(), "{}", manual.diagnostics());
+    assert!(
+        fixture.wait_with_title(&mut manual).success(),
+        "{}",
+        manual.diagnostics()
+    );
 
     let mut restarted = fixture.spawn(
         SESSION,
@@ -637,7 +669,11 @@ fn aud19_aud20_aud21_binary_model_compress_nudges_and_restart() {
     );
     assert_nudges(&restart_request, 0, "manual mode after restart");
     respond_text(&mut socket, "violet retained after restart");
-    assert!(restarted.wait().success(), "{}", restarted.diagnostics());
+    assert!(
+        fixture.wait_with_title(&mut restarted).success(),
+        "{}",
+        restarted.diagnostics()
+    );
     assert_eq!(restarted.output().trim(), "violet retained after restart");
 
     let db = Db::open(&fixture.data()).expect("inspect restarted raw history");
@@ -899,7 +935,11 @@ fn run_crash_atomicity_at_sqlite_sync() {
         );
     }
     respond_text(&mut socket, answer);
-    assert!(restarted.wait().success(), "{}", restarted.diagnostics());
+    assert!(
+        fixture.wait_with_title(&mut restarted).success(),
+        "{}",
+        restarted.diagnostics()
+    );
     assert_eq!(restarted.output().trim(), answer);
     assert_eq!(
         fixture

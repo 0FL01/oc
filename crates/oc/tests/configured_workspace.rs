@@ -161,6 +161,14 @@ impl Fixture {
         );
     }
 
+    fn respond_title(&self, process: &mut Process) {
+        let (mut socket, request) = self.accept(process);
+        assert_eq!(request["model"], MODEL);
+        assert!(request["tools"].as_array().is_none_or(|v| v.is_empty()));
+        assert_eq!(request["max_output_tokens"], 256);
+        respond_text(&mut socket, "Configured workspace session");
+    }
+
     fn wait_for_preflight_failure(&self, process: &mut Process) -> ExitStatus {
         let deadline = Instant::now() + TIMEOUT;
         loop {
@@ -386,6 +394,7 @@ fn aud14_aud15_aud17_binary_loads_isolated_a_b_workspace_and_pins_skill() {
     assert_fixed_marker(&second_a, GLOBAL_RULE);
     assert_fixed_marker(&second_a, A_RULE);
     respond_text(&mut socket, "project A complete");
+    fixture.respond_title(&mut a);
     assert!(a.wait().success(), "{}", a.diagnostics());
     assert_eq!(a.output().trim(), "project A complete");
     assert!(
@@ -415,6 +424,7 @@ fn aud14_aud15_aud17_binary_loads_isolated_a_b_workspace_and_pins_skill() {
     );
     assert_ne!(fixed_text(&first_a), fixed_text(&first_b));
     respond_text(&mut socket, "project B complete");
+    fixture.respond_title(&mut b);
     assert!(b.wait().success(), "{}", b.diagnostics());
 
     let mut cross = fixture.spawn(
@@ -576,6 +586,7 @@ fn aud17_binary_malformed_selected_skill_is_visible_and_valid_sibling_survives()
         "selected malformed skill was silently treated as unknown: {result}"
     );
     respond_text(&mut socket, "malformed skill handled");
+    fixture.respond_title(&mut process);
     assert!(process.wait().success(), "{}", process.diagnostics());
     let diagnostic = process.diagnostics();
     assert!(diagnostic.contains(&malformed.to_string_lossy().to_string()));
@@ -608,6 +619,7 @@ fn run_denied_patch(fixture: &Fixture, project: &Path, session: &str, target: &s
         "denied apply_patch changed the project"
     );
     respond_text(&mut socket, "denial observed");
+    fixture.respond_title(&mut process);
     assert!(process.wait().success(), "{}", process.diagnostics());
     assert!(!project.join(target).exists());
 }

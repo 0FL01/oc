@@ -6,6 +6,8 @@
 //! slave termios state — not render snapshots.
 
 use std::io::{Read, Write};
+#[path = "support/title.rs"]
+mod title;
 use std::net::{TcpListener, TcpStream};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::path::{Path, PathBuf};
@@ -91,7 +93,10 @@ impl Fixture {
                             _ => format!("echo: {prompt}"),
                         };
                         let slow = prompt == "cancel heartbeat probe";
-                        captured.lock().expect("requests").push(body);
+                        captured.lock().expect("requests").push(body.clone());
+                        if title::respond(&mut socket, &body) {
+                            continue;
+                        }
                         // Preserve the heartbeat regression. Silent-body and
                         // pre-header cancellation are covered by responses.rs.
                         let _ = respond(&mut socket, &answer, slow, &stopping);
@@ -1227,7 +1232,12 @@ fn aud02_store01_persist_resume_across_restart() {
         "third configured answer"
     );
     let requests = fixture.wait_requests(3);
-    assert_eq!(requests.len(), 3, "one real request per process turn");
+    assert_eq!(requests.len(), 4, "three process turns plus one title");
+    assert_eq!(requests.iter().filter(|r| title::is_title(r)).count(), 1);
+    let requests: Vec<_> = requests
+        .into_iter()
+        .filter(|r| !title::is_title(r))
+        .collect();
     for (index, expected) in [
         vec!["user: CLI durable seed"],
         vec![
@@ -1295,7 +1305,7 @@ fn pty_escape_cancels_heartbeat_request() {
     // Iteration 3a renders the upstream interrupt presentation: the partial
     // assistant text with the footer's `interrupted` marker
     // (`routes/session/index.tsx:1977-1980`).
-    wait_screen_row(&pty, "interrupted", DEADLINE);
+    wait_screen_row(&pty, "cancelled", DEADLINE);
     quit_clean(&mut pty);
     assert_eq!(
         persisted(pty.data_dir(), "s-cancel"),

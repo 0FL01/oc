@@ -100,6 +100,10 @@ pub struct AssistantMeta {
     pub streamed_ms: Option<u64>,
     /// Upstream `error.message === "Step interrupted"`.
     pub interrupted: bool,
+    /// Exact terminal state, when supplied by the owning application.
+    pub status: Option<String>,
+    /// Agent categorical slot pinned at generation time.
+    pub agent_color_index: Option<usize>,
 }
 
 /// Render the whole transcript, wrapped to the content-box `width`.
@@ -414,7 +418,12 @@ fn footer_line(
         let color = if meta.interrupted {
             theme.text_muted()
         } else {
-            agent_color(Some(agent))
+            meta.agent_color_index
+                .map(|index| {
+                    let colors = theme.categorical_agents();
+                    colors[index % colors.len()]
+                })
+                .unwrap_or_else(|| agent_color(Some(agent)))
         };
         push_field(
             Span::styled(Locale::titlecase(agent), Style::default().fg(color)),
@@ -436,7 +445,13 @@ fn footer_line(
     if let Some(tps) = tokens_per_second(meta) {
         push_field(Span::styled(format!("{tps:.1} tok/s"), muted), &mut spans);
     }
-    if meta.interrupted {
+    if let Some(status) = meta
+        .status
+        .as_deref()
+        .filter(|s| *s != "completed" && *s != "started")
+    {
+        push_field(Span::styled(status, muted), &mut spans);
+    } else if meta.interrupted {
         push_field(Span::styled("interrupted", muted), &mut spans);
     }
     (spans.len() > 1).then(|| Line::new(spans))
@@ -1156,6 +1171,7 @@ mod tests {
             output_tokens: Some(200),
             streamed_ms: Some(4000),
             interrupted: false,
+            ..AssistantMeta::default()
         };
         let row = HistoryRow {
             meta: Some(meta.clone()),
@@ -1184,6 +1200,7 @@ mod tests {
                 output_tokens: None,
                 streamed_ms: None,
                 interrupted: true,
+                ..AssistantMeta::default()
             }),
             ..assistant("")
         };
@@ -1210,6 +1227,31 @@ mod tests {
         })
         .expect("footer");
         assert_eq!(banded.plain_text(), "   Build · ludka2/a · 50.0 tok/s");
+    }
+
+    #[test]
+    fn v02_footer_uses_pinned_agent_slot_and_exact_status() {
+        for status in ["failed", "cancelled", "incomplete", "unknown"] {
+            let row = HistoryRow {
+                meta: Some(AssistantMeta {
+                    status: Some(status.into()),
+                    agent_color_index: Some(3),
+                    ..Default::default()
+                }),
+                ..assistant("")
+            };
+            let (rows, buffer) = render(&[row], 80, 3);
+            assert!(
+                rows.iter()
+                    .any(|r| r.contains(&format!("Build · {status}"))),
+                "{rows:?}"
+            );
+            assert_eq!(
+                buffer[(3, 1)].fg,
+                Theme::dark().categorical_agents()[3],
+                "historical generation slot wins over render helper's current slot zero"
+            );
+        }
     }
 
     /// Long content wraps instead of clipping (`message-parts.tsx` markdown and

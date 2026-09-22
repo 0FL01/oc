@@ -641,12 +641,10 @@ fn map_event(value: &serde_json::Value) -> Option<StreamItem> {
             let usage = value.pointer("/response/usage");
             let input = usage
                 .and_then(|u| u.get("input_tokens"))
-                .and_then(|v| v.as_u64())
-                .unwrap_or(0);
+                .and_then(|v| v.as_u64())?;
             let output = usage
                 .and_then(|u| u.get("output_tokens"))
-                .and_then(|v| v.as_u64())
-                .unwrap_or(0);
+                .and_then(|v| v.as_u64())?;
             Some(StreamItem::Usage {
                 input_tokens: input,
                 output_tokens: output,

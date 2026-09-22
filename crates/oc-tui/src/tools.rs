@@ -165,6 +165,55 @@ pub const GENERIC_ARGS_MAX: usize = 4;
 pub const GENERIC_ARG_CHARS: usize = 120;
 
 impl ToolRender {
+    /// Retained string bytes, without allocating a rendered/debug copy.
+    pub(crate) fn retained_bytes(&self) -> usize {
+        let optional = |s: &Option<String>| s.as_ref().map_or(0, String::len);
+        match self {
+            Self::Shell(s) => {
+                s.command.len()
+                    + optional(&s.cwd)
+                    + s.stdout
+                        .iter()
+                        .chain(&s.stderr)
+                        .map(String::len)
+                        .sum::<usize>()
+            }
+            Self::Patch(p) => p
+                .files
+                .iter()
+                .map(|f| {
+                    f.path.len()
+                        + optional(&f.move_to)
+                        + f.hunks
+                            .iter()
+                            .map(|h| {
+                                optional(&h.anchor)
+                                    + h.lines.iter().map(|l| l.text.len()).sum::<usize>()
+                            })
+                            .sum::<usize>()
+                })
+                .sum(),
+            Self::Subagent(s) => {
+                s.agent.len()
+                    + s.description.len()
+                    + optional(&s.model)
+                    + optional(&s.child_session)
+                    + optional(&s.child_state)
+                    + optional(&s.error)
+                    + s.result.iter().map(String::len).sum::<usize>()
+            }
+            Self::Inline(InlineRender::Read { path }) => path.len(),
+            Self::Inline(
+                InlineRender::Glob { pattern, .. } | InlineRender::Grep { pattern, .. },
+            ) => pattern.len(),
+            Self::Inline(InlineRender::WebFetch { url }) => url.len(),
+            Self::Inline(InlineRender::Skill { id }) => id.len(),
+            Self::Inline(InlineRender::Generic { args }) => {
+                args.iter().map(|(k, v)| k.len() + v.len()).sum()
+            }
+        }
+    }
+
     /// Parse the presentation data of one recorded tool operation.
     ///
     /// Unknown or unparsable inputs produce the generic renderer over the

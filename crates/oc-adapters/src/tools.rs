@@ -990,6 +990,10 @@ async fn tool_subagent(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
 /// with a diagnostic instead of leaking it into a foreign context.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TurnLog {
+    /// Safe pinned labels and measured footer metadata.
+    pub display: serde_json::Value,
+    /// Ordered presentation references and public reasoning absent from wire history.
+    pub display_parts: Vec<serde_json::Value>,
     /// Turn id this log belongs to.
     pub turn_id: String,
     /// Model id at generation time.
@@ -1012,6 +1016,8 @@ impl TurnLog {
     /// Start an empty log for a turn.
     pub fn new(turn_id: &str, model: &str, provider: &str) -> Self {
         Self {
+            display: serde_json::json!({}),
+            display_parts: Vec::new(),
             turn_id: turn_id.to_string(),
             model: model.to_string(),
             provider: provider.to_string(),
@@ -1042,6 +1048,8 @@ impl TurnLog {
     /// Serialize for the turn row.
     pub fn to_json(&self) -> serde_json::Value {
         serde_json::json!({
+            "display": self.display,
+            "display_parts": self.display_parts,
             "turn_id": self.turn_id,
             "model": self.model,
             "provider": self.provider,
@@ -1056,6 +1064,15 @@ impl TurnLog {
     /// Deserialize from the turn row.
     pub fn from_json(value: &serde_json::Value) -> Result<Self, String> {
         Ok(Self {
+            display: value
+                .get("display")
+                .cloned()
+                .unwrap_or_else(|| serde_json::json!({})),
+            display_parts: value
+                .get("display_parts")
+                .and_then(|v| v.as_array())
+                .cloned()
+                .unwrap_or_default(),
             user_message: value
                 .get("user_message")
                 .and_then(|v| v.as_str())

@@ -5,11 +5,11 @@
 //! widgets. Slots whose data is not in our DTOs are rendered empty, never
 //! invented:
 //!
-//! - the tab title uses the upstream fallback `Untitled session`
-//!   (`component/session-tabs.tsx:1561`): session titles are not in our DTOs;
+//! - the tab title uses durable metadata, with upstream `Untitled session`
+//!   fallback (`component/session-tabs.tsx:1561`);
 //! - the prompt left border keeps `border.base`; upstream tints it with the
-//!   active agent color (`component/prompt/index.tsx:1576`), which our DTOs
-//!   do not carry;
+//!   active agent color (`component/prompt/index.tsx:1576`); the slot is now
+//!   available from the DTO, while border treatment belongs to V03;
 //! - the prompt footer left slot shows the interrupt hint while a turn
 //!   streams, otherwise the DCP notice, otherwise nothing: the current
 //!   Location label upstream renders there (`component/prompt/index.tsx:1920-1935`)
@@ -17,9 +17,9 @@
 //! - the status row shows `Jump to latest ↓` when the stream is detached
 //!   (`routes/session/index.tsx:1331-1350`); `Loading session history…` needs
 //!   a paging-in-flight flag the view does not have;
-//! - the prompt metadata row shows agent/model/provider/variant from the
-//!   catalog snapshot; the `auto` permission marker and the agent color are
-//!   not in our DTOs;
+//! - prompt metadata and categorical agent slot come from the catalog snapshot.
+//!   `auto` means session permission autoaccept (upstream permission.tsx), not
+//!   agent permissions. Native policy reports Unsupported, so no false marker;
 //! - devtools items show the upstream labels (`component/devtools-bar.tsx:245-445`);
 //!   the Server connection icon has no client-connection state (in-process
 //!   runtime) and keeps its cell empty, while the UI runtime icon is honest
@@ -76,7 +76,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         area,
     );
     let regions = layout::shell_regions(area);
-    render_tabs(frame, theme, regions.tabs);
+    render_tabs(frame, theme, regions.tabs, state.session_title.as_deref());
     render_session(frame, state, theme, regions.session);
     render_devtools(frame, theme, regions.devtools);
     render_toast(frame, state, theme, area);
@@ -84,7 +84,8 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
 
 /// Single active tab in the horizontal strip
 /// (`component/session-tabs.tsx:1506-1508`, `context/session-tabs-model.ts:33-35`).
-fn tab_line(theme: &Theme, available: u16) -> Line<'static> {
+fn tab_line(theme: &Theme, available: u16, title: Option<&str>) -> Line<'static> {
+    let title = title.unwrap_or(UNTITLED_SESSION);
     let tab_bg = theme.decrease(theme.background_panel());
     let tab_width = layout::single_tab_width(available);
     // Indicator cell: `numberWidth + 1` with the label right-aligned and one
@@ -94,11 +95,11 @@ fn tab_line(theme: &Theme, available: u16) -> Line<'static> {
     let mut spans = vec![
         Span::styled(" 1 ", Style::default().fg(number).bg(tab_bg)),
         Span::styled(
-            UNTITLED_SESSION,
+            title.to_string(),
             Style::default().fg(theme.text()).bg(tab_bg),
         ),
     ];
-    let used = 3 + UNTITLED_SESSION.chars().count() as u16;
+    let used = 3 + title.chars().count() as u16;
     if tab_width > used {
         spans.push(Span::styled(
             " ".repeat((tab_width - used) as usize),
@@ -108,7 +109,7 @@ fn tab_line(theme: &Theme, available: u16) -> Line<'static> {
     Line::from(spans)
 }
 
-fn render_tabs(frame: &mut Frame<'_>, theme: &Theme, area: Rect) {
+fn render_tabs(frame: &mut Frame<'_>, theme: &Theme, area: Rect, title: Option<&str>) {
     if area.height == 0 || area.width == 0 {
         return;
     }
@@ -116,7 +117,7 @@ fn render_tabs(frame: &mut Frame<'_>, theme: &Theme, area: Rect) {
         width: layout::single_tab_width(area.width),
         ..area
     };
-    frame.render_widget(Paragraph::new(tab_line(theme, area.width)), strip);
+    frame.render_widget(Paragraph::new(tab_line(theme, area.width, title)), strip);
 }
 
 fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {
@@ -288,7 +289,18 @@ fn metadata_line(state: &TuiState, theme: &Theme, width: u16) -> Option<Line<'st
     let text = Style::default().fg(theme.text());
     let mut spans: Vec<Span<'static>> = Vec::new();
     if let Some(agent) = agent {
-        spans.push(Span::styled(agent.to_string(), text));
+        spans.push(Span::styled(
+            agent.to_string(),
+            Style::default().fg(state.agent_color(Some(agent))),
+        ));
+    }
+    if layout::shows_agent_metadata(width)
+        && state.auto_accept == oc_core::queries::AutoAcceptState::Enabled
+    {
+        if !spans.is_empty() {
+            spans.push(Span::raw(" "));
+        }
+        spans.push(Span::styled("auto", muted));
     }
     if let Some((id, _)) = &model {
         if !spans.is_empty() {
@@ -511,6 +523,7 @@ mod tests {
 
     fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
         HistoryMessage {
+            turn: None,
             seq,
             role,
             text: text.to_string(),
@@ -520,6 +533,7 @@ mod tests {
     fn page(rows: Vec<HistoryMessage>) -> HistoryPage {
         let total = rows.len();
         HistoryPage {
+            title: None,
             rows,
             total,
             has_older: false,
@@ -529,8 +543,12 @@ mod tests {
 
     fn catalog() -> CatalogSnapshot {
         CatalogSnapshot {
+            auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
             provider: "ludka2".to_string(),
             models: vec![ModelEntry {
+                display_name: String::new(),
+                provider_name: String::new(),
+                price: None,
                 id: "a".to_string(),
                 variants: vec![VariantEntry {
                     name: "low".to_string(),
@@ -538,11 +556,14 @@ mod tests {
                     reasoning_effort: Some("low".to_string()),
                 }],
                 context: 1000,
+                context_known: true,
+                output_known: true,
                 output: 100,
             }],
             model_id: "a".to_string(),
             variant: None,
             agents: vec![AgentEntry {
+                color_index: 0,
                 id: "x".to_string(),
                 description: "first profile".to_string(),
                 model: Some("a".to_string()),
@@ -578,6 +599,30 @@ mod tests {
 
     fn right_aligned(text: &str, width: usize) -> String {
         format!("{}{text}", " ".repeat(width.saturating_sub(text.len())))
+    }
+
+    #[tokio::test]
+    async fn v02_auto_marker_is_session_capability_not_agent_rules() {
+        use oc_core::queries::AutoAcceptState;
+        let mut state = golden_state().await;
+        for (mode, visible) in [
+            (AutoAcceptState::Unsupported, false),
+            (AutoAcceptState::Disabled, false),
+            (AutoAcceptState::Enabled, true),
+        ] {
+            let mut snapshot = catalog();
+            snapshot.auto_accept = mode;
+            snapshot.agents[0].color_index = 3;
+            state.apply_catalog(snapshot);
+            let line = super::metadata_line(&state, crate::theme::Theme::dark(), 120).unwrap();
+            assert_eq!(line.to_string().contains("auto"), visible);
+            assert_eq!(
+                line.spans[0].style.fg,
+                Some(crate::theme::Theme::dark().categorical_agents()[3])
+            );
+        }
+        state.reset_workspace();
+        assert_eq!(state.auto_accept, AutoAcceptState::Unsupported);
     }
 
     #[tokio::test]
@@ -762,10 +807,7 @@ mod tests {
             "{frame:?}"
         );
         assert_eq!(frame[12], "     All done.", "{frame:?}");
-        assert_eq!(
-            frame[14], "     X · ludka2/a · 1.5s · 50.0 tok/s",
-            "{frame:?}"
-        );
+        assert_eq!(frame[14], "     X · a · 1.5s · 50.0 tok/s", "{frame:?}");
     }
 
     /// Interrupted turns keep the partial answer and mark the footer
@@ -793,10 +835,7 @@ mod tests {
             "{:?}",
             state.viewport()
         );
-        assert!(
-            frame[14] == "     X · ludka2/a · 1.5s · interrupted",
-            "{frame:?}"
-        );
+        assert!(frame[14] == "     X · a · 1.5s · interrupted", "{frame:?}");
     }
 
     #[tokio::test]

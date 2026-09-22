@@ -17,6 +17,8 @@
 //! exit codes and the request history.
 
 use std::collections::VecDeque;
+#[path = "support/title.rs"]
+mod title;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
@@ -86,6 +88,9 @@ impl Peer {
                             continue;
                         };
                         seen_out.lock().expect("seen").push(body.clone());
+                        if title::respond(&mut socket, &body) {
+                            continue;
+                        }
                         let step = steps_out.lock().expect("steps").pop_front();
                         let Some(step) = step else {
                             violations_out.lock().expect("violations").push(format!(
@@ -868,10 +873,21 @@ fn aud35_binary_golden_workflow() {
     ));
 
     // Project B request must carry B's rule and no A history.
+    assert_eq!(
+        fixture
+            .peer
+            .requests()
+            .iter()
+            .filter(|r| title::is_title(r))
+            .count(),
+        2,
+        "one real title request per new session"
+    );
     let b_requests = fixture
         .peer
         .requests()
         .into_iter()
+        .filter(|body| !title::is_title(body))
         .filter(|body| last_user_text(body).as_deref() == Some("report the workspace"))
         .collect::<Vec<_>>();
     let b_ok = b_requests.len() == 1

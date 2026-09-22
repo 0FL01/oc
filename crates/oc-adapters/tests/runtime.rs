@@ -2673,6 +2673,7 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             } => break (text, duration_ms),
             CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             CoreEvent::TurnStarted { .. }
+            | CoreEvent::TurnPresentation { .. }
             | CoreEvent::TextDelta { .. }
             | CoreEvent::ToolCallStarted { .. }
             | CoreEvent::ToolCallFinished { .. }
@@ -2844,6 +2845,7 @@ async fn dto_application_events_surface_tool_calls() {
 
     let mut started = None;
     let mut finished = None;
+    let mut checkpoints = Vec::new();
     loop {
         let event = tokio::time::timeout(Duration::from_secs(10), rx.recv())
             .await
@@ -2865,6 +2867,7 @@ async fn dto_application_events_surface_tool_calls() {
                 break;
             }
             CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
+            CoreEvent::TurnPresentation { projection, .. } => checkpoints.push(projection),
             CoreEvent::TurnStarted { .. }
             | CoreEvent::TextDelta { .. }
             | CoreEvent::ReasoningDelta { .. }
@@ -2873,6 +2876,21 @@ async fn dto_application_events_surface_tool_calls() {
         }
     }
     let (started_op, started_name, started_input) = started.expect("tool call started event");
+    assert!(
+        checkpoints
+            .iter()
+            .any(|p| p.part_states.iter().any(|s| s.status == "started"))
+    );
+    let page = app
+        .history_page(session.clone(), None, None, 100)
+        .await
+        .unwrap();
+    let replay = page.rows.iter().find_map(|r| r.turn.as_ref()).unwrap();
+    assert_eq!(
+        checkpoints.last(),
+        Some(replay),
+        "live checkpoint and replay share exact identities, order, statuses and content"
+    );
     let (finished_op, finished_name, finished_state, finished_output) =
         finished.expect("tool call finished event");
     assert_eq!(started_name, "apply_patch");

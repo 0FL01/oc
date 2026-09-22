@@ -8,6 +8,8 @@
 //! the opt-in view-metrics probe — never render snapshots alone.
 
 use std::io::{Read, Write};
+#[path = "support/title.rs"]
+mod title;
 use std::net::{TcpListener, TcpStream};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::path::{Path, PathBuf};
@@ -135,6 +137,9 @@ impl Fixture {
                             .expect("write timeout");
                         let body = read_request(&mut socket);
                         captured.lock().expect("requests").push(body.clone());
+                        if title::respond(&mut socket, &body) {
+                            continue;
+                        }
                         let scripted = script(&body);
                         let _ = respond(&mut socket, &scripted, &stopping);
                     }
@@ -185,7 +190,15 @@ impl Fixture {
     fn wait_requests(&self, count: usize) -> Vec<serde_json::Value> {
         let start = Instant::now();
         loop {
-            let requests = self.requests.lock().expect("requests").clone();
+            // Raw capture includes titles; this accessor counts main turns.
+            let requests: Vec<_> = self
+                .requests
+                .lock()
+                .expect("requests")
+                .iter()
+                .filter(|r| !title::is_title(r))
+                .cloned()
+                .collect();
             if requests.len() >= count {
                 return requests;
             }
@@ -1054,6 +1067,7 @@ fn aud38_location_switch_is_one_lifecycle() {
 
     let off = submit(&mut pty, "alpha one");
     pty.wait_visible_after(off, "echo: alpha one", DEADLINE);
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
     let requests = fixture.wait_requests(1);
     let first = request_text(&requests[0]);
     assert!(first.contains(A_RULE) && first.contains(GLOBAL_RULE));
@@ -1068,7 +1082,7 @@ fn aud38_location_switch_is_one_lifecycle() {
     wait_screen_row(&pty, &message_needle("┃  ", "slow stream"), DEADLINE);
     let beta = fixture.project_b().canonicalize().expect("b path");
     pty.send(format!("/location {}\r", beta.display()).as_bytes());
-    pty.wait_visible("turn active; location switch refused", DEADLINE);
+    wait_screen_row(&pty, "turn active; location switch refused", DEADLINE);
     pty.wait_visible_after(off, "answer:slow stream", DEADLINE);
     // The refused command keeps the typed input (nothing is lost): clear it
     // before retrying with the same target.

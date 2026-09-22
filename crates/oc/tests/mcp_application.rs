@@ -9,6 +9,8 @@
 use std::collections::HashMap;
 use std::fs;
 use std::io::{Read, Write};
+#[path = "support/title.rs"]
+mod title;
 use std::net::{TcpListener, TcpStream};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::os::unix::fs::PermissionsExt as _;
@@ -402,6 +404,7 @@ impl FakeResponses {
                     index
                 };
                 match &script {
+                    _ if title::respond(&mut socket, &request.body) => {}
                     ResponsesScript::TextByPrompt => {
                         let prompt = last_user_text(&request.body).unwrap_or_default();
                         respond_text(&mut socket, &format!("answer:{prompt}"));
@@ -711,7 +714,15 @@ fn aud22_binary_accepts_user_authorization_spelling_at_strict_mcp() {
             .filter(|record| record.rpc_method != "initialize")
             .all(|record| record.protocol_version.as_deref() == Some("2025-11-25"))
     );
-    assert_eq!(responses.requests().len(), 1, "one provider generation");
+    assert_eq!(responses.requests().len(), 2, "one generation plus title");
+    assert_eq!(
+        responses
+            .requests()
+            .iter()
+            .filter(|r| title::is_title(r))
+            .count(),
+        1
+    );
 }
 
 #[test]
@@ -893,7 +904,8 @@ fn aud24_binary_routes_collision_names_to_exact_original_server_and_tool() {
     assert!(status.success(), "{}", process.diagnostics());
     assert_eq!(process.output().trim(), "MCP routing observed");
     let requests = responses.requests();
-    assert_eq!(requests.len(), 2, "tool round plus final round");
+    assert_eq!(requests.len(), 3, "tool round, final round, title");
+    assert!(title::is_title(&requests[2]));
     assert_eq!(function_output(&requests[1], "call-a"), "server-a:b__c");
     assert_eq!(function_output(&requests[1], "call-b"), "server-a-b:c");
     let advertised = function_tool_names(&requests[0]);
@@ -959,7 +971,8 @@ fn aud24_binary_surfaces_is_error_and_unsupported_result_modality() {
     assert!(status.success(), "{}", process.diagnostics());
     assert_eq!(process.output().trim(), "MCP failures observed");
     let requests = responses.requests();
-    assert_eq!(requests.len(), 2, "tool round plus final round");
+    assert_eq!(requests.len(), 3, "tool round, final round, title");
+    assert!(title::is_title(&requests[2]));
     let declared = function_output(&requests[1], "call-error");
     let unsupported = function_output(&requests[1], "call-image");
     assert!(
@@ -1404,8 +1417,9 @@ fn aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns() {
     assert!(tui.wait_exit().success(), "clean TUI exit");
 
     let requests = responses.wait_requests(2);
-    assert_eq!(requests.len(), 2, "exactly two provider turns");
-    for request in requests {
+    assert_eq!(requests.len(), 3, "two provider turns plus one title");
+    assert_eq!(requests.iter().filter(|r| title::is_title(r)).count(), 1);
+    for request in requests.into_iter().filter(|r| !title::is_title(r)) {
         assert_eq!(
             function_tool_names(&request)
                 .iter()
@@ -1472,7 +1486,13 @@ fn aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns() {
     let mut disabled = fixture.spawn_run("aud23-disabled-restart");
     assert!(disabled.wait().success(), "{}", disabled.diagnostics());
     assert_eq!(disabled.output().trim(), "answer:exercise configured MCP");
-    assert_eq!(responses.wait_requests(3).len(), 3);
+    let requests = responses.wait_requests(5);
+    assert_eq!(
+        requests.len(),
+        5,
+        "three main turns plus titles for two sessions"
+    );
+    assert_eq!(requests.iter().filter(|r| title::is_title(r)).count(), 2);
     assert_eq!(
         fs::read_to_string(&stdio_log)
             .unwrap()
@@ -1654,12 +1674,13 @@ for line in sys.stdin:
         assert!(Instant::now() < deadline);
         std::thread::sleep(POLL);
     }
+    responses.wait_requests(2);
     tui.raw(b"\x03");
     assert!(tui.wait_exit().success());
     assert_eq!(
         responses.requests().len(),
-        1,
-        "no duplicate or extra request"
+        2,
+        "one accepted request plus its title, no duplicate"
     );
     let turns: i64 = db
         .query_row("SELECT count(*) FROM turns", [], |r| r.get(0))
@@ -1697,7 +1718,7 @@ for line in sys.stdin:
     }
     assert!(quitting.wait_exit().success());
     assert!(!release.exists());
-    assert_eq!(responses.requests().len(), 1);
+    assert_eq!(responses.requests().len(), 2);
     let turns: i64 = db
         .query_row("SELECT count(*) FROM turns", [], |r| r.get(0))
         .unwrap();
@@ -1757,7 +1778,7 @@ fn v01_anonymous_remote_and_codex_required_auth() {
         "anonymous remote rejected: {}",
         process.diagnostics()
     );
-    assert_eq!(responses.requests().len(), 1);
+    assert_eq!(responses.requests().len(), 2);
     assert!(mcp.records().iter().all(|r| r.authorization.is_none()));
     let count = mcp.records().len();
     fixture.write_config(&responses, json!({"codex_web":entry}), json!({}));
@@ -1777,7 +1798,7 @@ fn v01_anonymous_remote_and_codex_required_auth() {
     );
     assert_eq!(
         responses.requests().len(),
-        1,
+        2,
         "required failure has no provider fallback"
     );
 }

@@ -369,6 +369,7 @@ async fn handle_worker_event(
 ) -> Result<(), String> {
     let owner = match &event {
         CoreEvent::TurnStarted { session, .. }
+        | CoreEvent::TurnPresentation { session, .. }
         | CoreEvent::TextDelta { session, .. }
         | CoreEvent::ReasoningDelta { session, .. }
         | CoreEvent::ToolCallStarted { session, .. }
@@ -383,6 +384,9 @@ async fn handle_worker_event(
     }
     match event {
         CoreEvent::TurnStarted { .. } => {}
+        CoreEvent::TurnPresentation {
+            turn, projection, ..
+        } => state.apply_presentation(&turn, &projection),
         CoreEvent::TextDelta { turn, delta, .. } => state.apply_delta(&turn, &delta),
         CoreEvent::ReasoningDelta { turn, delta, .. } => {
             state.apply_reasoning_delta(&turn, &delta);
@@ -425,8 +429,16 @@ async fn handle_worker_event(
             duration_ms,
             ..
         } => {
+            let current = state.active_turn() == Some(&turn);
             let compress = state.is_compress_turn(&turn);
             state.apply_finished(&turn, &text, duration_ms);
+            if current {
+                let page = app
+                    .history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                state.attach_page(&page);
+            }
             if compress {
                 report_compress_outcome(app, state, session).await?;
             }

@@ -42,8 +42,7 @@ pub struct HistoryRow {
     pub chips: Vec<Chip>,
     /// Reasoning block attached to an assistant row.
     pub reasoning: Option<ReasoningBlock>,
-    /// Assistant footer data (live turns only; never invented for committed
-    /// history rows).
+    /// Assistant footer data, live or projected from the durable turn.
     pub meta: Option<AssistantMeta>,
     /// Tool card attached to a `tool` row (live turns and cards panel rows
     /// stay plain text; the transcript renders the card).
@@ -76,7 +75,7 @@ impl HistoryWindow {
 
     /// Newest page becomes the whole window.
     pub fn reset(&mut self, page: &HistoryPage) {
-        self.rows = page.rows.iter().map(row_from_page).collect();
+        self.rows = page.rows.iter().flat_map(rows_from_page).collect();
         self.total = page.total;
         self.has_older = page.has_older;
         self.has_newer = page.has_newer;
@@ -88,8 +87,8 @@ impl HistoryWindow {
     /// Add an older page at the front; returns rows added. Evicts newest
     /// rows while over a cap and flags `has_newer` when it does.
     pub fn prepend_older(&mut self, page: &HistoryPage) -> usize {
-        let added = page.rows.len();
-        let mut combined: Vec<HistoryRow> = page.rows.iter().map(row_from_page).collect();
+        let mut combined: Vec<HistoryRow> = page.rows.iter().flat_map(rows_from_page).collect();
+        let added = combined.len();
         combined.append(&mut self.rows);
         self.rows = combined;
         self.total = page.total;
@@ -103,8 +102,9 @@ impl HistoryWindow {
     /// Add a newer page at the back; returns rows added. Evicts oldest rows
     /// while over a cap and flags `has_older` when it does.
     pub fn append_newer(&mut self, page: &HistoryPage) -> usize {
-        let added = page.rows.len();
-        self.rows.extend(page.rows.iter().map(row_from_page));
+        let before = self.rows.len();
+        self.rows.extend(page.rows.iter().flat_map(rows_from_page));
+        let added = self.rows.len() - before;
         self.total = page.total;
         self.has_newer = page.has_newer;
         if self.enforce(Evict::Oldest) {
@@ -132,7 +132,18 @@ impl HistoryWindow {
     pub fn retained_bytes(&self) -> usize {
         self.rows
             .iter()
-            .map(|row| row.role.len() + row.text.len())
+            .map(|row| {
+                row.role.len()
+                    + row.text.len()
+                    + row.agent.as_ref().map_or(0, String::len)
+                    + row.reasoning.as_ref().map_or(0, |r| r.text.len())
+                    + row
+                        .meta
+                        .as_ref()
+                        .and_then(|m| m.model.as_ref())
+                        .map_or(0, String::len)
+                    + row.tool.as_ref().map_or(0, ToolCard::retained_bytes)
+            })
             .sum()
     }
 
@@ -172,7 +183,7 @@ impl HistoryWindow {
     }
 
     /// Append one fully rendered row (live assistant message with reasoning
-    /// and footer metadata); committed history rows never carry this data.
+    /// and footer metadata); replayed rows use the same safe presentation data.
     pub(crate) fn push_row(&mut self, row: HistoryRow) {
         self.rows.push(row);
         self.has_newer = false;
@@ -216,6 +227,90 @@ fn row_from_page(row: &HistoryMessage) -> HistoryRow {
     }
 }
 
+fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
+    use oc_core::queries::TranscriptPart;
+    let Some(turn) = &row.turn else {
+        return vec![row_from_page(row)];
+    };
+    let mut rows = Vec::new();
+    if turn.legacy_text_only {
+        rows.push(row_from_page(row));
+        let mut notice = row_from_page(row);
+        notice.text = "[Legacy text-only history: reasoning and part order were not recorded; tool records remain available in /cards]".into();
+        notice.role = "assistant".into();
+        rows.push(notice);
+        return rows;
+    }
+    if row.role == Role::User {
+        rows.push(row_from_page(row));
+    }
+    // Avoid cloning the aggregate message once per projected part.
+    let empty_row = || HistoryRow {
+        seq: row.seq,
+        role: "assistant".to_string(),
+        text: String::new(),
+        agent: turn.agent.clone(),
+        chips: Vec::new(),
+        reasoning: None,
+        meta: None,
+        tool: None,
+    };
+    for (index, part) in turn.parts.iter().enumerate() {
+        let mut part_row = empty_row();
+        match part {
+            TranscriptPart::Text(text) => part_row.text = text.clone(),
+            TranscriptPart::Reasoning { text, duration_ms } => {
+                part_row.reasoning = Some(ReasoningBlock {
+                    text: text.clone(),
+                    duration_ms: *duration_ms,
+                    running: turn.status == "started",
+                })
+            }
+            TranscriptPart::Tool(op) => {
+                part_row.role = "tool".to_string();
+                part_row.tool = Some(card_from_row(op));
+            }
+        }
+        rows.push(part_row);
+        if let Some(state) = turn.part_states.get(index).filter(|s| s.truncated) {
+            let mut notice = empty_row();
+            notice.text = if state.input_omitted {
+                match part {
+                    TranscriptPart::Tool(op) => format!(
+                        "[Tool input omitted from preview; operation {} retained; see /cards]",
+                        op.op
+                    ),
+                    _ => "[Part preview truncated]".into(),
+                }
+            } else {
+                "[Part preview truncated]".into()
+            };
+            rows.push(notice);
+        }
+    }
+    let mut footer = empty_row();
+    if turn.omitted_parts > 0 {
+        let mut notice = empty_row();
+        notice.text = format!(
+            "[{} parts omitted from bounded history preview; durable records retained]",
+            turn.omitted_parts
+        );
+        rows.push(notice);
+    }
+    footer.meta = Some(AssistantMeta {
+        model: Some(turn.model_label.clone()),
+        duration_ms: turn.duration_ms,
+        input_tokens: turn.usage.map(|v| v.0),
+        output_tokens: turn.usage.map(|v| v.1),
+        streamed_ms: turn.streamed_ms,
+        interrupted: turn.status == "cancelled",
+        status: Some(turn.status.clone()),
+        agent_color_index: turn.agent_color_index,
+    });
+    rows.push(footer);
+    rows
+}
+
 /// One tool card: intent + outcome + bounded previews.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolCard {
@@ -243,6 +338,25 @@ pub struct ToolCard {
     /// Presentation data parsed once from the recorded input/output
     /// (bounded); the transcript renders the card from it.
     pub render: ToolRender,
+}
+
+impl ToolCard {
+    /// Retained payload bytes including parsed card/diff strings.
+    pub(crate) fn retained_bytes(&self) -> usize {
+        self.op.len()
+            + self.name.len()
+            + self.state.len()
+            + self.input_preview.len()
+            + self.output_preview.len()
+            + self.files.iter().map(String::len).sum::<usize>()
+            + self.render.retained_bytes()
+            + self.diff.as_ref().map_or(0, |d| {
+                d.files
+                    .iter()
+                    .map(|f| f.path.len() + f.move_to.as_ref().map_or(0, String::len))
+                    .sum::<usize>()
+            })
+    }
 }
 
 /// Build one bounded card from a recorded tool operation.
@@ -328,6 +442,7 @@ mod tests {
 
     fn row(seq: i64, role: Role, text: &str) -> HistoryMessage {
         HistoryMessage {
+            turn: None,
             seq,
             role,
             text: text.to_string(),
@@ -336,11 +451,67 @@ mod tests {
 
     fn page(rows: Vec<HistoryMessage>, total: usize, older: bool, newer: bool) -> HistoryPage {
         HistoryPage {
+            title: None,
             rows,
             total,
             has_older: older,
             has_newer: newer,
         }
+    }
+
+    #[test]
+    fn v02_availability_markers_and_exact_terminal_states() {
+        use oc_core::queries::{HistoryTurn, PartState, TranscriptPart};
+        let mut message = row(1, Role::Assistant, "legacy answer");
+        message.turn = Some(HistoryTurn {
+            legacy_text_only: true,
+            ..Default::default()
+        });
+        let legacy = super::rows_from_page(&message);
+        assert!(legacy.iter().any(|r| r.text.contains("Legacy text-only")));
+        assert!(legacy.iter().all(|r| r.reasoning.is_none()));
+        for status in ["failed", "cancelled", "incomplete", "unknown"] {
+            message.turn = Some(HistoryTurn {
+                status: status.into(),
+                agent: Some("old-agent".into()),
+                agent_color_index: Some(3),
+                parts: vec![TranscriptPart::Text("preview".into())],
+                part_states: vec![PartState {
+                    truncated: true,
+                    ..Default::default()
+                }],
+                omitted_parts: 8,
+                truncated: true,
+                ..Default::default()
+            });
+            let rows = super::rows_from_page(&message);
+            assert!(rows.iter().any(|r| r.text.contains("preview truncated")));
+            assert!(rows.iter().any(|r| r.text.contains("8 parts omitted")));
+            let meta = rows.last().unwrap().meta.as_ref().unwrap();
+            assert_eq!(meta.status.as_deref(), Some(status));
+            assert_eq!(meta.agent_color_index, Some(3));
+        }
+    }
+
+    #[test]
+    fn expanded_parts_count_as_rendered_rows_for_scroll_anchoring() {
+        use oc_core::queries::{HistoryTurn, TranscriptPart};
+        let mut message = row(2, Role::Assistant, "aggregate");
+        message.turn = Some(HistoryTurn {
+            parts: vec![
+                TranscriptPart::Text("first".into()),
+                TranscriptPart::Text("second".into()),
+            ],
+            ..Default::default()
+        });
+        let page = page(vec![message], 1, false, false);
+        let mut window = super::HistoryWindow::new();
+        assert_eq!(window.append_newer(&page), 3, "two parts plus footer");
+        assert_eq!(
+            window.prepend_older(&page),
+            3,
+            "scroll offset counts projected parts"
+        );
     }
 
     #[test]

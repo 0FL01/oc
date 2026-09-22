@@ -85,7 +85,7 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 ## Current Checkpoint
 
 - Closes: no visual gate yet.
-- Smallest next action: V02 existing application DTO/durable projections for titles, model metadata, usage and transcript parts; verify changed fixtures and restart before geometry work.
+- Smallest next action: V03 full-height viewport and sidebar/conditional devtools geometry, including the reproduced long wrapped-patch scrolling defect.
 - Expected evidence: capture lock, independent original frames, commands/exit codes and raw input/application effects; exact checkpoint after each slice.
 - Stop or replan if: reference/profile unavailable → BLOCKED_REFERENCE, never closest-rendering parity. Independent fixes remain executable.
 
@@ -94,7 +94,7 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 - Resolved: source/theme/component groundwork landed through `d232baa`; historical reports remain unchanged.
 - Last relevant evidence: V00 real diagnostic paired captures in `evidence/tui/recovery-v00` (all comparisons unequal); V01 raw PTY stalled MCP prompt and manual compression cancellation/retry plus safe diagnostics in `evidence/tui/recovery-v01/report.md`. These do not qualify VIS01–VIS24.
 - Blocker: no external blocker asserted. Exact capture freeze and missing backend capability mapping remain open; in-flight MCP tool-call cancellation is a known V07/S08 gap.
-- Next: V02 then remaining ordered slices; R3/R4 remain unverified until fixes and paired frames. Final workspace/live qualification pending.
+- Next: V03 then remaining ordered slices; R3/R4 remain unverified until fixes and paired frames. Final workspace/live qualification pending. V02 DTO/replay tests passed; title generation now uses a real ancillary provider request. Explicit native autoaccept Unsupported mapping is recorded in `evidence/tui/recovery-v02/auto-capability.md` and blocks that behavioral parity, not data plumbing.
 
 ## Material Decisions
 
@@ -106,6 +106,7 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 - 2026-09-21: R1 verified (both recon artifacts); iteration 1 (theme foundation) committed `b75e063`; iteration 2 (layout shell + goldens) committed next.
 - 2026-09-22: owner-reviewed recovery amendment accepted; R2 rendered colors and R3/R4 reopened as unverified, historical reports not rewritten.
 - 2026-09-22: V00 committed/pushed `679e683`; V01 reproduced both submit/compress freezes, added shared nonblocking receipts and owned MCP attach cleanup. Independent parent PTY verification: 5 passed, fmt/diff checks exit 0. See V01 report and checkpoint; no visual gate closed.
+- 2026-09-22: V01 delivered `4c1a0bc`; V02 safe durable projections/title/model/usage and live/replay parts implemented. Parent actual binary recovery test passed twice including final agent-switch correction; full implementation workspace 436 passed/4 existing live ignores. Exact limitations/attempts in V02 report, no parity claim.
 
 ## Completion
 

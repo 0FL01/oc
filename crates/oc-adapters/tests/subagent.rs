@@ -421,6 +421,21 @@ async fn spawn_returns_child_text_and_persists_fresh_child_row() {
     assert_eq!(meta.agent.as_deref(), Some("helper"));
     assert_eq!(meta.model.as_deref(), Some("test/m"));
     assert_eq!(meta.title.as_deref(), Some("Say hi"));
+    let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    let pinned:Option<i64>=sql.query_row("SELECT json_extract(result,'$.display.agent_color_index') FROM turns WHERE session_id=?1",[child],|r|r.get(0)).unwrap();
+    assert_eq!(
+        pinned,
+        Some(1),
+        "boss then helper: child pins its owning generation's slot, not the parent slot"
+    );
+    runtime
+        .publish_subagents(Some(catalog(1, vec![agent("helper", false, None)])))
+        .unwrap();
+    let after:Option<i64>=sql.query_row("SELECT json_extract(result,'$.display.agent_color_index') FROM turns WHERE session_id=?1",[child],|r|r.get(0)).unwrap();
+    assert_eq!(
+        after, pinned,
+        "later catalog ordering must not recolor child history"
+    );
 
     // Fresh child history: prefixed prompt + child answer only.
     assert_eq!(

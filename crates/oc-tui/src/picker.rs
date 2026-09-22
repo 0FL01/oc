@@ -136,6 +136,25 @@ impl ModelPicker {
             .collect()
     }
 
+    /// Human metadata for a browsed id; selection continues to use the exact id.
+    pub fn display_label(&self, id: &str) -> String {
+        let Some(spec) = self.catalog.models.get(id) else {
+            return id.to_string();
+        };
+        let name = spec.get("name").and_then(|v| v.as_str()).unwrap_or(id);
+        let provider = spec
+            .get("provider_name")
+            .and_then(|v| v.as_str())
+            .unwrap_or(&self.catalog.provider);
+        let price = spec.get("cost");
+        let free = price.is_some_and(|p| {
+            p["input"].as_str().and_then(|s| s.parse::<f64>().ok()) == Some(0.0)
+                && p["output"].as_str().and_then(|s| s.parse::<f64>().ok()) == Some(0.0)
+        });
+        let suffix = if free { " · Free" } else { "" };
+        format!("{name} · {provider}{suffix}")
+    }
+
     /// Exact id under the browse cursor, if the catalog is non-empty.
     pub fn cursor_id(&self) -> Option<String> {
         self.sorted_ids()

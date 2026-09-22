@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-22T11:04:29+00:00
-Active: T44
-
-Сверить Git status/diff до выполнения команд.
-Task: T44 — TUI pixel parity с opencode v2.0.12
-Spec: docs/goals/2026-09-21-tui-pixel-parity.md
-Evidence target: evidence/T44/report.md
-
-Полностью воспроизвести интерфейс upstream opencode v2.0.12 в crates/oc-tui: тема/палитра, геометрия layout, рендер сообщений (markdown/reasoning/tool cards/diff), keymap и диалоги; golden-снапшоты PTY на фиксированных размерах. Recon-артефакты evidence/tui/*, коммит+push каждого среза.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 # T44 recovery V02 checkpoint
 
 ## Result
@@ -55,9 +41,3 @@ call cancellation, config admission and docs registry gate remain open.
 V03 full-height viewport/sidebar/title/conditional devtools/dynamic prompt geometry,
 with wide and breakpoint actual frames; then V04–V09. No R3/R4/VIS/full T44 gate
 closed. User ZIP remains unstaged, no historical report rewritten.
-
-
-Ready (до 5): T30
-Blocked: T27, T43
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

@@ -295,6 +295,9 @@ impl Db {
         conn.pragma_update(None, "synchronous", "FULL")?;
         conn.pragma_update(None, "foreign_keys", "ON")?;
         apply_schema(&conn)?;
+        // Same journal, indexed anchor lookup: history paging must not parse
+        // every archived turn. Legacy non-JSON results are excluded safely.
+        conn.execute_batch("CREATE INDEX IF NOT EXISTS turns_display_anchor ON turns(session_id, COALESCE(json_extract(result,'$.assistant_message'),json_extract(result,'$.user_message'))) WHERE json_valid(result)")?;
 
         Ok(Self {
             root,
@@ -1149,6 +1152,157 @@ impl Db {
     }
 
     /// Read a turn's terminal status and result JSON (turn-log replay).
+    /// Add safe measured metadata without rewriting the wire journal or history.
+    pub(crate) fn update_turn_display(
+        &self,
+        turn: &str,
+        metadata: &serde_json::Value,
+    ) -> Result<(), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        conn.execute("UPDATE turns SET result = json_set(result, '$.display', json_patch(COALESCE(json_extract(result, '$.display'), '{}'), json(?2))) WHERE id = ?1", params![turn, metadata.to_string()])?;
+        Ok(())
+    }
+
+    /// Set a generated title once; explicit/child titles always win.
+    pub(crate) fn set_generated_title(
+        &self,
+        session: &str,
+        title: &str,
+    ) -> Result<(), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        conn.execute(
+            "UPDATE sessions SET title = ?2 WHERE id = ?1 AND title IS NULL",
+            params![session, title],
+        )?;
+        Ok(())
+    }
+
+    /// Public projection, selecting only whitelisted JSON fields in SQL. The
+    /// opaque wire journal never crosses the application/UI boundary. A legacy
+    /// row remains text-only; interrupted turns attach to their accepted user row.
+    pub(crate) fn history_turn(
+        &self,
+        session: &str,
+        seq: i64,
+    ) -> Result<Option<oc_core::queries::HistoryTurn>, StorageError> {
+        let id = {
+            let conn = self.conn.lock().expect("db mutex");
+            conn.query_row("SELECT t.id FROM turns t JOIN messages m ON m.session_id=t.session_id WHERE json_valid(t.result) AND t.session_id=?1 AND m.seq=?2 AND m.id=COALESCE(json_extract(t.result,'$.assistant_message'),json_extract(t.result,'$.user_message')) LIMIT 1", params![session,seq], |r|r.get::<_,String>(0)).optional()?
+        };
+        match id {
+            Some(id) => self.turn_presentation(session, &id),
+            None => Ok(None),
+        }
+    }
+
+    /// Same bounded projection for a running checkpoint and later replay.
+    pub(crate) fn turn_presentation(
+        &self,
+        session: &str,
+        id: &str,
+    ) -> Result<Option<oc_core::queries::HistoryTurn>, StorageError> {
+        use oc_core::queries::{HistoryTurn, PartState, ToolOpView, TranscriptPart};
+        let conn = self.conn.lock().expect("db mutex");
+        let record: Option<(String, String, String, String)> = conn.query_row(
+            "SELECT t.id, t.status, COALESCE(json_extract(t.result,'$.display'),'{}'), COALESCE(json_extract(t.result,'$.model'),'')
+             FROM turns t WHERE json_valid(t.result) AND t.session_id=?1 AND t.id=?2 LIMIT 1",
+            params![session,id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).optional()?;
+        let Some((id, status, metadata, model)) = record else {
+            return Ok(None);
+        };
+        let meta: serde_json::Value = serde_json::from_str(&metadata).unwrap_or_default();
+        let mut turn = HistoryTurn {
+            id: id.clone(),
+            status,
+            agent: meta["agent"].as_str().map(str::to_string),
+            agent_color_index: meta["agent_color_index"].as_u64().map(|v| v as usize),
+            model_label: meta["model_label"].as_str().unwrap_or(&model).to_string(),
+            usage: meta["usage"]
+                .as_array()
+                .and_then(|v| Some((v.first()?.as_u64()?, v.get(1)?.as_u64()?))),
+            duration_ms: meta["duration_ms"].as_u64(),
+            streamed_ms: meta["streamed_ms"].as_u64(),
+            parts: Vec::new(),
+            ..HistoryTurn::default()
+        };
+        let total: Option<i64> = conn.query_row(
+            "SELECT json_array_length(result,'$.display_parts') FROM turns WHERE id=?1",
+            [&id],
+            |r| r.get(0),
+        )?;
+        turn.legacy_text_only = total.is_none();
+        // Per-turn part and byte serving budgets, independent of archive size.
+        let mut stmt=conn.prepare_cached("SELECT p.value FROM turns t, json_each(t.result,'$.display_parts') p WHERE t.id=?1 ORDER BY CAST(p.key AS INTEGER) LIMIT 240")?;
+        let refs = stmt.query_map([&id], |r| r.get::<_, String>(0))?;
+        let mut budget = 64 * 1024usize;
+        for (sequence, part) in refs.enumerate() {
+            let part: serde_json::Value = serde_json::from_str(&part?).unwrap_or_default();
+            if budget == 0 {
+                break;
+            }
+            let mut state = PartState {
+                sequence,
+                status: turn.status.clone(),
+                truncated: part["truncated"].as_bool().unwrap_or(false),
+                input_omitted: false,
+            };
+            let before = turn.parts.len();
+            if let Some(text) = part["reasoning"].as_str() {
+                state.truncated |= text.len() > budget.min(16 * 1024);
+                let text = text[..text.floor_char_boundary(budget.min(16 * 1024).min(text.len()))]
+                    .to_string();
+                budget = budget.saturating_sub(text.len());
+                turn.parts.push(TranscriptPart::Reasoning {
+                    text,
+                    duration_ms: part["duration_ms"].as_u64(),
+                });
+            } else if let Some(index) = part["message"].as_u64() {
+                let path = format!("$.input[{index}].content");
+                let bytes: i64 = conn.query_row("SELECT COALESCE(SUM(length(CAST(c.value ->> '$.text' AS BLOB))),0) FROM turns t,json_each(t.result,?2) c WHERE t.id=?1 AND c.value ->> '$.type'='output_text'",params![id,path],|r|r.get(0))?;
+                state.truncated |= bytes as usize > budget;
+                let mut texts=conn.prepare_cached("SELECT substr(c.value ->> '$.text',1,?3) FROM turns t,json_each(t.result,?2) c WHERE t.id=?1 AND c.value ->> '$.type'='output_text'")?;
+                let mut text = String::new();
+                for item in
+                    texts.query_map(params![id, path, budget as i64], |r| r.get::<_, String>(0))?
+                {
+                    let item = item?;
+                    let kept =
+                        item.floor_char_boundary(budget.saturating_sub(text.len()).min(item.len()));
+                    text.push_str(&item[..kept]);
+                }
+                budget = budget.saturating_sub(text.len());
+                turn.parts.push(TranscriptPart::Text(text));
+            } else if let Some(op) = part["tool"].as_str() {
+                // Input is structured JSON: cutting it at the output-preview
+                // boundary destroys patch/path metadata. Serve complete admitted
+                // input within the turn budget, otherwise honestly omit it.
+                let view=conn.query_row("SELECT rowid,name,state,CASE WHEN length(CAST(input AS BLOB))<=?4 THEN input ELSE NULL END,substr(output,1,?3),length(CAST(output AS BLOB)) FROM tool_operations WHERE id=?1 AND turn_id=?2",params![op,id,TOOL_OP_PREVIEW_BYTES as i64,budget.saturating_sub(TOOL_OP_PREVIEW_BYTES) as i64],|r| {
+                    let bytes=r.get::<_,Option<i64>>(5)?.unwrap_or(0);
+                    let (output,output_truncated)=bound_preview(r.get(4)?,bytes);
+                    Ok(ToolOpView{op:op.to_string(),rowid:r.get(0)?,name:r.get(1)?,state:r.get(2)?,input:r.get(3)?,output,output_bytes:bytes,output_truncated})
+                }).optional()?;
+                if let Some(view) = view {
+                    state.status = view.state.clone();
+                    state.input_omitted = view.input.is_none();
+                    state.truncated |= state.input_omitted || view.output_truncated;
+                    budget = budget.saturating_sub(
+                        view.input.as_ref().map_or(0, String::len)
+                            + view.output.as_ref().map_or(0, String::len),
+                    );
+                    turn.parts.push(TranscriptPart::Tool(view));
+                }
+            }
+            if turn.parts.len() > before {
+                turn.truncated |= state.truncated;
+                turn.part_states.push(state);
+            }
+        }
+        turn.omitted_parts = (total.unwrap_or(0) as usize).saturating_sub(turn.parts.len());
+        turn.truncated |= turn.omitted_parts > 0;
+        Ok(Some(turn))
+    }
+
+    /// Read a turn's terminal status and result JSON (turn-log replay).
     pub fn turn_result(&self, turn: &str) -> Result<(String, Option<String>), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         conn.query_row(
@@ -1600,6 +1754,31 @@ impl Db {
         Ok(())
     }
 
+    /// Commit the operation intent and its ordered display reference together,
+    /// before execution; a crash cannot strand an invisible unknown operation.
+    pub(crate) fn record_turn_tool_intent(
+        &self,
+        op: &str,
+        session: &str,
+        turn: &str,
+        name: &str,
+        input: &str,
+        journal: &str,
+    ) -> Result<(), StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        tx.execute("INSERT INTO tool_operations(id,session_id,turn_id,name,state,input,output) VALUES(?1,?2,?3,?4,'started',?5,NULL)", params![op,session,turn,name,input])?;
+        let n = tx.execute(
+            "UPDATE turns SET result=?2 WHERE id=?1 AND session_id=?3 AND status='started'",
+            params![turn, journal, session],
+        )?;
+        if n != 1 {
+            return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
     /// Record a tool outcome after the side effect.
     pub fn record_tool_outcome(
         &self,
@@ -2017,6 +2196,82 @@ mod tests {
         let _first = Db::open(&root).expect("first open");
         let second = Db::open(&root);
         assert!(matches!(second, Err(StorageError::DataRootBusy)));
+    }
+
+    #[test]
+    fn v02_bounded_projection_exposes_loss_and_legacy_availability() {
+        use serde_json::json;
+        let tmp = tmp_root("projection");
+        let db = Db::open(&tmp.path().join("data")).unwrap();
+        db.create_session("s").unwrap();
+        db.begin_turn("t", "s", "inspect").unwrap();
+        let parts: Vec<_> = (0..250).map(|_| json!({"reasoning":"thought"})).collect();
+        db.checkpoint_turn("t", &json!({"display_parts":parts}).to_string())
+            .unwrap();
+        let projection = db.turn_presentation("s", "t").unwrap().unwrap();
+        assert_eq!(projection.parts.len(), 240);
+        assert_eq!(projection.omitted_parts, 10);
+        assert!(projection.truncated);
+        assert_eq!(projection.part_states[239].sequence, 239);
+        db.record_tool_intent("op", "s", Some("t"), "apply_patch", &"x".repeat(70 * 1024))
+            .unwrap();
+        db.checkpoint_turn("t",&json!({"display_parts":[{"tool":"op"},{"message":0}],"input":[{"content":[{"type":"output_text","text":"é".repeat(70*1024)}]}]}).to_string()).unwrap();
+        let projection = db.turn_presentation("s", "t").unwrap().unwrap();
+        assert!(projection.part_states[0].input_omitted);
+        assert!(projection.part_states[1].truncated);
+        assert!(
+            matches!(&projection.parts[0],oc_core::queries::TranscriptPart::Tool(op) if op.op=="op")
+        );
+        db.checkpoint_turn("t", "{}").unwrap();
+        let legacy = db.turn_presentation("s", "t").unwrap().unwrap();
+        assert!(legacy.legacy_text_only);
+        assert!(legacy.parts.is_empty());
+    }
+
+    #[test]
+    fn turn_tool_reference_and_intent_are_atomic() {
+        let tmp = tmp_root("display-intent");
+        let db = Db::open(&tmp.path().join("data")).unwrap();
+        db.create_session("s").unwrap();
+        db.begin_turn("t", "s", "inspect").unwrap();
+        db.conn.lock().unwrap().execute_batch("CREATE TRIGGER fail_display BEFORE UPDATE OF result ON turns BEGIN SELECT RAISE(ABORT, 'injected display failure'); END;").unwrap();
+        assert!(
+            db.record_turn_tool_intent(
+                "op",
+                "s",
+                "t",
+                "read",
+                "{}",
+                "{\"display_parts\":[{\"tool\":\"op\"}]}"
+            )
+            .is_err()
+        );
+        assert!(
+            db.tool_state("op").is_err(),
+            "no orphaned intent without its display reference"
+        );
+        db.conn
+            .lock()
+            .unwrap()
+            .execute_batch("DROP TRIGGER fail_display;")
+            .unwrap();
+        db.record_turn_tool_intent(
+            "op",
+            "s",
+            "t",
+            "read",
+            "{}",
+            "{\"display_parts\":[{\"tool\":\"op\"}]}",
+        )
+        .unwrap();
+        assert_eq!(db.tool_state("op").unwrap(), "started");
+        assert!(
+            db.turn_result("t")
+                .unwrap()
+                .1
+                .unwrap()
+                .contains("display_parts")
+        );
     }
 
     #[test]

@@ -48,7 +48,7 @@ pub fn panel_lines(state: &TuiState) -> Vec<String> {
                 if let Some(variant) = picker.pending_variant() {
                     out.push(format!("variant: {variant}"));
                 }
-                out.extend(picker.window().into_iter().take(ROWS));
+                out.extend(picker.window().into_iter().take(ROWS).map(|id|picker.display_label(&id)));
                 if let Some(error) = picker.last_error() {
                     out.push(format!("note: {error}"));
                 }
@@ -137,6 +137,7 @@ mod tests {
 
     fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
         HistoryMessage {
+            turn: None,
             seq,
             role,
             text: text.to_string(),
@@ -146,6 +147,7 @@ mod tests {
     fn page(rows: Vec<HistoryMessage>) -> HistoryPage {
         let total = rows.len();
         HistoryPage {
+            title: None,
             rows,
             total,
             has_older: false,
@@ -170,8 +172,12 @@ mod tests {
 
     fn catalog() -> CatalogSnapshot {
         CatalogSnapshot {
+            auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
             provider: "ludka2".to_string(),
             models: vec![ModelEntry {
+                display_name: String::new(),
+                provider_name: String::new(),
+                price: None,
                 id: "a".to_string(),
                 variants: vec![VariantEntry {
                     name: "low".to_string(),
@@ -179,11 +185,14 @@ mod tests {
                     reasoning_effort: Some("low".to_string()),
                 }],
                 context: 1000,
+                context_known: true,
+                output_known: true,
                 output: 100,
             }],
             model_id: "a".to_string(),
             variant: None,
             agents: vec![AgentEntry {
+                color_index: 0,
                 id: "x".to_string(),
                 description: "first profile".to_string(),
                 model: Some("a".to_string()),
@@ -231,7 +240,7 @@ mod tests {
         assert_eq!(state.panel(), &TuiPanel::Model);
         let lines = panel_lines(&state);
         assert!(lines.iter().any(|l| l.contains("model |")), "{lines:?}");
-        assert!(lines.iter().any(|l| l == "a"), "{lines:?}");
+        assert!(lines.iter().any(|l| l == "a · ludka2"), "{lines:?}");
         let frame = render_test(&state, 60, 24);
         assert!(frame.join("\n").contains("model |"), "panel pane renders");
 

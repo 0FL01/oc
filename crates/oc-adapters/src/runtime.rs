@@ -665,6 +665,8 @@ pub struct TurnParams<'c> {
 
 #[derive(Clone, Default)]
 struct RuntimeWorkspace {
+    agent_id: Option<String>,
+    agent_color_index: Option<usize>,
     fixed_input: Vec<InputItem>,
     skills: SkillSnapshot,
     agent_digest: Option<String>,
@@ -678,6 +680,8 @@ struct RuntimeWorkspace {
 /// The primary lane mirrors the published workspace. A child lane replaces
 /// the agent prompt and narrows permissions with the child agent's rules.
 struct TurnLane {
+    agent_id: Option<String>,
+    agent_color_index: Option<usize>,
     fixed_input: Vec<InputItem>,
     agent_digest: Option<String>,
     permissions: BTreeMap<String, Permission>,
@@ -880,6 +884,7 @@ impl<'a> Runtime<'a> {
     }
 
     /// Publish fixed instructions, primary prompt and pinned skills together.
+    #[allow(clippy::too_many_arguments)]
     pub fn publish_workspace(
         &self,
         agent_prompt: Option<&str>,
@@ -887,6 +892,8 @@ impl<'a> Runtime<'a> {
         files: Vec<(String, String)>,
         skill_errors: BTreeMap<String, String>,
         agent_digest: Option<String>,
+        agent_id: Option<String>,
+        agent_color_index: Option<usize>,
     ) -> Result<(), RuntimeError> {
         if self.active.load(Ordering::Relaxed) {
             return Err(RuntimeError::TurnActive);
@@ -908,6 +915,8 @@ impl<'a> Runtime<'a> {
         workspace.fixed_input = fixed_input;
         workspace.skills = skills;
         workspace.agent_digest = agent_digest;
+        workspace.agent_id = agent_id;
+        workspace.agent_color_index = agent_color_index;
         workspace.instructions = instructions.to_string();
         workspace.skills_projection = skills_projection;
         Ok(())
@@ -1030,9 +1039,16 @@ impl<'a> Runtime<'a> {
             .await;
         drop(mcp);
         let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
-        result.map(|mut report| {
+        result.and_then(|mut report| {
             report.duration_ms = duration_ms;
-            report
+            self.db.update_turn_display(
+                &report.turn_id,
+                &serde_json::json!({
+                    "duration_ms": duration_ms, "streamed_ms": report.streamed_ms,
+                    "usage": report.usage,
+                }),
+            )?;
+            Ok(report)
         })
     }
 
@@ -1040,6 +1056,8 @@ impl<'a> Runtime<'a> {
     fn primary_lane(&self, published: &PublishedGeneration) -> TurnLane {
         let workspace = self.workspace.read().expect("workspace lock");
         TurnLane {
+            agent_id: workspace.agent_id.clone(),
+            agent_color_index: workspace.agent_color_index,
             fixed_input: workspace.fixed_input.clone(),
             agent_digest: workspace.agent_digest.clone(),
             permissions: published.config.permissions.clone(),
@@ -1335,9 +1353,15 @@ impl<'a> Runtime<'a> {
         };
         let mut text = String::new();
         let mut usage = None;
+        let mut usage_complete = true;
         let mut streamed = Duration::ZERO;
         let mut calls = Vec::new();
         let mut turn_log = TurnLog::new(&turn_id, &selection.id, &params.catalog.provider);
+        turn_log.display = serde_json::json!({
+            "model_label":selection.entry.get("name").and_then(|v|v.as_str()).unwrap_or(&selection.id),
+            "agent":lane.agent_id,
+            "agent_color_index":lane.agent_color_index,
+        });
         turn_log.agent_digest = lane.agent_digest.clone();
         turn_log.user_message = Some(user_message);
         turn_log
@@ -1427,6 +1451,17 @@ impl<'a> Runtime<'a> {
                 &mut |item| match item {
                     crate::provider::StreamItem::TextDelta(delta) => text_delta(&turn_id, delta),
                     crate::provider::StreamItem::ReasoningDelta(delta) => {
+                        if let Some(last) = turn_log.display_parts.last_mut()
+                            && let Some(text) = last.get("reasoning").and_then(|v| v.as_str())
+                        {
+                            let mut text = text.to_string();
+                            if text.len() + delta.len() > 16 * 1024 { last["truncated"] = true.into(); }
+                            if text.len() < 16 * 1024 { text.push_str(delta); }
+                            last["reasoning"] = truncate(&text, 16 * 1024).into();
+                            last["duration_ms"] = streamed_ms(stream_started.elapsed()).into();
+                        } else {
+                            turn_log.display_parts.push(serde_json::json!({"reasoning":truncate(delta, 16 * 1024), "duration_ms":streamed_ms(stream_started.elapsed()), "truncated":delta.len()>16*1024}));
+                        }
                         reasoning_delta(&turn_id, delta);
                     }
                     _ => {}
@@ -1475,9 +1510,13 @@ impl<'a> Runtime<'a> {
             text.push_str(&generation.text);
             // Usage: the last round's input tokens, output summed over rounds
             // (upstream aggregates per-step output for tok/s, runtime.rs docs).
-            if let Some((input, output)) = generation.usage {
+            usage_complete &= generation.usage.is_some();
+            if usage_complete && let Some((input, output)) = generation.usage {
                 let total = usage.map(|(_, previous)| previous).unwrap_or(0) + output;
                 usage = Some((input, total));
+            } else {
+                // A partially reported sum is not a known turn total.
+                usage = None;
             }
             // Calls come only from complete canonical output, never partial deltas.
             let mut call_items = Vec::new();
@@ -1524,12 +1563,20 @@ impl<'a> Runtime<'a> {
                 .output
                 .iter()
                 .any(|value| value["type"] == "message");
-            turn_log
-                .input
-                .extend(generation.output.into_iter().map(InputItem::ProviderOutput));
+            for output in generation.output {
+                if output["type"] == "message" && output["role"] == "assistant" {
+                    turn_log
+                        .display_parts
+                        .push(serde_json::json!({"message":turn_log.input.len()}));
+                }
+                turn_log.input.push(InputItem::ProviderOutput(output));
+            }
             // Text-only synthetic peers may omit canonical messages. This is plain
             // assistant text, never reconstruction of reasoning or function calls.
             if !generation.text.is_empty() && !has_message {
+                turn_log
+                    .display_parts
+                    .push(serde_json::json!({"message":turn_log.input.len()}));
                 turn_log
                     .input
                     .push(InputItem::message(InputRole::Assistant, &generation.text));
@@ -1636,6 +1683,11 @@ impl<'a> Runtime<'a> {
                 .or_insert(*level);
         }
         let lane = TurnLane {
+            agent_id: Some(agent.id.clone()),
+            agent_color_index: workspace
+                .subagents
+                .as_ref()
+                .and_then(|catalog| catalog.agents.keys().position(|id| id == &agent.id)),
             fixed_input: lane_fixed_input(
                 Some(&agent.prompt),
                 &workspace.instructions,
@@ -1928,8 +1980,15 @@ impl<'a> Runtime<'a> {
                 _ => None,
             };
             // Fail closed. No built-in or MCP dispatch can precede this commit.
-            self.db
-                .record_tool_intent(&op, session, Some(turn_id), name, &input)?;
+            turn_log.display_parts.push(serde_json::json!({"tool":op}));
+            self.db.record_turn_tool_intent(
+                &op,
+                session,
+                turn_id,
+                name,
+                &input,
+                &turn_log.to_json().to_string(),
+            )?;
             tool_event(
                 turn_id,
                 &ToolCallEvent::Started {
@@ -2577,9 +2636,9 @@ fn subagent_tool_def(catalog: &SubagentCatalog, list_available: bool) -> ToolDef
 }
 
 /// Catalog-validated child model selection.
-struct ResolvedModel {
-    id: String,
-    variant: Option<String>,
+pub(crate) struct ResolvedModel {
+    pub(crate) id: String,
+    pub(crate) variant: Option<String>,
 }
 
 impl ResolvedModel {
@@ -2593,7 +2652,10 @@ impl ResolvedModel {
 }
 
 /// Parse and validate `provider/model[#variant]` against the catalog.
-fn resolve_subagent_model(catalog: &ModelCatalog, raw: &str) -> Result<ResolvedModel, String> {
+pub(crate) fn resolve_subagent_model(
+    catalog: &ModelCatalog,
+    raw: &str,
+) -> Result<ResolvedModel, String> {
     let invalid = || {
         format!(
             "Invalid model \"{raw}\". Use \"providerID/modelID\" or \"providerID/modelID#variant\"."

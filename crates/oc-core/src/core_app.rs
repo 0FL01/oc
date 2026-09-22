@@ -39,6 +39,15 @@ impl SubmissionReceipt {
 /// Typed application events (live hints + durable outcomes for T03).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoreEvent {
+    /// Safe durable checkpoint projection; identical identity/order on restart.
+    TurnPresentation {
+        /// Owning session.
+        session: SessionId,
+        /// Owning turn.
+        turn: WorkerTurnId,
+        /// Bounded metadata and public parts, never wire continuation.
+        projection: crate::queries::HistoryTurn,
+    },
     /// Turn was accepted and streaming started.
     TurnStarted {
         /// Session that owns the turn.
@@ -922,6 +931,7 @@ mod tests {
                     panic!("unexpected interrupt partial={partial}")
                 }
                 CoreEvent::TurnStarted { .. }
+                | CoreEvent::TurnPresentation { .. }
                 | CoreEvent::ReasoningDelta { .. }
                 | CoreEvent::TurnUsage { .. }
                 | CoreEvent::ToolCallStarted { .. }
@@ -1023,6 +1033,7 @@ mod tests {
                     panic!("cancel must not finish text={text}")
                 }
                 CoreEvent::TextDelta { .. }
+                | CoreEvent::TurnPresentation { .. }
                 | CoreEvent::TurnStarted { .. }
                 | CoreEvent::ReasoningDelta { .. }
                 | CoreEvent::TurnUsage { .. }

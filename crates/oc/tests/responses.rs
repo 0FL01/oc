@@ -296,6 +296,18 @@ fn aud09_aud10_binary_exact_typed_tool_history_survives_restart() {
         std::slice::from_ref(&final_item),
         Some("two reads complete"),
     );
+    let (mut title_socket, _, title_request) = fixture.accept();
+    assert!(
+        title_request["tools"]
+            .as_array()
+            .is_none_or(|v| v.is_empty())
+    );
+    assert_eq!(title_request["max_output_tokens"], 256);
+    respond(
+        &mut title_socket,
+        &[message("assistant", "Two reads session")],
+        Some("Two reads session"),
+    );
     assert!(process.wait(TIMEOUT).success(), "{}", process.errors());
     assert_eq!(
         process.events().last().expect("done"),

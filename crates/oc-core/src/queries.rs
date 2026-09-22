@@ -20,11 +20,76 @@ pub struct HistoryMessage {
     pub role: Role,
     /// Message text.
     pub text: String,
+    /// Safe projection of this row's turn; absent for legacy text-only rows.
+    pub turn: Option<HistoryTurn>,
+}
+
+/// Safe turn metadata and ordered bounded parts, projected from durable records.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct HistoryTurn {
+    /// Stable journal turn id.
+    pub id: String,
+    /// Actual terminal/runtime status.
+    pub status: String,
+    /// Agent selected for this turn, when recorded.
+    pub agent: Option<String>,
+    /// Categorical presentation slot pinned by the owning generation.
+    pub agent_color_index: Option<usize>,
+    /// Display name pinned at generation time.
+    pub model_label: String,
+    /// Last input and summed output token counts; None means unreported.
+    pub usage: Option<(u64, u64)>,
+    /// Measured wall time, if recorded.
+    pub duration_ms: Option<u64>,
+    /// Measured provider-active time, if recorded.
+    pub streamed_ms: Option<u64>,
+    /// Ordered parts; identity is (turn id, part index), tool ids remain durable.
+    pub parts: Vec<TranscriptPart>,
+    /// Identity `(id, sequence)`, original order and status for each served part.
+    pub part_states: Vec<PartState>,
+    /// Parts outside the bounded projection (not deleted from the archive).
+    pub omitted_parts: usize,
+    /// At least one served field is a preview or was omitted.
+    pub truncated: bool,
+    /// Older journal has no trustworthy public part ordering/summary records.
+    pub legacy_text_only: bool,
+}
+
+/// Metadata parallel to `HistoryTurn.parts`, shared by live checkpoint events
+/// and replay. Sequence never changes when an earlier part is omitted.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PartState {
+    /// Durable display sequence within its owning turn.
+    pub sequence: usize,
+    /// Recorded tool outcome, or parent turn state for text/reasoning.
+    pub status: String,
+    /// This part is a bounded preview.
+    pub truncated: bool,
+    /// Structured tool input exceeded the serving budget; op id remains usable.
+    pub input_omitted: bool,
+}
+
+/// Public transcript content only. Never contains opaque provider payloads.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TranscriptPart {
+    /// Bounded text projected from an existing wire message.
+    Text(String),
+    /// Public reasoning summary, not encrypted continuation.
+    Reasoning {
+        /// Bounded public text.
+        text: String,
+        /// Measured summary window, when known.
+        duration_ms: Option<u64>,
+    },
+    /// Existing operation record, retaining exact outcome and continuation id.
+    Tool(ToolOpView),
 }
 
 /// One contiguous, bounded history page (oldest-first for rendering).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct HistoryPage {
+    /// Existing session metadata; None honestly denotes an untitled session.
+    pub title: Option<String>,
     /// Rows in render order.
     pub rows: Vec<HistoryMessage>,
     /// Total committed messages in the session.
@@ -36,16 +101,42 @@ pub struct HistoryPage {
 }
 
 /// One selectable model with its bounded variant list and limits.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ModelEntry {
     /// Exact model id (no provider prefix).
     pub id: String,
+    /// Configured/discovered human name; exact id is the fallback.
+    pub display_name: String,
+    /// Selected provider's configured name, falling back to its id.
+    pub provider_name: String,
+    /// Explicit input/output tariffs. None is unknown, never free.
+    pub price: Option<ModelPrice>,
     /// Declared variants.
     pub variants: Vec<VariantEntry>,
     /// Context limit (0 when undeclared).
     pub context: u64,
+    /// Distinguishes an explicit context value from the legacy zero fallback.
+    pub context_known: bool,
     /// Output limit (0 when undeclared).
     pub output: u64,
+    /// Distinguishes an explicit output value from the legacy zero fallback.
+    pub output_known: bool,
+}
+
+/// Decimal tariffs per million tokens (strings preserve configured precision).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModelPrice {
+    /// Input tariff.
+    pub input: String,
+    /// Output tariff.
+    pub output: String,
+}
+
+impl ModelPrice {
+    /// Both explicitly declared tariffs must be zero.
+    pub fn is_free(&self) -> bool {
+        self.input.parse::<f64>() == Ok(0.0) && self.output.parse::<f64>() == Ok(0.0)
+    }
 }
 
 /// One declared model variant.
@@ -62,6 +153,8 @@ pub struct VariantEntry {
 /// One selectable agent profile.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AgentEntry {
+    /// Generation categorical slot over all admitted profiles, including children.
+    pub color_index: usize,
     /// Profile id.
     pub id: String,
     /// Bounded description.
@@ -73,8 +166,23 @@ pub struct AgentEntry {
 }
 
 /// Catalog plus the effective selection for the next turn.
+/// Session autoaccept is independent of agent tool allow/deny rules.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum AutoAcceptState {
+    /// Backend has no interactive permission-request/reply capability.
+    #[default]
+    Unsupported,
+    /// Capability exists, but approvals are prompted.
+    Disabled,
+    /// Pending permission requests are automatically approved.
+    Enabled,
+}
+
+/// Catalog plus effective next-turn and session capability state.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CatalogSnapshot {
+    /// Honest autoaccept capability/state, never inferred from permission rules.
+    pub auto_accept: AutoAcceptState,
     /// Selected provider id.
     pub provider: String,
     /// Sorted models.

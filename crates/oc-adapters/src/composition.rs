@@ -324,6 +324,21 @@ pub(crate) async fn load_with_env(
     }
     let (instructions, instruction_diagnostics) = defs::load_instructions(&instruction_files);
 
+    // Title is now selected automatically. An explicitly malformed profile
+    // cannot be mistaken for absence and replaced with the built-in policy.
+    if !loaded_defs.agents.contains_key("title")
+        && let Some(diagnostic) = loaded_defs.diagnostics.iter().find(|diagnostic| {
+            diagnostic.field == "agent.title"
+                || Path::new(&diagnostic.path)
+                    .file_stem()
+                    .is_some_and(|stem| stem == "title")
+        })
+    {
+        return Err(format!(
+            "title agent is invalid: {}: {}",
+            diagnostic.path, diagnostic.reason
+        ));
+    }
     let selected_agent = match default_agent.as_deref() {
         Some(id) => match loaded_defs.agents.get(id) {
             Some(agent) if !agent.primary_capable() => {

@@ -168,10 +168,20 @@ impl Effective {
             )));
         }
         if let Some(model) = agent.model.as_deref() {
-            crate::models::select_model(&composition.catalog, model)
+            // Retain the existing exact bare-ID alias; full profile references
+            // share the child/title resolver, including IDs with slashes.
+            let (model, variant) = if composition.catalog.models.contains_key(model) {
+                (model.to_string(), agent.variant.clone())
+            } else {
+                let resolved = crate::runtime::resolve_subagent_model(&composition.catalog, model)
+                    .map_err(|error| app_error(format!("agent {id}: {error}")))?;
+                (resolved.id, agent.variant.clone().or(resolved.variant))
+            };
+            let selection = crate::models::select_model(&composition.catalog, &model)
+                .and_then(|base| crate::models::select_variant(&base, variant.as_deref()))
                 .map_err(|error| app_error(format!("agent {id}: {error}")))?;
-            self.model_id = model.to_string();
-            self.variant = agent.variant.clone();
+            self.model_id = selection.id;
+            self.variant = selection.variant.map(|v| v.name);
         } else if agent.variant.is_some() {
             let base = crate::models::select_model(&composition.catalog, &self.model_id)
                 .map_err(|error| app_error(error.to_string()))?;
@@ -193,6 +203,28 @@ impl Effective {
             .iter()
             .map(|(id, spec)| ModelEntry {
                 id: id.clone(),
+                display_name: spec
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(id)
+                    .to_string(),
+                provider_name: composition
+                    .generation
+                    .providers
+                    .get(&composition.catalog.provider)
+                    .and_then(|p| p.name.clone())
+                    .unwrap_or_else(|| composition.catalog.provider.clone()),
+                price: (|| {
+                    let input = spec.pointer("/cost/input")?;
+                    let output = spec.pointer("/cost/output")?;
+                    if input.as_f64()? < 0.0 || output.as_f64()? < 0.0 {
+                        return None;
+                    }
+                    Some(oc_core::queries::ModelPrice {
+                        input: input.to_string(),
+                        output: output.to_string(),
+                    })
+                })(),
                 variants: spec
                     .get("variants")
                     .and_then(|value| value.as_object())
@@ -217,25 +249,38 @@ impl Effective {
                     .pointer("/limit/context")
                     .and_then(serde_json::Value::as_u64)
                     .unwrap_or(0),
+                context_known: spec
+                    .pointer("/limit/context")
+                    .and_then(serde_json::Value::as_u64)
+                    .is_some(),
                 output: spec
                     .pointer("/limit/output")
                     .and_then(serde_json::Value::as_u64)
                     .unwrap_or(0),
+                output_known: spec
+                    .pointer("/limit/output")
+                    .and_then(serde_json::Value::as_u64)
+                    .is_some(),
             })
             .collect();
         models.sort_by(|a, b| a.id.cmp(&b.id));
         let agents = composition
             .agents
             .values()
-            .filter(|agent| agent.primary_capable())
-            .map(|agent| AgentEntry {
+            .enumerate()
+            .filter(|(_, agent)| agent.primary_capable())
+            .map(|(color_index, agent)| AgentEntry {
                 id: agent.id.clone(),
                 description: agent.description.clone(),
                 model: agent.model.clone(),
                 variant: agent.variant.clone(),
+                color_index,
             })
             .collect();
         CatalogSnapshot {
+            // RuntimePolicy has allow/deny/ask-as-denial, no pending request
+            // queue or reply API. That is not upstream's autoaccept mode.
+            auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
             provider: composition.catalog.provider.clone(),
             models,
             model_id: self.model_id.clone(),
@@ -388,7 +433,8 @@ async fn start_worker(
                 break;
             }
             WorkerOutcome::Switch { path, ack } => {
-                match switch_target(&db, &path, &mut sessions).await {
+                match switch_target(&db, &path, &mut sessions, composition.parent_env.clone()).await
+                {
                     Ok((next, next_composition, next_effective, next_registry, session, notes)) => {
                         // The target generation is complete: only now drop the
                         // old Location's MCP resources and swap the state.
@@ -428,6 +474,7 @@ async fn switch_target<'a>(
     db: &'a Db,
     path: &str,
     sessions: &mut BTreeMap<String, String>,
+    env: BTreeMap<String, String>,
 ) -> Result<
     (
         Runtime<'a>,
@@ -439,7 +486,7 @@ async fn switch_target<'a>(
     ),
     String,
 > {
-    let composition = composition::load(Path::new(path)).await?;
+    let composition = composition::load_with_env(Path::new(path), env).await?;
     let runtime = build_runtime(db, &composition)?;
     let mut effective = Effective::from_composition(&composition);
     let mut registry = WorkspaceRegistry::bind(
@@ -494,6 +541,11 @@ fn publish_workspace(
         composition.skills.clone(),
         composition.skill_errors.clone(),
         effective.agent_digest.clone(),
+        effective.agent_id.clone(),
+        effective
+            .agent_id
+            .as_ref()
+            .and_then(|id| composition.agents.values().position(|a| &a.id == id)),
     )
 }
 
@@ -643,17 +695,29 @@ fn query(
                 }
                 let rows = page
                     .into_iter()
-                    .map(|(seq, role, text)| HistoryMessage {
-                        seq,
-                        role: if role == "user" {
-                            Role::User
-                        } else {
-                            Role::Assistant
-                        },
-                        text,
+                    .map(|(seq, role, text)| {
+                        Ok(HistoryMessage {
+                            turn: db
+                                .history_turn(&session.0, seq)
+                                .map_err(app_error)?
+                                .or_else(|| {
+                                    (role == "assistant").then(|| oc_core::queries::HistoryTurn {
+                                        legacy_text_only: true,
+                                        ..Default::default()
+                                    })
+                                }),
+                            seq,
+                            role: if role == "user" {
+                                Role::User
+                            } else {
+                                Role::Assistant
+                            },
+                            text,
+                        })
                     })
-                    .collect();
+                    .collect::<Result<Vec<_>, CoreError>>()?;
                 Ok(HistoryPage {
+                    title: db.session_meta(&session.0).map_err(app_error)?.title,
                     rows,
                     total,
                     has_older,
@@ -868,6 +932,39 @@ async fn worker(
                     }
                 };
                 let cancel = AtomicBool::new(false);
+                // Resolve before accepting a turn: an invalid configured title
+                // profile is a configuration error, never a silent fallback.
+                let title_agent = composition.agents.get("title");
+                let title_selection = (|| -> Result<_, String> {
+                    let (id, variant) =
+                        if let Some(raw) = title_agent.and_then(|a| a.model.as_deref()) {
+                            let resolved =
+                                crate::runtime::resolve_subagent_model(&composition.catalog, raw)?;
+                            (
+                                resolved.id,
+                                title_agent
+                                    .and_then(|a| a.variant.clone())
+                                    .or(resolved.variant),
+                            )
+                        } else {
+                            (
+                                effective.model_id.clone(),
+                                title_agent
+                                    .and_then(|a| a.variant.clone())
+                                    .or(effective.variant.clone()),
+                            )
+                        };
+                    crate::models::select_model(&composition.catalog, &id)
+                        .and_then(|base| crate::models::select_variant(&base, variant.as_deref()))
+                        .map_err(|e| e.to_string())
+                })();
+                let title_selection = match title_selection {
+                    Ok(selection) => selection,
+                    Err(error) => {
+                        let _ = ack.send(Err(app_error(format!("title agent: {error}"))));
+                        continue;
+                    }
+                };
                 let max_output = composition
                     .catalog
                     .models
@@ -887,70 +984,162 @@ async fn worker(
                     cancel: &cancel,
                     max_rounds: crate::runtime::MAX_ROUNDS,
                 };
+                let title_prompt = params.prompt.clone();
                 let mut ack = Some(ack);
                 let mut turn = None;
                 let mut shutdown = false;
                 let result;
                 {
-                    let operation = runtime.run_turn_with_tool_events(
-                        params,
-                        |id| {
-                            let id = WorkerTurnId(id.to_string());
-                            turn = Some(id.clone());
-                            if let Some(ack) = ack.take() {
-                                let _ = ack.send(Ok(id.clone()));
-                            }
-                            let _ = events.send(CoreEvent::TurnStarted {
-                                session: session.clone(),
-                                turn: id.clone(),
-                            });
-                        },
-                        |id, delta| {
-                            let _ = events.send(CoreEvent::TextDelta {
-                                session: session.clone(),
-                                turn: WorkerTurnId(id.to_string()),
-                                delta: delta.to_string(),
-                            });
-                        },
-                        |id, delta| {
-                            let _ = events.send(CoreEvent::ReasoningDelta {
-                                session: session.clone(),
-                                turn: WorkerTurnId(id.to_string()),
-                                delta: delta.to_string(),
-                            });
-                        },
-                        |id, event| {
-                            let turn = WorkerTurnId(id.to_string());
-                            let _ = events.send(match event {
-                                ToolCallEvent::Started { op, name, input } => {
-                                    CoreEvent::ToolCallStarted {
-                                        session: session.clone(),
-                                        turn,
-                                        op: op.clone(),
-                                        name: name.clone(),
-                                        input: input.clone(),
+                    let operation = async {
+                        let report = runtime
+                            .run_turn_with_tool_events(
+                                params,
+                                |id| {
+                                    let id = WorkerTurnId(id.to_string());
+                                    turn = Some(id.clone());
+                                    if let Some(ack) = ack.take() {
+                                        let _ = ack.send(Ok(id.clone()));
                                     }
-                                }
-                                ToolCallEvent::Finished {
-                                    op,
-                                    name,
-                                    state,
-                                    output,
-                                    output_bytes,
-                                    output_truncated,
-                                } => CoreEvent::ToolCallFinished {
-                                    session: session.clone(),
-                                    turn,
-                                    op: op.clone(),
-                                    name: name.clone(),
-                                    state: state.clone(),
-                                    output: output.clone(),
-                                    output_bytes: *output_bytes,
-                                    output_truncated: *output_truncated,
+                                    let _ = events.send(CoreEvent::TurnStarted {
+                                        session: session.clone(),
+                                        turn: id.clone(),
+                                    });
                                 },
+                                |id, delta| {
+                                    let _ = events.send(CoreEvent::TextDelta {
+                                        session: session.clone(),
+                                        turn: WorkerTurnId(id.to_string()),
+                                        delta: delta.to_string(),
+                                    });
+                                },
+                                |id, delta| {
+                                    let _ = events.send(CoreEvent::ReasoningDelta {
+                                        session: session.clone(),
+                                        turn: WorkerTurnId(id.to_string()),
+                                        delta: delta.to_string(),
+                                    });
+                                },
+                                |id, event| {
+                                    let turn = WorkerTurnId(id.to_string());
+                                    let _ = events.send(match event {
+                                        ToolCallEvent::Started { op, name, input } => {
+                                            CoreEvent::ToolCallStarted {
+                                                session: session.clone(),
+                                                turn,
+                                                op: op.clone(),
+                                                name: name.clone(),
+                                                input: input.clone(),
+                                            }
+                                        }
+                                        ToolCallEvent::Finished {
+                                            op,
+                                            name,
+                                            state,
+                                            output,
+                                            output_bytes,
+                                            output_truncated,
+                                        } => CoreEvent::ToolCallFinished {
+                                            session: session.clone(),
+                                            turn,
+                                            op: op.clone(),
+                                            name: name.clone(),
+                                            state: state.clone(),
+                                            output: output.clone(),
+                                            output_bytes: *output_bytes,
+                                            output_truncated: *output_truncated,
+                                        },
+                                    });
+                                    if let Ok(Some(projection)) =
+                                        db.turn_presentation(&session.0, id)
+                                    {
+                                        let _ = events.send(CoreEvent::TurnPresentation {
+                                            session: session.clone(),
+                                            turn: WorkerTurnId(id.to_string()),
+                                            projection,
+                                        });
+                                    }
+                                },
+                            )
+                            .await?;
+                        if let Some(projection) =
+                            db.turn_presentation(&session.0, &report.turn_id)?
+                        {
+                            let _ = events.send(CoreEvent::TurnPresentation {
+                                session: session.clone(),
+                                turn: WorkerTurnId(report.turn_id.clone()),
+                                projection,
                             });
-                        },
-                    );
+                        }
+                        // The default/configured title profile uses the selected
+                        // provider adapter, without tools or a second conversation.
+                        // Failure leaves the honest untitled state and can be retried
+                        // on a later turn. Existing/child titles are never replaced.
+                        if report.status == TurnStatus::Completed
+                            && !cancel.load(Ordering::Relaxed)
+                            && db.session_meta(&session.0)?.title.is_none()
+                        {
+                            let selection = &title_selection;
+                            let input = vec![
+                                    crate::provider::InputItem::message(
+                                        crate::provider::InputRole::Developer,
+                                        title_agent.map(|a| a.body.as_str()).unwrap_or("Generate a short session title from the user's request. Output only the title, in at most 100 characters."),
+                                    ),
+                                    crate::provider::InputItem::message(
+                                        crate::provider::InputRole::User,
+                                        &title_prompt[..title_prompt.floor_char_boundary(title_prompt.len().min(8192))],
+                                    ),
+                                ];
+                            if let Ok(Ok(generation)) = tokio::time::timeout(
+                                std::time::Duration::from_secs(10),
+                                crate::provider::stream_input_observed(
+                                    &composition.provider,
+                                    &selection.id,
+                                    selection.variant.as_ref(),
+                                    &input,
+                                    &[],
+                                    256,
+                                    &cancel,
+                                    &mut |_| {},
+                                ),
+                            )
+                            .await
+                            {
+                                let canonical = generation
+                                    .output
+                                    .iter()
+                                    .filter(|item| {
+                                        item["type"] == "message" && item["role"] == "assistant"
+                                    })
+                                    .filter_map(|value| {
+                                        value.get("content").and_then(|v| v.as_array())
+                                    })
+                                    .flatten()
+                                    .filter(|c| c["type"] == "output_text")
+                                    .filter_map(|c| c["text"].as_str())
+                                    .collect::<Vec<_>>()
+                                    .join("");
+                                let title = if generation.text.is_empty() {
+                                    &canonical
+                                } else {
+                                    &generation.text
+                                }
+                                .lines()
+                                .find(|line| !line.trim().is_empty())
+                                .unwrap_or_default()
+                                .trim()
+                                .trim_matches('"');
+                                let title: String = title
+                                    .chars()
+                                    .filter(|c| !c.is_control())
+                                    .take(100)
+                                    .collect();
+                                if !title.is_empty() {
+                                    db.set_generated_title(&session.0, &title)?;
+                                }
+                            }
+                        }
+                        Ok::<_, RuntimeError>(report)
+                    };
                     tokio::pin!(operation);
                     result = loop {
                         tokio::select! {
