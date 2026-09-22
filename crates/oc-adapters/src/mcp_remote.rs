@@ -498,6 +498,7 @@ impl CodexWebClient {
         let http = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
             .no_proxy()
+            .user_agent(crate::USER_AGENT)
             .connect_timeout(Duration::from_secs(10))
             .build()
             .map_err(|_| McpError::Transport)?;

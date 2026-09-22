@@ -481,6 +481,11 @@ async fn handle_worker_event(
             if compress {
                 report_compress_outcome(app, state, session).await?;
             }
+            // After the durable page: degradation rows are transient notices,
+            // so they must follow the page attach that rebuilds the transcript.
+            for warning in warnings {
+                state.push_warning(&warning);
+            }
         }
         CoreEvent::TurnInterrupted {
             turn,
@@ -496,9 +501,17 @@ async fn handle_worker_event(
                 });
             }
         }
-        CoreEvent::TurnFailed { turn, error, .. } => {
+        CoreEvent::TurnFailed {
+            turn,
+            error,
+            warnings,
+            ..
+        } => {
             let compress = state.is_compress_turn(&turn);
             state.apply_failed(&turn, &error);
+            for warning in warnings {
+                state.push_warning(&warning);
+            }
             if compress {
                 state.notify_dcp(DcpOutcome::Failed {
                     reason: error.to_string(),

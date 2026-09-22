@@ -358,6 +358,7 @@ async fn fetch_with_resolver(
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .no_proxy()
+        .user_agent(crate::WEB_USER_AGENT)
         .connect_timeout(opts.connect_timeout)
         .dns_resolver(resolver.clone())
         .build()
@@ -641,6 +642,7 @@ mod tests {
     struct Seen {
         path: String,
         auth: Option<String>,
+        user_agent: Option<String>,
     }
 
     struct TestServer {
@@ -715,6 +717,7 @@ mod tests {
                         seen.lock().expect("seen").push(Seen {
                             path: path.clone(),
                             auth: headers.get("authorization").cloned(),
+                            user_agent: headers.get("user-agent").cloned(),
                         });
                         let host = headers.get("host").cloned().unwrap_or_default();
                         let route_path = path.split('?').next().unwrap_or("/");
@@ -1015,6 +1018,11 @@ mod tests {
             .expect("check seen");
         assert_eq!(login.auth.as_deref(), Some("Bearer tok"));
         assert_eq!(check.auth, None);
+        assert_eq!(
+            login.user_agent.as_deref(),
+            Some(crate::WEB_USER_AGENT),
+            "page fetches carry the browser-like identity"
+        );
         server.shutdown();
     }
 

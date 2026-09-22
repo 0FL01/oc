@@ -488,6 +488,11 @@ async fn handshake_uses_exact_url_and_bearer() {
         let accept = record.headers.get("accept").cloned().unwrap_or_default();
         assert!(accept.contains("application/json"), "accept json: {accept}");
         assert!(accept.contains("text/event-stream"), "accept sse: {accept}");
+        assert_eq!(
+            record.headers.get("user-agent").map(String::as_str),
+            Some(oc_adapters::USER_AGENT),
+            "remote MCP requests carry a User-Agent"
+        );
     }
     let methods: Vec<String> = seen
         .iter()

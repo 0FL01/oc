@@ -26,4 +26,15 @@ pub mod tools;
 pub mod tui_workspace;
 pub mod webfetch;
 
+/// Outbound `User-Agent` for the native HTTP clients (`oc/<version>`).
+///
+/// JS runtimes always send a default `User-Agent`; `reqwest` sends none, and
+/// frontends such as Cloudflare answer `403 Error 1010` to UA-less requests
+/// (observed before the configured remote MCP endpoint).
+pub const USER_AGENT: &str = concat!("oc/", env!("CARGO_PKG_VERSION"));
+
+/// `User-Agent` for page fetches: browser-like on purpose, matching upstream
+/// opencode's `OpenCode-User/1.0` intent because sites block UA-less clients.
+pub const WEB_USER_AGENT: &str = "oc-user/1.0";
+
 pub use smoke::{adapter_name, build_smoke_client, rmcp_smoke_marker, smoke_memory_db};

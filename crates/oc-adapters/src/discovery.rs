@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderName, HeaderValue};
+use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderName, HeaderValue, USER_AGENT};
 use thiserror::Error;
 
 /// Provider id this discovery serves.
@@ -568,6 +568,9 @@ fn discovery_headers(
     authorization.set_sensitive(true);
     headers.insert(AUTHORIZATION, authorization);
     headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
+    // JS runtimes always send a User-Agent; reqwest sends none, and some
+    // frontends answer 403 to UA-less requests. Reserved like accept/auth.
+    headers.insert(USER_AGENT, HeaderValue::from_static(crate::USER_AGENT));
     Ok(headers)
 }
 
@@ -1187,6 +1190,10 @@ mod tests {
         );
         assert_eq!(accept.len(), 1);
         assert_eq!(accept[0].1.to_str().expect("accept"), "application/json");
+        assert_eq!(
+            sent.get("user-agent").and_then(|value| value.to_str().ok()),
+            Some(crate::USER_AGENT)
+        );
         assert_eq!(
             sent.get("x-fixture").and_then(|value| value.to_str().ok()),
             Some("preserved")

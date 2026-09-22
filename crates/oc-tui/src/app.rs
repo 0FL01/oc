@@ -785,6 +785,13 @@ impl TuiState {
         self.note = Some(note.to_string());
     }
 
+    /// Push one synthetic transcript row for a non-fatal warning, so a
+    /// degraded capability stays visible after the status note is replaced.
+    pub fn push_warning(&mut self, warning: &str) {
+        self.window
+            .push_synthetic("", &format!("(warning: {warning})"));
+    }
+
     /// Model under the picker cursor; the active variant is preserved when
     /// the cursor still points at the selected model.
     pub fn picker_selection(&self) -> Option<(String, Option<String>)> {

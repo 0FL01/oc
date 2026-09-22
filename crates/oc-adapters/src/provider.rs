@@ -813,6 +813,7 @@ async fn stream_body(
     let builder = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .no_proxy()
+        .user_agent(crate::USER_AGENT)
         .connect_timeout(config.connect_timeout);
     // timeout:false (or absent) means no total deadline: never set one.
     let client = builder.build().map_err(|_| ProviderError::Transport)?;
@@ -1446,6 +1447,7 @@ mod tests {
         assert_eq!(seen[0].headers["authorization"], "Bearer test-key");
         assert_eq!(seen[0].headers["accept"], "text/event-stream");
         assert_eq!(seen[0].headers["content-type"], "application/json");
+        assert_eq!(seen[0].headers["user-agent"], crate::USER_AGENT);
         assert!(!format!("{config:?}").contains("private-extra-value"));
         drop(seen);
         server.shutdown();

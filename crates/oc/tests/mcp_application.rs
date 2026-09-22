@@ -746,21 +746,25 @@ fn aud22_binary_rejects_conflicting_authorization_duplicates_before_network() {
     );
 
     let mut process = fixture.spawn_run("aud22-conflicting-auth");
-    let status = process.wait();
+    // The conflicting server degrades: rejected before any network, and the
+    // run still answers with a visible warning.
     assert!(
-        !status.success(),
-        "conflicting credentials must be rejected"
+        process.wait().success(),
+        "degraded conflict aborted the run: {}",
+        process.diagnostics()
     );
     let diagnostic = process.diagnostics().to_ascii_lowercase();
     assert!(
-        diagnostic.contains("authorization") && diagnostic.contains("conflict"),
+        diagnostic.contains("warning: mcp codex_web config: authorization_header_conflict"),
         "actionable duplicate diagnostic: {diagnostic}"
     );
     assert!(mcp.records().is_empty(), "conflict reached MCP network");
-    assert!(
-        responses.requests().is_empty(),
-        "conflict reached provider network"
-    );
+    let turns = responses
+        .requests()
+        .into_iter()
+        .filter(|request| !title::is_title(request))
+        .count();
+    assert_eq!(turns, 1, "conflict still answered the turn");
 }
 
 #[test]
@@ -783,16 +787,32 @@ fn aud24_binary_rejects_oversized_catalog_without_partial_provider_tools() {
     );
 
     let mut process = fixture.spawn_run("aud24-catalog-limit");
-    assert!(!process.wait().success(), "partial catalog was accepted");
+    // The oversized server degrades: no partial catalog reaches the model, and
+    // the run still answers with a visible warning.
+    assert!(
+        process.wait().success(),
+        "degraded catalog aborted the run: {}",
+        process.diagnostics()
+    );
     let diagnostic = process.diagnostics().to_ascii_lowercase();
     assert!(
-        diagnostic.contains("catalog") && diagnostic.contains("limit"),
+        diagnostic.contains("warning: mcp oversized tools-list: catalog_limit"),
         "visible catalog diagnostic: {diagnostic}"
     );
-    assert!(
-        responses.requests().is_empty(),
-        "partial catalog reached model"
-    );
+    let turns = responses
+        .requests()
+        .into_iter()
+        .filter(|request| !title::is_title(request))
+        .collect::<Vec<_>>();
+    assert_eq!(turns.len(), 1, "degraded catalog still answered the turn");
+    for request in &turns {
+        assert!(
+            function_tool_names(request)
+                .iter()
+                .all(|name| !name.starts_with("oversized__")),
+            "partial catalog reached model"
+        );
+    }
     assert_eq!(
         mcp.records()
             .iter()
@@ -1783,12 +1803,16 @@ fn v01_anonymous_remote_and_codex_required_auth() {
     let count = mcp.records().len();
     fixture.write_config(&responses, json!({"codex_web":entry}), json!({}));
     let mut process = fixture.spawn_run("v01-codex-missing-auth");
-    assert!(!process.wait().success());
+    // The strict codex_web profile still refuses to reach the network, but the
+    // failed server degrades: the run answers with a visible warning.
+    assert!(
+        process.wait().success(),
+        "degraded codex_web aborted the run: {}",
+        process.diagnostics()
+    );
     let diagnostic = process.diagnostics();
     assert!(
-        diagnostic.contains("codex_web")
-            && diagnostic.contains("config")
-            && diagnostic.contains("invalid_config"),
+        diagnostic.contains("warning: mcp codex_web config: invalid_config (retryable=false)"),
         "{diagnostic}"
     );
     assert_eq!(
@@ -1796,15 +1820,16 @@ fn v01_anonymous_remote_and_codex_required_auth() {
         count,
         "codex auth requirement checked before network"
     );
-    assert_eq!(
-        responses.requests().len(),
-        2,
-        "required failure has no provider fallback"
-    );
+    let turns = responses
+        .requests()
+        .into_iter()
+        .filter(|request| !title::is_title(request))
+        .count();
+    assert_eq!(turns, 2, "degraded server still answered the turn");
 }
 
 #[test]
-fn v01_required_remote_diagnostic_is_staged_and_redacted_in_tui() {
+fn v01_degraded_remote_diagnostic_is_staged_and_redacted_in_tui() {
     let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
     let mcp = FakeMcp::start("strict", "Bearer expected", &["search"]);
     let fixture = Fixture::new();
@@ -1816,10 +1841,15 @@ fn v01_required_remote_diagnostic_is_staged_and_redacted_in_tui() {
     let mut tui = PtyProcess::spawn(&fixture, "v01-required-failure");
     tui.wait_visible(READY);
     tui.send_line("retained prompt");
-    tui.wait_screen("mcp required initialize:", IO_TIMEOUT);
+    // The failed server degrades: the warning row is visible and the turn
+    // still reaches the provider and answers.
+    tui.wait_screen("warning: mcp required initialize:", IO_TIMEOUT);
     tui.wait_screen("unauthorized (retryable=false)", IO_TIMEOUT);
-    tui.wait_screen("retained prompt", IO_TIMEOUT);
-    assert!(responses.requests().is_empty(), "required failure bypassed");
+    tui.wait_screen("answer:retained prompt", IO_TIMEOUT);
+    assert!(
+        !responses.requests().is_empty(),
+        "degraded server blocked the provider"
+    );
     tui.raw(b"\x03");
     assert!(tui.wait_exit().success());
     let bytes = tui.output.lock().unwrap();

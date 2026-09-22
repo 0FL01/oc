@@ -481,7 +481,7 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
     );
     let cancelled = cancelled.expect("cancel lands");
     assert_eq!(cancelled.status, TurnStatus::Cancelled);
-    // One loud MCP failure: no silent degradation, no partial turn.
+    // One degraded MCP server: visible warning, turn still completes.
     let bad = Generation {
         providers: BTreeMap::new(),
         mcp: [(
@@ -506,18 +506,14 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
         warnings: Vec::new(),
     };
     let bad_runtime = runtime_of(harness, bad);
-    let mcp_error = bad_runtime
+    let degraded = bad_runtime
         .run_turn(params("s0", "hi", harness, provider.clone(), &CANCEL))
         .await
-        .expect_err("mcp must fail loud");
+        .expect("a degraded server must not abort the turn");
+    assert_eq!(degraded.status, TurnStatus::Completed);
     assert_eq!(
-        mcp_error,
-        oc_adapters::runtime::RuntimeError::McpAttach {
-            server: "codex".to_string(),
-            stage: "DNS",
-            safe_code: "private_host",
-            retryable: false,
-        }
+        degraded.warnings,
+        vec!["mcp codex DNS: private_host (retryable=false)"]
     );
     let rows_after: usize = (0..SESSIONS)
         .map(|s| harness.db.history_len(&format!("s{s}")).unwrap_or(0))

@@ -1189,6 +1189,12 @@ async fn worker(
                         Ok(report) => report.duration_ms,
                         Err(_) => 0,
                     };
+                    // Degraded MCP servers stay visible on the terminal event;
+                    // a failed turn has no report and therefore no notices.
+                    let warnings = match &result {
+                        Ok(report) => report.warnings.clone(),
+                        Err(_) => Vec::new(),
+                    };
                     let event = match result {
                         Err(RuntimeError::Cancelled) => CoreEvent::TurnInterrupted {
                             session: session.clone(),
@@ -1202,6 +1208,7 @@ async fn worker(
                                 turn,
                                 text: report.text,
                                 duration_ms,
+                                warnings,
                             }
                         }
                         Ok(report) if report.status == TurnStatus::Cancelled => {
@@ -1219,6 +1226,7 @@ async fn worker(
                                 error: app_error(report.diagnostic.as_deref().unwrap_or(
                                     "turn incomplete: response ended early or round limit reached",
                                 )),
+                                warnings,
                             }
                         }
                         Ok(report) => CoreEvent::TurnFailed {
@@ -1227,11 +1235,13 @@ async fn worker(
                             error: app_error(
                                 report.diagnostic.as_deref().unwrap_or("provider error"),
                             ),
+                            warnings,
                         },
                         Err(error) => CoreEvent::TurnFailed {
                             session: session.clone(),
                             turn,
                             error: app_error(error),
+                            warnings,
                         },
                     };
                     let _ = events.send(event);

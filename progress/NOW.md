@@ -53,7 +53,7 @@ application effects, then V05–V09. Preserve user ZIP unstaged. No historical r
 rewritten, no T44 finish/READY claim.
 
 
-Ready (до 5): T30
+Ready (до 5): T30, T46
 Blocked: T27, T43
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.

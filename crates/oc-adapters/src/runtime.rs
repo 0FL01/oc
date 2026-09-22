@@ -370,13 +370,24 @@ enum AttachedServer {
 }
 
 /// One Location/config generation owns connected clients and its exact dispatch map.
+///
+/// `degraded` records enabled servers that could not be attached (or whose
+/// catalog refresh failed) as sanitized `McpAttach` notices. They publish no
+/// tools and never abort the turn: upstream opencode v2.0.12 keeps a per-server
+/// `failed` status and continues the session.
 struct McpGeneration {
     publication: u64,
     servers: Vec<AttachedMcp>,
     entries: Vec<mcp_remote::RegistryEntry>,
+    degraded: Vec<RuntimeError>,
 }
 
 impl McpGeneration {
+    /// Sanitized per-server degradation notices (server id, stage, safe code).
+    fn warnings(&self) -> Vec<String> {
+        self.degraded.iter().map(ToString::to_string).collect()
+    }
+
     /// Explicitly close every owned client under one generation-wide budget.
     ///
     /// A client that times out is dropped, which keeps the stdio process-group
@@ -439,10 +450,15 @@ impl McpGeneration {
                 Err(error) => Err(error),
             };
             match registry {
-                Ok(registry) => replacements[index] = Some(registry),
+                Ok(registry) => {
+                    replacements[index] = Some(registry);
+                    clear_degradation(&mut self.degraded, &server.server_id);
+                }
                 Err(error) => {
+                    // Upstream ignores a failed relist: the previous catalog
+                    // stays published and the server is reported as degraded.
                     self.restore_dirty(&claims);
-                    return Err(error);
+                    record_degradation(&mut self.degraded, error);
                 }
             }
         }
@@ -508,6 +524,25 @@ async fn close_generation(generation: McpGeneration) -> Result<(), RuntimeError>
         Ok(result) => result,
         Err(_) => Err(RuntimeError::McpShutdown),
     }
+}
+
+/// Record one server's degradation, replacing any earlier notice for it.
+///
+/// Only sanitized `McpAttach` notices are recorded; any other error stays fatal
+/// at the call site.
+fn record_degradation(degraded: &mut Vec<RuntimeError>, error: RuntimeError) {
+    if let RuntimeError::McpAttach { server, .. } = &error {
+        clear_degradation(degraded, server);
+    }
+    degraded.push(error);
+}
+
+/// Drop the recorded degradation of a server that is healthy again.
+fn clear_degradation(degraded: &mut Vec<RuntimeError>, server: &str) {
+    degraded.retain(|existing| match existing {
+        RuntimeError::McpAttach { server: known, .. } => known != server,
+        _ => true,
+    });
 }
 
 /// Server id + client + per-server base registry.
@@ -615,6 +650,9 @@ pub struct TurnReport {
     pub calls: Vec<CallRecord>,
     /// Transient nudge hint (never persisted).
     pub nudge_hint: Option<String>,
+    /// Sanitized per-server MCP degradation notices for this turn's generation
+    /// (`mcp <id> <stage>: <code> (retryable=<bool>)`); never URLs or secrets.
+    pub warnings: Vec<String>,
 }
 
 /// Compress execution report.
@@ -1026,6 +1064,7 @@ impl<'a> Runtime<'a> {
         let attached = self
             .ensure_mcp_generation(&mut mcp, &published, params.cancel)
             .await?;
+        let mcp_warnings = attached.warnings();
         let result = self
             .run_turn_inner(
                 params,
@@ -1041,6 +1080,7 @@ impl<'a> Runtime<'a> {
         let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
         result.and_then(|mut report| {
             report.duration_ms = duration_ms;
+            report.warnings = mcp_warnings;
             self.db.update_turn_display(
                 &report.turn_id,
                 &serde_json::json!({
@@ -1790,6 +1830,7 @@ impl<'a> Runtime<'a> {
             duration_ms: 0,
             calls,
             nudge_hint,
+            warnings: Vec::new(),
         })
     }
 
@@ -2345,6 +2386,7 @@ impl<'a> Runtime<'a> {
         }
         let mut attached = Vec::new();
         let mut registries = Vec::new();
+        let mut degraded = Vec::new();
         let mut ids: Vec<&String> = published.config.mcp.keys().collect();
         ids.sort();
         for id in ids {
@@ -2499,11 +2541,17 @@ impl<'a> Runtime<'a> {
                     attached.push(server);
                     registries.push(registry);
                 }
+                // Per-server attach failure degrades that server only: upstream
+                // opencode v2.0.12 marks the server failed and keeps the turn.
+                Err(error @ RuntimeError::McpAttach { .. }) => {
+                    record_degradation(&mut degraded, error);
+                }
                 Err(error) => {
                     let cleanup = close_generation(McpGeneration {
                         publication: published.id,
                         servers: attached,
                         entries: Vec::new(),
+                        degraded: Vec::new(),
                     })
                     .await;
                     cleanup?;
@@ -2516,12 +2564,14 @@ impl<'a> Runtime<'a> {
                 publication: published.id,
                 servers: attached,
                 entries,
+                degraded,
             }),
             Err(error) => {
                 let cleanup = close_generation(McpGeneration {
                     publication: published.id,
                     servers: attached,
                     entries: Vec::new(),
+                    degraded: Vec::new(),
                 })
                 .await;
                 cleanup?;

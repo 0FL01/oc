@@ -742,6 +742,16 @@
       "work": "Background subagents + synthetic notices + reap, command routing (agent/model/subagent/subtask), DCP allowSubAgents для child turns, TUI/history child rows. Источник: evidence/subagents/upstream-v2.0.12-plan.md (срезы 5-8).",
       "evidence": "evidence/T45/report.md",
       "spec": "docs/goals/2026-09-21-config-compat-and-subagents.md"
+    },
+    {
+      "id": "T46",
+      "phase": "M8",
+      "title": "MCP attach parity: per-server degradation + outbound User-Agent",
+      "depends_on": [],
+      "tests": [],
+      "work": "Заменить фатальный MCP attach на per-server деградацию по upstream v2.0.12 (статус failed со stage/code, turn продолжается, инструменты упавшего сервера не публикуются), сделать деградацию видимой (TurnReport.warnings -> TUI note/headless warning), добавить User-Agent на outbound HTTP-клиенты. Сохранить фатальными Cancelled/cleanup/caps и AUD23 reaping.",
+      "evidence": "evidence/T46/report.md",
+      "spec": "docs/goals/2026-09-22-mcp-attach-parity.md"
     }
   ]
 }

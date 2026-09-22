@@ -1475,7 +1475,7 @@ async fn aud23_server_cap_blocks_spawn_before_first_child() {
 }
 
 #[tokio::test]
-async fn aud23_partial_attach_failure_reaps_previously_connected_child() {
+async fn aud23_partial_attach_failure_degrades_and_still_reaps_child() {
     let (harness, mut generation) = make_harness(allow_all());
     let script = harness._project.path().join("partial_attach.py");
     let pid_file = harness._project.path().join("partial.pid");
@@ -1527,28 +1527,31 @@ for line in sys.stdin:
     );
     let runtime = runtime_of(&harness, generation, Vec::new());
     runtime.create_session("s").unwrap();
-    let result = runtime
+    let (base, _) = Fake::start(vec![sse_delta("ok") + &sse_completed()], Duration::ZERO);
+    let report = runtime
         .run_turn(params(
             "s",
-            "must not start",
+            "degraded peer",
             &harness,
-            provider_of("http://127.0.0.1:9"),
+            provider_of(&base),
             &NO_CANCEL,
         ))
-        .await;
+        .await
+        .expect("a degraded peer must not abort the turn");
+    assert_eq!(report.status, TurnStatus::Completed);
     assert_eq!(
-        result.unwrap_err(),
-        oc_adapters::runtime::RuntimeError::McpAttach {
-            server: "b-bad".into(),
-            stage: "DNS",
-            safe_code: "private_host",
-            retryable: false,
-        }
+        report.warnings,
+        vec!["mcp b-bad DNS: private_host (retryable=false)"]
     );
     let pid = std::fs::read_to_string(&pid_file)
         .unwrap()
         .parse::<libc::pid_t>()
         .unwrap();
+    // SAFETY: signal 0 only probes the fixture child pid.
+    let probe = unsafe { libc::kill(pid, 0) };
+    assert_eq!(probe, 0, "healthy peer lost its child");
+    // AUD23 still holds: generation shutdown reaps the connected child.
+    runtime.shutdown_mcp().await.unwrap();
     let deadline = std::time::Instant::now() + Duration::from_secs(1);
     // SAFETY: signal 0 only probes the fixture child pid.
     while unsafe { libc::kill(pid, 0) } == 0 && std::time::Instant::now() < deadline {
@@ -1557,11 +1560,11 @@ for line in sys.stdin:
     // SAFETY: final fixture liveness probe only.
     let alive = unsafe { libc::kill(pid, 0) };
     assert_ne!(alive, 0, "partial attach leaked child");
-    assert_eq!(harness.db.history_len("s").unwrap(), 0);
+    assert_eq!(harness.db.history_len("s").unwrap(), 2);
 }
 
 #[tokio::test]
-async fn mcp_attach_failure_is_loud() {
+async fn mcp_attach_failure_degrades_the_server() {
     let (harness, mut generation) = make_harness(allow_all());
     generation.mcp.insert(
         "codex".to_string(),
@@ -1581,23 +1584,23 @@ async fn mcp_attach_failure_is_loud() {
     let runtime = runtime_of(&harness, generation, Vec::new());
     runtime.create_session("s").expect("create");
     let (base, _) = Fake::start(vec![sse_delta("hi") + &sse_completed()], Duration::ZERO);
-    let error = runtime
+    let report = runtime
         .run_turn(params("s", "hi", &harness, provider_of(&base), &NO_CANCEL))
         .await
-        .expect_err("attach must fail");
+        .expect("attach failure must degrade, not abort");
+    assert_eq!(report.status, TurnStatus::Completed);
     assert_eq!(
-        error,
-        oc_adapters::runtime::RuntimeError::McpAttach {
-            server: "codex".to_string(),
-            stage: "DNS",
-            safe_code: "private_host",
-            retryable: false,
-        }
+        report.warnings,
+        vec!["mcp codex DNS: private_host (retryable=false)"]
+    );
+    assert!(
+        report.calls.is_empty(),
+        "degraded server published no tools"
     );
     assert_eq!(
         harness.db.history_len("s").expect("len"),
-        0,
-        "no turn begun"
+        2,
+        "turn committed"
     );
 }
 

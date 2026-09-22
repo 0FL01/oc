@@ -136,6 +136,9 @@ pub enum CoreEvent {
         /// Turn wall time in milliseconds, accept to commit (upstream
         /// `turnDuration`: user message created → assistant completed).
         duration_ms: u64,
+        /// Sanitized non-fatal notices for this turn (e.g. degraded MCP
+        /// servers); never secrets, never a reason to hide the answer.
+        warnings: Vec<String>,
     },
     /// Turn was cancelled; partial text was not committed as a message.
     TurnInterrupted {
@@ -156,6 +159,9 @@ pub enum CoreEvent {
         turn: WorkerTurnId,
         /// Sanitized application error.
         error: CoreError,
+        /// Sanitized non-fatal notices for this turn (e.g. degraded MCP
+        /// servers); never secrets, never a substitute for the error.
+        warnings: Vec<String>,
     },
 }
 
@@ -788,6 +794,7 @@ async fn worker_loop(
                                 turn: turn.turn.clone(),
                                 text,
                                 duration_ms: elapsed_ms(turn.started),
+                                warnings: Vec::new(),
                             };
                             active = None;
                             let _ = events.send(done);

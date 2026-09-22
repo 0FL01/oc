@@ -88,7 +88,15 @@ pub async fn run_once_to_writers(
                         .map_err(|e| e.to_string())?;
                         out.flush().map_err(|e| e.to_string())?;
                     }
-                    CoreEvent::TurnFinished { turn: id, text, .. } if id == turn => {
+                    CoreEvent::TurnFinished {
+                        turn: id,
+                        text,
+                        warnings,
+                        ..
+                    } if id == turn => {
+                        for warning in &warnings {
+                            writeln!(err, "warning: {warning}").map_err(|e| e.to_string())?;
+                        }
                         if json {
                             writeln!(out, "{}", serde_json::json!({"type":"done", "text":text}))
                         } else {
@@ -101,8 +109,16 @@ pub async fn run_once_to_writers(
                         return Ok(ExitCode::from(130));
                     }
                     CoreEvent::TurnFailed {
-                        turn: id, error, ..
-                    } if id == turn => return Err(error.to_string()),
+                        turn: id,
+                        error,
+                        warnings,
+                        ..
+                    } if id == turn => {
+                        for warning in &warnings {
+                            writeln!(err, "warning: {warning}").map_err(|e| e.to_string())?;
+                        }
+                        return Err(error.to_string());
+                    }
                     _ => {}
                 }
             }
