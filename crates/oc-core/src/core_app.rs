@@ -40,6 +40,31 @@ pub enum CoreEvent {
         /// Chunk text.
         delta: String,
     },
+    /// Incremental provider reasoning/thinking delta (not durable; rendered
+    /// as the transcript's reasoning block, `session.reasoning.delta` upstream).
+    ReasoningDelta {
+        /// Session that owns the turn.
+        session: SessionId,
+        /// Active turn id.
+        turn: WorkerTurnId,
+        /// Reasoning text chunk.
+        delta: String,
+    },
+    /// Terminal provider usage for the turn (only when the provider reported
+    /// it; never synthesized).
+    TurnUsage {
+        /// Session that owns the turn.
+        session: SessionId,
+        /// Turn the usage belongs to.
+        turn: WorkerTurnId,
+        /// Input tokens of the last reported provider round.
+        input_tokens: u64,
+        /// Output tokens summed over the turn's provider rounds.
+        output_tokens: u64,
+        /// Provider-active streaming time in milliseconds, summed over rounds
+        /// (upstream `time.streamed - time.created` per assistant step).
+        streamed_ms: u64,
+    },
     /// Turn completed; assistant message is now in history.
     TurnFinished {
         /// Session that owns the turn.
@@ -48,6 +73,9 @@ pub enum CoreEvent {
         turn: WorkerTurnId,
         /// Full assistant text.
         text: String,
+        /// Turn wall time in milliseconds, accept to commit (upstream
+        /// `turnDuration`: user message created → assistant completed).
+        duration_ms: u64,
     },
     /// Turn was cancelled; partial text was not committed as a message.
     TurnInterrupted {
@@ -57,6 +85,8 @@ pub enum CoreEvent {
         turn: WorkerTurnId,
         /// Accumulated text at cancel time (not stored).
         partial: String,
+        /// Turn wall time in milliseconds, accept to interrupt.
+        duration_ms: u64,
     },
     /// Accepted turn failed; never present this as a completed answer.
     TurnFailed {
@@ -254,6 +284,8 @@ struct ActiveTurn {
     chunks: Vec<String>,
     index: usize,
     accumulated: String,
+    /// Wall-clock start, so terminal events report a measured duration.
+    started: std::time::Instant,
 }
 
 /// Cloneable application handle over a bounded worker inbox.
@@ -583,6 +615,7 @@ async fn worker_loop(
                                 session: turn.session.clone(),
                                 turn: turn.turn.clone(),
                                 partial,
+                                duration_ms: elapsed_ms(turn.started),
                             });
                             break;
                         }
@@ -607,6 +640,7 @@ async fn worker_loop(
                                     session: turn.session.clone(),
                                     turn: turn.turn.clone(),
                                     partial,
+                                    duration_ms: elapsed_ms(turn.started),
                                 };
                                 active = None;
                                 let _ = events.send(done);
@@ -650,6 +684,7 @@ async fn worker_loop(
                                 session: turn.session.clone(),
                                 turn: turn.turn.clone(),
                                 text,
+                                duration_ms: elapsed_ms(turn.started),
                             };
                             active = None;
                             let _ = events.send(done);
@@ -691,6 +726,7 @@ async fn worker_loop(
                         chunks,
                         index: 0,
                         accumulated: String::new(),
+                        started: std::time::Instant::now(),
                     });
                     let _ = events.send(CoreEvent::TurnStarted {
                         session,
@@ -717,6 +753,11 @@ async fn worker_loop(
             }
         }
     }
+}
+
+/// Whole milliseconds since `started`, saturating at `u64::MAX`.
+fn elapsed_ms(started: std::time::Instant) -> u64 {
+    started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64
 }
 
 /// Scripted worker answer for owner-only queries: typed, never silent.
@@ -786,7 +827,9 @@ mod tests {
                 CoreEvent::TurnInterrupted { partial, .. } => {
                     panic!("unexpected interrupt partial={partial}")
                 }
-                CoreEvent::TurnStarted { .. } => {}
+                CoreEvent::TurnStarted { .. }
+                | CoreEvent::ReasoningDelta { .. }
+                | CoreEvent::TurnUsage { .. } => {}
                 CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             }
         }
@@ -883,7 +926,10 @@ mod tests {
                 CoreEvent::TurnFinished { text, .. } => {
                     panic!("cancel must not finish text={text}")
                 }
-                CoreEvent::TextDelta { .. } | CoreEvent::TurnStarted { .. } => {}
+                CoreEvent::TextDelta { .. }
+                | CoreEvent::TurnStarted { .. }
+                | CoreEvent::ReasoningDelta { .. }
+                | CoreEvent::TurnUsage { .. } => {}
                 CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             }
         }

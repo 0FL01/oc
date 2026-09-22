@@ -11,6 +11,8 @@
 use oc_core::queries::{HistoryMessage, HistoryPage, ToolOpView};
 use oc_core::session::Role;
 
+use crate::messages::{AssistantMeta, Chip, ReasoningBlock};
+
 /// Max rows retained by the window.
 pub const WINDOW_ROWS: usize = 240;
 /// Max retained bytes (`role.len() + text.len()`) in the window.
@@ -30,6 +32,18 @@ pub struct HistoryRow {
     pub role: String,
     /// Message text.
     pub text: String,
+    /// Agent that owns the row: the session agent for user rows, the turn
+    /// agent for live assistant rows. `None` when unknown; the renderer then
+    /// falls back to the session agent / upstream's default agent color.
+    pub agent: Option<String>,
+    /// Skill/file chips the user message carried. Storage keeps no
+    /// per-message attachments, so committed rows stay empty.
+    pub chips: Vec<Chip>,
+    /// Reasoning block attached to an assistant row.
+    pub reasoning: Option<ReasoningBlock>,
+    /// Assistant footer data (live turns only; never invented for committed
+    /// history rows).
+    pub meta: Option<AssistantMeta>,
 }
 
 /// Which end of the deque is dropped when a cap is exceeded.
@@ -141,7 +155,21 @@ impl HistoryWindow {
             seq: i64::MAX,
             role: role.to_string(),
             text: text.to_string(),
+            agent: None,
+            chips: Vec::new(),
+            reasoning: None,
+            meta: None,
         });
+        self.has_newer = false;
+        if self.enforce(Evict::Oldest) {
+            self.has_older = true;
+        }
+    }
+
+    /// Append one fully rendered row (live assistant message with reasoning
+    /// and footer metadata); committed history rows never carry this data.
+    pub(crate) fn push_row(&mut self, row: HistoryRow) {
+        self.rows.push(row);
         self.has_newer = false;
         if self.enforce(Evict::Oldest) {
             self.has_older = true;
@@ -175,6 +203,10 @@ fn row_from_page(row: &HistoryMessage) -> HistoryRow {
             Role::Assistant => "assistant".to_string(),
         },
         text: row.text.clone(),
+        agent: None,
+        chips: Vec::new(),
+        reasoning: None,
+        meta: None,
     }
 }
 

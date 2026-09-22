@@ -776,6 +776,24 @@ fn norm_needle(text: &str) -> Vec<u8> {
     text.bytes().filter(|b| !b.is_ascii_whitespace()).collect()
 }
 
+/// Needle for the first rendered row of an upstream user block (short word
+/// prefix that always fits the first wrapped row).
+fn user_needle(text: &str) -> String {
+    let mut words = text.split_whitespace();
+    let Some(first) = words.next() else {
+        return "┃".to_string();
+    };
+    let first: String = first.chars().take(24).collect();
+    let mut needle = format!("┃  {first}");
+    if first.chars().count() < 24
+        && let Some(second) = words.next()
+    {
+        needle.push(' ');
+        needle.extend(second.chars().take(16));
+    }
+    needle
+}
+
 /// Submit one prompt and prove it rendered. Row assertions use the
 /// reconstructed screen grid: ratatui's cell diff skips unchanged cells on
 /// the wire, so raw byte needles are unreliable for new rows.
@@ -783,7 +801,7 @@ fn submit(pty: &mut PtySession, text: &str) -> usize {
     let off = pty.snapshot().len();
     pty.send(text.as_bytes());
     pty.send(b"\r");
-    wait_screen_row(pty, &format!("you: {text}"), DEADLINE);
+    wait_screen_row(pty, &user_needle(text), DEADLINE);
     off
 }
 
@@ -945,7 +963,7 @@ fn aud30_pty_paste_resize_error_recovery() {
     let off = pty.snapshot().len();
     pty.send("\x1b[200~привет 🌍\x1b[201~".as_bytes());
     pty.send(b"\r");
-    pty.wait_visible_after(off, "you: привет 🌍", DEADLINE);
+    pty.wait_visible_after(off, "┃привет🌍", DEADLINE);
     pty.wait_visible_after(off, "echo: привет 🌍", DEADLINE);
 
     // Resize while a stream is running: the frame follows the new size and

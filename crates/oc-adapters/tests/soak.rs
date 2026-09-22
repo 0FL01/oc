@@ -471,6 +471,7 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
                 let _ = accepted.take().expect("one acceptance").send(());
             },
             |_, _| {},
+            |_, _| {},
         ),
         async {
             ready.await.expect("accepted before cancellation");

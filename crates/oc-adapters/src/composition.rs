@@ -68,7 +68,7 @@ pub async fn load(project: &Path) -> Result<Composition, String> {
     load_with_env(project, env).await
 }
 
-async fn load_with_env(
+pub(crate) async fn load_with_env(
     project: &Path,
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, String> {

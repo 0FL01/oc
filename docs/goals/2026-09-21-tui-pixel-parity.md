@@ -38,8 +38,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - R4: Message rendering parity — user/assistant messages, markdown (headings, lists, code blocks, inline code), reasoning/thinking blocks, tool call cards (command, patch/diff, search, read), errors, and pending/running/completed states match upstream presentation and visible strings.
   - Acceptance: golden snapshots for a scripted transcript covering each element; no raw escape noise; content wraps correctly.
   - Primary evidence: snapshot tests over scripted transcripts.
-  - Status: pending
-  - Evidence:
+  - Status: in_progress
+  - Evidence: iteration 3a (committed): `crates/oc-tui/src/messages.rs` renders user blocks with `┃`/raised background/chips, assistant markdown (paddingLeft 3, headings/lists/code fences with syntax colors/blockquotes), collapsed reasoning (`Thinking` → `Thought: … · duration`), and the `agent · model · dur · tok/s · interrupted` footer; additive DTOs `ReasoningDelta`/`TurnUsage`/`duration_ms` wired through the provider stream (2 adapter end-to-end tests). Remaining for R4: tool cards and diffs (iteration 3b).
 
 - R5: Interaction parity — keybindings, command palette, dialogs (session list, model, agent, help, error details), input editor behavior (multi-line, paste, history), and status hints match upstream.
   - Acceptance: keymap table test (key → action) mirroring upstream defaults + PTY tests exercising each dialog.

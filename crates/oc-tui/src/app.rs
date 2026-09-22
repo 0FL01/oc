@@ -8,7 +8,7 @@
 //! for a stale turn can never corrupt the view.
 
 use std::collections::BTreeMap;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use oc_adapters::models::ModelCatalog;
 use oc_core::core_app::{CoreApp, CoreEvent, WorkerTurnId};
@@ -20,7 +20,10 @@ use crate::commands::{CommandAction, dispatch};
 use crate::dcp_panel::{DcpOutcome, DcpPanelState};
 use crate::events::KeyAction;
 use crate::history::{HistoryRow, HistoryWindow, ToolCard, WINDOW_BYTES};
+use crate::messages::{AssistantMeta, ReasoningBlock};
 use crate::picker::ModelPicker;
+use crate::styled::Line;
+use crate::theme::Theme;
 
 /// Visible lines kept in the viewport (scroll window).
 pub const VIEWPORT_LINES: usize = 20;
@@ -29,6 +32,14 @@ pub const VIEWPORT_LINES: usize = 20;
 pub const MAX_INPUT_BYTES: usize = oc_core::session::MAX_INPUT_BYTES;
 /// Max card rows retained by the Cards panel.
 pub const CARDS_MAX: usize = 160;
+
+/// Provider-reported usage for the active turn.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct TurnUsage {
+    input_tokens: u64,
+    output_tokens: u64,
+    streamed_ms: u64,
+}
 
 /// TUI status line.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -129,6 +140,15 @@ pub struct TuiState {
     input: String,
     window: HistoryWindow,
     live_text: String,
+    /// Reasoning text streamed for the active turn (never persisted).
+    live_reasoning: String,
+    /// First reasoning delta of the active turn, for the collapsed header's
+    /// duration (`part.time.created` upstream).
+    reasoning_started: Option<Instant>,
+    /// When text streaming followed reasoning (`part.time.completed`).
+    reasoning_finished: Option<Instant>,
+    /// Provider usage reported for the active turn (never synthesized).
+    turn_usage: Option<TurnUsage>,
     scroll: usize,
     note: Option<String>,
     active_turn: Option<WorkerTurnId>,
@@ -175,6 +195,10 @@ impl TuiState {
             input: String::new(),
             window: HistoryWindow::new(),
             live_text: String::new(),
+            live_reasoning: String::new(),
+            reasoning_started: None,
+            reasoning_finished: None,
+            turn_usage: None,
             scroll: 0,
             note: None,
             active_turn: None,
@@ -235,6 +259,10 @@ impl TuiState {
         self.input.clear();
         self.window = HistoryWindow::new();
         self.live_text.clear();
+        self.live_reasoning.clear();
+        self.reasoning_started = None;
+        self.reasoning_finished = None;
+        self.turn_usage = None;
         self.scroll = 0;
         self.active_turn = None;
         self.panel = TuiPanel::None;
@@ -320,28 +348,71 @@ impl TuiState {
     }
 
     /// Visible viewport lines (bounded, scroll-aware, live answer last).
+    ///
+    /// Unstyled and unwrapped; [`TuiState::transcript_lines`] is the styled
+    /// renderer the shell uses.
     pub fn viewport(&self) -> Vec<String> {
-        let mut lines: Vec<String> = self
-            .window
-            .rows()
+        let lines = self.transcript_lines(0, u16::MAX);
+        let texts: Vec<String> = lines
             .iter()
-            .map(|row| {
-                if row.role.is_empty() {
-                    row.text.clone()
-                } else {
-                    format!("{}: {}", row.role, row.text)
-                }
-            })
+            .map(|line| line.plain_text().trim_end().to_string())
             .collect();
-        if !self.live_text.is_empty() {
-            lines.push(format!("ai: {}", self.live_text));
-        }
-        let total = lines.len();
+        let total = texts.len();
         let max_scroll = total.saturating_sub(VIEWPORT_LINES);
         let scroll = self.scroll.min(max_scroll);
         let end = total - scroll;
         let start = end.saturating_sub(VIEWPORT_LINES);
-        lines[start..end].to_vec()
+        texts[start..end].to_vec()
+    }
+
+    /// Render rows of the transcript: the bounded window plus the live answer
+    /// (reasoning block and streaming text) while a turn is active.
+    pub fn transcript_rows(&self) -> Vec<HistoryRow> {
+        let mut rows = self.window.rows().to_vec();
+        let live = !self.live_text.is_empty() || !self.live_reasoning.is_empty();
+        if live {
+            rows.push(HistoryRow {
+                seq: i64::MAX,
+                role: "assistant".to_string(),
+                text: self.live_text.clone(),
+                agent: self.active_agent.clone(),
+                chips: Vec::new(),
+                reasoning: (!self.live_reasoning.is_empty()).then(|| ReasoningBlock {
+                    text: self.live_reasoning.clone(),
+                    duration_ms: None,
+                    running: true,
+                }),
+                meta: None,
+            });
+        }
+        rows
+    }
+
+    /// Styled transcript lines wrapped to the content-box `width`
+    /// (upstream row model: user block, assistant markdown, collapsed
+    /// reasoning, assistant footer). `width == 0` is the unbounded text
+    /// projection used for scroll metrics and plain-text assertions.
+    pub fn transcript_lines(&self, width: u16, terminal_width: u16) -> Vec<Line> {
+        let theme = Theme::dark();
+        crate::messages::transcript(
+            &self.transcript_rows(),
+            theme,
+            width,
+            terminal_width,
+            |agent| self.agent_color(agent),
+        )
+    }
+
+    /// Categorical agent color (`context/local.tsx:75-133`): the agent's index
+    /// in the visible agent list, and the first categorical color for an
+    /// unknown/missing agent.
+    pub fn agent_color(&self, agent: Option<&str>) -> ratatui::style::Color {
+        let colors = Theme::dark().categorical_agents();
+        let index = agent.and_then(|id| self.agents.iter().position(|entry| entry.id == id));
+        match index {
+            Some(index) => colors[index % colors.len()],
+            None => colors[0],
+        }
     }
 
     // ---- snapshots from the binary -------------------------------------
@@ -454,6 +525,10 @@ impl TuiState {
         self.panel = TuiPanel::Dcp;
         self.input.clear();
         self.live_text.clear();
+        self.live_reasoning.clear();
+        self.reasoning_started = None;
+        self.reasoning_finished = None;
+        self.turn_usage = None;
         self.scroll = 0;
         self.push_note("dcp: compressing…");
     }
@@ -611,8 +686,12 @@ impl TuiState {
         }
         match self.app.submit(self.session.clone(), text.clone()).await {
             Ok(turn) => {
-                self.window.push_synthetic("you", &text);
+                self.window.push_synthetic("user", &text);
                 self.live_text.clear();
+                self.live_reasoning.clear();
+                self.reasoning_started = None;
+                self.reasoning_finished = None;
+                self.turn_usage = None;
                 self.active_turn = Some(turn);
                 self.status = TuiStatus::Streaming;
                 self.scroll = 0;
@@ -808,34 +887,101 @@ impl TuiState {
         if Some(turn) != self.active_turn.as_ref() {
             return;
         }
+        if !self.live_reasoning.is_empty() && self.reasoning_finished.is_none() {
+            self.reasoning_finished = Some(Instant::now());
+        }
         if self.live_text.len() < WINDOW_BYTES {
             let room = WINDOW_BYTES - self.live_text.len();
             self.live_text.push_str(crate::truncate_utf8(delta, room));
         }
     }
 
-    /// Apply a worker turn-finished event: replace the live line with the
-    /// final text and release the turn (the loop accepts submits again).
-    pub fn apply_finished(&mut self, turn: &WorkerTurnId, text: &str) {
+    /// Apply a worker reasoning delta to the live reasoning block
+    /// (turn-scoped, bounded, never persisted).
+    pub fn apply_reasoning_delta(&mut self, turn: &WorkerTurnId, delta: &str) {
         if Some(turn) != self.active_turn.as_ref() {
             return;
         }
+        if self.reasoning_started.is_none() {
+            self.reasoning_started = Some(Instant::now());
+        }
+        if self.live_reasoning.len() < WINDOW_BYTES {
+            let room = WINDOW_BYTES - self.live_reasoning.len();
+            self.live_reasoning
+                .push_str(crate::truncate_utf8(delta, room));
+        }
+    }
+
+    /// Apply provider-reported usage for the active turn; without it the
+    /// footer omits `tok/s` instead of inventing a rate.
+    pub fn apply_usage(
+        &mut self,
+        turn: &WorkerTurnId,
+        input_tokens: u64,
+        output_tokens: u64,
+        streamed_ms: u64,
+    ) {
+        if Some(turn) != self.active_turn.as_ref() {
+            return;
+        }
+        self.turn_usage = Some(TurnUsage {
+            input_tokens,
+            output_tokens,
+            streamed_ms,
+        });
+    }
+
+    /// Apply a worker turn-finished event: commit the live answer with its
+    /// reasoning block and footer metadata, then release the turn.
+    pub fn apply_finished(&mut self, turn: &WorkerTurnId, text: &str, duration_ms: u64) {
+        if Some(turn) != self.active_turn.as_ref() {
+            return;
+        }
+        let meta = self.finish_meta(false, duration_ms);
+        let reasoning = self.take_reasoning();
         self.active_turn = None;
         self.status = TuiStatus::Idle;
         self.live_text.clear();
-        self.window.push_synthetic("ai", text);
+        self.live_reasoning.clear();
+        self.reasoning_started = None;
+        self.reasoning_finished = None;
+        self.turn_usage = None;
+        self.window.push_row(HistoryRow {
+            seq: i64::MAX,
+            role: "assistant".to_string(),
+            text: text.to_string(),
+            agent: self.active_agent.clone(),
+            chips: Vec::new(),
+            reasoning,
+            meta: Some(meta),
+        });
     }
 
-    /// Apply a worker turn-interrupted event: drop the live line, mark the
-    /// turn cancelled, and release the turn.
-    pub fn apply_interrupted(&mut self, turn: &WorkerTurnId) {
+    /// Apply a worker turn-interrupted event: keep the partial text (never
+    /// committed to storage), mark the footer `interrupted`, and release the
+    /// turn.
+    pub fn apply_interrupted(&mut self, turn: &WorkerTurnId, partial: &str, duration_ms: u64) {
         if Some(turn) != self.active_turn.as_ref() {
             return;
         }
+        let meta = self.finish_meta(true, duration_ms);
+        let reasoning = self.take_reasoning();
         self.active_turn = None;
         self.status = TuiStatus::Cancelled;
         self.live_text.clear();
-        self.window.push_synthetic("", "(cancelled)");
+        self.live_reasoning.clear();
+        self.reasoning_started = None;
+        self.reasoning_finished = None;
+        self.turn_usage = None;
+        self.window.push_row(HistoryRow {
+            seq: i64::MAX,
+            role: "assistant".to_string(),
+            text: partial.to_string(),
+            agent: self.active_agent.clone(),
+            chips: Vec::new(),
+            reasoning,
+            meta: Some(meta),
+        });
     }
 
     /// Release a failed turn and show its error, never a successful answer.
@@ -845,12 +991,59 @@ impl TuiState {
         }
         self.active_turn = None;
         self.live_text.clear();
+        self.live_reasoning.clear();
+        self.reasoning_started = None;
+        self.reasoning_finished = None;
+        self.turn_usage = None;
         self.status = TuiStatus::Idle;
         self.window.push_synthetic("", &format!("(error: {error})"));
     }
 
+    /// Footer metadata for the finished turn from real state: the effective
+    /// model label, the measured turn duration, provider usage and the
+    /// interrupt marker. Absent data stays `None` (the footer omits it).
+    fn finish_meta(&mut self, interrupted: bool, duration_ms: u64) -> AssistantMeta {
+        let model = self.picker.as_ref().and_then(|picker| {
+            let selection = picker.selection()?;
+            Some(format!("{}/{}", picker.provider(), selection.id))
+        });
+        let usage = self.turn_usage.take();
+        AssistantMeta {
+            model,
+            duration_ms: (duration_ms > 0).then_some(duration_ms),
+            input_tokens: usage.map(|usage| usage.input_tokens),
+            output_tokens: usage.map(|usage| usage.output_tokens),
+            streamed_ms: usage.map(|usage| usage.streamed_ms),
+            interrupted,
+        }
+    }
+
+    /// Completed reasoning block for the turn, with its measured duration
+    /// (`part.time.completed - part.time.created` when text followed, else the
+    /// elapsed reasoning window).
+    fn take_reasoning(&mut self) -> Option<ReasoningBlock> {
+        if self.live_reasoning.is_empty() {
+            return None;
+        }
+        let duration_ms = match (
+            self.reasoning_started.take(),
+            self.reasoning_finished.take(),
+        ) {
+            (Some(started), Some(finished)) => {
+                Some(finished.saturating_duration_since(started).as_millis() as u64)
+            }
+            (Some(started), None) => Some(started.elapsed().as_millis() as u64),
+            (None, _) => None,
+        };
+        Some(ReasoningBlock {
+            text: std::mem::take(&mut self.live_reasoning),
+            duration_ms,
+            running: false,
+        })
+    }
+
     fn line_count(&self) -> usize {
-        self.window.len() + usize::from(!self.live_text.is_empty())
+        self.transcript_lines(0, u16::MAX).len()
     }
 
     fn max_scroll(&self) -> usize {
@@ -937,6 +1130,10 @@ fn card_row(card: &ToolCard) -> HistoryRow {
             "{} {}{}{} ({})",
             card.name, card.state, files, output, card.op
         ),
+        agent: None,
+        chips: Vec::new(),
+        reasoning: None,
+        meta: None,
     }
 }
 
@@ -1018,15 +1215,37 @@ impl ScriptDriver {
                 Ok(Ok(CoreEvent::TextDelta { turn, delta, .. })) => {
                     state.apply_delta(&turn, &delta);
                 }
-                Ok(Ok(CoreEvent::TurnFinished { turn, text, .. })) => {
+                Ok(Ok(CoreEvent::ReasoningDelta { turn, delta, .. })) => {
+                    state.apply_reasoning_delta(&turn, &delta);
+                }
+                Ok(Ok(CoreEvent::TurnUsage {
+                    turn,
+                    input_tokens,
+                    output_tokens,
+                    streamed_ms,
+                    ..
+                })) => {
+                    state.apply_usage(&turn, input_tokens, output_tokens, streamed_ms);
+                }
+                Ok(Ok(CoreEvent::TurnFinished {
+                    turn,
+                    text,
+                    duration_ms,
+                    ..
+                })) => {
                     if Some(&turn) == state.active_turn.as_ref() {
-                        state.apply_finished(&turn, &text);
+                        state.apply_finished(&turn, &text, duration_ms);
                         return PumpOutcome::Finished(text);
                     }
                 }
-                Ok(Ok(CoreEvent::TurnInterrupted { turn, partial, .. })) => {
+                Ok(Ok(CoreEvent::TurnInterrupted {
+                    turn,
+                    partial,
+                    duration_ms,
+                    ..
+                })) => {
                     if Some(&turn) == state.active_turn.as_ref() {
-                        state.apply_interrupted(&turn);
+                        state.apply_interrupted(&turn, &partial, duration_ms);
                         return PumpOutcome::Interrupted(partial);
                     }
                 }
@@ -1230,7 +1449,8 @@ mod tests {
         assert!(state.input().is_empty());
         assert_eq!(state.status(), &TuiStatus::Streaming);
         assert!(state.is_busy());
-        assert!(state.viewport().iter().any(|line| line == "you: hi"));
+        // Upstream user block: `┃` border plus 2-cell inner padding.
+        assert!(state.viewport().iter().any(|line| line == "┃  hi"));
 
         let outcome = driver
             .pump_until_idle(&mut state, Duration::from_secs(5))
@@ -1239,8 +1459,9 @@ mod tests {
         assert_eq!(state.status(), &TuiStatus::Idle);
         assert!(!state.is_busy());
         let view = state.viewport();
-        assert!(view.iter().any(|line| line == "you: hi"), "{view:?}");
-        assert!(view.iter().any(|line| line == "ai: echo: hi"), "{view:?}");
+        assert!(view.iter().any(|line| line == "┃  hi"), "{view:?}");
+        // Assistant markdown sits at paddingLeft=3.
+        assert!(view.iter().any(|line| line == "   echo: hi"), "{view:?}");
     }
 
     #[tokio::test]
@@ -1332,7 +1553,10 @@ mod tests {
         assert_eq!(outcome.intent, None, "only the top edge loads older");
 
         let mut requested = None;
-        for _ in 0..WINDOW_ROWS * 2 {
+        // Blocks render as multiple lines (blank/border rows), so walk the
+        // whole rendered transcript to reach the top edge.
+        let max_scroll = state.max_scroll();
+        for _ in 0..=max_scroll {
             let outcome = state.handle_key(KeyAction::Up).await;
             if outcome.intent.is_some() {
                 requested = outcome.intent;
@@ -1351,7 +1575,8 @@ mod tests {
             false,
             false,
         ));
-        for _ in 0..WINDOW_ROWS * 2 {
+        let max_scroll = state.max_scroll();
+        for _ in 0..=max_scroll {
             assert_eq!(state.handle_key(KeyAction::Up).await.intent, None);
         }
         assert_eq!(state.scroll, state.max_scroll());
@@ -1403,7 +1628,7 @@ mod tests {
             view.iter().any(|line| line.contains("привет 🌍")),
             "{view:?}"
         );
-        assert!(view.iter().any(|line| line == "user: привет 🌍 мир"));
+        assert!(view.iter().any(|line| line == "┃  привет 🌍 мир"));
         assert_eq!(state.input(), "next…");
     }
 
@@ -1417,8 +1642,8 @@ mod tests {
 
         let stale = WorkerTurnId("t-stale".to_string());
         state.apply_delta(&stale, "junk");
-        state.apply_finished(&stale, "junk");
-        state.apply_interrupted(&stale);
+        state.apply_finished(&stale, "junk", 0);
+        state.apply_interrupted(&stale, "junk", 0);
         state.apply_failed(&stale, &CoreError::TurnBusy);
         assert_eq!(state.status(), &TuiStatus::Streaming);
         assert!(state.is_busy());
@@ -1429,7 +1654,7 @@ mod tests {
             .await;
         assert_eq!(outcome, PumpOutcome::Finished("echo: go".to_string()));
         assert_eq!(state.status(), &TuiStatus::Idle);
-        assert!(state.viewport().iter().any(|line| line == "ai: echo: go"));
+        assert!(state.viewport().iter().any(|line| line == "   echo: go"));
 
         // A fresh submit is accepted right after the finish.
         type_text(&mut state, "go2").await;
@@ -1465,7 +1690,16 @@ mod tests {
         assert!(matches!(outcome, PumpOutcome::Interrupted(_)));
         assert_eq!(state.status(), &TuiStatus::Cancelled);
         assert!(!state.is_busy());
-        assert!(state.viewport().iter().any(|line| line == "(cancelled)"));
+        // Interrupted turn: partial text plus the footer's `interrupted` marker
+        // (upstream `Step interrupted`, `routes/session/index.tsx:1955,1977-1980`).
+        assert!(
+            state
+                .viewport()
+                .iter()
+                .any(|line| line.contains("interrupted")),
+            "{:?}",
+            state.viewport()
+        );
 
         // The same handle accepts the next prompt.
         type_text(&mut state, "after").await;

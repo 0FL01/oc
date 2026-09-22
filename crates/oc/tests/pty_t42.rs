@@ -703,6 +703,26 @@ fn norm_needle(text: &str) -> Vec<u8> {
     text.bytes().filter(|b| !b.is_ascii_whitespace()).collect()
 }
 
+/// Needle for the first rendered row of an upstream message block (short
+/// word prefix that always fits the first wrapped row).
+fn message_needle(prefix: &str, text: &str) -> String {
+    let mut words = text.split_whitespace();
+    let Some(first) = words.next() else {
+        return prefix.to_string();
+    };
+    let first: String = first.chars().take(24).collect();
+    let used = first.chars().count();
+    let mut needle = prefix.to_string();
+    needle.push_str(&first);
+    if used < 24
+        && let Some(second) = words.next()
+    {
+        needle.push(' ');
+        needle.extend(second.chars().take(16));
+    }
+    needle
+}
+
 /// Submit one prompt and prove it rendered. Row assertions use the
 /// reconstructed screen grid: ratatui's cell diff skips unchanged cells on
 /// the wire, so raw byte needles are unreliable for new rows.
@@ -710,7 +730,7 @@ fn submit(pty: &mut PtySession, text: &str) -> usize {
     let off = pty.snapshot().len();
     pty.send(text.as_bytes());
     pty.send(b"\r");
-    wait_screen_row(pty, &format!("you: {text}"), DEADLINE);
+    wait_screen_row(pty, &message_needle("┃  ", text), DEADLINE);
     off
 }
 
@@ -1045,7 +1065,7 @@ fn aud38_location_switch_is_one_lifecycle() {
     // Row assertions use the reconstructed screen grid: ratatui's cell diff
     // can skip cells whose content coincides with the previous frame, which
     // fragments raw byte needles (see `wait_screen_row`).
-    wait_screen_row(&pty, "you: slow stream", DEADLINE);
+    wait_screen_row(&pty, &message_needle("┃  ", "slow stream"), DEADLINE);
     let beta = fixture.project_b().canonicalize().expect("b path");
     pty.send(format!("/location {}\r", beta.display()).as_bytes());
     pty.wait_visible("turn active; location switch refused", DEADLINE);
@@ -1091,7 +1111,7 @@ fn aud38_location_switch_is_one_lifecycle() {
     pty.send(format!("/location {}\r", alpha.display()).as_bytes());
     // Switching back reopens the recorded A session: its history returns to
     // the screen grid (the beta session's rows are replaced).
-    wait_screen_row(&pty, "user: alpha one", DEADLINE);
+    wait_screen_row(&pty, &message_needle("┃  ", "alpha one"), DEADLINE);
     let off = submit(&mut pty, "alpha two");
     pty.wait_visible_after(off, "echo: alpha two", DEADLINE);
     let requests = fixture.wait_requests(4);

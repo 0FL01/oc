@@ -365,17 +365,37 @@ async fn handle_worker_event(
     match event {
         CoreEvent::TurnStarted { .. } => {}
         CoreEvent::TextDelta { turn, delta, .. } => state.apply_delta(&turn, &delta),
-        CoreEvent::TurnFinished { turn, text, .. } => {
+        CoreEvent::ReasoningDelta { turn, delta, .. } => {
+            state.apply_reasoning_delta(&turn, &delta);
+        }
+        CoreEvent::TurnUsage {
+            turn,
+            input_tokens,
+            output_tokens,
+            streamed_ms,
+            ..
+        } => state.apply_usage(&turn, input_tokens, output_tokens, streamed_ms),
+        CoreEvent::TurnFinished {
+            turn,
+            text,
+            duration_ms,
+            ..
+        } => {
             let compress = loop_state.compress_turn.as_ref() == Some(&turn);
-            state.apply_finished(&turn, &text);
+            state.apply_finished(&turn, &text, duration_ms);
             if compress {
                 loop_state.compress_turn = None;
                 report_compress_outcome(app, state, session).await?;
             }
         }
-        CoreEvent::TurnInterrupted { turn, .. } => {
+        CoreEvent::TurnInterrupted {
+            turn,
+            partial,
+            duration_ms,
+            ..
+        } => {
             let compress = loop_state.compress_turn.as_ref() == Some(&turn);
-            state.apply_interrupted(&turn);
+            state.apply_interrupted(&turn, &partial, duration_ms);
             if compress {
                 loop_state.compress_turn = None;
                 state.notify_dcp(DcpOutcome::Failed {

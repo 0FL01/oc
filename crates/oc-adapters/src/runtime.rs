@@ -554,8 +554,14 @@ pub struct TurnReport {
     pub text: String,
     /// Rounds executed.
     pub rounds: u32,
-    /// Billed usage, if reported.
+    /// Billed usage, if reported: last reported input tokens and the output
+    /// tokens summed over the turn's rounds (never synthesized).
     pub usage: Option<(u64, u64)>,
+    /// Provider-active streaming time in milliseconds, summed over rounds
+    /// (upstream `time.streamed - time.created` per assistant step).
+    pub streamed_ms: u64,
+    /// Whole turn wall time in milliseconds, accept to commit (`turnDuration`).
+    pub duration_ms: u64,
     /// Executed calls in order.
     pub calls: Vec<CallRecord>,
     /// Transient nudge hint (never persisted).
@@ -922,16 +928,21 @@ impl<'a> Runtime<'a> {
 
     /// Run one generation-guarded turn to durable records.
     pub async fn run_turn(&self, params: TurnParams<'_>) -> Result<TurnReport, RuntimeError> {
-        self.run_turn_with_events(params, |_| {}, |_, _| {}).await
+        self.run_turn_with_events(params, |_| {}, |_, _| {}, |_, _| {})
+            .await
     }
 
     /// Notify the application only after validated input is durably accepted.
+    /// `text_delta` and `reasoning_delta` forward provider deltas while the
+    /// turn streams; reasoning text is never persisted, only projected.
     pub async fn run_turn_with_events(
         &self,
         params: TurnParams<'_>,
         mut accepted: impl FnMut(&str) + Send,
         mut text_delta: impl FnMut(&str, &str) + Send,
+        mut reasoning_delta: impl FnMut(&str, &str) + Send,
     ) -> Result<TurnReport, RuntimeError> {
+        let started = std::time::Instant::now();
         let _lease = self.begin_active()?;
         let published = self.current.read().expect("generation lock").clone();
         let lane = self.primary_lane(&published);
@@ -940,10 +951,21 @@ impl<'a> Runtime<'a> {
             .ensure_mcp_generation(&mut mcp, &published, params.cancel)
             .await?;
         let result = self
-            .run_turn_inner(params, &lane, attached, &mut accepted, &mut text_delta)
+            .run_turn_inner(
+                params,
+                &lane,
+                attached,
+                &mut accepted,
+                &mut text_delta,
+                &mut reasoning_delta,
+            )
             .await;
         drop(mcp);
-        result
+        let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
+        result.map(|mut report| {
+            report.duration_ms = duration_ms;
+            report
+        })
     }
 
     /// Fixed input + policy of the primary (published) lane.
@@ -1117,6 +1139,7 @@ impl<'a> Runtime<'a> {
         attached: &McpGeneration,
         accepted: &mut (dyn FnMut(&str) + Send),
         text_delta: &mut (dyn FnMut(&str, &str) + Send),
+        reasoning_delta: &mut (dyn FnMut(&str, &str) + Send),
     ) -> Result<TurnReport, RuntimeError> {
         let published = self.current.read().expect("generation lock").clone();
         self.open_session(&params.session)?;
@@ -1242,6 +1265,7 @@ impl<'a> Runtime<'a> {
         };
         let mut text = String::new();
         let mut usage = None;
+        let mut streamed = Duration::ZERO;
         let mut calls = Vec::new();
         let mut turn_log = TurnLog::new(&turn_id, &selection.id, &params.catalog.provider);
         turn_log.agent_digest = lane.agent_digest.clone();
@@ -1262,6 +1286,7 @@ impl<'a> Runtime<'a> {
                     TurnStatus::Cancelled,
                     text,
                     rounds,
+                    streamed_ms(streamed),
                     usage,
                     calls,
                     nudge_hint,
@@ -1320,6 +1345,7 @@ impl<'a> Runtime<'a> {
                 .chain(&turn_log.input)
                 .cloned()
                 .collect();
+            let stream_started = std::time::Instant::now();
             let generation = match crate::provider::stream_input_observed(
                 &params.provider,
                 &selection.id,
@@ -1328,16 +1354,22 @@ impl<'a> Runtime<'a> {
                 &tool_defs,
                 params.max_output,
                 params.cancel,
-                &mut |item| {
-                    if let crate::provider::StreamItem::TextDelta(delta) = item {
-                        text_delta(&turn_id, delta);
+                &mut |item| match item {
+                    crate::provider::StreamItem::TextDelta(delta) => text_delta(&turn_id, delta),
+                    crate::provider::StreamItem::ReasoningDelta(delta) => {
+                        reasoning_delta(&turn_id, delta);
                     }
+                    _ => {}
                 },
             )
             .await
             {
-                Ok(generation) => generation,
+                Ok(generation) => {
+                    streamed += stream_started.elapsed();
+                    generation
+                }
                 Err(error) => {
+                    streamed += stream_started.elapsed();
                     let status = if params.cancel.load(Ordering::Relaxed) {
                         TurnStatus::Cancelled
                     } else if matches!(
@@ -1356,6 +1388,7 @@ impl<'a> Runtime<'a> {
                         status,
                         text,
                         rounds,
+                        streamed_ms(streamed),
                         usage,
                         calls,
                         nudge_hint,
@@ -1370,8 +1403,11 @@ impl<'a> Runtime<'a> {
                 turn_log.ingest(item);
             }
             text.push_str(&generation.text);
-            if generation.usage.is_some() {
-                usage = generation.usage;
+            // Usage: the last round's input tokens, output summed over rounds
+            // (upstream aggregates per-step output for tok/s, runtime.rs docs).
+            if let Some((input, output)) = generation.usage {
+                let total = usage.map(|(_, previous)| previous).unwrap_or(0) + output;
+                usage = Some((input, total));
             }
             // Calls come only from complete canonical output, never partial deltas.
             let mut call_items = Vec::new();
@@ -1406,6 +1442,7 @@ impl<'a> Runtime<'a> {
                         TurnStatus::Failed,
                         text,
                         rounds,
+                        streamed_ms(streamed),
                         usage,
                         calls,
                         nudge_hint,
@@ -1473,6 +1510,7 @@ impl<'a> Runtime<'a> {
                     TurnStatus::Incomplete,
                     text,
                     rounds,
+                    streamed_ms(streamed),
                     usage,
                     calls,
                     nudge_hint,
@@ -1487,6 +1525,7 @@ impl<'a> Runtime<'a> {
             TurnStatus::Completed,
             text,
             rounds,
+            streamed_ms(streamed),
             usage,
             calls,
             nudge_hint,
@@ -1552,6 +1591,7 @@ impl<'a> Runtime<'a> {
             attached,
             &mut |_: &str| {},
             &mut |_: &str, _: &str| {},
+            &mut |_: &str, _: &str| {},
         )
         .await
     }
@@ -1593,6 +1633,7 @@ impl<'a> Runtime<'a> {
         status: TurnStatus,
         text: String,
         rounds: u32,
+        streamed_ms: u64,
         usage: Option<(u64, u64)>,
         calls: Vec<CallRecord>,
         nudge_hint: Option<String>,
@@ -1621,6 +1662,8 @@ impl<'a> Runtime<'a> {
             text,
             rounds,
             usage,
+            streamed_ms,
+            duration_ms: 0,
             calls,
             nudge_hint,
         })
@@ -2788,6 +2831,11 @@ fn truncate(text: &str, max: usize) -> String {
     }
     let kept = text.floor_char_boundary(max);
     format!("{}…[+{}]", &text[..kept], text.len() - kept)
+}
+
+/// Whole milliseconds in a duration, saturating at `u64::MAX`.
+fn streamed_ms(streamed: Duration) -> u64 {
+    streamed.as_millis().min(u128::from(u64::MAX)) as u64
 }
 
 fn remote_attach_error(server: &str, error: McpError) -> RuntimeError {

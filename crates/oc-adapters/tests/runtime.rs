@@ -29,6 +29,20 @@ fn sse_completed() -> String {
     "data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":10,\"output_tokens\":5}}}\n\n".to_string()
 }
 
+fn sse_completed_usage(input_tokens: u64, output_tokens: u64) -> String {
+    format!(
+        "data: {{\"type\":\"response.completed\",\"response\":{{\"status\":\"completed\",\"usage\":{{\"input_tokens\":{input_tokens},\"output_tokens\":{output_tokens}}}}}}}\n\n"
+    )
+}
+
+/// Reasoning summary delta (`response.reasoning_summary_text.delta`).
+fn sse_reasoning(text: &str) -> String {
+    format!(
+        "data: {{\"type\":\"response.reasoning_summary_text.delta\",\"delta\":{}}}\n\n",
+        serde_json::Value::String(text.to_string())
+    )
+}
+
 fn sse_tool_call(call_id: &str, name: &str, args: &serde_json::Value) -> String {
     let item_id = format!("fc_{call_id}");
     let added = serde_json::json!({"type": "response.output_item.added", "item": {
@@ -400,6 +414,7 @@ async fn aud07_rejected_input_has_no_turn_or_event() {
             ),
             |_| panic!("rejected input acknowledged"),
             |_, _| {},
+            |_, _| {},
         )
         .await;
     assert_eq!(
@@ -654,6 +669,7 @@ async fn aud11_text_without_successful_terminal_never_completes() {
                 params("s", "hello", &harness, provider_of(&base), &NO_CANCEL),
                 |_| {},
                 |_, delta| observed.push_str(delta),
+                |_, _| {},
             )
             .await
             .unwrap();
@@ -1018,6 +1034,7 @@ time.sleep(30)
                     accepted.store(true, Ordering::Relaxed);
                 },
                 |_, _| panic!("provider started before MCP attached"),
+                |_, _| {},
             )
         )
     })
@@ -2524,4 +2541,146 @@ async fn aud21_model_compress_preserves_complete_tool_graph_without_replay() {
         2,
         "compression must return one structured output and then continue"
     );
+}
+
+/// DTO extension (iteration 3a): the runtime forwards provider reasoning
+/// deltas and reports usage plus the provider-active streamed window, so the
+/// TUI can render the reasoning block and the footer's `tok/s`.
+#[tokio::test]
+async fn dto_reasoning_deltas_and_usage_reach_the_event_callbacks() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s-dto").unwrap();
+    let (base, _) = Fake::start(
+        vec![
+            sse_reasoning("**Inspecting**\n\n")
+                + &sse_reasoning("body")
+                + &sse_delta("answer")
+                + &sse_completed_usage(42, 7),
+        ],
+        Duration::from_millis(20),
+    );
+    let mut accepted = Vec::new();
+    let mut reasoning = String::new();
+    let mut text = String::new();
+    let report = runtime
+        .run_turn_with_events(
+            params("s-dto", "hello", &harness, provider_of(&base), &NO_CANCEL),
+            |turn| accepted.push(turn.to_string()),
+            |_, delta| text.push_str(delta),
+            |_, delta| reasoning.push_str(delta),
+        )
+        .await
+        .expect("turn");
+    assert_eq!(accepted.len(), 1, "one durable acceptance");
+    assert_eq!(reasoning, "**Inspecting**\n\nbody");
+    assert_eq!(text, "answer");
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(report.usage, Some((42, 7)), "provider-reported usage");
+    assert!(
+        report.streamed_ms >= 20,
+        "provider-active time must be measured: {}ms",
+        report.streamed_ms
+    );
+    assert!(
+        report.duration_ms >= 20,
+        "turn wall time must be measured: {}ms",
+        report.duration_ms
+    );
+    // Reasoning is never persisted as an assistant message.
+    assert_eq!(
+        harness.db.read_history("s-dto").unwrap(),
+        [
+            ("user".to_string(), "hello".to_string()),
+            ("assistant".to_string(), "answer".to_string())
+        ]
+    );
+}
+
+/// End to end through the real application worker: `application::spawn_with_env`
+/// (project-local config, no process env mutation) broadcasts the new
+/// `ReasoningDelta` and `TurnUsage` events next to `TurnFinished`.
+#[tokio::test]
+async fn dto_application_events_surface_reasoning_and_usage() {
+    use oc_adapters::application;
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+
+    let project = tempfile::tempdir().expect("project");
+    let data = tempfile::tempdir().expect("data");
+    let home = tempfile::tempdir().expect("home");
+    let (base, _) = Fake::start(
+        vec![
+            sse_reasoning("**Planning**\n\n") + &sse_delta("visible") + &sse_completed_usage(9, 4),
+        ],
+        Duration::from_millis(20),
+    );
+    let config = serde_json::json!({
+        "model": "fixture/fixture-model",
+        "provider": {"fixture": {
+            "npm": "@ai-sdk/openai",
+            "options": {"baseURL": base, "apiKey": "test-key"},
+            "models": {"fixture-model": {
+                "name": "DTO fixture",
+                "limit": {"context": 65536, "output": 4096},
+            }},
+        }},
+        "permissions": {},
+    });
+    std::fs::write(project.path().join("opencode.json"), config.to_string()).expect("config");
+    let env: BTreeMap<String, String> = [
+        ("HOME", home.path().to_string_lossy().to_string()),
+        ("OC_TEST_ALLOW_LOOPBACK", "1".to_string()),
+    ]
+    .into_iter()
+    .map(|(key, value)| (key.to_string(), value))
+    .collect();
+    let (app, guard, _diagnostics) = application::spawn_with_env(project.path(), data.path(), env)
+        .await
+        .expect("application");
+    let session = SessionId::new("s-app-dto").expect("session id");
+    app.create_session(session.clone()).await.expect("create");
+    let mut rx = app.subscribe();
+    app.submit(session.clone(), "hello".to_string())
+        .await
+        .expect("submit");
+
+    let mut reasoning = String::new();
+    let mut usage = None;
+    let (text, duration_ms) = loop {
+        let event = tokio::time::timeout(Duration::from_secs(10), rx.recv())
+            .await
+            .expect("event timeout")
+            .expect("event channel");
+        match event {
+            CoreEvent::ReasoningDelta { delta, .. } => reasoning.push_str(&delta),
+            CoreEvent::TurnUsage {
+                input_tokens,
+                output_tokens,
+                streamed_ms,
+                ..
+            } => usage = Some((input_tokens, output_tokens, streamed_ms)),
+            CoreEvent::TurnFinished {
+                text, duration_ms, ..
+            } => break (text, duration_ms),
+            CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
+            CoreEvent::TurnStarted { .. }
+            | CoreEvent::TextDelta { .. }
+            | CoreEvent::TurnInterrupted { .. } => {}
+        }
+    };
+    assert_eq!(reasoning, "**Planning**\n\n", "reasoning delta surfaces");
+    assert_eq!(
+        usage.map(|(input, output, _)| (input, output)),
+        Some((9, 4)),
+        "provider usage surfaces"
+    );
+    assert!(
+        usage.is_some_and(|(_, _, streamed_ms)| streamed_ms >= 20),
+        "provider-active time is measured"
+    );
+    assert_eq!(text, "visible");
+    assert!(duration_ms >= 20, "turn duration is measured");
+    app.shutdown().await.expect("shutdown");
+    guard.join().await.expect("join");
 }

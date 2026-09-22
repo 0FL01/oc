@@ -38,7 +38,22 @@ pub async fn spawn(
     project: &Path,
     data: &Path,
 ) -> Result<(CoreApp, WorkerGuard, Vec<String>), String> {
-    let composition = composition::load(project).await?;
+    let env = std::env::vars_os()
+        .filter_map(|(key, value)| Some((key.into_string().ok()?, value.into_string().ok()?)))
+        .collect();
+    spawn_with_env(project, data, env).await
+}
+
+/// Same as [`spawn`] with an explicit environment for config composition.
+///
+/// Integration tests and other embedders use this instead of mutating the
+/// process environment (which is global and shared by parallel tests).
+pub async fn spawn_with_env(
+    project: &Path,
+    data: &Path,
+    env: BTreeMap<String, String>,
+) -> Result<(CoreApp, WorkerGuard, Vec<String>), String> {
+    let composition = composition::load_with_env(project, env).await?;
     let mut diagnostics = composition.diagnostics.clone();
     let db = Db::open(data).map_err(|e| format!("storage: {e}"))?;
     db.recover_interrupted_tools()
@@ -897,6 +912,13 @@ async fn worker(
                                 delta: delta.to_string(),
                             });
                         },
+                        |id, delta| {
+                            let _ = events.send(CoreEvent::ReasoningDelta {
+                                session: session.clone(),
+                                turn: WorkerTurnId(id.to_string()),
+                                delta: delta.to_string(),
+                            });
+                        },
                     );
                     tokio::pin!(operation);
                     result = loop {
@@ -928,17 +950,36 @@ async fn worker(
                     let error = result.err().unwrap_or(RuntimeError::Storage);
                     let _ = ack.send(Err(app_error(error)));
                 } else if let Some(turn) = turn {
+                    // Provider usage is forwarded only when the provider
+                    // reported it; never synthesized.
+                    if let Ok(report) = &result
+                        && let Some((input_tokens, output_tokens)) = report.usage
+                    {
+                        let _ = events.send(CoreEvent::TurnUsage {
+                            session: session.clone(),
+                            turn: turn.clone(),
+                            input_tokens,
+                            output_tokens,
+                            streamed_ms: report.streamed_ms,
+                        });
+                    }
+                    let duration_ms = match &result {
+                        Ok(report) => report.duration_ms,
+                        Err(_) => 0,
+                    };
                     let event = match result {
                         Err(RuntimeError::Cancelled) => CoreEvent::TurnInterrupted {
                             session: session.clone(),
                             turn,
                             partial: String::new(),
+                            duration_ms,
                         },
                         Ok(report) if report.status == TurnStatus::Completed => {
                             CoreEvent::TurnFinished {
                                 session: session.clone(),
                                 turn,
                                 text: report.text,
+                                duration_ms,
                             }
                         }
                         Ok(report) if report.status == TurnStatus::Cancelled => {
@@ -946,6 +987,7 @@ async fn worker(
                                 session: session.clone(),
                                 turn,
                                 partial: report.text,
+                                duration_ms,
                             }
                         }
                         Ok(report) if report.status == TurnStatus::Incomplete => {

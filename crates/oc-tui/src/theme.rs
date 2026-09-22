@@ -686,6 +686,55 @@ impl Theme {
     pub fn markdown(&self, token: MarkdownToken) -> Color {
         self.roles.markdown[token.index()]
     }
+
+    /// One hue step from the asset (`packages/theme/src/tui/schema.ts:3-10`),
+    /// resolved for the active mode.
+    pub fn hue(&self, name: &str, step: u16) -> Option<Color> {
+        self.color(&format!("hue.{name}.{step}"))
+    }
+
+    /// Deduplicated categorical agent colors at step 200, in asset order
+    /// (`context/local.tsx:75-81`: `theme.categorical.map(scale => scale[200])`
+    /// with `dedupeWith`, keeping the first occurrence).
+    pub fn categorical_agents(&self) -> Vec<Color> {
+        let mut colors: Vec<Color> = Vec::new();
+        for name in &self.categorical {
+            let Some(color) = self.hue(name, 200) else {
+                continue;
+            };
+            if !colors.contains(&color) {
+                colors.push(color);
+            }
+        }
+        if colors.is_empty() {
+            colors.push(self.text());
+        }
+        colors
+    }
+
+    /// Skill/file chip label background: `theme.hue.accent[light ? 300 : 200]`
+    /// (`routes/session/index.tsx:2352-2358`).
+    pub fn accent_chip_background(&self) -> Color {
+        let step = if self.mode == ThemeMode::Light {
+            300
+        } else {
+            200
+        };
+        self.hue("accent", step)
+            .expect("vendored asset declares hue.accent")
+    }
+
+    /// `color` at reduced opacity, composited over the root background. Upstream
+    /// passes RGBA alpha directly (`message-parts.tsx:106-114`,
+    /// `index.tsx:1786-1800`); a terminal has no alpha, so this is the opaque
+    /// equivalent inside the root frame.
+    pub fn fade(&self, color: Color, alpha: f32) -> Color {
+        let Color::Rgb(r, g, b) = color else {
+            return color;
+        };
+        let alpha = alpha.clamp(0.0, 1.0);
+        Rgba::new(r, g, b, (alpha * 255.0).round() as u8).to_color(self.underlay)
+    }
 }
 
 fn vendored(mode: ThemeMode) -> Theme {
@@ -1190,6 +1239,43 @@ mod tests {
         assert_eq!(
             Theme::dark().action_secondary(),
             Color::Rgb(0x80, 0x80, 0x80)
+        );
+    }
+
+    /// Iteration 3a roles: categorical agent colors (deduped step 200), the
+    /// accent chip surface and the alpha fade used by the reasoning header.
+    #[test]
+    fn agent_and_chip_roles_match_upstream() {
+        let dark = Theme::dark();
+        let colors = dark.categorical_agents();
+        assert_eq!(
+            colors.len(),
+            5,
+            "categorical hues with distinct step-200 colors"
+        );
+        // Dark mode reorders the categorical hues (`dark.categorical`).
+        assert_eq!(colors[0], dark.hue("blue", 200).expect("blue 200"));
+        assert_eq!(colors[1], dark.hue("purple", 200).expect("purple 200"));
+        assert_eq!(
+            dark.accent_chip_background(),
+            dark.hue("accent", 200).unwrap()
+        );
+        // Dark chip label fg is `background.raised.base`; the name surface is
+        // one step down (`decrease`).
+        assert_eq!(dark.user_message_background(), Color::Rgb(0x14, 0x14, 0x14));
+        assert_eq!(
+            dark.decrease(dark.user_message_background()),
+            Color::Rgb(0x1e, 0x1e, 0x1e)
+        );
+        // 0.6 alpha over the root background is the opaque terminal form of
+        // `RGBA.fromValues(..., 0.6)`.
+        assert_eq!(dark.fade(dark.warning(), 0.6), Color::Rgb(151, 104, 43));
+        assert_eq!(dark.fade(dark.warning(), 1.0), dark.warning());
+
+        let light = Theme::light();
+        assert_eq!(
+            light.accent_chip_background(),
+            light.hue("accent", 300).unwrap()
         );
     }
 

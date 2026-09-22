@@ -127,7 +127,7 @@ fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
         ((panel.len() + 2) as u16).min(12)
     };
     let regions = layout::session_regions(area, panel_height);
-    render_transcript(frame, state, regions.transcript);
+    render_transcript(frame, state, regions.transcript, area.width);
     if regions.panel.height > 0 {
         // Port extension until iteration 4: the picker panes stay an inline
         // bordered block between the transcript and the status row.
@@ -157,12 +157,23 @@ fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
 /// Sticky-bottom transcript: newest row on the transcript's last row, and
 /// new rows keep it pinned while the stream is at the bottom
 /// (`routes/session/index.tsx:1299-1300` `stickyScroll stickyStart="bottom"`).
-fn render_transcript(frame: &mut Frame<'_>, state: &TuiState, area: Rect) {
+/// Rows come from the upstream message renderer ([`crate::messages`]) and are
+/// wrapped to the content width before the sticky slice.
+fn render_transcript(frame: &mut Frame<'_>, state: &TuiState, area: Rect, terminal_width: u16) {
     if area.height == 0 || area.width == 0 {
         return;
     }
-    let visible = state.viewport();
     let rows = area.height as usize;
+    let lines = crate::styled::wrap_lines(
+        &state.transcript_lines(area.width, terminal_width),
+        area.width as usize,
+    );
+    let total = lines.len();
+    let max_scroll = total.saturating_sub(crate::app::VIEWPORT_LINES);
+    let scroll = state.scroll().min(max_scroll);
+    let end = total - scroll;
+    let start = end.saturating_sub(crate::app::VIEWPORT_LINES);
+    let visible = &lines[start..end];
     let skip = visible.len().saturating_sub(rows);
     let pad = rows.saturating_sub(visible.len());
     let target = Rect {
@@ -170,10 +181,8 @@ fn render_transcript(frame: &mut Frame<'_>, state: &TuiState, area: Rect) {
         height: area.height.saturating_sub(pad as u16),
         ..area
     };
-    frame.render_widget(
-        Paragraph::new(crate::styled::Lines::from(visible).into_text()).scroll((skip as u16, 0)),
-        target,
-    );
+    let text = crate::styled::Lines::from(visible[skip..].to_vec()).into_text();
+    frame.render_widget(Paragraph::new(text), target);
 }
 
 /// Height-1 right-aligned status row (`routes/session/index.tsx:1331-1350`).
@@ -578,9 +587,16 @@ mod tests {
         let mut expected = vec![String::new(); 24];
         // Tabs rail: single active tab, upstream number cell + title.
         expected[0] = " 1 Untitled session".to_string();
-        // Transcript: sticky bottom, content padding 2.
-        expected[13] = "  user: hello".to_string();
-        expected[14] = "  assistant: hi there".to_string();
+        // Transcript: sticky bottom, content padding 2. Iteration 3a renders
+        // the upstream message presentation: the user block carries the `┃`
+        // border with 1/2 padding (`routes/session/index.tsx:2298-2335`), the
+        // assistant text sits at paddingLeft=3 and each upstream row has
+        // `marginTop=1` (`routes/session/index.tsx:1435`).
+        expected[10] = "  ┃".to_string();
+        expected[11] = "  ┃  hello".to_string();
+        expected[12] = "  ┃".to_string();
+        expected[13] = String::new();
+        expected[14] = "     hi there".to_string();
         // Status row is empty while pinned; prompt box rows follow.
         expected[16] = "  ┃".to_string();
         expected[17] = "  ┃".to_string();
@@ -600,8 +616,12 @@ mod tests {
         let hints = "shift+tab agents  ctrl+p commands";
         let mut expected = vec![String::new(); 40];
         expected[0] = " 1 Untitled session".to_string();
-        expected[29] = "  user: hello".to_string();
-        expected[30] = "  assistant: hi there".to_string();
+        // Same message presentation as 80x24, just taller.
+        expected[26] = "  ┃".to_string();
+        expected[27] = "  ┃  hello".to_string();
+        expected[28] = "  ┃".to_string();
+        expected[29] = String::new();
+        expected[30] = "     hi there".to_string();
         expected[32] = "  ┃".to_string();
         expected[33] = "  ┃".to_string();
         expected[34] = "  ┃".to_string();
@@ -652,10 +672,10 @@ mod tests {
         state.attach_page(&page(rows));
         assert_eq!(state.scroll(), 0);
 
-        // Pinned: the newest row is the transcript's last row.
+        // Pinned: the newest user block ends on the transcript's last row.
         let frame = screen(&state, 80, 24);
-        assert_eq!(frame[13], "  user: line 38");
-        assert_eq!(frame[14], "  user: line 39");
+        assert_eq!(frame[13], "  ┃  line 39", "{frame:?}");
+        assert_eq!(frame[14], "  ┃", "{frame:?}");
         assert!(!frame.join("\n").contains("Jump to latest"));
 
         // New rows keep the bottom pinned while at the bottom.
@@ -664,10 +684,10 @@ mod tests {
         }
         state.handle_key(KeyAction::Enter).await;
         let turn = state.active_turn().expect("turn").clone();
-        state.apply_finished(&turn, "fresh line");
+        state.apply_finished(&turn, "fresh line", 0);
         assert_eq!(state.scroll(), 0);
         let frame = screen(&state, 80, 24);
-        assert_eq!(frame[14], "  ai: fresh line", "{frame:?}");
+        assert!(frame.join("\n").contains("fresh line"), "{frame:?}");
 
         // Scrolling up detaches: the newest row leaves the viewport and the
         // upstream jump affordance appears in the status row.
@@ -676,7 +696,7 @@ mod tests {
         }
         assert_eq!(state.scroll(), 5);
         let frame = screen(&state, 80, 24);
-        assert!(!frame[14].contains("fresh line"), "{frame:?}");
+        assert!(!frame.join("\n").contains("fresh line"), "{frame:?}");
         assert!(frame[15].contains("Jump to latest ↓"), "{frame:?}");
 
         // Scrolling back to the bottom re-pins the stream.
@@ -684,8 +704,87 @@ mod tests {
             state.handle_key(KeyAction::Down).await;
         }
         let frame = screen(&state, 80, 24);
-        assert_eq!(frame[14], "  ai: fresh line", "{frame:?}");
+        assert!(frame.join("\n").contains("fresh line"), "{frame:?}");
         assert!(!frame[15].contains("Jump to latest"));
+    }
+
+    /// Iteration 3a: a live turn renders through the upstream message
+    /// presentation — collapsed reasoning, assistant markdown at paddingLeft=3
+    /// and the `agent · model · dur · tok/s` footer with provider usage.
+    #[tokio::test]
+    async fn golden_live_turn_with_reasoning_and_footer() {
+        let mut state = golden_state().await;
+        for c in "hi".chars() {
+            state.handle_key(KeyAction::Char(c)).await;
+        }
+        state.handle_key(KeyAction::Enter).await;
+        let turn = state.active_turn().expect("turn").clone();
+        state.apply_reasoning_delta(&turn, "**Reading the code**\n\nbody");
+        state.apply_delta(&turn, "All done.");
+        // Running state: the static spinner fallback with the summary title.
+        let running = screen(&state, 80, 24);
+        assert!(
+            running
+                .iter()
+                .any(|row| row.contains("⋯ Thinking: Reading the code")),
+            "{running:?}"
+        );
+        state.apply_usage(&turn, 100, 200, 4000);
+        state.apply_finished(&turn, "All done.", 1500);
+
+        let frame = screen(&state, 80, 24);
+        // Two committed rows, then the live turn: user block, assistant block
+        // with the reasoning header, markdown body and footer.
+        assert_eq!(frame[1], "  ┃", "{frame:?}");
+        assert_eq!(frame[2], "  ┃  hello", "{frame:?}");
+        assert_eq!(frame[3], "  ┃", "{frame:?}");
+        assert_eq!(frame[4], "", "{frame:?}");
+        assert_eq!(frame[5], "     hi there", "{frame:?}");
+        assert_eq!(frame[6], "  ┃", "{frame:?}");
+        assert_eq!(frame[7], "  ┃  hi", "{frame:?}");
+        assert_eq!(frame[8], "  ┃", "{frame:?}");
+        // Reasoning duration is measured by the view (wall clock), so only the
+        // stable prefix is asserted; the turn duration comes from the event.
+        assert!(
+            frame[10].starts_with("     + Thought: Reading the code"),
+            "{frame:?}"
+        );
+        assert_eq!(frame[12], "     All done.", "{frame:?}");
+        assert_eq!(
+            frame[14], "     X · ludka2/a · 1.5s · 50.0 tok/s",
+            "{frame:?}"
+        );
+    }
+
+    /// Interrupted turns keep the partial answer and mark the footer
+    /// (`routes/session/index.tsx:1977-1980`).
+    #[tokio::test]
+    async fn golden_interrupted_turn_footer() {
+        let mut state = golden_state().await;
+        for c in "go".chars() {
+            state.handle_key(KeyAction::Char(c)).await;
+        }
+        state.handle_key(KeyAction::Enter).await;
+        let turn = state.active_turn().expect("turn").clone();
+        state.apply_delta(&turn, "partial answer");
+        state.apply_interrupted(&turn, "partial answer", 1500);
+
+        let frame = screen(&state, 80, 24);
+        assert!(frame.join("\n").contains("partial answer"), "{frame:?}");
+        assert_eq!(
+            state
+                .viewport()
+                .iter()
+                .filter(|line| line.contains("interrupted"))
+                .count(),
+            1,
+            "{:?}",
+            state.viewport()
+        );
+        assert!(
+            frame[14] == "     X · ludka2/a · 1.5s · interrupted",
+            "{frame:?}"
+        );
     }
 
     #[tokio::test]
@@ -715,7 +814,7 @@ mod tests {
         assert_eq!(buffer[(6, 21)].fg, theme.text_muted());
 
         // The DCP notice replaces the interrupt hint once the turn is idle.
-        state.apply_finished(&turn, "done");
+        state.apply_finished(&turn, "done", 0);
         state.notify_dcp(crate::dcp_panel::DcpOutcome::Failed {
             reason: "span open".to_string(),
         });

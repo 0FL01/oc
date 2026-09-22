@@ -171,6 +171,95 @@ impl From<Vec<Line>> for Lines {
     }
 }
 
+/// Display cells occupied by one character (wide CJK and emoji are 2 cells).
+pub fn char_width(ch: char) -> usize {
+    ratatui::text::Line::from(ch.to_string()).width()
+}
+
+/// Display cells occupied by a span.
+pub fn span_width(span: &Span) -> usize {
+    ratatui::text::Line::from(span.content()).width()
+}
+
+/// Word-wrap one styled line to at most `width` display cells, keeping the
+/// styles. Breaks at spaces; a word longer than the width is split at the
+/// cell boundary. Leading spaces of a continuation row are dropped, exactly
+/// like a terminal text wrap.
+pub fn wrap_line(line: &Line, width: usize) -> Vec<Line> {
+    let max = width.max(1);
+    let mut out: Vec<Vec<(char, Style)>> = Vec::new();
+    let mut current: Vec<(char, Style)> = Vec::new();
+    let mut used = 0usize;
+    // Index just past the last space run in `current`; a wrap can break there.
+    let mut break_at: Option<usize> = None;
+    // Only continuation rows drop their leading spaces; the first row keeps
+    // the indentation of the source line.
+    let mut continuation = false;
+    for span in line.spans() {
+        for ch in span.content().chars() {
+            let cells = char_width(ch);
+            if used + cells > max && !current.is_empty() {
+                match break_at.take() {
+                    Some(index) => {
+                        let mut rest = current.split_off(index);
+                        while rest.first().is_some_and(|(ch, _)| *ch == ' ') {
+                            rest.remove(0);
+                        }
+                        let mut head = std::mem::take(&mut current);
+                        while head.last().is_some_and(|(ch, _)| *ch == ' ') {
+                            head.pop();
+                        }
+                        out.push(head);
+                        current = rest;
+                        used = current.iter().map(|(ch, _)| char_width(*ch)).sum();
+                    }
+                    None => {
+                        out.push(std::mem::take(&mut current));
+                        used = 0;
+                    }
+                }
+                continuation = true;
+            }
+            if ch == ' ' && current.is_empty() && continuation {
+                continue;
+            }
+            current.push((ch, span.style()));
+            used += cells;
+            if ch == ' ' {
+                break_at = Some(current.len());
+            }
+        }
+    }
+    out.push(current);
+    out.into_iter()
+        .map(|cells| Line::new(coalesce(cells)))
+        .collect()
+}
+
+/// Wrap every line, preserving the row order.
+pub fn wrap_lines(lines: &[Line], width: usize) -> Vec<Line> {
+    let mut out = Vec::new();
+    for line in lines {
+        out.extend(wrap_line(line, width));
+    }
+    out
+}
+
+/// Merge consecutive cells with the same style back into spans.
+fn coalesce(cells: Vec<(char, Style)>) -> Vec<Span> {
+    let mut spans: Vec<Span> = Vec::new();
+    for (ch, style) in cells {
+        match spans.last_mut() {
+            Some(span) if span.style() == style => span.content.push(ch),
+            _ => spans.push(Span {
+                content: ch.to_string(),
+                style,
+            }),
+        }
+    }
+    spans
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -227,6 +316,45 @@ mod tests {
         let legacy = render_paragraph(Text::from(rows.join("\n")), 40, 8);
         let styled = render_paragraph(Lines::from(rows).into_text(), 40, 8);
         assert_eq!(legacy, styled);
+    }
+
+    #[test]
+    fn wrap_line_keeps_styles_and_splits_long_words() {
+        use ratatui::style::Color;
+
+        let red = Style::default().fg(Color::Rgb(255, 0, 0));
+        let line = Line::new(vec![Span::styled("alpha ", red), Span::plain("beta gamma")]);
+        let wrapped = wrap_line(&line, 10);
+        assert_eq!(
+            wrapped.iter().map(Line::plain_text).collect::<Vec<_>>(),
+            vec!["alpha", "beta gamma"]
+        );
+        // The first row keeps the red style from the source span.
+        assert_eq!(
+            wrapped[0].spans()[0].style().fg,
+            Some(Color::Rgb(255, 0, 0))
+        );
+        // Continuation rows drop leading spaces.
+        let wrapped = wrap_line(&Line::plain("aaa   bbb"), 4);
+        assert_eq!(
+            wrapped.iter().map(Line::plain_text).collect::<Vec<_>>(),
+            vec!["aaa", "bbb"]
+        );
+        // A word longer than the width splits instead of overflowing.
+        let wrapped = wrap_line(&Line::plain("abcdefghij"), 4);
+        assert_eq!(
+            wrapped.iter().map(Line::plain_text).collect::<Vec<_>>(),
+            vec!["abcd", "efgh", "ij"]
+        );
+        // Leading indentation of the source line is preserved.
+        let wrapped = wrap_line(&Line::plain("   indented"), 20);
+        assert_eq!(wrapped[0].plain_text(), "   indented");
+        // Wide characters count as two cells.
+        let wrapped = wrap_line(&Line::plain("🌍🌍🌍"), 4);
+        assert_eq!(
+            wrapped.iter().map(Line::plain_text).collect::<Vec<_>>(),
+            vec!["🌍🌍", "🌍"]
+        );
     }
 
     #[test]

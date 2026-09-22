@@ -12,6 +12,7 @@ pub mod dcp_panel;
 pub mod events;
 pub mod history;
 pub mod layout;
+pub mod messages;
 pub mod picker;
 pub mod shell;
 pub mod smoke;

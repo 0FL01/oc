@@ -297,7 +297,7 @@ mod tests {
         // Iteration 2: the DCP notice renders in the prompt footer status slot
         // once the turn is idle (the running slot shows `esc interrupt`);
         // completion is what the binary reports the outcome after.
-        state.apply_finished(&turn, "");
+        state.apply_finished(&turn, "", 0);
         state.notify_dcp(DcpOutcome::Failed {
             reason: "span open".to_string(),
         });

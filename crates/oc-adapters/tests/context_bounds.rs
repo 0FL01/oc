@@ -462,6 +462,7 @@ fn measure_turn(pairs: usize) -> (usize, String) {
                 params("work", "live prompt", &harness, provider_of(&base), &cancel),
                 |turn| accepted.push(turn.to_string()),
                 |_, _| {},
+                |_, _| {},
             ))
     });
     let report = result.expect("turn");
