@@ -7,6 +7,7 @@
 
 use std::sync::OnceLock;
 
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::terminal::{
     EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
@@ -26,8 +27,9 @@ impl Drop for TerminalGuard {
 pub fn enter() -> Result<TerminalGuard, String> {
     enable_raw_mode().map_err(|e| format!("raw mode: {e}"))?;
     let mut stderr = std::io::stderr();
-    if let Err(e) = crossterm::execute!(stderr, EnterAlternateScreen) {
+    if let Err(e) = crossterm::execute!(stderr, EnterAlternateScreen, EnableMouseCapture) {
         let _ = disable_raw_mode();
+        let _ = crossterm::execute!(std::io::stderr(), DisableMouseCapture, LeaveAlternateScreen);
         return Err(format!("screen: {e}"));
     }
     Ok(TerminalGuard { _private: () })
@@ -37,7 +39,7 @@ pub fn enter() -> Result<TerminalGuard, String> {
 /// call when the terminal was never entered (errors ignored).
 pub fn restore() {
     let _ = disable_raw_mode();
-    let _ = crossterm::execute!(std::io::stderr(), LeaveAlternateScreen);
+    let _ = crossterm::execute!(std::io::stderr(), DisableMouseCapture, LeaveAlternateScreen);
 }
 
 static PANIC_HOOK_ONCE: OnceLock<()> = OnceLock::new();

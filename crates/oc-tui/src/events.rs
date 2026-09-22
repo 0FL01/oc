@@ -5,7 +5,7 @@
 //! qualification stays T26). Pastes are accepted as bounded text so a large
 //! terminal paste can never grow the view state without limit.
 
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseEvent};
 
 /// Minimal actions the chat view understands.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,6 +56,8 @@ pub enum UiEvent {
     Paste(String),
     /// Terminal was resized; the next frame re-reads the size.
     Resize,
+    /// Terminal-reported pointer position/button/scroll (zero-based cells).
+    Mouse(MouseEvent),
 }
 
 /// Map a Crossterm key event to an action.
@@ -110,6 +112,7 @@ pub fn map_event(event: Event) -> Option<UiEvent> {
         Event::Key(key) => map_key(key).map(UiEvent::Key),
         Event::Paste(text) => Some(UiEvent::Paste(text)),
         Event::Resize(_, _) => Some(UiEvent::Resize),
+        Event::Mouse(mouse) => Some(UiEvent::Mouse(mouse)),
         _ => None,
     }
 }

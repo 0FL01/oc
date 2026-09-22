@@ -85,7 +85,7 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 ## Current Checkpoint
 
 - Closes: no visual gate yet.
-- Smallest next action: finish remaining V04 actual-owner dialog capabilities and modal focus/mouse behavior without advertising unsupported service controls; then V05 Unicode editor. Preserve responsive pending submission.
+- Smallest next action: V05 Unicode multiline editor and keymap/paste/history with raw PTY owner effects; V04 missing backend/service capabilities remain explicitly unavailable, not fabricated controls.
 - Expected evidence: capture lock, independent original frames, commands/exit codes and raw input/application effects; exact checkpoint after each slice.
 - Stop or replan if: reference/profile unavailable → BLOCKED_REFERENCE, never closest-rendering parity. Independent fixes remain executable.
 
@@ -94,7 +94,7 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 - Resolved: source/theme/component groundwork landed through `d232baa`; historical reports remain unchanged.
 - Last relevant evidence: V00 real diagnostic paired captures in `evidence/tui/recovery-v00` (all comparisons unequal); V01 raw PTY stalled MCP prompt and manual compression cancellation/retry plus safe diagnostics in `evidence/tui/recovery-v01/report.md`. These do not qualify VIS01–VIS24.
 - Blocker: no external blocker asserted. Exact capture freeze and missing backend capability mapping remain open; in-flight MCP tool-call cancellation is a known V07/S08 gap.
-- Next: V04 separate variant, registry, scoped model ownership, fuzzy and white overlay-cell corrections have fresh 498/0/5 workspace qualification and paired attempts at 80x24/121x41/160x48; all whole-frame comparator results DIFFERENT. See `evidence/tui/recovery-v04/followup-checkpoint.md`. Remaining dialog/backend capability mapping and V05–V09 stay open; R3/R4 unverified. User's positive live visual inspection is not a waiver. Native autoaccept remains Unsupported (`evidence/tui/recovery-v02/auto-capability.md`).
+- Next: V04 modal focus/mouse raw PTY with real model/variant and selected-option effects passed, see `evidence/tui/recovery-v04/modal-focus-checkpoint.md`; independent review corrected DCP informational-row activation and press carried across Model→Variant. V05–V09 and missing genuine backend/service actions remain open; previous paired comparator results DIFFERENT, R3/R4 unverified. User's positive live visual inspection is not a waiver. Native autoaccept remains Unsupported (`evidence/tui/recovery-v02/auto-capability.md`).
 
 ## Material Decisions
 
@@ -111,6 +111,7 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 - 2026-09-22: V02 delivered `a4bb361`; V03 actual measured viewport, sidebar, dynamic prompt and conditional devtools implemented. Review fixed safe startup/query routes, clamped Down scrolling and channel defaults. Parent binary PTY test/fmt/diff exit 0; implementation workspace 443 passed/4 existing live ignores. Paired attempts 16–20 retain actual scroll/cursor/child/vertical evidence; all whole-frame parity remains open.
 - 2026-09-22: resumed at `15719e9` (V04 committed during pause). Preserved backend T47/T43/T46/T27 work; reproduced and corrected three explicit-variant fixture expectations, strengthened raw PTY default-versus-named-none wire/durability check. Fresh workspace 488 passed/0 failed/5 existing ignores, fmt/clippy/build/docs/journal/Python gates passed. Independent V04 review recorded further in-scope dialog gaps; no VIS closure.
 - 2026-09-22: V04 follow-up atop `931792e`: real separate variant/dialog registry/new session, app-owned scoped selection and headless precedence, retired choice refusal/recovery, pinned fuzzy oracle/cache and truecolor modal blank correction. Parent fresh workspace 498 passed/0 failed/5 existing ignores; PTY 8 passed; paired original/Rust Session/Commands/Models/Variants at 160x48, 80x24, 121x41 retained with comparator exit1 DIFFERENT. Full V04/backend actions and VIS still open; `evidence/tui/recovery-v04/followup-checkpoint.md`.
+- 2026-09-22: V04 modal mouse capture/restore, focus ownership and scroll/hover/select routed through real PTY. Review fixed informational-row compression and cross-dialog press/release. Full serial workspace green (5 existing ignores); no new paired parity qualification. See `evidence/tui/recovery-v04/modal-focus-checkpoint.md`; V05 next.
 
 ## Completion
 

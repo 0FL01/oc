@@ -9,7 +9,7 @@ use std::path::Path;
 use std::process::ExitCode;
 use std::time::Duration;
 
-use crossterm::event::{self, Event as CEvent};
+use crossterm::event::{self, Event as CEvent, MouseEventKind};
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 
@@ -19,7 +19,7 @@ use oc_core::domain::SessionId;
 use oc_core::queries::SessionSelectionAction as SelectionAction;
 use oc_tui::app::{KeyOutcome, PanelIntent, TuiPanel, TuiState, TuiStatus};
 use oc_tui::dcp_panel::DcpOutcome;
-use oc_tui::events::{UiEvent, map_event};
+use oc_tui::events::{KeyAction, UiEvent, map_event};
 use oc_tui::shell::{StartupFailure, render_startup_failure};
 use oc_tui::terminal::{enter, install_panic_hook};
 use oc_tui::views::render_frame;
@@ -242,6 +242,20 @@ async fn handle_event(
             if let Some(note) = outcome.note {
                 state.push_note(&note);
             }
+        }
+        Some(UiEvent::Mouse(mouse)) => {
+            let outcome = if *state.panel() == TuiPanel::None {
+                match mouse.kind {
+                    MouseEventKind::ScrollUp => state.handle_key(KeyAction::Up).await,
+                    MouseEventKind::ScrollDown => state.handle_key(KeyAction::Down).await,
+                    _ => KeyOutcome::default(),
+                }
+            } else {
+                let (cols, rows) =
+                    crossterm::terminal::size().map_err(|e| format!("mouse terminal size: {e}"))?;
+                state.handle_mouse(mouse, ratatui::layout::Rect::new(0, 0, cols, rows))
+            };
+            apply_outcome(app, state, loop_state, outcome).await;
         }
         Some(UiEvent::Resize) | None => {}
     }

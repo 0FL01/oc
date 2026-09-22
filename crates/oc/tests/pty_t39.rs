@@ -582,11 +582,15 @@ impl Drop for PtySession {
 /// panel rows are asserted against the true final screen state.
 struct Screen {
     cells: Vec<Vec<char>>,
+    cursor: (usize, usize),
 }
 
 impl Screen {
     fn blank() -> Self {
-        Self { cells: Vec::new() }
+        Self {
+            cells: Vec::new(),
+            cursor: (0, 0),
+        }
     }
 
     fn ensure(&mut self, row: usize, col: usize) {
@@ -736,6 +740,7 @@ fn render_screen(buf: &[u8]) -> Screen {
         }
         k += 1;
     }
+    screen.cursor = (row, col);
     screen
 }
 
@@ -891,6 +896,137 @@ fn choose_variant(pty: &mut PtySession, title: &str) {
     pty.send(title.as_bytes());
     pty.send(b"\r");
     dismissed(pty, "Select variant");
+}
+
+/// SGR mouse protocol: terminal reports one-based x/y; Crossterm maps to cells.
+fn mouse_click(pty: &mut PtySession, x: u16, y: u16) {
+    pty.send(format!("\x1b[<0;{x};{y}M\x1b[<0;{x};{y}m").as_bytes());
+}
+
+fn wait_cursor(pty: &PtySession, wanted: (usize, usize)) {
+    let start = Instant::now();
+    while render_screen(&pty.snapshot()).cursor != wanted {
+        assert!(
+            start.elapsed() < DEADLINE,
+            "cursor did not reach {wanted:?}"
+        );
+        std::thread::sleep(POLL);
+    }
+}
+
+#[test]
+fn v04_raw_sgr_mouse_backdrop_search_variant_and_actual_model() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "v04-mouse", None);
+    pty.wait_visible(READY, DEADLINE);
+    assert!(
+        contains(&pty.snapshot(), b"\x1b[?1006h"),
+        "SGR capture enabled"
+    );
+    pty.send(b"draft-mouse");
+    wait_screen_row(&pty, "draft-mouse", DEADLINE);
+    let editor_cursor = render_screen(&pty.snapshot()).cursor;
+
+    // Open the model selector, then click the backdrop. The same release must
+    // not hit the underlying editor, and Esc after closing must not be needed.
+    pty.send(b"\x18m");
+    wait_screen_row(&pty, "Select model", DEADLINE);
+    wait_cursor(&pty, (9, 14));
+    mouse_click(&mut pty, 1, 1);
+    dismissed(&pty, "Select model");
+    wait_cursor(&pty, editor_cursor);
+    assert!(pty.child.try_wait().unwrap().is_none());
+
+    pty.send(b"\x10");
+    wait_screen_row(&pty, "Commands", DEADLINE);
+    mouse_click(&mut pty, 1, 1);
+    dismissed(&pty, "Commands");
+    pty.send(b"\x18m");
+    wait_screen_row(&pty, "Select model", DEADLINE);
+    // 80x24: modal x=10..70, top=6; Search y=9, first filtered option y=11.
+    mouse_click(&mut pty, 20, 10);
+    pty.send(b"T39 alt");
+    wait_cursor(&pty, (9, 21));
+    assert!(render_screen(&pty.snapshot()).rows()[9].contains("T39 alt"));
+    mouse_click(&mut pty, 20, 12);
+    wait_screen_row(&pty, "Select variant", DEADLINE);
+    // Upstream replaces Model with Variant after the accepted model change.
+    pty.send(b"\x1b");
+    dismissed(&pty, "Select variant");
+    wait_screen_row(&pty, "draft-mouse", DEADLINE);
+    wait_cursor(&pty, editor_cursor);
+    assert!(pty.child.try_wait().unwrap().is_none());
+    pty.send(b"\x10Switch model variant\r");
+    wait_screen_row(&pty, "Select variant", DEADLINE);
+    // No category heading: Default at y=11 and fast at y=12.
+    mouse_click(&mut pty, 20, 13);
+    dismissed(&pty, "Select variant");
+    pty.send(b"\r");
+    pty.wait_visible("echo: draft-mouse", DEADLINE);
+    let request = fixture.wait_requests(1);
+    assert_eq!(request[0]["model"], ALT_MODEL);
+    assert_eq!(request[0]["reasoning"]["effort"], "high");
+    assert_eq!(last_user_text(&request[0]).as_deref(), Some("draft-mouse"));
+    wait_idle(&pty);
+    pty.send(b"/quit\r");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored());
+    assert!(contains(&output, b"\x1b[?1006l"), "SGR capture restored");
+    let db = oc_adapters::storage::Db::open(pty.data_dir()).unwrap();
+    assert_eq!(
+        saved_selection(&db, &fixture, "v04-mouse", "")["variant"],
+        "fast"
+    );
+    assert_eq!(
+        db.read_history("v04-mouse")
+            .unwrap()
+            .iter()
+            .filter(|(role, text)| role == "user" && text == "draft-mouse")
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn v04_raw_mouse_wheel_and_hover_select_beyond_visible_rows() {
+    let fixture = Fixture::new();
+    let path = fixture
+        .root
+        .path()
+        .join("home/config/opencode/opencode.json");
+    let mut config: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    for i in 0..18 {
+        config["provider"]["fixture"]["models"][format!("mouse-{i:02}")] = serde_json::json!({
+            "name": format!("Mouse {i:02}"), "limit": {"context":32768,"output":4096}
+        });
+    }
+    std::fs::write(&path, config.to_string()).unwrap();
+    let mut pty = PtySession::spawn(fixture.clone(), "v04-wheel", None);
+    pty.wait_visible(READY, DEADLINE);
+    pty.send(b"\x18m");
+    wait_screen_row(&pty, "Select model", DEADLINE);
+    wait_screen_row(&pty, "Mouse 00", DEADLINE);
+    // Mouse scroll preserves the selection; row 11 moves from mouse-00 to
+    // mouse-12 after four 3-row wheels, without scrolling the underlay.
+    for _ in 0..4 {
+        pty.send(b"\x1b[<65;20;12M");
+    }
+    wait_screen_row(&pty, "Mouse 12", DEADLINE);
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|r| r.contains("Mouse 00"))
+    );
+    pty.send(b"\x1b[<35;20;12M"); // SGR pointer movement, first scrolled row
+    pty.send(b"\r"); // focused row, no extra pointer release or double activation
+    dismissed(&pty, "Select model");
+    let off = submit(&mut pty, "wheel hover chosen");
+    pty.wait_visible_after(off, "echo: wheel hover chosen", DEADLINE);
+    assert_eq!(fixture.wait_requests(1)[0]["model"], "mouse-12");
+    pty.send(b"/quit\r");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
 }
 
 #[test]

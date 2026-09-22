@@ -103,7 +103,27 @@ pub struct SelectList {
     pub query: String,
     pub cursor: usize,
     offset: Cell<usize>,
+    follow_cursor: Cell<bool>,
     cache: RefCell<Option<FilterCache>>,
+}
+
+/// Hit regions are computed from the same row map and rectangle as painting.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DialogHit {
+    Backdrop,
+    Surface,
+    Search,
+    Close,
+    Option(usize),
+    List,
+}
+
+struct Geometry {
+    rect: Rect,
+    list_y: u16,
+    list_height: usize,
+    rows: Vec<Option<usize>>,
+    offset: usize,
 }
 
 struct FilterCache {
@@ -117,6 +137,7 @@ struct FilterCache {
 impl SelectList {
     pub fn reset(&mut self) {
         *self = Self::default();
+        self.follow_cursor.set(true);
     }
     pub fn filter_for(
         &self,
@@ -211,6 +232,100 @@ impl SelectList {
     pub fn changed_query(&mut self) {
         self.cursor = 0;
         self.offset.set(0);
+        self.follow_cursor.set(true);
+    }
+
+    pub fn follow_selection(&self) {
+        self.follow_cursor.set(true);
+    }
+
+    fn geometry(
+        &self,
+        area: Rect,
+        size: DialogSize,
+        options: &[SelectOption],
+        footer: bool,
+    ) -> Geometry {
+        let mut rows = Vec::new();
+        let mut category = "";
+        for (i, option) in options.iter().enumerate() {
+            if self.query.is_empty() && option.category != category {
+                if !rows.is_empty() {
+                    rows.push(None); // separator
+                }
+                rows.push(None); // category heading
+                category = &option.category;
+            }
+            rows.push(Some(i));
+        }
+        let list_height = rows
+            .len()
+            .max(1)
+            .min((area.height / 2).saturating_sub(6).max(1) as usize);
+        let rect = DialogFrame::rect(area, size, list_height as u16 + 7 + u16::from(footer));
+        Geometry {
+            rect,
+            list_y: rect.y.saturating_add(5),
+            list_height: list_height
+                .min(rect.height.saturating_sub(7) as usize)
+                .max(1),
+            offset: self
+                .offset
+                .get()
+                .min(rows.len().saturating_sub(list_height)),
+            rows,
+        }
+    }
+
+    /// Scroll the option viewport independently of selection, as OpenTUI's scrollbox does.
+    pub fn scroll_rows(
+        &self,
+        delta: isize,
+        area: Rect,
+        size: DialogSize,
+        options: &[SelectOption],
+    ) {
+        let geo = self.geometry(area, size, options, false);
+        let max = geo.rows.len().saturating_sub(geo.list_height);
+        self.offset
+            .set(geo.offset.saturating_add_signed(delta).min(max));
+        self.follow_cursor.set(false);
+    }
+
+    pub fn hit(
+        &self,
+        area: Rect,
+        size: DialogSize,
+        options: &[SelectOption],
+        x: u16,
+        y: u16,
+    ) -> DialogHit {
+        let geo = self.geometry(area, size, options, false);
+        let rect = geo.rect;
+        if !rect.contains((x, y).into()) {
+            return DialogHit::Backdrop;
+        }
+        if rect.width < 12 || rect.height < 5 {
+            return DialogHit::Surface;
+        }
+        if y == rect.y + 1 && x >= rect.right() - 7 && x < rect.right() - 4 {
+            return DialogHit::Close;
+        }
+        if y == rect.y + 3 && x >= rect.x + 4 && x < rect.right() - 4 {
+            return DialogHit::Search;
+        }
+        if y >= geo.list_y
+            && (y - geo.list_y) < geo.list_height as u16
+            && x > rect.x
+            && x < rect.right() - 1
+        {
+            return geo
+                .rows
+                .get(geo.offset + (y - geo.list_y) as usize)
+                .and_then(|row| *row)
+                .map_or(DialogHit::List, DialogHit::Option);
+        }
+        DialogHit::Surface
     }
 
     fn render(
@@ -235,15 +350,17 @@ impl SelectList {
             }
             rows.push((Some(i), String::new()));
         }
-        let list_height = rows
-            .len()
-            .max(1)
-            .min((frame.area().height / 2).saturating_sub(6).max(1) as usize);
-        let area = DialogFrame::rect(
-            frame.area(),
-            size,
-            list_height as u16 + 7 + u16::from(footer.is_some()),
-        );
+        let mut geo = self.geometry(frame.area(), size, options, footer.is_some());
+        if self.follow_cursor.get()
+            && let Some(row) = geo.rows.iter().position(|item| *item == Some(self.cursor))
+        {
+            if row < geo.offset {
+                geo.offset = row;
+            } else if row >= geo.offset + geo.list_height {
+                geo.offset = row + 1 - geo.list_height;
+            }
+        }
+        let area = geo.rect;
         DialogFrame::paint(frame, area, theme);
         if area.width < 12 || area.height < 5 {
             return;
@@ -295,20 +412,8 @@ impl SelectList {
                 })
                 .bg(slot(theme, "background.base")),
         );
-        let height = list_height
-            .min(area.height.saturating_sub(7) as usize)
-            .max(1);
-        let selected_row = rows
-            .iter()
-            .position(|(index, _)| *index == Some(self.cursor))
-            .unwrap_or(0);
-        let mut offset = self.offset.get().min(rows.len().saturating_sub(height));
-        if selected_row < offset {
-            offset = selected_row;
-        }
-        if selected_row >= offset + height {
-            offset = selected_row + 1 - height;
-        }
+        let height = geo.list_height;
+        let offset = geo.offset;
         self.offset.set(offset);
         if rows.is_empty() {
             line(
@@ -430,14 +535,18 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         TuiPanel::Help(_) => "Help",
         TuiPanel::Dcp => "DCP context",
     };
-    let size = match state.panel() {
-        TuiPanel::Cards => DialogSize::Xlarge,
-        TuiPanel::Dcp | TuiPanel::Help(_) => DialogSize::Large,
-        _ => DialogSize::Medium,
-    };
+    let size = size_for(state.panel());
     state
         .select
         .render(frame, title, size, &state.modal_options(), None);
+}
+
+pub fn size_for(panel: &TuiPanel) -> DialogSize {
+    match panel {
+        TuiPanel::Cards => DialogSize::Xlarge,
+        TuiPanel::Dcp | TuiPanel::Help(_) => DialogSize::Large,
+        _ => DialogSize::Medium,
+    }
 }
 
 #[cfg(test)]

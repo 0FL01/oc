@@ -10,6 +10,7 @@
 use std::collections::BTreeMap;
 use std::time::{Duration, Instant};
 
+use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use oc_adapters::models::ModelCatalog;
 use oc_core::core_app::{CoreApp, CoreEvent, SubmissionReceipt, WorkerTurnId};
 use oc_core::domain::SessionId;
@@ -17,6 +18,7 @@ use oc_core::queries::{
     AgentEntry, CatalogSnapshot, DcpSnapshot, HistoryPage, SkillCard, ToolOpView,
 };
 use oc_core::session::CoreError;
+use ratatui::layout::Rect;
 
 use crate::commands::{CommandAction, dispatch};
 use crate::dcp_panel::{DcpOutcome, DcpPanelState};
@@ -248,6 +250,8 @@ pub struct TuiState {
     status: TuiStatus,
     panel: TuiPanel,
     pub(crate) select: crate::dialog::SelectList,
+    /// Press origin prevents drag-release across the backdrop from dismissing a dialog.
+    mouse_down: Option<crate::dialog::DialogHit>,
     leader: Option<Instant>,
     input: String,
     window: HistoryWindow,
@@ -324,6 +328,7 @@ impl TuiState {
             status: TuiStatus::Idle,
             panel: TuiPanel::None,
             select: Default::default(),
+            mouse_down: None,
             leader: None,
             input: String::new(),
             window: HistoryWindow::new(),
@@ -378,6 +383,7 @@ impl TuiState {
     /// workspace commands) belongs to the previous Location: the next panel
     /// open must reload from the new generation instead of showing it.
     pub fn reset_workspace(&mut self) {
+        self.close_panel();
         self.chrome = Default::default();
         self.parent_id = None;
         self.auto_accept = oc_core::queries::AutoAcceptState::Unsupported;
@@ -404,6 +410,7 @@ impl TuiState {
     }
 
     pub fn set_session(&mut self, session: SessionId) {
+        self.close_panel();
         self.viewport_max_scroll.set(None);
         self.parent_id = None;
         self.home = false;
@@ -421,7 +428,6 @@ impl TuiState {
         self.turn_usage = None;
         self.scroll = 0;
         self.active_turn = None;
-        self.panel = TuiPanel::None;
         if self.status != TuiStatus::Quit {
             self.status = TuiStatus::Idle;
         }
@@ -599,6 +605,8 @@ impl TuiState {
 
     fn open_variants(&mut self) {
         self.panel = TuiPanel::Variant;
+        // A press belongs to the dialog where it began, not the replacement.
+        self.mouse_down = None;
         self.select.reset();
         self.select.cursor = self
             .modal_options()
@@ -725,6 +733,80 @@ impl TuiState {
     /// Close any open panel (chat view).
     pub fn close_panel(&mut self) {
         self.panel = TuiPanel::None;
+        self.mouse_down = None;
+        self.select.reset();
+    }
+
+    /// The active dialog exclusively owns search/cursor input; when it is
+    /// replaced (Model → Variant) the former owner is destroyed, and closing
+    /// the replacement restores the original prompt draft and insertion point.
+    /// The current prompt editor supports only an end-of-draft caret (V05 adds
+    /// movable multiline caret); no dialog key is dispatched to that editor.
+    pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
+        use crate::dialog::DialogHit;
+        if self.panel == TuiPanel::None {
+            return KeyOutcome::default();
+        }
+        let options = self.modal_options();
+        let size = crate::dialog::size_for(&self.panel);
+        let hit = self
+            .select
+            .hit(area, size, &options, event.column, event.row);
+        match event.kind {
+            MouseEventKind::Down(MouseButton::Left) => {
+                self.mouse_down = Some(hit);
+                if let DialogHit::Option(index) = hit {
+                    self.select.cursor = index;
+                    self.sync_modal_cursor();
+                }
+            }
+            MouseEventKind::Moved | MouseEventKind::Drag(MouseButton::Left) => {
+                if let DialogHit::Option(index) = hit
+                    && self.select.cursor != index
+                {
+                    self.select.cursor = index;
+                    self.sync_modal_cursor();
+                }
+            }
+            MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
+                if hit != DialogHit::Backdrop {
+                    self.select.scroll_rows(
+                        if event.kind == MouseEventKind::ScrollUp {
+                            -3
+                        } else {
+                            3
+                        },
+                        area,
+                        size,
+                        &options,
+                    );
+                }
+            }
+            MouseEventKind::Up(MouseButton::Left) => {
+                let pressed = self.mouse_down.take();
+                if pressed == Some(hit) {
+                    match hit {
+                        DialogHit::Backdrop | DialogHit::Close => self.close_panel(),
+                        DialogHit::Option(index)
+                            if !matches!(
+                                self.panel,
+                                TuiPanel::Dcp | TuiPanel::Cards | TuiPanel::Help(_)
+                            ) =>
+                        {
+                            self.select.cursor = index;
+                            self.sync_modal_cursor();
+                            return self.panel_enter();
+                        }
+                        DialogHit::Option(_)
+                        | DialogHit::Search
+                        | DialogHit::Surface
+                        | DialogHit::List => {}
+                    }
+                }
+            }
+            _ => {}
+        }
+        KeyOutcome::default()
     }
 
     /// Window bytes plus live text, live parts and input; bounded by the
@@ -1336,6 +1418,8 @@ impl TuiState {
             };
         }
         self.select.reset();
+        self.mouse_down = None;
+        self.leader = None;
         let mut outcome = KeyOutcome::default();
         match action {
             CommandAction::OpenCommands => {
@@ -1419,8 +1503,9 @@ impl TuiState {
                     TuiPanel::Dcp | TuiPanel::Cards | TuiPanel::Help(_)
                 ) =>
             {
-                // Preserve native operation/shutdown controls on informational
-                // panels; searchable selectors own Ctrl+C filter/dismiss.
+                // Existing informational-panel shutdown binding (including
+                // the post-compression DCP panel); Select dialogs retain their
+                // own clear-filter/dismiss behavior.
                 self.status = TuiStatus::Quit;
                 return KeyOutcome::default();
             }
@@ -1465,6 +1550,7 @@ impl TuiState {
                     ),
                 }
                 self.sync_modal_cursor();
+                self.select.follow_selection();
                 return KeyOutcome::default();
             }
             KeyAction::Enter if self.modal_options().is_empty() => return KeyOutcome::default(),
@@ -1476,7 +1562,7 @@ impl TuiState {
                 KeyOutcome::default()
             }
             KeyAction::Cancel => {
-                self.panel = TuiPanel::None;
+                self.close_panel();
                 KeyOutcome::default()
             }
             KeyAction::Left | KeyAction::Right => KeyOutcome::default(),
@@ -2800,6 +2886,114 @@ mod tests {
         assert_eq!(state.panel(), &TuiPanel::Model);
         state.handle_panel_key(KeyAction::Cancel);
         assert_eq!(state.input(), "kept draft 🌍");
+    }
+
+    #[tokio::test]
+    async fn v04_mouse_scroll_hover_and_drag_release_keep_modal_owner() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        use ratatui::layout::Rect;
+        let mut state = fresh_state("v04-pointer").await;
+        let mut catalog = snapshot();
+        let model = catalog.models[0].clone();
+        catalog.models = (0..20)
+            .map(|i| {
+                let mut entry = model.clone();
+                entry.id = format!("m{i:02}");
+                entry.display_name = format!("Mouse {i:02}");
+                entry
+            })
+            .collect();
+        catalog.model_id = "m00".into();
+        state.apply_catalog(catalog);
+        type_text(&mut state, "draft stays").await;
+        state.handle_key(KeyAction::Leader).await;
+        state.handle_key(KeyAction::Char('m')).await;
+        assert_eq!(state.panel(), &TuiPanel::Model);
+        let area = Rect::new(0, 0, 80, 24);
+        let event = |kind, column, row| MouseEvent {
+            kind,
+            column,
+            row,
+            modifiers: KeyModifiers::NONE,
+        };
+        let pointer =
+            |state: &mut TuiState, kind, x, y| state.handle_mouse(event(kind, x, y), area);
+        // Second ungrouped option is at y=12 (the list starts at y=11).
+        pointer(&mut state, MouseEventKind::Moved, 20, 12);
+        assert_eq!(state.picker_selection().unwrap().0, "m01");
+        pointer(&mut state, MouseEventKind::ScrollDown, 20, 12);
+        assert_eq!(
+            state.picker_selection().unwrap().0,
+            "m01",
+            "wheel scrolls without selecting"
+        );
+        let options = state.modal_options();
+        assert_eq!(
+            state
+                .select
+                .hit(area, crate::dialog::DialogSize::Medium, &options, 20, 12),
+            crate::dialog::DialogHit::Option(4)
+        );
+        pointer(&mut state, MouseEventKind::Moved, 20, 12);
+        assert_eq!(state.picker_selection().unwrap().0, "m04");
+        // Releasing over the backdrop after starting a text selection inside
+        // the dialog must not dismiss it or submit an option.
+        pointer(&mut state, MouseEventKind::Down(MouseButton::Left), 20, 12);
+        pointer(&mut state, MouseEventKind::Up(MouseButton::Left), 0, 0);
+        assert_eq!(state.panel(), &TuiPanel::Model);
+        assert_eq!(state.input(), "draft stays");
+        assert_eq!(
+            pointer(&mut state, MouseEventKind::Up(MouseButton::Left), 20, 12).intent,
+            None
+        );
+        pointer(&mut state, MouseEventKind::Down(MouseButton::Left), 20, 12);
+        assert_eq!(
+            pointer(&mut state, MouseEventKind::Up(MouseButton::Left), 20, 12).intent,
+            Some(PanelIntent::SelectModel { id: "m04".into() })
+        );
+        assert_eq!(
+            pointer(&mut state, MouseEventKind::Up(MouseButton::Left), 20, 12).intent,
+            None,
+            "release cannot submit the same option twice"
+        );
+        // A held press cannot cross a keyboard-driven panel replacement.
+        pointer(&mut state, MouseEventKind::Down(MouseButton::Left), 20, 12);
+        state.open_variants();
+        assert_eq!(
+            pointer(&mut state, MouseEventKind::Up(MouseButton::Left), 20, 12).intent,
+            None,
+            "release in replacement dialog cannot select a variant"
+        );
+        state.handle_panel_key(KeyAction::Cancel);
+        assert_eq!(state.input(), "draft stays");
+        state.handle_key(KeyAction::Char('!')).await;
+        assert_eq!(state.input(), "draft stays!");
+    }
+
+    #[tokio::test]
+    async fn v04_mouse_status_rows_do_not_start_compression() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        use ratatui::layout::Rect;
+        let mut state = fresh_state("v04-dcp-mouse").await;
+        state.apply_catalog(snapshot());
+        state.panel = TuiPanel::Dcp;
+        let area = Rect::new(0, 0, 80, 24);
+        for kind in [
+            MouseEventKind::Down(MouseButton::Left),
+            MouseEventKind::Up(MouseButton::Left),
+        ] {
+            let outcome = state.handle_mouse(
+                MouseEvent {
+                    kind,
+                    column: 20,
+                    row: 11,
+                    modifiers: KeyModifiers::NONE,
+                },
+                area,
+            );
+            assert_eq!(outcome.intent, None);
+        }
+        assert_eq!(state.panel(), &TuiPanel::Dcp);
     }
 
     #[tokio::test]
