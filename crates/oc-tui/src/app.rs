@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use std::time::{Duration, Instant};
 
 use oc_adapters::models::ModelCatalog;
-use oc_core::core_app::{CoreApp, CoreEvent, WorkerTurnId};
+use oc_core::core_app::{CoreApp, CoreEvent, SubmissionReceipt, WorkerTurnId};
 use oc_core::domain::SessionId;
 use oc_core::queries::{
     AgentEntry, CatalogSnapshot, DcpSnapshot, HistoryPage, SkillCard, ToolOpView,
@@ -51,6 +51,8 @@ struct TurnUsage {
 pub enum TuiStatus {
     /// Ready for input.
     Idle,
+    /// Input queued; the application has not yet accepted a turn.
+    PendingSubmission,
     /// Streaming a turn.
     Streaming,
     /// Last turn was cancelled.
@@ -207,6 +209,18 @@ impl LivePart {
     }
 }
 
+/// Immutable submission identity plus the editable draft's revision at enqueue.
+struct PendingSubmission {
+    request_id: u64,
+    generation: u64,
+    session: SessionId,
+    draft: String,
+    revision: u64,
+    receipt: SubmissionReceipt,
+    cancelling: bool,
+    compress: bool,
+}
+
 /// Bounded chat state bound to one session on the shared handle.
 pub struct TuiState {
     app: CoreApp,
@@ -231,6 +245,11 @@ pub struct TuiState {
     scroll: usize,
     note: Option<String>,
     active_turn: Option<WorkerTurnId>,
+    pending: Option<PendingSubmission>,
+    compress_turn: Option<WorkerTurnId>,
+    request_id: u64,
+    generation: u64,
+    input_revision: u64,
     /// Model picker (present while the Model panel lives).
     pub(crate) picker: Option<ModelPicker>,
     catalog_loaded: bool,
@@ -282,6 +301,11 @@ impl TuiState {
             scroll: 0,
             note: None,
             active_turn: None,
+            pending: None,
+            compress_turn: None,
+            request_id: 0,
+            generation: 0,
+            input_revision: 0,
             picker: None,
             catalog_loaded: false,
             agents: Vec::new(),
@@ -315,6 +339,8 @@ impl TuiState {
     /// workspace commands) belongs to the previous Location: the next panel
     /// open must reload from the new generation instead of showing it.
     pub fn reset_workspace(&mut self) {
+        self.generation += 1;
+        self.invalidate_submission();
         self.picker = None;
         self.catalog_loaded = false;
         self.agents.clear();
@@ -335,6 +361,8 @@ impl TuiState {
     }
 
     pub fn set_session(&mut self, session: SessionId) {
+        self.generation += 1;
+        self.invalidate_submission();
         self.session = session;
         self.input.clear();
         self.window = HistoryWindow::new();
@@ -347,6 +375,17 @@ impl TuiState {
         self.scroll = 0;
         self.active_turn = None;
         self.panel = TuiPanel::None;
+        if self.status != TuiStatus::Quit {
+            self.status = TuiStatus::Idle;
+        }
+    }
+
+    fn invalidate_submission(&mut self) {
+        // Called only after an accepted switch (binary refuses busy switches).
+        // Invalidate local receipts even if a caller has an old completion queued.
+        self.pending = None;
+        self.active_turn = None;
+        self.compress_turn = None;
         if self.status != TuiStatus::Quit {
             self.status = TuiStatus::Idle;
         }
@@ -377,9 +416,9 @@ impl TuiState {
         self.scroll
     }
 
-    /// True while a turn streams.
+    /// True while a submission awaits acceptance or a turn streams.
     pub fn is_busy(&self) -> bool {
-        self.active_turn.is_some()
+        self.active_turn.is_some() || self.pending.is_some()
     }
 
     /// Status note, if any (intent errors and hints; never chat history).
@@ -435,6 +474,10 @@ impl TuiState {
                 .map(LivePart::retained_bytes)
                 .sum::<usize>()
             + self.input.len()
+            + self
+                .pending
+                .as_ref()
+                .map_or(0, |pending| pending.draft.len())
     }
 
     /// Visible viewport lines (bounded, scroll-aware, live answer last).
@@ -586,6 +629,7 @@ impl TuiState {
         let kept = crate::truncate_utf8(text, room);
         let dropped = text.len().saturating_sub(kept.len());
         self.input.push_str(kept);
+        self.input_revision += 1;
         if dropped == 0 {
             return KeyOutcome::default();
         }
@@ -615,6 +659,7 @@ impl TuiState {
 
     /// The accepted compress turn starts streaming: status, turn, DCP panel.
     pub fn begin_compress_turn(&mut self, turn: WorkerTurnId) {
+        self.compress_turn = Some(turn.clone());
         self.active_turn = Some(turn);
         self.status = TuiStatus::Streaming;
         self.panel = TuiPanel::Dcp;
@@ -627,6 +672,37 @@ impl TuiState {
         self.turn_usage = None;
         self.scroll = 0;
         self.push_note("dcp: compressing…");
+    }
+
+    /// Whether the active turn was accepted from a manual compression request.
+    pub fn is_compress_turn(&self, turn: &WorkerTurnId) -> bool {
+        self.compress_turn.as_ref() == Some(turn) && self.active_turn.as_ref() == Some(turn)
+    }
+
+    /// Enqueue manual compression using the same draft/receipt lifecycle as text.
+    pub fn request_compress(&mut self, focus: String) -> Result<(), CoreError> {
+        if self.is_busy() {
+            return Err(CoreError::TurnBusy);
+        }
+        let receipt = self.app.request_compress(self.session.clone(), focus)?;
+        self.begin_submission(receipt, true);
+        Ok(())
+    }
+
+    fn begin_submission(&mut self, receipt: SubmissionReceipt, compress: bool) {
+        self.request_id += 1;
+        self.pending = Some(PendingSubmission {
+            request_id: self.request_id,
+            generation: self.generation,
+            session: self.session.clone(),
+            draft: self.input.clone(),
+            revision: self.input_revision,
+            receipt,
+            cancelling: false,
+            compress,
+        });
+        self.status = TuiStatus::PendingSubmission;
+        self.note = Some("submission pending; Esc to cancel".into());
     }
 
     /// Set the transient status note.
@@ -701,11 +777,13 @@ impl TuiState {
     /// whether to display a note, apply an intent, or treat the input as
     /// consumed.
     pub async fn handle_key(&mut self, action: KeyAction) -> KeyOutcome {
+        self.poll_submission();
         match action {
             KeyAction::Left | KeyAction::Right => KeyOutcome::default(),
             KeyAction::Char(c) => {
                 if self.input.len() + c.len_utf8() <= MAX_INPUT_BYTES {
                     self.input.push(c);
+                    self.input_revision += 1;
                     KeyOutcome::default()
                 } else {
                     KeyOutcome {
@@ -718,6 +796,7 @@ impl TuiState {
             }
             KeyAction::Backspace => {
                 self.input.pop();
+                self.input_revision += 1;
                 KeyOutcome::default()
             }
             KeyAction::Up => {
@@ -748,8 +827,16 @@ impl TuiState {
                 KeyOutcome::default()
             }
             KeyAction::Cancel => {
-                if self.active_turn.is_some() {
-                    match self.app.cancel(self.session.clone()).await {
+                if self.is_busy() {
+                    let session = self
+                        .pending
+                        .as_ref()
+                        .map_or(&self.session, |p| &p.session)
+                        .clone();
+                    if let Some(pending) = &mut self.pending {
+                        pending.cancelling = true;
+                    }
+                    match self.app.cancel(session).await {
                         Ok(()) => KeyOutcome::default(),
                         Err(error) => KeyOutcome {
                             note: Some(format!("cancel: {error}")),
@@ -769,6 +856,12 @@ impl TuiState {
         if self.status == TuiStatus::Quit {
             return KeyOutcome::default();
         }
+        if self.pending.is_some() {
+            return KeyOutcome {
+                note: Some("submission pending; Esc to cancel".into()),
+                ..KeyOutcome::default()
+            };
+        }
         let text = self.input.trim().to_string();
         if text.is_empty() {
             return KeyOutcome::default();
@@ -780,9 +873,44 @@ impl TuiState {
                 return self.run_command(action);
             }
         }
-        match self.app.submit(self.session.clone(), text.clone()).await {
+        if self.active_turn.is_some() {
+            return KeyOutcome {
+                note: Some("turn busy".into()),
+                ..KeyOutcome::default()
+            };
+        }
+        match self.app.request_submit(self.session.clone(), text) {
+            Ok(receipt) => {
+                self.begin_submission(receipt, false);
+                KeyOutcome::default()
+            }
+            Err(error) => KeyOutcome {
+                note: Some(format!("submit: {error}")),
+                ..KeyOutcome::default()
+            },
+        }
+    }
+
+    /// Reconcile the unique acceptance receipt before applying queued turn
+    /// events. Failure leaves the editable draft intact. No worker is spawned.
+    pub fn poll_submission(&mut self) {
+        let Some(result) = self.pending.as_mut().and_then(|p| p.receipt.try_result()) else {
+            return;
+        };
+        let pending = self.pending.take().expect("polled receipt");
+        if self.status == TuiStatus::Quit
+            || pending.request_id != self.request_id
+            || pending.generation != self.generation
+            || pending.session != self.session
+        {
+            return;
+        }
+        match result {
             Ok(turn) => {
-                self.window.push_synthetic("user", &text);
+                if !pending.compress {
+                    self.window.push_synthetic("user", pending.draft.trim());
+                }
+                self.compress_turn = pending.compress.then(|| turn.clone());
                 self.live_text.clear();
                 self.live_reasoning.clear();
                 self.live_parts.clear();
@@ -792,22 +920,16 @@ impl TuiState {
                 self.active_turn = Some(turn);
                 self.status = TuiStatus::Streaming;
                 self.scroll = 0;
-                self.input.clear();
+                if self.input_revision == pending.revision && !pending.cancelling {
+                    self.input.clear();
+                }
                 self.dcp.clear_notice();
                 self.note = None;
-                KeyOutcome {
-                    consumed_input: true,
-                    ..KeyOutcome::default()
-                }
             }
-            Err(CoreError::TurnBusy) => KeyOutcome {
-                note: Some("turn busy".to_string()),
-                ..KeyOutcome::default()
-            },
-            Err(error) => KeyOutcome {
-                note: Some(format!("submit: {error}")),
-                ..KeyOutcome::default()
-            },
+            Err(error) => {
+                self.status = TuiStatus::Idle;
+                self.note = Some(format!("submit: {error}"));
+            }
         }
     }
 
@@ -1491,7 +1613,9 @@ impl ScriptDriver {
             if !state.is_busy() && state.status != TuiStatus::Streaming {
                 return PumpOutcome::Idle;
             }
-            match tokio::time::timeout(timeout, self.rx.recv()).await {
+            let event = tokio::time::timeout(timeout, self.rx.recv()).await;
+            state.poll_submission();
+            match event {
                 Err(_) => return PumpOutcome::Timeout,
                 Ok(Err(_)) => return PumpOutcome::Closed,
                 Ok(Ok(CoreEvent::TurnStarted { .. })) => {}
@@ -1657,6 +1781,126 @@ mod tests {
         }
     }
 
+    async fn await_submission(state: &mut TuiState) {
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while state.pending.is_some() {
+                tokio::task::yield_now().await;
+                state.poll_submission();
+            }
+        })
+        .await
+        .expect("submission completed");
+    }
+
+    #[tokio::test]
+    async fn pending_receipt_preserves_edits_and_ignores_old_generation() {
+        use oc_core::core_app::InboxMsg;
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("pending"));
+        type_text(&mut state, "original").await;
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::Submit { text, ack, .. }) = inbox.recv().await else {
+            panic!("submission")
+        };
+        assert_eq!(text, "original");
+        state.handle_key(KeyAction::Enter).await;
+        assert!(inbox.try_recv().is_err(), "duplicate not enqueued");
+        type_text(&mut state, " edited").await;
+        ack.send(Ok(WorkerTurnId("accepted".into()))).unwrap();
+        state.poll_submission();
+        assert_eq!(
+            state.input(),
+            "original edited",
+            "acceptance cannot clear later edits"
+        );
+        assert_eq!(state.history().rows()[0].text, "original");
+        state.apply_finished(&WorkerTurnId("accepted".into()), "done", 0);
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+            panic!("submission")
+        };
+        // Exercise stale receipt defense even if a caller violates the normal
+        // switch-refused-while-busy gate; A→B→A also changes the generation.
+        state.set_session(sid("other"));
+        state.reset_workspace();
+        state.set_session(sid("pending"));
+        type_text(&mut state, "new generation draft").await;
+        assert!(
+            ack.send(Ok(WorkerTurnId("old".into()))).is_err(),
+            "old receipt invalidated"
+        );
+        state.poll_submission();
+        assert!(!state.is_busy());
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+            panic!("new generation submission")
+        };
+        type_text(&mut state, " edited after enqueue").await;
+        ack.send(Ok(WorkerTurnId("new".into()))).unwrap();
+        state.poll_submission();
+        state.apply_delta(&WorkerTurnId("old".into()), "stale text");
+        state.apply_tool_started(&WorkerTurnId("old".into()), "old-op", "read", "{}");
+        state.apply_finished(&WorkerTurnId("old".into()), "stale answer", 0);
+        state.apply_interrupted(&WorkerTurnId("old".into()), "stale partial", 0);
+        state.apply_failed(
+            &WorkerTurnId("old".into()),
+            &CoreError::Application("stale failure".into()),
+        );
+        assert_eq!(state.input(), "new generation draft edited after enqueue");
+        assert_eq!(state.history().rows().len(), 1);
+        assert_eq!(state.active_turn(), Some(&WorkerTurnId("new".into())));
+        assert_eq!(state.status(), &TuiStatus::Streaming);
+        assert!(state.live_parts.is_empty());
+    }
+
+    #[tokio::test]
+    async fn workspace_reset_invalidates_pending_state_without_waiting_for_old_receipt() {
+        use oc_core::core_app::InboxMsg;
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("pending"));
+        type_text(&mut state, "retained draft").await;
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+            panic!("submission")
+        };
+        state.reset_workspace();
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        assert!(!state.is_busy());
+        assert_eq!(state.input(), "retained draft");
+        assert!(ack.send(Ok(WorkerTurnId("old".into()))).is_err());
+        state.poll_submission();
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        assert_eq!(state.input(), "retained draft");
+    }
+
+    #[tokio::test]
+    async fn pending_failure_keeps_draft_and_quit_is_not_overwritten() {
+        use oc_core::core_app::InboxMsg;
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("pending"));
+        type_text(&mut state, "retry me").await;
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+            panic!("submission")
+        };
+        ack.send(Err(CoreError::Application("safe failure".into())))
+            .unwrap();
+        state.poll_submission();
+        assert_eq!(state.input(), "retry me");
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+            panic!("retry")
+        };
+        state.handle_key(KeyAction::Quit).await;
+        ack.send(Ok(WorkerTurnId("accepted-at-quit".into())))
+            .unwrap();
+        state.poll_submission();
+        assert_eq!(state.status(), &TuiStatus::Quit);
+        assert_eq!(state.input(), "retry me");
+    }
+
     fn snapshot() -> CatalogSnapshot {
         CatalogSnapshot {
             provider: "ludka2".to_string(),
@@ -1759,9 +2003,12 @@ mod tests {
         type_text(&mut state, "hi").await;
         assert_eq!(state.input(), "hi");
         let outcome = state.handle_key(KeyAction::Enter).await;
-        assert!(outcome.consumed_input);
+        assert!(!outcome.consumed_input);
         assert_eq!(outcome.note, None);
         assert_eq!(outcome.intent, None);
+        assert_eq!(state.status(), &TuiStatus::PendingSubmission);
+        assert_eq!(state.input(), "hi");
+        await_submission(&mut state).await;
         assert!(state.input().is_empty());
         assert_eq!(state.status(), &TuiStatus::Streaming);
         assert!(state.is_busy());
@@ -1954,6 +2201,7 @@ mod tests {
         let mut driver = ScriptDriver::attach(&state.app);
         type_text(&mut state, "go").await;
         state.handle_key(KeyAction::Enter).await;
+        await_submission(&mut state).await;
         assert_eq!(state.status(), &TuiStatus::Streaming);
 
         let stale = WorkerTurnId("t-stale".to_string());
@@ -1976,6 +2224,7 @@ mod tests {
         type_text(&mut state, "go2").await;
         let outcome = state.handle_key(KeyAction::Enter).await;
         assert_eq!(outcome.note, None);
+        await_submission(&mut state).await;
         assert_eq!(state.status(), &TuiStatus::Streaming);
         let _ = driver
             .pump_until_idle(&mut state, Duration::from_secs(5))

@@ -15,6 +15,62 @@ use oc_adapters::mcp_stdio::{
 
 const TEST_TIMEOUT: Duration = Duration::from_secs(5);
 
+#[tokio::test]
+async fn cancelled_initialize_reaps_before_return_even_after_stderr_eof() {
+    let dir = tempfile::tempdir().unwrap();
+    let pid_file = dir.path().join("pid");
+    let server = dir.path().join("stall.py");
+    fs::write(
+        &server,
+        format!(
+            r#"import os, sys, signal, time
+signal.signal(signal.SIGTERM, signal.SIG_IGN)
+os.close(2)
+sys.stdin.readline()
+open({:?}, 'w').write(str(os.getpid()))
+while True: time.sleep(0.01)
+"#,
+            pid_file.to_string_lossy()
+        ),
+    )
+    .unwrap();
+    let mut config = fake_config(vec![]);
+    config.argv = vec![
+        "/usr/bin/python3".into(),
+        server.to_string_lossy().into_owned(),
+    ];
+    let cancel = AtomicBool::new(false);
+    let (result, pid) = tokio::join!(StdioClient::launch_cancellable(&config, &cancel), async {
+        tokio::time::timeout(TEST_TIMEOUT, async {
+            loop {
+                if let Ok(text) = fs::read_to_string(&pid_file)
+                    && let Ok(pid) = text.parse::<libc::pid_t>()
+                {
+                    cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+                    return pid;
+                }
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+        })
+        .await
+        .unwrap()
+    });
+    assert!(matches!(result, Err(StdioError::Cancelled)));
+    let mut status = 0;
+    // SAFETY: probes only this fixture's child; status is valid writable memory.
+    let waited = unsafe { libc::waitpid(pid, &mut status, libc::WNOHANG) };
+    assert_eq!(
+        waited, -1,
+        "receipt rejection must follow the owner's actual wait"
+    );
+    assert_eq!(
+        std::io::Error::last_os_error().raw_os_error(),
+        Some(libc::ECHILD)
+    );
+    // SAFETY: signal zero only probes this fixture's recorded PID.
+    assert_ne!(unsafe { libc::kill(pid, 0) }, 0);
+}
+
 fn fixture() -> String {
     let path = concat!(
         env!("CARGO_MANIFEST_DIR"),

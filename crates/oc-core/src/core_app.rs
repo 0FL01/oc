@@ -21,6 +21,21 @@ use crate::session::{CoreError, MAX_INPUT_BYTES, MAX_QUEUE_ITEMS, Message, Messa
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WorkerTurnId(pub String);
 
+/// One enqueued submission's acceptance receipt. The application owns the
+/// operation even if this receipt is dropped; cancel/shutdown it through CoreApp.
+pub struct SubmissionReceipt(oneshot::Receiver<Result<WorkerTurnId, CoreError>>);
+
+impl SubmissionReceipt {
+    /// Poll without waiting for network, provider or durable acceptance.
+    pub fn try_result(&mut self) -> Option<Result<WorkerTurnId, CoreError>> {
+        match self.0.try_recv() {
+            Ok(result) => Some(result),
+            Err(oneshot::error::TryRecvError::Empty) => None,
+            Err(oneshot::error::TryRecvError::Closed) => Some(Err(CoreError::Shutdown)),
+        }
+    }
+}
+
 /// Typed application events (live hints + durable outcomes for T03).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoreEvent {
@@ -433,6 +448,26 @@ impl CoreApp {
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// Enqueue once without awaiting acceptance. A subsequent session cancel is
+    /// ordered after this request in the same inbox; no detached task is needed.
+    pub fn request_submit(
+        &self,
+        session: SessionId,
+        text: String,
+    ) -> Result<SubmissionReceipt, CoreError> {
+        if text.len() > MAX_INPUT_BYTES {
+            return Err(CoreError::InputTooLarge);
+        }
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .try_send(InboxMsg::Submit { session, text, ack })
+            .map_err(|error| match error {
+                mpsc::error::TrySendError::Full(_) => CoreError::QueueFull,
+                mpsc::error::TrySendError::Closed(_) => CoreError::Shutdown,
+            })?;
+        Ok(SubmissionReceipt(receipt))
+    }
+
     /// Cancel the active turn for a session.
     pub async fn cancel(&self, session: SessionId) -> Result<(), CoreError> {
         let (ack_tx, ack_rx) = oneshot::channel();
@@ -582,7 +617,30 @@ impl CoreApp {
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
     }
 
-    /// Manual DCP compress request; returns the accepted turn id.
+    /// Enqueue manual compression without waiting for durable acceptance.
+    pub fn request_compress(
+        &self,
+        session: SessionId,
+        focus: String,
+    ) -> Result<SubmissionReceipt, CoreError> {
+        if focus.len() > MAX_INPUT_BYTES {
+            return Err(CoreError::InputTooLarge);
+        }
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .try_send(InboxMsg::Compress {
+                session,
+                focus,
+                ack,
+            })
+            .map_err(|error| match error {
+                mpsc::error::TrySendError::Full(_) => CoreError::QueueFull,
+                mpsc::error::TrySendError::Closed(_) => CoreError::Shutdown,
+            })?;
+        Ok(SubmissionReceipt(receipt))
+    }
+
+    /// Manual DCP compress request; waits for the accepted turn id.
     pub async fn compress(
         &self,
         session: SessionId,
@@ -764,11 +822,11 @@ async fn worker_loop(
                         accumulated: String::new(),
                         started: std::time::Instant::now(),
                     });
+                    let _ = ack.send(Ok(turn_id.clone()));
                     let _ = events.send(CoreEvent::TurnStarted {
                         session,
                         turn: turn_id.clone(),
                     });
-                    let _ = ack.send(Ok(turn_id));
                 }
                 Some(InboxMsg::Cancel { session: _, ack }) => {
                     let _ = ack.send(Err(CoreError::TurnNotActive));

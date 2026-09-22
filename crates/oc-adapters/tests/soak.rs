@@ -513,7 +513,10 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
     assert_eq!(
         mcp_error,
         oc_adapters::runtime::RuntimeError::McpAttach {
-            server: "codex".to_string()
+            server: "codex".to_string(),
+            stage: "DNS",
+            safe_code: "private_host",
+            retryable: false,
         }
     );
     let rows_after: usize = (0..SESSIONS)

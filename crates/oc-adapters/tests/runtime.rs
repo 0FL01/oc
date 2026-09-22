@@ -1539,7 +1539,10 @@ for line in sys.stdin:
     assert_eq!(
         result.unwrap_err(),
         oc_adapters::runtime::RuntimeError::McpAttach {
-            server: "b-bad".into()
+            server: "b-bad".into(),
+            stage: "DNS",
+            safe_code: "private_host",
+            retryable: false,
         }
     );
     let pid = std::fs::read_to_string(&pid_file)
@@ -1585,7 +1588,10 @@ async fn mcp_attach_failure_is_loud() {
     assert_eq!(
         error,
         oc_adapters::runtime::RuntimeError::McpAttach {
-            server: "codex".to_string()
+            server: "codex".to_string(),
+            stage: "DNS",
+            safe_code: "private_host",
+            retryable: false,
         }
     );
     assert_eq!(

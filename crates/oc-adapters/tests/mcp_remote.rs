@@ -17,6 +17,107 @@ use serde_json::{Value, json};
 type Log = Arc<Mutex<Vec<Record>>>;
 type CatalogVersion = Arc<std::sync::atomic::AtomicUsize>;
 
+#[tokio::test]
+async fn dns_and_connect_failures_are_distinct_from_private_host() {
+    use oc_adapters::webfetch::{FetchError, check_host};
+    // Interior NUL fails locally at resolver input, without external DNS traffic.
+    assert_eq!(
+        check_host("invalid\0host", 443, false).await,
+        Err(FetchError::Dns)
+    );
+    assert_eq!(
+        check_host("127.0.0.1", 443, false).await,
+        Err(FetchError::PrivateHost)
+    );
+    // Hold a bound, non-listening socket so another process cannot take the port.
+    let socket = tokio::net::TcpSocket::new_v4().unwrap();
+    socket.bind("127.0.0.1:0".parse().unwrap()).unwrap();
+    let config = CodexWebConfig {
+        url: format!("http://{}/mcp", socket.local_addr().unwrap()),
+        bearer: "fixture".into(),
+        custom_headers: Default::default(),
+        timeout: Duration::from_secs(2),
+        allow_private: true,
+    };
+    assert!(matches!(
+        CodexWebClient::connect(&config).await,
+        Err(McpError::Connect)
+    ));
+}
+
+#[tokio::test]
+async fn protocol_mismatch_observes_stalled_session_cleanup() {
+    use tokio::io::{AsyncBufReadExt as _, AsyncReadExt as _, AsyncWriteExt as _};
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let config = CodexWebConfig {
+        url: format!("http://{}/mcp", listener.local_addr().unwrap()),
+        bearer: "fixture".into(),
+        custom_headers: Default::default(),
+        timeout: Duration::from_secs(5),
+        allow_private: true,
+    };
+    let server = async {
+        loop {
+            let (socket, _) = listener.accept().await.unwrap();
+            let mut socket = tokio::io::BufReader::new(socket);
+            let mut first = String::new();
+            if socket.read_line(&mut first).await.unwrap() == 0 {
+                continue; // optional GET may be cancelled before writing headers
+            }
+            let mut len = 0;
+            loop {
+                let mut line = String::new();
+                socket.read_line(&mut line).await.unwrap();
+                if line == "\r\n" {
+                    break;
+                }
+                if let Some(value) = line.to_ascii_lowercase().strip_prefix("content-length:") {
+                    len = value.trim().parse::<usize>().unwrap();
+                }
+            }
+            let mut body = vec![0; len];
+            socket.read_exact(&mut body).await.unwrap();
+            if first.starts_with("DELETE ") {
+                // Never reply. Cancellation must close this request before
+                // connect returns a cleanup failure, rather than mismatch alone.
+                assert_eq!(socket.read(&mut [0; 1]).await.unwrap(), 0);
+                return;
+            }
+            let body: Value = serde_json::from_slice(&body).unwrap_or(Value::Null);
+            let response = if body["method"] == "initialize" {
+                let payload = json!({"jsonrpc":"2.0", "id":body["id"], "result": {
+                    "protocolVersion":"2025-06-18", "capabilities":{}, "serverInfo":{"name":"fixture","version":"1"}
+                }}).to_string();
+                format!(
+                    "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\nmcp-session-id: fixture-session\r\nconnection: close\r\ncontent-length: {}\r\n\r\n{payload}",
+                    payload.len()
+                )
+            } else {
+                let status = if first.starts_with("GET ") {
+                    "405 Method Not Allowed"
+                } else {
+                    "202 Accepted"
+                };
+                format!("HTTP/1.1 {status}\r\ncontent-length: 0\r\nconnection: close\r\n\r\n")
+            };
+            socket
+                .get_mut()
+                .write_all(response.as_bytes())
+                .await
+                .unwrap();
+        }
+    };
+    let (result, ()) = tokio::time::timeout(Duration::from_secs(8), async {
+        tokio::join!(CodexWebClient::connect(&config), server)
+    })
+    .await
+    .unwrap();
+    assert!(
+        matches!(result, Err(McpError::CleanupFailed)),
+        "cleanup error must not be discarded"
+    );
+}
+
 #[derive(Debug, Clone)]
 struct Record {
     method: String,
@@ -414,7 +515,23 @@ async fn version_mismatch_is_rejected() {
         Err(error) => error,
         Ok(_) => panic!("version must fail"),
     };
-    assert_eq!(error, McpError::Transport);
+    assert_eq!(error, McpError::ProtocolMismatch);
+}
+
+#[tokio::test]
+async fn generic_remote_uses_sdk_protocol_negotiation() {
+    let (url, _) = Fake::start(Mode::VersionMismatch, Duration::ZERO);
+    let client = CodexWebClient::connect_remote(&config_for(&url))
+        .await
+        .expect("generic supported version");
+    assert!(
+        !client
+            .list_tools(&AtomicBool::new(false))
+            .await
+            .unwrap()
+            .is_empty()
+    );
+    client.close().await.unwrap();
 }
 
 #[tokio::test]

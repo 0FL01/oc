@@ -52,6 +52,9 @@ pub enum StdioError {
     /// MCP transport or protocol failure (kind only).
     #[error("transport error")]
     Transport,
+    /// Owned process/task teardown did not complete successfully.
+    #[error("stdio cleanup failed")]
+    CleanupFailed,
     /// Explicit cancellation closed the request.
     #[error("cancelled")]
     Cancelled,
@@ -325,11 +328,16 @@ impl SpawnedChild {
     /// The owned group stays armed (Drop still kills it) until wait succeeds.
     pub async fn kill_reap(&mut self) -> Result<std::process::ExitStatus, StdioError> {
         drop(self.child.stdin.take());
-        let terminated = self.process_group.terminate().await;
-        let status = self.child.wait().await.map_err(|_| StdioError::Spawn);
-        await_stderr(&mut self.stderr_task).await;
-        terminated?;
-        let status = status?;
+        let (terminated, status) = tokio::join!(
+            self.process_group.terminate(),
+            tokio::time::timeout(SERVICE_CLOSE_TIMEOUT, self.child.wait()),
+        );
+        let stderr = await_stderr(&mut self.stderr_task).await;
+        terminated.map_err(|_| StdioError::CleanupFailed)?;
+        let status = status
+            .map_err(|_| StdioError::CleanupFailed)?
+            .map_err(|_| StdioError::CleanupFailed)?;
+        stderr?;
         self.process_group.disarm();
         Ok(status)
     }
@@ -446,16 +454,17 @@ pub fn spawn_child(config: &StdioConfig) -> Result<SpawnedChild, StdioError> {
     })
 }
 
-async fn await_stderr(task: &mut Option<tokio::task::JoinHandle<()>>) {
+async fn await_stderr(task: &mut Option<tokio::task::JoinHandle<()>>) -> Result<(), StdioError> {
     let Some(mut task) = task.take() else {
-        return;
+        return Ok(());
     };
-    if tokio::time::timeout(STDERR_DRAIN_TIMEOUT, &mut task)
-        .await
-        .is_err()
-    {
-        task.abort();
-        let _ = task.await;
+    match tokio::time::timeout(STDERR_DRAIN_TIMEOUT, &mut task).await {
+        Ok(result) => result.map_err(|_| StdioError::CleanupFailed),
+        Err(_) => {
+            task.abort();
+            let _ = task.await;
+            Err(StdioError::CleanupFailed)
+        }
     }
 }
 
@@ -505,9 +514,7 @@ type McpRunning = rmcp::service::RunningService<rmcp::service::RoleClient, Clien
 pub struct StdioClient {
     peer: McpPeer,
     running: Option<McpRunning>,
-    process_group: OwnedProcessGroup,
-    stderr: Arc<Mutex<StderrLog>>,
-    stderr_task: Option<tokio::task::JoinHandle<()>>,
+    child: Box<SpawnedChild>,
     config: StdioConfig,
     generation: u64,
     tools_changed: Arc<std::sync::atomic::AtomicBool>,
@@ -520,48 +527,55 @@ impl StdioClient {
     }
 
     async fn launch_generation(config: &StdioConfig, generation: u64) -> Result<Self, StdioError> {
-        let (cmd, _) = configured_command(config)?;
-        let (transport, stderr_pipe) =
-            rmcp::transport::child_process::TokioChildProcess::builder(cmd)
-                .stderr(std::process::Stdio::piped())
-                .spawn()
-                .map_err(|_| StdioError::Spawn)?;
-        let mut process_group = OwnedProcessGroup::new(transport.id().ok_or(StdioError::Spawn)?)?;
-        let log = Arc::new(Mutex::new(StderrLog::default()));
-        let mut stderr_task = stderr_pipe.map(|pipe| {
-            let worker = log.clone();
-            tokio::spawn(async move {
-                drain_capped(pipe, &worker).await;
-            })
-        });
-        let events = ClientEvents::default();
-        let tools_changed = events.tools_changed.clone();
-        let running = match tokio::time::timeout(
-            config.timeout,
-            rmcp::service::serve_client(events, transport),
+        Self::launch_cancellable_generation(
+            config,
+            generation,
+            &std::sync::atomic::AtomicBool::new(false),
         )
         .await
-        {
-            Ok(Ok(running)) => running,
-            result => {
-                let error = if result.is_err() {
-                    StdioError::Deadline
-                } else {
-                    StdioError::Transport
-                };
-                let _ = process_group.terminate().await;
-                await_stderr(&mut stderr_task).await;
-                process_group.disarm();
+    }
+
+    /// Cancel a pre-acceptance handshake, then await owned process/stderr cleanup.
+    pub async fn launch_cancellable(
+        config: &StdioConfig,
+        cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<Self, StdioError> {
+        Self::launch_cancellable_generation(config, 1, cancel).await
+    }
+
+    async fn launch_cancellable_generation(
+        config: &StdioConfig,
+        generation: u64,
+        cancel: &std::sync::atomic::AtomicBool,
+    ) -> Result<Self, StdioError> {
+        // Keep the Child here: rmcp 3.4 TokioChildProcess::Drop starts an
+        // unjoinable kill task. Give the SDK only its protocol pipes instead.
+        let mut child = spawn_child(config)?;
+        let transport = rmcp::transport::async_rw::AsyncRwTransport::new(
+            child.child.stdout.take().expect("spawn_child stdout pipe"),
+            child.child.stdin.take().expect("spawn_child stdin pipe"),
+        );
+        let events = ClientEvents::default();
+        let tools_changed = events.tools_changed.clone();
+        let handshake = tokio::select! {
+            biased;
+            _ = wait_cancelled(cancel) => Err(StdioError::Cancelled),
+            result = tokio::time::timeout(config.timeout, rmcp::service::serve_client(events, transport)) => {
+                result.map_err(|_| StdioError::Deadline).and_then(|result| result.map_err(|_| StdioError::Transport))
+            }
+        };
+        let running = match handshake {
+            Ok(running) => running,
+            Err(error) => {
+                child.kill_reap().await?;
                 return Err(error);
             }
         };
         let peer = running.peer().clone();
         Ok(Self {
             peer,
-            process_group,
+            child: Box::new(child),
             running: Some(running),
-            stderr: log,
-            stderr_task,
             config: config.clone(),
             generation,
             tools_changed,
@@ -588,12 +602,12 @@ impl StdioClient {
 
     /// Dedicated process-group id, equal to the original wrapper pid.
     pub fn process_group_id(&self) -> Option<u32> {
-        self.process_group.id()
+        self.child.process_group_id()
     }
 
     /// Current bounded stderr snapshot with configured secrets redacted.
     pub fn stderr_snapshot(&self) -> StderrSnapshot {
-        snapshot(&self.stderr, &self.config.secrets)
+        self.child.stderr_snapshot(&self.config.secrets)
     }
 
     /// List tools with a bounded cursor loop.
@@ -679,7 +693,6 @@ impl StdioClient {
         if let Some(running) = self.running.as_ref() {
             running.cancellation_token().cancel();
         }
-        let terminated = self.process_group.terminate().await;
         let closed = if let Some(mut running) = self.running.take() {
             match running.close_with_timeout(SERVICE_CLOSE_TIMEOUT).await {
                 Ok(Some(
@@ -691,10 +704,9 @@ impl StdioClient {
         } else {
             Ok(())
         };
-        await_stderr(&mut self.stderr_task).await;
-        terminated?;
+        let reaped = self.child.kill_reap().await;
+        reaped?;
         closed?;
-        self.process_group.disarm();
         Ok(())
     }
 
@@ -751,4 +763,37 @@ async fn bounded_list(peer: &McpPeer) -> Result<Vec<rmcp::model::Tool>, StdioErr
         }
     }
     Err(StdioError::CatalogLimited)
+}
+
+#[cfg(test)]
+mod cleanup_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn stderr_worker_failure_is_reported_after_child_reap() {
+        let config = StdioConfig {
+            server_id: "fixture".into(),
+            argv: vec!["/bin/cat".into()],
+            cwd: None,
+            extra_env: Vec::new(),
+            secrets: Vec::new(),
+            timeout: STDIO_TIMEOUT,
+            enabled: true,
+        };
+        let mut child = spawn_child(&config).unwrap();
+        let pid = child.pid().unwrap() as libc::pid_t;
+        let old = child.stderr_task.take().unwrap();
+        old.abort();
+        let _ = old.await;
+        child.stderr_task = Some(tokio::spawn(async {
+            panic!("injected stderr worker failure")
+        }));
+        assert_eq!(child.kill_reap().await, Err(StdioError::CleanupFailed));
+        // SAFETY: signal zero probes only our fixture's recorded child PID.
+        assert_ne!(unsafe { libc::kill(pid, 0) }, 0);
+        assert!(
+            child.process_group.id().is_some(),
+            "cleanup failure keeps fallback armed"
+        );
+    }
 }

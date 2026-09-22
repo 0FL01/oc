@@ -663,6 +663,18 @@ mod tests {
         assert_eq!(screen(&state, 43, 24), narrow);
     }
 
+    async fn submit_and_reconcile(state: &mut TuiState) {
+        state.handle_key(KeyAction::Enter).await;
+        tokio::time::timeout(std::time::Duration::from_secs(2), async {
+            while state.active_turn().is_none() {
+                tokio::task::yield_now().await;
+                state.poll_submission();
+            }
+        })
+        .await
+        .expect("accepted turn");
+    }
+
     #[tokio::test]
     async fn message_stream_sticks_to_the_bottom() {
         let mut state = golden_state().await;
@@ -682,7 +694,7 @@ mod tests {
         for c in "go".chars() {
             state.handle_key(KeyAction::Char(c)).await;
         }
-        state.handle_key(KeyAction::Enter).await;
+        submit_and_reconcile(&mut state).await;
         let turn = state.active_turn().expect("turn").clone();
         state.apply_finished(&turn, "fresh line", 0);
         assert_eq!(state.scroll(), 0);
@@ -717,7 +729,7 @@ mod tests {
         for c in "hi".chars() {
             state.handle_key(KeyAction::Char(c)).await;
         }
-        state.handle_key(KeyAction::Enter).await;
+        submit_and_reconcile(&mut state).await;
         let turn = state.active_turn().expect("turn").clone();
         state.apply_reasoning_delta(&turn, "**Reading the code**\n\nbody");
         state.apply_delta(&turn, "All done.");
@@ -764,7 +776,7 @@ mod tests {
         for c in "go".chars() {
             state.handle_key(KeyAction::Char(c)).await;
         }
-        state.handle_key(KeyAction::Enter).await;
+        submit_and_reconcile(&mut state).await;
         let turn = state.active_turn().expect("turn").clone();
         state.apply_delta(&turn, "partial answer");
         state.apply_interrupted(&turn, "partial answer", 1500);

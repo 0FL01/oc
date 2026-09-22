@@ -37,6 +37,9 @@ pub enum FetchError {
     /// SSRF guard: non-public dial target.
     #[error("private host refused")]
     PrivateHost,
+    /// Hostname resolution failed or returned no addresses.
+    #[error("DNS resolution failed")]
+    Dns,
     /// Too many redirects.
     #[error("too many redirects")]
     TooManyRedirects,
@@ -157,17 +160,13 @@ fn ensure_public(ip: IpAddr, allow_loopback: bool) -> Result<(), FetchError> {
 pub async fn check_host(host: &str, port: u16, allow_loopback: bool) -> Result<(), FetchError> {
     let addrs = tokio::net::lookup_host((host, port))
         .await
-        .map_err(|_| FetchError::PrivateHost)?;
+        .map_err(|_| FetchError::Dns)?;
     let mut any = false;
     for addr in addrs {
         any = true;
         ensure_public(addr.ip(), allow_loopback)?;
     }
-    if any {
-        Ok(())
-    } else {
-        Err(FetchError::PrivateHost)
-    }
+    if any { Ok(()) } else { Err(FetchError::Dns) }
 }
 
 /// Parse and validate a request URL: http/https only, host required,

@@ -14,7 +14,7 @@ use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 
 use oc_adapters::application::{HISTORY_PAGE_LIMIT, TOOL_OPS_PAGE_LIMIT};
-use oc_core::core_app::{CoreApp, CoreEvent, WorkerTurnId};
+use oc_core::core_app::{CoreApp, CoreEvent};
 use oc_core::domain::SessionId;
 use oc_tui::app::{KeyOutcome, PanelIntent, TuiPanel, TuiState, TuiStatus};
 use oc_tui::dcp_panel::DcpOutcome;
@@ -76,7 +76,6 @@ async fn run_inner(data_dir: &Path, session_opt: Option<String>) -> Result<ExitC
 #[derive(Default)]
 struct LoopState {
     /// Turn started by a manual `/dcp-compress` request.
-    compress_turn: Option<WorkerTurnId>,
     /// Cursor for paging older tool cards.
     cards_before: Option<i64>,
     /// DCP snapshot was fetched for the currently open panel.
@@ -110,6 +109,7 @@ async fn drive_ui(app: &CoreApp, session: SessionId) -> Result<ExitCode, String>
     }
 
     loop {
+        state.poll_submission();
         terminal
             .draw(|frame| render_frame(frame, &state))
             .map_err(|e| format!("draw: {e}"))?;
@@ -128,10 +128,19 @@ async fn drive_ui(app: &CoreApp, session: SessionId) -> Result<ExitCode, String>
                 }
                 let cev = event::read().map_err(|e| format!("input: {e}"))?;
                 handle_event(app, &mut state, &mut loop_state, cev).await?;
+                if *state.status() == TuiStatus::Quit {
+                    break;
+                }
             }
+        }
+        // Quit wins over an acceptance/terminal event already queued this
+        // frame. run_inner owns application shutdown and joins its worker.
+        if *state.status() == TuiStatus::Quit {
+            break;
         }
         // Worker events, non-blocking drain.
         while let Ok(event) = rx.try_recv() {
+            state.poll_submission();
             let current = state.session().clone();
             handle_worker_event(app, &mut state, &mut loop_state, &current, event).await?;
         }
@@ -207,7 +216,10 @@ async fn apply_outcome(
         return;
     };
     // Scrolling intents never consume typed input; commands do.
-    let consumes = !matches!(intent, PanelIntent::LoadOlder | PanelIntent::LoadNewer);
+    let consumes = !matches!(
+        intent,
+        PanelIntent::LoadOlder | PanelIntent::LoadNewer | PanelIntent::Compress { .. }
+    );
     match apply_intent(app, state, loop_state, intent).await {
         Ok(()) => {
             if consumes {
@@ -342,14 +354,7 @@ async fn apply_intent(
             }
         }
         PanelIntent::Compress { focus } => {
-            let turn = app
-                .compress(session.clone(), focus)
-                .await
-                .map_err(|e| e.to_string())?;
-            state.begin_compress_turn(turn.clone());
-            loop_state.compress_turn = Some(turn);
-            let snapshot = app.dcp_snapshot(session).await.map_err(|e| e.to_string())?;
-            state.apply_dcp_snapshot(snapshot);
+            state.request_compress(focus).map_err(|e| e.to_string())?;
         }
     }
     Ok(())
@@ -358,10 +363,24 @@ async fn apply_intent(
 async fn handle_worker_event(
     app: &CoreApp,
     state: &mut TuiState,
-    loop_state: &mut LoopState,
+    _loop_state: &mut LoopState,
     session: &SessionId,
     event: CoreEvent,
 ) -> Result<(), String> {
+    let owner = match &event {
+        CoreEvent::TurnStarted { session, .. }
+        | CoreEvent::TextDelta { session, .. }
+        | CoreEvent::ReasoningDelta { session, .. }
+        | CoreEvent::ToolCallStarted { session, .. }
+        | CoreEvent::ToolCallFinished { session, .. }
+        | CoreEvent::TurnUsage { session, .. }
+        | CoreEvent::TurnFinished { session, .. }
+        | CoreEvent::TurnInterrupted { session, .. }
+        | CoreEvent::TurnFailed { session, .. } => session,
+    };
+    if owner != state.session() {
+        return Ok(());
+    }
     match event {
         CoreEvent::TurnStarted { .. } => {}
         CoreEvent::TextDelta { turn, delta, .. } => state.apply_delta(&turn, &delta),
@@ -406,10 +425,9 @@ async fn handle_worker_event(
             duration_ms,
             ..
         } => {
-            let compress = loop_state.compress_turn.as_ref() == Some(&turn);
+            let compress = state.is_compress_turn(&turn);
             state.apply_finished(&turn, &text, duration_ms);
             if compress {
-                loop_state.compress_turn = None;
                 report_compress_outcome(app, state, session).await?;
             }
         }
@@ -419,20 +437,18 @@ async fn handle_worker_event(
             duration_ms,
             ..
         } => {
-            let compress = loop_state.compress_turn.as_ref() == Some(&turn);
+            let compress = state.is_compress_turn(&turn);
             state.apply_interrupted(&turn, &partial, duration_ms);
             if compress {
-                loop_state.compress_turn = None;
                 state.notify_dcp(DcpOutcome::Failed {
                     reason: "compress turn cancelled".to_string(),
                 });
             }
         }
         CoreEvent::TurnFailed { turn, error, .. } => {
-            let compress = loop_state.compress_turn.as_ref() == Some(&turn);
+            let compress = state.is_compress_turn(&turn);
             state.apply_failed(&turn, &error);
             if compress {
-                loop_state.compress_turn = None;
                 state.notify_dcp(DcpOutcome::Failed {
                     reason: error.to_string(),
                 });
@@ -500,4 +516,52 @@ fn nanos() -> u128 {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_nanos()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use oc_core::core_app::WorkerTurnId;
+    use oc_tui::events::KeyAction;
+
+    #[tokio::test]
+    async fn pending_submission_refuses_session_and_location_switches() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let session = SessionId::new("pending").unwrap();
+        let mut state = TuiState::new(app.clone(), session.clone());
+        state.handle_paste("immutable draft");
+        state.handle_key(KeyAction::Enter).await;
+        let _request = inbox.recv().await.unwrap(); // retain acceptance sender
+        let mut loop_state = LoopState::default();
+        for intent in [
+            PanelIntent::SwitchSession { id: "other".into() },
+            PanelIntent::SwitchLocation {
+                path: "/fixture/other".into(),
+            },
+        ] {
+            let error = apply_intent(&app, &mut state, &mut loop_state, intent)
+                .await
+                .unwrap_err();
+            assert!(error.contains("switch refused"));
+            assert_eq!(state.session(), &session);
+            assert_eq!(state.input(), "immutable draft");
+            assert!(inbox.try_recv().is_err(), "switch reached runtime");
+        }
+        // Session-scoped events cannot match even a coincident turn id.
+        state.begin_compress_turn(WorkerTurnId("same-id".into()));
+        handle_worker_event(
+            &app,
+            &mut state,
+            &mut loop_state,
+            &session,
+            CoreEvent::TextDelta {
+                session: SessionId::new("other").unwrap(),
+                turn: WorkerTurnId("same-id".into()),
+                delta: "wrong session".into(),
+            },
+        )
+        .await
+        .unwrap();
+        assert!(!state.viewport().join("\n").contains("wrong session"));
+    }
 }

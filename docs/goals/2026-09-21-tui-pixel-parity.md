@@ -85,16 +85,16 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 ## Current Checkpoint
 
 - Closes: no visual gate yet.
-- Smallest next action: verify static findings at current HEAD, obtain executable reference/profile (V00), reproduce stalled pre-acceptance submit through raw PTY (V01).
+- Smallest next action: V02 existing application DTO/durable projections for titles, model metadata, usage and transcript parts; verify changed fixtures and restart before geometry work.
 - Expected evidence: capture lock, independent original frames, commands/exit codes and raw input/application effects; exact checkpoint after each slice.
 - Stop or replan if: reference/profile unavailable → BLOCKED_REFERENCE, never closest-rendering parity. Independent fixes remain executable.
 
 ## Current State
 
 - Resolved: source/theme/component groundwork landed through `d232baa`; historical reports remain unchanged.
-- Last relevant evidence: reviewed recovery packet audits `d232baa`; no paired executable captures or new qualification yet. VIS01–VIS24 initially NOT_RUN.
-- Blocker: reference executability/profile under investigation; no external blocker asserted yet.
-- Next: V00 then V01, one slice at a time; R3/R4 remain unverified until fixes and paired frames.
+- Last relevant evidence: V00 real diagnostic paired captures in `evidence/tui/recovery-v00` (all comparisons unequal); V01 raw PTY stalled MCP prompt and manual compression cancellation/retry plus safe diagnostics in `evidence/tui/recovery-v01/report.md`. These do not qualify VIS01–VIS24.
+- Blocker: no external blocker asserted. Exact capture freeze and missing backend capability mapping remain open; in-flight MCP tool-call cancellation is a known V07/S08 gap.
+- Next: V02 then remaining ordered slices; R3/R4 remain unverified until fixes and paired frames. Final workspace/live qualification pending.
 
 ## Material Decisions
 
@@ -105,6 +105,7 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 - 2026-09-21: contract frozen; recon delegated.
 - 2026-09-21: R1 verified (both recon artifacts); iteration 1 (theme foundation) committed `b75e063`; iteration 2 (layout shell + goldens) committed next.
 - 2026-09-22: owner-reviewed recovery amendment accepted; R2 rendered colors and R3/R4 reopened as unverified, historical reports not rewritten.
+- 2026-09-22: V00 committed/pushed `679e683`; V01 reproduced both submit/compress freezes, added shared nonblocking receipts and owned MCP attach cleanup. Independent parent PTY verification: 5 passed, fmt/diff checks exit 0. See V01 report and checkpoint; no visual gate closed.
 
 ## Completion
 

@@ -44,7 +44,7 @@ pub const GENERATION_TOOLS_CAP: usize = 128;
 /// Aggregate schema/description metadata ceiling for one generation.
 pub const GENERATION_CATALOG_BYTES_CAP: usize = 1024 * 1024;
 /// Maximum time spent waiting for explicit client shutdown.
-pub const CLOSE_TIMEOUT: Duration = Duration::from_secs(5);
+pub const CLOSE_TIMEOUT: Duration = Duration::from_secs(2);
 
 /// Why an advertised catalog cannot be attached.
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
@@ -90,6 +90,18 @@ pub enum McpError {
     /// Transport or protocol failure (kind only).
     #[error("transport error")]
     Transport,
+    /// Host resolution failed before initialize (no hostname exposed).
+    #[error("DNS resolution failed")]
+    Dns,
+    /// Typed HTTP client connection failure, without endpoint details.
+    #[error("connection failed")]
+    Connect,
+    /// An owned service or HTTP worker did not confirm clean teardown.
+    #[error("MCP cleanup failed")]
+    CleanupFailed,
+    /// Negotiated protocol does not meet the explicitly selected profile.
+    #[error("protocol mismatch")]
+    ProtocolMismatch,
     /// Explicit cancellation closed the request.
     #[error("cancelled")]
     Cancelled,
@@ -133,7 +145,7 @@ pub struct CodexWebConfig {
 impl std::fmt::Debug for CodexWebConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CodexWebConfig")
-            .field("url", &self.url)
+            .field("url", &"<configured endpoint>")
             .field("bearer", &"<redacted>")
             .field("custom_headers", &RedactedHeaders(&self.custom_headers))
             .field("timeout", &self.timeout)
@@ -145,7 +157,11 @@ impl std::fmt::Debug for CodexWebConfig {
 impl CodexWebConfig {
     /// Validate without touching the network (OAuth has no path here).
     pub fn validate(&self) -> Result<(), McpError> {
-        if self.url.trim().is_empty() || self.bearer.trim().is_empty() {
+        self.validate_profile(true)
+    }
+
+    fn validate_profile(&self, require_bearer: bool) -> Result<(), McpError> {
+        if self.url.trim().is_empty() || (require_bearer && self.bearer.trim().is_empty()) {
             return Err(McpError::InvalidConfig);
         }
         let url = reqwest::Url::parse(&self.url).map_err(|_| McpError::InvalidConfig)?;
@@ -172,17 +188,34 @@ impl CodexWebConfig {
     /// touching the network. OAuth entries are refused: this profile has no
     /// OAuth path, so a tokened entry never reaches the wire.
     pub fn from_entry(entry: &crate::config::McpEntry) -> Result<Self, McpError> {
+        Self::from_entry_profile(entry, true)
+    }
+
+    /// Generic remote entry: disabling OAuth does not require static bearer
+    /// authentication. An absent header stays absent on the wire.
+    pub fn from_remote_entry(entry: &crate::config::McpEntry) -> Result<Self, McpError> {
+        Self::from_entry_profile(entry, false)
+    }
+
+    fn from_entry_profile(
+        entry: &crate::config::McpEntry,
+        require_bearer: bool,
+    ) -> Result<Self, McpError> {
         if entry.kind != "remote" || !entry.enabled || entry.oauth {
             return Err(McpError::InvalidConfig);
         }
         let url = entry.url.clone().ok_or(McpError::InvalidConfig)?;
         let mut headers = normalize_headers(&entry.headers)?;
-        let authorization = headers
-            .remove(AUTHORIZATION)
-            .ok_or(McpError::InvalidConfig)?;
+        let authorization = headers.remove(AUTHORIZATION);
         let raw = authorization
-            .to_str()
-            .map_err(|_| McpError::InvalidHeader(AUTHORIZATION.as_str().to_string()))?
+            .as_ref()
+            .map(|authorization| {
+                authorization
+                    .to_str()
+                    .map_err(|_| McpError::InvalidHeader(AUTHORIZATION.as_str().to_string()))
+            })
+            .transpose()?
+            .unwrap_or_default()
             .trim();
         let mut fields = raw.split_ascii_whitespace();
         let first = fields.next().unwrap_or_default();
@@ -192,6 +225,9 @@ impl CodexWebConfig {
             _ => return Err(McpError::InvalidConfig),
         }
         .to_string();
+        if authorization.is_some() && bearer.is_empty() {
+            return Err(McpError::InvalidConfig);
+        }
         let custom_headers = headers
             .iter()
             .filter(|(name, _)| !is_native_header(name))
@@ -204,7 +240,7 @@ impl CodexWebConfig {
             timeout: Duration::from_millis(entry.timeout.unwrap_or(60_000)),
             allow_private: false,
         };
-        config.validate()?;
+        config.validate_profile(require_bearer)?;
         Ok(config)
     }
 }
@@ -416,26 +452,48 @@ impl rmcp::handler::client::ClientHandler for ClientEvents {
 type McpPeer = rmcp::service::Peer<rmcp::service::RoleClient>;
 type McpRunning = rmcp::service::RunningService<rmcp::service::RoleClient, ClientEvents>;
 
-/// Connected `codex_web` client: distinct connections per method, reused
-/// headers, no session requirement.
+#[path = "mcp_http_lifecycle.rs"]
+mod lifecycle;
+
+/// Connected remote client with explicit strict `codex_web` or generic profile.
 pub struct CodexWebClient {
     peer: McpPeer,
     running: McpRunning,
     timeout: Duration,
     tools_changed: Arc<AtomicBool>,
+    cleanup: lifecycle::Cleanup,
 }
 
 impl CodexWebClient {
     /// Connect: pre-dial SSRF guard, exact-URL handshake, 2025-11-25 required.
     pub async fn connect(config: &CodexWebConfig) -> Result<Self, McpError> {
-        config.validate()?;
+        Self::connect_cancellable(config, true, &AtomicBool::new(false)).await
+    }
+
+    /// Generic streamable HTTP: use SDK protocol negotiation and optional
+    /// configured bearer. No OAuth or URL rewriting is introduced.
+    pub async fn connect_remote(config: &CodexWebConfig) -> Result<Self, McpError> {
+        Self::connect_cancellable(config, false, &AtomicBool::new(false)).await
+    }
+
+    /// Cancellable attach with bounded HTTP-worker ownership cleanup before
+    /// returning a rejection. `codex_web` selects its explicit strict profile.
+    pub async fn connect_cancellable(
+        config: &CodexWebConfig,
+        codex_web: bool,
+        cancel: &AtomicBool,
+    ) -> Result<Self, McpError> {
+        config.validate_profile(codex_web)?;
         let (host, port) = split_host_port(&config.url)?;
-        crate::webfetch::check_host(&host, port, config.allow_private)
-            .await
-            .map_err(|e| match e {
-                crate::webfetch::FetchError::PrivateHost => McpError::PrivateHost,
-                _ => McpError::Transport,
-            })?;
+        tokio::select! {
+            biased;
+            () = crate::provider::wait_cancel(cancel) => return Err(McpError::Cancelled),
+            result = crate::webfetch::check_host(&host, port, config.allow_private) => result,
+        }
+        .map_err(|e| match e {
+            crate::webfetch::FetchError::PrivateHost => McpError::PrivateHost,
+            _ => McpError::Dns,
+        })?;
 
         let http = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
@@ -448,16 +506,19 @@ impl CodexWebClient {
             .iter()
             .map(|(name, value)| (name.clone(), value.clone()))
             .collect::<HashMap<_, _>>();
-        let transport_config =
+        let mut transport_config =
             rmcp::transport::streamable_http_client::StreamableHttpClientTransportConfig::with_uri(
                 config.url.as_str(),
             )
-            .auth_header(config.bearer.as_str())
             .custom_headers(custom_headers)
             .control_request_timeout(Duration::from_secs(5))
             .max_sse_event_size(crate::webfetch::BODY_CAP_BYTES)
             .reinit_on_expired_session(false)
             .max_concurrent_requests(4);
+        if !config.bearer.is_empty() {
+            transport_config = transport_config.auth_header(config.bearer.as_str());
+        }
+        let (http, mut cleanup) = lifecycle::Http::new(http);
         let transport =
             rmcp::transport::streamable_http_client::StreamableHttpClientTransport::with_client(
                 http,
@@ -465,22 +526,32 @@ impl CodexWebClient {
             );
         let events = ClientEvents::default();
         let tools_changed = events.tools_changed.clone();
-        let mut running = tokio::time::timeout(
-            config.timeout,
-            rmcp::service::serve_client(events, transport),
-        )
-        .await
-        .map_err(|_| McpError::Deadline)?
-        .map_err(|e| classify_handshake(&e))?;
+        let handshake = tokio::select! {
+            biased;
+            () = crate::provider::wait_cancel(cancel) => Err(McpError::Cancelled),
+            result = tokio::time::timeout(config.timeout, rmcp::service::serve_client(events, transport)) => {
+                result.map_err(|_| McpError::Deadline).and_then(|result| result.map_err(|e| classify_handshake(&e)))
+            }
+        };
+        let mut running = match handshake {
+            Ok(running) => running,
+            Err(error) => {
+                cleanup.close().await?;
+                return Err(error);
+            }
+        };
         // The negotiated version must be exactly 2025-11-25 for codex_web.
         let version = running
             .peer()
             .peer_info()
             .map(|info| info.protocol_version.to_string())
             .unwrap_or_default();
-        if version != MCP_VERSION {
-            let _ = running.close_with_timeout(CLOSE_TIMEOUT).await;
-            return Err(McpError::Transport);
+        if codex_web && version != MCP_VERSION {
+            let closed = close_running(&mut running).await;
+            let cleaned = cleanup.close().await;
+            cleaned?;
+            closed.map_err(|_| McpError::CleanupFailed)?;
+            return Err(McpError::ProtocolMismatch);
         }
         let peer = running.peer().clone();
         Ok(Self {
@@ -488,6 +559,7 @@ impl CodexWebClient {
             running,
             timeout: config.timeout,
             tools_changed,
+            cleanup,
         })
     }
 
@@ -506,13 +578,9 @@ impl CodexWebClient {
     ///
     /// A timed-out or panicked service task is a cleanup failure, never success.
     pub async fn close(mut self) -> Result<(), McpError> {
-        match self.running.close_with_timeout(CLOSE_TIMEOUT).await {
-            Ok(Some(rmcp::service::QuitReason::Closed | rmcp::service::QuitReason::Cancelled)) => {
-                Ok(())
-            }
-            Ok(Some(_)) | Err(_) => Err(McpError::Transport),
-            Ok(None) => Err(McpError::Deadline),
-        }
+        let result = close_running(&mut self.running).await;
+        self.cleanup.close().await?;
+        result
     }
 
     /// List tools with a bounded cursor loop (paginated, capped).
@@ -636,20 +704,52 @@ async fn wait_cancelled(cancel: &AtomicBool) {
 }
 
 fn classify_handshake(error: &rmcp::service::ClientInitializeError) -> McpError {
-    let text = format!("{error:?}");
-    if text.contains("401")
-        || text.contains("Unauthorized")
-        || text.contains("AuthRequired")
-        || text.contains("Auth required")
-    {
-        McpError::Unauthorized
-    } else if text.contains("403")
-        || text.contains("Forbidden")
-        || text.contains("InsufficientScope")
-    {
-        McpError::Forbidden
-    } else {
-        McpError::Transport
+    use rmcp::service::ClientInitializeError;
+    use rmcp::transport::streamable_http_client::StreamableHttpError;
+    match error {
+        ClientInitializeError::NoCompatibleProtocolVersion { .. } => McpError::ProtocolMismatch,
+        ClientInitializeError::Cancelled => McpError::Cancelled,
+        ClientInitializeError::TransportError { error, .. } => {
+            match error
+                .error
+                .downcast_ref::<StreamableHttpError<reqwest::Error>>()
+            {
+                Some(StreamableHttpError::AuthRequired(_)) => McpError::Unauthorized,
+                Some(StreamableHttpError::InsufficientScope(_)) => McpError::Forbidden,
+                // Pinned rmcp loses HTTP status without WWW-Authenticate in
+                // this variant. Read only its fixed status prefix, never search
+                // or display the arbitrary server body that follows it.
+                Some(StreamableHttpError::UnexpectedServerResponse(message))
+                    if message.starts_with("HTTP 401 ") =>
+                {
+                    McpError::Unauthorized
+                }
+                Some(StreamableHttpError::UnexpectedServerResponse(message))
+                    if message.starts_with("HTTP 403 ") =>
+                {
+                    McpError::Forbidden
+                }
+                Some(StreamableHttpError::Client(error)) => match error.status() {
+                    Some(reqwest::StatusCode::UNAUTHORIZED) => McpError::Unauthorized,
+                    Some(reqwest::StatusCode::FORBIDDEN) => McpError::Forbidden,
+                    _ if error.is_connect() => McpError::Connect,
+                    _ if error.is_timeout() => McpError::Deadline,
+                    _ => McpError::Transport,
+                },
+                _ => McpError::Transport,
+            }
+        }
+        _ => McpError::Transport,
+    }
+}
+
+async fn close_running(running: &mut McpRunning) -> Result<(), McpError> {
+    match running.close_with_timeout(CLOSE_TIMEOUT).await {
+        Ok(Some(rmcp::service::QuitReason::Closed | rmcp::service::QuitReason::Cancelled)) => {
+            Ok(())
+        }
+        Ok(Some(_)) | Err(_) => Err(McpError::Transport),
+        Ok(None) => Err(McpError::Deadline),
     }
 }
 

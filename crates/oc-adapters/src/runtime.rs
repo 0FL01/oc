@@ -84,6 +84,12 @@ pub enum RuntimeError {
     McpAttach {
         /// Server id.
         server: String,
+        /// Safe operation stage, never an endpoint or command.
+        stage: &'static str,
+        /// Allowlisted error class, never a raw SDK error.
+        safe_code: &'static str,
+        /// Whether a new explicit attempt may succeed without config changes.
+        retryable: bool,
     },
     /// One or more owned MCP resources could not confirm shutdown/reap.
     McpShutdown,
@@ -118,7 +124,15 @@ impl std::fmt::Display for RuntimeError {
                 write!(f, "stale generation {want}; current is {got}")
             }
             Self::PermissionDenied { tool } => write!(f, "denied {tool}"),
-            Self::McpAttach { server } => write!(f, "mcp attach failed for {server}"),
+            Self::McpAttach {
+                server,
+                stage,
+                safe_code,
+                retryable,
+            } => write!(
+                f,
+                "mcp {server} {stage}: {safe_code} (retryable={retryable})"
+            ),
             Self::McpShutdown => write!(f, "mcp shutdown failed"),
             Self::Provider => write!(f, "provider error"),
             Self::Storage => write!(f, "storage error"),
@@ -1267,7 +1281,7 @@ impl<'a> Runtime<'a> {
         models::admit(&selection, assembled_estimate, params.max_output)
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
         // Durable intent before any side effect.
-        let turn_id = format!("t{}-{}", params.session, millis());
+        let turn_id = next_turn_id(&params.session, millis());
         let user_text = params.invocation.as_deref().unwrap_or(&params.prompt);
         let user_message =
             self.db
@@ -2280,24 +2294,28 @@ impl<'a> Runtime<'a> {
                 continue;
             }
             let result = if entry.kind == "remote" {
-                let config = mcp_remote::CodexWebConfig::from_entry(entry)
-                    .map(|mut config| {
-                        config.allow_private = self
-                            .parent_env
-                            .get("OC_TEST_ALLOW_LOOPBACK")
-                            .is_some_and(|value| value == "1");
-                        config
-                    })
-                    .map_err(|error| remote_attach_error(id, error));
+                // codex_web has an explicit exact-version/static-bearer contract;
+                // other configured remote servers use ordinary SDK negotiation.
+                let codex_web = id == "codex_web";
+                let config = if codex_web {
+                    mcp_remote::CodexWebConfig::from_entry(entry)
+                } else {
+                    mcp_remote::CodexWebConfig::from_remote_entry(entry)
+                }
+                .map(|mut config| {
+                    config.allow_private = self
+                        .parent_env
+                        .get("OC_TEST_ALLOW_LOOPBACK")
+                        .is_some_and(|value| value == "1");
+                    config
+                })
+                .map_err(|error| remote_attach_error_at(id, "config", error));
                 match config {
                     Ok(config) => {
-                        let client = tokio::select! {
-                            biased;
-                            _ = crate::provider::wait_cancel(cancel) => Err(RuntimeError::Cancelled),
-                            result = CodexWebClient::connect(&config) => {
-                                result.map_err(|error| remote_attach_error(id, error))
-                            }
-                        };
+                        let client =
+                            CodexWebClient::connect_cancellable(&config, codex_web, cancel)
+                                .await
+                                .map_err(|error| remote_attach_error_at(id, "initialize", error));
                         match client {
                             Ok(client) => match client.list_tools(cancel).await {
                                 Ok(tools) => {
@@ -2352,16 +2370,12 @@ impl<'a> Runtime<'a> {
             } else if entry.kind == "local" {
                 let config =
                     StdioConfig::from_entry(id, entry, &self.roots.project, &self.parent_env)
-                        .map_err(|error| stdio_attach_error(id, error));
+                        .map_err(|error| stdio_attach_error_at(id, "config", error));
                 match config {
                     Ok(config) => {
-                        let client = tokio::select! {
-                            biased;
-                            _ = crate::provider::wait_cancel(cancel) => Err(RuntimeError::Cancelled),
-                            result = StdioClient::launch(&config) => {
-                                result.map_err(|error| stdio_attach_error(id, error))
-                            }
-                        };
+                        let client = StdioClient::launch_cancellable(&config, cancel)
+                            .await
+                            .map_err(|error| stdio_attach_error_at(id, "initialize", error));
                         match client {
                             Ok(client) => match client.list_tools(cancel).await {
                                 Ok(tools) => {
@@ -2414,7 +2428,12 @@ impl<'a> Runtime<'a> {
                     Err(error) => Err(error),
                 }
             } else {
-                Err(RuntimeError::McpAttach { server: id.clone() })
+                Err(RuntimeError::McpAttach {
+                    server: safe_server_id(id),
+                    stage: "config",
+                    safe_code: "unsupported_transport",
+                    retryable: false,
+                })
             };
             match result {
                 Ok((server, registry)) => {
@@ -2933,25 +2952,80 @@ fn streamed_ms(streamed: Duration) -> u64 {
 }
 
 fn remote_attach_error(server: &str, error: McpError) -> RuntimeError {
-    match error {
-        McpError::Cancelled => RuntimeError::Cancelled,
-        McpError::InvalidHeader(_)
-        | McpError::ConflictingHeader(_)
-        | McpError::CatalogLimited
-        | McpError::Catalog(_) => RuntimeError::InvalidArgs(format!("mcp {server}: {error}")),
-        _ => RuntimeError::McpAttach {
-            server: server.to_string(),
-        },
-    }
+    remote_attach_error_at(server, "tools-list", error)
 }
 
 fn stdio_attach_error(server: &str, error: StdioError) -> RuntimeError {
-    match error {
-        StdioError::Cancelled => RuntimeError::Cancelled,
-        StdioError::CatalogLimited => RuntimeError::InvalidArgs(format!("mcp {server}: {error}")),
-        _ => RuntimeError::McpAttach {
-            server: server.to_string(),
-        },
+    stdio_attach_error_at(server, "tools-list", error)
+}
+
+fn safe_server_id(server: &str) -> String {
+    server
+        .chars()
+        .take(64)
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.') {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect()
+}
+
+fn remote_attach_error_at(server: &str, stage: &'static str, error: McpError) -> RuntimeError {
+    let (stage, safe_code, retryable) = match error {
+        McpError::Cancelled => return RuntimeError::Cancelled,
+        McpError::InvalidConfig => ("config", "invalid_config", false),
+        McpError::InvalidHeader(_) => ("config", "invalid_header", false),
+        McpError::ConflictingHeader(name) if name == "authorization" => {
+            ("config", "authorization_header_conflict", false)
+        }
+        McpError::ConflictingHeader(_) => ("config", "header_conflict", false),
+        McpError::PrivateHost => ("DNS", "private_host", false),
+        McpError::Dns => ("DNS", "resolution_failed", true),
+        McpError::Connect => ("connect", "connection_failed", true),
+        McpError::CleanupFailed => ("cleanup", "cleanup_failed", false),
+        McpError::Unauthorized => (stage, "unauthorized", false),
+        McpError::Forbidden => (stage, "forbidden", false),
+        McpError::Deadline => (stage, "deadline", true),
+        McpError::Transport => (stage, "transport", true),
+        McpError::ProtocolMismatch => (stage, "protocol_mismatch", false),
+        McpError::CatalogLimited => (stage, "catalog_limit", false),
+        McpError::Catalog(_) => (stage, "invalid_catalog", false),
+        McpError::ToolFailed => (stage, "tool_failed", false),
+        McpError::InvalidArguments => (stage, "invalid_arguments", false),
+        McpError::BadResult => (stage, "bad_result", false),
+        McpError::UnsupportedResult => (stage, "unsupported_result", false),
+    };
+    RuntimeError::McpAttach {
+        server: safe_server_id(server),
+        stage,
+        safe_code,
+        retryable,
+    }
+}
+
+fn stdio_attach_error_at(server: &str, stage: &'static str, error: StdioError) -> RuntimeError {
+    let (stage, safe_code, retryable) = match error {
+        StdioError::Cancelled => return RuntimeError::Cancelled,
+        StdioError::InvalidConfig => ("config", "invalid_config", false),
+        StdioError::Disabled => ("config", "disabled", false),
+        StdioError::Spawn => ("spawn", "spawn_failed", false),
+        StdioError::Deadline => (stage, "deadline", true),
+        StdioError::Transport => (stage, "transport", true),
+        StdioError::CleanupFailed => ("cleanup", "cleanup_failed", false),
+        StdioError::CatalogLimited => (stage, "catalog_limit", false),
+        StdioError::ToolFailed => (stage, "tool_failed", false),
+        StdioError::NonObjectArguments => (stage, "invalid_arguments", false),
+        StdioError::UnsupportedModality => (stage, "unsupported_result", false),
+        StdioError::BadResult => (stage, "bad_result", false),
+    };
+    RuntimeError::McpAttach {
+        server: safe_server_id(server),
+        stage,
+        safe_code,
+        retryable,
     }
 }
 
@@ -3243,4 +3317,28 @@ fn millis() -> u64 {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_millis() as u64)
         .unwrap_or(0)
+}
+
+// Unique across every runtime/Location in this process, even if the wall clock
+// repeats or moves backwards. SQLite turns.id PRIMARY KEY rejects historical
+// collisions before acceptance; no old in-memory events survive process restart.
+fn next_turn_id(session: &str, timestamp: u64) -> String {
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    let serial = NEXT
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_add(1))
+        .expect("turn identity space exhausted");
+    format!("t{session}-{timestamp}-{}-{serial}", std::process::id())
+}
+
+#[cfg(test)]
+mod identity_tests {
+    #[test]
+    fn turn_ids_do_not_repeat_when_clock_repeats_or_rolls_back() {
+        let mut ids = std::collections::BTreeSet::new();
+        for timestamp in [123, 123, 122, 123] {
+            for session in ["a", "b", "a"] {
+                assert!(ids.insert(super::next_turn_id(session, timestamp)));
+            }
+        }
+    }
 }

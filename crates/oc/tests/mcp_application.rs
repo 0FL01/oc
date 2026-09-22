@@ -138,6 +138,75 @@ struct FakeMcp {
 }
 
 impl FakeMcp {
+    fn stalled_initialize() -> (Self, Arc<AtomicBool>) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let url = format!("http://{}/strict/v1/mcp", listener.local_addr().unwrap());
+        let records = Arc::new(Mutex::new(Vec::new()));
+        let captured = records.clone();
+        let stop = Arc::new(AtomicBool::new(false));
+        let stopping = stop.clone();
+        let closed = Arc::new(AtomicBool::new(false));
+        let observed_close = closed.clone();
+        let thread = std::thread::spawn(move || {
+            while !stopping.load(Ordering::Relaxed) {
+                let (socket, _) = match listener.accept() {
+                    Ok(pair) => pair,
+                    Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                        std::thread::sleep(POLL);
+                        continue;
+                    }
+                    Err(error) => panic!("accept: {error}"),
+                };
+                let Some((mut socket, request)) = read_http(socket) else {
+                    continue;
+                };
+                captured.lock().unwrap().push(McpRecord {
+                    http_method: request.method,
+                    path: request.path,
+                    authorization: request.headers.get("authorization").cloned(),
+                    protocol_version: None,
+                    rpc_method: request.body["method"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .to_string(),
+                    arguments: None,
+                });
+                socket
+                    .set_read_timeout(Some(Duration::from_millis(50)))
+                    .unwrap();
+                // Never release initialize. Observe actual TCP closure on cancel.
+                while !stopping.load(Ordering::Relaxed) {
+                    match socket.read(&mut [0u8; 1]) {
+                        Ok(0) => {
+                            observed_close.store(true, Ordering::Relaxed);
+                            break;
+                        }
+                        Err(error)
+                            if matches!(
+                                error.kind(),
+                                std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                            ) => {}
+                        Err(_) => {
+                            observed_close.store(true, Ordering::Relaxed);
+                            break;
+                        }
+                        Ok(_) => panic!("unexpected request data after initialize"),
+                    }
+                }
+            }
+        });
+        (
+            Self {
+                url,
+                records,
+                stop,
+                thread: Some(thread),
+            },
+            closed,
+        )
+    }
+
     fn start(label: &str, bearer: &str, tools: &[&str]) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").expect("fake MCP listener");
         listener.set_nonblocking(true).expect("nonblocking MCP");
@@ -179,9 +248,14 @@ impl FakeMcp {
                 });
                 if request.method != "POST"
                     || request.path != "/strict/v1/mcp"
-                    || authorization.as_deref() != Some(bearer.as_str())
+                    || authorization.as_deref() != (!bearer.is_empty()).then_some(bearer.as_str())
                 {
-                    write_http(&mut socket, 401, "text/plain", b"");
+                    write_http(
+                        &mut socket,
+                        401,
+                        "text/plain",
+                        b"PRIVATE_RESPONSE_BODY_SENTINEL",
+                    );
                     continue;
                 }
                 let id = request.body.get("id").cloned().unwrap_or(Value::Null);
@@ -1079,6 +1153,93 @@ struct PtyProcess {
 }
 
 impl PtyProcess {
+    fn screen(&self) -> Vec<String> {
+        // Text-only reconstruction for ASCII fixture assertions. Unlike raw
+        // substring matching, this accounts for ratatui's unchanged-cell skips.
+        let bytes = self.output.lock().unwrap();
+        let text = String::from_utf8_lossy(&bytes);
+        let mut chars = text.chars().peekable();
+        let mut cells = vec![vec![' '; 160]; 50];
+        let (mut row, mut col) = (0usize, 0usize);
+        while let Some(ch) = chars.next() {
+            match ch {
+                '\x1b' if chars.peek() == Some(&'[') => {
+                    chars.next();
+                    let mut args = String::new();
+                    for c in chars.by_ref() {
+                        if ('@'..='~').contains(&c) {
+                            let values = args
+                                .split(';')
+                                .map(|s| s.parse::<usize>().unwrap_or(0))
+                                .collect::<Vec<_>>();
+                            let first = values[0];
+                            match c {
+                                'H' | 'f' => {
+                                    row = first.saturating_sub(1);
+                                    col = values.get(1).copied().unwrap_or(1).saturating_sub(1);
+                                }
+                                'G' => col = first.saturating_sub(1),
+                                'C' => col += first.max(1),
+                                'D' => col = col.saturating_sub(first.max(1)),
+                                'A' => row = row.saturating_sub(first.max(1)),
+                                'B' => row += first.max(1),
+                                'J' if first == 2 => cells.iter_mut().for_each(|r| r.fill(' ')),
+                                'K' if row < cells.len() => {
+                                    let start = if first == 2 { 0 } else { col.min(160) };
+                                    cells[row][start..].fill(' ');
+                                }
+                                _ => {}
+                            }
+                            break;
+                        }
+                        args.push(c);
+                    }
+                }
+                '\r' => col = 0,
+                '\n' => row += 1,
+                c if !c.is_control() => {
+                    if row < cells.len() && col < cells[row].len() {
+                        cells[row][col] = c;
+                    }
+                    col += 1;
+                }
+                _ => {}
+            }
+        }
+        cells.into_iter().map(|r| r.into_iter().collect()).collect()
+    }
+
+    fn wait_screen(&self, needle: &str, timeout: Duration) {
+        let deadline = Instant::now() + timeout;
+        loop {
+            let screen = self.screen();
+            if screen.iter().any(|row| row.contains(needle)) {
+                return;
+            }
+            assert!(Instant::now() < deadline, "missing {needle:?}: {screen:?}");
+            std::thread::sleep(POLL);
+        }
+    }
+
+    fn raw(&mut self, bytes: &[u8]) {
+        self.master.write_all(bytes).expect("raw PTY input");
+        self.master.flush().expect("raw PTY flush");
+    }
+
+    fn resize(&self, cols: u16, rows: u16) {
+        let size = libc::winsize {
+            ws_col: cols,
+            ws_row: rows,
+            ws_xpixel: 0,
+            ws_ypixel: 0,
+        };
+        assert_eq!(
+            // SAFETY: the master descriptor and winsize are live.
+            unsafe { libc::ioctl(self.master.as_raw_fd(), libc::TIOCSWINSZ, &size) },
+            0
+        );
+    }
+
     fn spawn(fixture: &Fixture, session: &str) -> Self {
         let (master, slave) = openpty_pair(100, 28);
         let mut command = fixture.command();
@@ -1322,4 +1483,369 @@ fn aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns() {
         "disabled restarted generation spawned a child"
     );
     assert!(!trap_log.exists(), "disabled browser trap executed");
+}
+
+#[test]
+fn v01_pending_initialize_raw_pty_cancel_edit_duplicate_and_retry() {
+    pending_initialize_raw_pty(false);
+}
+
+#[test]
+fn v01_manual_compress_raw_pty_cancel_shutdown_and_retry() {
+    pending_initialize_raw_pty(true);
+}
+
+fn pending_initialize_raw_pty(manual_compress: bool) {
+    let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
+    let fixture = Fixture::new();
+    let server = fixture.home.join("stalled-mcp");
+    let log = fixture.home.join("stalled.log");
+    let _cleanup_on_assertion_failure = FixtureChildren(log.clone());
+    let release = fixture.home.join("release");
+    write_executable(
+        &server,
+        &format!(
+            r#"#!/usr/bin/python3
+import json, os, sys, time
+log = {log:?}
+release = {release:?}
+with open(log, 'a') as f: f.write('spawn %s\n' % os.getpid())
+for line in sys.stdin:
+    request = json.loads(line)
+    method = request['method']
+    with open(log, 'a') as f: f.write(method + '\n')
+    if method == 'initialize':
+        while not os.path.exists(release): time.sleep(0.01)
+        result = {{'protocolVersion':'2025-11-25','capabilities':{{'tools':{{}}}},'serverInfo':{{'name':'stall','version':'1'}}}}
+    elif method == 'tools/list': result = {{'tools':[]}}
+    else: continue
+    print(json.dumps({{'jsonrpc':'2.0','id':request['id'],'result':result}}), flush=True)
+"#,
+            log = log.to_string_lossy(),
+            release = release.to_string_lossy()
+        ),
+    );
+    fixture.write_config(
+        &responses,
+        json!({"stall": {
+            "type":"local", "command":[server], "enabled":true, "timeout":10000
+        }}),
+        json!({}),
+    );
+    let mut tui = PtyProcess::spawn(&fixture, "v01-pending");
+    tui.wait_visible(READY);
+    tui.send_line(if manual_compress {
+        "/dcp-compress pending draft"
+    } else {
+        "pending draft"
+    });
+    let deadline = Instant::now() + IO_TIMEOUT;
+    while !fs::read_to_string(&log)
+        .unwrap_or_default()
+        .contains("initialize")
+    {
+        assert!(Instant::now() < deadline, "initialize did not start");
+        std::thread::sleep(POLL);
+    }
+    let lifecycle = fs::read_to_string(&log).unwrap();
+    let pid: libc::pid_t = lifecycle
+        .lines()
+        .next()
+        .unwrap()
+        .strip_prefix("spawn ")
+        .unwrap()
+        .parse()
+        .unwrap();
+    let start = Instant::now();
+    if manual_compress {
+        tui.wait_screen("dcp |", IO_TIMEOUT);
+        tui.raw(b"\x1b"); // close DCP panel using its existing key behavior
+        let deadline = start + IO_TIMEOUT;
+        while tui.screen().iter().any(|row| row.contains("dcp |")) {
+            assert!(
+                Instant::now() < deadline,
+                "DCP panel did not close before acceptance"
+            );
+            std::thread::sleep(POLL);
+        }
+    }
+    let resize_offset = tui.output.lock().unwrap().len();
+    tui.raw(b"\r"); // duplicate Enter while acceptance is stalled
+    tui.resize(120, 40);
+    tui.raw(b" edited");
+    let deadline = start + IO_TIMEOUT;
+    loop {
+        let bytes = tui.output.lock().unwrap().clone();
+        if contains(&normalize(&bytes), b"edited") {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "UI frozen before acceptance: edit/resize not rendered within 2s"
+        );
+        std::thread::sleep(POLL);
+    }
+    tui.wait_screen(
+        "pending draft edited",
+        deadline.saturating_duration_since(Instant::now()),
+    );
+    assert!(
+        tui.output.lock().unwrap()[resize_offset..]
+            .windows(5)
+            .any(|w| w == b"\x1b[40;"),
+        "resize must actually render row 40 before fake release"
+    );
+    tui.raw(b"\x1b"); // actual Esc, no direct CoreApp cancellation
+    loop {
+        // SAFETY: signal zero probes only the pid recorded by our fake.
+        if unsafe { libc::kill(pid, 0) } != 0 {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "pending MCP child not reaped within 2s"
+        );
+        std::thread::sleep(POLL);
+    }
+    assert!(!release.exists(), "cancellation must precede release");
+    let cancel_elapsed = start.elapsed();
+    assert!(
+        responses.requests().is_empty(),
+        "unaccepted prompt reached provider"
+    );
+    let db =
+        rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).expect("fixture DB");
+    let turns: i64 = db
+        .query_row("SELECT count(*) FROM turns", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(turns, 0, "cancelled pre-acceptance created a turn");
+    let messages: i64 = db
+        .query_row("SELECT count(*) FROM messages", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(messages, 0);
+    fs::write(&release, "release").unwrap();
+    tui.wait_visible("cancelled");
+    let offset = tui.send_line(""); // retry exact retained, edited draft
+    tui.wait_visible_after(
+        offset,
+        if manual_compress {
+            "answer:Manual context compression request."
+        } else {
+            "answer:pending draft edited"
+        },
+    );
+    assert!(
+        serde_json::to_string(&responses.requests())
+            .unwrap()
+            .contains("pending draft edited")
+    );
+    let deadline = Instant::now() + IO_TIMEOUT;
+    loop {
+        let completed: i64 = db
+            .query_row(
+                "SELECT count(*) FROM turns WHERE status='completed'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        if completed == 1 {
+            break;
+        }
+        assert!(Instant::now() < deadline);
+        std::thread::sleep(POLL);
+    }
+    tui.raw(b"\x03");
+    assert!(tui.wait_exit().success());
+    assert_eq!(
+        responses.requests().len(),
+        1,
+        "no duplicate or extra request"
+    );
+    let turns: i64 = db
+        .query_row("SELECT count(*) FROM turns", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(turns, 1);
+    let messages: i64 = db
+        .query_row("SELECT count(*) FROM messages", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(messages, 2);
+    // Quit during a fresh stalled handshake. Application shutdown must finish
+    // cleanup without accepting the prompt or waiting for the fake's release.
+    fs::remove_file(&release).unwrap();
+    let mut quitting = PtyProcess::spawn(&fixture, "v01-quit-pending");
+    quitting.wait_visible(READY);
+    quitting.send_line(if manual_compress {
+        "/dcp-compress quit before acceptance"
+    } else {
+        "quit before acceptance"
+    });
+    let deadline = Instant::now() + IO_TIMEOUT;
+    while fs::read_to_string(&log)
+        .unwrap()
+        .lines()
+        .filter(|l| *l == "initialize")
+        .count()
+        < 3
+    {
+        assert!(Instant::now() < deadline, "quit handshake did not start");
+        std::thread::sleep(POLL);
+    }
+    quitting.raw(b"\x03");
+    while quitting.child.try_wait().unwrap().is_none() {
+        assert!(Instant::now() < deadline, "pending shutdown exceeded 2s");
+        std::thread::sleep(POLL);
+    }
+    assert!(quitting.wait_exit().success());
+    assert!(!release.exists());
+    assert_eq!(responses.requests().len(), 1);
+    let turns: i64 = db
+        .query_row("SELECT count(*) FROM turns", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(turns, 1, "shutdown did not accept pending input");
+    let lifecycle = fs::read_to_string(&log).unwrap();
+    assert_eq!(lifecycle.lines().filter(|l| *l == "initialize").count(), 3);
+    for pid in lifecycle
+        .lines()
+        .filter_map(|l| l.strip_prefix("spawn "))
+        .map(|p| p.parse::<libc::pid_t>().unwrap())
+    {
+        assert_ne!(
+            // SAFETY: only probes fixture-owned pids.
+            unsafe { libc::kill(pid, 0) },
+            0,
+            "owned child survived shutdown"
+        );
+    }
+    eprintln!(
+        "V01 raw (manual_compress={manual_compress}): prompt+CR, CR, resize 120x40, ' edited', ESC; cancel/reap before release within {:?}; retry CR, Ctrl+C",
+        cancel_elapsed
+    );
+}
+
+/// The failing pre-fix test kills oc; clean fixture children on assertions too.
+/// On success, application cleanup is asserted before this fallback runs.
+struct FixtureChildren(PathBuf);
+
+impl Drop for FixtureChildren {
+    fn drop(&mut self) {
+        for pid in fs::read_to_string(&self.0)
+            .unwrap_or_default()
+            .lines()
+            .filter_map(|l| l.strip_prefix("spawn "))
+            .filter_map(|p| p.parse::<libc::pid_t>().ok())
+            .filter(|p| *p > 1)
+        {
+            // SAFETY: each negative pid is a group created by this MCP fixture.
+            unsafe {
+                libc::kill(-pid, libc::SIGKILL);
+            }
+        }
+    }
+}
+
+#[test]
+fn v01_anonymous_remote_and_codex_required_auth() {
+    let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
+    let mcp = FakeMcp::start("anonymous", "", &["search"]);
+    let fixture = Fixture::new();
+    let entry =
+        json!({"type":"remote", "url":mcp.url, "enabled":true, "oauth":false, "timeout":3000});
+    fixture.write_config(&responses, json!({"anonymous":entry}), json!({}));
+    let mut process = fixture.spawn_run("v01-anonymous");
+    assert!(
+        process.wait().success(),
+        "anonymous remote rejected: {}",
+        process.diagnostics()
+    );
+    assert_eq!(responses.requests().len(), 1);
+    assert!(mcp.records().iter().all(|r| r.authorization.is_none()));
+    let count = mcp.records().len();
+    fixture.write_config(&responses, json!({"codex_web":entry}), json!({}));
+    let mut process = fixture.spawn_run("v01-codex-missing-auth");
+    assert!(!process.wait().success());
+    let diagnostic = process.diagnostics();
+    assert!(
+        diagnostic.contains("codex_web")
+            && diagnostic.contains("config")
+            && diagnostic.contains("invalid_config"),
+        "{diagnostic}"
+    );
+    assert_eq!(
+        mcp.records().len(),
+        count,
+        "codex auth requirement checked before network"
+    );
+    assert_eq!(
+        responses.requests().len(),
+        1,
+        "required failure has no provider fallback"
+    );
+}
+
+#[test]
+fn v01_required_remote_diagnostic_is_staged_and_redacted_in_tui() {
+    let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
+    let mcp = FakeMcp::start("strict", "Bearer expected", &["search"]);
+    let fixture = Fixture::new();
+    fixture.write_config(
+        &responses,
+        json!({"required":remote_entry(&mcp, "Authorization", "Bearer PRIVATE_HEADER_SENTINEL")}),
+        json!({}),
+    );
+    let mut tui = PtyProcess::spawn(&fixture, "v01-required-failure");
+    tui.wait_visible(READY);
+    tui.send_line("retained prompt");
+    tui.wait_screen("mcp required initialize:", IO_TIMEOUT);
+    tui.wait_screen("unauthorized (retryable=false)", IO_TIMEOUT);
+    tui.wait_screen("retained prompt", IO_TIMEOUT);
+    assert!(responses.requests().is_empty(), "required failure bypassed");
+    tui.raw(b"\x03");
+    assert!(tui.wait_exit().success());
+    let bytes = tui.output.lock().unwrap();
+    let visible = String::from_utf8_lossy(&bytes);
+    for secret in [
+        "PRIVATE_HEADER_SENTINEL",
+        "PRIVATE_RESPONSE_BODY_SENTINEL",
+        &mcp.url,
+    ] {
+        assert!(!visible.contains(secret), "diagnostic leaked fixture data");
+    }
+}
+
+#[test]
+fn v01_remote_pending_cancel_closes_request_before_fake_release() {
+    let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
+    let (mcp, closed) = FakeMcp::stalled_initialize();
+    let fixture = Fixture::new();
+    fixture.write_config(
+        &responses,
+        json!({"anonymous": {
+            "type":"remote", "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
+        }}),
+        json!({}),
+    );
+    let mut tui = PtyProcess::spawn(&fixture, "v01-remote-cancel");
+    tui.wait_visible(READY);
+    tui.send_line("remote draft");
+    let deadline = Instant::now() + IO_TIMEOUT;
+    while mcp.records().is_empty() {
+        assert!(Instant::now() < deadline, "initialize not received");
+        std::thread::sleep(POLL);
+    }
+    tui.raw(b"\r\x1b");
+    tui.wait_screen("cancelled", IO_TIMEOUT);
+    tui.wait_screen("remote draft", IO_TIMEOUT);
+    while !closed.load(Ordering::Relaxed) {
+        assert!(Instant::now() < deadline, "cancel leaked an HTTP request");
+        std::thread::sleep(POLL);
+    }
+    assert_eq!(mcp.records().len(), 1, "no hidden retry");
+    assert!(responses.requests().is_empty());
+    tui.raw(b"\x03");
+    assert!(tui.wait_exit().success());
+    let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
+    let turns: i64 = db
+        .query_row("SELECT count(*) FROM turns", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(turns, 0);
 }

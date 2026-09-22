@@ -1340,6 +1340,7 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "fs2",
+ "futures-util",
  "libc",
  "oc-core",
  "reqwest",

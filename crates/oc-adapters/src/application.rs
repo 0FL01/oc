@@ -897,13 +897,13 @@ async fn worker(
                         |id| {
                             let id = WorkerTurnId(id.to_string());
                             turn = Some(id.clone());
+                            if let Some(ack) = ack.take() {
+                                let _ = ack.send(Ok(id.clone()));
+                            }
                             let _ = events.send(CoreEvent::TurnStarted {
                                 session: session.clone(),
                                 turn: id.clone(),
                             });
-                            if let Some(ack) = ack.take() {
-                                let _ = ack.send(Ok(id));
-                            }
                         },
                         |id, delta| {
                             let _ = events.send(CoreEvent::TextDelta {
