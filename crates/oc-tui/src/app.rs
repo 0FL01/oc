@@ -137,6 +137,9 @@ pub struct TuiState {
     catalog_loaded: bool,
     /// Agent profiles from the catalog snapshot.
     pub(crate) agents: Vec<AgentEntry>,
+    /// Effective agent id from the catalog snapshot (the metadata row shows
+    /// the active agent, never the picker cursor).
+    active_agent: Option<String>,
     /// Agents cursor.
     pub(crate) agents_cursor: usize,
     /// Session ids for the Sessions panel.
@@ -178,6 +181,7 @@ impl TuiState {
             picker: None,
             catalog_loaded: false,
             agents: Vec::new(),
+            active_agent: None,
             agents_cursor: 0,
             sessions: Vec::new(),
             sessions_cursor: 0,
@@ -210,6 +214,7 @@ impl TuiState {
         self.picker = None;
         self.catalog_loaded = false;
         self.agents.clear();
+        self.active_agent = None;
         self.agents_cursor = 0;
         self.sessions.clear();
         self.sessions_cursor = 0;
@@ -256,6 +261,11 @@ impl TuiState {
     /// Active turn, if any.
     pub fn active_turn(&self) -> Option<&WorkerTurnId> {
         self.active_turn.as_ref()
+    }
+
+    /// Transcript scroll offset in rows (0 = pinned to the newest row).
+    pub fn scroll(&self) -> usize {
+        self.scroll
     }
 
     /// True while a turn streams.
@@ -350,6 +360,7 @@ impl TuiState {
         }
         self.picker = Some(picker);
         self.commands = snapshot.commands;
+        self.active_agent = snapshot.agent_id.clone();
         self.agents = snapshot.agents;
         self.agents_cursor = snapshot
             .agent_id
@@ -466,6 +477,29 @@ impl TuiState {
             .and_then(|selection| selection.variant.as_ref())
             .map(|variant| variant.name.clone());
         Some((id, variant))
+    }
+
+    /// Effective model id and variant name from the catalog snapshot (the
+    /// resolved selection, never the picker cursor).
+    pub fn active_model_label(&self) -> Option<(String, Option<String>)> {
+        let selection = self.picker.as_ref()?.selection()?;
+        Some((
+            selection.id.clone(),
+            selection
+                .variant
+                .as_ref()
+                .map(|variant| variant.name.clone()),
+        ))
+    }
+
+    /// Provider id of the loaded catalog, if any.
+    pub fn active_provider(&self) -> Option<&str> {
+        Some(self.picker.as_ref()?.provider())
+    }
+
+    /// Effective agent id from the catalog snapshot, if any.
+    pub fn active_agent(&self) -> Option<&str> {
+        self.active_agent.as_deref()
     }
 
     /// True when the input names a workspace command (template expanded by

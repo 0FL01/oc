@@ -23,6 +23,13 @@ use serde_json::{Value, json};
 const BIN: &str = env!("CARGO_BIN_EXE_oc");
 const MODEL: &str = "mcp-application-model";
 const TIMEOUT: Duration = Duration::from_secs(12);
+
+/// Startup readiness marker. Iteration 2 of the TUI pixel-parity goal replaced
+/// the `oc <status>` history-pane title (upstream has no transcript title,
+/// `routes/session/index.tsx:1273-1300`); the always-visible tab-strip title is
+/// the upstream fallback for a session without a title
+/// (`component/session-tabs.tsx:1561`).
+const READY: &str = "Untitled session";
 const IO_TIMEOUT: Duration = Duration::from_secs(2);
 const POLL: Duration = Duration::from_millis(10);
 
@@ -1223,7 +1230,7 @@ fn aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns() {
     );
 
     let mut tui = PtyProcess::spawn(&fixture, "aud23-two-turns");
-    tui.wait_visible("Idle");
+    tui.wait_visible(READY);
     let first = tui.send_line("first MCP ownership turn");
     tui.wait_visible_after(first, "answer:first MCP ownership turn");
     // A text delta is rendered before the worker publishes TurnFinished.

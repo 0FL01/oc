@@ -1,106 +1,23 @@
-//! Bounded Ratatui rendering for the minimal TUI.
+//! Bounded view-model producers and the frame entry point.
 //!
-//! The viewport never renders the whole transcript: at most
-//! [`crate::app::VIEWPORT_LINES`] history lines plus the panel and prompt
-//! panes. PTY paste/resize and terminal restoration are qualified in T26;
-//! here we assert viewport bounds, Unicode width and state transitions on a
+//! [`render_frame`] delegates to the upstream v2.0.12 shell
+//! ([`crate::shell`]): tab strip, session area with the sticky-bottom
+//! transcript, status row, prompt box, devtools bar and the toast overlay.
+//! This module keeps the bounded `Vec<String>` panel producers
+//! ([`panel_lines`], at most [`crate::app::VIEWPORT_LINES`] history lines)
+//! and the `TestBackend` helper used by the unit and golden tests.
+//!
+//! PTY paste/resize and terminal restoration are qualified in T26; here we
+//! assert viewport bounds, Unicode width and state transitions on a
 //! `TestBackend`.
 
-use ratatui::{
-    Frame, Terminal,
-    backend::TestBackend,
-    layout::{Constraint, Direction, Layout},
-    style::Style,
-    widgets::{Block, Borders, Paragraph},
-};
+use ratatui::{Frame, Terminal, backend::TestBackend};
 
-use crate::app::{TuiPanel, TuiState, TuiStatus};
-use crate::styled::{Line, Lines, Span};
-use crate::theme::Theme;
+use crate::app::{TuiPanel, TuiState};
 
 /// Render the whole state into one Ratatui frame.
 pub fn render_frame(frame: &mut Frame<'_>, state: &TuiState) {
-    let theme = Theme::dark();
-    let area = frame.area();
-    let panel = panel_lines(state);
-    // +2 for the panel block borders; zero height hides the panel.
-    let panel_height = if panel.is_empty() {
-        0
-    } else {
-        ((panel.len() + 2) as u16).min(12)
-    };
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(1),
-            Constraint::Length(panel_height),
-            Constraint::Length(3),
-        ])
-        .split(area);
-    let visible = state.viewport();
-    // Transient status: the intent note and the DCP notice stay visible
-    // without ever entering history.
-    let title = status_title(state, theme);
-    // Bottom-align the window in the pane: `viewport()` returns the tail
-    // window (scroll-aware) but `Paragraph` top-aligns and would clip the
-    // newest lines on small screens.
-    let pane_rows = chunks[0].height.saturating_sub(2) as usize;
-    let skip = visible.len().saturating_sub(pane_rows.max(1));
-    let history = Paragraph::new(Lines::from(visible).into_text())
-        .scroll((skip as u16, 0))
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme.border()))
-                .title(title.into_ratatui()),
-        );
-    frame.render_widget(history, chunks[0]);
-    if panel_height > 0 {
-        let panel_widget = Paragraph::new(Lines::from(panel).into_text()).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme.border_active()))
-                .title(
-                    Line::styled("panel", Style::default().fg(theme.text_muted())).into_ratatui(),
-                ),
-        );
-        frame.render_widget(panel_widget, chunks[1]);
-    }
-    let prompt = Paragraph::new(state.input()).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(theme.border()))
-            .title(Line::styled("prompt", Style::default().fg(theme.text_muted())).into_ratatui()),
-    );
-    frame.render_widget(prompt, chunks[2]);
-}
-
-/// History pane title: `oc <status>[ — note][ — dcp notice]` with theme
-/// roles (muted prefix, status accent, warning notes, info notices).
-fn status_title(state: &TuiState, theme: &Theme) -> Line {
-    let status = match state.status() {
-        TuiStatus::Idle => theme.text(),
-        TuiStatus::Streaming => theme.primary(),
-        TuiStatus::Cancelled => theme.warning(),
-        TuiStatus::Quit => theme.text_muted(),
-    };
-    let mut spans = vec![
-        Span::styled("oc ", Style::default().fg(theme.text_muted())),
-        Span::styled(format!("{:?}", state.status()), Style::default().fg(status)),
-    ];
-    if let Some(note) = state.note() {
-        spans.push(Span::styled(
-            format!(" — {note}"),
-            Style::default().fg(theme.warning()),
-        ));
-    }
-    if let Some(notice) = state.dcp.notice() {
-        spans.push(Span::styled(
-            format!(" — {notice}"),
-            Style::default().fg(theme.info()),
-        ));
-    }
-    Line::new(spans)
+    crate::shell::render(frame, state);
 }
 
 /// Render state to a test backend; returns text lines for assertions.
@@ -205,7 +122,7 @@ fn help_topic(topic: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{panel_lines, render_frame, render_test, status_title};
+    use super::{panel_lines, render_test};
     use crate::app::{TuiPanel, TuiState, VIEWPORT_LINES};
     use crate::dcp_panel::DcpOutcome;
     use crate::events::KeyAction;
@@ -287,11 +204,20 @@ mod tests {
         for c in "next…".chars() {
             state.handle_key(KeyAction::Char(c)).await;
         }
-        let lines = render_test(&state, 40, 10);
-        assert_eq!(lines.len(), 10);
-        let joined = lines.join("\n");
-        assert!(joined.contains("привет"), "unicode must render: {joined}");
-        assert!(joined.contains("prompt"), "input pane: {joined}");
+        // Iteration 2 (upstream shell): the transcript has no border or title
+        // (`routes/session/index.tsx:1273-1300`); the prompt box renders the
+        // upstream `┃`/`╹`/`▀` shape (`component/prompt/index.tsx:1650-1870`).
+        let narrow = render_test(&state, 40, 10);
+        assert_eq!(narrow.len(), 10);
+        let joined = narrow.join("\n");
+        assert!(joined.contains("next…"), "input renders: {joined}");
+        assert!(joined.contains('┃'), "prompt left border: {joined}");
+        assert!(joined.contains('╹'), "prompt underline: {joined}");
+        assert!(joined.contains('▀'), "prompt underline: {joined}");
+
+        let tall = render_test(&state, 40, 24).join("\n");
+        assert!(tall.contains("привет"), "unicode must render: {tall}");
+        assert!(tall.contains("🌍"), "wide unicode must render: {tall}");
         // Viewport constant is the product contract for T06.
         assert_eq!(VIEWPORT_LINES, 20);
     }
@@ -359,7 +285,8 @@ mod tests {
             prunes: 0,
         });
         state.dcp.request_compress("draft").expect("request");
-        state.begin_compress_turn(WorkerTurnId("t-dcp".to_string()));
+        let turn = WorkerTurnId("t-dcp".to_string());
+        state.begin_compress_turn(turn.clone());
         let lines = panel_lines(&state);
         assert!(lines.iter().any(|l| l.contains("900/1000")), "{lines:?}");
         assert!(
@@ -367,36 +294,78 @@ mod tests {
             "{lines:?}"
         );
 
+        // Iteration 2: the DCP notice renders in the prompt footer status slot
+        // once the turn is idle (the running slot shows `esc interrupt`);
+        // completion is what the binary reports the outcome after.
+        state.apply_finished(&turn, "");
         state.notify_dcp(DcpOutcome::Failed {
             reason: "span open".to_string(),
         });
         let frame = render_test(&state, 70, 24).join("\n");
-        assert!(frame.contains("dcp failed: span open"), "notice in title");
+        assert!(frame.contains("dcp failed: span open"), "{frame}");
     }
 
     #[tokio::test]
-    async fn status_title_uses_theme_colors() {
+    async fn status_text_uses_theme_colors() {
+        // Iteration 2 (upstream shell): the old `oc <status> — note`
+        // history-pane title is gone; upstream has no transcript border or
+        // title (`routes/session/index.tsx:1273-1300`). The running state now
+        // renders the upstream `esc interrupt` prompt-footer hint
+        // (`component/prompt/index.tsx:139-142`) and transient notes render as
+        // the upstream toast (`ui/toast.tsx:48-90`). This test keeps the
+        // colour guarantees on the frame buffer of the new surfaces.
+        use ratatui::{Terminal, backend::TestBackend};
+
         let theme = Theme::dark();
         let mut state = view_state("s-title").await;
+        let turn = WorkerTurnId("t-title".to_string());
+        state.begin_compress_turn(turn.clone());
         state.push_note("something happened");
-        let title = status_title(&state, theme);
-        let spans = title.spans();
-        assert_eq!(spans.len(), 3, "{spans:?}");
-        assert_eq!(spans[0].content(), "oc ");
-        assert_eq!(spans[0].style().fg, Some(theme.text_muted()));
-        assert_eq!(spans[1].content(), "Idle");
-        assert_eq!(spans[1].style().fg, Some(theme.text()));
-        assert_eq!(spans[2].content(), " — something happened");
-        assert_eq!(spans[2].style().fg, Some(theme.warning()));
 
-        state.begin_compress_turn(WorkerTurnId("t-title".to_string()));
-        let title = status_title(&state, theme);
-        assert_eq!(title.spans()[1].content(), "Streaming");
-        assert_eq!(title.spans()[1].style().fg, Some(theme.primary()));
+        let backend = TestBackend::new(70, 24);
+        let mut terminal = Terminal::new(backend).expect("backend");
+        terminal
+            .draw(|frame| super::render_frame(frame, &state))
+            .expect("draw");
+        let buffer = terminal.backend().buffer();
+
+        // Toast: warning side border, raised-high surface, text on the first
+        // content row (70 wide: maxWidth = min(60, 64) = 60, right = 2).
+        assert_eq!(buffer[(8, 1)].fg, theme.warning());
+        assert_eq!(buffer[(11, 2)].bg, theme.background_raised_high());
+        assert_eq!(buffer[(11, 2)].fg, theme.text());
+        // Prompt footer: `esc` in base text, `interrupt` muted.
+        assert_eq!(buffer[(2, 21)].fg, theme.text());
+        assert_eq!(buffer[(6, 21)].fg, theme.text_muted());
+
+        // A paused/streaming scroll shows the upstream jump affordance in the
+        // status row (`routes/session/index.tsx:1344-1348`).
+        state.attach_page(&page(
+            (0..VIEWPORT_LINES + 5)
+                .map(|i| msg(i as i64, Role::User, "line"))
+                .collect(),
+        ));
+        for _ in 0..4 {
+            state.handle_key(KeyAction::Up).await;
+        }
+        let backend = TestBackend::new(70, 24);
+        let mut terminal = Terminal::new(backend).expect("backend");
+        terminal
+            .draw(|frame| super::render_frame(frame, &state))
+            .expect("draw");
+        let buffer = terminal.backend().buffer();
+        // Content is 2..67 wide at 70 columns; the affordance is right-aligned.
+        assert_eq!(buffer[(67, 15)].fg, theme.action_secondary());
     }
 
     #[tokio::test]
     async fn rendered_frame_carries_theme_styles() {
+        // Iteration 2: border/title styles moved from the bordered panes to
+        // the upstream shell surfaces; the former pane-title cells now assert
+        // the tab surface, prompt glyphs and devtools bar instead. The
+        // coordinates come from the layout module, so allocation changes
+        // cannot silently invalidate the assertions.
+        use crate::layout;
         use ratatui::{Terminal, backend::TestBackend};
 
         let theme = Theme::dark();
@@ -404,13 +373,27 @@ mod tests {
         let backend = TestBackend::new(40, 10);
         let mut terminal = Terminal::new(backend).expect("backend");
         terminal
-            .draw(|frame| render_frame(frame, &state))
+            .draw(|frame| super::render_frame(frame, &state))
             .expect("draw");
         let buffer = terminal.backend().buffer();
-        // Pane borders and the status title carry theme colors, so the
-        // palette is live on a real frame, not only in accessors.
-        assert_eq!(buffer[(0, 0)].fg, theme.border());
-        assert_eq!(buffer[(1, 0)].fg, theme.text_muted());
-        assert_eq!(buffer[(4, 0)].fg, theme.text());
+        let shell = layout::shell_regions(buffer.area);
+        let regions = layout::session_regions(shell.session, 0);
+        // Tab strip surface: decrease(background.raised.base).
+        assert_eq!(buffer[(0, 0)].bg, theme.decrease(theme.background_panel()));
+        // Prompt left border on the first prompt body row.
+        assert_eq!(
+            buffer[(regions.prompt.x, regions.prompt.y)].fg,
+            theme.border()
+        );
+        // Prompt underline `▀` carries decrease(background.raised.base).
+        assert_eq!(
+            buffer[(regions.underline.x + 1, regions.underline.y)].fg,
+            theme.decrease(theme.background_panel())
+        );
+        // Devtools bar background: decrease(background.base).
+        assert_eq!(
+            buffer[(0, shell.devtools.y)].bg,
+            theme.decrease(theme.background())
+        );
     }
 }

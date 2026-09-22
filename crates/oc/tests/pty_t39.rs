@@ -18,6 +18,13 @@ use std::time::{Duration, Instant};
 const BIN: &str = env!("CARGO_BIN_EXE_oc");
 const POLL: Duration = Duration::from_millis(25);
 const DEADLINE: Duration = Duration::from_secs(20);
+
+/// Startup readiness marker. Iteration 2 of the TUI pixel-parity goal replaced
+/// the `oc <status>` history-pane title (upstream has no transcript title,
+/// `routes/session/index.tsx:1273-1300`); the always-visible tab-strip title is
+/// the upstream fallback for a session without a title
+/// (`component/session-tabs.tsx:1561`).
+const READY: &str = "Untitled session";
 /// Alternate-screen leave sequence: proof the terminal was restored.
 const ALT_LEAVE: &[u8] = b"\x1b[?1049l";
 const MODEL: &str = "pty-model";
@@ -821,7 +828,7 @@ fn aud29_pty_panels_change_runtime_state() {
     let project = fixture.root.path().join("project");
     seed_session(&fixture.data_dir(), &project, "s-aud29-b", 2);
     let mut pty = PtySession::spawn(fixture.clone(), "s-aud29", None);
-    pty.wait_visible("Idle", DEADLINE);
+    pty.wait_visible(READY, DEADLINE);
 
     // Model picker: the effective model changes for the next turn.
     pty.send(b"/model\r");
@@ -870,7 +877,7 @@ fn aud29_pty_panels_change_runtime_state() {
     wait_screen_row(&pty, "sessions |", DEADLINE);
     pty.send(b"\x1b[B"); // Down: cursor moves off the first id
     pty.send(b"\r");
-    pty.wait_visible("Idle", DEADLINE);
+    pty.wait_visible(READY, DEADLINE);
     let off = submit(&mut pty, "hello switch");
     pty.wait_visible_after(off, "echo: hello switch", DEADLINE);
     pty.send(b"/quit\r");
@@ -932,7 +939,7 @@ fn aud29_pty_panels_change_runtime_state() {
 fn aud30_pty_paste_resize_error_recovery() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(fixture.clone(), "s-aud30", None);
-    pty.wait_visible("Idle", DEADLINE);
+    pty.wait_visible(READY, DEADLINE);
 
     // Bracketed paste arrives as one event with unicode intact.
     let off = pty.snapshot().len();
@@ -1007,7 +1014,7 @@ fn aud31_pty_bounded_backing_state() {
     let metrics = fixture.root.path().join("metrics.json");
 
     let mut pty = PtySession::spawn(fixture.clone(), "s-long39", Some(&metrics));
-    pty.wait_visible("Idle", DEADLINE);
+    pty.wait_visible(READY, DEADLINE);
     // Page up through real rendering: older pages load and older rows evict.
     for _ in 0..40 {
         pty.send(b"\x1b[A");
@@ -1027,7 +1034,7 @@ fn aud31_pty_bounded_backing_state() {
     wait_screen_row(&pty, "sessions |", DEADLINE);
     pty.send(b"\x1b[B"); // Down: cursor moves off the first id
     pty.send(b"\r");
-    pty.wait_visible("Idle", DEADLINE);
+    pty.wait_visible(READY, DEADLINE);
     pty.send(b"/quit\r");
     let (status, _) = pty.wait_exit(DEADLINE);
     assert!(status.success(), "clean exit");

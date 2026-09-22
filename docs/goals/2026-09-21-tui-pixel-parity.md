@@ -20,20 +20,20 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: user instruction (recon by part of @general).
   - Acceptance: `evidence/tui/upstream-inventory.md` documents the upstream v2.0.12 TUI: file/component inventory (`packages/tui/src/**`, `packages/theme/src/tui/**`), exact theme colors, layout regions, keymap, and visible strings, each with source path + quoted snippet; `evidence/tui/current-gaps.md` maps our `crates/oc-tui` against it with concrete gaps.
   - Primary evidence: the two files + a reviewer can trace every claim to an upstream path.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: `evidence/tui/upstream-inventory.md` (147 lines, `path:line`-cited: default theme `opencode` dark, 74 token slots + hue scales, ~45 components, layout regions, keymap source, visible strings) and `evidence/tui/current-gaps.md` (171 lines, gap table + test-infrastructure analysis).
 
 - R2: Theme parity — the palette (colors, backgrounds, borders, syntax accents) matches upstream v2.0.12 values, including per-element roles (text, muted, primary, error/warning/success, panel, border, diff add/remove, user/assistant roles).
   - Acceptance: a test asserts our resolved palette equals the upstream values extracted in R1; TUI renders with those colors under a truecolor terminal.
   - Primary evidence: unit test over the palette + PTY snapshot showing colored regions.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: iteration 1 commit `b75e063`; `crates/oc-tui/assets/upstream/v2/opencode.json` (byte-faithful, SHA-256 recorded in `PROVENANCE.md`), `theme.rs::palette_matches_vendored_asset` walks the merged JSON generically (74 slots / 99 hue slots / 173 palette entries per mode), `rendered_frame_carries_theme_styles` asserts colors on a TestBackend frame.
 
 - R3: Layout parity — screen regions (header/logo area, message stream, input editor, status/footer bar, side panels/dialogs) occupy the same positions and respond to resize like upstream.
   - Acceptance: golden snapshots at fixed terminal sizes (e.g. 80x24, 120x40) match the upstream layout spec from R1.
   - Primary evidence: PTY snapshot tests at two sizes + resize behavior test.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: iteration 2; `crates/oc-tui/src/layout.rs` (upstream geometry constants with source citations) + `shell.rs` golden frames at 80x24 and 120x40, breakpoint resize test, sticky-bottom test; workspace 381 passed / 0 failed / 4 ignored.
 
 - R4: Message rendering parity — user/assistant messages, markdown (headings, lists, code blocks, inline code), reasoning/thinking blocks, tool call cards (command, patch/diff, search, read), errors, and pending/running/completed states match upstream presentation and visible strings.
   - Acceptance: golden snapshots for a scripted transcript covering each element; no raw escape noise; content wraps correctly.
@@ -93,6 +93,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 ## Checkpoint History
 
 - 2026-09-21: contract frozen; recon delegated.
+- 2026-09-21: R1 verified (both recon artifacts); iteration 1 (theme foundation) committed `b75e063`; iteration 2 (layout shell + goldens) committed next.
 
 ## Completion
 

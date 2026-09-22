@@ -19,6 +19,13 @@ use std::time::{Duration, Instant};
 const BIN: &str = env!("CARGO_BIN_EXE_oc");
 const POLL: Duration = Duration::from_millis(25);
 const DEADLINE: Duration = Duration::from_secs(20);
+
+/// Startup readiness marker. Iteration 2 of the TUI pixel-parity goal replaced
+/// the `oc <status>` history-pane title (upstream has no transcript title,
+/// `routes/session/index.tsx:1273-1300`); the always-visible tab-strip title is
+/// the upstream fallback for a session without a title
+/// (`component/session-tabs.tsx:1561`).
+const READY: &str = "Untitled session";
 /// Alternate-screen leave sequence: proof the terminal was restored.
 const ALT_LEAVE: &[u8] = b"\x1b[?1049l";
 const MODEL: &str = "t42-model";
@@ -460,11 +467,12 @@ impl PtySession {
                 let last = requests.last().and_then(last_user_text).unwrap_or_default();
                 panic!(
                     "timeout waiting for visible-after {needle:?}; {} fresh bytes; head: {:?}; \
-                     requests={} last_prompt={:?}",
+                     requests={} last_prompt={:?}; screen={:?}",
                     tail.len(),
                     String::from_utf8_lossy(&norm_visible(&tail[..tail.len().min(600)])),
                     requests.len(),
-                    last
+                    last,
+                    render_screen(&buf).rows()
                 );
             }
             std::thread::sleep(POLL);
@@ -927,7 +935,7 @@ fn tool_names(body: &serde_json::Value) -> Vec<String> {
 fn aud38_bare_oc_launches_the_local_tui() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(fixture.clone(), &fixture.project_a(), &[], None);
-    pty.wait_visible("Idle", DEADLINE);
+    pty.wait_visible(READY, DEADLINE);
     let off = submit(&mut pty, "hello bare");
     pty.wait_visible_after(off, "echo: hello bare", DEADLINE);
     pty.send(b"/quit\r");
@@ -968,7 +976,7 @@ fn aud38_apply_patch_card_shows_bounded_diff() {
         &["tui", "--session", "s-t42-patch"],
         None,
     );
-    pty.wait_visible("Idle", DEADLINE);
+    pty.wait_visible(READY, DEADLINE);
     let off = submit(&mut pty, "patch the file");
     pty.wait_visible_after(off, "answer:patched", DEADLINE);
     pty.send(b"/cards\r");
@@ -1018,7 +1026,7 @@ fn aud38_location_switch_is_one_lifecycle() {
         &["tui", "--session", "s-t42-a"],
         Some(&metrics),
     );
-    pty.wait_visible("Idle", DEADLINE);
+    pty.wait_visible(READY, DEADLINE);
 
     // Usage hint for the new command.
     pty.send(b"/location\r");
@@ -1034,7 +1042,10 @@ fn aud38_location_switch_is_one_lifecycle() {
 
     // A switch while a turn streams is refused, not raced.
     let off = submit(&mut pty, "slow stream");
-    pty.wait_visible_after(off, "slow stream", DEADLINE);
+    // Row assertions use the reconstructed screen grid: ratatui's cell diff
+    // can skip cells whose content coincides with the previous frame, which
+    // fragments raw byte needles (see `wait_screen_row`).
+    wait_screen_row(&pty, "you: slow stream", DEADLINE);
     let beta = fixture.project_b().canonicalize().expect("b path");
     pty.send(format!("/location {}\r", beta.display()).as_bytes());
     pty.wait_visible("turn active; location switch refused", DEADLINE);
@@ -1046,7 +1057,11 @@ fn aud38_location_switch_is_one_lifecycle() {
 
     // Switch to B: its rule, command, skill and MCP server are live.
     pty.send(format!("/location {}\r", beta.display()).as_bytes());
-    pty.wait_visible("proj-beta", DEADLINE);
+    // The success note renders as the upstream toast; its long path may wrap
+    // mid-word (`ui/toast.tsx:75` word wrap), so sync on the note's first
+    // line instead of a byte needle inside the path. The B_RULE assertions
+    // below prove the target Location really switched.
+    wait_screen_row(&pty, "location:", DEADLINE);
     let off = submit(&mut pty, "beta one");
     pty.wait_visible_after(off, "echo: beta one", DEADLINE);
     let requests = fixture.wait_requests(3);
@@ -1074,7 +1089,9 @@ fn aud38_location_switch_is_one_lifecycle() {
     // Back to A: its state returns, beta state is gone, same A session.
     let alpha = fixture.project_a().canonicalize().expect("a path");
     pty.send(format!("/location {}\r", alpha.display()).as_bytes());
-    pty.wait_visible("proj-alpha", DEADLINE);
+    // Switching back reopens the recorded A session: its history returns to
+    // the screen grid (the beta session's rows are replaced).
+    wait_screen_row(&pty, "user: alpha one", DEADLINE);
     let off = submit(&mut pty, "alpha two");
     pty.wait_visible_after(off, "echo: alpha two", DEADLINE);
     let requests = fixture.wait_requests(4);

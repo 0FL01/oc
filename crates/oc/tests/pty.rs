@@ -17,6 +17,13 @@ use std::time::{Duration, Instant};
 const BIN: &str = env!("CARGO_BIN_EXE_oc");
 const POLL: Duration = Duration::from_millis(25);
 const DEADLINE: Duration = Duration::from_secs(15);
+
+/// Startup readiness marker. Iteration 2 of the TUI pixel-parity goal replaced
+/// the `oc <status>` history-pane title (upstream has no transcript title,
+/// `routes/session/index.tsx:1273-1300`); the always-visible tab-strip title is
+/// the upstream fallback for a session without a title
+/// (`component/session-tabs.tsx:1561`).
+const READY: &str = "Untitled session";
 /// Alternate-screen leave sequence: proof the terminal was restored.
 const ALT_LEAVE: &[u8] = b"\x1b[?1049l";
 const FIXTURE_MODEL: &str = "pty-unseen-model";
@@ -789,9 +796,13 @@ fn render_screen(buf: &[u8]) -> Screen {
     }
     screen
 }
-/// One full-width dash run of a frame border (written contiguously).
-fn dash_run(width: usize) -> Vec<u8> {
-    "─".repeat(width - 2).into_bytes()
+/// One full-width prompt underline run (`▀` written contiguously): the
+/// upstream prompt paints `╹` + `▀` across the content box
+/// (`component/prompt/index.tsx:1846-1870`) with `1|2` padding at the 44
+/// breakpoint (`routes/session/index.tsx:1277`).
+fn underline_run(width: usize) -> Vec<u8> {
+    let pad = if width < 44 { 1 } else { 2 };
+    "▀".repeat(width - 2 * pad - 1).into_bytes()
 }
 
 /// Wait until the reconstructed screen has a row containing `needle`.
@@ -817,25 +828,45 @@ fn submit_turn(pty: &mut PtySession, text: &str) -> usize {
     let off = pty.snapshot().len();
     pty.send(text.as_bytes());
     pty.send(b"\r");
-    pty.wait_visible_after(off, &format!("you: {text}"), DEADLINE);
+    // Grid assertion: the cell diff may skip coinciding cells on the wire.
+    wait_screen_row(pty, &format!("you: {text}"), DEADLINE);
     off
 }
 
 /// Settle the worker: a second single-flight turn is accepted only after the
 /// previous one finished, then a pause lets the drain persist it. Without
 /// this, quitting could abandon a turn whose finished event is still queued.
+///
+/// Every attempt types a unique marker, so the accepted transcript row
+/// (`you: <marker>`) can never be confused with a stale row that a redraw
+/// re-emitted: the upstream shell keeps the transcript sticky-bottom
+/// (`routes/session/index.tsx:1299-1300`), so a new live row shifts the
+/// existing rows and the cell diff rewrites them. Retained input from a
+/// rejected attempt is cleared with Backspace before the next marker.
 fn settle_turn(pty: &mut PtySession) {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    static SETTLE: AtomicUsize = AtomicUsize::new(0);
     let start = Instant::now();
     let mut attempt = 0;
+    let mut typed = 0usize;
     loop {
         attempt += 1;
-        let off = pty.snapshot().len();
-        pty.send(b"zzz\r");
+        let marker = format!("zzz{}", SETTLE.fetch_add(1, Ordering::Relaxed));
+        if typed > 0 {
+            pty.send(&vec![0x7f; typed]);
+        }
+        pty.send(marker.as_bytes());
+        pty.send(b"\r");
+        typed = marker.len();
+        let want = format!("you: {marker}");
         let inner = Instant::now();
         loop {
-            let buf = pty.snapshot();
-            let fresh = &buf[off.min(buf.len())..];
-            if contains(&norm_visible(fresh), &norm_needle("you: zzz")) {
+            if render_screen(&pty.snapshot())
+                .rows()
+                .iter()
+                .any(|row| row.contains(&want))
+            {
                 std::thread::sleep(Duration::from_secs(1));
                 return;
             }
@@ -891,8 +922,11 @@ fn persisted(data_dir: &Path, session: &str) -> Vec<(String, String)> {
 #[test]
 fn pty_smoke_type_echo_quit() {
     let mut pty = spawn_session("s-smoke");
-    pty.wait_visible("Idle", DEADLINE);
-    assert!(contains(&pty.snapshot(), &dash_run(80)), "80-col frame");
+    pty.wait_visible(READY, DEADLINE);
+    assert!(
+        contains(&pty.snapshot(), &underline_run(80)),
+        "80-col prompt underline"
+    );
     submit_turn(&mut pty, "hi");
     settle_turn(&mut pty);
     let _ = quit_clean(&mut pty);
@@ -910,13 +944,12 @@ fn pty_smoke_type_echo_quit() {
 #[test]
 fn pty_unicode_and_paste_roundtrip() {
     let mut pty = spawn_session("s-uni");
-    pty.wait_visible("Idle", DEADLINE);
+    pty.wait_visible(READY, DEADLINE);
     // Cyrillic + emoji typed as UTF-8 bytes, then a correction via Backspace.
-    let off = pty.snapshot().len();
     pty.send("привет 🌍".as_bytes());
     pty.send("\x7f".as_bytes()); // Backspace drops the emoji (char-pop)
     pty.send("🌎\r".as_bytes());
-    pty.wait_visible_after(off, "you: привет 🌎", DEADLINE);
+    wait_screen_row(&pty, "you: привет 🌎", DEADLINE);
     settle_turn(&mut pty);
     // Single-line paste (1500 chars) arrives as a char stream and fits the cap.
     // Chunked with pauses: crossterm reads at most 1024 bytes per edge and
@@ -924,13 +957,12 @@ fn pty_unicode_and_paste_roundtrip() {
     // a fresh edge; paced chunks (like a real terminal paste) each get
     // their own edge and drain fully.
     let paste = "p".repeat(1500);
-    let off = pty.snapshot().len();
     for chunk in paste.as_bytes().chunks(400) {
         pty.send(chunk);
         std::thread::sleep(Duration::from_millis(150));
     }
     pty.send(b"\r");
-    pty.wait_visible_after(off, &format!("you: {}", &paste[..70]), DEADLINE);
+    wait_screen_row(&pty, &format!("you: {}", &paste[..70]), DEADLINE);
     settle_turn(&mut pty);
     let _ = quit_clean(&mut pty);
     let history = persisted(pty.data_dir(), "s-uni");
@@ -956,11 +988,11 @@ fn pty_unicode_and_paste_roundtrip() {
 #[test]
 fn pty_resize_redraws_full_frame() {
     let mut pty = PtySession::spawn(80, 24, Some("xterm-256color"), true);
-    pty.wait_for(&dash_run(80), DEADLINE);
+    pty.wait_for(&underline_run(80), DEADLINE);
     pty.resize(100, 30);
-    pty.wait_for(&dash_run(100), DEADLINE);
+    pty.wait_for(&underline_run(100), DEADLINE);
     pty.resize(60, 12);
-    pty.wait_for(&dash_run(60), DEADLINE);
+    pty.wait_for(&underline_run(60), DEADLINE);
     pty.send(b"/quit\r");
     let (status, _) = pty.wait_exit(DEADLINE);
     assert!(status.success());
@@ -978,7 +1010,7 @@ fn pty_tiny_screen_survives() {
         &["--session", "s-tiny"],
         None,
     );
-    pty.wait_visible("Idle", DEADLINE);
+    pty.wait_visible(READY, DEADLINE);
     submit_turn(&mut pty, "tiny");
     settle_turn(&mut pty);
     pty.send(b"\x03"); // Ctrl-C quits from idle without typing /quit
@@ -1024,7 +1056,7 @@ fn pty_ssh_like_term_variants() {
             &["--session", session],
             None,
         );
-        pty.wait_visible("Idle", DEADLINE);
+        pty.wait_visible(READY, DEADLINE);
         submit_turn(&mut pty, "ssh");
         settle_turn(&mut pty);
         let _ = quit_clean(&mut pty);
@@ -1053,8 +1085,10 @@ fn pty_long_history_starts_and_pages() {
     // ratatui's cell diff skips unchanged cells on the wire, so scrolled
     // rows arrive fragmented while the grid holds their true content.
     wait_screen_row(&pty, &format!("user: {}", seed_row(2998)), DEADLINE);
-    // Page up through real rendering: older rows scroll into view.
-    for _ in 0..5 {
+    // Page up through real rendering: older rows scroll into view. The
+    // upstream bottom stack (status row + prompt box + footer) leaves 14
+    // transcript rows at 80x24, so paging further reaches row 2979.
+    for _ in 0..10 {
         pty.send(b"\x1b[A"); // Up
         std::thread::sleep(Duration::from_millis(150));
     }
@@ -1204,7 +1238,7 @@ fn aud02_store01_persist_resume_across_restart() {
 #[test]
 fn pty_escape_cancels_heartbeat_request() {
     let mut pty = spawn_session("s-cancel");
-    pty.wait_visible("Idle", DEADLINE);
+    pty.wait_visible(READY, DEADLINE);
     submit_turn(&mut pty, "cancel heartbeat probe");
     pty.fixture.wait_requests(1);
     wait_screen_row(&pty, "ai: partial", DEADLINE);
@@ -1213,7 +1247,10 @@ fn pty_escape_cancels_heartbeat_request() {
     // Rejected input stays in the editor; remove it before issuing /quit.
     pty.send(&[127; 19]);
     pty.send(b"\x1b"); // Esc cancels; Ctrl-C always quits in the existing key map.
-    wait_screen_row(&pty, "Cancelled", DEADLINE);
+    // Iteration 2 (upstream shell): the old `oc Cancelled` pane title is gone;
+    // the interrupt is visible as the transcript's `(cancelled)` row
+    // (`apply_interrupted` -> `push_synthetic("", "(cancelled)")`).
+    wait_screen_row(&pty, "(cancelled)", DEADLINE);
     quit_clean(&mut pty);
     assert_eq!(
         persisted(pty.data_dir(), "s-cancel"),

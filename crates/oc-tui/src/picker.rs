@@ -95,6 +95,11 @@ impl ModelPicker {
         self.selected.as_ref()
     }
 
+    /// Provider id of the bound catalog.
+    pub fn provider(&self) -> &str {
+        &self.catalog.provider
+    }
+
     /// Refresh status line for the view.
     pub fn status_line(&self) -> String {
         let catalog_part = match &self.refresh {

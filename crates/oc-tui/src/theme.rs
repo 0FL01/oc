@@ -167,6 +167,21 @@ impl Rgba {
     }
 }
 
+/// Upstream `tint(base, overlay, alpha)` (`packages/tui/src/theme/color.ts:43-47`):
+/// each channel moves `alpha` of the way from `base` toward `overlay` and is
+/// rounded. Non-RGB terminal colors pass through unchanged.
+pub fn tint(base: Color, overlay: Color, alpha: f32) -> Color {
+    let (Color::Rgb(br, bg, bb), Color::Rgb(or, og, ob)) = (base, overlay) else {
+        return base;
+    };
+    let mix = |base: u8, overlay: u8| -> u8 {
+        (f32::from(base) + (f32::from(overlay) - f32::from(base)) * alpha)
+            .round()
+            .clamp(0.0, 255.0) as u8
+    };
+    Color::Rgb(mix(br, or), mix(bg, og), mix(bb, ob))
+}
+
 /// Syntax token names (`packages/theme/src/tui/schema.ts` `SyntaxToken`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SyntaxToken {
@@ -319,6 +334,7 @@ struct Roles {
     background_raised_max: Color,
     border: Color,
     border_active: Color,
+    action_secondary: Color,
     scrollbar: Color,
     error: Color,
     warning: Color,
@@ -365,6 +381,7 @@ impl Roles {
             background_raised_max: need("background.raised.max")?,
             border: need("border.base")?,
             border_active: need("text.formfield.$focused")?,
+            action_secondary: need("text.action.secondary.base")?,
             scrollbar: need("scrollbar.base")?,
             error: need("text.feedback.error.base")?,
             warning: need("text.feedback.warning.base")?,
@@ -534,6 +551,43 @@ impl Theme {
     /// this is the focus state `text.formfield.$focused`.
     pub fn border_active(&self) -> Color {
         self.roles.border_active
+    }
+
+    /// Secondary action text, upstream `text.action.secondary.base`; used by
+    /// the "Jump to latest ↓" status row (`routes/session/index.tsx:1344-1348`).
+    pub fn action_secondary(&self) -> Color {
+        self.roles.action_secondary
+    }
+
+    /// Upstream `theme.decrease(color)`: one step down the color's hue scale
+    /// (`packages/theme/src/tui/resolve.ts:158-180`). Colors outside the hue
+    /// scales (raw hex tokens such as `border.base`) pass through unchanged.
+    pub fn decrease(&self, color: Color) -> Color {
+        self.shift_hue(color, -1)
+    }
+
+    /// Upstream `theme.increase(color)`: one step up the color's hue scale.
+    pub fn increase(&self, color: Color) -> Color {
+        self.shift_hue(color, 1)
+    }
+
+    fn shift_hue(&self, color: Color, offset: i32) -> Color {
+        let Color::Rgb(r, g, b) = color else {
+            return color;
+        };
+        let needle = Rgba::new(r, g, b, 255);
+        for name in HUE_NAMES {
+            for (position, step) in HUE_STEPS.iter().enumerate() {
+                let path = format!("hue.{name}.{step}");
+                if self.palette.get(&path) != Some(&needle) {
+                    continue;
+                }
+                let target = (position as i32 + offset).clamp(0, HUE_STEPS.len() as i32 - 1);
+                let path = format!("hue.{name}.{}", HUE_STEPS[target as usize]);
+                return self.palette[&path].to_color(self.underlay);
+            }
+        }
+        color
     }
 
     /// Scrollbar, upstream `scrollbar.base`.
@@ -1092,6 +1146,51 @@ mod tests {
         root["dark"]["border"]["base"] = json!("#80402040");
         let alpha = Theme::from_json(&root.to_string(), ThemeMode::Dark).expect("alpha asset");
         assert_eq!(alpha.border(), Color::Rgb(39, 23, 15));
+    }
+
+    #[test]
+    fn tint_and_hue_shifts_match_upstream() {
+        // tint(): linear interpolation base -> overlay, rounded per channel.
+        assert_eq!(
+            tint(Color::Rgb(238, 238, 238), Color::Rgb(30, 30, 30), 0.25),
+            Color::Rgb(186, 186, 186)
+        );
+        assert_eq!(
+            tint(Color::Rgb(1, 2, 3), Color::Rgb(9, 9, 9), 0.0),
+            Color::Rgb(1, 2, 3)
+        );
+
+        let dark = Theme::dark();
+        // `background.raised.base` is `$hue.neutral.700`; decrease moves one
+        // step down the scale (dark mode: 700 -> 600, a lighter gray).
+        assert_eq!(
+            dark.decrease(dark.background_panel()),
+            Color::Rgb(0x1e, 0x1e, 0x1e)
+        );
+        // `background.base` is `$hue.neutral.800`: decrease -> 700,
+        // increase -> 900.
+        assert_eq!(dark.decrease(dark.background()), dark.background_panel());
+        assert_eq!(
+            dark.increase(dark.background()),
+            Color::Rgb(0x03, 0x03, 0x03)
+        );
+        assert_eq!(
+            dark.increase(dark.background_panel()),
+            Color::Rgb(0x0a, 0x0a, 0x0a)
+        );
+        // Raw hex tokens are outside the hue scales: unchanged, like upstream.
+        assert_eq!(dark.decrease(dark.border()), dark.border());
+        assert_eq!(dark.increase(Color::Rgb(1, 2, 3)), Color::Rgb(1, 2, 3));
+
+        // This is the selected tab / prompt surface from the upstream shell.
+        assert_eq!(
+            Theme::dark().decrease(Theme::dark().background_panel()),
+            Color::Rgb(30, 30, 30)
+        );
+        assert_eq!(
+            Theme::dark().action_secondary(),
+            Color::Rgb(0x80, 0x80, 0x80)
+        );
     }
 
     #[test]
