@@ -15,7 +15,8 @@ use oc_adapters::models::ModelCatalog;
 use oc_adapters::patch::ProtectedGlobs;
 use oc_adapters::provider::ResponsesConfig;
 use oc_adapters::runtime::{
-    COMMAND_BYTES_CAP, Runtime, ToolCallEvent, TurnParams, TurnStatus, expand_command,
+    COMMAND_BYTES_CAP, Runtime, RuntimeError, SESSION_LOCATION_PREFIX, ToolCallEvent, TurnParams,
+    TurnStatus, expand_command,
 };
 use oc_adapters::storage::Db;
 use oc_core::context_plan::ProtectedSpec;
@@ -295,6 +296,93 @@ fn runtime_with_dcp<'a>(
         dcp_config,
     )
     .expect("runtime")
+}
+
+#[test]
+fn root_location_creation_rolls_back_on_pref_failure_and_retries() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation.clone(), Vec::new());
+    let conn = rusqlite::Connection::open(harness._data.path().join("oc.sqlite")).unwrap();
+    let key = format!("{SESSION_LOCATION_PREFIX}atomic-root");
+    conn.execute_batch(
+        "CREATE TRIGGER fail_location_binding BEFORE INSERT ON prefs
+         WHEN NEW.key = 'tui.session_location.atomic-root'
+         BEGIN SELECT RAISE(ABORT, 'injected preference failure'); END;",
+    )
+    .unwrap();
+
+    assert!(matches!(
+        runtime.create_session("atomic-root"),
+        Err(RuntimeError::Storage)
+    ));
+    let count =
+        |sql: &str, value: &str| -> i64 { conn.query_row(sql, [value], |row| row.get(0)).unwrap() };
+    let sessions = "SELECT count(*) FROM sessions WHERE id = ?1";
+    let events = "SELECT count(*) FROM events WHERE session_id = ?1 AND kind = 'session_created'";
+    let prefs = "SELECT count(*) FROM prefs WHERE key = ?1";
+    assert_eq!(
+        count(sessions, "atomic-root"),
+        0,
+        "failed binding stranded a root"
+    );
+    assert_eq!(
+        count(events, "atomic-root"),
+        0,
+        "failed binding stranded an event"
+    );
+    assert_eq!(count(prefs, &key), 0);
+
+    conn.execute_batch("DROP TRIGGER fail_location_binding;")
+        .unwrap();
+    runtime.create_session("atomic-root").expect("retry");
+    runtime
+        .create_session("atomic-root")
+        .expect("same Location idempotent");
+    runtime.open_session("atomic-root").expect("bound root");
+    assert_eq!(count(sessions, "atomic-root"), 1);
+    assert_eq!(count(events, "atomic-root"), 1);
+    assert_eq!(count(prefs, &key), 1);
+
+    let project = harness._project.path();
+    let other = Runtime::new(
+        &harness.db,
+        "elsewhere",
+        generation,
+        ProtectedGlobs { patterns: vec![] },
+        oc_adapters::files::Files::new(project, harness._data.path()).unwrap(),
+        oc_adapters::shell::Shell::new(project).unwrap(),
+        BTreeMap::new(),
+        oc_adapters::tools::ToolRoots {
+            project: project.to_path_buf(),
+            data: harness._data.path().to_path_buf(),
+        },
+        None,
+        false,
+        DcpConfig::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        other.create_session("atomic-root"),
+        Err(RuntimeError::LocationMismatch {
+            session: "atomic-root".into(),
+            location: "work".into(),
+        })
+    );
+    assert_eq!(count(sessions, "atomic-root"), 1);
+    assert_eq!(count(events, "atomic-root"), 1);
+    assert_eq!(count(prefs, &key), 1);
+
+    harness.db.create_session("standalone").unwrap();
+    assert_eq!(
+        runtime.create_session("standalone"),
+        Err(RuntimeError::Storage)
+    );
+    assert_eq!(count(sessions, "standalone"), 1);
+    assert_eq!(count(events, "standalone"), 1);
+    assert_eq!(
+        count(prefs, &format!("{SESSION_LOCATION_PREFIX}standalone")),
+        0
+    );
 }
 
 fn provider_of(base: &str) -> ResponsesConfig {

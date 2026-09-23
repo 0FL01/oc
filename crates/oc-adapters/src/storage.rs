@@ -27,6 +27,8 @@ pub const SCHEMA_VERSION: i64 = 1;
 /// Additive child-session schema version (T43): nullable `sessions` columns
 /// plus a `parent_id` index. Version 2 is the DCP migration.
 pub const CHILD_SESSION_SCHEMA_VERSION: i64 = 3;
+/// Preference namespace for root session Location ownership.
+pub(crate) const SESSION_LOCATION_PREFIX: &str = "tui.session_location.";
 /// Nullable `sessions` columns added by [`CHILD_SESSION_SCHEMA_VERSION`].
 const CHILD_SESSION_COLUMNS: [(&str, &str); 4] = [
     ("parent_id", "TEXT"),
@@ -172,6 +174,13 @@ pub struct SessionMeta {
     pub model: Option<String>,
     /// Human title (the subagent call's short description).
     pub title: Option<String>,
+}
+
+/// Outcome of a Location-scoped root creation under the storage transaction.
+pub(crate) enum BoundSessionCreation {
+    Created,
+    AlreadyBound,
+    BoundElsewhere(String),
 }
 
 /// One tool operation row for TUI tool cards (T22).
@@ -327,12 +336,60 @@ impl Db {
 
     /// Create a root session; duplicate ids fail.
     pub fn create_session(&self, id: &str) -> Result<(), StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
-        Self::insert_session_row(&conn, id, None, None, None, None)?;
-        conn.prepare_cached(
+        self.create_root_session(id, None)?;
+        Ok(())
+    }
+
+    /// Atomically create a root, its event, and its Location binding.
+    /// Existing bindings are idempotent only for the same Location; a root
+    /// without a binding remains a duplicate rather than being claimed.
+    pub(crate) fn create_bound_session(
+        &self,
+        id: &str,
+        location: &str,
+    ) -> Result<BoundSessionCreation, StorageError> {
+        self.create_root_session(id, Some(location))
+    }
+
+    fn create_root_session(
+        &self,
+        id: &str,
+        location: Option<&str>,
+    ) -> Result<BoundSessionCreation, StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        let binding = location.map(|location| (format!("{SESSION_LOCATION_PREFIX}{id}"), location));
+        if let Some((key, location)) = &binding {
+            let owner: Option<String> = tx
+                .query_row("SELECT value FROM prefs WHERE key = ?1", [key], |row| {
+                    row.get(0)
+                })
+                .optional()?;
+            if let Some(owner) = owner {
+                return Ok(if owner == *location {
+                    BoundSessionCreation::AlreadyBound
+                } else {
+                    BoundSessionCreation::BoundElsewhere(owner)
+                });
+            }
+        }
+        Self::insert_root_session(&tx, id)?;
+        if let Some((key, location)) = &binding {
+            tx.execute(
+                "INSERT INTO prefs(key, value, updated_at) VALUES (?1, ?2, ?3)",
+                params![key, location, now_rfc3339()],
+            )?;
+        }
+        tx.commit()?;
+        Ok(BoundSessionCreation::Created)
+    }
+
+    fn insert_root_session(conn: &Connection, id: &str) -> Result<(), StorageError> {
+        Self::insert_session_row(conn, id, None, None, None, None)?;
+        conn.execute(
             "INSERT INTO events(session_id, kind, payload) VALUES (?1, 'session_created', ?2)",
-        )?
-        .execute(params![id, "{}"])?;
+            params![id, "{}"],
+        )?;
         Ok(())
     }
 
@@ -2751,6 +2808,67 @@ mod tests {
             db.create_session("k"),
             Err(StorageError::SessionAlreadyExists)
         ));
+    }
+
+    #[test]
+    fn root_creation_rolls_back_when_event_insert_fails() {
+        let tmp = tmp_root("root-atomic");
+        let db = Db::open(&tmp.path().join("data")).expect("open");
+        db.conn
+            .lock()
+            .unwrap()
+            .execute_batch(
+                "CREATE TRIGGER fail_session_created BEFORE INSERT ON events
+             WHEN NEW.kind = 'session_created'
+             BEGIN SELECT RAISE(ABORT, 'injected event failure'); END;",
+            )
+            .unwrap();
+
+        assert!(matches!(
+            db.create_session("root"),
+            Err(StorageError::Sqlite(_))
+        ));
+        {
+            let conn = db.conn.lock().unwrap();
+            let sessions: i64 = conn
+                .query_row(
+                    "SELECT count(*) FROM sessions WHERE id = 'root'",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            let events: i64 = conn
+                .query_row(
+                    "SELECT count(*) FROM events WHERE session_id = 'root'",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(sessions, 0, "failed creation must not leave a session row");
+            assert_eq!(events, 0, "failed creation must not leave an event");
+            conn.execute_batch("DROP TRIGGER fail_session_created;")
+                .unwrap();
+        }
+
+        db.create_session("root")
+            .expect("retry must not encounter a duplicate");
+        assert!(matches!(
+            db.create_session("root"),
+            Err(StorageError::SessionAlreadyExists)
+        ));
+        let conn = db.conn.lock().unwrap();
+        let sessions: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM sessions WHERE id = 'root'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let events: i64 = conn
+            .query_row("SELECT count(*) FROM events WHERE session_id = 'root' AND kind = 'session_created'", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(sessions, 1);
+        assert_eq!(events, 1);
     }
 
     #[test]

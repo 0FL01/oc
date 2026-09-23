@@ -25,7 +25,7 @@ use crate::mcp_stdio::{StdioClient, StdioConfig, StdioError};
 use crate::models::{self, ModelCatalog};
 use crate::patch::ProtectedGlobs;
 use crate::provider::{InputItem, InputRole, ResponsesConfig, ToolDef};
-use crate::storage::{Db, SessionMeta, StorageError};
+use crate::storage::{BoundSessionCreation, Db, SessionMeta, StorageError};
 use crate::tools::{
     Assembled, CallFailure, SUBAGENT_NO_TEXT, SUBAGENT_TOOL, SkillSnapshot, SubagentOutcome,
     SubagentRequest, SubagentRunner, ToolContext, ToolError, ToolPolicy, ToolRoots, TurnLog,
@@ -50,7 +50,7 @@ pub const MCP_CLOSE_BUDGET: Duration = Duration::from_secs(10);
 /// expansion stays bounded), never reached by realistic command files.
 pub const COMMAND_BYTES_CAP: usize = 1024 * 1024;
 /// Prefs key prefix binding sessions to Locations.
-pub const SESSION_LOCATION_PREFIX: &str = "tui.session_location.";
+pub const SESSION_LOCATION_PREFIX: &str = crate::storage::SESSION_LOCATION_PREFIX;
 /// Permission name gating manual compress execution.
 pub const COMPRESS_TOOL: &str = "compress";
 
@@ -1185,19 +1185,13 @@ impl<'a> Runtime<'a> {
 
     /// Create a Location-scoped session (idempotent for the same Location).
     pub fn create_session(&self, id: &str) -> Result<(), RuntimeError> {
-        let key = session_location_key(id);
-        if let Some(owner) = self.db.get_pref(&key)? {
-            if owner != self.location {
-                return Err(RuntimeError::LocationMismatch {
-                    session: id.to_string(),
-                    location: owner,
-                });
-            }
-            return Ok(());
+        match self.db.create_bound_session(id, &self.location)? {
+            BoundSessionCreation::Created | BoundSessionCreation::AlreadyBound => Ok(()),
+            BoundSessionCreation::BoundElsewhere(owner) => Err(RuntimeError::LocationMismatch {
+                session: id.to_string(),
+                location: owner,
+            }),
         }
-        self.db.create_session(id)?;
-        self.db.set_pref(&key, &self.location)?;
-        Ok(())
     }
 
     /// Open a session after verifying its Location binding.
