@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-23T07:53:54+00:00
-Active: T44
-
-Сверить Git status/diff до выполнения команд.
-Task: T44 — TUI pixel parity с opencode v2.0.12
-Spec: docs/goals/2026-09-21-tui-pixel-parity.md
-Evidence target: evidence/T44/report.md
-
-Полностью воспроизвести интерфейс upstream opencode v2.0.12 в crates/oc-tui: тема/палитра, геометрия layout, рендер сообщений (markdown/reasoning/tool cards/diff), keymap и диалоги; golden-снапшоты PTY на фиксированных размерах. Recon-артефакты evidence/tui/*, коммит+push каждого среза.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 # T44 real-profile startup credential checkpoint
 
 ## Result
@@ -30,9 +16,3 @@ The actual owner's interactive zsh environment is not available to this API proc
 ## Next
 
 The owner checks, without printing the value, whether `LUDKA2_API_KEY` is exported and nonempty **in the same terminal** as `target/release/oc`; if absent, export it from their trusted secret manager and retry. A new release error category, if any, is a distinct failure to investigate with the same typed boundary. T44 V07 remaining safety/resource and V08–V09 visual qualification remain open independently.
-
-
-Ready (до 5): T45, T46, T47
-Blocked: T27, T43
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

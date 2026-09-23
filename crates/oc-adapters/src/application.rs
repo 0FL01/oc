@@ -42,6 +42,8 @@ const ESTIMATE_BYTES: usize = 4 * 1024 * 1024;
 pub enum SpawnFailure {
     /// Loading or validating the configured generation failed.
     Configuration,
+    /// Selected provider has no nonempty API key in the configured generation.
+    MissingCredential,
     /// Another process currently owns the exclusive data-root lock.
     DataRootBusy,
     /// Data-root validation refused an unsafe path or ownership.
@@ -125,9 +127,16 @@ async fn spawn_inner(
     data: &Path,
     env: BTreeMap<String, String>,
 ) -> Result<(CoreApp, WorkerGuard, Vec<String>, Vec<StartupNotice>), SpawnIssue> {
-    let composition = composition::load_with_env(project, env)
+    let composition = composition::load_with_env_diagnostic(project, env)
         .await
-        .map_err(|detail| SpawnIssue::new(SpawnFailure::Configuration, detail))?;
+        .map_err(|failure| match failure {
+            composition::LoadFailure::Configuration(detail) => {
+                SpawnIssue::new(SpawnFailure::Configuration, detail)
+            }
+            composition::LoadFailure::MissingCredential(detail) => {
+                SpawnIssue::new(SpawnFailure::MissingCredential, detail)
+            }
+        })?;
     let mut diagnostics = composition.diagnostics.clone();
     let mut notices = composition.startup_notices.clone();
     let db = Db::open(data)
@@ -578,7 +587,9 @@ async fn start_worker(
                     }
                     Err(issue) => {
                         let category = match issue.category {
-                            SpawnFailure::Configuration => LocationSwitchFailure::Configuration,
+                            SpawnFailure::Configuration | SpawnFailure::MissingCredential => {
+                                LocationSwitchFailure::Configuration
+                            }
                             SpawnFailure::Storage => LocationSwitchFailure::Storage,
                             _ => LocationSwitchFailure::Runtime,
                         };

@@ -67,6 +67,10 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
                 "Configuration load failed",
                 "Check opencode.json/jsonc, cli.json/jsonc and selected model, then restart.",
             ),
+            oc_adapters::application::SpawnFailure::MissingCredential => (
+                "Selected provider credential missing",
+                "Set a nonempty API key; if configured via {env:...}, export that variable in the launching shell.",
+            ),
             oc_adapters::application::SpawnFailure::DataRootBusy => (
                 "Data root busy",
                 "Close the other oc process using this data directory, then retry.",

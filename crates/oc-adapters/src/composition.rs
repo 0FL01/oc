@@ -63,6 +63,34 @@ pub struct Composition {
     pub dcp_protected: oc_core::context_plan::ProtectedSpec,
 }
 
+/// Composition detail for CLI callers, with a narrow typed startup cause for
+/// the selected provider. No detail is exposed to the interactive renderer.
+#[derive(Debug)]
+pub(crate) enum LoadFailure {
+    Configuration(String),
+    MissingCredential(String),
+}
+
+impl LoadFailure {
+    fn into_detail(self) -> String {
+        match self {
+            Self::Configuration(detail) | Self::MissingCredential(detail) => detail,
+        }
+    }
+}
+
+impl From<String> for LoadFailure {
+    fn from(detail: String) -> Self {
+        Self::Configuration(detail)
+    }
+}
+
+impl From<&str> for LoadFailure {
+    fn from(detail: &str) -> Self {
+        detail.to_string().into()
+    }
+}
+
 /// Load ordered user config and resolve an explicitly selected model.
 ///
 /// Missing config, credentials or model selection is an actionable error;
@@ -79,11 +107,20 @@ pub(crate) async fn load_with_env(
     project: &Path,
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, String> {
+    load_with_env_diagnostic(project, parent_env)
+        .await
+        .map_err(LoadFailure::into_detail)
+}
+
+pub(crate) async fn load_with_env_diagnostic(
+    project: &Path,
+    parent_env: BTreeMap<String, String>,
+) -> Result<Composition, LoadFailure> {
     let project = project
         .canonicalize()
         .map_err(|e| format!("cannot open project {}: {e}", project.display()))?;
     if !project.is_dir() {
-        return Err(format!("project {} must be a directory", project.display()));
+        return Err(format!("project {} must be a directory", project.display()).into());
     }
     let nonempty_env = |key: &str| parent_env.get(key).filter(|v| !v.is_empty());
     let global = nonempty_env("OPENCODE_CONFIG_DIR")
@@ -130,7 +167,7 @@ pub(crate) async fn load_with_env(
         }
     }
     if sources.is_empty() {
-        return Err("no opencode.json/jsonc found; configure a provider and top-level model (provider/model-id) in the project or XDG opencode config directory".to_string());
+        return Err("no opencode.json/jsonc found; configure a provider and top-level model (provider/model-id) in the project or XDG opencode config directory".into());
     }
 
     // DCP config is native data, never executable plugin code. Inline `dcp`
@@ -161,10 +198,9 @@ pub(crate) async fn load_with_env(
                 Ok(Some(text)) => text,
                 Ok(None) => continue,
                 Err(error) => {
-                    return Err(format!(
-                        "cannot read dcp config {}: {error}",
-                        path.display()
-                    ));
+                    return Err(
+                        format!("cannot read dcp config {}: {error}", path.display()).into(),
+                    );
                 }
             };
             let value = config::parse_jsonc(&text, &path.to_string_lossy())
@@ -341,14 +377,16 @@ pub(crate) async fn load_with_env(
         return Err(format!(
             "title agent is invalid: {}: {}",
             diagnostic.path, diagnostic.reason
-        ));
+        )
+        .into());
     }
     let selected_agent = match default_agent.as_deref() {
         Some(id) => match loaded_defs.agents.get(id) {
             Some(agent) if !agent.primary_capable() => {
                 return Err(format!(
                     "selected agent {id} is subagent-only and cannot be a primary agent"
-                ));
+                )
+                .into());
             }
             Some(agent) => Some(agent.clone()),
             None => {
@@ -358,13 +396,14 @@ pub(crate) async fn load_with_env(
                             .file_stem()
                             .is_some_and(|stem| stem == id)
                 });
-                return Err(match diagnostic {
+                return Err((match diagnostic {
                     Some(diagnostic) => format!(
                         "selected agent {id} is invalid: {}: {}",
                         diagnostic.path, diagnostic.reason
                     ),
                     None => format!("unknown selected agent {id}"),
-                });
+                })
+                .into());
             }
         },
         None => None,
@@ -410,7 +449,8 @@ pub(crate) async fn load_with_env(
             return Err(format!(
                 "model required: set top-level `model` to provider/model-id in the Location \
                  or global opencode.json/jsonc; {listed}"
-            ));
+            )
+            .into());
         }
     };
     let selected = selected_agent
@@ -428,9 +468,9 @@ pub(crate) async fn load_with_env(
             .as_ref()
             .is_some_and(|ids| !ids.iter().any(|id| id == provider_id))
     {
-        return Err(format!(
-            "selected provider {provider_id} is disabled by provider selection"
-        ));
+        return Err(
+            format!("selected provider {provider_id} is disabled by provider selection").into(),
+        );
     }
     let selected_providers = HashSet::from([provider_id.to_string()]);
     let mut generation = config::assemble_admitted(
@@ -439,7 +479,12 @@ pub(crate) async fn load_with_env(
         Some(&selected_providers),
         &source_roots,
     )
-    .map_err(|e| e.to_string())?;
+    .map_err(|error| match error {
+        config::ConfigError::MissingCredential { .. } => {
+            LoadFailure::MissingCredential(error.to_string())
+        }
+        _ => LoadFailure::Configuration(error.to_string()),
+    })?;
     // Keep central authority independent of the startup primary selection.
     // The effective primary's constraints are snapshotted with its workspace.
     if let Some(level) = dcp_config.compress_permission {
@@ -487,7 +532,7 @@ pub(crate) async fn load_with_env(
     {
         return Err(format!(
             "provider.{provider_id}.options.baseURL must be an HTTP(S) prefix without credentials, query or fragment"
-        ));
+        ).into());
     }
     let mut catalog = models::ModelCatalog {
         provider: provider_id.to_string(),

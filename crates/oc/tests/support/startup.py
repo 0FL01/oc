@@ -9,6 +9,7 @@ import json
 import os
 import pty
 import select
+import socket
 import sqlite3
 import struct
 import subprocess
@@ -85,7 +86,8 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
             os.write(master, b'\x03')
             drain(master, .2)
             code = child.wait(timeout=5)
-            assert (code == 0) == (label in ('success', 'lock released', 'warning')), (label, code)
+            assert (code == 0) == (label in ('success', 'lock released', 'warning',
+                                            'credential present')), (label, code)
             assert termios.tcgetattr(slave) == original, (label, 'terminal not restored')
             print(f'{label}: exit {code}, terminal restored')
         finally:
@@ -109,6 +111,45 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
         os.close(master)
         os.close(slave)
     check('lock released', ['█▀▀█'], forbidden=('Native startup error',))
+    # A real selected provider with an env template must be distinguished from
+    # malformed configuration before any request reaches its loopback endpoint.
+    with socket.socket() as listener:
+        listener.bind(('127.0.0.1', 0))
+        listener.listen()
+        listener.setblocking(False)
+        fixture['provider']['fixture']['options']['baseURL'] = (
+            f'http://127.0.0.1:{listener.getsockname()[1]}/v1')
+        fixture['provider']['fixture']['options']['apiKey'] = '{env:FIXTURE_KEY}'
+        config_file.unlink()
+        config_file = config / 'opencode.jsonc'
+        config_file.write_text(json.dumps(fixture))
+        expected = ['Native startup error', 'Selected provider credential missing',
+                    'export that variable in the launching shell']
+        env.pop('FIXTURE_KEY', None)
+        check('credential missing', expected,
+              forbidden=('Configuration load failed', 'FIXTURE_KEY'))
+        headless = subprocess.run([binary, 'run', 'no network call'], cwd=project,
+                                  env=env, capture_output=True, timeout=5)
+        assert headless.returncode == 1 and b'missing credential for provider.fixture.options.apiKey' in headless.stderr
+        env['FIXTURE_KEY'] = ''
+        check('credential empty env', expected, forbidden=('Configuration load failed',))
+        env['FIXTURE_KEY'] = 'DUMMY-STARTUP-SECRET'
+        check('credential present', ['█▀▀█'], forbidden=('Native startup error',))
+        fixture['provider']['fixture']['options']['apiKey'] = ''
+        config_file.write_text(json.dumps(fixture))
+        check('credential empty literal', expected, forbidden=('Configuration load failed',))
+        try:
+            accepted, _ = listener.accept()
+        except BlockingIOError:
+            pass
+        else:
+            accepted.close()
+            raise AssertionError('provider traffic during startup diagnostics')
+        config_file.unlink()
+        config_file = config / 'opencode.json'
+        fixture['provider']['fixture']['options']['baseURL'] = 'http://127.0.0.1:9/v1'
+        fixture['provider']['fixture']['options']['apiKey'] = 'DUMMY-STARTUP-SECRET'
+        config_file.write_text(json.dumps(fixture))
     with sqlite3.connect(data / 'oc.sqlite') as db:
         db.execute("INSERT INTO prefs(key,value,updated_at) VALUES (?,?,?)",
                    ('tui.session_location.foreign', str(root / 'another-project'), 'fixture'))
