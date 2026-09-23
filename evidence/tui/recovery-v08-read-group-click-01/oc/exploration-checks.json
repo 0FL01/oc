@@ -1,0 +1,38 @@
+[
+  {
+    "stage": "collapsed",
+    "predicate": "one visible → Explored — 1 read header and no Read fixture-note.txt detail",
+    "passed": true,
+    "header_count": 1,
+    "detail_count": 0,
+    "header": {
+      "x": 5,
+      "y": 6
+    },
+    "detail_below_header": false
+  },
+  {
+    "stage": "expand-click",
+    "header": {
+      "x": 5,
+      "y": 6
+    },
+    "pty_column": 8,
+    "pty_row": 7,
+    "down_base64": "G1s8MDs4OzdN",
+    "up_base64": "G1s8MDs4Ozdt"
+  },
+  {
+    "stage": "expanded",
+    "predicate": "collapsed header remains visible and Read fixture-note.txt detail appears below it",
+    "passed": false,
+    "reason": "Timed out waiting for collapsed header remains visible and Read fixture-note.txt detail appears below it",
+    "header_count": 1,
+    "detail_count": 0,
+    "header": {
+      "x": 5,
+      "y": 6
+    },
+    "detail_below_header": false
+  }
+]
