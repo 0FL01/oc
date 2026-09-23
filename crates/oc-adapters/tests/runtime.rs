@@ -1220,6 +1220,101 @@ async fn aud06_intent_failure_prevents_patch() {
 }
 
 #[tokio::test]
+async fn s08_bash_intent_store_fault_prevents_effect_and_recovers_unknown_turn() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("intent-fault").unwrap();
+    let marker = harness._project.path().join("marker");
+    let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    sql.execute_batch(
+        "CREATE TRIGGER fail_bash_intent BEFORE INSERT ON tool_operations
+         WHEN NEW.name = 'bash' AND NEW.session_id = 'intent-fault'
+         BEGIN SELECT RAISE(ABORT, 'injected bash intent failure'); END;",
+    )
+    .unwrap();
+    let tool = sse_tool_call(
+        "touch-marker",
+        "bash",
+        &serde_json::json!({"argv": ["/bin/touch", "marker"]}),
+    );
+    let (base, hits) = Fake::start(vec![tool + &sse_completed()], Duration::ZERO);
+    let mut accepted = None;
+    let mut tool_events = Vec::new();
+    let result = runtime
+        .run_turn_with_tool_events(
+            params(
+                "intent-fault",
+                "create marker",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ),
+            |id| accepted = Some(id.to_string()),
+            |_, _| {},
+            |_, _| {},
+            |_, event| tool_events.push(event.clone()),
+        )
+        .await;
+    assert_eq!(
+        result.unwrap_err(),
+        oc_adapters::runtime::RuntimeError::Storage
+    );
+    assert_eq!(
+        *hits.lock().unwrap(),
+        1,
+        "provider tool call was not received"
+    );
+    assert!(
+        accepted.is_some(),
+        "turn was rejected before the injected fault"
+    );
+    assert!(
+        tool_events.is_empty(),
+        "undurable tool was shown as started"
+    );
+    assert!(!marker.exists(), "bash ran despite rejected durable intent");
+
+    sql.execute_batch("DROP TRIGGER fail_bash_intent").unwrap();
+    drop(sql);
+    drop(runtime);
+    drop(harness.db);
+    let reopened = Db::open(harness._data.path()).unwrap();
+    assert_eq!(reopened.recover_interrupted_tools().unwrap(), 0);
+    assert!(reopened.list_tool_ops("intent-fault").unwrap().is_empty());
+    assert_eq!(
+        reopened.read_history("intent-fault").unwrap(),
+        [("user".to_string(), "create marker".to_string())]
+    );
+    let sql = rusqlite::Connection::open(reopened.root().join("oc.sqlite")).unwrap();
+    let (status, result): (String, Option<String>) = sql
+        .query_row(
+            "SELECT status, result FROM turns WHERE id = ?1",
+            [accepted.unwrap()],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(
+        status, "unknown",
+        "failed store write must not become success"
+    );
+    let journal: serde_json::Value = serde_json::from_str(&result.unwrap()).unwrap();
+    assert_eq!(
+        journal["display_parts"].as_array().unwrap().len(),
+        0,
+        "rolled-back intent must not leave a replayable tool card: {journal}"
+    );
+    let unknown_events: i64 = sql
+        .query_row(
+            "SELECT COUNT(*) FROM events WHERE session_id = 'intent-fault' AND kind = 'turn_unknown'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(unknown_events, 1, "restart must expose an uncertain turn");
+    assert!(!marker.exists(), "recovery replayed an undurable effect");
+}
+
+#[tokio::test]
 async fn aud07_rejected_input_has_no_turn_or_event() {
     let (harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation, Vec::new());
