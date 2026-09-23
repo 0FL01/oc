@@ -9,6 +9,8 @@
 
 use ratatui::style::Style;
 use ratatui::text::Text;
+use unicode_segmentation::UnicodeSegmentation;
+use unicode_width::UnicodeWidthStr;
 
 /// A piece of text with a single style.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -186,9 +188,14 @@ pub fn span_width(span: &Span) -> usize {
 /// cell boundary. Leading spaces of a continuation row are dropped, exactly
 /// like a terminal text wrap.
 pub fn wrap_line(line: &Line, width: usize) -> Vec<Line> {
+    wrap_line_limited(line, width, usize::MAX)
+}
+
+/// At most `limit` wrapped rows; used for bounded Markdown previews.
+pub fn wrap_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
     let max = width.max(1);
-    let mut out: Vec<Vec<(char, Style)>> = Vec::new();
-    let mut current: Vec<(char, Style)> = Vec::new();
+    let mut out: Vec<Vec<(String, Style)>> = Vec::new();
+    let mut current: Vec<(String, Style)> = Vec::new();
     let mut used = 0usize;
     // Index just past the last space run in `current`; a wrap can break there.
     let mut break_at: Option<usize> = None;
@@ -196,22 +203,35 @@ pub fn wrap_line(line: &Line, width: usize) -> Vec<Line> {
     // the indentation of the source line.
     let mut continuation = false;
     for span in line.spans() {
-        for ch in span.content().chars() {
-            let cells = char_width(ch);
+        for glyph in span.content().graphemes(true) {
+            if out.len() >= limit {
+                break;
+            }
+            let cells = UnicodeWidthStr::width(glyph);
+            // A grapheme wider than the target cell cannot fit on any row.
+            // Show an overflow glyph without displacing the next grid border.
+            let (glyph, cells) = if cells > max {
+                ("…", 1)
+            } else {
+                (glyph, cells)
+            };
             if used + cells > max && !current.is_empty() {
                 match break_at.take() {
                     Some(index) => {
                         let mut rest = current.split_off(index);
-                        while rest.first().is_some_and(|(ch, _)| *ch == ' ') {
+                        while rest.first().is_some_and(|(ch, _)| ch == " ") {
                             rest.remove(0);
                         }
                         let mut head = std::mem::take(&mut current);
-                        while head.last().is_some_and(|(ch, _)| *ch == ' ') {
+                        while head.last().is_some_and(|(ch, _)| ch == " ") {
                             head.pop();
                         }
                         out.push(head);
                         current = rest;
-                        used = current.iter().map(|(ch, _)| char_width(*ch)).sum();
+                        used = current
+                            .iter()
+                            .map(|(ch, _)| UnicodeWidthStr::width(ch.as_str()))
+                            .sum();
                     }
                     None => {
                         out.push(std::mem::take(&mut current));
@@ -220,17 +240,19 @@ pub fn wrap_line(line: &Line, width: usize) -> Vec<Line> {
                 }
                 continuation = true;
             }
-            if ch == ' ' && current.is_empty() && continuation {
+            if glyph == " " && current.is_empty() && continuation {
                 continue;
             }
-            current.push((ch, span.style()));
+            current.push((glyph.to_string(), span.style()));
             used += cells;
-            if ch == ' ' {
+            if glyph == " " {
                 break_at = Some(current.len());
             }
         }
     }
-    out.push(current);
+    if out.len() < limit {
+        out.push(current);
+    }
     out.into_iter()
         .map(|cells| Line::new(coalesce(cells)))
         .collect()
@@ -246,15 +268,12 @@ pub fn wrap_lines(lines: &[Line], width: usize) -> Vec<Line> {
 }
 
 /// Merge consecutive cells with the same style back into spans.
-fn coalesce(cells: Vec<(char, Style)>) -> Vec<Span> {
+fn coalesce(cells: Vec<(String, Style)>) -> Vec<Span> {
     let mut spans: Vec<Span> = Vec::new();
     for (ch, style) in cells {
         match spans.last_mut() {
-            Some(span) if span.style() == style => span.content.push(ch),
-            _ => spans.push(Span {
-                content: ch.to_string(),
-                style,
-            }),
+            Some(span) if span.style() == style => span.content.push_str(&ch),
+            _ => spans.push(Span { content: ch, style }),
         }
     }
     spans
@@ -355,6 +374,12 @@ mod tests {
             wrapped.iter().map(Line::plain_text).collect::<Vec<_>>(),
             vec!["🌍🌍", "🌍"]
         );
+        let wrapped = wrap_line(&Line::plain("中🧑‍💻文"), 4);
+        assert_eq!(
+            wrapped.iter().map(Line::plain_text).collect::<Vec<_>>(),
+            vec!["中🧑‍💻", "文"]
+        );
+        assert_eq!(wrap_line_limited(&Line::plain("abcdefghij"), 2, 2).len(), 2);
     }
 
     #[test]

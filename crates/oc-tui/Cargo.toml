@@ -21,6 +21,7 @@ unicode-normalization = "0.1"
 unicode-script = "0.5"
 unicode-segmentation = "1.12"
 unicode-width = "0.2"
+pulldown-cmark = { version = "=0.13.0", default-features = false }
 
 [lints]
 workspace = true

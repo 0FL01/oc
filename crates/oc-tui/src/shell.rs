@@ -541,16 +541,9 @@ fn render_transcript(frame: &mut Frame<'_>, state: &TuiState, area: Rect, termin
     if area.height == 0 || area.width == 0 {
         return;
     }
-    let rows = area.height as usize;
-    let lines = state.rendered_transcript(area.width, terminal_width);
-    let total = lines.len();
+    let (lines, total) = state.visible_transcript(area.width, terminal_width, area.height);
     state.observe_viewport(area.height, total);
-    let max_scroll = total.saturating_sub(rows);
-    let scroll = state.scroll().min(max_scroll);
-    let end = total - scroll;
-    let start = end.saturating_sub(rows);
-    let visible = &lines[start..end];
-    let text = crate::styled::Lines::from(visible.to_vec()).into_text();
+    let text = crate::styled::Lines::from(lines).into_text();
     frame.render_widget(Paragraph::new(text), area);
 }
 

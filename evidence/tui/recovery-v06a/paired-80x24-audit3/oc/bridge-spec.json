@@ -1,0 +1,14 @@
+{
+  "binary": "/home/opencode/ai/oc/target/debug/oc",
+  "origin": "oc",
+  "columns": 80,
+  "rows": 24,
+  "isolated_root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/paired-80x24-audit3",
+  "fixture": "/home/opencode/ai/oc/tui-recovery/fixtures",
+  "sample": "table",
+  "sidebar": "hide",
+  "devtools": false,
+  "tabs": "horizontal",
+  "variants": false,
+  "startup_error": false
+}

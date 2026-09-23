@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-22T22:58:06+00:00
+State updated: 2026-09-23T01:47:24+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,24 +12,24 @@ Evidence target: evidence/T44/report.md
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 isolated release-startup diagnostic checkpoint
+# T44 V06a Markdown parser and indexed viewport checkpoint
 
 ## Result
 
-Base `804268753f82ca06b5312ff142ec0fdcadde1e69`. The freshly rebuilt `target/release/oc` launches and exits normally with an isolated valid product config; startup failures now expose a static typed stage/category and actionable remedy rather than the generic preflight message or raw underlying error. An independent review reproduced a `/location` raw-error leak and a corrupted saved-selection misclassification; both were fixed and requalified with actual release PTYs. Non-fatal warnings identify allowlisted source categories. The real user's profile was neither inspected nor executed; its particular startup failure remains unknown.
+Base `98e81eedea4963bc16aae1d944210f9da65c18c1`, active T44. Native pinned `pulldown-cmark 0.13.0` replaces handwritten Markdown parsing; actual 2-column/11-row upstream table uses matching styled grid in bounded paired regions. Long completed text, tables, lists and fenced code are scrollable through indexed pages with bounded completed-block cache and visible-only page decode; streaming partial input is bounded. Independent reviews found and drove regression fixes for swallowed footer/tail, one-cell wide glyphs, OSC in reasoning, source-page structure/cache thrash, oversized-grapheme nonprogress, long/table/blockquote paging and escaped-pipe label continuation. All reproduced attempts are retained in `report.md`; no product-owned transcript was added.
 
 ## Checks
 
-- Parent `cargo test --locked -p oc --test recovery_startup -- --nocapture` exit 0, two tests; `cargo test --locked -p oc --test recovery_v03 -- --nocapture` exit 0.
-- Parent `cargo fmt --all -- --check && cargo test --locked --workspace --no-fail-fast --quiet -- --test-threads=1 && cargo clippy --locked --workspace --all-targets -- -D warnings && cargo build --locked --release -p oc && env -i PATH=/usr/bin:/bin python3 crates/oc/tests/support/startup.py target/release/oc && python3 scripts/check_docs.py && python3 scripts/progress.py check && git diff --check`: exit 0 at every step, five existing ignored tests. The isolated release matrix checks success, lock/reacquire, query, corrupt saved selection, failed/successfully retried Location switches, malformed/missing/CLI config, warning redaction and unsafe/unavailable data roots, with terminal restoration and no provider traffic. Earlier failing attempts and their fixes remain in `report.md`.
+- Parent `cargo test --locked -p oc-tui v06a_ -- --test-threads=1` exit 0 (29 focused tests). Parent `cargo fmt --all -- --check && cargo test --locked --workspace --no-fail-fast --quiet -- --test-threads=1 && cargo clippy --locked --workspace --all-targets -- -D warnings && cargo build --locked && python3 scripts/check_docs.py && python3 scripts/progress.py check && git diff --check`: exit 0 throughout; five existing ignored tests.
+- Latest actual original/Rust paired `paired-80x24-escaped-label` and `paired-120x40-escaped-label` normal-executable captures: provider contracts executed, source/profile/fixture lock recorded; capture runners exit 1 because post-capture whole-frame comparator reports DIFFERENT (80: 1054/1920 styled cells, 5502/258816 pixels; 120: 1655/4800 styled cells, 5473/647040 pixels). Diagnostic table rectangles agree 490/490 and 2688/2688 styled cells respectively; this is not VIS13/VIS14 or R4 full parity.
 
 ## Risks
 
-The owner's actual release startup failure category is not established: their private `.opencode/`, configuration and credentials were deliberately not accessed. This isolated slice does not verify R3/R4, VIS01–VIS24, remaining command/service capabilities, V06–V09, or product READY. The historical paired frame comparators remain unequal; five existing live ignores remain.
+Full-frame and additional paired Unicode/long-cell/streaming/after-restart comparisons remain open. Source indexing covers tested GFM structures, not arbitrary nested CommonMark, and exceptionally oversized indivisible graphemes may be preview-limited; full response stays in durable history. No measured RSS/PSS/long soak for new cache yet. V06b reasoning, tool/diff status and replay remain; VIS01–VIS24, R3/R4 and product READY unverified. User's real-profile release-startup cause is still unknown; no private configuration accessed.
 
 ## Next
 
-V06: implement/render and directly compare Markdown tables, reasoning, tool cards/diff/footer with actual live and durable replay; verify with raw PTY/provider/tool effects and fresh paired frames. Subsequently V07 security and V08–V09 full capture/qualification. A user-executed rebuilt release binary can reveal only a safe category of their own profile failure; do not request their secrets.
+V06b: compare actual live reasoning/tool/patch partial and durable replay after restart with pinned reference, keep operation IDs/status and owner effects, then re-run relevant gates and a new checkpoint. After V06b, V07 security/resource qualification and V08–V09 full-frame VIS/comparator/independent review.
 
 
 Ready (до 5): T45, T46, T47

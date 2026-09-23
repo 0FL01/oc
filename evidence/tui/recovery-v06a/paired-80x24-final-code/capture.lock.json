@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-22T23:47:09.645Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "c1fd6d5f9119f69097819aa335a2a22e39d5dd1b3fa4ce64abcc02d5b7735f60",
+    "frontend.js": "422f93bd137f00b2b677e2b5e1f8f31170cccffd9330eab2c66f26528820f6ee",
+    "bridge.py": "9a1e7bc371ba9282358f04fe28908e962e3093730560d4176b0733298849aca4"
+  },
+  "fixture_sha256": "2c3e6ae556935ce85de2854ab4e192097cede6ca85128b95eaaa593a78b1ac41",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "98e81eedea4963bc16aae1d944210f9da65c18c1",
+    "tree": "d359756595c49a240ab928de418c0878ba9b1a91",
+    "dirty_diff_sha256": "f0029f5004432b30a83045aab77c924645a0065d0f8a2c484bd27db07b9674f7",
+    "source_manifest_sha256": "72239afa77641dfef03db06d0e576871f69e5d8c2cf3eddaa4e3febac79a9946",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "0b382adfef230a0f1eb25e07001ebcc420fd0f78b3eb909554cbade4fbded3a4",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "c43f96fbfa75a90a3a4c276ea21a8f825ecade57819957e575ca9ca0b0d8226a",
+      "cells_sha256": "d33ddc3c9dea36c6aeb2022ce7527bbfdcc07d7fa5def7f07c200c90b32d2be4",
+      "png_sha256": "9c36fe92a95884a90470b16307f09b1f8c2f97b3faa2ee0261f38af906b65136",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "c43f96fbfa75a90a3a4c276ea21a8f825ecade57819957e575ca9ca0b0d8226a",
+      "cells_sha256": "c8b37fcd71943dcb3d8a330f28d4f22d851313c67ad51c514d2161cc3da8741f",
+      "png_sha256": "6a9337ae90652c2d32e835818db3d4236231c37ea56cc3dc94a0b0bc364f0bc8",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "c43f96fbfa75a90a3a4c276ea21a8f825ecade57819957e575ca9ca0b0d8226a",
+      "cells_sha256": "17a71dede4aab5d24b9758c64ca690007d3649acaf6d678c762c1a24b0169f3a",
+      "png_sha256": "88f7b1efd94b4aebecb33009135a389bd0b2718829d79f519f5b46afa4ae455f",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "c43f96fbfa75a90a3a4c276ea21a8f825ecade57819957e575ca9ca0b0d8226a",
+      "cells_sha256": "78def03386e86df63472803545098c111730373104f04f58d0300d08995e8dad",
+      "png_sha256": "d3661f89e4b804ad7987acef36b16124d6a8e0b55076e49c757a4cabf41bf2b1",
+      "path": "oc/session-wide-completed"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 80,
+    "rows": 24,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "pixel_width": 674,
+    "pixel_height": 384,
+    "measured_cell_width": 8.425,
+    "measured_cell_height": 16
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-22T23:47:21.078Z",
+  "exit_code": 1
+}

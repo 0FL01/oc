@@ -256,6 +256,7 @@ pub struct TuiState {
     input: String,
     editor: crate::editor::Editor,
     window: HistoryWindow,
+    markdown_cache: std::cell::RefCell<crate::messages::MarkdownCache>,
     live_text: String,
     /// Reasoning text streamed for the active turn (never persisted).
     live_reasoning: String,
@@ -334,6 +335,7 @@ impl TuiState {
             input: String::new(),
             editor: Default::default(),
             window: HistoryWindow::new(),
+            markdown_cache: std::cell::RefCell::new(Default::default()),
             live_text: String::new(),
             live_reasoning: String::new(),
             live_parts: Vec::new(),
@@ -423,6 +425,7 @@ impl TuiState {
         self.input.clear();
         self.editor.clear();
         self.window = HistoryWindow::new();
+        *self.markdown_cache.get_mut() = Default::default();
         self.live_text.clear();
         self.live_reasoning.clear();
         self.live_parts.clear();
@@ -819,6 +822,7 @@ impl TuiState {
     /// window caps.
     pub fn retained_bytes(&self) -> usize {
         self.window.retained_bytes()
+            + self.markdown_cache.borrow().retained_bytes()
             + self.live_text.len()
             + self.live_reasoning.len()
             + self
@@ -892,12 +896,13 @@ impl TuiState {
     /// projection used for scroll metrics and plain-text assertions.
     pub fn transcript_lines(&self, width: u16, terminal_width: u16) -> Vec<Line> {
         let theme = Theme::dark();
-        crate::messages::transcript(
+        crate::messages::transcript_with_cache(
             &self.transcript_rows(),
             theme,
             width,
             terminal_width,
             |agent| self.agent_color(agent),
+            Some(&self.markdown_cache),
         )
     }
 
@@ -910,6 +915,29 @@ impl TuiState {
             width as usize,
         ));
         lines
+    }
+
+    /// Materialize no more than the visible viewport, counting bounded parts
+    /// through the per-session Markdown cache instead of building all rows.
+    pub fn visible_transcript(
+        &self,
+        width: u16,
+        terminal_width: u16,
+        height: u16,
+    ) -> (Vec<Line>, usize) {
+        let rows = self.transcript_rows();
+        let live_row = (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| {
+            rows.len() - 1 - usize::from(self.active_turn.is_some() && self.live_preview_truncated)
+        });
+        crate::messages::visible_transcript(
+            &rows,
+            Theme::dark(),
+            width,
+            terminal_width,
+            (height as usize, self.scroll, live_row),
+            |agent| self.agent_color(agent),
+            &self.markdown_cache,
+        )
     }
 
     /// Categorical agent color (`context/local.tsx:75-133`): the agent's index
