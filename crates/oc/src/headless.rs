@@ -34,6 +34,10 @@ pub async fn run_once_to_writers(
     out: &mut dyn std::io::Write,
     err: &mut dyn std::io::Write,
 ) -> ExitCode {
+    oc_adapters::trace::log(
+        "headless.begin",
+        &format!("data_dir={}", data_dir.display()),
+    );
     let result = async {
         if prompt.trim().is_empty() {
             return Err("empty prompt".to_string());
@@ -41,7 +45,20 @@ pub async fn run_once_to_writers(
         let project = std::env::current_dir().map_err(|e| e.to_string())?;
         let session = SessionId::new(session_opt.unwrap_or_else(|| format!("s-{}", nanos())))
             .ok_or_else(|| "invalid session id".to_string())?;
-        let (app, guard, diagnostics) = oc_adapters::application::spawn(&project, data_dir).await?;
+        let (app, guard, diagnostics) =
+            match oc_adapters::application::spawn(&project, data_dir).await {
+                Ok(spawned) => {
+                    oc_adapters::trace::log("spawn.ok", "");
+                    spawned
+                }
+                Err(message) => {
+                    // The detailed text already goes to stderr; the trace file
+                    // records only its size so a malformed typed config value
+                    // cannot be duplicated into a second surface.
+                    oc_adapters::trace::log("spawn.fail", &format!("detail_len={}", message.len()));
+                    return Err(message);
+                }
+            };
         for diagnostic in diagnostics {
             writeln!(err, "warning: {diagnostic}").map_err(|e| e.to_string())?;
         }
@@ -58,7 +75,7 @@ pub async fn run_once_to_writers(
                     signal.map_err(|e| e.to_string())?;
                     app.cancel(session.clone()).await.map_err(|e| e.to_string())?;
                     let _ = submit.await;
-                    return Ok(ExitCode::from(130));
+                    return Ok(130);
                 }
             };
             writeln!(err, "session {}", session.0).map_err(|e| e.to_string())?;
@@ -103,10 +120,10 @@ pub async fn run_once_to_writers(
                             writeln!(out)
                         }
                         .map_err(|e| e.to_string())?;
-                        return Ok(ExitCode::SUCCESS);
+                        return Ok(0);
                     }
                     CoreEvent::TurnInterrupted { turn: id, .. } if id == turn => {
-                        return Ok(ExitCode::from(130));
+                        return Ok(130);
                     }
                     CoreEvent::TurnFailed {
                         turn: id,
@@ -132,13 +149,16 @@ pub async fn run_once_to_writers(
         outcome
     }
     .await;
-    match result {
-        Ok(code) => code,
+    let (code, exit) = match result {
+        Ok(0) => (0, ExitCode::SUCCESS),
+        Ok(code) => (code, ExitCode::from(code)),
         Err(message) => {
             let _ = writeln!(err, "error: {message}");
-            ExitCode::from(1)
+            (1, ExitCode::from(1))
         }
-    }
+    };
+    oc_adapters::trace::log("headless.exit", &format!("code={code}"));
+    exit
 }
 
 fn nanos() -> u128 {

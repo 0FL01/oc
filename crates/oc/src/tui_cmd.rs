@@ -53,27 +53,43 @@ pub async fn run_tui(data_dir: &Path, session_opt: Option<String>) -> ExitCode {
 }
 
 async fn run_inner(data_dir: &Path, session_opt: Option<String>) -> Result<ExitCode, String> {
+    let outcome = run_stages(data_dir, session_opt).await;
+    let code = match &outcome {
+        Ok(code) => *code,
+        Err(_) => 1,
+    };
+    oc_adapters::trace::log("tui.exit", &format!("code={code}"));
+    outcome.map(ExitCode::from)
+}
+
+async fn run_stages(data_dir: &Path, session_opt: Option<String>) -> Result<u8, String> {
     if !at_tty() {
         return Err(
             "no TTY for interactive TUI; use `oc run \"<prompt>\"` for headless use".to_string(),
         );
     }
     let project = std::env::current_dir().map_err(|e| e.to_string())?;
+    oc_adapters::trace::log("tui.begin", &format!("project={}", project.display()));
     let home = session_opt.is_none();
     let session = match session_opt {
         Some(raw) => SessionId::new(raw).ok_or_else(|| "invalid session id".to_string())?,
         None => SessionId::new(format!("s-tui-{}", nanos())).ok_or("id".to_string())?,
     };
-    let (app, guard, notices) =
-        match oc_adapters::application::spawn_diagnostic(&project, data_dir).await {
-            Ok(runtime) => runtime,
-            Err(category) => {
-                let _term = enter()?;
-                let mut terminal = Terminal::new(CrosstermBackend::new(std::io::stdout()))
-                    .map_err(|e| format!("terminal: {e}"))?;
-                return startup_failure(&mut terminal, StartupFailure::Preflight(category));
-            }
-        };
+    let (app, guard, notices) = match oc_adapters::application::spawn_diagnostic(&project, data_dir)
+        .await
+    {
+        Ok(runtime) => {
+            oc_adapters::trace::log("spawn.ok", "");
+            runtime
+        }
+        Err(category) => {
+            oc_adapters::trace::log("spawn.fail", &format!("category={category:?}"));
+            let _term = enter()?;
+            let mut terminal = Terminal::new(CrosstermBackend::new(std::io::stdout()))
+                .map_err(|e| format!("terminal: {e}"))?;
+            return startup_failure(&mut terminal, StartupFailure::Preflight(category)).map(|_| 1);
+        }
+    };
     for notice in notices {
         eprintln!("warning: {}", startup_notice(notice));
     }
@@ -96,7 +112,7 @@ struct LoopState {
     dcp_seen: bool,
 }
 
-async fn drive_ui(app: &CoreApp, session: SessionId, home: bool) -> Result<ExitCode, String> {
+async fn drive_ui(app: &CoreApp, session: SessionId, home: bool) -> Result<u8, String> {
     let _term = enter()?;
     if std::env::var_os(PANIC_PROBE_ENV).is_some() {
         panic!("{PANIC_PROBE_ENV} probe");
@@ -105,7 +121,7 @@ async fn drive_ui(app: &CoreApp, session: SessionId, home: bool) -> Result<ExitC
     let mut terminal = Terminal::new(backend).map_err(|e| format!("terminal: {e}"))?;
     let mut state = match initial_state(app, session, home).await {
         Ok(state) => state,
-        Err(failure) => return startup_failure(&mut terminal, failure),
+        Err(failure) => return startup_failure(&mut terminal, failure).map(|_| 1),
     };
     let mut rx = app.subscribe();
     let mut loop_state = LoopState::default();
@@ -157,7 +173,7 @@ async fn drive_ui(app: &CoreApp, session: SessionId, home: bool) -> Result<ExitC
     }
     write_metrics(&state);
     drop(_term);
-    Ok(ExitCode::SUCCESS)
+    Ok(0)
 }
 
 fn at_tty() -> bool {

@@ -11,6 +11,39 @@ pub async fn run(args: Args) -> ExitCode {
     if args.smoke && args.command.is_none() {
         return legacy_smoke();
     }
+    oc_adapters::trace::init_default();
+    let bin = std::env::args()
+        .next()
+        .map(|arg| {
+            std::path::Path::new(&arg)
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or(arg)
+        })
+        .unwrap_or_default();
+    oc_adapters::trace::log(
+        "startup.begin",
+        &format!(
+            "bin={bin} args={} subcommand={}",
+            std::env::args().count(),
+            subcommand_kind(&args.command)
+        ),
+    );
+    match std::env::current_dir() {
+        Ok(cwd) => oc_adapters::trace::log("startup.cwd", &format!("path={}", cwd.display())),
+        Err(error) => oc_adapters::trace::log("startup.cwd", &format!("error={error}")),
+    }
+    {
+        use std::io::IsTerminal as _;
+        oc_adapters::trace::log(
+            "startup.tty",
+            &format!(
+                "stdin={} stdout={}",
+                std::io::stdin().is_terminal(),
+                std::io::stdout().is_terminal()
+            ),
+        );
+    }
     // Bare `oc` is the local TUI, but only on a real terminal: a redirected
     // invocation is not silently turned into a hidden headless/daemon run.
     if args.command.is_none() && !crate::tui_cmd::interactive_ready() {
@@ -26,8 +59,12 @@ pub async fn run(args: Args) -> ExitCode {
         .map(Ok)
         .unwrap_or_else(headless::default_data_dir)
     {
-        Ok(path) => path,
+        Ok(path) => {
+            oc_adapters::trace::log("startup.data_dir", &format!("path={}", path.display()));
+            path
+        }
         Err(error) => {
+            oc_adapters::trace::log("startup.data_dir", &format!("error={error}"));
             eprintln!("error: {error}");
             return ExitCode::from(1);
         }
@@ -59,6 +96,15 @@ pub async fn run(args: Args) -> ExitCode {
             }
         },
         Some(Command::Tui { session }) => crate::tui_cmd::run_tui(&data_dir, session).await,
+    }
+}
+
+fn subcommand_kind(command: &Option<Command>) -> &'static str {
+    match command {
+        None => "none",
+        Some(Command::Run { .. }) => "run",
+        Some(Command::Sessions { .. }) => "sessions",
+        Some(Command::Tui { .. }) => "tui",
     }
 }
 

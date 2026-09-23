@@ -11,6 +11,7 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+use crate::trace;
 use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderName, HeaderValue, USER_AGENT};
 use thiserror::Error;
 
@@ -516,23 +517,54 @@ pub async fn fetch_models<C: Clock, D: DiscoveryClient>(
         match client.get(url, headers, timeout).await {
             Err(DiscoveryError::Network) => {
                 last_failure = DiscoveryError::Network;
+                trace::log(
+                    "discovery.attempt",
+                    &format!("n={attempts} class={:?}", DiscoveryFailure::Network),
+                );
                 if attempts > RETRY_DELAYS_MS.len() {
                     return Err(last_failure);
                 }
             }
-            Err(error) => return Err(error),
+            Err(error) => {
+                trace::log(
+                    "discovery.attempt",
+                    &format!("n={attempts} class={:?}", DiscoveryFailure::from(&error)),
+                );
+                return Err(error);
+            }
             Ok((status, body)) => {
                 if !(200..300).contains(&status) {
                     last_failure = DiscoveryError::Http { status };
+                    trace::log(
+                        "discovery.attempt",
+                        &format!(
+                            "n={attempts} status={status} class={:?}",
+                            DiscoveryFailure::from(&last_failure)
+                        ),
+                    );
                     if !should_retry_status(status) || attempts > RETRY_DELAYS_MS.len() {
                         return Err(last_failure);
                     }
                 } else if body.len() > DISCOVERY_BODY_CAP {
+                    trace::log(
+                        "discovery.attempt",
+                        &format!(
+                            "n={attempts} status={status} class={:?}",
+                            DiscoveryFailure::InvalidResponse
+                        ),
+                    );
                     return Err(DiscoveryError::InvalidResponse);
                 } else {
                     match serde_json::from_slice::<serde_json::Value>(&body) {
                         Err(_) => {
                             last_failure = DiscoveryError::InvalidResponse;
+                            trace::log(
+                                "discovery.attempt",
+                                &format!(
+                                    "n={attempts} status={status} class={:?}",
+                                    DiscoveryFailure::InvalidResponse
+                                ),
+                            );
                             if attempts > RETRY_DELAYS_MS.len() {
                                 return Err(last_failure);
                             }
@@ -542,21 +574,46 @@ pub async fn fetch_models<C: Clock, D: DiscoveryClient>(
                                 == Some(&serde_json::Value::String("list".to_string()))
                                 && value.get("data").and_then(|v| v.as_array()).is_some();
                             if !valid {
+                                trace::log(
+                                    "discovery.attempt",
+                                    &format!(
+                                        "n={attempts} status={status} class={:?}",
+                                        DiscoveryFailure::InvalidResponse
+                                    ),
+                                );
                                 return Err(DiscoveryError::InvalidResponse);
                             }
                             let rows = value["data"].as_array().cloned().unwrap_or_default();
                             if rows.is_empty() {
                                 last_failure = DiscoveryError::EmptyResponse;
+                                trace::log(
+                                    "discovery.attempt",
+                                    &format!(
+                                        "n={attempts} status={status} class={:?}",
+                                        DiscoveryFailure::EmptyResponse
+                                    ),
+                                );
                                 if attempts > RETRY_DELAYS_MS.len() {
                                     return Err(last_failure);
                                 }
                             } else if rows.len() > DISCOVERY_ROWS_CAP {
+                                trace::log(
+                                    "discovery.attempt",
+                                    &format!(
+                                        "n={attempts} status={status} class={:?}",
+                                        DiscoveryFailure::InvalidResponse
+                                    ),
+                                );
                                 return Err(DiscoveryError::InvalidResponse);
                             } else {
                                 // All-or-nothing row validation before return.
                                 for row in &rows {
                                     model_config(row)?;
                                 }
+                                trace::log(
+                                    "discovery.attempt",
+                                    &format!("n={attempts} status={status} models={}", rows.len()),
+                                );
                                 return Ok((rows, attempts));
                             }
                         }
@@ -572,6 +629,7 @@ pub async fn fetch_models<C: Clock, D: DiscoveryClient>(
             .copied()
             .unwrap_or(0)
             .min(remaining_budget(deadline, clock.now_ms()));
+        trace::log("discovery.retry", &format!("n={attempts} delay_ms={delay}"));
         if delay > 0 {
             clock.sleep_ms(delay).await;
         }

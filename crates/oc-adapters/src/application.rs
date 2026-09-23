@@ -22,6 +22,7 @@ use crate::runtime::{
     Runtime, RuntimeError, SubagentAgent, SubagentCatalog, ToolCallEvent, TurnParams, TurnStatus,
 };
 use crate::storage::{Db, StorageError};
+use crate::trace;
 use crate::tui_workspace::{AgentEntry as WorkspaceAgent, WorkspaceError, WorkspaceRegistry};
 
 #[path = "application_selection.rs"]
@@ -97,6 +98,21 @@ fn storage_failure(error: &StorageError) -> SpawnFailure {
     }
 }
 
+fn storage_class(error: &StorageError) -> &'static str {
+    match error {
+        StorageError::DataRootBusy => "DataRootBusy",
+        StorageError::UnsafeRoot(_) => "UnsafeRoot",
+        StorageError::StorageFull => "StorageFull",
+        StorageError::BlobNotFound => "BlobNotFound",
+        StorageError::SessionNotFound => "SessionNotFound",
+        StorageError::OperationNotFound => "OperationNotFound",
+        StorageError::SessionAlreadyExists => "SessionAlreadyExists",
+        StorageError::CompressionConflict => "CompressionConflict",
+        StorageError::Sqlite(_) => "Sqlite",
+        StorageError::Io(_) => "Io",
+    }
+}
+
 /// Compose and start one application. Both frontends use this entry point.
 pub async fn spawn(
     project: &Path,
@@ -143,6 +159,27 @@ async fn spawn_inner(
     data: &Path,
     env: BTreeMap<String, String>,
 ) -> Result<(CoreApp, WorkerGuard, Vec<String>, Vec<StartupNotice>), SpawnIssue> {
+    trace::log(
+        "spawn.begin",
+        &format!(
+            "project={} data={} env={}",
+            project.display(),
+            data.display(),
+            env.len()
+        ),
+    );
+    let result = spawn_stages(project, data, env).await;
+    if let Err(issue) = &result {
+        trace::log("spawn.fail", &format!("category={:?}", issue.category));
+    }
+    result
+}
+
+async fn spawn_stages(
+    project: &Path,
+    data: &Path,
+    env: BTreeMap<String, String>,
+) -> Result<(CoreApp, WorkerGuard, Vec<String>, Vec<StartupNotice>), SpawnIssue> {
     let composition = composition::load_with_env_diagnostic(project, env)
         .await
         .map_err(|failure| match failure {
@@ -184,8 +221,26 @@ async fn spawn_inner(
         })?;
     let mut diagnostics = composition.diagnostics.clone();
     let mut notices = composition.startup_notices.clone();
-    let db = Db::open(data)
-        .map_err(|e| SpawnIssue::new(storage_failure(&e), format!("storage: {e}")))?;
+    let db = match Db::open(data) {
+        Ok(db) => {
+            trace::log("storage.open", &format!("data_root={} ok", data.display()));
+            db
+        }
+        Err(error) => {
+            trace::log(
+                "storage.open",
+                &format!(
+                    "data_root={} fail class={}",
+                    data.display(),
+                    storage_class(&error)
+                ),
+            );
+            return Err(SpawnIssue::new(
+                storage_failure(&error),
+                format!("storage: {error}"),
+            ));
+        }
+    };
     db.recover_interrupted_tools()
         .map_err(|e| SpawnIssue::new(SpawnFailure::Recovery, format!("recovery: {e}")))?;
     let (app, inbox, events) = CoreApp::channel(MAX_QUEUE_ITEMS);
@@ -194,6 +249,10 @@ async fn spawn_inner(
     let guard = WorkerGuard::from_task(handle);
     match ready_rx.await {
         Ok(Ok(worker_diagnostics)) => {
+            trace::log(
+                "runtime.ready",
+                &format!("diagnostics={}", worker_diagnostics.len()),
+            );
             if !worker_diagnostics.is_empty() {
                 notices.push(StartupNotice::SavedSelection);
             }

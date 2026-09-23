@@ -4,6 +4,7 @@ import fcntl
 import json
 import os
 import pty
+import re
 import select
 import struct
 import subprocess
@@ -112,11 +113,13 @@ with tempfile.TemporaryDirectory(prefix='oc-discovery-', dir=base) as tmp:
         for label, status, payload, slow, expected, detailed in cases:
             response[:] = [status, payload, slow]
             requests.clear()
+            trace_path = root / ('startup-trace-' + label + '.log')
+            child_env = dict(env, OC_STARTUP_TRACE=str(trace_path))
             master, slave = pty.openpty()
             fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 40, 120, 0, 0))
             original = termios.tcgetattr(slave)
             child = subprocess.Popen([binary, '--data-dir', str(home / ('data-' + label))],
-                                     cwd=project, env=env, stdin=slave, stdout=slave,
+                                     cwd=project, env=child_env, stdin=slave, stdout=slave,
                                      stderr=slave)
             try:
                 screen = drain(master)
@@ -137,13 +140,38 @@ with tempfile.TemporaryDirectory(prefix='oc-discovery-', dir=base) as tmp:
                     child.wait(timeout=5)
                 os.close(master)
                 os.close(slave)
+            assert trace_path.exists(), (label, 'startup trace missing')
+            trace = trace_path.read_bytes()
+            for marker in (key, body_marker):
+                assert marker.encode() not in trace, (label, 'private data reached trace')
+            trace_text = trace.decode('utf-8', 'replace')
+            assert 'startup.begin' in trace_text, (label, 'startup stage missing')
+            if label == 'unauthorized':
+                assert re.search(
+                    r'discovery\.attempt: n=\d+ status=401 class=Unauthorized',
+                    trace_text), (label, 'no 401 discovery attempt line')
+                assert 'discovery.fail: class=Unauthorized' in trace_text, (label, 'no discovery fail line')
+                assert 'spawn.fail: category=DiscoveryUnauthorized' in trace_text, (label, 'no typed spawn fail')
+                assert 'tui.exit: code=1' in trace_text, (label, 'no failing tui exit')
+            if label == 'present':
+                assert 'discovery.ok: models=1 selected_present=true' in trace_text, (label, 'no discovery ok')
+                assert 'spawn.ok' in trace_text, (label, 'no spawn.ok')
+                assert 'tui.begin' in trace_text, (label, 'no tui.begin')
+                assert 'tui.exit: code=0' in trace_text, (label, 'no clean tui exit')
             assert requests == [('GET', '/v1/models', True)], (label, 'wrong discovery wire')
             if detailed:
                 requests.clear()
+                headless_trace = root / ('startup-trace-headless-' + label + '.log')
+                headless_env = dict(env, OC_STARTUP_TRACE=str(headless_trace))
                 result = subprocess.run([binary, 'run', 'no network call'],
-                                        cwd=project, env=env, capture_output=True, timeout=5)
+                                        cwd=project, env=headless_env, capture_output=True, timeout=5)
                 assert result.returncode == 1 and detailed.encode() in result.stderr, (label, 'headless detail')
                 assert key.encode() not in result.stderr and body_marker.encode() not in result.stderr, (label, 'headless leak')
+                assert headless_trace.exists(), (label, 'headless trace missing')
+                headless_bytes = headless_trace.read_bytes()
+                for marker in (key, body_marker):
+                    assert marker.encode() not in headless_bytes, (label, 'private data reached headless trace')
+                assert b'headless.exit: code=1' in headless_bytes, (label, 'no headless exit line')
                 assert requests == [('GET', '/v1/models', True)], (label, 'headless discovery wire')
             print(label + ': discovery GET, no Responses, expected exit, terminal restored')
     finally:

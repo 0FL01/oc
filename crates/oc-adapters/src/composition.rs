@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
-use crate::{admitted_fs, config, dcp_auto, defs, discovery, models, provider};
+use crate::{admitted_fs, config, dcp_auto, defs, discovery, models, provider, trace};
 use oc_core::queries::StartupNotice;
 
 /// Fully built application configuration. Contains credentials and must not be logged.
@@ -128,17 +128,65 @@ pub(crate) async fn load_with_env_diagnostic(
     project: &Path,
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, LoadFailure> {
+    let result = load_stages(project, parent_env).await;
+    match &result {
+        Ok(_) => trace::log("load.ok", ""),
+        Err(failure) => trace::log(
+            "load.fail",
+            &format!("category={}", failure_category(failure)),
+        ),
+    }
+    result
+}
+
+fn failure_category(failure: &LoadFailure) -> String {
+    match failure {
+        LoadFailure::Configuration(_) => "Configuration".to_string(),
+        LoadFailure::MissingCredential(_) => "MissingCredential".to_string(),
+        LoadFailure::Discovery { reason, .. } => format!("Discovery({reason:?})"),
+    }
+}
+
+fn config_class(error: &config::ConfigError) -> &'static str {
+    match error {
+        config::ConfigError::Invalid { .. } => "Invalid",
+        config::ConfigError::UnsupportedCapability { .. } => "UnsupportedCapability",
+        config::ConfigError::UnsupportedPlugin { .. } => "UnsupportedPlugin",
+        config::ConfigError::Untrusted { .. } => "Untrusted",
+        config::ConfigError::MissingCredential { .. } => "MissingCredential",
+    }
+}
+
+async fn load_stages(
+    project: &Path,
+    parent_env: BTreeMap<String, String>,
+) -> Result<Composition, LoadFailure> {
     let project = project
         .canonicalize()
         .map_err(|e| format!("cannot open project {}: {e}", project.display()))?;
     if !project.is_dir() {
         return Err(format!("project {} must be a directory", project.display()).into());
     }
+    trace::log("config.project", &format!("path={}", project.display()));
+    for name in ["HOME", "XDG_CONFIG_HOME", "OPENCODE_CONFIG_DIR"] {
+        trace::log(
+            "env.selector",
+            &trace::env_fact(name, parent_env.get(name).map(String::as_str)),
+        );
+    }
     let nonempty_env = |key: &str| parent_env.get(key).filter(|v| !v.is_empty());
     let global = nonempty_env("OPENCODE_CONFIG_DIR")
         .map(PathBuf::from)
         .or_else(|| nonempty_env("XDG_CONFIG_HOME").map(|p| Path::new(p).join("opencode")))
         .or_else(|| nonempty_env("HOME").map(|p| Path::new(p).join(".config/opencode")));
+    match &global {
+        Some(root) => trace::log("config.global", &format!("root={}", root.display())),
+        None => trace::log("config.global", "root=none"),
+    }
+    trace::log(
+        "config.local",
+        &format!("path={}", project.join(".opencode").display()),
+    );
     // CONFIG.md / config-roots.order.json: JSON before JSONC in each root,
     // one global layer, then direct Location config, then .opencode config.
     let mut roots: Vec<PathBuf> = global.clone().into_iter().collect();
@@ -158,8 +206,19 @@ pub(crate) async fn load_with_env_diagnostic(
         let Some(admitted) = admitted else { continue };
         for name in ["opencode.json", "opencode.jsonc"] {
             let path = root.join(name);
-            let Some((canonical, text)) = read_source_config(admitted, &path)? else {
-                continue;
+            let (canonical, text) = match read_source_config(admitted, &path) {
+                Ok(Some(source)) => source,
+                Ok(None) => {
+                    trace::log("source.missing", &format!("path={}", path.display()));
+                    continue;
+                }
+                Err(error) => {
+                    trace::log(
+                        "source.parse_fail",
+                        &format!("path={} class=Io", path.display()),
+                    );
+                    return Err(error.into());
+                }
             };
             if seen.insert(canonical.clone()) {
                 let directory = canonical
@@ -169,6 +228,10 @@ pub(crate) async fn load_with_env_diagnostic(
                     .unwrap_or_else(|| Path::new(""))
                     .to_path_buf();
                 let source_path = canonical.to_string_lossy().into_owned();
+                trace::log(
+                    "source",
+                    &format!("path={source_path} bytes={}", text.len()),
+                );
                 source_roots.insert(source_path.clone(), (&admitted.dir, directory));
                 sources.push(config::Source {
                     path: source_path,
@@ -196,11 +259,21 @@ pub(crate) async fn load_with_env_diagnostic(
             if Path::new(&source.path).parent() != Some(root.as_path()) {
                 continue;
             }
-            let value =
-                config::parse_jsonc(&source.text, &source.path).map_err(|e| e.to_string())?;
+            let value = match config::parse_jsonc(&source.text, &source.path) {
+                Ok(value) => value,
+                Err(error) => {
+                    trace::log(
+                        "source.parse_fail",
+                        &format!("path={} class={}", source.path, config_class(&error)),
+                    );
+                    return Err(error.to_string().into());
+                }
+            };
             if let Some(fragment) = value.get("dcp") {
-                merge_json_object(&mut dcp_fragment, fragment)
-                    .map_err(|reason| format!("{}: invalid dcp config: {reason}", source.path))?;
+                if let Err(reason) = merge_json_object(&mut dcp_fragment, fragment) {
+                    trace::log("dcp.fail", &format!("category=Merge path={}", source.path));
+                    return Err(format!("{}: invalid dcp config: {reason}", source.path).into());
+                }
                 dcp_sources.push(source.path.clone());
             }
         }
@@ -210,25 +283,54 @@ pub(crate) async fn load_with_env_diagnostic(
                 Ok(Some(text)) => text,
                 Ok(None) => continue,
                 Err(error) => {
+                    trace::log("dcp.fail", &format!("category=Io path={}", path.display()));
                     return Err(
                         format!("cannot read dcp config {}: {error}", path.display()).into(),
                     );
                 }
             };
-            let value = config::parse_jsonc(&text, &path.to_string_lossy())
-                .map_err(|error| error.to_string())?;
-            merge_json_object(&mut dcp_fragment, &value)
-                .map_err(|reason| format!("{}: invalid dcp config: {reason}", path.display()))?;
+            let value = match config::parse_jsonc(&text, &path.to_string_lossy()) {
+                Ok(value) => value,
+                Err(error) => {
+                    trace::log(
+                        "dcp.fail",
+                        &format!("category={} path={}", config_class(&error), path.display()),
+                    );
+                    return Err(error.to_string().into());
+                }
+            };
+            if let Err(reason) = merge_json_object(&mut dcp_fragment, &value) {
+                trace::log(
+                    "dcp.fail",
+                    &format!("category=Merge path={}", path.display()),
+                );
+                return Err(format!("{}: invalid dcp config: {reason}", path.display()).into());
+            }
             dcp_sources.push(path.display().to_string());
         }
     }
-    let (dcp_config, dcp_warnings) = dcp_auto::load_config(&dcp_fragment).map_err(|error| {
-        if dcp_sources.is_empty() {
-            error.to_string()
-        } else {
-            format!("{error} (dcp config sources: {})", dcp_sources.join(", "))
+    let (dcp_config, dcp_warnings) = match dcp_auto::load_config(&dcp_fragment) {
+        Ok(loaded) => loaded,
+        Err(error) => {
+            trace::log(
+                "dcp.fail",
+                &format!(
+                    "category=Dcp path={}",
+                    if dcp_sources.is_empty() {
+                        "none".to_string()
+                    } else {
+                        dcp_sources.join(",")
+                    }
+                ),
+            );
+            return Err(if dcp_sources.is_empty() {
+                error.to_string()
+            } else {
+                format!("{error} (dcp config sources: {})", dcp_sources.join(", "))
+            }
+            .into());
         }
-    })?;
+    };
     let dcp_protected = oc_core::context_plan::ProtectedSpec {
         protect_user_messages: dcp_config.protect_user_messages,
         protect_tags: dcp_config.protect_tags,
@@ -244,7 +346,16 @@ pub(crate) async fn load_with_env_diagnostic(
     let mut native_modules = BTreeSet::new();
     let mut plugin_diagnostics = Vec::new();
     for source in &sources {
-        let value = config::parse_jsonc(&source.text, &source.path).map_err(|e| e.to_string())?;
+        let value = match config::parse_jsonc(&source.text, &source.path) {
+            Ok(value) => value,
+            Err(error) => {
+                trace::log(
+                    "source.parse_fail",
+                    &format!("path={} class={}", source.path, config_class(&error)),
+                );
+                return Err(error.to_string().into());
+            }
+        };
         if let Some(model) = value.get("model") {
             let model = model.as_str().ok_or_else(|| {
                 format!("{}: model must be a provider/model-id string", source.path)
@@ -296,12 +407,20 @@ pub(crate) async fn load_with_env_diagnostic(
                     let root = root.canonicalize().unwrap_or_else(|_| root.clone());
                     config::classify_plugin(&identity, &root.to_string_lossy()).ok()
                 });
-                let module = module.ok_or_else(|| {
-                    format!(
-                        "{}: UnsupportedPlugin: unsupported plugin {identity}",
-                        source.path
-                    )
-                })?;
+                let module = match module {
+                    Some(module) => module,
+                    None => {
+                        trace::log(
+                            "plugin.fail",
+                            &format!("category=UnsupportedPlugin path={}", source.path),
+                        );
+                        return Err(format!(
+                            "{}: UnsupportedPlugin: unsupported plugin {identity}",
+                            source.path
+                        )
+                        .into());
+                    }
+                };
                 if module == "ignored-authoring-goal" {
                     plugin_diagnostics.push(format!(
                         "{}: authoring-only plugin {identity} ignored; no package code was loaded",
@@ -311,6 +430,14 @@ pub(crate) async fn load_with_env_diagnostic(
                 native_modules.insert(module.to_string());
             }
         }
+    }
+
+    match &selected {
+        Some(model) => trace::log("selected", &format!("model={model}")),
+        None => trace::log("selected", "model=none"),
+    }
+    if let Some(agent) = &default_agent {
+        trace::log("selected.agent", &format!("override={agent}"));
     }
 
     // Definitions are merged at their exact source precedence points: config
@@ -386,6 +513,10 @@ pub(crate) async fn load_with_env_diagnostic(
                     .is_some_and(|stem| stem == "title")
         })
     {
+        trace::log(
+            "defs.fail",
+            &format!("category=Definitions path={}", diagnostic.path),
+        );
         return Err(format!(
             "title agent is invalid: {}: {}",
             diagnostic.path, diagnostic.reason
@@ -395,6 +526,7 @@ pub(crate) async fn load_with_env_diagnostic(
     let selected_agent = match default_agent.as_deref() {
         Some(id) => match loaded_defs.agents.get(id) {
             Some(agent) if !agent.primary_capable() => {
+                trace::log("defs.fail", &format!("category=Agent path={id}"));
                 return Err(format!(
                     "selected agent {id} is subagent-only and cannot be a primary agent"
                 )
@@ -408,6 +540,15 @@ pub(crate) async fn load_with_env_diagnostic(
                             .file_stem()
                             .is_some_and(|stem| stem == id)
                 });
+                trace::log(
+                    "defs.fail",
+                    &format!(
+                        "category=Agent path={}",
+                        diagnostic
+                            .as_ref()
+                            .map_or("none", |diagnostic| diagnostic.path.as_str())
+                    ),
+                );
                 return Err((match diagnostic {
                     Some(diagnostic) => format!(
                         "selected agent {id} is invalid: {}: {}",
@@ -485,6 +626,50 @@ pub(crate) async fn load_with_env_diagnostic(
         );
     }
     let selected_providers = HashSet::from([provider_id.to_string()]);
+    let raw_provider = raw_provider_fragment(&sources, provider_id);
+    trace::log("provider.selected", &format!("id={provider_id}"));
+    let api_key_template = raw_provider
+        .as_ref()
+        .and_then(|raw| raw.pointer("/options/apiKey"))
+        .and_then(|value| value.as_str())
+        .unwrap_or("");
+    match env_token(api_key_template) {
+        Some(name) => trace::log(
+            "provider.api_key",
+            &format!(
+                "env={name} {}",
+                trace::env_fact(name, parent_env.get(name).map(String::as_str))
+            ),
+        ),
+        None => trace::log("provider.api_key", "source=inline"),
+    }
+    let mut env_names: Vec<String> = Vec::new();
+    let mut collect_env_refs = |template: &str| {
+        for name in env_refs(template) {
+            if !env_names.contains(&name) {
+                env_names.push(name);
+            }
+        }
+    };
+    if let Some(raw) = &raw_provider {
+        if let Some(template) = raw.pointer("/options/baseURL").and_then(|v| v.as_str()) {
+            collect_env_refs(template);
+        }
+        collect_env_refs(api_key_template);
+        if let Some(headers) = raw.pointer("/options/headers").and_then(|v| v.as_object()) {
+            for value in headers.values() {
+                if let Some(template) = value.as_str() {
+                    collect_env_refs(template);
+                }
+            }
+        }
+    }
+    for name in &env_names {
+        trace::log(
+            "env.ref",
+            &trace::env_fact(name, parent_env.get(name).map(String::as_str)),
+        );
+    }
     let mut generation = config::assemble_admitted(
         &sources,
         &parent_env,
@@ -546,6 +731,21 @@ pub(crate) async fn load_with_env_diagnostic(
             "provider.{provider_id}.options.baseURL must be an HTTP(S) prefix without credentials, query or fragment"
         ).into());
     }
+    trace::log(
+        "provider.base_url",
+        &format!(
+            "scheme={} host={} port={} path={}",
+            url.scheme(),
+            url.host_str().unwrap_or("none"),
+            url.port()
+                .map_or_else(|| "none".to_string(), |port| port.to_string()),
+            url.path()
+        ),
+    );
+    trace::log(
+        "provider.headers",
+        &format!("configured={}", entry.options.headers.len()),
+    );
     let mut catalog = models::ModelCatalog {
         provider: provider_id.to_string(),
         models: entry.models.clone(),
@@ -553,28 +753,48 @@ pub(crate) async fn load_with_env_diagnostic(
     let mut discovery_result = None;
     // The existing native daily-direct profile enables discovery for this
     // provider; an admitted JS alias denotes the same compiled module.
-    if provider_id == discovery::PROVIDER_ID && discovery::should_run(&disabled, enabled.as_deref())
-    {
-        let client =
-            discovery::ReqwestDiscoveryClient::new(provider.connect_timeout).map_err(|e| {
-                LoadFailure::Discovery {
-                    reason: SelectedCatalogFailure::Refresh(discovery::DiscoveryFailure::from(&e)),
-                    detail: format!("model discovery: {e}"),
+    if provider_id == discovery::PROVIDER_ID {
+        let run = discovery::should_run(&disabled, enabled.as_deref());
+        let discovery_url =
+            discovery::discovery_url(&provider.base_url).unwrap_or_else(|_| "none".to_string());
+        trace::log("discovery", &format!("url={discovery_url} enabled={run}"));
+        if run {
+            let client =
+                discovery::ReqwestDiscoveryClient::new(provider.connect_timeout).map_err(|e| {
+                    LoadFailure::Discovery {
+                        reason: SelectedCatalogFailure::Refresh(discovery::DiscoveryFailure::from(
+                            &e,
+                        )),
+                        detail: format!("model discovery: {e}"),
+                    }
+                })?;
+            let outcome = discovery::refresh(
+                &discovery::RealClock,
+                &client,
+                &provider.base_url,
+                &provider.api_key,
+                &provider.headers,
+                &catalog.models,
+                &AtomicBool::new(false),
+            )
+            .await;
+            match &outcome.failure {
+                None => trace::log(
+                    "discovery.ok",
+                    &format!(
+                        "models={} selected_present={}",
+                        outcome.models.len(),
+                        outcome.models.contains_key(model_id)
+                    ),
+                ),
+                Some(failure) => {
+                    trace::log("discovery.fail", &format!("class={failure:?}"));
                 }
-            })?;
-        let outcome = discovery::refresh(
-            &discovery::RealClock,
-            &client,
-            &provider.base_url,
-            &provider.api_key,
-            &provider.headers,
-            &catalog.models,
-            &AtomicBool::new(false),
-        )
-        .await;
-        discovery_result = Some(outcome.failure);
-        catalog.models = outcome.models;
-        generation.warnings.extend(outcome.warnings);
+            }
+            discovery_result = Some(outcome.failure);
+            catalog.models = outcome.models;
+            generation.warnings.extend(outcome.warnings);
+        }
     }
     models::select_model(&catalog, model_id).map_err(|e| {
         let warnings = generation.warnings.join(" ");
@@ -933,6 +1153,53 @@ fn provider_ids(
 ) -> Result<Vec<String>, String> {
     serde_json::from_value(value.clone())
         .map_err(|_| format!("{source}: {field} must be an array of strings"))
+}
+
+/// Winning raw provider fragment (last source defining the id wins whole).
+fn raw_provider_fragment(
+    sources: &[config::Source],
+    provider_id: &str,
+) -> Option<serde_json::Value> {
+    let mut winner = None;
+    for source in sources {
+        let Ok(value) = config::parse_jsonc(&source.text, &source.path) else {
+            continue;
+        };
+        if let Some(raw) = value
+            .get("provider")
+            .and_then(|providers| providers.get(provider_id))
+        {
+            winner = Some(raw.clone());
+        }
+    }
+    winner
+}
+
+/// A template that is exactly one `{env:NAME}` token, if any.
+fn env_token(template: &str) -> Option<&str> {
+    let template = template.trim();
+    let inner = template.strip_prefix("{env:")?.strip_suffix('}')?;
+    (!inner.is_empty() && !inner.contains('{') && !inner.contains('}')).then_some(inner)
+}
+
+/// Every distinct `{env:NAME}` reference in a template, in first-seen order.
+fn env_refs(template: &str) -> Vec<String> {
+    let mut names: Vec<String> = Vec::new();
+    let mut rest = template;
+    while let Some(start) = rest.find('{') {
+        let tail = &rest[start..];
+        let Some(end) = tail.find('}') else {
+            break;
+        };
+        if let Some(name) = tail[1..end].strip_prefix("env:")
+            && !name.is_empty()
+            && !names.iter().any(|seen| seen == name)
+        {
+            names.push(name.to_string());
+        }
+        rest = &tail[end + 1..];
+    }
+    names
 }
 
 #[cfg(test)]
