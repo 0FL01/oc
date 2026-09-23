@@ -1438,20 +1438,35 @@ async fn worker(
                                 report
                                     .warnings
                                     .push(format!("title generation skipped: {error}"));
-                            } else if let Ok(Ok(generation)) = tokio::time::timeout(
-                                std::time::Duration::from_secs(10),
-                                crate::provider::stream_input_observed(
-                                    &composition.provider,
-                                    &selection.id,
-                                    selection.variant.as_ref(),
-                                    &input,
-                                    &tools,
-                                    budget.output,
-                                    &cancel,
-                                    &mut |_| {},
-                                ),
-                            )
-                            .await
+                            } else if let Ok(Ok(generation)) =
+                                tokio::time::timeout(std::time::Duration::from_secs(10), async {
+                                    if composition.catalog.provider == "opencode" {
+                                        crate::zen_chat::stream_free_input_observed(
+                                            &composition.provider,
+                                            &selection.id,
+                                            &session.0,
+                                            &input,
+                                            &tools,
+                                            budget.output,
+                                            &cancel,
+                                            &mut |_| {},
+                                        )
+                                        .await
+                                    } else {
+                                        crate::provider::stream_input_observed(
+                                            &composition.provider,
+                                            &selection.id,
+                                            selection.variant.as_ref(),
+                                            &input,
+                                            &tools,
+                                            budget.output,
+                                            &cancel,
+                                            &mut |_| {},
+                                        )
+                                        .await
+                                    }
+                                })
+                                .await
                             {
                                 let canonical = generation
                                     .output

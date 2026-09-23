@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-23T11:49:47+00:00
-Active: T48
-
-Сверить Git status/diff до выполнения команд.
-Task: T48 — Direct official Zen Free Chat (no paid fallback)
-Spec: docs/goals/2026-09-23-zen-free-chat.md
-Evidence target: evidence/T48/report.md
-
-Owner-approved pivot while T44 paused: intersect models.dev opencode metadata with live Zen IDs, fail closed on any unconfirmed free Chat/tools eligibility; native chat/completions adapter with true oc headers and canonical tool history, offline binary restart/DCP/cancel, no hardcoded production IDs or Responses/Go/System One. Keep OpenProxy A04 and T27 separate; bounded synthetic-only live proof when access and durable envelope available.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 # T48 direct Zen synthetic smoke preflight
 
 ## Result
@@ -29,9 +15,3 @@ Two public catalog snapshots are not an atomic Zen billing quote; dynamic free o
 ## Next
 
 Use one isolated keyless test (`OC_TEST_ZEN_LIVE=1`, `OC_TEST_ZEN_MODEL` explicit, `OC_TEST_ZEN_CAMPAIGN_DIR` private persistent, no product credential), record only sanitized exit/category and count the marker; stop on access refusal. Then finish missing offline DCP/child coverage and rerun applicable gates.
-
-
-Ready (до 5): T45, T46, T47
-Blocked: T27, T43, T44
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

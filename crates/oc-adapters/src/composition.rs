@@ -731,6 +731,19 @@ async fn load_stages(
             "provider.{provider_id}.options.baseURL must be an HTTP(S) prefix without credentials, query or fragment"
         ).into());
     }
+    if provider_id == "opencode" {
+        let official = url.scheme() == "https"
+            && url.host_str() == Some("opencode.ai")
+            && url.port().is_none();
+        let fixture = provider.allow_private
+            && url.scheme() == "http"
+            && matches!(url.host_str(), Some("127.0.0.1" | "[::1]"));
+        if (!official && !fixture) || url.path().trim_end_matches('/') != "/zen/v1" {
+            return Err(
+                "Zen Free Chat requires the official https://opencode.ai/zen/v1 prefix".into(),
+            );
+        }
+    }
     trace::log(
         "provider.base_url",
         &format!(
@@ -750,6 +763,21 @@ async fn load_stages(
         provider: provider_id.to_string(),
         models: entry.models.clone(),
     };
+    if provider_id == "opencode" {
+        let metadata =
+            if provider.allow_private && matches!(url.host_str(), Some("127.0.0.1" | "[::1]")) {
+                parent_env
+                    .get("OC_TEST_ZEN_METADATA_URL")
+                    .map(String::as_str)
+                    .unwrap_or("https://models.dev/api.json")
+            } else {
+                "https://models.dev/api.json"
+            };
+        catalog.models =
+            crate::zen_catalog::fetch(metadata, &provider.base_url, provider.allow_private)
+                .await
+                .map_err(|error| format!("Zen Free catalog: {error}"))?;
+    }
     let mut discovery_result = None;
     // The existing native daily-direct profile enables discovery for this
     // provider; an admitted JS alias denotes the same compiled module.

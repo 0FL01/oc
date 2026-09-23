@@ -766,6 +766,16 @@
       "work": "Не отклонять model без limit/context до turn. Native configurable fallback caps + warning без изменения discovery metadata/DISC05; request-local output/input admission, включая child/title requests; отсутствие selected variant означает отсутствие overlay. Контракт D14 и docs/CONTRACTS.md; общий backend checkpoint docs/goals/2026-09-22-backend-blockers.md. Пока T44 active, delivery фиксируется additive evidence без подмены task status.",
       "evidence": "evidence/T47/report.md",
       "spec": "docs/goals/2026-09-22-backend-blockers.md"
+    },
+    {
+      "id": "T48",
+      "phase": "M9",
+      "title": "Direct official Zen Free Chat (no paid fallback)",
+      "depends_on": [],
+      "tests": ["ZEN01", "ZEN02", "ZEN03"],
+      "work": "Owner-approved pivot while T44 paused: intersect models.dev opencode metadata with live Zen IDs, fail closed on any unconfirmed free Chat/tools eligibility; native chat/completions adapter with true oc headers and canonical tool history, offline binary restart/DCP/cancel, no hardcoded production IDs or Responses/Go/System One. Keep OpenProxy A04 and T27 separate; bounded synthetic-only live proof when access and durable envelope available.",
+      "evidence": "evidence/T48/report.md",
+      "spec": "docs/goals/2026-09-23-zen-free-chat.md"
     }
   ]
 }

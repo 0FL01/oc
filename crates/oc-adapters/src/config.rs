@@ -607,7 +607,9 @@ fn assemble_with_reader(
         if selected {
             validate_provider(id, &entry)?;
         }
-        if selected && entry.options.api_key.trim().is_empty() {
+        // The official Zen Free Chat route may admit anonymous access; only
+        // its live catalog and server can decide. Never synthesize a key.
+        if selected && id != "opencode" && entry.options.api_key.trim().is_empty() {
             return Err(ConfigError::MissingCredential {
                 field: format!("provider.{id}.options.apiKey"),
             });
@@ -685,7 +687,27 @@ fn validate_provider(id: &str, entry: &ProviderEntry) -> Result<(), ConfigError>
             reason: "context must exceed output plus the 1024-token safety margin".to_string(),
         });
     }
-    if let Some(npm) = &entry.npm
+    if id == "opencode" {
+        if entry.options.api_key.trim().eq_ignore_ascii_case("public") {
+            return Err(ConfigError::Invalid {
+                field: format!("provider.{id}.options.apiKey"),
+                reason: "anonymous Zen Free requires no key; public is not a credential"
+                    .to_string(),
+            });
+        }
+        if entry.npm.as_deref() != Some("@ai-sdk/openai-compatible") {
+            return Err(ConfigError::UnsupportedCapability {
+                field: format!("provider.{id}.npm"),
+                reason: "Zen Free requires the native Chat Completions alias".to_string(),
+            });
+        }
+        if !entry.models.is_empty() {
+            return Err(ConfigError::Invalid {
+                field: format!("provider.{id}.models"),
+                reason: "Zen Free models must come from the verified live catalog".to_string(),
+            });
+        }
+    } else if let Some(npm) = &entry.npm
         && npm != "@ai-sdk/openai"
     {
         return Err(ConfigError::UnsupportedCapability {

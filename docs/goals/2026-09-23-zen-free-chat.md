@@ -1,0 +1,17 @@
+# T48 — direct Zen Free Chat only
+
+Owner-approved temporary pivot while T44 remains paused. T48 does not close the OpenProxy live gates or claim Zen paid-service access. Keep the existing `oc` binary, config isolation and immutable canonical history; no JS runtime, generic provider registry or production model ID constants.
+
+## Done
+
+- With a separate `provider.opencode` (`npm: "@ai-sdk/openai-compatible"`, official Zen prefix, optional user-supplied Zen key), an explicitly selected `opencode/<model-id>` comes from a fresh intersection of `https://models.dev/api.json` (`opencode.models`, effective per-model package/api, every price/tier) and `https://opencode.ai/zen/v1/models`. Reject absent/paid/unknown prices, incompatible protocol, disabled or non-tool/text models and stale/failing feeds. No paid/Responses fallback; exact dynamic IDs, no hardcoded production model list. Auth, headers and customer config never come from the feeds.
+- Native `/zen/v1/chat/completions` text/tool/result continuation preserves calls, storage, restart, DCP projection and cancellation; title and child requests use identical provider dispatch and revalidation. Stable truthful `x-opencode-session` and own `oc/<version>` UA, never forged OpenCode identity or `Bearer public`. Distinguish 401/403 and never log raw error bodies/keys. Retain request/event/argument/stream byte and timeout bounds and deny credential-bearing redirects.
+- Offline fake server exercises both feeds and actual binary (tool roundtrip/restart/retired and changed-price refusal), and existing Responses regressions stay green. Live proof uses only an isolated synthetic fixture with explicit authorization, a persistently enforced ≤24 outbound generation HTTP campaign including retry/title/child, ≤4 searches, smoke output ≤2048, no paid model or identity spoof. If live key/access or budget authority is unavailable, report BLOCKED_LIVE honestly; offline completion is not live PASS.
+
+## Setup and authority
+
+Select an exact ID from the **current** public catalogs and configure it, e.g. `"model": "opencode/<chosen-current-free-chat-id>"`; no example ID is a production allowlist. Set `"provider":{"opencode":{"npm":"@ai-sdk/openai-compatible","options":{"baseURL":"https://opencode.ai/zen/v1","apiKey":"{env:ZEN_API_KEY}"}}}` only with an authorized Zen key. For keyless access omit `apiKey` entirely; acceptance is solely the gateway's decision. The legacy `oc2` shell wrapper sources OpenProxy credentials but does not supply or guarantee Zen credentials. Zen Free is temporary and may have different privacy/data-use terms; synthetic fixture only.
+
+## Task ownership
+
+T44 was owner-paused before this pivot; the journal must have at most one active task. This is a distinct task/decision, not renaming T27 or marking the original A04 live gate passed. If the owner-requested T44 pause is represented as blocked/paused by the journal utility, start T48 explicitly and leave T44 resumable from its existing factual checkpoint. Record changed files and executed checks, commit and push only the own branch, never stage the pre-existing untracked `.opencode/`.
