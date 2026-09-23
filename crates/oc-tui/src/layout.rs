@@ -102,6 +102,158 @@ pub fn single_tab_width(available: u16) -> u16 {
     available.clamp(1, SESSION_TAB_MAX_WIDTH)
 }
 
+/// The horizontal strip's painted rectangles. Indices refer to the caller's
+/// ordered tabs; overflow markers and the optional add control are not tabs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TabSlot {
+    pub index: usize,
+    pub rect: Rect,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HorizontalTabStrip {
+    pub start: usize,
+    pub before: usize,
+    pub after: usize,
+    pub before_marker: Option<Rect>,
+    pub tabs: Vec<TabSlot>,
+    pub after_marker: Option<Rect>,
+    pub add: Option<Rect>,
+}
+
+impl HorizontalTabStrip {
+    /// Only a cell inside a visible, painted tab is selectable.
+    pub fn hit_test(&self, x: u16, y: u16) -> Option<usize> {
+        self.tabs
+            .iter()
+            .find(|tab| tab.rect.width > 0 && tab.rect.contains((x, y).into()))
+            .map(|tab| tab.index)
+    }
+}
+
+/// `context/session-tabs-model.ts:33-37,175-257` adaptive window and widths;
+/// `component/session-tabs.tsx:1316-1338,1739-1772` reserves the three-cell
+/// add affordance only when its action is available. Rectangles are clipped
+/// after solving, including at sizes too small for an upstream minimum tab or
+/// a complete overflow marker. This does not create a session or an add action.
+pub fn horizontal_tab_strip(
+    area: Rect,
+    count: usize,
+    active: Option<usize>,
+    previous_start: usize,
+    can_add: bool,
+) -> HorizontalTabStrip {
+    let active = active.filter(|index| *index < count);
+    let available = area.width.saturating_sub(if can_add { 3 } else { 0 }) as usize;
+    let fit = |width: usize| -> usize {
+        if count == 0 {
+            return 0;
+        }
+        let slots = if active.is_some() {
+            1 + width.saturating_sub(SESSION_TAB_WIDTH as usize) / SESSION_TAB_MIN_WIDTH as usize
+        } else {
+            width / SESSION_TAB_MIN_WIDTH as usize
+        };
+        slots.max(1).min(count)
+    };
+    let marker_width = |hidden: usize| -> usize {
+        if hidden == 0 {
+            0
+        } else {
+            hidden.to_string().len() + 2
+        }
+    };
+    let mut visible = fit(available);
+    let mut start = 0;
+    if visible > 0 {
+        let mut candidate = previous_start;
+        // Same bounded solve as upstream; marker digits change the fit at
+        // window boundaries, so the current start is reused on each pass.
+        for attempt in 0..=3 {
+            let bounded = candidate.min(count - visible);
+            start = match active {
+                Some(index) if index < bounded => index,
+                Some(index) if index >= bounded + visible => index - visible + 1,
+                _ => bounded,
+            };
+            let after = count - start - visible;
+            let next = fit(available.saturating_sub(marker_width(start) + marker_width(after)));
+            if next == visible || attempt == 3 {
+                break;
+            }
+            visible = next;
+            candidate = start;
+        }
+    }
+    let before = start;
+    let after = count - start - visible;
+    let content = available
+        .saturating_sub(marker_width(before) + marker_width(after))
+        .max(1);
+    let total = if content >= SESSION_TAB_WIDTH as usize * visible {
+        content.min(SESSION_TAB_MAX_WIDTH as usize * visible)
+    } else {
+        content
+    };
+    let widths: Vec<usize> = if visible == 0 {
+        Vec::new()
+    } else if content >= SESSION_TAB_WIDTH as usize * visible || active.is_none() {
+        (0..visible)
+            .map(|index| total / visible + usize::from(index < total % visible))
+            .collect()
+    } else {
+        let inactive = if visible == 1 {
+            0
+        } else {
+            ((total.saturating_sub(SESSION_TAB_WIDTH as usize)) / (visible - 1))
+                .clamp(SESSION_TAB_MIN_WIDTH as usize, SESSION_TAB_WIDTH as usize)
+        };
+        let selected = if visible == 1 {
+            total
+        } else {
+            total.saturating_sub(inactive * (visible - 1))
+        };
+        (start..start + visible)
+            .map(|index| {
+                if Some(index) == active {
+                    selected
+                } else {
+                    inactive
+                }
+            })
+            .collect()
+    };
+
+    let mut x = area.x;
+    let end = area.right();
+    let mut take = |requested: usize| {
+        let width = requested.min(end.saturating_sub(x) as usize) as u16;
+        let rect = Rect::new(x, area.y, width, area.height.min(1));
+        x = x.saturating_add(width);
+        rect
+    };
+    let before_marker = (before > 0).then(|| take(marker_width(before)));
+    let tabs = widths
+        .into_iter()
+        .enumerate()
+        .map(|(offset, width)| TabSlot {
+            index: start + offset,
+            rect: take(width),
+        })
+        .collect();
+    let after_marker = (after > 0).then(|| take(marker_width(after)));
+    let add = can_add.then(|| take(3));
+    HorizontalTabStrip {
+        start,
+        before,
+        after,
+        before_marker,
+        tabs,
+        after_marker,
+        add,
+    }
+}
+
 // ---- rectangles -----------------------------------------------------------
 
 /// Root column regions; `session` is the whole main column below the tab
@@ -332,6 +484,137 @@ mod tests {
         );
         assert_eq!(single_tab_width(20), 20);
         assert_eq!(single_tab_width(0), 1);
+    }
+
+    #[test]
+    fn horizontal_tabs_one_and_adaptive_multi() {
+        for width in [80, 120] {
+            let strip = horizontal_tab_strip(Rect::new(4, 2, width, 1), 1, Some(0), 0, false);
+            assert_eq!(strip.tabs[0].index, 0);
+            assert_eq!(strip.tabs[0].rect, Rect::new(4, 2, 32, 1));
+            assert_eq!((strip.before, strip.after), (0, 0));
+            assert_eq!(strip.hit_test(4, 2), Some(0));
+            assert_eq!(strip.hit_test(36, 2), None);
+            assert_eq!(strip.hit_test(4, 3), None);
+            assert!(strip.add.is_none());
+        }
+        let two = horizontal_tab_strip(Rect::new(0, 0, 43, 1), 2, Some(0), 0, false);
+        assert_eq!(
+            two.tabs.iter().map(|t| t.rect.width).collect::<Vec<_>>(),
+            [22, 21]
+        );
+        let tight = horizontal_tab_strip(Rect::new(0, 0, 32, 1), 2, Some(1), 0, false);
+        assert_eq!(
+            tight.tabs.iter().map(|t| t.rect.width).collect::<Vec<_>>(),
+            [10, 22]
+        );
+        let three = horizontal_tab_strip(Rect::new(0, 0, 44, 1), 3, Some(1), 0, false);
+        assert_eq!((three.before, three.after), (0, 0));
+        assert_eq!(
+            three.tabs.iter().map(|t| t.rect.width).collect::<Vec<_>>(),
+            [11, 22, 11]
+        );
+        assert_eq!(three.after_marker, None);
+        let window = horizontal_tab_strip(Rect::new(0, 0, 31, 1), 3, Some(1), 0, false);
+        assert_eq!((window.start, window.before, window.after), (1, 1, 1));
+        assert_eq!(window.before_marker, Some(Rect::new(0, 0, 3, 1)));
+        assert_eq!(
+            window.tabs[0],
+            TabSlot {
+                index: 1,
+                rect: Rect::new(3, 0, 25, 1)
+            }
+        );
+        assert_eq!(window.after_marker, Some(Rect::new(28, 0, 3, 1)));
+    }
+
+    #[test]
+    fn horizontal_tabs_keep_active_visible_and_respect_previous_start() {
+        let area = Rect::new(5, 3, 44, 1);
+        for (active, previous, start) in [(0, 19, 0), (19, 0, 17), (10, 9, 9)] {
+            let strip = horizontal_tab_strip(area, 20, Some(active), previous, false);
+            assert_eq!(strip.start, start, "{active} {previous}");
+            assert!(
+                strip
+                    .tabs
+                    .iter()
+                    .any(|t| t.index == active && t.rect.width > 0)
+            );
+            assert_eq!(strip.before, start);
+            assert_eq!(strip.after, 20 - start - strip.tabs.len());
+        }
+        let no_active = horizontal_tab_strip(area, 20, None, 8, false);
+        assert_eq!(no_active.start, 8);
+    }
+
+    #[test]
+    fn horizontal_tabs_marker_digits_and_add_capability() {
+        let strip = horizontal_tab_strip(Rect::new(0, 0, 44, 1), 100, Some(15), 15, false);
+        assert_eq!(strip.before, 15);
+        assert_eq!(strip.before_marker.unwrap().width, 4); // ‹15 plus gap
+        assert!(strip.after >= 10);
+        assert_eq!(
+            strip.after_marker.unwrap().width,
+            strip.after.to_string().len() as u16 + 2
+        );
+        assert!(strip.add.is_none());
+        let three_digits = horizontal_tab_strip(Rect::new(0, 0, 44, 1), 200, Some(150), 150, false);
+        assert!(three_digits.before >= 100);
+        assert_eq!(three_digits.before_marker.unwrap().width, 5);
+        let trailing = horizontal_tab_strip(Rect::new(0, 0, 44, 1), 200, Some(0), 0, false);
+        assert!(trailing.after >= 100);
+        assert_eq!(trailing.after_marker.unwrap().width, 5);
+        let allowed = horizontal_tab_strip(Rect::new(0, 0, 80, 1), 1, Some(0), 0, true);
+        assert_eq!(allowed.tabs[0].rect.width, 32);
+        assert_eq!(allowed.add, Some(Rect::new(32, 0, 3, 1)));
+        assert_eq!(allowed.hit_test(32, 0), None);
+        let too_narrow = horizontal_tab_strip(Rect::new(5, 3, 1, 1), 2, Some(1), 0, false);
+        assert_eq!(too_narrow.before_marker, Some(Rect::new(5, 3, 1, 1)));
+        assert_eq!(too_narrow.tabs[0].rect.width, 0);
+        assert_eq!(too_narrow.hit_test(5, 3), None);
+        assert_eq!(too_narrow.hit_test(6, 3), None);
+    }
+
+    #[test]
+    fn horizontal_tabs_clip_without_overlap_or_unpainted_hits() {
+        for count in [0_usize, 1, 2, 3, 20, 120] {
+            for width in [0, 1, 7, 8, 21, 22, 31, 32, 43, 44, 119, 120, 121] {
+                for active in [None, Some(0), Some(count / 2), count.checked_sub(1)] {
+                    for add in [false, true] {
+                        let area = Rect::new(3, 5, width, 1);
+                        let strip = horizontal_tab_strip(area, count, active, count / 2, add);
+                        let mut painted = Vec::new();
+                        painted.extend(strip.before_marker);
+                        painted.extend(strip.tabs.iter().map(|tab| tab.rect));
+                        painted.extend(strip.after_marker);
+                        painted.extend(strip.add);
+                        let mut right = area.x;
+                        for rect in painted {
+                            assert_eq!(rect.y, area.y);
+                            assert_eq!(rect.height, 1);
+                            assert!(rect.x >= right && rect.right() <= area.right(), "{strip:?}");
+                            right = rect.right();
+                        }
+                        for x in area.x..=area.right() {
+                            let hit = strip.hit_test(x, area.y);
+                            assert_eq!(
+                                hit,
+                                strip
+                                    .tabs
+                                    .iter()
+                                    .find(|tab| tab.rect.contains((x, area.y).into()))
+                                    .map(|tab| tab.index),
+                                "{strip:?} x={x}"
+                            );
+                        }
+                        assert_eq!(strip.hit_test(area.x, area.y + 1), None);
+                        if !add {
+                            assert!(strip.add.is_none());
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// Resizing is a pure re-layout: the same area always yields the same

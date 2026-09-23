@@ -254,14 +254,13 @@ pub(crate) fn transcript_area(state: &TuiState, area: Rect) -> Rect {
 /// (`component/session-tabs.tsx:1506-1508`, `context/session-tabs-model.ts:33-35`).
 fn tab_line(
     theme: &Theme,
-    available: u16,
+    tab_width: u16,
     title: Option<&str>,
     indicators: TabIndicators,
     busy: bool,
 ) -> Line<'static> {
     let title = title.unwrap_or(UNTITLED_SESSION);
     let tab_bg = theme.decrease(theme.background_panel());
-    let tab_width = layout::single_tab_width(available);
     let title_width = tab_width.saturating_sub(3) as usize;
     let overflow = UnicodeWidthStr::width(title) > title_width;
     let mut used = 0;
@@ -337,14 +336,14 @@ fn render_tabs(
             area,
         );
     }
-    let strip = Rect {
-        width: layout::single_tab_width(area.width),
-        ..area
-    };
-    frame.render_widget(
-        Paragraph::new(tab_line(theme, area.width, title, indicators, busy)),
-        strip,
-    );
+    // The current native route has one real tab and no add-session action.
+    let strip = layout::horizontal_tab_strip(area, 1, Some(0), 0, false);
+    if let Some(tab) = strip.tabs.first().filter(|tab| tab.rect.width > 0) {
+        frame.render_widget(
+            Paragraph::new(tab_line(theme, tab.rect.width, title, indicators, busy)),
+            tab.rect,
+        );
+    }
 }
 
 fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {
@@ -1359,6 +1358,33 @@ mod tests {
                 buffer[(x, 0)].bg,
                 Theme::dark().decrease(Theme::dark().background_panel())
             );
+        }
+    }
+
+    #[test]
+    fn single_tab_render_uses_layout_without_an_inert_add_control() {
+        let theme = Theme::dark();
+        for width in [32, 80, 120] {
+            let mut terminal = Terminal::new(TestBackend::new(width, 1)).unwrap();
+            terminal
+                .draw(|frame| {
+                    render_tabs(
+                        frame,
+                        theme,
+                        Rect::new(0, 0, width, 1),
+                        Some("Tab"),
+                        TabIndicators::Numbers,
+                        false,
+                    );
+                })
+                .unwrap();
+            let buffer = terminal.backend().buffer();
+            assert_eq!(buffer[(31, 0)].bg, theme.decrease(theme.background_panel()));
+            if width > 32 {
+                assert_ne!(buffer[(32, 0)].bg, theme.decrease(theme.background_panel()));
+                assert_eq!(buffer[(32, 0)].symbol(), " ");
+            }
+            assert!(!buffer.content.iter().any(|cell| cell.symbol() == "+"));
         }
     }
 
