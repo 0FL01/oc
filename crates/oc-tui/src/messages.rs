@@ -447,9 +447,8 @@ fn visit_row_blocks(
     let (width, terminal_width) = widths;
     if row.role == "user" && width > 0 {
         let bg = theme.user_message_background();
-        let border = Style::default()
-            .fg(agent_color(row.agent.as_deref()))
-            .bg(bg);
+        let color = user_agent_color(row, theme, agent_color);
+        let border = Style::default().fg(color).bg(bg);
         emit(vec![user_row(
             &[Span::styled("┃", border)],
             bg,
@@ -1343,7 +1342,7 @@ fn user_block(
 ) -> Vec<Line> {
     let bg = theme.user_message_background();
     let border = Style::default()
-        .fg(agent_color(row.agent.as_deref()))
+        .fg(user_agent_color(row, theme, agent_color))
         .bg(bg);
     let body = Style::default().fg(theme.text()).bg(bg);
     let width = width as usize;
@@ -1383,6 +1382,20 @@ fn user_block(
     // paddingBottom=1.
     out.push(user_row(&[Span::styled("┃", border)], bg, width));
     out
+}
+
+fn user_agent_color(
+    row: &HistoryRow,
+    theme: &Theme,
+    agent_color: &impl Fn(Option<&str>) -> Color,
+) -> Color {
+    row.agent_color_index.map_or_else(
+        || agent_color(row.agent.as_deref()),
+        |index| {
+            let colors = theme.categorical_agents();
+            colors[index % colors.len()]
+        },
+    )
 }
 
 /// Pad one user-block row to the full content width so the raised background
@@ -2396,6 +2409,7 @@ mod tests {
             role: "user".to_string(),
             text: text.to_string(),
             agent: Some("build".to_string()),
+            agent_color_index: None,
             chips,
             reasoning: None,
             meta: None,
@@ -2409,6 +2423,7 @@ mod tests {
             role: "assistant".to_string(),
             text: text.to_string(),
             agent: Some("build".to_string()),
+            agent_color_index: None,
             chips: Vec::new(),
             reasoning: None,
             meta: None,
@@ -2506,6 +2521,14 @@ mod tests {
         // Chips are separate rows, so nothing is invented when absent.
         let (rows, _) = render(&[user("plain", Vec::new())], 60, 4);
         assert_eq!(rows, vec!["┃", "┃  plain", "┃", ""]);
+    }
+
+    #[test]
+    fn user_message_prefers_the_turns_pinned_agent_color() {
+        let mut row = user("sent under another profile", Vec::new());
+        row.agent_color_index = Some(1);
+        let (_, buffer) = render(&[row], 60, 5);
+        assert_eq!(buffer[(0, 1)].fg, Theme::dark().categorical_agents()[1]);
     }
 
     /// Assistant markdown at `paddingLeft=3` (`message-parts.tsx:156-171`) with

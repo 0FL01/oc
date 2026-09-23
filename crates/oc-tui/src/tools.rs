@@ -1022,6 +1022,7 @@ mod tests {
             role: "tool".to_string(),
             text: String::new(),
             agent: Some("build".to_string()),
+            agent_color_index: None,
             chips: Vec::<Chip>::new(),
             reasoning: None,
             meta: None,

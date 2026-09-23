@@ -198,6 +198,7 @@ impl LivePart {
                 role: "assistant".to_string(),
                 text: text.clone(),
                 agent,
+                agent_color_index: None,
                 chips: Vec::new(),
                 reasoning: None,
                 meta: None,
@@ -208,6 +209,7 @@ impl LivePart {
                 role: "assistant".to_string(),
                 text: String::new(),
                 agent,
+                agent_color_index: None,
                 chips: Vec::new(),
                 reasoning: Some(ReasoningBlock {
                     text: text.clone(),
@@ -223,6 +225,7 @@ impl LivePart {
                 role: "tool".to_string(),
                 text: String::new(),
                 agent,
+                agent_color_index: None,
                 chips: Vec::new(),
                 reasoning: None,
                 meta: None,
@@ -240,6 +243,8 @@ struct PendingSubmission {
     draft: String,
     revision: u64,
     receipt: SubmissionReceipt,
+    agent: Option<String>,
+    agent_color_index: Option<usize>,
     cancelling: bool,
     compress: bool,
 }
@@ -973,6 +978,7 @@ impl TuiState {
                 role: "assistant".to_string(),
                 text: self.live_text.clone(),
                 agent: self.active_agent.clone(),
+                agent_color_index: self.live_agent_color_index,
                 chips: Vec::new(),
                 reasoning: (!self.live_reasoning.is_empty()).then(|| ReasoningBlock {
                     text: self.live_reasoning.clone(),
@@ -987,7 +993,7 @@ impl TuiState {
         if self.active_turn.is_some() && self.live_preview_truncated {
             rows.push(HistoryRow {
                 seq:i64::MAX,role:"assistant".into(),text:"[Live preview truncated; durable parts remain available through history and /cards]".into(),
-                agent:None,chips:Vec::new(),reasoning:None,meta:None,tool:None,
+                agent:None,agent_color_index:None,chips:Vec::new(),reasoning:None,meta:None,tool:None,
             });
         }
         for row in &mut rows {
@@ -1297,6 +1303,13 @@ impl TuiState {
 
     fn begin_submission(&mut self, receipt: SubmissionReceipt, compress: bool) {
         self.request_id += 1;
+        let agent = self.active_agent.clone();
+        let agent_color_index = agent.as_deref().and_then(|agent| {
+            self.agents
+                .iter()
+                .find(|entry| entry.id == agent)
+                .map(|entry| entry.color_index)
+        });
         self.pending = Some(PendingSubmission {
             request_id: self.request_id,
             generation: self.generation,
@@ -1304,6 +1317,8 @@ impl TuiState {
             draft: self.input.clone(),
             revision: self.input_revision,
             receipt,
+            agent,
+            agent_color_index,
             cancelling: false,
             compress,
         });
@@ -1320,7 +1335,7 @@ impl TuiState {
     /// degraded capability stays visible after the status note is replaced.
     pub fn push_warning(&mut self, warning: &str) {
         self.window
-            .push_synthetic("", &format!("(warning: {warning})"));
+            .push_synthetic("", &format!("(warning: {warning})"), None, None);
     }
 
     /// Model under the picker cursor; the active variant is preserved when
@@ -1733,7 +1748,12 @@ impl TuiState {
                 self.live_agent_color_index = None;
                 if !pending.compress {
                     self.home = false;
-                    self.window.push_synthetic("user", pending.draft.trim());
+                    self.window.push_synthetic(
+                        "user",
+                        pending.draft.trim(),
+                        pending.agent,
+                        pending.agent_color_index,
+                    );
                 }
                 self.compress_turn = pending.compress.then(|| turn.clone());
                 self.live_text.clear();
@@ -2185,6 +2205,7 @@ impl TuiState {
                 role: "assistant".to_string(),
                 text: text.to_string(),
                 agent: self.active_agent.clone(),
+                agent_color_index: self.live_agent_color_index,
                 chips: Vec::new(),
                 reasoning,
                 meta: Some(meta),
@@ -2220,6 +2241,7 @@ impl TuiState {
                 role: "assistant".to_string(),
                 text: partial.to_string(),
                 agent: self.active_agent.clone(),
+                agent_color_index: self.live_agent_color_index,
                 chips: Vec::new(),
                 reasoning,
                 meta: Some(meta),
@@ -2253,7 +2275,8 @@ impl TuiState {
         }
         self.window
             .push_row(footer_row(self.active_agent.clone(), meta));
-        self.window.push_synthetic("", &format!("(error: {error})"));
+        self.window
+            .push_synthetic("", &format!("(error: {error})"), None, None);
     }
 
     /// Freeze the open live segments and return the whole part list in
@@ -2573,6 +2596,7 @@ fn card_row(card: &ToolCard) -> HistoryRow {
             card.name, card.state, files, output, card.op
         ),
         agent: None,
+        agent_color_index: None,
         chips: Vec::new(),
         reasoning: None,
         meta: None,
@@ -2589,6 +2613,7 @@ fn footer_row(agent: Option<String>, meta: AssistantMeta) -> HistoryRow {
         role: "assistant".to_string(),
         text: String::new(),
         agent,
+        agent_color_index: None,
         chips: Vec::new(),
         reasoning: None,
         meta: Some(meta),
@@ -2773,14 +2798,14 @@ mod tests {
     };
     use crate::events::KeyAction;
     use crate::history::{WINDOW_BYTES, WINDOW_ROWS};
-    use oc_core::core_app::{CoreApp, MockProvider, WorkerTurnId};
+    use oc_core::core_app::{CoreApp, CoreEvent, MockProvider, WorkerTurnId};
     use oc_core::domain::SessionId;
     use oc_core::queries::{
         AgentEntry, CatalogSnapshot, HistoryMessage, HistoryPage, ModelEntry, SkillCard,
         VariantEntry,
     };
     use oc_core::session::{CoreError, Role};
-    use std::time::Duration;
+    use std::time::{Duration, Instant};
 
     fn sid(raw: &str) -> SessionId {
         SessionId::new(raw).expect("id")
@@ -2811,6 +2836,145 @@ mod tests {
         std::mem::forget(guard);
         app.create_session(sid(name)).await.expect("create");
         TuiState::new(app, sid(name))
+    }
+
+    async fn submit_echo(
+        state: &mut TuiState,
+        events: &mut tokio::sync::broadcast::Receiver<CoreEvent>,
+        text: &str,
+    ) {
+        state.input = text.to_string();
+        state.handle_key(KeyAction::Enter).await;
+        let start = Instant::now();
+        let turn = loop {
+            state.poll_submission();
+            if let Some(turn) = &state.active_turn {
+                break turn.clone();
+            }
+            assert!(
+                start.elapsed() < Duration::from_secs(2),
+                "submit was not accepted"
+            );
+            tokio::task::yield_now().await;
+        };
+        loop {
+            let event = tokio::time::timeout(Duration::from_secs(2), events.recv())
+                .await
+                .expect("echo turn timed out")
+                .expect("event channel closed");
+            match event {
+                CoreEvent::TurnPresentation {
+                    turn: event_turn,
+                    projection,
+                    ..
+                } if event_turn == turn => state.apply_presentation(&turn, &projection),
+                CoreEvent::TurnFinished {
+                    turn: event_turn,
+                    text,
+                    duration_ms,
+                    ..
+                } if event_turn == turn => {
+                    state.apply_finished(&turn, &text, duration_ms);
+                    break;
+                }
+                CoreEvent::TurnFailed {
+                    turn: event_turn,
+                    error,
+                    ..
+                } if event_turn == turn => panic!("echo turn failed: {error}"),
+                _ => {}
+            }
+        }
+    }
+
+    fn user_border_colors(state: &TuiState) -> Vec<ratatui::style::Color> {
+        state
+            .transcript_lines(100, 120)
+            .iter()
+            .filter_map(|line| {
+                line.spans()
+                    .iter()
+                    .find(|span| span.content() == "┃")
+                    .and_then(|span| span.style().fg)
+            })
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn sent_user_messages_keep_the_profile_color_across_profile_switches() {
+        let mut state = fresh_state("user-message-agent-color").await;
+        let mut events = state.app.subscribe();
+        let colors = crate::theme::Theme::dark().categorical_agents();
+
+        let mut selected = snapshot();
+        selected.agent_id = Some("y".to_string());
+        state.apply_catalog(selected);
+        submit_echo(&mut state, &mut events, "message from second profile").await;
+
+        assert_eq!(
+            state.history().rows()[0].agent.as_deref(),
+            Some("y"),
+            "the accepted user echo must retain its submitted profile"
+        );
+        assert_eq!(state.history().rows()[0].agent_color_index, Some(1));
+        assert!(
+            user_border_colors(&state)
+                .iter()
+                .all(|color| *color == colors[1]),
+            "first profile's user stripe must use its categorical color"
+        );
+
+        state.apply_catalog(snapshot());
+        submit_echo(&mut state, &mut events, "message from first profile").await;
+
+        let users: Vec<_> = state
+            .history()
+            .rows()
+            .iter()
+            .filter(|row| row.role == "user")
+            .collect();
+        assert_eq!(users.len(), 2);
+        assert_eq!(users[0].agent.as_deref(), Some("y"));
+        assert_eq!(users[0].agent_color_index, Some(1));
+        assert_eq!(users[1].agent.as_deref(), Some("x"));
+        assert_eq!(users[1].agent_color_index, Some(0));
+        let mut stripe_runs = Vec::new();
+        for color in user_border_colors(&state) {
+            if stripe_runs.last() != Some(&color) {
+                stripe_runs.push(color);
+            }
+        }
+        assert_eq!(stripe_runs, [colors[1], colors[0]]);
+    }
+
+    #[tokio::test]
+    async fn replayed_user_messages_use_their_persisted_turn_color() {
+        use oc_core::queries::HistoryTurn;
+
+        let mut state = fresh_state("replay-user-agent-color").await;
+        state.apply_catalog(snapshot()); // current profile is `x`
+        let mut old = msg(1, Role::User, "previously sent as y");
+        old.turn = Some(HistoryTurn {
+            agent: Some("y".into()),
+            agent_color_index: Some(1),
+            ..Default::default()
+        });
+        let mut new = msg(2, Role::User, "previously sent as x");
+        new.turn = Some(HistoryTurn {
+            agent: Some("x".into()),
+            agent_color_index: Some(0),
+            ..Default::default()
+        });
+        state.attach_page(&page(vec![old, new], 2, false, false));
+
+        let colors = crate::theme::Theme::dark().categorical_agents();
+        let mut stripe_runs = Vec::new();
+        for color in user_border_colors(&state) {
+            if stripe_runs.last() != Some(&color) {
+                stripe_runs.push(color);
+            }
+        }
+        assert_eq!(stripe_runs, [colors[1], colors[0]]);
     }
 
     #[tokio::test]

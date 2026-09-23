@@ -37,6 +37,9 @@ pub struct HistoryRow {
     /// agent for live assistant rows. `None` when unknown; the renderer then
     /// falls back to the session agent / upstream's default agent color.
     pub agent: Option<String>,
+    /// Categorical color slot pinned when the owning turn was accepted.
+    /// Legacy rows without this projection resolve through `agent` instead.
+    pub agent_color_index: Option<usize>,
     /// Skill/file chips the user message carried. Storage keeps no
     /// per-message attachments, so committed rows stay empty.
     pub chips: Vec<Chip>,
@@ -165,12 +168,19 @@ impl HistoryWindow {
     /// Append one locally produced row (prompt echo, live answer, notice):
     /// never a committed history row. The window becomes the newest tail
     /// again; oldest rows are evicted while a cap is exceeded.
-    pub(crate) fn push_synthetic(&mut self, role: &str, text: &str) {
+    pub(crate) fn push_synthetic(
+        &mut self,
+        role: &str,
+        text: &str,
+        agent: Option<String>,
+        agent_color_index: Option<usize>,
+    ) {
         self.rows.push(HistoryRow {
             seq: i64::MAX,
             role: role.to_string(),
             text: text.to_string(),
-            agent: None,
+            agent,
+            agent_color_index,
             chips: Vec::new(),
             reasoning: None,
             meta: None,
@@ -219,7 +229,8 @@ fn row_from_page(row: &HistoryMessage) -> HistoryRow {
             Role::Assistant => "assistant".to_string(),
         },
         text: row.text.clone(),
-        agent: None,
+        agent: row.turn.as_ref().and_then(|turn| turn.agent.clone()),
+        agent_color_index: row.turn.as_ref().and_then(|turn| turn.agent_color_index),
         chips: Vec::new(),
         reasoning: None,
         meta: None,
@@ -250,6 +261,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         role: "assistant".to_string(),
         text: String::new(),
         agent: turn.agent.clone(),
+        agent_color_index: turn.agent_color_index,
         chips: Vec::new(),
         reasoning: None,
         meta: None,
@@ -493,6 +505,26 @@ mod tests {
             assert_eq!(meta.status.as_deref(), Some(status));
             assert_eq!(meta.agent_color_index, Some(3));
         }
+    }
+
+    #[test]
+    fn user_history_row_restores_its_turn_agent_for_message_color() {
+        use oc_core::queries::HistoryTurn;
+
+        let mut message = row(1, Role::User, "sent as orange");
+        message.turn = Some(HistoryTurn {
+            agent: Some("orange-profile".into()),
+            agent_color_index: Some(1),
+            ..Default::default()
+        });
+
+        let rows = super::rows_from_page(&message);
+        let user = rows
+            .iter()
+            .find(|row| row.role == "user")
+            .expect("user history row");
+        assert_eq!(user.agent.as_deref(), Some("orange-profile"));
+        assert_eq!(user.agent_color_index, Some(1));
     }
 
     #[test]
