@@ -11,3 +11,5 @@ recovery-v08-home-placeholder-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v08-home-placeholder-*/*/*.vt binary
 recovery-v08-profile-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v08-profile-*/*/*.vt binary
+recovery-v08-tab-geometry-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+recovery-v08-tab-geometry-*/*/*.vt binary

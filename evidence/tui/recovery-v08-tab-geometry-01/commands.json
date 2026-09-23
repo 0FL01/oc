@@ -1,0 +1,230 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--exploration-click",
+      "true",
+      "--agent-profile",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "3ac87c779e42ec392dd17eee3e03708671f670f5\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "476b287916da597df59fec2a465c315e23293027\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/layout.rs b/crates/oc-tui/src/layout.rs\nindex 7aa077f..5ea8357 100644\n--- a/crates/oc-tui/src/layout.rs\n+++ b/crates/oc-tui/src/layout.rs\n@@ -102,6 +102,158 @@ pub fn single_tab_width(available: u16) -> u16 {\n     available.clamp(1, SESSION_TAB_MAX_WIDTH)\n }\n \n+/// The horizontal strip's painted rectangles. Indices refer to the caller's\n+/// ordered tabs; overflow markers and the optional add control are not tabs.\n+#[derive(Debug, Clone, Copy, PartialEq, Eq)]\n+pub struct TabSlot {\n+    pub index: usize,\n+    pub rect: Rect,\n+}\n+\n+#[derive(Debug, Clone, PartialEq, Eq)]\n+pub struct HorizontalTabStrip {\n+    pub start: usize,\n+    pub before: usize,\n+    pub after: usize,\n+    pub before_marker: Option<Rect>,\n+    pub tabs: Vec<TabSlot>,\n+    pub after_marker: Option<Rect>,\n+    pub add: Option<Rect>,\n+}\n+\n+impl HorizontalTabStrip {\n+    /// Only a cell inside a visible, painted tab is selectable.\n+    pub fn hit_test(&self, x: u16, y: u16) -> Option<usize> {\n+        self.tabs\n+            .iter()\n+            .find(|tab| tab.rect.width > 0 && tab.rect.contains((x, y).into()))\n+            .map(|tab| tab.index)\n+    }\n+}\n+\n+/// `context/session-tabs-model.ts:33-37,175-257` adaptive window and widths;\n+/// `component/session-tabs.tsx:1316-1338,1739-1772` reserves the three-cell\n+/// add affordance only when its action is available. Rectangles are clipped\n+/// after solving, including at sizes too small for an upstream minimum tab or\n+/// a complete overflow marker. This does not create a session or an add action.\n+pub fn horizontal_tab_strip(\n+    area: Rect,\n+    count: usize,\n+    active: Option<usize>,\n+    previous_start: usize,\n+    can_add: bool,\n+) -> HorizontalTabStrip {\n+    let active = active.filter(|index| *index < count);\n+    let available = area.width.saturating_sub(if can_add { 3 } else { 0 }) as usize;\n+    let fit = |width: usize| -> usize {\n+        if count == 0 {\n+            return 0;\n+        }\n+        let slots = if active.is_some() {\n+            1 + width.saturating_sub(SESSION_TAB_WIDTH as usize) / SESSION_TAB_MIN_WIDTH as usize\n+        } else {\n+            width / SESSION_TAB_MIN_WIDTH as usize\n+        };\n+        slots.max(1).min(count)\n+    };\n+    let marker_width = |hidden: usize| -> usize {\n+        if hidden == 0 {\n+            0\n+        } else {\n+            hidden.to_string().len() + 2\n+        }\n+    };\n+    let mut visible = fit(available);\n+    let mut start = 0;\n+    if visible > 0 {\n+        let mut candidate = previous_start;\n+        // Same bounded solve as upstream; marker digits change the fit at\n+        // window boundaries, so the current start is reused on each pass.\n+        for attempt in 0..=3 {\n+            let bounded = candidate.min(count - visible);\n+            start = match active {\n+                Some(index) if index < bounded => index,\n+                Some(index) if index >= bounded + visible => index - visible + 1,\n+                _ => bounded,\n+            };\n+            let after = count - start - visible;\n+            let next = fit(available.saturating_sub(marker_width(start) + marker_width(after)));\n+            if next == visible || attempt == 3 {\n+                break;\n+            }\n+            visible = next;\n+            candidate = start;\n+        }\n+    }\n+    let before = start;\n+    let after = count - start - visible;\n+    let content = available\n+        .saturating_sub(marker_width(before) + marker_width(after))\n+        .max(1);\n+    let total = if content >= SESSION_TAB_WIDTH as usize * visible {\n+        content.min(SESSION_TAB_MAX_WIDTH as usize * visible)\n+    } else {\n+        content\n+    };\n+    let widths: Vec<usize> = if visible == 0 {\n+        Vec::new()\n+    } else if content >= SESSION_TAB_WIDTH as usize * visible || active.is_none() {\n+        (0..visible)\n+            .map(|index| total / visible + usize::from(index < total % visible))\n+            .collect()\n+    } else {\n+        let inactive = if visible == 1 {\n+            0\n+        } else {\n+            ((total.saturating_sub(SESSION_TAB_WIDTH as usize)) / (visible - 1))\n+                .clamp(SESSION_TAB_MIN_WIDTH as usize, SESSION_TAB_WIDTH as usize)\n+        };\n+        let selected = if visible == 1 {\n+            total\n+        } else {\n+            total.saturating_sub(inactive * (visible - 1))\n+        };\n+        (start..start + visible)\n+            .map(|index| {\n+                if Some(index) == active {\n+                    selected\n+                } else {\n+                    inactive\n+                }\n+            })\n+            .collect()\n+    };\n+\n+    let mut x = area.x;\n+    let end = area.right();\n+    let mut take = |requested: usize| {\n+        let width = requested.min(end.saturating_sub(x) as usize) as u16;\n+        let rect = Rect::new(x, area.y, width, area.height.min(1));\n+        x = x.saturating_add(width);\n+        rect\n+    };\n+    let before_marker = (before > 0).then(|| take(marker_width(before)));\n+    let tabs = widths\n+        .into_iter()\n+        .enumerate()\n+        .map(|(offset, width)| TabSlot {\n+            index: start + offset,\n+            rect: take(width),\n+        })\n+        .collect();\n+    let after_marker = (after > 0).then(|| take(marker_width(after)));\n+    let add = can_add.then(|| take(3));\n+    HorizontalTabStrip {\n+        start,\n+        before,\n+        after,\n+        before_marker,\n+        tabs,\n+        after_marker,\n+        add,\n+    }\n+}\n+\n // ---- rectangles -----------------------------------------------------------\n \n /// Root column regions; `session` is the whole main column below the tab\n@@ -334,6 +486,137 @@ mod tests {\n         assert_eq!(single_tab_width(0), 1);\n     }\n \n+    #[test]\n+    fn horizontal_tabs_one_and_adaptive_multi() {\n+        for width in [80, 120] {\n+            let strip = horizontal_tab_strip(Rect::new(4, 2, width, 1), 1, Some(0), 0, false);\n+            assert_eq!(strip.tabs[0].index, 0);\n+            assert_eq!(strip.tabs[0].rect, Rect::new(4, 2, 32, 1));\n+            assert_eq!((strip.before, strip.after), (0, 0));\n+            assert_eq!(strip.hit_test(4, 2), Some(0));\n+            assert_eq!(strip.hit_test(36, 2), None);\n+            assert_eq!(strip.hit_test(4, 3), None);\n+            assert!(strip.add.is_none());\n+        }\n+        let two = horizontal_tab_strip(Rect::new(0, 0, 43, 1), 2, Some(0), 0, false);\n+        assert_eq!(\n+            two.tabs.iter().map(|t| t.rect.width).collect::<Vec<_>>(),\n+            [22, 21]\n+        );\n+        let tight = horizontal_tab_strip(Rect::new(0, 0, 32, 1), 2, Some(1), 0, false);\n+        assert_eq!(\n+            tight.tabs.iter().map(|t| t.rect.width).collect::<Vec<_>>(),\n+            [10, 22]\n+        );\n+        let three = horizontal_tab_strip(Rect::new(0, 0, 44, 1), 3, Some(1), 0, false);\n+        assert_eq!((three.before, three.after), (0, 0));\n+        assert_eq!(\n+            three.tabs.iter().map(|t| t.rect.width).collect::<Vec<_>>(),\n+            [11, 22, 11]\n+        );\n+        assert_eq!(three.after_marker, None);\n+        let window = horizontal_tab_strip(Rect::new(0, 0, 31, 1), 3, Some(1), 0, false);\n+        assert_eq!((window.start, window.before, window.after), (1, 1, 1));\n+        assert_eq!(window.before_marker, Some(Rect::new(0, 0, 3, 1)));\n+        assert_eq!(\n+            window.tabs[0],\n+            TabSlot {\n+                index: 1,\n+                rect: Rect::new(3, 0, 25, 1)\n+            }\n+        );\n+        assert_eq!(window.after_marker, Some(Rect::new(28, 0, 3, 1)));\n+    }\n+\n+    #[test]\n+    fn horizontal_tabs_keep_active_visible_and_respect_previous_start() {\n+        let area = Rect::new(5, 3, 44, 1);\n+        for (active, previous, start) in [(0, 19, 0), (19, 0, 17), (10, 9, 9)] {\n+            let strip = horizontal_tab_strip(area, 20, Some(active), previous, false);\n+            assert_eq!(strip.start, start, \"{active} {previous}\");\n+            assert!(\n+                strip\n+                    .tabs\n+                    .iter()\n+                    .any(|t| t.index == active && t.rect.width > 0)\n+            );\n+            assert_eq!(strip.before, start);\n+            assert_eq!(strip.after, 20 - start - strip.tabs.len());\n+        }\n+        let no_active = horizontal_tab_strip(area, 20, None, 8, false);\n+        assert_eq!(no_active.start, 8);\n+    }\n+\n+    #[test]\n+    fn horizontal_tabs_marker_digits_and_add_capability() {\n+        let strip = horizontal_tab_strip(Rect::new(0, 0, 44, 1), 100, Some(15), 15, false);\n+        assert_eq!(strip.before, 15);\n+        assert_eq!(strip.before_marker.unwrap().width, 4); // ‹15 plus gap\n+        assert!(strip.after >= 10);\n+        assert_eq!(\n+            strip.after_marker.unwrap().width,\n+            strip.after.to_string().len() as u16 + 2\n+        );\n+        assert!(strip.add.is_none());\n+        let three_digits = horizontal_tab_strip(Rect::new(0, 0, 44, 1), 200, Some(150), 150, false);\n+        assert!(three_digits.before >= 100);\n+        assert_eq!(three_digits.before_marker.unwrap().width, 5);\n+        let trailing = horizontal_tab_strip(Rect::new(0, 0, 44, 1), 200, Some(0), 0, false);\n+        assert!(trailing.after >= 100);\n+        assert_eq!(trailing.after_marker.unwrap().width, 5);\n+        let allowed = horizontal_tab_strip(Rect::new(0, 0, 80, 1), 1, Some(0), 0, true);\n+        assert_eq!(allowed.tabs[0].rect.width, 32);\n+        assert_eq!(allowed.add, Some(Rect::new(32, 0, 3, 1)));\n+        assert_eq!(allowed.hit_test(32, 0), None);\n+        let too_narrow = horizontal_tab_strip(Rect::new(5, 3, 1, 1), 2, Some(1), 0, false);\n+        assert_eq!(too_narrow.before_marker, Some(Rect::new(5, 3, 1, 1)));\n+        assert_eq!(too_narrow.tabs[0].rect.width, 0);\n+        assert_eq!(too_narrow.hit_test(5, 3), None);\n+        assert_eq!(too_narrow.hit_test(6, 3), None);\n+    }\n+\n+    #[test]\n+    fn horizontal_tabs_clip_without_overlap_or_unpainted_hits() {\n+        for count in [0_usize, 1, 2, 3, 20, 120] {\n+            for width in [0, 1, 7, 8, 21, 22, 31, 32, 43, 44, 119, 120, 121] {\n+                for active in [None, Some(0), Some(count / 2), count.checked_sub(1)] {\n+                    for add in [false, true] {\n+                        let area = Rect::new(3, 5, width, 1);\n+                        let strip = horizontal_tab_strip(area, count, active, count / 2, add);\n+                        let mut painted = Vec::new();\n+                        painted.extend(strip.before_marker);\n+                        painted.extend(strip.tabs.iter().map(|tab| tab.rect));\n+                        painted.extend(strip.after_marker);\n+                        painted.extend(strip.add);\n+                        let mut right = area.x;\n+                        for rect in painted {\n+                            assert_eq!(rect.y, area.y);\n+                            assert_eq!(rect.height, 1);\n+                            assert!(rect.x >= right && rect.right() <= area.right(), \"{strip:?}\");\n+                            right = rect.right();\n+                        }\n+                        for x in area.x..=area.right() {\n+                            let hit = strip.hit_test(x, area.y);\n+                            assert_eq!(\n+                                hit,\n+                                strip\n+                                    .tabs\n+                                    .iter()\n+                                    .find(|tab| tab.rect.contains((x, area.y).into()))\n+                                    .map(|tab| tab.index),\n+                                \"{strip:?} x={x}\"\n+                            );\n+                        }\n+                        assert_eq!(strip.hit_test(area.x, area.y + 1), None);\n+                        if !add {\n+                            assert!(strip.add.is_none());\n+                        }\n+                    }\n+                }\n+            }\n+        }\n+    }\n+\n     /// Resizing is a pure re-layout: the same area always yields the same\n     /// regions, so shrink -> grow reproduces the wide geometry exactly.\n     #[test]\ndiff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs\nindex 4d542f3..b28ce8e 100644\n--- a/crates/oc-tui/src/shell.rs\n+++ b/crates/oc-tui/src/shell.rs\n@@ -254,14 +254,13 @@ pub(crate) fn transcript_area(state: &TuiState, area: Rect) -> Rect {\n /// (`component/session-tabs.tsx:1506-1508`, `context/session-tabs-model.ts:33-35`).\n fn tab_line(\n     theme: &Theme,\n-    available: u16,\n+    tab_width: u16,\n     title: Option<&str>,\n     indicators: TabIndicators,\n     busy: bool,\n ) -> Line<'static> {\n     let title = title.unwrap_or(UNTITLED_SESSION);\n     let tab_bg = theme.decrease(theme.background_panel());\n-    let tab_width = layout::single_tab_width(available);\n     let title_width = tab_width.saturating_sub(3) as usize;\n     let overflow = UnicodeWidthStr::width(title) > title_width;\n     let mut used = 0;\n@@ -337,14 +336,14 @@ fn render_tabs(\n             area,\n         );\n     }\n-    let strip = Rect {\n-        width: layout::single_tab_width(area.width),\n-        ..area\n-    };\n-    frame.render_widget(\n-        Paragraph::new(tab_line(theme, area.width, title, indicators, busy)),\n-        strip,\n-    );\n+    // The current native route has one real tab and no add-session action.\n+    let strip = layout::horizontal_tab_strip(area, 1, Some(0), 0, false);\n+    if let Some(tab) = strip.tabs.first().filter(|tab| tab.rect.width > 0) {\n+        frame.render_widget(\n+            Paragraph::new(tab_line(theme, tab.rect.width, title, indicators, busy)),\n+            tab.rect,\n+        );\n+    }\n }\n \n fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {\n@@ -1362,6 +1361,33 @@ mod tests {\n         }\n     }\n \n+    #[test]\n+    fn single_tab_render_uses_layout_without_an_inert_add_control() {\n+        let theme = Theme::dark();\n+        for width in [32, 80, 120] {\n+            let mut terminal = Terminal::new(TestBackend::new(width, 1)).unwrap();\n+            terminal\n+                .draw(|frame| {\n+                    render_tabs(\n+                        frame,\n+                        theme,\n+                        Rect::new(0, 0, width, 1),\n+                        Some(\"Tab\"),\n+                        TabIndicators::Numbers,\n+                        false,\n+                    );\n+                })\n+                .unwrap();\n+            let buffer = terminal.backend().buffer();\n+            assert_eq!(buffer[(31, 0)].bg, theme.decrease(theme.background_panel()));\n+            if width > 32 {\n+                assert_ne!(buffer[(32, 0)].bg, theme.decrease(theme.background_panel()));\n+                assert_eq!(buffer[(32, 0)].symbol(), \" \");\n+            }\n+            assert!(!buffer.content.iter().any(|cell| cell.symbol() == \"+\"));\n+        }\n+    }\n+\n     #[tokio::test]\n     async fn selected_tab_indicator_tracks_busy_turn_and_explicit_numbers() {\n         let mut state = golden_state().await;\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)\n   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.86s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"d18132f88c4a7a638a244b0ea92007163246fc3ce0bbe5bcb2b90df02a67bb39\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"6819a8453fe82015bc9974f03df9aec40b10b04449dce742caa5e83bc5de3732\", \"actual_sha256\": \"9b4ef5b2b731436fad9ddab2f5ded8fa0d5726e429d749599847c7187420432d\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"3ac87c779e42ec392dd17eee3e03708671f670f5\", \"cells_checked\": 4800, \"different_cells\": 158, \"cursor_differs\": false, \"difference_bbox_inclusive\": [0, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 56, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"b5c4b922cb4b23c16286634925a0e30c0326ba82de77cb14ebf2c957c1e5f111\", \"actual_sha256\": \"6bb5cbe9e128e7a3a03e437d78f9c08a55b88942aaa3c68482358dc87e69a6e1\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1840, \"changed_fraction_diagnostic_only\": 0.0028437190900098912, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"d18132f88c4a7a638a244b0ea92007163246fc3ce0bbe5bcb2b90df02a67bb39\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"57eed7e29a65b12d33b288f1c65ead16ad12f3a3979a0af49dda4abe56159a47\", \"actual_sha256\": \"216058a99ebea9ee7e77a1c32bddd344ff21683eae5ce69329ff96e35716211f\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"3ac87c779e42ec392dd17eee3e03708671f670f5\", \"cells_checked\": 4800, \"different_cells\": 211, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 0, 115, 38], \"samples\": [{\"x\": 32, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 33, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 34, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 3, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 37, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 5, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 34, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"aca742d73331f5924d5c9b4300ab7b1f06cd818c53bca3276d7099d99ac09e94\", \"actual_sha256\": \"ef94f9322572e0c4c3c25851a6e17d0b289bceed27e981e38c4ae57a82dbdf15\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 5028, \"changed_fraction_diagnostic_only\": 0.007770771513353115, \"difference_bbox_inclusive\": [42, 4, 848, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/upstream/exploration-expanded.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/oc/exploration-expanded.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/exploration-expanded.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"exploration-expanded\", \"fixture_sha256\": \"d18132f88c4a7a638a244b0ea92007163246fc3ce0bbe5bcb2b90df02a67bb39\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"5991396570d785f71054cb92aceb3f280520ebcb1937402f9522f253ee806e36\", \"actual_sha256\": \"e26fb7d1fe9d40aaf2479430ec6447440f37428ee49fe4f28d45a73621451b32\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"3ac87c779e42ec392dd17eee3e03708671f670f5\", \"cells_checked\": 4800, \"different_cells\": 251, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 0, 115, 38], \"samples\": [{\"x\": 32, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 33, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 34, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 3, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 5, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/upstream/exploration-expanded.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/oc/exploration-expanded.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/exploration-expanded.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"9cad1cb6ad5d9b98bb7b0801e052cd63ec43e97ad4383ec3daac3c9c48826749\", \"actual_sha256\": \"0aee6de745ff90d744f7dbdd74d92f5e4cd17dc4daf77b54f5f79ee924083a02\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 6319, \"changed_fraction_diagnostic_only\": 0.00976601137487636, \"difference_bbox_inclusive\": [42, 4, 848, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/upstream/exploration-recollapsed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/oc/exploration-recollapsed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/exploration-recollapsed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"exploration-recollapsed\", \"fixture_sha256\": \"d18132f88c4a7a638a244b0ea92007163246fc3ce0bbe5bcb2b90df02a67bb39\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"edd882b4b12c81507aa72954381b11cdd52e08caa7d3c1d8d64a0b33f11efd2a\", \"actual_sha256\": \"f909a21450c5ff22f981cd62ecf1029d86769edeed7297d2aaa73f9b770b1d14\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"3ac87c779e42ec392dd17eee3e03708671f670f5\", \"cells_checked\": 4800, \"different_cells\": 229, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 0, 115, 38], \"samples\": [{\"x\": 32, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 33, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 34, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 3, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 5, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/upstream/exploration-recollapsed.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/oc/exploration-recollapsed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-geometry-01/exploration-recollapsed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"6a04c738d35c11f0b369b7a56d36fa941dbac41ea07228741899bd58add5c1be\", \"actual_sha256\": \"ef94f9322572e0c4c3c25851a6e17d0b289bceed27e981e38c4ae57a82dbdf15\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 5592, \"changed_fraction_diagnostic_only\": 0.008642433234421366, \"difference_bbox_inclusive\": [42, 4, 848, 623]}\n",
+    "stderr": ""
+  }
+]
