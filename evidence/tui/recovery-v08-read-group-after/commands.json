@@ -1,0 +1,170 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-read-group-after"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "89c6ac544f034da01b386d636e1d96ab3793cb0e\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "e1b0b429debad067ca78c49ef219ece2e204acd2\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/messages.rs b/crates/oc-tui/src/messages.rs\nindex adc2787..5ab7be6 100644\n--- a/crates/oc-tui/src/messages.rs\n+++ b/crates/oc-tui/src/messages.rs\n@@ -372,19 +372,70 @@ pub(crate) fn transcript_with_cache(\n ) -> Vec<Line> {\n     let mut out = Vec::new();\n     for (index, row) in rows.iter().enumerate() {\n-        out.extend(render_row(\n-            row,\n-            index,\n-            theme,\n-            width,\n-            terminal_width,\n-            &agent_color,\n-            cache,\n-        ));\n+        if let Some(group) = exploration_entry(rows, index, theme) {\n+            out.extend(group);\n+        } else {\n+            out.extend(render_row(\n+                row,\n+                index,\n+                theme,\n+                width,\n+                terminal_width,\n+                &agent_color,\n+                cache,\n+            ));\n+        }\n     }\n     out\n }\n \n+/// Upstream groups adjacent read/glob/grep parts in their first-seen order\n+/// (`grouping/session.ts:67-71`, `index.tsx:1865-1929`). Only confirmed,\n+/// untruncated results are collapsed here: until the UI supports expansion,\n+/// failure/unknown/truncation details must remain visible in the transcript.\n+fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option<Vec<Line>> {\n+    fn kind(row: &HistoryRow) -> Option<&'static str> {\n+        let card = row.tool.as_ref()?;\n+        if row.role != \"tool\" || card.state != \"completed\" || card.output_truncated {\n+            return None;\n+        }\n+        match &card.render {\n+            crate::tools::ToolRender::Inline(crate::tools::InlineRender::Read { .. }) => Some(\"read\"),\n+            crate::tools::ToolRender::Inline(\n+                crate::tools::InlineRender::Glob { .. } | crate::tools::InlineRender::Grep { .. },\n+            ) => Some(\"search\"),\n+            _ => None,\n+        }\n+    }\n+    kind(rows.get(index)?)?;\n+    if index > 0 && kind(&rows[index - 1]).is_some() {\n+        return Some(Vec::new());\n+    }\n+    let mut counts = Vec::<(&str, usize)>::new();\n+    for row in &rows[index..] {\n+        let Some(name) = kind(row) else { break };\n+        if let Some((_, count)) = counts.iter_mut().find(|(known, _)| *known == name) {\n+            *count += 1;\n+        } else {\n+            counts.push((name, 1));\n+        }\n+    }\n+    let label = counts\n+        .into_iter()\n+        .map(|(name, count)| format!(\"{count} {name}{}\", if count == 1 { \"\" } else if name == \"search\" { \"es\" } else { \"s\" }))\n+        .collect::<Vec<_>>()\n+        .join(\", \");\n+    let muted = Style::default().fg(theme.text_muted());\n+    Some(vec![\n+        Line::plain(\"\"),\n+        Line::new(vec![\n+            Span::plain(\" \".repeat(MESSAGE_PADDING + crate::tools::TOOL_ICON_WIDTH)),\n+            Span::styled(\"→ \", muted),\n+            Span::styled(format!(\"Explored — {label}\"), muted),\n+        ]),\n+    ])\n+}\n+\n fn render_row(\n     row: &HistoryRow,\n     index: usize,\n@@ -1224,7 +1275,11 @@ fn visible_transcript_indexed(\n     let (height, scroll, live_row) = viewport;\n     let mut total = 1usize;\n     for (index, row) in rows.iter().enumerate() {\n-        if row.role == \"assistant\" && width > 0 {\n+        if let Some(group) = exploration_entry(rows, index, theme) {\n+            for line in group {\n+                total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();\n+            }\n+        } else if row.role == \"assistant\" && width > 0 {\n             visit_assistant_indexed(\n                 row,\n                 (index, live_row == Some(index)),\n@@ -1264,7 +1319,9 @@ fn visible_transcript_indexed(\n         if position >= end {\n             break;\n         }\n-        if row.role == \"assistant\" && width > 0 {\n+        if let Some(group) = exploration_entry(rows, index, theme) {\n+            add_visible_lines(group, width, (start, end), &mut position, &mut visible);\n+        } else if row.role == \"assistant\" && width > 0 {\n             visit_assistant_indexed(\n                 row,\n                 (index, live_row == Some(index)),\n@@ -2399,7 +2456,9 @@ impl Locale {\n #[cfg(test)]\n mod tests {\n     use super::*;\n+    use crate::history::card_from_row;\n     use crate::styled;\n+    use oc_core::queries::ToolOpView;\n     use ratatui::buffer::Buffer;\n     use ratatui::{Terminal, backend::TestBackend, widgets::Paragraph};\n \n@@ -2431,6 +2490,87 @@ mod tests {\n         }\n     }\n \n+    fn exploration_tool(name: &str, state: &str, truncated: bool) -> HistoryRow {\n+        let input = match name {\n+            \"read\" => serde_json::json!({\"path\": \"fixture-note.txt\"}),\n+            _ => serde_json::json!({\"pattern\": \"*.rs\"}),\n+        };\n+        let card = card_from_row(&ToolOpView {\n+            rowid: 1,\n+            op: name.to_string(),\n+            name: name.to_string(),\n+            state: state.to_string(),\n+            input: Some(input.to_string()),\n+            output: Some(\"fixture result\".to_string()),\n+            output_bytes: 14,\n+            output_truncated: truncated,\n+        });\n+        HistoryRow {\n+            seq: 3,\n+            role: \"tool\".to_string(),\n+            text: String::new(),\n+            agent: Some(\"build\".to_string()),\n+            agent_color_index: None,\n+            chips: Vec::new(),\n+            reasoning: None,\n+            meta: None,\n+            tool: Some(card),\n+        }\n+    }\n+\n+    #[test]\n+    fn completed_exploration_is_grouped_in_full_and_visible_transcript() {\n+        // The pinned original's completed read fixture shows exactly one\n+        // collapsed `→ Explored — 1 read` row (index.tsx:1865-1929).\n+        let theme = Theme::dark();\n+        let rows = [\n+            exploration_tool(\"read\", \"completed\", false),\n+            exploration_tool(\"glob\", \"completed\", false),\n+            exploration_tool(\"grep\", \"completed\", false),\n+            assistant(\"After tools\"),\n+            exploration_tool(\"read\", \"completed\", false),\n+        ];\n+        let (full, buffer) = render(&rows, 80, 12);\n+        assert_eq!(full[1], \"     → Explored — 1 read, 2 searches\");\n+        assert_eq!(full[5], \"     → Explored — 1 read\");\n+        assert_eq!(buffer[(5, 1)].fg, theme.text_muted());\n+        assert!(!full.join(\"\\n\").contains(\"Loaded fixture-note.txt\"));\n+\n+        let cache = RefCell::new(MarkdownCache::default());\n+        let (visible, _) = visible_transcript(\n+            &rows,\n+            theme,\n+            80,\n+            80,\n+            (12, 0, None),\n+            |_| theme.categorical_agents()[0],\n+            &cache,\n+        );\n+        let visible = visible\n+            .iter()\n+            .map(|line| line.spans().iter().map(|span| span.content()).collect::<String>())\n+            .collect::<Vec<_>>();\n+        assert!(visible.iter().any(|line| line == \"     → Explored — 1 read, 2 searches\"));\n+        assert!(visible.iter().any(|line| line == \"     → Explored — 1 read\"));\n+        assert!(!visible.iter().any(|line| line.contains(\"Loaded fixture-note.txt\")));\n+    }\n+\n+    #[test]\n+    fn exploration_does_not_hide_unresolved_failed_or_truncated_results() {\n+        let rows = [\n+            exploration_tool(\"read\", \"completed\", false),\n+            exploration_tool(\"read\", \"unknown\", false),\n+            exploration_tool(\"read\", \"failed\", false),\n+            exploration_tool(\"read\", \"completed\", true),\n+        ];\n+        let (full, _) = render(&rows, 80, 20);\n+        let text = full.join(\"\\n\");\n+        assert!(text.contains(\"→ Explored — 1 read\"));\n+        assert!(text.contains(\"[outcome unknown]\"));\n+        assert!(text.contains(\"fixture result\"));\n+        assert!(text.contains(\"[output preview truncated; full result retained]\"));\n+    }\n+\n     /// Render the transcript into a `width x height` buffer and return the\n     /// trimmed row texts plus the raw buffer for color assertions.\n     fn render(rows: &[HistoryRow], width: u16, height: u16) -> (Vec<String>, Buffer) {\ndiff --git a/crates/oc-tui/src/tools.rs b/crates/oc-tui/src/tools.rs\nindex 31fed36..fdc9b50 100644\n--- a/crates/oc-tui/src/tools.rs\n+++ b/crates/oc-tui/src/tools.rs\n@@ -1306,7 +1306,7 @@ mod tests {\n     }\n \n     /// Inline tools (`message-parts.tsx:176-253`, `index.tsx:2688-2759`):\n-    /// pending spinner + label, terminal labels, the `↳ Loaded` read row, and\n+    /// pending spinner + label, terminal labels, the ungrouped `↳ Loaded` read row, and\n     /// the generic `✓/✗ <tool> <args>` with the error text visible.\n     #[test]\n     fn golden_inline_tool_running_and_completed() {\n@@ -1329,8 +1329,14 @@ mod tests {\n             Some(\"fn main() {}\\n\"),\n         );\n         let (rows, _) = render(&completed, 60, 3);\n-        assert_eq!(rows[1], \"     Read src/main.rs\");\n-        assert_eq!(rows[2], \"     ↳ Loaded src/main.rs\");\n+        assert_eq!(rows[1], \"     → Explored — 1 read\");\n+        // The individual renderer is retained for non-collapsed/tool-detail\n+        // presentation; grouping changes only the transcript projection.\n+        let individual = tool_block(&completed, &theme, 60)\n+            .iter()\n+            .map(|line| line.spans().iter().map(|span| span.content()).collect::<String>())\n+            .collect::<Vec<_>>();\n+        assert_eq!(individual, [\"     Read src/main.rs\", \"     ↳ Loaded src/main.rs\"]);\n \n         let glob = make_card(\n             \"glob\",\n@@ -1339,7 +1345,7 @@ mod tests {\n             Some(r#\"{\"items\":[\"a.rs\",\"b.rs\"],\"pagination\":{\"returned\":2,\"truncated\":false}}\"#),\n         );\n         let (rows, _) = render(&glob, 60, 2);\n-        assert_eq!(rows[1], \"     Glob \\\"*.rs\\\" (2 matches)\");\n+        assert_eq!(rows[1], \"     → Explored — 1 search\");\n \n         let fetch = make_card(\n             \"webfetch\",\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)\n   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.28s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-read-group-after/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-read-group-after/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-read-group-after/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-read-group-after/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-read-group-after/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"dbfc93c470dd18d3af79b33195a13c898e83944ec5e0f242cd32d88b65531644\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"c70c51901f251304a1d79d5ffda9407716f768907e1f370a39346143e5257b78\", \"actual_sha256\": \"ff21134073b1a647fdf8c7c09f209b62d5196fc90880248f396dd045b0741feb\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"89c6ac544f034da01b386d636e1d96ab3793cb0e\", \"cells_checked\": 4800, \"different_cells\": 4501, \"cursor_differs\": false, \"difference_bbox_inclusive\": [0, 0, 119, 39], \"samples\": [{\"x\": 0, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 1, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 2, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 3, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 5, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 0, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-read-group-after/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-read-group-after/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-read-group-after/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"a1a356edd2225364558f679ba0b91ce6885aae0b5be8f039eea4dae5c66a73bf\", \"actual_sha256\": \"28453e606a137fe680b7f4e424a55b1939135a9ab28e40b8febc5285aa5dc445\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 3546, \"changed_fraction_diagnostic_only\": 0.005480341246290801, \"difference_bbox_inclusive\": [196, 320, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-read-group-after/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-read-group-after/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-read-group-after/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"dbfc93c470dd18d3af79b33195a13c898e83944ec5e0f242cd32d88b65531644\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"6765af9111ce6011bbad326b2d983f2e97a9402fb95dde965cd20d1b6900eb24\", \"actual_sha256\": \"00531534d06b74d5b852b4d48a54e7fce235a5db6f0778cce41d18121caa8175\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"89c6ac544f034da01b386d636e1d96ab3793cb0e\", \"cells_checked\": 4800, \"different_cells\": 4595, \"cursor_differs\": false, \"difference_bbox_inclusive\": [0, 0, 119, 39], \"samples\": [{\"x\": 0, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 1, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 2, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 3, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 4, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 5, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 6, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 7, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 8, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 9, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 10, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 11, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 12, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 13, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 14, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 15, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 16, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 17, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 18, \"y\": 0, \"different_fields\": [\"modifiers\"]}, {\"x\": 19, \"y\": 0, \"different_fields\": [\"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-read-group-after/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-read-group-after/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-read-group-after/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"2dc58bf732edb453bb2191e7add4df4abebcfeae8eeec2b74ff0492eac7e39f3\", \"actual_sha256\": \"e56fa0d7ab6b9050db50275a1249e4ff3df98fa07ba0480f3a3d1b8695c13ad3\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 10865, \"changed_fraction_diagnostic_only\": 0.016791852126607318, \"difference_bbox_inclusive\": [10, 3, 848, 623]}\n",
+    "stderr": ""
+  }
+]
