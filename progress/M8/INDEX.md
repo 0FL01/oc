@@ -6,3 +6,4 @@ Plan: ../../roadmap/M8.md
 - [T45](T45/INDEX.md) [todo] — Остаток subagent system (T43 slices 5-8); latest: нет.
 - [T46](T46/INDEX.md) [todo] — MCP attach parity: per-server degradation + outbound User-Agent; latest: нет.
 - [T47](T47/INDEX.md) [todo] — Model admission: unknown limits и explicit variant parity; latest: нет.
+- [T49](T49/INDEX.md) [done] — Turn model identity and ancillary request attribution; latest: 0008.md.

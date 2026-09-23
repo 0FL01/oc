@@ -278,6 +278,7 @@ pub struct TuiState {
     pub live_part_states: Vec<oc_core::queries::PartState>,
     live_agent_color_index: Option<usize>,
     live_terminal_status: Option<String>,
+    live_model_label: Option<String>,
     live_preview_truncated: bool,
     /// First reasoning delta of the active turn, for the collapsed header's
     /// duration (`part.time.created` upstream).
@@ -359,6 +360,7 @@ impl TuiState {
             live_part_states: Vec::new(),
             live_agent_color_index: None,
             live_terminal_status: None,
+            live_model_label: None,
             live_preview_truncated: false,
             reasoning_started: None,
             reasoning_finished: None,
@@ -502,6 +504,7 @@ impl TuiState {
         self.live_part_states.clear();
         self.live_agent_color_index = None;
         self.live_terminal_status = None;
+        self.live_model_label = None;
         self.live_preview_truncated = false;
         // Called only after an accepted switch (binary refuses busy switches).
         // Invalidate local receipts even if a caller has an old completion queued.
@@ -1259,6 +1262,7 @@ impl TuiState {
         self.live_preview_truncated = false;
         self.live_part_states.clear();
         self.live_terminal_status = None;
+        self.live_model_label = None;
         self.live_agent_color_index = None;
         self.compress_turn = Some(turn.clone());
         self.active_turn = Some(turn);
@@ -1725,6 +1729,7 @@ impl TuiState {
                 self.live_preview_truncated = false;
                 self.live_part_states.clear();
                 self.live_terminal_status = None;
+                self.live_model_label = None;
                 self.live_agent_color_index = None;
                 if !pending.compress {
                     self.home = false;
@@ -2133,6 +2138,8 @@ impl TuiState {
         self.live_preview_truncated |= projection.truncated;
         self.live_agent_color_index = projection.agent_color_index;
         self.live_terminal_status = Some(projection.status.clone());
+        self.live_model_label =
+            (!projection.model_label.is_empty()).then(|| projection.model_label.clone());
     }
 
     /// Apply provider-reported usage for the active turn; without it the
@@ -2395,16 +2402,18 @@ impl TuiState {
     /// model label, the measured turn duration, provider usage and the
     /// interrupt marker. Absent data stays `None` (the footer omits it).
     fn finish_meta(&mut self, interrupted: bool, duration_ms: u64) -> AssistantMeta {
-        let model = self.picker.as_ref().and_then(|picker| {
-            let selection = picker.selection()?;
-            Some(
-                selection
-                    .entry
-                    .get("name")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or(&selection.id)
-                    .to_string(),
-            )
+        let model = self.live_model_label.take().or_else(|| {
+            self.picker.as_ref().and_then(|picker| {
+                let selection = picker.selection()?;
+                Some(
+                    selection
+                        .entry
+                        .get("name")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or(&selection.id)
+                        .to_string(),
+                )
+            })
         });
         let usage = self.turn_usage.take();
         AssistantMeta {
@@ -2802,6 +2811,36 @@ mod tests {
         std::mem::forget(guard);
         app.create_session(sid(name)).await.expect("create");
         TuiState::new(app, sid(name))
+    }
+
+    #[tokio::test]
+    async fn live_footer_uses_the_turns_pinned_model_not_the_current_picker() {
+        let mut state = fresh_state("pinned-model-footer").await;
+        let turn = WorkerTurnId("turn-pinned-model".into());
+        state.active_turn = Some(turn.clone());
+        state.apply_presentation(
+            &turn,
+            &oc_core::queries::HistoryTurn {
+                id: turn.0.clone(),
+                model_label: "Muse Spark".into(),
+                status: "completed".into(),
+                ..Default::default()
+            },
+        );
+        state.apply_finished(&turn, "answer", 100);
+        assert_eq!(
+            state
+                .history()
+                .rows()
+                .last()
+                .unwrap()
+                .meta
+                .as_ref()
+                .unwrap()
+                .model
+                .as_deref(),
+            Some("Muse Spark")
+        );
     }
 
     #[tokio::test]

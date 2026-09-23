@@ -766,6 +766,16 @@
       "work": "Не отклонять model без limit/context до turn. Native configurable fallback caps + warning без изменения discovery metadata/DISC05; request-local output/input admission, включая child/title requests; отсутствие selected variant означает отсутствие overlay. Контракт D14 и docs/CONTRACTS.md; общий backend checkpoint docs/goals/2026-09-22-backend-blockers.md. Пока T44 active, delivery фиксируется additive evidence без подмены task status.",
       "evidence": "evidence/T47/report.md",
       "spec": "docs/goals/2026-09-22-backend-blockers.md"
+    },
+    {
+      "id": "T49",
+      "phase": "M8",
+      "title": "Turn model identity and ancillary request attribution",
+      "depends_on": [],
+      "tests": [],
+      "work": "Reproduce selected model versus main Responses wire and turn footer in existing PTY/fake-server tests; fix demonstrated identity/lifecycle defects without changing provider routing or retry limits. Attribute title/cancel requests offline. Run a scoped real-API smoke only with the runbook's verified durable envelope; do not bypass the blocked T27 harness or expose secrets.",
+      "evidence": "evidence/T49/report.md",
+      "spec": "docs/TEST_PLAN.md"
     }
   ]
 }

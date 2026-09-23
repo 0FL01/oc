@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-23T13:32:45+00:00",
+  "updated_at": "2026-09-23T16:19:15+00:00",
   "current": null,
   "tasks": {
     "T00": {
@@ -338,7 +338,14 @@
       "latest": null,
       "evidence": null,
       "reopen_reason": null
+    },
+    "T49": {
+      "status": "done",
+      "last_seq": 8,
+      "latest": "progress/M8/T49/0008.md",
+      "evidence": "evidence/T49/report.md",
+      "reopen_reason": null
     }
   },
-  "last_checkpoint_task": "T44"
+  "last_checkpoint_task": "T49"
 }

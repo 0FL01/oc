@@ -38,6 +38,8 @@ const COMPRESS_PREFIX: &str = "Manual context compression request";
 struct Fixture {
     root: tempfile::TempDir,
     requests: Arc<Mutex<Vec<serde_json::Value>>>,
+    hold_title: Arc<AtomicBool>,
+    title_closed: Arc<AtomicBool>,
     stop: Arc<AtomicBool>,
     server: Option<std::thread::JoinHandle<()>>,
 }
@@ -86,6 +88,10 @@ impl Fixture {
         .expect("skill file");
         let requests = Arc::new(Mutex::new(Vec::new()));
         let captured = requests.clone();
+        let hold_title = Arc::new(AtomicBool::new(false));
+        let hold = hold_title.clone();
+        let title_closed = Arc::new(AtomicBool::new(false));
+        let closed = title_closed.clone();
         let stop = Arc::new(AtomicBool::new(false));
         let stopping = stop.clone();
         let server = std::thread::spawn(move || {
@@ -100,6 +106,12 @@ impl Fixture {
                             .expect("write timeout");
                         let body = read_request(&mut socket);
                         captured.lock().expect("requests").push(body.clone());
+                        if hold.load(Ordering::Relaxed) && title::is_title(&body) {
+                            let mut byte = [0];
+                            assert_eq!(socket.read(&mut byte).expect("title disconnect"), 0);
+                            closed.store(true, Ordering::Relaxed);
+                            continue;
+                        }
                         if title::respond(&mut socket, &body) {
                             continue;
                         }
@@ -116,6 +128,8 @@ impl Fixture {
         Arc::new(Self {
             root,
             requests,
+            hold_title,
+            title_closed,
             stop,
             server: Some(server),
         })
@@ -1457,6 +1471,190 @@ fn v04_raw_sgr_mouse_backdrop_search_variant_and_actual_model() {
             .filter(|(role, text)| role == "user" && text == "draft-mouse")
             .count(),
         1
+    );
+}
+
+#[test]
+fn selected_model_is_the_main_wire_model_and_each_turn_keeps_its_footer() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "model-identity", None);
+    pty.wait_visible(READY, DEADLINE);
+
+    let off = submit(&mut pty, "first model identity");
+    pty.wait_visible_after(off, "echo: first model identity", DEADLINE);
+    wait_screen_row(&pty, "T39 model", DEADLINE);
+    wait_idle(&pty);
+
+    choose_model(&mut pty, "T39 alt");
+    choose_variant(&mut pty, "Default");
+    wait_screen_row(&pty, "T39 alt fixture", DEADLINE);
+    let off = submit(&mut pty, "second model identity");
+    pty.wait_visible_after(off, "echo: second model identity", DEADLINE);
+    wait_idle(&pty);
+    let rows = render_screen(&pty.snapshot()).rows();
+    assert!(
+        rows.iter().any(|row| row.contains("T39 model")),
+        "old footer: {rows:?}"
+    );
+    assert!(
+        rows.iter().any(|row| row.contains("T39 alt")),
+        "new footer: {rows:?}"
+    );
+
+    let requests = fixture.wait_requests(2);
+    assert_eq!(
+        last_user_text(&requests[0]).as_deref(),
+        Some("first model identity")
+    );
+    assert_eq!(requests[0]["model"], MODEL);
+    assert_eq!(
+        last_user_text(&requests[1]).as_deref(),
+        Some("second model identity")
+    );
+    assert_eq!(requests[1]["model"], ALT_MODEL);
+    let captured = fixture.requests.lock().unwrap();
+    let titles: Vec<_> = captured
+        .iter()
+        .filter(|body| title::is_title(body))
+        .collect();
+    assert_eq!(
+        titles.len(),
+        1,
+        "untitled session generates one ancillary title"
+    );
+    assert_eq!(titles[0]["model"], MODEL);
+    drop(captured);
+    pty.send(b"/quit\r");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+
+    let mut pty = PtySession::spawn(fixture.clone(), "model-identity", None);
+    pty.wait_visible("echo: second model identity", DEADLINE);
+    let rows = render_screen(&pty.snapshot()).rows();
+    assert!(
+        rows.iter().any(|row| row.contains("T39 model")),
+        "old replay: {rows:?}"
+    );
+    assert!(
+        rows.iter().any(|row| row.contains("T39 alt")),
+        "new replay: {rows:?}"
+    );
+    pty.send(b"/quit\r");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn title_cancel_and_watchdog_leave_the_main_turn_completed() {
+    let fixture = Fixture::new();
+    fixture.hold_title.store(true, Ordering::Relaxed);
+    let home = fixture.root.path().join("home");
+    let env = std::collections::BTreeMap::from([
+        ("HOME".to_string(), home.to_string_lossy().into_owned()),
+        (
+            "XDG_CONFIG_HOME".to_string(),
+            home.join("config").to_string_lossy().into_owned(),
+        ),
+        (
+            "XDG_DATA_HOME".to_string(),
+            home.join("data").to_string_lossy().into_owned(),
+        ),
+        ("OC_FIXTURE_KEY".to_string(), "fixture-not-a-secret".into()),
+        ("OC_TEST_ALLOW_LOOPBACK".to_string(), "1".into()),
+    ]);
+    let (app, guard, _) = oc_adapters::application::spawn_with_env(
+        &fixture.root.path().join("project"),
+        &fixture.data_dir(),
+        env,
+    )
+    .await
+    .unwrap();
+    let session = oc_core::domain::SessionId("title-cancel".into());
+    app.create_session(session.clone()).await.unwrap();
+    let mut events = app.subscribe();
+    let turn = app
+        .submit(session.clone(), "title still pending".into())
+        .await
+        .unwrap();
+    let requests = fixture.wait_requests(1);
+    assert_eq!(requests[0]["model"], MODEL);
+    let start = Instant::now();
+    while !fixture.requests.lock().unwrap().iter().any(title::is_title) {
+        assert!(start.elapsed() < DEADLINE, "missing title request");
+        tokio::time::sleep(POLL).await;
+    }
+    app.cancel(session.clone()).await.unwrap();
+    let start = Instant::now();
+    while !fixture.title_closed.load(Ordering::Relaxed) {
+        assert!(
+            start.elapsed() < DEADLINE,
+            "cancel did not close ancillary title request"
+        );
+        tokio::time::sleep(POLL).await;
+    }
+    loop {
+        match tokio::time::timeout(Duration::from_secs(2), events.recv())
+            .await
+            .expect("main turn did not finish after title cancellation")
+            .unwrap()
+        {
+            oc_core::core_app::CoreEvent::TurnFinished { turn: id, .. } if id == turn => break,
+            oc_core::core_app::CoreEvent::TurnInterrupted { turn: id, .. } if id == turn => {
+                panic!("cancelled title must not interrupt a committed main turn")
+            }
+            oc_core::core_app::CoreEvent::TurnFailed { error, .. } => panic!("main turn: {error}"),
+            _ => {}
+        }
+    }
+    // A different untitled session now exercises the ten-second title
+    // watchdog, without turning a completed main answer into an interruption.
+    fixture.title_closed.store(false, Ordering::Relaxed);
+    let session = oc_core::domain::SessionId("title-timeout".into());
+    app.create_session(session.clone()).await.unwrap();
+    let turn = app
+        .submit(session, "title will timeout".into())
+        .await
+        .unwrap();
+    fixture.wait_requests(2);
+    let start = Instant::now();
+    while fixture
+        .requests
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|request| title::is_title(request))
+        .count()
+        < 2
+    {
+        assert!(start.elapsed() < DEADLINE, "missing second title request");
+        tokio::time::sleep(POLL).await;
+    }
+    let start = Instant::now();
+    while !fixture.title_closed.load(Ordering::Relaxed) {
+        assert!(
+            start.elapsed() < DEADLINE,
+            "title watchdog did not close request"
+        );
+        tokio::time::sleep(POLL).await;
+    }
+    assert!(start.elapsed() >= Duration::from_secs(9));
+    loop {
+        match tokio::time::timeout(Duration::from_secs(2), events.recv())
+            .await
+            .expect("committed main did not finish after title watchdog")
+            .unwrap()
+        {
+            oc_core::core_app::CoreEvent::TurnFinished { turn: id, .. } if id == turn => break,
+            oc_core::core_app::CoreEvent::TurnInterrupted { turn: id, .. } if id == turn => {
+                panic!("title watchdog must not interrupt a committed main turn")
+            }
+            oc_core::core_app::CoreEvent::TurnFailed { error, .. } => panic!("main turn: {error}"),
+            _ => {}
+        }
+    }
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    assert!(
+        events.try_recv().is_err(),
+        "completed main must have one terminal event"
     );
 }
 

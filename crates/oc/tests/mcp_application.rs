@@ -3067,9 +3067,12 @@ for line in sys.stdin:
         std::thread::sleep(POLL);
     }
     tui.wait_screen("MCP outcome unknown", IO_TIMEOUT);
+    // The tool card can render before the terminal TurnFailed event. Retry
+    // only after the TUI has released ownership of the failed turn.
+    tui.wait_screen("(error: application: MCP outcome unknown", IO_TIMEOUT);
     fs::write(fixture.home.join("release"), "now safe").unwrap();
     tui.send_line("explicit retry");
-    tui.wait_visible("retry complete");
+    tui.wait_screen("retry complete", TIMEOUT);
     tui.raw(b"\x03");
     assert!(tui.wait_exit().success());
     let lifecycle = fs::read_to_string(&log).unwrap();
@@ -3263,6 +3266,7 @@ for line in sys.stdin:
         std::thread::sleep(POLL);
     }
     tui.wait_screen("MCP outcome unknown", TIMEOUT);
+    tui.wait_screen("(error: application: MCP outcome unknown", TIMEOUT);
     let lifecycle = fs::read_to_string(&log).unwrap();
     let first: libc::pid_t = lifecycle
         .lines()
@@ -3280,8 +3284,8 @@ for line in sys.stdin:
         1
     );
     fs::write(&release, "explicit retry after reap").unwrap();
-    let from = tui.send_line("explicit retry");
-    tui.wait_visible_after(from, "retry complete");
+    tui.send_line("explicit retry");
+    tui.wait_screen("retry complete", TIMEOUT);
     tui.raw(b"\x03");
     assert!(tui.wait_exit().success());
     let lifecycle = fs::read_to_string(&log).unwrap();
