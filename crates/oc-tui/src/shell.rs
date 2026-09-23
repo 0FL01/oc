@@ -175,18 +175,8 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     } else {
         render_tabs(frame, theme, regions.tabs, state.session_title.as_deref());
     }
-    let sidebar = !state.home
-        && state.parent_id.is_none()
-        && !state.chrome.sidebar_hidden
-        && layout::sidebar_auto(regions.session.width);
-    let main = if sidebar {
-        let main = Rect {
-            width: regions
-                .session
-                .width
-                .saturating_sub(layout::SESSION_SIDEBAR_WIDTH),
-            ..regions.session
-        };
+    let main = session_main(state, regions.session);
+    if main.width < regions.session.width {
         render_sidebar(
             frame,
             state,
@@ -198,14 +188,48 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
                 main.height,
             ),
         );
-        main
-    } else {
-        regions.session
-    };
+    }
     render_session(frame, state, theme, main);
     render_devtools(frame, theme, regions.devtools);
     render_toast(frame, state, theme, area);
     crate::dialog::render(frame, state);
+}
+
+fn session_main(state: &TuiState, area: Rect) -> Rect {
+    let sidebar = !state.home
+        && state.parent_id.is_none()
+        && !state.chrome.sidebar_hidden
+        && layout::sidebar_auto(area.width);
+    Rect {
+        width: area.width.saturating_sub(if sidebar {
+            layout::SESSION_SIDEBAR_WIDTH
+        } else {
+            0
+        }),
+        ..area
+    }
+}
+
+fn session_regions(state: &TuiState, area: Rect, terminal_height: u16) -> layout::SessionRegions {
+    let input = prompt_lines(state, area.width);
+    let input_height = (input.len() as u16)
+        .min((terminal_height / 3).max(6))
+        .max(1);
+    layout::dynamic_session_regions(area, 0, input_height + 3)
+}
+
+/// Exactly the rectangle used by `render_transcript`, including rail, sidebar,
+/// prompt-height and content padding at this frame size.
+pub(crate) fn transcript_area(state: &TuiState, area: Rect) -> Rect {
+    if state.home {
+        return Rect::default();
+    }
+    let shell = layout::configured_shell_regions(
+        area,
+        state.chrome.devtools_visible(),
+        state.chrome.vertical_tabs_width,
+    );
+    session_regions(state, session_main(state, shell.session), area.height).transcript
 }
 
 /// Single active tab in the horizontal strip
@@ -257,11 +281,7 @@ fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
         render_home(frame, state, theme, area);
         return;
     }
-    let input = prompt_lines(state, area.width);
-    let input_height = (input.len() as u16)
-        .min((frame.area().height / 3).max(6))
-        .max(1);
-    let regions = layout::dynamic_session_regions(area, 0, input_height + 3);
+    let regions = session_regions(state, area, frame.area().height);
     render_transcript(frame, state, regions.transcript, frame.area().width);
     render_status(frame, state, theme, regions.status);
     render_prompt(

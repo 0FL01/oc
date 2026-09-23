@@ -128,6 +128,26 @@ cursor-at-draft-end assertions. Original uses its supported Ctrl+Alt+Y/E scroll
 bindings; native uses its existing Up/Down. This does not qualify keymap parity.
 Native additionally checks a top-offset clamp after growing to 160×80.
 
+For the completed real-read exploration group, run a **fresh** output directory:
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --geometry true --sample tools --sidebar hide --columns 120 --rows 40 \
+  --exploration-click true --output /home/opencode/ai/oc/evidence/tui/NEW-ATTEMPT
+```
+
+This opt-in finds `→ Explored — 1 read` separately in each live styled grid,
+sends SGR mouse down/up through the PTY bridge, and waits for the header to
+remain with `Read fixture-note.txt` below it. A second dynamically located
+click waits for the detail to disappear. Per-side `exploration-checks.json`
+records predicates and coordinates; `inputs.json` records the actual PTY bytes.
+`exploration-expanded` and `exploration-recollapsed` each get their own styled
+grid/PNG/VT capture, with independent grid and PNG comparator reports and exit
+statuses in `capture.lock.json`. Captured states do not imply frame equality:
+only comparator status `EQUAL` establishes equality for its reported mode.
+
 `--tabs vertical --columns 162` and `--columns 163` check both sides of the
 42-cell rail-adjusted auto-sidebar breakpoint using text **and styled blank
 backgrounds**. `--devtools unset` omits the explicit override; native debug builds

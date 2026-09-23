@@ -7,7 +7,7 @@
 //! the binary; the state only applies turn-scoped events, so a late event
 //! for a stale turn can never corrupt the view.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::time::{Duration, Instant};
 
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
@@ -267,6 +267,9 @@ pub struct TuiState {
     pub(crate) select: crate::dialog::SelectList,
     /// Press origin prevents drag-release across the backdrop from dismissing a dialog.
     mouse_down: Option<crate::dialog::DialogHit>,
+    /// Only operation IDs whose exploration headers were explicitly opened.
+    exploration_expanded: BTreeSet<String>,
+    exploration_down: Option<(String, u16, u16)>,
     leader: Option<Instant>,
     input: String,
     editor: crate::editor::Editor,
@@ -353,6 +356,8 @@ impl TuiState {
             panel: TuiPanel::None,
             select: Default::default(),
             mouse_down: None,
+            exploration_expanded: BTreeSet::new(),
+            exploration_down: None,
             leader: None,
             input: String::new(),
             editor: Default::default(),
@@ -441,6 +446,7 @@ impl TuiState {
     /// open must reload from the new generation instead of showing it.
     pub fn reset_workspace(&mut self) {
         self.close_panel();
+        self.exploration_expanded.clear();
         self.chrome = Default::default();
         self.parent_id = None;
         self.auto_accept = oc_core::queries::AutoAcceptState::Unsupported;
@@ -473,6 +479,7 @@ impl TuiState {
 
     pub fn set_session(&mut self, session: SessionId) {
         self.close_panel();
+        self.exploration_expanded.clear();
         self.cards.clear();
         self.card_ops.clear();
         self.cards_cursor = 0;
@@ -778,6 +785,8 @@ impl TuiState {
 
     /// Newest page becomes the whole window; scroll pins to the newest row.
     pub fn attach_page(&mut self, page: &HistoryPage) {
+        self.exploration_down = None;
+        self.exploration_expanded.clear();
         self.viewport_max_scroll.set(None);
         self.parent_id = page.parent_id.clone();
         self.session_title = page.title.clone();
@@ -819,6 +828,7 @@ impl TuiState {
         self.card_scroll = 0;
         self.card_seen.set(0);
         self.mouse_down = None;
+        self.exploration_down = None;
         self.select.reset();
     }
 
@@ -828,8 +838,55 @@ impl TuiState {
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
         use crate::dialog::DialogHit;
         if self.panel == TuiPanel::None {
+            match event.kind {
+                MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
+                    self.exploration_down = self
+                        .exploration_hit(area, event.column, event.row)
+                        .map(|op| (op, event.column, event.row));
+                }
+                MouseEventKind::Up(MouseButton::Left) => {
+                    let pressed = self.exploration_down.take();
+                    if event.modifiers.is_empty()
+                        && let Some((op, x, y)) = pressed
+                        && (x, y) == (event.column, event.row)
+                        && self
+                            .exploration_hit(area, event.column, event.row)
+                            .as_deref()
+                            == Some(&op)
+                    {
+                        let rect = crate::shell::transcript_area(self, area);
+                        let height = rect.height as usize;
+                        let (_, before) =
+                            self.visible_transcript(rect.width, area.width, rect.height);
+                        // Keep the clicked header at its painted row by anchoring
+                        // the first visible row, rather than the bottom offset.
+                        let first = before
+                            .saturating_sub(height)
+                            .saturating_sub(self.scroll.min(before.saturating_sub(height)));
+                        let rows = self.transcript_rows();
+                        self.exploration_expanded.retain(|id| {
+                            rows.iter()
+                                .any(|row| row.tool.as_ref().is_some_and(|card| &card.op == id))
+                        });
+                        if !self.exploration_expanded.insert(op.clone()) {
+                            self.exploration_expanded.remove(&op);
+                        }
+                        let (_, after) =
+                            self.visible_transcript(rect.width, area.width, rect.height);
+                        self.scroll = after.saturating_sub(height).saturating_sub(first);
+                        self.observe_viewport(rect.height, after);
+                    }
+                }
+                MouseEventKind::Drag(_)
+                | MouseEventKind::Moved
+                | MouseEventKind::Down(_)
+                | MouseEventKind::ScrollUp
+                | MouseEventKind::ScrollDown => self.exploration_down = None,
+                _ => {}
+            }
             return KeyOutcome::default();
         }
+        self.exploration_down = None;
         if self.panel == TuiPanel::Cards && self.card_output.is_some() {
             let (rect, _, _) = crate::dialog::card_geometry(area);
             let inside = rect.contains((event.column, event.row).into());
@@ -925,6 +982,29 @@ impl TuiState {
         KeyOutcome::default()
     }
 
+    fn exploration_hit(&self, area: Rect, x: u16, y: u16) -> Option<String> {
+        let rect = crate::shell::transcript_area(self, area);
+        if rect.width == 0 || rect.height == 0 || !rect.contains((x, y).into()) {
+            return None;
+        }
+        let rows = self.transcript_rows();
+        let live_row = (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| {
+            rows.len() - 1 - usize::from(self.active_turn.is_some() && self.live_preview_truncated)
+        });
+        crate::messages::exploration_header_at(
+            &rows,
+            Theme::dark(),
+            (rect.width, area.width),
+            (rect.height as usize, self.scroll, live_row),
+            |agent| self.agent_color(agent),
+            &self.markdown_cache,
+            (
+                &|op| self.exploration_expanded.contains(op),
+                ((x - rect.x) as usize, (y - rect.y) as usize),
+            ),
+        )
+    }
+
     /// Window bytes plus live text, live parts and input; bounded by the
     /// window caps.
     pub fn retained_bytes(&self) -> usize {
@@ -1010,13 +1090,14 @@ impl TuiState {
     /// projection used for scroll metrics and plain-text assertions.
     pub fn transcript_lines(&self, width: u16, terminal_width: u16) -> Vec<Line> {
         let theme = Theme::dark();
-        crate::messages::transcript_with_cache(
+        crate::messages::transcript_with_expansion(
             &self.transcript_rows(),
             theme,
             width,
             terminal_width,
             |agent| self.agent_color(agent),
             Some(&self.markdown_cache),
+            &|op| self.exploration_expanded.contains(op),
         )
     }
 
@@ -1043,14 +1124,14 @@ impl TuiState {
         let live_row = (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| {
             rows.len() - 1 - usize::from(self.active_turn.is_some() && self.live_preview_truncated)
         });
-        crate::messages::visible_transcript(
+        crate::messages::visible_transcript_expanded(
             &rows,
             Theme::dark(),
-            width,
-            terminal_width,
+            (width, terminal_width),
             (height as usize, self.scroll, live_row),
             |agent| self.agent_color(agent),
             &self.markdown_cache,
+            &|op| self.exploration_expanded.contains(op),
         )
     }
 
@@ -3875,6 +3956,259 @@ mod tests {
             assert_eq!(outcome.intent, None);
         }
         assert_eq!(state.panel(), &TuiPanel::Dcp);
+    }
+
+    #[tokio::test]
+    async fn exploration_mouse_hits_only_visible_header_text_without_drag_or_modal_leak() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        let mut state = fresh_state("exploration-mouse").await;
+        for (i, name) in ["read", "glob", "grep"].iter().enumerate() {
+            let card = crate::history::card_from_row(&oc_core::queries::ToolOpView {
+                rowid: i as i64 + 1,
+                op: format!("op-{i}"),
+                name: (*name).into(),
+                state: "completed".into(),
+                input: Some(
+                    if *name == "read" {
+                        r#"{"path":"fixture-note.txt"}"#
+                    } else {
+                        r#"{"pattern":"*.rs"}"#
+                    }
+                    .into(),
+                ),
+                output: Some("fixture result".into()),
+                output_bytes: 14,
+                output_truncated: false,
+            });
+            state.window.push_row(crate::history::HistoryRow {
+                seq: i as i64 + 1,
+                role: "tool".into(),
+                text: String::new(),
+                agent: None,
+                agent_color_index: None,
+                chips: vec![],
+                reasoning: None,
+                meta: None,
+                tool: Some(card),
+            });
+        }
+        let event = |kind, x, y| MouseEvent {
+            kind,
+            column: x,
+            row: y,
+            modifiers: KeyModifiers::NONE,
+        };
+        let click = |state: &mut TuiState, area: ratatui::layout::Rect, x, y| {
+            state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), x, y), area);
+            state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left), x, y), area);
+        };
+        for area in [
+            ratatui::layout::Rect::new(0, 0, 80, 24),
+            ratatui::layout::Rect::new(0, 0, 121, 40),
+            ratatui::layout::Rect::new(0, 0, 25, 24),
+        ] {
+            state.exploration_expanded.clear();
+            let transcript = crate::shell::transcript_area(&state, area);
+            let (lines, total) =
+                state.visible_transcript(transcript.width, area.width, transcript.height);
+            state.observe_viewport(transcript.height, total);
+            let row = lines
+                .iter()
+                .position(|line| line.plain_text().contains("Explored"))
+                .expect("header visible");
+            let x = transcript.x + 4;
+            let y = transcript.y + row as u16;
+            assert!(
+                !state
+                    .transcript_lines(80, 80)
+                    .iter()
+                    .any(|line| line.plain_text().contains("Read fixture-note.txt"))
+            );
+            click(&mut state, area, x, y - 1); // vertical gap
+            click(&mut state, area, transcript.x, y); // left padding
+            click(&mut state, area, transcript.right() - 1, y); // blank row tail
+            click(&mut state, area, x, transcript.bottom()); // status/prompt
+            assert!(state.exploration_expanded.is_empty());
+            state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), x, y), area);
+            state.handle_mouse(
+                event(MouseEventKind::Drag(MouseButton::Left), x + 1, y),
+                area,
+            );
+            state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left), x, y), area);
+            assert!(state.exploration_expanded.is_empty());
+            state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), x, y), area);
+            state.handle_mouse(
+                event(
+                    MouseEventKind::Up(MouseButton::Left),
+                    x,
+                    transcript.bottom(),
+                ),
+                area,
+            );
+            assert!(state.exploration_expanded.is_empty());
+            state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), x, y), area);
+            state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left), x + 1, y), area);
+            assert!(
+                state.exploration_expanded.is_empty(),
+                "text selection cannot toggle"
+            );
+            state.panel = TuiPanel::Help(None);
+            click(&mut state, area, x, y);
+            assert!(state.exploration_expanded.is_empty());
+            state.close_panel();
+            click(&mut state, area, x, y);
+            assert!(state.exploration_expanded.contains("op-0"));
+            assert!(
+                state
+                    .transcript_lines(80, 80)
+                    .iter()
+                    .any(|line| line.plain_text().contains("Read fixture-note.txt"))
+            );
+            click(&mut state, area, x, y);
+            assert!(state.exploration_expanded.is_empty());
+            if area.width == 25 {
+                let continuation = lines[row + 1].plain_text();
+                assert!(
+                    continuation.contains("search"),
+                    "header must wrap at the actual content width: {continuation}"
+                );
+                click(&mut state, area, transcript.x + 1, y + 1);
+                assert!(state.exploration_expanded.contains("op-0"));
+                click(&mut state, area, transcript.x + 1, y + 1);
+                assert!(state.exploration_expanded.is_empty());
+            }
+        }
+        let area = ratatui::layout::Rect::new(0, 0, 80, 24);
+        for i in 0..20 {
+            state
+                .window
+                .push_synthetic("assistant", &format!("later message {i}"), None, None);
+        }
+        let rect = crate::shell::transcript_area(&state, area);
+        let (_, total) = state.visible_transcript(rect.width, area.width, rect.height);
+        assert!(total > rect.height as usize);
+        assert!(
+            state
+                .exploration_hit(area, rect.x + 4, rect.y + 1)
+                .is_none(),
+            "offscreen group is not clickable"
+        );
+        state.scroll = total - rect.height as usize;
+        let (lines, _) = state.visible_transcript(rect.width, area.width, rect.height);
+        let row = lines
+            .iter()
+            .position(|line| line.plain_text().contains("Explored"))
+            .unwrap();
+        click(&mut state, area, rect.x + 4, rect.y + row as u16);
+        assert!(state.exploration_expanded.contains("op-0"));
+        let (expanded, _) = state.visible_transcript(rect.width, area.width, rect.height);
+        assert!(expanded[row].plain_text().contains("Explored"));
+        click(&mut state, area, rect.x + 4, rect.y + row as u16);
+        assert!(state.exploration_expanded.is_empty());
+        assert_eq!(state.scroll, total - rect.height as usize);
+        click(&mut state, area, rect.x + 4, rect.y + row as u16);
+        state.set_session(sid("other-session"));
+        assert!(state.exploration_expanded.is_empty());
+    }
+
+    #[tokio::test]
+    async fn exploration_toggle_anchors_long_result_and_attach_page_discards_expansion() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        let mut state = fresh_state("exploration-anchor").await;
+        for i in 0..16 {
+            let result = format!("loaded result {i}: {}", "contents ".repeat(30));
+            let card = crate::history::card_from_row(&oc_core::queries::ToolOpView {
+                rowid: i + 1,
+                op: format!("read-{i}"),
+                name: "read".into(),
+                state: "completed".into(),
+                input: Some(format!(r#"{{"path":"file-{i}.txt"}}"#)),
+                output_bytes: result.len() as i64,
+                output: Some(result),
+                output_truncated: false,
+            });
+            state.window.push_row(crate::history::HistoryRow {
+                seq: i + 1,
+                role: "tool".into(),
+                text: String::new(),
+                agent: None,
+                agent_color_index: None,
+                chips: vec![],
+                reasoning: None,
+                meta: None,
+                tool: Some(card),
+            });
+        }
+        let area = ratatui::layout::Rect::new(0, 0, 80, 24);
+        let rect = crate::shell::transcript_area(&state, area);
+        let (collapsed, before) = state.visible_transcript(rect.width, area.width, rect.height);
+        assert!(before < rect.height as usize);
+        let header_y = collapsed
+            .iter()
+            .position(|line| line.plain_text().contains("Explored"))
+            .unwrap() as u16;
+        let x = rect.x + 4;
+        let y = rect.y + header_y;
+        let click = |state: &mut TuiState| {
+            for kind in [
+                MouseEventKind::Down(MouseButton::Left),
+                MouseEventKind::Up(MouseButton::Left),
+            ] {
+                state.handle_mouse(
+                    MouseEvent {
+                        kind,
+                        column: x,
+                        row: y,
+                        modifiers: KeyModifiers::NONE,
+                    },
+                    area,
+                );
+            }
+        };
+        click(&mut state);
+        assert!(state.exploration_expanded.contains("read-0"));
+        let (expanded, after) = state.visible_transcript(rect.width, area.width, rect.height);
+        assert!(after > rect.height as usize);
+        assert!(
+            state.scroll() > 0,
+            "expansion must leave the bottom to keep the header visible"
+        );
+        assert!(
+            expanded[header_y as usize]
+                .plain_text()
+                .contains("Explored")
+        );
+        assert_eq!(state.exploration_hit(area, x, y).as_deref(), Some("read-0"));
+        click(&mut state);
+        assert!(state.exploration_expanded.is_empty());
+        assert_eq!(state.scroll(), 0);
+        let (restored, total) = state.visible_transcript(rect.width, area.width, rect.height);
+        assert_eq!((restored, total), (collapsed, before));
+
+        click(&mut state);
+        assert!(state.exploration_expanded.contains("read-0"));
+        state.handle_mouse(
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: x,
+                row: y,
+                modifiers: KeyModifiers::NONE,
+            },
+            area,
+        );
+        state.attach_page(&page(vec![], 0, false, false));
+        assert!(state.exploration_expanded.is_empty());
+        assert!(state.exploration_down.is_none());
+        state.handle_mouse(
+            MouseEvent {
+                kind: MouseEventKind::Up(MouseButton::Left),
+                column: x,
+                row: y,
+                modifiers: KeyModifiers::NONE,
+            },
+            area,
+        );
+        assert!(state.exploration_expanded.is_empty());
     }
 
     #[tokio::test]

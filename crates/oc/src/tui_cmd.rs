@@ -273,12 +273,12 @@ async fn handle_event(
             }
         }
         Some(UiEvent::Mouse(mouse)) => {
-            let outcome = if *state.panel() == TuiPanel::None {
-                match mouse.kind {
-                    MouseEventKind::ScrollUp => state.scroll_transcript(true),
-                    MouseEventKind::ScrollDown => state.scroll_transcript(false),
-                    _ => KeyOutcome::default(),
-                }
+            let outcome = if *state.panel() == TuiPanel::None
+                && matches!(
+                    mouse.kind,
+                    MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
+                ) {
+                state.scroll_transcript(mouse.kind == MouseEventKind::ScrollUp)
             } else {
                 let (cols, rows) =
                     crossterm::terminal::size().map_err(|e| format!("mouse terminal size: {e}"))?;

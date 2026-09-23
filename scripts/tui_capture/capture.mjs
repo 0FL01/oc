@@ -15,6 +15,12 @@ const tools = path.resolve(args.tools || '/home/opencode/.cache/opencode-tmp/ope
 process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(tools, 'browsers');
 const require = createRequire(path.join(tools, 'package.json'));
 const {chromium} = require('playwright');
+const explorationClick = args['exploration-click'] === 'true';
+if (args['exploration-click'] !== undefined && !['true','false'].includes(args['exploration-click']))
+  throw Error('--exploration-click must be true or false');
+if (explorationClick && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
+    Number(args.columns) !== 120 || Number(args.rows) !== 40 || args.matrix === 'true' || args['scroll-resize'] === 'true'))
+  throw Error('--exploration-click true requires --geometry true --sample tools --sidebar hide --columns 120 --rows 40 without matrix/scroll-resize');
 const output = path.resolve(args.output || path.join(repo, 'evidence/tui/recovery-v00', new Date().toISOString().replaceAll(':', '-')));
 if (fs.existsSync(output)) throw Error('Refusing to overwrite attempt: ' + output);
 fs.mkdirSync(output, {recursive: true});
@@ -64,6 +70,19 @@ process.env.PLAYWRIGHT_BROWSERS_PATH = cleanEnv.PLAYWRIGHT_BROWSERS_PATH;
 let browser;
 let result = 0;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Match cell symbols, not JS string offsets (which differ from terminal columns
+// for wide glyphs). A unique visible match is required before sending a click.
+const visibleMatches = (f, needle) => {
+  const symbols = [...needle];
+  const matches = [];
+  for (const [y, row] of f.cells.entries()) {
+    for (let x=0; x<=row.length-symbols.length; x++) {
+      if (symbols.every((symbol, i) => row[x+i].symbol===symbol && row[x+i].width===1))
+        matches.push({x,y});
+    }
+  }
+  return matches;
+};
 try {
   browser = await chromium.launch({headless: true, env: cleanEnv});
   const profile = {frontend: '@xterm/xterm', frontend_version: require('@xterm/xterm/package.json').version,
@@ -178,6 +197,61 @@ try {
          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript'), 'completed transcript');
        if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');
       await capture('session-wide-completed',done,'CAPTURED');
+      if(explorationClick) {
+         const checks = [];
+         const headerText = '→ Explored — 1 read';
+         const detailText = 'Read fixture-note.txt';
+         const observe = f => {
+           const headers=visibleMatches(f,headerText), details=visibleMatches(f,detailText);
+           return {header_count:headers.length, detail_count:details.length,
+             header:headers.length===1?headers[0]:null,
+             detail_below_header:headers.length===1 && details.length===1 && details[0].y>headers[0].y};
+         };
+         const record = (stage, f, predicate, passed) => {
+           const check={stage, predicate, passed, ...observe(f)};
+           checks.push(check);
+           fs.writeFileSync(path.join(dir,'exploration-checks.json'),JSON.stringify(checks,null,2)+'\n');
+           if(!passed) throw Error('Exploration predicate failed: '+stage);
+           return check;
+         };
+         const awaitState = async (stage, predicate, description) => {
+           let f;
+           try { f=await waitFor(f=>predicate(observe(f)),description); }
+           catch(e) {
+             const current=await frame();
+             checks.push({stage,predicate:description,passed:false,reason:e.message,...observe(current)});
+             fs.writeFileSync(path.join(dir,'exploration-checks.json'),JSON.stringify(checks,null,2)+'\n');
+             throw e;
+           }
+           record(stage,f,description,predicate(observe(f)));
+           return f;
+         };
+         const collapsed = await awaitState('collapsed', c=>c.header_count===1 && c.detail_count===0,
+           'one visible → Explored — 1 read header and no Read fixture-note.txt detail');
+         const click = (stage, f) => {
+           // Aim inside "Explored", retaining one-based SGR PTY coordinates.
+           const {x,y}=observe(f).header;
+           const column=x+3, row=y+1;
+           const down=`\x1b[<0;${column};${row}M`, up=`\x1b[<0;${column};${row}m`;
+           checks.push({stage:stage+'-click',header:{x,y},pty_column:column,pty_row:row,
+             down_base64:Buffer.from(down).toString('base64'),up_base64:Buffer.from(up).toString('base64')});
+           fs.writeFileSync(path.join(dir,'exploration-checks.json'),JSON.stringify(checks,null,2)+'\n');
+           send(down,stage+'_mouse_down'); send(up,stage+'_mouse_up');
+         };
+         click('expand',collapsed);
+         const expanded=await awaitState('expanded',c=>c.header_count===1 && c.detail_below_header,
+           'collapsed header remains visible and Read fixture-note.txt detail appears below it');
+         await capture('exploration-expanded',expanded,'CAPTURED_EXPLORATION_EXPANDED');
+         const beforeRecollapse=await frame();
+         const visible=observe(beforeRecollapse);
+         record('expanded-before-recollapse',beforeRecollapse,
+           'one visible collapsed header and Read fixture-note.txt detail below it',
+           visible.header_count===1 && visible.detail_below_header);
+         click('recollapse',beforeRecollapse);
+         const recollapsed=await awaitState('recollapsed',c=>c.header_count===1 && c.detail_count===0,
+           'collapsed header remains visible and Read fixture-note.txt detail disappears');
+         await capture('exploration-recollapsed',recollapsed,'CAPTURED_EXPLORATION_RECOLLAPSED');
+      }
       if(args.tabs==='vertical') {
         const sidebarAbsent = !done.text.includes('Context') && done.cells[10].at(-1).bg==='#0a0a0a';
         const sidebarPresent = done.text.includes('Context') && done.cells[10].at(-1).bg==='#141414';

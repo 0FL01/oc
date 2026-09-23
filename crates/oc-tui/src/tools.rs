@@ -957,6 +957,30 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
     out
 }
 
+/// Expanded exploration groups show the original inline part immediately
+/// below their header, without the standalone card's result summary or gap.
+/// Group eligibility is enforced by the transcript before calling this.
+pub(crate) fn exploration_member(card: &ToolCard, theme: &Theme) -> Line {
+    let ToolRender::Inline(inline) = &card.render else {
+        unreachable!("only inline exploration parts are grouped");
+    };
+    let running = is_running(&card.state);
+    let style = ratatui::style::Style::default().fg(theme.text());
+    Line::new(vec![
+        Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING)),
+        Span::styled(if running { SPINNER } else { "→" }, style),
+        Span::plain(" "),
+        Span::styled(
+            if running {
+                inline.pending_label().to_string()
+            } else {
+                inline_label(inline)
+            },
+            style,
+        ),
+    ])
+}
+
 /// Terminal label for an inline tool (`index.tsx:3084-3168,3548,2620-2669`).
 fn inline_label(inline: &InlineRender) -> String {
     match inline {
