@@ -64,8 +64,10 @@ pub enum DiscoveryError {
 pub enum DiscoveryFailure {
     /// Invalid configured URL, key or headers before a request.
     InvalidConfig,
-    /// Catalog endpoint rejected the request with 401 or 403.
+    /// Catalog endpoint rejected authentication with 401.
     Unauthorized,
+    /// Catalog endpoint forbade the request with 403.
+    Forbidden,
     /// Other non-success HTTP response.
     Http,
     /// Transport failure or timeout.
@@ -82,7 +84,8 @@ impl From<&DiscoveryError> for DiscoveryFailure {
     fn from(error: &DiscoveryError) -> Self {
         match error {
             DiscoveryError::InvalidConfig => Self::InvalidConfig,
-            DiscoveryError::Http { status: 401 | 403 } => Self::Unauthorized,
+            DiscoveryError::Http { status: 401 } => Self::Unauthorized,
+            DiscoveryError::Http { status: 403 } => Self::Forbidden,
             DiscoveryError::Http { .. } => Self::Http,
             DiscoveryError::Network => Self::Network,
             DiscoveryError::InvalidResponse => Self::InvalidResponse,
@@ -896,10 +899,10 @@ mod tests {
             .expect("fixture response timed out");
             assert_eq!(
                 outcome.failure,
-                Some(if status == 401 || status == 403 {
-                    super::DiscoveryFailure::Unauthorized
-                } else {
-                    super::DiscoveryFailure::Http
+                Some(match status {
+                    401 => super::DiscoveryFailure::Unauthorized,
+                    403 => super::DiscoveryFailure::Forbidden,
+                    _ => super::DiscoveryFailure::Http,
                 })
             );
             assert_eq!(outcome.models, local);
@@ -1731,7 +1734,7 @@ mod tests {
                     status: 403,
                     body: b"private-body".to_vec(),
                 }],
-                DiscoveryFailure::Unauthorized,
+                DiscoveryFailure::Forbidden,
             ),
             (
                 vec![Scripted::Status {

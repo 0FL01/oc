@@ -72,8 +72,12 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
                 "Set a nonempty API key; if configured via {env:...}, export that variable in the launching shell.",
             ),
             oc_adapters::application::SpawnFailure::DiscoveryUnauthorized => (
-                "Model discovery unauthorized",
-                "Catalog access was denied (401/403). Check this key's catalog permissions with the provider.",
+                "Model discovery authentication rejected (401)",
+                "Check the configured credential and catalog route; this does not test Responses access.",
+            ),
+            oc_adapters::application::SpawnFailure::DiscoveryForbidden => (
+                "Model discovery access forbidden (403)",
+                "Check catalog-listing permission or proxy policy; this does not test Responses access.",
             ),
             oc_adapters::application::SpawnFailure::DiscoveryHttp => (
                 "Model discovery HTTP failure",

@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-23T09:04:36+00:00
-Active: T44
-
-Сверить Git status/diff до выполнения команд.
-Task: T44 — TUI pixel parity с opencode v2.0.12
-Spec: docs/goals/2026-09-21-tui-pixel-parity.md
-Evidence target: evidence/T44/report.md
-
-Полностью воспроизвести интерфейс upstream opencode v2.0.12 в crates/oc-tui: тема/палитра, геометрия layout, рендер сообщений (markdown/reasoning/tool cards/diff), keymap и диалоги; golden-снапшоты PTY на фиксированных размерах. Recon-артефакты evidence/tui/*, коммит+push каждого среза.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 # T44 catalog smoke and safe-status checkpoint
 
 ## Result
@@ -29,9 +15,3 @@ The owner's specific catalog status and server-side policy remain unknown; a wor
 ## Next
 
 The owner's same-shell fresh release category or provider-side status-only catalog trace distinguishes 401 from 403 without sharing credentials. Fix request construction only if that trace demonstrates a mismatch with the owner-supplied discovery contract; otherwise catalog authorization/policy must be corrected at OpenProxy, or an owner-verified explicit configured model must be separately assessed against A03. Independently proceed with V07 S03/S05/S06/S08 and measured resources, then paired VIS01–VIS24; never claim READY from these smoke checks.
-
-
-Ready (до 5): T45, T46, T47
-Blocked: T27, T43
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

@@ -44,8 +44,10 @@ pub enum SpawnFailure {
     Configuration,
     /// Selected provider has no nonempty API key in the configured generation.
     MissingCredential,
-    /// Selected id cannot be resolved because the discovery request was rejected.
+    /// Selected id cannot be resolved because discovery returned 401.
     DiscoveryUnauthorized,
+    /// Selected id cannot be resolved because discovery returned 403.
+    DiscoveryForbidden,
     /// Discovery endpoint returned a different unsuccessful HTTP status.
     DiscoveryHttp,
     /// Discovery could not reach the endpoint or timed out.
@@ -156,6 +158,9 @@ async fn spawn_inner(
                 let category = match reason {
                     SelectedCatalogFailure::Refresh(DiscoveryFailure::Unauthorized) => {
                         SpawnFailure::DiscoveryUnauthorized
+                    }
+                    SelectedCatalogFailure::Refresh(DiscoveryFailure::Forbidden) => {
+                        SpawnFailure::DiscoveryForbidden
                     }
                     SelectedCatalogFailure::Refresh(DiscoveryFailure::Http) => {
                         SpawnFailure::DiscoveryHttp
