@@ -44,6 +44,20 @@ pub enum SpawnFailure {
     Configuration,
     /// Selected provider has no nonempty API key in the configured generation.
     MissingCredential,
+    /// Selected id cannot be resolved because the discovery request was rejected.
+    DiscoveryUnauthorized,
+    /// Discovery endpoint returned a different unsuccessful HTTP status.
+    DiscoveryHttp,
+    /// Discovery could not reach the endpoint or timed out.
+    DiscoveryNetwork,
+    /// Discovery endpoint sent an invalid or empty catalog.
+    DiscoveryInvalidResponse,
+    /// Configured discovery URL, credential or headers were invalid.
+    DiscoveryInvalidConfig,
+    /// Discovery was cancelled before the selected id could be resolved.
+    DiscoveryCancelled,
+    /// Discovery succeeded but did not list the selected id.
+    SelectedModelAbsent,
     /// Another process currently owns the exclusive data-root lock.
     DataRootBusy,
     /// Data-root validation refused an unsafe path or ownership.
@@ -135,6 +149,32 @@ async fn spawn_inner(
             }
             composition::LoadFailure::MissingCredential(detail) => {
                 SpawnIssue::new(SpawnFailure::MissingCredential, detail)
+            }
+            composition::LoadFailure::Discovery { reason, detail } => {
+                use crate::discovery::DiscoveryFailure;
+                use composition::SelectedCatalogFailure;
+                let category = match reason {
+                    SelectedCatalogFailure::Refresh(DiscoveryFailure::Unauthorized) => {
+                        SpawnFailure::DiscoveryUnauthorized
+                    }
+                    SelectedCatalogFailure::Refresh(DiscoveryFailure::Http) => {
+                        SpawnFailure::DiscoveryHttp
+                    }
+                    SelectedCatalogFailure::Refresh(DiscoveryFailure::Network) => {
+                        SpawnFailure::DiscoveryNetwork
+                    }
+                    SelectedCatalogFailure::Refresh(
+                        DiscoveryFailure::InvalidResponse | DiscoveryFailure::EmptyResponse,
+                    ) => SpawnFailure::DiscoveryInvalidResponse,
+                    SelectedCatalogFailure::Refresh(DiscoveryFailure::InvalidConfig) => {
+                        SpawnFailure::DiscoveryInvalidConfig
+                    }
+                    SelectedCatalogFailure::Refresh(DiscoveryFailure::Cancelled) => {
+                        SpawnFailure::DiscoveryCancelled
+                    }
+                    SelectedCatalogFailure::Absent => SpawnFailure::SelectedModelAbsent,
+                };
+                SpawnIssue::new(category, detail)
             }
         })?;
     let mut diagnostics = composition.diagnostics.clone();

@@ -69,12 +69,24 @@ pub struct Composition {
 pub(crate) enum LoadFailure {
     Configuration(String),
     MissingCredential(String),
+    Discovery {
+        reason: SelectedCatalogFailure,
+        detail: String,
+    },
+}
+
+/// A selected id could not be resolved against the effective catalog.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SelectedCatalogFailure {
+    Refresh(discovery::DiscoveryFailure),
+    Absent,
 }
 
 impl LoadFailure {
     fn into_detail(self) -> String {
         match self {
             Self::Configuration(detail) | Self::MissingCredential(detail) => detail,
+            Self::Discovery { detail, .. } => detail,
         }
     }
 }
@@ -538,12 +550,18 @@ pub(crate) async fn load_with_env_diagnostic(
         provider: provider_id.to_string(),
         models: entry.models.clone(),
     };
+    let mut discovery_result = None;
     // The existing native daily-direct profile enables discovery for this
     // provider; an admitted JS alias denotes the same compiled module.
     if provider_id == discovery::PROVIDER_ID && discovery::should_run(&disabled, enabled.as_deref())
     {
-        let client = discovery::ReqwestDiscoveryClient::new(provider.connect_timeout)
-            .map_err(|e| format!("model discovery: {e}"))?;
+        let client =
+            discovery::ReqwestDiscoveryClient::new(provider.connect_timeout).map_err(|e| {
+                LoadFailure::Discovery {
+                    reason: SelectedCatalogFailure::Refresh(discovery::DiscoveryFailure::from(&e)),
+                    detail: format!("model discovery: {e}"),
+                }
+            })?;
         let outcome = discovery::refresh(
             &discovery::RealClock,
             &client,
@@ -554,14 +572,26 @@ pub(crate) async fn load_with_env_diagnostic(
             &AtomicBool::new(false),
         )
         .await;
+        discovery_result = Some(outcome.failure);
         catalog.models = outcome.models;
         generation.warnings.extend(outcome.warnings);
     }
     models::select_model(&catalog, model_id).map_err(|e| {
         let warnings = generation.warnings.join(" ");
-        format!(
+        let detail = format!(
             "{e}; configure provider.{provider_id}.models or check native discovery. {warnings}"
-        )
+        );
+        match discovery_result {
+            Some(Some(reason)) => LoadFailure::Discovery {
+                reason: SelectedCatalogFailure::Refresh(reason),
+                detail,
+            },
+            Some(None) => LoadFailure::Discovery {
+                reason: SelectedCatalogFailure::Absent,
+                detail,
+            },
+            None => LoadFailure::Configuration(detail),
+        }
     })?;
     let skills = loaded_defs
         .skills

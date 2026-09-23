@@ -80,3 +80,21 @@ fn isolated_binary_startup_routes() {
     );
     println!("{}", String::from_utf8_lossy(&output.stdout));
 }
+
+#[test]
+fn isolated_discovery_startup_routes() {
+    let output = Command::new("python3")
+        .args([
+            "-c",
+            include_str!("support/discovery_startup.py"),
+            env!("CARGO_BIN_EXE_oc"),
+        ])
+        .env_clear()
+        .output()
+        .expect("python PTY harness");
+    assert!(
+        output.status.success(),
+        "discovery fixture failed (output withheld; inspect sanitized fixture assertions)"
+    );
+    println!("{}", String::from_utf8_lossy(&output.stdout));
+}

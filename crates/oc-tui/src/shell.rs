@@ -71,6 +71,34 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
                 "Selected provider credential missing",
                 "Set a nonempty API key; if configured via {env:...}, export that variable in the launching shell.",
             ),
+            oc_adapters::application::SpawnFailure::DiscoveryUnauthorized => (
+                "Model discovery unauthorized",
+                "Catalog access was denied (401/403). Check this key's catalog permissions with the provider.",
+            ),
+            oc_adapters::application::SpawnFailure::DiscoveryHttp => (
+                "Model discovery HTTP failure",
+                "Check the configured catalog endpoint and provider service, then retry.",
+            ),
+            oc_adapters::application::SpawnFailure::DiscoveryNetwork => (
+                "Model discovery network failure",
+                "Check connectivity to the catalog endpoint and retry after the timeout.",
+            ),
+            oc_adapters::application::SpawnFailure::DiscoveryInvalidResponse => (
+                "Model discovery invalid or empty catalog",
+                "Check the provider's catalog response format and available models, then retry.",
+            ),
+            oc_adapters::application::SpawnFailure::DiscoveryInvalidConfig => (
+                "Model discovery configuration invalid",
+                "Check the configured provider URL, credential and headers, then retry.",
+            ),
+            oc_adapters::application::SpawnFailure::DiscoveryCancelled => (
+                "Model discovery cancelled",
+                "Retry catalog loading before selecting a model.",
+            ),
+            oc_adapters::application::SpawnFailure::SelectedModelAbsent => (
+                "Selected model absent from catalog",
+                "Discovery succeeded. Choose a model returned for this key or update the selected model.",
+            ),
             oc_adapters::application::SpawnFailure::DataRootBusy => (
                 "Data root busy",
                 "Close the other oc process using this data directory, then retry.",

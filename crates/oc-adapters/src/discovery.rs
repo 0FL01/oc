@@ -58,6 +58,40 @@ pub enum DiscoveryError {
     Cancelled,
 }
 
+/// Bounded, value-free reason for a failed catalog refresh. This is safe to
+/// pass to an interactive frontend; detailed errors stay with CLI callers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DiscoveryFailure {
+    /// Invalid configured URL, key or headers before a request.
+    InvalidConfig,
+    /// Catalog endpoint rejected the request with 401 or 403.
+    Unauthorized,
+    /// Other non-success HTTP response.
+    Http,
+    /// Transport failure or timeout.
+    Network,
+    /// Invalid body, envelope or model row.
+    InvalidResponse,
+    /// Successful response contained no model entries.
+    EmptyResponse,
+    /// Refresh explicitly cancelled.
+    Cancelled,
+}
+
+impl From<&DiscoveryError> for DiscoveryFailure {
+    fn from(error: &DiscoveryError) -> Self {
+        match error {
+            DiscoveryError::InvalidConfig => Self::InvalidConfig,
+            DiscoveryError::Http { status: 401 | 403 } => Self::Unauthorized,
+            DiscoveryError::Http { .. } => Self::Http,
+            DiscoveryError::Network => Self::Network,
+            DiscoveryError::InvalidResponse => Self::InvalidResponse,
+            DiscoveryError::EmptyResponse => Self::EmptyResponse,
+            DiscoveryError::Cancelled => Self::Cancelled,
+        }
+    }
+}
+
 /// Validated remote model entry plus optional source suffix.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RemoteModel {
@@ -169,6 +203,13 @@ impl DiscoveryClient for ReqwestDiscoveryClient {
         let _ = self.connect_timeout;
         let resp = req.send().await.map_err(|_| DiscoveryError::Network)?;
         let status = resp.status().as_u16();
+        // The owner-supplied discovery contract checks response.ok before
+        // parsing the body. Error bodies may be huge or never complete;
+        // classify by status without consuming them. The fetch loop owns
+        // retry policy for non-2xx responses.
+        if !(200..300).contains(&status) {
+            return Ok((status, Vec::new()));
+        }
         let mut body = Vec::new();
         let mut stream = resp;
         loop {
@@ -596,6 +637,8 @@ pub struct DiscoveryOutcome {
     pub attempts: usize,
     /// Whether the catalog was replaced.
     pub replaced: bool,
+    /// Value-free reason for failure; `None` only on a successful refresh.
+    pub failure: Option<DiscoveryFailure>,
 }
 
 /// Refresh one provider generation: validate everything, then publish
@@ -615,6 +658,7 @@ pub async fn refresh<C: Clock, D: DiscoveryClient>(
         warnings,
         attempts: 0,
         replaced: false,
+        failure: Some(DiscoveryFailure::InvalidConfig),
     };
     if api_key.trim().is_empty() {
         warnings.push(
@@ -650,9 +694,11 @@ pub async fn refresh<C: Clock, D: DiscoveryClient>(
                 warnings,
                 attempts: 0,
                 replaced: false,
+                failure: Some(DiscoveryFailure::Cancelled),
             };
         }
         Err(e) => {
+            let failure = DiscoveryFailure::from(&e);
             warnings.push(format!(
                 "[openproxy-models] {e}; keeping configured models."
             ));
@@ -661,6 +707,7 @@ pub async fn refresh<C: Clock, D: DiscoveryClient>(
                 warnings,
                 attempts: 0,
                 replaced: false,
+                failure: Some(failure),
             };
         }
     };
@@ -681,6 +728,7 @@ pub async fn refresh<C: Clock, D: DiscoveryClient>(
                     warnings,
                     attempts,
                     replaced: false,
+                    failure: Some(DiscoveryFailure::InvalidResponse),
                 };
             }
         };
@@ -695,6 +743,7 @@ pub async fn refresh<C: Clock, D: DiscoveryClient>(
         warnings,
         attempts,
         replaced: true,
+        failure: None,
     }
 }
 
@@ -775,14 +824,122 @@ fn merge_model(remote: &RemoteModel, local: &serde_json::Value) -> serde_json::V
 #[cfg(test)]
 mod tests {
     use super::{
-        ATTEMPT_TIMEOUT_MS, Clock, DiscoveryClient, DiscoveryError, MAX_CONTEXT_TOKENS,
-        RecordedRequest, Scripted, fetch_models, model_config, pretty_model_name,
-        should_retry_status, should_run,
+        ATTEMPT_TIMEOUT_MS, Clock, DISCOVERY_BODY_CAP, DiscoveryClient, DiscoveryError,
+        MAX_CONTEXT_TOKENS, RecordedRequest, Scripted, fetch_models, model_config,
+        pretty_model_name, should_retry_status, should_run,
     };
     use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue};
     use std::collections::{BTreeMap, VecDeque};
     use std::sync::{Arc, Mutex};
     use std::time::Duration;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    // Real HTTP transport, not the scripted DiscoveryClient: deliver headers
+    // before a hostile error body to exercise the Reqwest status boundary.
+    async fn http_fixture(
+        status: u16,
+        oversized: bool,
+        responses: usize,
+    ) -> (String, tokio::task::JoinHandle<usize>) {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("fixture bind");
+        let address = listener.local_addr().expect("fixture address");
+        let server = tokio::spawn(async move {
+            for _ in 0..responses {
+                let (mut stream, _) = listener.accept().await.expect("fixture accept");
+                let mut request = [0u8; 4096];
+                let size = stream.read(&mut request).await.expect("fixture read");
+                assert!(request[..size].starts_with(b"GET /v1/models HTTP/1.1"));
+                let length = if oversized { DISCOVERY_BODY_CAP + 1 } else { 1 };
+                let header = format!(
+                    "HTTP/1.1 {status} Fixture\r\nContent-Length: {length}\r\nConnection: close\r\n\r\n"
+                );
+                stream
+                    .write_all(header.as_bytes())
+                    .await
+                    .expect("fixture headers");
+                if oversized {
+                    let _ = stream.write_all(&vec![b'x'; length]).await;
+                } else {
+                    // Exceed a client's short attempt timeout if it waits for
+                    // the error body. Status is available immediately.
+                    tokio::time::sleep(Duration::from_millis(240)).await;
+                    let _ = stream.write_all(b"x").await;
+                }
+            }
+            responses
+        });
+        (format!("http://{address}/v1"), server)
+    }
+
+    #[tokio::test]
+    async fn reqwest_http_error_status_precedes_oversized_or_slow_body() {
+        let local = BTreeMap::from([("kept".to_string(), serde_json::json!({"name": "Kept"}))]);
+        let client = super::ReqwestDiscoveryClient::new(Duration::from_secs(1)).unwrap();
+        for status in [401, 403, 429, 503] {
+            let attempts = if status >= 429 { 4 } else { 1 };
+            let (base, server) = http_fixture(status, true, attempts).await;
+            let outcome = tokio::time::timeout(
+                Duration::from_secs(5),
+                super::refresh(
+                    &FakeClock::new(),
+                    &client,
+                    &base,
+                    "fixture-key",
+                    &BTreeMap::new(),
+                    &local,
+                    &NO_CANCEL,
+                ),
+            )
+            .await
+            .expect("fixture response timed out");
+            assert_eq!(
+                outcome.failure,
+                Some(if status == 401 || status == 403 {
+                    super::DiscoveryFailure::Unauthorized
+                } else {
+                    super::DiscoveryFailure::Http
+                })
+            );
+            assert_eq!(outcome.models, local);
+            assert!(!outcome.replaced);
+            assert_eq!(
+                tokio::time::timeout(Duration::from_secs(2), server)
+                    .await
+                    .expect("all expected HTTP attempts")
+                    .expect("HTTP fixture task"),
+                attempts
+            );
+        }
+        for status in [401, 403] {
+            let (base, server) = http_fixture(status, false, 1).await;
+            let url = super::discovery_url(&base).unwrap();
+            let result = client
+                .get(&url, &headers(), Duration::from_millis(80))
+                .await;
+            assert_eq!(
+                result.map(|(code, _)| code),
+                Ok(status),
+                "slow error body must not consume timeout"
+            );
+            tokio::time::timeout(Duration::from_secs(2), server)
+                .await
+                .expect("slow HTTP fixture")
+                .expect("HTTP fixture task");
+        }
+        let (base, server) = http_fixture(200, true, 1).await;
+        let url = super::discovery_url(&base).unwrap();
+        assert_eq!(
+            client.get(&url, &headers(), Duration::from_secs(3)).await,
+            Err(DiscoveryError::InvalidResponse),
+            "successful catalog still enforces the body cap"
+        );
+        tokio::time::timeout(Duration::from_secs(2), server)
+            .await
+            .expect("2xx HTTP fixture")
+            .expect("HTTP fixture task");
+    }
 
     struct FakeClock {
         now: Mutex<u64>,
@@ -1520,6 +1677,7 @@ mod tests {
         .await;
         assert!(!outcome.replaced);
         assert_eq!(outcome.models, local);
+        assert_eq!(outcome.failure, Some(super::DiscoveryFailure::Unauthorized));
         assert_eq!(outcome.warnings.len(), 1);
         assert!(outcome.warnings[0].contains("HTTP 401"));
         assert!(!outcome.warnings[0].contains("sensitive-fixture-value"));
@@ -1561,5 +1719,88 @@ mod tests {
         assert!(outcome.models.contains_key("fresh"));
         assert!(!outcome.models.contains_key("solo") || outcome.models.len() == 1);
         assert!(!outcome.models.contains_key("kept"));
+    }
+
+    #[tokio::test]
+    async fn selected_catalog_failure_codes_preserve_publication_rules() {
+        use super::DiscoveryFailure;
+        let local = BTreeMap::from([("retired".to_string(), serde_json::json!({"name":"Local"}))]);
+        let cases = [
+            (
+                vec![Scripted::Status {
+                    status: 403,
+                    body: b"private-body".to_vec(),
+                }],
+                DiscoveryFailure::Unauthorized,
+            ),
+            (
+                vec![Scripted::Status {
+                    status: 404,
+                    body: vec![],
+                }],
+                DiscoveryFailure::Http,
+            ),
+            (vec![Scripted::NetworkError; 4], DiscoveryFailure::Network),
+            (
+                vec![Scripted::Status {
+                    status: 200,
+                    body: b"{}".to_vec(),
+                }],
+                DiscoveryFailure::InvalidResponse,
+            ),
+            (
+                vec![
+                    Scripted::Status {
+                        status: 200,
+                        body: list(serde_json::json!([]))
+                    };
+                    4
+                ],
+                DiscoveryFailure::EmptyResponse,
+            ),
+        ];
+        for (script, reason) in cases {
+            let result = super::refresh(
+                &FakeClock::new(),
+                &FakeClient::new(script),
+                "https://example.invalid/v1",
+                "fixture-key",
+                &BTreeMap::new(),
+                &local,
+                &NO_CANCEL,
+            )
+            .await;
+            assert_eq!(result.failure, Some(reason));
+            assert!(!result.replaced);
+            assert_eq!(result.models, local);
+        }
+        let invalid = super::refresh(
+            &FakeClock::new(),
+            &FakeClient::new(vec![]),
+            "not a URL",
+            "fixture-key",
+            &BTreeMap::new(),
+            &local,
+            &NO_CANCEL,
+        )
+        .await;
+        assert_eq!(invalid.failure, Some(DiscoveryFailure::InvalidConfig));
+        let success = super::refresh(
+            &FakeClock::new(),
+            &FakeClient::new(vec![Scripted::Status {
+                status: 200,
+                body: list(serde_json::json!([model("new")])),
+            }]),
+            "https://example.invalid/v1",
+            "fixture-key",
+            &BTreeMap::new(),
+            &local,
+            &NO_CANCEL,
+        )
+        .await;
+        assert_eq!(success.failure, None);
+        assert!(success.replaced);
+        assert!(!success.models.contains_key("retired"));
+        assert!(success.models.contains_key("new"));
     }
 }

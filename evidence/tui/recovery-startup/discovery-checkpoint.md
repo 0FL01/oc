@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-23T08:43:05+00:00
-Active: T44
-
-Сверить Git status/diff до выполнения команд.
-Task: T44 — TUI pixel parity с opencode v2.0.12
-Spec: docs/goals/2026-09-21-tui-pixel-parity.md
-Evidence target: evidence/T44/report.md
-
-Полностью воспроизвести интерфейс upstream opencode v2.0.12 в crates/oc-tui: тема/палитра, геометрия layout, рендер сообщений (markdown/reasoning/tool cards/diff), keymap и диалоги; golden-снапшоты PTY на фиксированных размерах. Recon-артефакты evidence/tui/*, коммит+push каждого среза.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 # T44 selected-model discovery diagnosis checkpoint
 
 ## Result
@@ -30,9 +16,3 @@ The owner uses a different private key and may have different config-root env ov
 ## Next
 
 On the owner's fresh release in the same zsh environment, the new static startup category determines the next necessary correction: catalog authorization/service, network, invalid response, or selected ID absent. If it remains generic Configuration load failed, inspect effective config roots and stage-specific typed errors without sharing secrets. Do not make a model turn before establishing a valid catalog. Remaining T44 safety/resources and VIS qualification are separate.
-
-
-Ready (до 5): T45, T46, T47
-Blocked: T27, T43
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.
