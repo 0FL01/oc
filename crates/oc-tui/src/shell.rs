@@ -17,6 +17,8 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, Borders, Padding, Paragraph},
 };
+use unicode_segmentation::UnicodeSegmentation;
+use unicode_width::UnicodeWidthStr;
 
 use crate::app::{TuiState, TuiStatus};
 use crate::layout;
@@ -43,6 +45,8 @@ pub const COMMANDS_HINT: (&str, &str) = (crate::commands::COMMANDS_BINDING, "com
 pub const TOAST_MAX_WIDTH: u16 = 60;
 /// Toast right margin (`ui/toast.tsx:49`: `right={2}`).
 pub const TOAST_RIGHT_MARGIN: u16 = 2;
+/// End-of-title fade in upstream `component/session-tabs.tsx` (resting marquee).
+const TAB_TITLE_FADE_WIDTH: usize = 4;
 
 /// Safe startup capability states. Never carry raw configuration/provider errors.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -244,24 +248,45 @@ fn tab_line(theme: &Theme, available: u16, title: Option<&str>) -> Line<'static>
     let title = title.unwrap_or(UNTITLED_SESSION);
     let tab_bg = theme.decrease(theme.background_panel());
     let tab_width = layout::single_tab_width(available);
+    let title_width = tab_width.saturating_sub(3) as usize;
+    let overflow = UnicodeWidthStr::width(title) > title_width;
+    let mut used = 0;
+    let mut visible = Vec::new();
+    for grapheme in title.graphemes(true) {
+        let width = UnicodeWidthStr::width(grapheme);
+        if used + width > title_width {
+            break; // never split a wide glyph across the tab boundary
+        }
+        if width > 0 {
+            visible.push(grapheme);
+            used += width;
+        }
+    }
     // Indicator cell: `numberWidth + 1` with the label right-aligned and one
     // padding cell (`component/session-tabs.tsx:1671-1682`); selected number
     // color is `tint(text.base, tabBackground, 0.25)` (`:1606-1618`).
     let number = tint(theme.text(), tab_bg, 0.25);
-    let mut spans = vec![
-        Span::styled(" 1 ", Style::default().fg(number).bg(tab_bg)),
-        Span::styled(
-            title.to_string(),
+    let mut spans = vec![Span::styled(" 1 ", Style::default().fg(number).bg(tab_bg))];
+    for (index, grapheme) in visible.iter().enumerate() {
+        // At rest the marquee's leading fade is zero. Its trailing fade is
+        // 0.2, 0.44, 0.68, 0.92 over the final four visible graphemes.
+        let end = index as isize - (visible.len() as isize - TAB_TITLE_FADE_WIDTH as isize) + 1;
+        let opacity = if overflow && title_width > TAB_TITLE_FADE_WIDTH && end > 0 {
+            0.2 + 0.72 * (end - 1) as f32 / (TAB_TITLE_FADE_WIDTH - 1) as f32
+        } else {
+            0.0
+        };
+        spans.push(Span::styled(
+            (*grapheme).to_owned(),
             Style::default()
-                .fg(theme.text())
+                .fg(tint(theme.text(), tab_bg, opacity))
                 .bg(tab_bg)
                 .add_modifier(Modifier::BOLD),
-        ),
-    ];
-    let used = 3 + title.chars().count() as u16;
-    if tab_width > used {
+        ));
+    }
+    if (tab_width as usize) > 3 + used {
         spans.push(Span::styled(
-            " ".repeat((tab_width - used) as usize),
+            " ".repeat(tab_width as usize - 3 - used),
             Style::default().bg(tab_bg),
         ));
     }
@@ -1132,6 +1157,115 @@ mod tests {
         assert_eq!(buffer[(3, 0)].fg, Theme::dark().text());
         assert!(buffer[(3, 0)].modifier.contains(Modifier::BOLD));
         assert!(!buffer[(1, 0)].modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn selected_tab_fades_only_the_last_four_visible_overflow_graphemes() {
+        let theme = Theme::dark();
+        let tab_bg = theme.decrease(theme.background_panel());
+        let mut terminal = Terminal::new(TestBackend::new(40, 2)).unwrap();
+        terminal
+            .draw(|frame| {
+                render_tabs(
+                    frame,
+                    theme,
+                    Rect::new(0, 0, 40, 1),
+                    Some("abcdefghijklmnopqrstuvwxyz123456789"),
+                );
+            })
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        for x in 3..28 {
+            assert_eq!(buffer[(x, 0)].fg, theme.text(), "cell {x}");
+            assert!(buffer[(x, 0)].modifier.contains(Modifier::BOLD));
+        }
+        for (x, symbol, color) in [
+            (28, "z", 0xc4),
+            (29, "1", 0x92),
+            (30, "2", 0x61),
+            (31, "3", 0x2f),
+        ] {
+            assert_eq!(buffer[(x, 0)].symbol(), symbol);
+            assert_eq!(buffer[(x, 0)].fg, Color::Rgb(color, color, color));
+            assert_eq!(buffer[(x, 0)].bg, tab_bg);
+            assert!(buffer[(x, 0)].modifier.contains(Modifier::BOLD));
+        }
+        assert_eq!(buffer[(1, 0)].symbol(), "1");
+        assert_eq!(buffer[(1, 0)].fg, tint(theme.text(), tab_bg, 0.25));
+        assert!(!buffer[(1, 0)].modifier.contains(Modifier::BOLD));
+        assert_eq!(buffer[(32, 0)].symbol(), " ");
+        assert_ne!(buffer[(32, 0)].bg, tab_bg);
+    }
+
+    #[test]
+    fn selected_tab_short_and_exact_titles_stay_bright_and_padding_stays_blank() {
+        let theme = Theme::dark();
+        let exact = "a".repeat(29);
+        for (width, title) in [(32, "Short"), (32, exact.as_str())] {
+            let mut terminal = Terminal::new(TestBackend::new(width, 1)).unwrap();
+            terminal
+                .draw(|frame| render_tabs(frame, theme, Rect::new(0, 0, width, 1), Some(title)))
+                .unwrap();
+            let buffer = terminal.backend().buffer();
+            for x in 3..(3 + title.len() as u16) {
+                assert_eq!(buffer[(x, 0)].fg, theme.text(), "{title} cell {x}");
+            }
+            if title == "Short" {
+                assert_eq!(buffer[(8, 0)].symbol(), " ");
+                assert_eq!(buffer[(8, 0)].bg, theme.decrease(theme.background_panel()));
+                assert!(!buffer[(8, 0)].modifier.contains(Modifier::BOLD));
+            }
+        }
+        let mut terminal = Terminal::new(TestBackend::new(7, 1)).unwrap();
+        terminal
+            .draw(|frame| {
+                render_tabs(frame, theme, Rect::new(0, 0, 7, 1), Some("overflows"));
+            })
+            .unwrap();
+        for x in 3..7 {
+            assert_eq!(terminal.backend().buffer()[(x, 0)].fg, theme.text());
+        }
+        let exact_unicode = format!("{}e\u{301}界", "a".repeat(26));
+        let mut terminal = Terminal::new(TestBackend::new(32, 1)).unwrap();
+        terminal
+            .draw(|frame| {
+                render_tabs(frame, theme, Rect::new(0, 0, 32, 1), Some(&exact_unicode));
+            })
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(29, 0)].symbol(), "e\u{301}");
+        assert_eq!(buffer[(30, 0)].symbol(), "界");
+        assert_eq!(buffer[(30, 0)].fg, theme.text());
+    }
+
+    #[test]
+    fn selected_tab_clips_whole_unicode_graphemes_at_cell_boundary() {
+        let theme = Theme::dark();
+        let mut terminal = Terminal::new(TestBackend::new(32, 1)).unwrap();
+        let title = format!("{}e\u{301}界ZQRmore", "a".repeat(23));
+        terminal
+            .draw(|frame| render_tabs(frame, theme, Rect::new(0, 0, 32, 1), Some(&title)))
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(26, 0)].symbol(), "e\u{301}");
+        assert_eq!(buffer[(26, 0)].fg, theme.text());
+        assert_eq!(buffer[(27, 0)].symbol(), "界");
+        for (x, color) in [(27, 0xc4), (29, 0x92), (30, 0x61), (31, 0x2f)] {
+            assert_eq!(buffer[(x, 0)].fg, Color::Rgb(color, color, color));
+        }
+        assert_eq!(buffer[(29, 0)].symbol(), "Z");
+        assert_eq!(buffer[(30, 0)].symbol(), "Q");
+        assert_eq!(buffer[(31, 0)].symbol(), "R");
+
+        let title = format!("{}界tail", "a".repeat(28));
+        terminal
+            .draw(|frame| render_tabs(frame, theme, Rect::new(0, 0, 32, 1), Some(&title)))
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(30, 0)].symbol(), "a");
+        assert_eq!(buffer[(31, 0)].symbol(), " ");
+        assert_eq!(buffer[(31, 0)].bg, theme.decrease(theme.background_panel()));
+        assert!(!buffer[(31, 0)].modifier.contains(Modifier::BOLD));
     }
 
     #[tokio::test]
