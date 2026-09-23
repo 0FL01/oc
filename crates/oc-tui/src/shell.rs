@@ -799,9 +799,19 @@ fn render_prompt(
         if body.height > 3
             && let Some(line) = metadata_line(state, theme, terminal_width)
         {
+            let metadata = row(body.height - 1);
+            let text_width = (line.width() as u16).min(metadata.width);
             frame.render_widget(
-                Paragraph::new(line).style(Style::default().fg(theme.text())),
-                row(body.height - 1),
+                Block::default()
+                    .style(Style::default().fg(Color::Rgb(255, 255, 255)).bg(prompt_bg)),
+                metadata,
+            );
+            frame.render_widget(
+                Paragraph::new(line).style(Style::default().bg(prompt_bg)),
+                Rect {
+                    width: text_width,
+                    ..metadata
+                },
             );
         }
     }
@@ -848,6 +858,7 @@ fn metadata_line(state: &TuiState, theme: &Theme, width: u16) -> Option<Line<'st
     }
     let muted = Style::default().fg(theme.text_muted());
     let text = Style::default().fg(theme.text());
+    let gap = Style::default().fg(Color::Rgb(255, 255, 255));
     let mut spans: Vec<Span<'static>> = Vec::new();
     if let Some(agent) = agent {
         spans.push(Span::styled(
@@ -859,26 +870,26 @@ fn metadata_line(state: &TuiState, theme: &Theme, width: u16) -> Option<Line<'st
         && state.auto_accept == oc_core::queries::AutoAcceptState::Enabled
     {
         if !spans.is_empty() {
-            spans.push(Span::raw(" "));
+            spans.push(Span::styled(" ", gap));
         }
         spans.push(Span::styled("auto", muted));
     }
     if let Some((id, _)) = &model {
         if !spans.is_empty() {
-            spans.push(Span::styled(" ", muted));
+            spans.push(Span::styled(" ", gap));
             spans.push(Span::styled("·", muted));
-            spans.push(Span::styled(" ", muted));
+            spans.push(Span::styled(" ", gap));
         }
         spans.push(Span::styled(id.clone(), text));
     }
     if let Some(provider) = provider {
-        spans.push(Span::styled(" ", muted));
+        spans.push(Span::styled(" ", gap));
         spans.push(Span::styled(provider.to_string(), muted));
     }
     if let Some(variant) = variant {
-        spans.push(Span::styled(" ", muted));
+        spans.push(Span::styled(" ", gap));
         spans.push(Span::styled("·", muted));
-        spans.push(Span::styled(" ", muted));
+        spans.push(Span::styled(" ", gap));
         spans.push(Span::styled(
             variant,
             Style::default()
@@ -1230,6 +1241,38 @@ mod tests {
             "spaces after the placeholder retain the upstream canvas foreground"
         );
         assert_eq!(state.prompt_layout(70).1, (0, 0));
+    }
+
+    #[tokio::test]
+    async fn prompt_metadata_layout_gaps_keep_canvas_foreground() {
+        let mut state = golden_state().await;
+        state.home = true;
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        let rows = screen(&state, 80, 24);
+        let (y, row) = rows
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.contains("x · a"))
+            .expect("Home metadata");
+        let start = UnicodeWidthStr::width(&row[..row.find("x · a").unwrap()]);
+        let white = Color::Rgb(255, 255, 255);
+        assert_eq!(
+            buffer[(start as u16, y as u16)].fg,
+            Theme::dark().categorical_agents()[0]
+        );
+        assert_eq!(buffer[((start + 1) as u16, y as u16)].fg, white);
+        assert_eq!(
+            buffer[((start + 2) as u16, y as u16)].fg,
+            Theme::dark().text_muted()
+        );
+        assert_eq!(buffer[((start + 3) as u16, y as u16)].fg, white);
+        assert_eq!(
+            buffer[((start + 4) as u16, y as u16)].fg,
+            Theme::dark().text()
+        );
+        assert_eq!(buffer[((start + 18) as u16, y as u16)].fg, white);
     }
 
     #[tokio::test]

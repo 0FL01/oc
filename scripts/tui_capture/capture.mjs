@@ -107,6 +107,7 @@ try {
     const spec = {binary, origin, columns: profile.columns, rows: profile.rows, isolated_root: isolated, fixture,
       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,
       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
+      agent_profile: args['agent-profile'] === 'true',
       seed_root: args['seed-root'], session: args.session};
     fs.writeFileSync(path.join(dir,'bridge-spec.json'), JSON.stringify(spec, null, 2));
     lock[origin] = {...lock[origin], executable_path: binary, executable_sha256: hash};
@@ -188,6 +189,8 @@ try {
         continue;
       }
       const initial = await waitFor(f => /Build|Untitled session|MiMo-V2.6-Flash Free/.test(f.text), 'initial prompt');
+      if(spec.agent_profile && !initial.text.includes('Reader · MiMo-V2.6-Flash Free'))
+        throw Error('Explicit paired profile is not selected in the initial prompt');
       if(args.geometry === 'true') await capture('home', initial, 'CAPTURED');
       send('\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\x1b[201~','prompt_paste');
       await sleep(200); send('\r','submit');

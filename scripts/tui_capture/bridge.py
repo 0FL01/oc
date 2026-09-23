@@ -27,6 +27,8 @@ spec = json.loads(Path(sys.argv[1]).read_text())
 root = Path(spec['isolated_root'])
 fixture = Path(spec['fixture'])
 prompt = (fixture / 'input.txt').read_text().strip()
+profile_id = 'Reader' if spec.get('agent_profile') else None
+profile_prompt = 'You are the isolated T44 paired reader.' if profile_id else None
 answer = (fixture / 'transcript.md').read_text().strip()
 if spec.get('sample') == 'short':
     answer = 'GEOMETRY-SHORT: one short answer.'
@@ -62,6 +64,9 @@ class Provider(BaseHTTPRequestHandler):
                 transcript_round += 1
         text = title if is_title else answer
         valid = valid and (is_title or prompt in serialized)
+        profile_prompt_present = profile_prompt is not None and profile_prompt in system
+        if profile_id and not is_title:
+            valid = valid and profile_prompt_present
         tool_results = [x for x in body.get('input', []) if x.get('type') == 'function_call_output']
         if spec.get('sample') == 'tools' and not is_title:
             valid = valid and 'read' in [x.get('name') for x in body.get('tools', [])]
@@ -69,8 +74,9 @@ class Provider(BaseHTTPRequestHandler):
                 calls = [x for x in tool_results if x.get('call_id') == 'call_fixture_read']
                 valid = valid and len(calls) == 1 and 'fixture-content' in str(calls[0].get('output', ''))
         record = {'kind': 'provider', 'path': self.path, 'model': body.get('model'),
-                  'stream': body.get('stream'), 'prompt_present': prompt in serialized,
-                  'operation': 'title' if is_title else 'transcript', 'valid': valid,
+                   'stream': body.get('stream'), 'prompt_present': prompt in serialized,
+                   'profile_prompt_present': profile_prompt_present,
+                   'operation': 'title' if is_title else 'transcript', 'valid': valid,
                   'request_sha256': hashlib.sha256(serialized.encode()).hexdigest(),
                    'registered_tools': [x.get('name') for x in body.get('tools', [])],
                    'tool_result_count': len(tool_results),
@@ -167,7 +173,14 @@ if spec['origin'] == 'upstream':
     config = {'model': 'fixture/fixture-model-1', 'share': 'disabled', 'update': 'disable',
               'plugins': ['-opencode.models.dev'],
               'providers': {'fixture': {'name': catalog['provider']['name'],
-              'package': '@opencode/ai/providers/openai/responses', 'settings': settings, 'models': models}}}
+               'package': '@opencode/ai/providers/openai/responses', 'settings': settings, 'models': models}}}
+    if profile_id:
+        # v2.0.12 schema/config.ts and schema/config/agent.ts: actual custom
+        # primary profile, not a painted Build label. The color is the pinned
+        # dark opencode categorical[0] hue.blue.200.
+        config['default_agent'] = profile_id
+        config['agents'] = {profile_id: {'mode': 'primary', 'system': profile_prompt,
+                                         'color': '#5c9cf5'}}
     cli_config = {'theme': {'name': 'opencode', 'mode': 'dark'}, 'animations': False,
                    'session': {'sidebar': spec.get('sidebar', 'auto'), 'tps': False},
                    'tabs': {'layout': spec.get('tabs', 'horizontal')},
@@ -178,6 +191,10 @@ else:
     config = {'model': 'fixture/fixture-model-1', 'provider': {'fixture': {
         'name': catalog['provider']['name'], 'npm': '@ai-sdk/openai', 'options': settings, 'models': models}},
         'permissions': {'read': 'allow'}}
+    if profile_id:
+        # Native inline definitions use singular `agent` and `prompt`.
+        config['default_agent'] = profile_id
+        config['agent'] = {profile_id: {'mode': 'primary', 'prompt': profile_prompt}}
     argv = [spec['binary'], 'tui']
     cli_config = {
         'session': {'sidebar': spec.get('sidebar', 'auto')},

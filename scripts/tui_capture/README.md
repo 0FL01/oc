@@ -68,6 +68,18 @@ exit `2` denotes a runner blocker. Neither is parity success.
   the actual bytes up to capture, `raw.vt` the full run. `protocol.json`,
   `inputs.json`, `commands.json`, and `capture.lock.json` preserve provenance.
 
+For a diagnostic pair with the **same configured primary profile**, add
+`--agent-profile true`. Both isolated configs then select `Reader`,
+with the same fixture-only system instruction and the pinned dark-blue
+`#5c9cf5` color (native categorical slot zero). The bridge refuses a
+transcript request unless the configured instruction is really present in
+the Responses request; the runner also checks that the selected ID appears
+in the Home prompt. This opt-in does not change the ordinary absent-agent
+fixture, and does not establish general permission-policy parity: original
+and native schemas/effective defaults differ outside this exercised read.
+Original schema: `packages/schema/src/config.ts:35-58` and
+`config/agent.ts:9-21`; native definitions: `crates/oc-adapters/src/defs.rs`.
+
 The common environment ID is SHA-256 of recursively key-sorted JSON profile;
 it excludes executable identity. Fixture hash covers hashes of the entire
 supplied fixture directory plus bridge source (including both config adapters
