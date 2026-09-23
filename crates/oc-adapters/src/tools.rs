@@ -854,7 +854,7 @@ fn tool_patch(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
     ))
 }
 
-fn patch_outcome(result: Result<Vec<FileResult>, ApplyFailure>) -> String {
+pub(crate) fn patch_outcome(result: Result<Vec<FileResult>, ApplyFailure>) -> String {
     match result {
         Ok(files) => files
             .iter()

@@ -99,6 +99,8 @@ pub enum PanelIntent {
     LoadSkills,
     /// Load the newest tool-card page.
     LoadCards,
+    /// Continue reading one card's durable result through the owning application.
+    LoadCardOutput { op: String, offset: usize },
     /// Create an empty application session and attach its Home route.
     NewSession,
     /// Select a model, restoring the owner's remembered variant preference.
@@ -171,6 +173,13 @@ enum LivePart {
     Tool { card: Box<ToolCard>, input: String },
 }
 
+/// One disposable, byte-bounded tool-output page in the Cards dialog.
+pub(crate) struct CardOutput {
+    pub op: String,
+    pub offset: usize,
+    pub page: oc_core::queries::ToolOutputPage,
+}
+
 impl LivePart {
     /// Bounded bytes retained by this part (the transient in-flight input is
     /// excluded: it is dropped as soon as the outcome arrives).
@@ -204,6 +213,7 @@ impl LivePart {
                     text: text.clone(),
                     duration_ms: *duration_ms,
                     running: false,
+                    expanded: false,
                 }),
                 meta: None,
                 tool: None,
@@ -260,6 +270,7 @@ pub struct TuiState {
     live_text: String,
     /// Reasoning text streamed for the active turn (never persisted).
     live_reasoning: String,
+    thinking_expanded: bool,
     /// Frozen live parts (text/reasoning segments and tool cards) of the
     /// active turn, in arrival order.
     live_parts: Vec<LivePart>,
@@ -309,8 +320,13 @@ pub struct TuiState {
     pub(crate) commands: Vec<String>,
     /// Newest tool cards from the runtime (bounded page).
     pub(crate) cards: Vec<HistoryRow>,
+    card_ops: Vec<String>,
     /// Cards cursor.
     pub(crate) cards_cursor: usize,
+    pub(crate) card_output: Option<CardOutput>,
+    card_scroll: usize,
+    card_seen: std::cell::Cell<usize>,
+    detail_area: std::cell::Cell<ratatui::layout::Rect>,
     cards_loaded: bool,
     cards_has_older: bool,
 }
@@ -338,6 +354,7 @@ impl TuiState {
             markdown_cache: std::cell::RefCell::new(Default::default()),
             live_text: String::new(),
             live_reasoning: String::new(),
+            thinking_expanded: false,
             live_parts: Vec::new(),
             live_part_states: Vec::new(),
             live_agent_color_index: None,
@@ -368,7 +385,12 @@ impl TuiState {
             dcp: DcpPanelState::default(),
             commands: Vec::new(),
             cards: Vec::new(),
+            card_ops: Vec::new(),
             cards_cursor: 0,
+            card_output: None,
+            card_scroll: 0,
+            card_seen: std::cell::Cell::new(0),
+            detail_area: std::cell::Cell::new(ratatui::layout::Rect::default()),
             cards_loaded: false,
             cards_has_older: false,
         }
@@ -377,6 +399,30 @@ impl TuiState {
     /// Attached session id.
     pub fn session(&self) -> &SessionId {
         &self.session
+    }
+
+    pub(crate) fn set_detail_area(&self, area: ratatui::layout::Rect) {
+        self.detail_area.set(area);
+    }
+
+    pub(crate) fn detail_area(&self) -> ratatui::layout::Rect {
+        self.detail_area.get()
+    }
+
+    pub(crate) fn card_scroll(&self) -> usize {
+        self.card_scroll
+    }
+
+    pub(crate) fn card_seen(&self) -> usize {
+        self.card_seen.get()
+    }
+
+    /// Only rows actually painted in a frame count as accessible. An End key
+    /// or repeated key events without drawing cannot skip a result window.
+    pub(crate) fn card_rows_painted(&self, start: usize, end: usize) {
+        if start <= self.card_seen.get() {
+            self.card_seen.set(self.card_seen.get().max(end));
+        }
     }
 
     /// Switch to another session after an accepted switch: clears view state
@@ -407,6 +453,11 @@ impl TuiState {
         self.skills_loaded = false;
         self.commands.clear();
         self.cards.clear();
+        self.card_ops.clear();
+        self.card_output = None;
+        self.card_scroll = 0;
+        self.card_seen.set(0);
+        self.detail_area.set(ratatui::layout::Rect::default());
         self.cards_cursor = 0;
         self.cards_loaded = false;
         self.cards_has_older = false;
@@ -415,6 +466,14 @@ impl TuiState {
 
     pub fn set_session(&mut self, session: SessionId) {
         self.close_panel();
+        self.cards.clear();
+        self.card_ops.clear();
+        self.cards_cursor = 0;
+        self.cards_loaded = false;
+        self.cards_has_older = false;
+        self.card_scroll = 0;
+        self.card_seen.set(0);
+        self.detail_area.set(ratatui::layout::Rect::default());
         self.viewport_max_scroll.set(None);
         self.parent_id = None;
         self.home = false;
@@ -507,7 +566,11 @@ impl TuiState {
                         .map(|c| {
                             item(
                                 c.id.into(),
-                                c.title.into(),
+                                if c.id == "session.toggle.thinking" && self.thinking_expanded {
+                                    "Collapse thinking".into()
+                                } else {
+                                    c.title.into()
+                                },
                                 c.group,
                                 self.command_footer(c),
                                 false,
@@ -744,6 +807,9 @@ impl TuiState {
     /// Close any open panel (chat view).
     pub fn close_panel(&mut self) {
         self.panel = TuiPanel::None;
+        self.card_output = None;
+        self.card_scroll = 0;
+        self.card_seen.set(0);
         self.mouse_down = None;
         self.select.reset();
     }
@@ -754,6 +820,39 @@ impl TuiState {
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
         use crate::dialog::DialogHit;
         if self.panel == TuiPanel::None {
+            return KeyOutcome::default();
+        }
+        if self.panel == TuiPanel::Cards && self.card_output.is_some() {
+            let (rect, _, _) = crate::dialog::card_geometry(area);
+            let inside = rect.contains((event.column, event.row).into());
+            match event.kind {
+                MouseEventKind::ScrollUp if inside => {
+                    self.handle_panel_key(KeyAction::Up);
+                }
+                MouseEventKind::ScrollDown if inside => {
+                    self.handle_panel_key(KeyAction::Down);
+                }
+                MouseEventKind::Down(MouseButton::Left) => {
+                    self.mouse_down = Some(if inside {
+                        DialogHit::Surface
+                    } else {
+                        DialogHit::Backdrop
+                    });
+                }
+                MouseEventKind::Up(MouseButton::Left) => {
+                    let hit = if inside {
+                        DialogHit::Surface
+                    } else {
+                        DialogHit::Backdrop
+                    };
+                    if self.mouse_down.take() == Some(DialogHit::Backdrop)
+                        && hit == DialogHit::Backdrop
+                    {
+                        self.close_panel();
+                    }
+                }
+                _ => {}
+            }
             return KeyOutcome::default();
         }
         let options = self.modal_options();
@@ -876,6 +975,7 @@ impl TuiState {
                     text: self.live_reasoning.clone(),
                     duration_ms: None,
                     running: true,
+                    expanded: false,
                 }),
                 meta: None,
                 tool: None,
@@ -886,6 +986,11 @@ impl TuiState {
                 seq:i64::MAX,role:"assistant".into(),text:"[Live preview truncated; durable parts remain available through history and /cards]".into(),
                 agent:None,chips:Vec::new(),reasoning:None,meta:None,tool:None,
             });
+        }
+        for row in &mut rows {
+            if let Some(reasoning) = &mut row.reasoning {
+                reasoning.expanded = self.thinking_expanded;
+            }
         }
         rows
     }
@@ -1013,6 +1118,10 @@ impl TuiState {
 
     /// Apply a newest-first tool-card page; rendered as bounded rows.
     pub fn apply_cards(&mut self, cards: Vec<ToolCard>, has_older: bool) {
+        self.card_output = None;
+        self.card_scroll = 0;
+        self.card_seen.set(0);
+        self.card_ops = cards.iter().map(|card| card.op.clone()).collect();
         self.cards = cards.iter().map(card_row).collect();
         self.cards_cursor = 0;
         self.cards_loaded = true;
@@ -1021,6 +1130,10 @@ impl TuiState {
 
     /// Prepend an older tool-card page (paging up in the Cards panel).
     pub fn prepend_cards(&mut self, cards: Vec<ToolCard>, has_older: bool) {
+        let mut ops: Vec<String> = cards.iter().map(|card| card.op.clone()).collect();
+        ops.append(&mut self.card_ops);
+        ops.truncate(CARDS_MAX);
+        self.card_ops = ops;
         let mut rows: Vec<HistoryRow> = cards.iter().map(card_row).collect();
         rows.append(&mut self.cards);
         rows.truncate(CARDS_MAX);
@@ -1031,6 +1144,22 @@ impl TuiState {
     /// True when older tool cards exist before the loaded page.
     pub fn cards_need_older(&self) -> bool {
         self.cards_has_older
+    }
+
+    /// Replace a single bounded output page. The text remains application-owned;
+    /// this preview disappears when the panel/session is closed.
+    pub fn apply_card_output(
+        &mut self,
+        op: String,
+        offset: usize,
+        page: oc_core::queries::ToolOutputPage,
+    ) {
+        if self.panel == TuiPanel::Cards && self.card_ops.contains(&op) {
+            self.card_output = Some(CardOutput { op, offset, page });
+            self.card_scroll = 0;
+            self.card_seen.set(0);
+            self.select.reset();
+        }
     }
 
     /// Handle a bracketed paste as one bounded event (never per-char).
@@ -1645,6 +1774,11 @@ impl TuiState {
                 self.panel = TuiPanel::None;
                 outcome.consumed_input = true;
             }
+            CommandAction::ToggleThinking => {
+                self.thinking_expanded = !self.thinking_expanded;
+                self.panel = TuiPanel::None;
+                outcome.consumed_input = true;
+            }
             CommandAction::Quit => {
                 self.status = TuiStatus::Quit;
                 outcome.consumed_input = true;
@@ -1673,6 +1807,9 @@ impl TuiState {
             }
             CommandAction::OpenCards => {
                 self.panel = TuiPanel::Cards;
+                self.card_output = None;
+                self.card_scroll = 0;
+                self.card_seen.set(0);
                 open_snapshot(&mut outcome, self.cards_loaded, PanelIntent::LoadCards);
             }
             CommandAction::SwitchLocation { path } => {
@@ -1699,6 +1836,33 @@ impl TuiState {
     /// Panel navigation: Up/Down move the panel cursor, Enter chooses,
     /// Esc closes; text and paste belong to the focused modal search.
     pub fn handle_panel_key(&mut self, action: KeyAction) -> KeyOutcome {
+        if self.panel == TuiPanel::Cards && self.card_output.is_some() {
+            let (start, height, count) = crate::views::card_window(self);
+            self.card_scroll = start;
+            match action {
+                KeyAction::Up => self.card_scroll = start.saturating_sub(1),
+                KeyAction::Down => self.card_scroll = (start + 1).min(count.saturating_sub(height)),
+                KeyAction::PageUp => self.card_scroll = start.saturating_sub(height),
+                KeyAction::PageDown => {
+                    self.card_scroll = (start + height).min(count.saturating_sub(height))
+                }
+                KeyAction::Home => self.card_scroll = 0,
+                KeyAction::End => self.card_scroll = count.saturating_sub(height),
+                KeyAction::Enter
+                    if height > 0 && start + height >= count && self.card_seen.get() >= count =>
+                {
+                    return self.panel_enter();
+                }
+                KeyAction::Cancel => {
+                    self.card_output = None;
+                    self.card_scroll = 0;
+                    self.select.reset();
+                }
+                KeyAction::Quit | KeyAction::Interrupt => self.status = TuiStatus::Quit,
+                _ => {}
+            }
+            return KeyOutcome::default();
+        }
         match action {
             KeyAction::Char(c) => {
                 if self.select.query.len() + c.len_utf8() <= 512 {
@@ -1777,7 +1941,12 @@ impl TuiState {
                 KeyOutcome::default()
             }
             KeyAction::Cancel => {
-                self.close_panel();
+                if self.panel == TuiPanel::Cards && self.card_output.is_some() {
+                    self.card_output = None;
+                    self.select.reset();
+                } else {
+                    self.close_panel();
+                }
                 KeyOutcome::default()
             }
             KeyAction::Left | KeyAction::Right => KeyOutcome::default(),
@@ -1889,7 +2058,21 @@ impl TuiState {
                 self.panel = TuiPanel::None;
             }
             TuiPanel::Cards => {
-                self.panel = TuiPanel::None;
+                if let Some(detail) = &self.card_output {
+                    if let Some(offset) = detail.page.next_offset {
+                        outcome.intent = Some(PanelIntent::LoadCardOutput {
+                            op: detail.op.clone(),
+                            offset: offset as usize,
+                        });
+                    } else {
+                        self.card_output = None;
+                    }
+                } else if let Some(op) = self.card_ops.get(self.cards_cursor) {
+                    outcome.intent = Some(PanelIntent::LoadCardOutput {
+                        op: op.clone(),
+                        offset: 0,
+                    });
+                }
             }
             TuiPanel::Dcp => {
                 outcome.intent = Some(PanelIntent::Compress {
@@ -2257,6 +2440,7 @@ impl TuiState {
             text: std::mem::take(&mut self.live_reasoning),
             duration_ms,
             running: false,
+            expanded: false,
         })
     }
 
@@ -2618,6 +2802,159 @@ mod tests {
         std::mem::forget(guard);
         app.create_session(sid(name)).await.expect("create");
         TuiState::new(app, sid(name))
+    }
+
+    #[tokio::test]
+    async fn v06b_reasoning_toggle_projects_public_history_without_modifying_owner() {
+        use oc_core::queries::{HistoryTurn, TranscriptPart};
+        let mut state = fresh_state("s-v06b-reasoning").await;
+        let mut row = msg(2, Role::Assistant, "answer");
+        row.turn = Some(HistoryTurn {
+            id: "turn-1".into(),
+            status: "failed".into(),
+            agent: Some("build".into()),
+            model_label: "fixture".into(),
+            parts: vec![
+                TranscriptPart::Reasoning {
+                    text: "**Plan**\n\nPublic detail [REDACTED]".into(),
+                    duration_ms: Some(1500),
+                },
+                TranscriptPart::Text("answer".into()),
+            ],
+            ..Default::default()
+        });
+        let owner_page = page(vec![row], 1, false, false);
+        state.attach_page(&owner_page);
+        let collapsed = state
+            .transcript_lines(100, 120)
+            .iter()
+            .map(|l| l.spans().iter().map(|s| s.content()).collect::<String>())
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(
+            collapsed.contains("+ Thought: Plan · 1.5s") && !collapsed.contains("Public detail")
+        );
+        state.run_command(crate::commands::CommandAction::ToggleThinking);
+        let expanded = state
+            .transcript_lines(100, 120)
+            .iter()
+            .map(|l| l.spans().iter().map(|s| s.content()).collect::<String>())
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(
+            expanded.contains("- Thought: 1.5s")
+                && expanded.contains("Public detail")
+                && !expanded.contains("[REDACTED]"),
+            "{expanded}"
+        );
+        state.attach_page(&owner_page);
+        assert_eq!(owner_page.rows[0].turn.as_ref().unwrap().parts.len(), 2);
+        assert!(state.transcript_lines(100, 120).iter().any(|line| {
+            line.spans()
+                .iter()
+                .any(|s| s.content().contains("Public detail"))
+        }));
+        state.run_command(crate::commands::CommandAction::ToggleThinking);
+        assert!(
+            !state.transcript_rows()[0]
+                .reasoning
+                .as_ref()
+                .unwrap()
+                .expanded
+        );
+    }
+
+    #[tokio::test]
+    async fn v06b_session_switch_discards_tool_cards_before_next_owner_load() {
+        let mut state = fresh_state("owner-a").await;
+        state.app.create_session(sid("owner-b")).await.unwrap();
+        let card = crate::history::ToolCard {
+            op: "a-only".into(),
+            name: "read".into(),
+            state: "completed".into(),
+            input_preview: String::new(),
+            output_preview: "A-only preview".into(),
+            output_bytes: 14,
+            output_truncated: false,
+            files: Vec::new(),
+            files_truncated: false,
+            diff: None,
+            render: crate::tools::ToolRender::Inline(crate::tools::InlineRender::Read {
+                path: "a-only".into(),
+            }),
+        };
+        state.apply_cards(vec![card], true);
+        state.set_session(sid("owner-b"));
+        let action = state.run_command(crate::commands::CommandAction::OpenCards);
+        assert_eq!(action.intent, Some(PanelIntent::LoadCards));
+        assert!(state.cards.is_empty());
+        assert!(state.card_ops.is_empty());
+        assert!(state.card_output.is_none());
+        assert!(!state.cards_has_older);
+        assert_eq!(state.handle_panel_key(KeyAction::Enter).intent, None);
+    }
+
+    #[tokio::test]
+    async fn v06b_detail_scrolls_every_unicode_row_before_next_owner_page() {
+        use oc_core::queries::ToolOutputPage;
+        for (width, height) in [(22, 10), (14, 9)] {
+            let mut state = fresh_state(&format!("v06b-detail-{width}")).await;
+            state.panel = TuiPanel::Cards;
+            state.card_ops.push("real-op".into());
+            let text = format!("{}END", "界🙂 ↵\n\\n\u{1b}[31m ".repeat(9));
+            let next = text.len() as i64;
+            state.apply_card_output(
+                "real-op".into(),
+                0,
+                ToolOutputPage {
+                    text,
+                    total_bytes: next + 12,
+                    next_offset: Some(next),
+                },
+            );
+            let first = crate::views::render_test(&state, width, height).join("\n");
+            assert!(first.contains("\\n") && first.contains('↵'), "{first}");
+            assert!(!first.contains('\u{1b}'), "no raw terminal escapes");
+            assert_eq!(state.handle_panel_key(KeyAction::Enter).intent, None);
+            state.handle_panel_key(KeyAction::End);
+            assert_eq!(
+                state.handle_panel_key(KeyAction::Enter).intent,
+                None,
+                "jumping to the end without viewing preceding rows cannot skip the page"
+            );
+            state.handle_panel_key(KeyAction::Home);
+            for _ in 0..300 {
+                let frame = crate::views::render_test(&state, width, height).join("\n");
+                let lines = crate::views::panel_lines(&state);
+                let last = &lines[lines.len() - 2];
+                if last.is_ascii() {
+                    assert!(frame.contains(last), "last visible detail row: {last:?}");
+                }
+                let (_, _, count) = crate::views::card_window(&state);
+                if state.card_seen() == count {
+                    break;
+                }
+                assert_eq!(state.handle_panel_key(KeyAction::Enter).intent, None);
+                state.handle_panel_key(KeyAction::Down);
+            }
+            assert_eq!(state.card_seen(), crate::views::card_window(&state).2);
+            let (_, body_width, _) = crate::dialog::card_geometry(state.detail_area());
+            assert!(
+                crate::views::card_body_rows(
+                    &state.card_output.as_ref().unwrap().page.text,
+                    body_width
+                )
+                .join("")
+                .contains("END")
+            );
+            assert_eq!(
+                state.handle_panel_key(KeyAction::Enter).intent,
+                Some(PanelIntent::LoadCardOutput {
+                    op: "real-op".into(),
+                    offset: next as usize
+                })
+            );
+        }
     }
 
     #[tokio::test]

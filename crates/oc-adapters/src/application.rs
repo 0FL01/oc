@@ -905,6 +905,29 @@ fn query(
             })();
             let _ = ack.send(result);
         }
+        InboxMsg::ToolOutput {
+            session,
+            op,
+            offset,
+            limit,
+            ack,
+        } => {
+            let result = runtime
+                .open_session(&session.0)
+                .map_err(app_error)
+                .and_then(|_| {
+                    db.read_session_tool_output(&session.0, &op, offset, limit)
+                        .map(
+                            |(text, total_bytes, next_offset)| oc_core::queries::ToolOutputPage {
+                                text,
+                                total_bytes,
+                                next_offset,
+                            },
+                        )
+                        .map_err(app_error)
+                });
+            let _ = ack.send(result);
+        }
         InboxMsg::Catalog { ack } => {
             let _ = ack.send(Ok(effective.snapshot(composition)));
         }

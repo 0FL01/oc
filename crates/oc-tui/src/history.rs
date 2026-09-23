@@ -264,6 +264,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
                     text: text.clone(),
                     duration_ms: *duration_ms,
                     running: turn.status == "started",
+                    expanded: false,
                 })
             }
             TranscriptPart::Tool(op) => {

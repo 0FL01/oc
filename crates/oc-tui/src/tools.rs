@@ -99,6 +99,8 @@ pub struct PatchRender {
     pub files: Vec<DiffFileRender>,
     /// True when the recorded outcome is an error.
     pub failed: bool,
+    /// The durable result confirms only these earlier operations applied.
+    pub partial: bool,
 }
 
 /// `subagent` card fields parsed from the recorded request and result.
@@ -376,9 +378,47 @@ fn patch_render(
         .and_then(|value| value.get("patchText"))
         .and_then(|value| value.as_str())
         .unwrap_or_default();
+    let failed = is_error_state(state) || output.is_some_and(|out| out.starts_with("error: "));
+    let partial = failed && output.is_some_and(|out| out.starts_with("error: partial op "));
+    let mut files = oc_adapters::patch::diff_render(patch);
+    if failed {
+        // A request is not evidence that it applied. The runner records each
+        // committed prefix operation as `done <FileResult>` after the error.
+        // Unknown/denied outcomes contain no confirmed diff.
+        let mut index = 0;
+        files.retain(|file| {
+            let current = index;
+            index += 1;
+            partial
+                && output.is_some_and(|out| {
+                    let failed_op = out
+                        .split_once('(')
+                        .and_then(|(prefix, _)| prefix.strip_prefix("error: partial op "))
+                        .and_then(|number| number.trim().parse::<usize>().ok());
+                    if failed_op.is_none_or(|failed_op| current >= failed_op) {
+                        return false;
+                    }
+                    let verb = match file.change {
+                        "Add" => "add",
+                        "Delete" => "delete",
+                        _ => "update",
+                    };
+                    let prefix = format!("done {verb} {}", file.path);
+                    out.lines().skip(1).any(|line| {
+                        line.strip_prefix(&prefix).is_some_and(|rest| {
+                            rest.starts_with(" (hash_before=")
+                                || file.move_to.as_ref().is_some_and(|target| {
+                                    rest.starts_with(&format!(" -> {target} (hash_before="))
+                                })
+                        })
+                    })
+                })
+        });
+    }
     PatchRender {
-        files: oc_adapters::patch::diff_render(patch),
-        failed: is_error_state(state) || output.is_some_and(|out| out.starts_with("error: ")),
+        files,
+        failed,
+        partial,
     }
 }
 
@@ -444,7 +484,10 @@ pub fn is_running(state: &str) -> bool {
 
 /// True for every non-success terminal state (error presentation).
 pub fn is_error_state(state: &str) -> bool {
-    matches!(state, "failed" | "denied" | "cancelled" | "unknown")
+    matches!(
+        state,
+        "failed" | "denied" | "cancelled" | "unknown" | "no_gain"
+    )
 }
 
 /// Render one tool card as transcript rows. `width == 0` is the unbounded
@@ -540,7 +583,9 @@ fn shell_block(shell: &ShellRender, card: &ToolCard, theme: &Theme, width: u16) 
     // Status line: exact upstream shell strings where our recorded output
     // maps to them (`index.tsx:2256-2259`).
     if !running {
-        let status = if card.state == "cancelled" {
+        let status = if card.state == "unknown" {
+            Some("Outcome unknown (operation was interrupted)".to_string())
+        } else if card.state == "cancelled" {
             Some(COMMAND_CANCELLED.to_string())
         } else if shell.timed_out {
             Some(COMMAND_TIMED_OUT.to_string())
@@ -600,110 +645,115 @@ fn patch_block(patch: &PatchRender, card: &ToolCard, theme: &Theme, width: u16) 
         .bg(frame.bg);
     let mut out = vec![frame.row(&[])];
     if patch.failed {
-        out.push(frame.row(&[Span::styled(PATCH_FAILED, error)]));
-    } else {
-        if is_running(&card.state) {
-            // Upstream running label (`index.tsx:3496`, §6).
-            out.push(
-                frame.row(&[Span::styled(
-                    "Patching",
-                    ratatui::style::Style::default()
-                        .fg(theme.text())
-                        .bg(frame.bg),
-                )]),
-            );
+        let label = if card.state == "unknown" {
+            "# Patch outcome unknown"
+        } else {
+            PATCH_FAILED
+        };
+        out.push(frame.row(&[Span::styled(label, error)]));
+        if patch.partial && !patch.files.is_empty() {
+            out.push(frame.row(&[Span::styled("Applied before failure (recorded):", muted)]));
         }
-        for file in &patch.files {
-            let (label, color) = match file.change {
-                "Add" => ("# Created", theme.diff_added()),
-                "Delete" => ("# Deleted", theme.diff_removed()),
-                _ => ("← Patched", theme.diff_context()),
-            };
-            let mut header = vec![
-                Span::styled(
-                    label,
-                    ratatui::style::Style::default().fg(color).bg(frame.bg),
-                ),
-                Span::styled(
-                    format!(" {}", file.path),
-                    ratatui::style::Style::default()
-                        .fg(theme.text())
-                        .bg(frame.bg),
-                ),
-            ];
-            if file.additions > 0 {
-                header.push(Span::styled(
-                    format!(" +{}", file.additions),
-                    ratatui::style::Style::default()
-                        .fg(theme.diff_added())
-                        .bg(frame.bg),
-                ));
+    }
+    if !patch.failed && is_running(&card.state) {
+        // Upstream running label (`index.tsx:3496`, §6).
+        out.push(
+            frame.row(&[Span::styled(
+                "Patching",
+                ratatui::style::Style::default()
+                    .fg(theme.text())
+                    .bg(frame.bg),
+            )]),
+        );
+    }
+    for file in &patch.files {
+        let (label, color) = match file.change {
+            "Add" => ("# Created", theme.diff_added()),
+            "Delete" => ("# Deleted", theme.diff_removed()),
+            _ => ("← Patched", theme.diff_context()),
+        };
+        let mut header = vec![
+            Span::styled(
+                label,
+                ratatui::style::Style::default().fg(color).bg(frame.bg),
+            ),
+            Span::styled(
+                format!(" {}", file.path),
+                ratatui::style::Style::default()
+                    .fg(theme.text())
+                    .bg(frame.bg),
+            ),
+        ];
+        if file.additions > 0 {
+            header.push(Span::styled(
+                format!(" +{}", file.additions),
+                ratatui::style::Style::default()
+                    .fg(theme.diff_added())
+                    .bg(frame.bg),
+            ));
+        }
+        if file.removals > 0 {
+            header.push(Span::styled(
+                format!(" -{}", file.removals),
+                ratatui::style::Style::default()
+                    .fg(theme.diff_removed())
+                    .bg(frame.bg),
+            ));
+        }
+        out.push(frame.row(&header));
+        for hunk in &file.hunks {
+            if let Some(anchor) = &hunk.anchor {
+                out.push(
+                    frame.row(&[Span::styled(
+                        format!("@@ {anchor}"),
+                        ratatui::style::Style::default()
+                            .fg(theme.diff_hunk_header())
+                            .bg(frame.bg),
+                    )]),
+                );
+            } else if !file.hunks.is_empty() && file.change == "Update" {
+                out.push(
+                    frame.row(&[Span::styled(
+                        "@@",
+                        ratatui::style::Style::default()
+                            .fg(theme.diff_hunk_header())
+                            .bg(frame.bg),
+                    )]),
+                );
             }
-            if file.removals > 0 {
-                header.push(Span::styled(
-                    format!(" -{}", file.removals),
-                    ratatui::style::Style::default()
-                        .fg(theme.diff_removed())
-                        .bg(frame.bg),
-                ));
-            }
-            out.push(frame.row(&header));
-            for hunk in &file.hunks {
-                if let Some(anchor) = &hunk.anchor {
-                    out.push(
-                        frame.row(&[Span::styled(
-                            format!("@@ {anchor}"),
-                            ratatui::style::Style::default()
-                                .fg(theme.diff_hunk_header())
-                                .bg(frame.bg),
-                        )]),
-                    );
-                } else if !file.hunks.is_empty() && file.change == "Update" {
-                    out.push(
-                        frame.row(&[Span::styled(
-                            "@@",
-                            ratatui::style::Style::default()
-                                .fg(theme.diff_hunk_header())
-                                .bg(frame.bg),
-                        )]),
-                    );
-                }
-                let gutter = hunk
-                    .lines
-                    .iter()
-                    .filter_map(|line| line.line_number)
-                    .max()
-                    .map(|max| max.to_string().len());
-                for line in &hunk.lines {
-                    let (marker, fg, bg) = match line.kind {
-                        DiffLineKind::Added => {
-                            ("+", theme.diff_added(), theme.diff_added_background())
-                        }
-                        DiffLineKind::Removed => {
-                            ("-", theme.diff_removed(), theme.diff_removed_background())
-                        }
-                        DiffLineKind::Context => {
-                            (" ", theme.diff_context(), theme.diff_context_background())
-                        }
-                    };
-                    let mut spans = Vec::new();
-                    if let (Some(number), Some(gutter)) = (line.line_number, gutter) {
-                        spans.push(Span::styled(
-                            format!("{number:>gutter$} "),
-                            ratatui::style::Style::default()
-                                .fg(theme.diff_line_number())
-                                .bg(bg),
-                        ));
+            let gutter = hunk
+                .lines
+                .iter()
+                .filter_map(|line| line.line_number)
+                .max()
+                .map(|max| max.to_string().len());
+            for line in &hunk.lines {
+                let (marker, fg, bg) = match line.kind {
+                    DiffLineKind::Added => ("+", theme.diff_added(), theme.diff_added_background()),
+                    DiffLineKind::Removed => {
+                        ("-", theme.diff_removed(), theme.diff_removed_background())
                     }
+                    DiffLineKind::Context => {
+                        (" ", theme.diff_context(), theme.diff_context_background())
+                    }
+                };
+                let mut spans = Vec::new();
+                if let (Some(number), Some(gutter)) = (line.line_number, gutter) {
                     spans.push(Span::styled(
-                        format!("{marker}{}", line.text),
-                        ratatui::style::Style::default().fg(fg).bg(bg),
+                        format!("{number:>gutter$} "),
+                        ratatui::style::Style::default()
+                            .fg(theme.diff_line_number())
+                            .bg(bg),
                     ));
-                    out.push(frame.row(&spans));
                 }
-                if hunk.truncated {
-                    out.push(frame.row(&[Span::styled("[truncated]", muted)]));
-                }
+                spans.push(Span::styled(
+                    format!("{marker}{}", line.text),
+                    ratatui::style::Style::default().fg(fg).bg(bg),
+                ));
+                out.push(frame.row(&spans));
+            }
+            if hunk.truncated {
+                out.push(frame.row(&[Span::styled("[truncated]", muted)]));
             }
         }
     }
@@ -714,12 +764,18 @@ fn patch_block(patch: &PatchRender, card: &ToolCard, theme: &Theme, width: u16) 
             out.push(frame.row(&[Span::styled(line.to_string(), muted)]));
         }
     }
-    if is_error_state(&card.state) {
+    if patch.failed {
         for line in card.output_preview.lines() {
             if !line.is_empty() {
                 out.push(frame.row(&[Span::styled(line.to_string(), error)]));
             }
         }
+    }
+    if card.output_truncated {
+        out.push(frame.row(&[Span::styled(
+            "[output preview truncated; full result retained]",
+            muted,
+        )]));
     }
     out.push(frame.row(&[]));
     out
@@ -879,6 +935,24 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
                 ),
             ]));
         }
+    }
+    if card.state == "unknown" {
+        out.push(Line::new(vec![
+            pad.clone(),
+            Span::styled(
+                "[outcome unknown]",
+                ratatui::style::Style::default().fg(theme.error()),
+            ),
+        ]));
+    }
+    if card.output_truncated {
+        out.push(Line::new(vec![
+            pad,
+            Span::styled(
+                "[output preview truncated; full result retained]",
+                ratatui::style::Style::default().fg(theme.text_muted()),
+            ),
+        ]));
     }
     out
 }
@@ -1183,6 +1257,51 @@ mod tests {
             ]
         );
         assert_eq!(buffer[(3, 2)].fg, theme.error());
+    }
+
+    #[test]
+    fn v06b_partial_patch_shows_only_confirmed_hunks_and_unknown_is_not_success() {
+        let patch = "*** Begin Patch\n*** Add File: done.txt\n+real\n*** Update File: absent.txt\n@@\n-old\n+new\n*** End Patch";
+        let failed = make_card(
+            "apply_patch",
+            "failed",
+            serde_json::json!({"patchText":patch}),
+            Some(
+                "error: partial op 1 (absent.txt): file not found\ndone add done.txt (hash_before=-, hash_after=abc)",
+            ),
+        );
+        let (rows, _) = render(&failed, 78, 12);
+        let text = rows.join("\n");
+        assert!(text.contains("# Patch failed"), "{text}");
+        assert!(
+            text.contains("done.txt") && text.contains("+real"),
+            "{text}"
+        );
+        assert!(
+            !text.contains("← Patched absent.txt") && !text.contains("+new"),
+            "{text}"
+        );
+        assert!(text.contains("partial op 1"), "{text}");
+        let unknown = make_card(
+            "apply_patch",
+            "unknown",
+            serde_json::json!({"patchText":patch}),
+            None,
+        );
+        let (rows, _) = render(&unknown, 78, 10);
+        let text = rows.join("\n");
+        assert!(
+            text.contains("outcome unknown") && !text.contains("# Created"),
+            "{text}"
+        );
+        let shell = make_card(
+            "bash",
+            "unknown",
+            serde_json::json!({"argv":["touch","x"]}),
+            None,
+        );
+        let (rows, _) = render(&shell, 78, 6);
+        assert!(rows.join("\n").contains("Outcome unknown"));
     }
 
     /// Inline tools (`message-parts.tsx:176-253`, `index.tsx:2688-2759`):

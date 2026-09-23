@@ -172,10 +172,11 @@ try {
       if(args.geometry === 'true') await capture('home', initial, 'CAPTURED');
       send('\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\x1b[201~','prompt_paste');
       await sleep(200); send('\r','submit');
-      const marker = args.sample === 'short' ? 'GEOMETRY-SHORT' : args.sample === 'rows' ? 'ROW-089' : 'Через Code Mode';
-      const done = await waitFor(f => f.text.includes(marker) &&
+       const marker = ['short','reasoning','tools'].includes(args.sample) ? 'GEOMETRY-SHORT' : args.sample === 'rows' ? 'ROW-089' : 'Через Code Mode';
+       const done = await waitFor(f => f.text.includes(marker) &&
         /MiMo-V2.6-Flash Free · \d/.test(f.text) &&
-        logs.some(e => e.kind==='provider_completed' && e.operation==='transcript'), 'completed transcript');
+         logs.some(e => e.kind==='provider_completed' && e.operation==='transcript'), 'completed transcript');
+       if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');
       await capture('session-wide-completed',done,'CAPTURED');
       if(args.tabs==='vertical') {
         const sidebarAbsent = !done.text.includes('Context') && done.cells[10].at(-1).bg==='#0a0a0a';

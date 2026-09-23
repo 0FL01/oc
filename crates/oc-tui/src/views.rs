@@ -14,10 +14,82 @@
 use ratatui::{Frame, Terminal, backend::TestBackend};
 
 use crate::app::{TuiPanel, TuiState};
+use unicode_segmentation::UnicodeSegmentation as _;
+use unicode_width::UnicodeWidthStr as _;
 
 /// Render the whole state into one Ratatui frame.
 pub fn render_frame(frame: &mut Frame<'_>, state: &TuiState) {
+    state.set_detail_area(frame.area());
     crate::shell::render(frame, state);
+}
+
+/// Reversible, terminal-inert text view: a literal backslash is escaped,
+/// so `\\n` (stored newline) can never be mistaken for a stored `\n`.
+fn escaped_result(text: &str) -> String {
+    let mut out = String::new();
+    for ch in text.chars() {
+        match ch {
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if c.is_control()
+                || c.is_whitespace() && c != ' '
+                || matches!(c, '\u{200b}'..='\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2060}'..='\u{206f}' | '\u{feff}') =>
+            {
+                out.push_str(&format!("\\u{{{:X}}}", c as u32));
+            }
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+pub(crate) fn card_body_rows(text: &str, width: usize) -> Vec<String> {
+    if width == 0 {
+        return Vec::new();
+    }
+    let mut rows = Vec::new();
+    let mut row = String::new();
+    let mut used = 0;
+    for grapheme in escaped_result(text).graphemes(true) {
+        let safe = if grapheme.width() == 0 || grapheme.width() > width {
+            grapheme
+                .chars()
+                .map(|ch| format!("\\u{{{:X}}}", ch as u32))
+                .collect::<String>()
+        } else {
+            grapheme.to_string()
+        };
+        // Escaped fallback may itself exceed an extremely narrow viewport;
+        // splitting ASCII is reversible when the rows are concatenated.
+        for part in safe.graphemes(true) {
+            let cells = part.width();
+            if used + cells > width && !row.is_empty() {
+                rows.push(std::mem::take(&mut row));
+                used = 0;
+            }
+            row.push_str(part);
+            used += cells;
+        }
+    }
+    if !row.is_empty() {
+        rows.push(row);
+    }
+    rows
+}
+
+pub(crate) fn card_window(state: &TuiState) -> (usize, usize, usize) {
+    let Some(detail) = &state.card_output else {
+        return (0, 0, 0);
+    };
+    let (_, width, height) = crate::dialog::card_geometry(state.detail_area());
+    let count = card_body_rows(&detail.page.text, width).len();
+    (
+        state.card_scroll().min(count.saturating_sub(height)),
+        height,
+        count,
+    )
 }
 
 /// Render state to a test backend; returns text lines for assertions.
@@ -37,7 +109,8 @@ pub fn render_test(state: &TuiState, width: u16, height: u16) -> Vec<String> {
         .collect()
 }
 
-/// Bounded panel lines (8 rows) for the active panel (empty when no panel).
+/// Bounded panel lines for the active panel (empty when no panel). Card detail
+/// rows use the actual dialog viewport rather than the list panel's 8 rows.
 pub fn panel_lines(state: &TuiState) -> Vec<String> {
     const ROWS: usize = 8;
     match state.panel() {
@@ -100,6 +173,44 @@ pub fn panel_lines(state: &TuiState) -> Vec<String> {
             out
         }
         TuiPanel::Cards => {
+            if let Some(detail) = &state.card_output {
+                let (_, width, height) = crate::dialog::card_geometry(state.detail_area());
+                let rows = card_body_rows(&detail.page.text, width);
+                let start = state.card_scroll().min(rows.len().saturating_sub(height));
+                let mut out = vec![format!(
+                    "operation {} · bytes {}–{} of {}",
+                    detail.op.escape_debug(),
+                    detail.offset,
+                    detail.offset + detail.page.text.len(),
+                    detail.page.total_bytes
+                )];
+                out.extend(rows.iter().skip(start).take(height).cloned());
+                out.push(
+                    if height == 0 {
+                        "resize to view result"
+                    } else if start + height < rows.len()
+                        || state.card_seen() < rows.len() && start > 0
+                    {
+                        if width < 25 {
+                            "↑↓ scroll"
+                        } else {
+                            "up/down scroll · esc list"
+                        }
+                    } else if detail.page.next_offset.is_some() {
+                        if width < 25 {
+                            "enter next"
+                        } else {
+                            "enter next page · esc list"
+                        }
+                    } else if width < 25 {
+                        "end · esc"
+                    } else {
+                        "end of result · esc list"
+                    }
+                    .to_string(),
+                );
+                return out;
+            }
             let mut out = vec!["cards | newest first, up pages older".to_string()];
             for (i, row) in state.cards.iter().take(ROWS).enumerate() {
                 let mark = if i == state.cards_cursor { ">" } else { " " };
@@ -139,7 +250,7 @@ fn help_topic(topic: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{panel_lines, render_test};
+    use super::{card_body_rows, escaped_result, panel_lines, render_test};
     use crate::app::{TuiPanel, TuiState, VIEWPORT_LINES};
     use crate::dcp_panel::DcpOutcome;
     use crate::events::KeyAction;
@@ -170,6 +281,32 @@ mod tests {
             total,
             has_older: false,
             has_newer: false,
+        }
+    }
+
+    #[test]
+    fn v06b_escaping_is_reversible_and_cell_wrapping_preserves_all_codepoints() {
+        let original = "↵\n\\n\r\t\0\u{1b}[31m界🙂\u{200b} e\u{301}";
+        let escaped = escaped_result(original);
+        assert!(escaped.contains("↵\\n\\\\n\\r\\t\\u{0}\\u{1B}[31m"));
+        assert!(escaped.contains("\\u{200B}"));
+        assert!(!escaped.chars().any(char::is_control));
+        for width in [1, 4, 7, 12] {
+            let rows = card_body_rows(original, width);
+            assert!(!rows.is_empty());
+            assert!(
+                rows.iter()
+                    .all(|r| unicode_width::UnicodeWidthStr::width(r.as_str()) <= width),
+                "{rows:?}"
+            );
+            if width >= 4 {
+                assert_eq!(rows.join(""), escaped);
+            } else {
+                assert!(
+                    rows.join("").contains("\\u{754C}"),
+                    "too-wide glyph must be escaped, not dropped"
+                );
+            }
         }
     }
 

@@ -29,7 +29,14 @@ async fn binary_restart_projects_real_metadata_and_parts() {
         first, second,
         "fixture mutation must change the visible frame"
     );
-    scenario("Partial", [true, false], Some((2, 5)), None, 400).await;
+    scenario(
+        "Partial",
+        [true, false],
+        Some((2, 5)),
+        Some(&format!("{}NEEDLE-AFTER-PREVIEW", "é".repeat(3000))),
+        400,
+    )
+    .await;
 }
 
 async fn scenario(
@@ -254,6 +261,70 @@ async fn scenario(
         .unwrap();
     assert_eq!(page.title.as_deref(), Some(title.as_str()));
     let turn = page.rows.iter().find_map(|row| row.turn.as_ref()).unwrap();
+    if label == "Partial" {
+        let read = turn
+            .parts
+            .iter()
+            .find_map(|part| match part {
+                TranscriptPart::Tool(op) if op.name == "read" => Some(op),
+                _ => None,
+            })
+            .unwrap();
+        assert!(
+            read.output_truncated
+                && !read
+                    .output
+                    .as_deref()
+                    .unwrap_or("")
+                    .contains("NEEDLE-AFTER-PREVIEW"),
+            "truncated={} bytes={} preview_bytes={}",
+            read.output_truncated,
+            read.output_bytes,
+            read.output.as_ref().map_or(0, String::len)
+        );
+        let first = app
+            .tool_output_page(sessions[0].clone(), read.op.clone(), 0, 1024)
+            .await
+            .unwrap();
+        assert!(
+            app.tool_output_page(sessions[0].clone(), read.op.clone(), i64::MAX as usize, 240)
+                .await
+                .is_err(),
+            "max signed offset cannot be incremented by SQLite indexing"
+        );
+        assert!(
+            app.tool_output_page(sessions[0].clone(), read.op.clone(), 1, 4)
+                .await
+                .is_err(),
+            "mid-character offsets must not return zero progress"
+        );
+        assert!(
+            app.tool_output_page(
+                sessions[0].clone(),
+                read.op.clone(),
+                read.output_bytes as usize + 1,
+                240
+            )
+            .await
+            .is_err(),
+            "past-end offsets must be rejected"
+        );
+        assert_eq!(first.total_bytes, read.output_bytes);
+        assert!(first.text.len() <= 1024);
+        let mut rest = first.text;
+        let mut next = first.next_offset;
+        while let Some(offset) = next {
+            let part = app
+                .tool_output_page(sessions[0].clone(), read.op.clone(), offset as usize, 1024)
+                .await
+                .unwrap();
+            assert_eq!(part.total_bytes, read.output_bytes);
+            rest.push_str(&part.text);
+            next = part.next_offset;
+        }
+        assert!(rest.contains("NEEDLE-AFTER-PREVIEW"));
+        assert_eq!(rest.len() as i64, read.output_bytes);
+    }
     assert_eq!(turn.agent.as_deref(), Some(agent.as_str()));
     assert_eq!(turn.model_label, model_name);
     assert_eq!(turn.usage, known.then_some((321, 34)));
@@ -281,6 +352,111 @@ async fn scenario(
     let mut state = oc_tui::app::TuiState::new(app.clone(), SessionId(sessions[0].0.clone()));
     state.apply_catalog(catalog);
     state.attach_page(&page);
+    if label == "Partial" {
+        let ops = app
+            .tool_ops_page(sessions[0].clone(), None, 20)
+            .await
+            .unwrap();
+        state.apply_cards(oc_tui::history::cards_from_rows(&ops.rows), ops.has_older);
+        for ch in "/cards".chars() {
+            state.handle_key(oc_tui::events::KeyAction::Char(ch)).await;
+        }
+        state.handle_key(oc_tui::events::KeyAction::Enter).await;
+        for _ in 0..ops.rows.iter().position(|row| row.name == "read").unwrap() {
+            state.handle_panel_key(oc_tui::events::KeyAction::Down);
+        }
+        let choice = state.handle_panel_key(oc_tui::events::KeyAction::Enter);
+        let Some(oc_tui::app::PanelIntent::LoadCardOutput { op, offset: 0 }) = choice.intent else {
+            panic!(
+                "cards must route real owner continuation: {:?}",
+                choice.intent
+            )
+        };
+        let mut offset = 0;
+        let mut visible = String::new();
+        for _ in 0..100 {
+            let detail = app
+                .tool_output_page(sessions[0].clone(), op.clone(), offset, 240)
+                .await
+                .unwrap();
+            let next = detail.next_offset;
+            state.apply_card_output(op.clone(), offset, detail);
+            // The actual rendered dialog, not an off-screen producer, must
+            // expose every owner byte window before the next-page intent.
+            let _ = oc_tui::views::render_test(&state, 120, 40);
+            let mut lines = oc_tui::views::panel_lines(&state);
+            assert!(lines.len() <= 17 && lines[0].contains("operation "));
+            visible.push_str(&lines[1..lines.len() - 1].join(""));
+            for _ in 0..240 {
+                if lines.last().is_some_and(|row| {
+                    row.contains("enter next page") || row.contains("end of result")
+                }) {
+                    break;
+                }
+                assert!(
+                    state
+                        .handle_panel_key(oc_tui::events::KeyAction::Enter)
+                        .intent
+                        .is_none()
+                );
+                state.handle_panel_key(oc_tui::events::KeyAction::Down);
+                let frame = oc_tui::views::render_test(&state, 120, 40).join("\n");
+                lines = oc_tui::views::panel_lines(&state);
+                let last = &lines[lines.len() - 2];
+                assert!(frame.contains(last), "scroll row must actually be painted");
+                visible.push_str(last);
+            }
+            assert!(
+                lines.last().is_some_and(
+                    |row| row.contains("enter next page") || row.contains("end of result")
+                ),
+                "all page rows must be reachable"
+            );
+            let choice = state.handle_panel_key(oc_tui::events::KeyAction::Enter);
+            if let Some(next) = next {
+                assert_eq!(
+                    choice.intent,
+                    Some(oc_tui::app::PanelIntent::LoadCardOutput {
+                        op: op.clone(),
+                        offset: next as usize
+                    })
+                );
+                offset = next as usize;
+            } else {
+                assert!(choice.intent.is_none());
+                break;
+            }
+        }
+        assert!(
+            visible.contains("NEEDLE-AFTER-PREVIEW"),
+            "the TUI must page to the actual tail"
+        );
+        state.close_panel();
+        // Same Location, different real session: cached A cards must not be
+        // visible and the owner API must refuse A's operation from B.
+        let local_b = SessionId::new("local-b-v06b").unwrap();
+        app.create_session(local_b.clone()).await.unwrap();
+        state.set_session(local_b.clone());
+        for ch in "/cards".chars() {
+            state.handle_key(oc_tui::events::KeyAction::Char(ch)).await;
+        }
+        let load = state.handle_key(oc_tui::events::KeyAction::Enter).await;
+        assert_eq!(load.intent, Some(oc_tui::app::PanelIntent::LoadCards));
+        assert!(
+            !oc_tui::views::render_test(&state, 120, 40)
+                .join("\n")
+                .contains("NEEDLE-AFTER-PREVIEW")
+        );
+        assert!(
+            state
+                .handle_panel_key(oc_tui::events::KeyAction::Enter)
+                .intent
+                .is_none()
+        );
+        assert!(app.tool_output_page(local_b, op, 0, 240).await.is_err());
+        state.set_session(sessions[0].clone());
+        state.attach_page(&page);
+    }
     let frame = oc_tui::views::render_test(&state, 120, 40).join("\n");
     for label in [title.as_str(), model_name.as_str(), provider_name.as_str()] {
         assert!(frame.contains(label), "missing {label}: {frame}");
@@ -360,6 +536,17 @@ async fn scenario(
             .is_err()
     );
     let b_session = SessionId(b.session.clone());
+    if let Some(read) = turn.parts.iter().find_map(|part| match part {
+        TranscriptPart::Tool(op) if op.name == "read" => Some(op),
+        _ => None,
+    }) {
+        assert!(
+            app.tool_output_page(b_session.clone(), read.op.clone(), 0, 1024)
+                .await
+                .is_err(),
+            "Location B must not read A's tool output"
+        );
+    }
     let b_page = app
         .history_page(b_session.clone(), None, None, 100)
         .await
@@ -391,6 +578,36 @@ async fn scenario(
     assert_eq!(
         restored, page,
         "Location transitions must not rewrite durable presentation"
+    );
+    // A second genuine session in the same Location must not carry A's tool
+    // cards; reattaching A reloads the owner's identical semantic projection.
+    let other = SessionId::new("s-v06b-other").unwrap();
+    app.create_session(other.clone()).await.unwrap();
+    state.set_session(other.clone());
+    state.attach_page(&app.history_page(other, None, None, 100).await.unwrap());
+    assert!(state.history().rows().iter().all(|row| row.tool.is_none()));
+    state.set_session(sessions[0].clone());
+    state.attach_page(&restored);
+    let projected = state
+        .history()
+        .rows()
+        .iter()
+        .filter_map(|row| row.tool.as_ref())
+        .map(|card| (card.op.clone(), card.state.clone()))
+        .collect::<Vec<_>>();
+    let expected = page
+        .rows
+        .iter()
+        .filter_map(|row| row.turn.as_ref())
+        .flat_map(|turn| turn.parts.iter())
+        .filter_map(|part| match part {
+            TranscriptPart::Tool(op) => Some((op.op.clone(), op.state.clone())),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        projected, expected,
+        "page reload and session switch retain durable op identity/order/state"
     );
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();

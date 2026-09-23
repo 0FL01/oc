@@ -263,6 +263,14 @@ pub enum InboxMsg {
         /// Query result.
         ack: oneshot::Sender<Result<ToolOpPage, CoreError>>,
     },
+    /// Read a bounded continuation of one operation's result in this session.
+    ToolOutput {
+        session: SessionId,
+        op: String,
+        offset: usize,
+        limit: usize,
+        ack: oneshot::Sender<Result<crate::queries::ToolOutputPage, CoreError>>,
+    },
     /// Model catalog plus the effective model/variant/agent selection.
     Catalog {
         /// Query result.
@@ -570,6 +578,29 @@ impl CoreApp {
             .await
             .map_err(|_| CoreError::Shutdown)?;
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Fetch the durable output beyond a tool-card preview, scoped to its
+    /// session. The owner caps each request and returns a byte continuation.
+    pub async fn tool_output_page(
+        &self,
+        session: SessionId,
+        op: String,
+        offset: usize,
+        limit: usize,
+    ) -> Result<crate::queries::ToolOutputPage, CoreError> {
+        let (ack, rx) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ToolOutput {
+                session,
+                op,
+                offset,
+                limit,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        rx.await.map_err(|_| CoreError::Shutdown)?
     }
 
     /// Model catalog plus the effective model/variant/agent selection.
@@ -910,6 +941,9 @@ fn scripted_unsupported(message: InboxMsg) {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::ToolOps { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::ToolOutput { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::Catalog { ack } | InboxMsg::SessionSelection { ack, .. } => {

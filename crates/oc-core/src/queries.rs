@@ -119,6 +119,17 @@ pub struct HistoryPage {
     pub has_newer: bool,
 }
 
+/// Bounded byte window of an existing durable tool result.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToolOutputPage {
+    /// Complete UTF-8 characters in this window.
+    pub text: String,
+    /// Complete stored result size in bytes.
+    pub total_bytes: i64,
+    /// Next byte boundary, absent when the result is exhausted.
+    pub next_offset: Option<i64>,
+}
+
 /// One selectable model with its bounded variant list and limits.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ModelEntry {

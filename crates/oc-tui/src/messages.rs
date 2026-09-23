@@ -318,6 +318,8 @@ pub struct ReasoningBlock {
     pub duration_ms: Option<u64>,
     /// True while the block still streams (`!completed` upstream).
     pub running: bool,
+    /// Session-local presentation mode; history and provider payloads stay unchanged.
+    pub expanded: bool,
 }
 
 /// Assistant footer data. Committed history rows carry none: storage keeps
@@ -543,12 +545,8 @@ fn visit_assistant_indexed(
     let (index, live) = identity;
     let (width, terminal_width) = widths;
     if let Some(reasoning) = &row.reasoning {
-        emit(2, &mut || {
-            vec![
-                Line::plain(""),
-                sanitize_line(reasoning_line(reasoning, theme)),
-            ]
-        });
+        let lines = reasoning_lines(reasoning, theme, width);
+        emit(lines.len(), &mut || lines.clone());
     }
     if !row.text.trim().is_empty() {
         emit(1, &mut || vec![Line::plain("")]);
@@ -1465,8 +1463,7 @@ fn assistant_block(
 ) -> Vec<Line> {
     let mut out = Vec::new();
     if let Some(reasoning) = &row.reasoning {
-        out.push(Line::plain(""));
-        out.push(reasoning_line(reasoning, theme));
+        out.extend(reasoning_lines(reasoning, theme, width));
     }
     if !row.text.trim().is_empty() {
         out.push(Line::plain(""));
@@ -1500,7 +1497,12 @@ fn assistant_block(
 /// - completed: `+ Thought: <title> · <duration>` in the warning color at
 ///   alpha 0.6 (`:1793-1800`, `message-parts.tsx:106-114`).
 fn reasoning_line(reasoning: &ReasoningBlock, theme: &Theme) -> Line {
-    let title = reasoning_title(&reasoning.text);
+    let content = reasoning.text.replace("[REDACTED]", "");
+    let title = if reasoning.expanded {
+        ""
+    } else {
+        reasoning_title(&content)
+    };
     let mut spans = vec![Span::plain(" ".repeat(MESSAGE_PADDING))];
     if reasoning.running {
         let mut text = String::from("⋯ Thinking");
@@ -1514,7 +1516,11 @@ fn reasoning_line(reasoning: &ReasoningBlock, theme: &Theme) -> Line {
     let faded = theme.fade(theme.warning(), 0.6);
     let style = Style::default().fg(faded);
     spans.push(Span::styled(
-        format!("{:<width$}", "+", width = INLINE_ICON_WIDTH),
+        format!(
+            "{:<width$}",
+            if reasoning.expanded { "-" } else { "+" },
+            width = INLINE_ICON_WIDTH
+        ),
         style,
     ));
     let mut text = String::from("Thought");
@@ -1536,6 +1542,38 @@ fn reasoning_line(reasoning: &ReasoningBlock, theme: &Theme) -> Line {
     }
     spans.push(Span::styled(text, style));
     Line::new(spans)
+}
+
+fn reasoning_lines(reasoning: &ReasoningBlock, theme: &Theme, width: u16) -> Vec<Line> {
+    let mut lines = vec![
+        Line::plain(""),
+        sanitize_line(reasoning_line(reasoning, theme)),
+    ];
+    if reasoning.expanded {
+        let content = reasoning.text.replace("[REDACTED]", "");
+        if !content.trim().is_empty() {
+            lines.push(Line::plain(""));
+            let mut end = content.len().min(LIVE_MARKDOWN_BYTES);
+            while !content.is_char_boundary(end) {
+                end -= 1;
+            }
+            let mut body = markdown_block(&content[..end], theme, width);
+            // A single public reasoning part is a bounded view of the owner's
+            // durable text. Do not turn expansion into an unbounded render.
+            let omitted = end < content.len() || body.len() > MAX_MARKDOWN_ROWS;
+            if body.len() > MAX_MARKDOWN_ROWS {
+                body.truncate(MAX_MARKDOWN_ROWS);
+            }
+            if omitted {
+                body.push(Line::styled(
+                    "   … [reasoning preview limited]",
+                    Style::default().fg(theme.text_muted()),
+                ));
+            }
+            lines.extend(body.into_iter().map(sanitize_line));
+        }
+    }
+    lines
 }
 
 /// Upstream `reasoningSummary` (`context/thinking.ts:10-19`): a leading
@@ -2530,6 +2568,7 @@ mod tests {
                 text: "**Inspecting**\n\nbody".to_string(),
                 duration_ms: None,
                 running: true,
+                expanded: false,
             }),
             ..assistant("")
         };
@@ -2550,6 +2589,7 @@ mod tests {
                 text: "**Inspecting**\n\nbody".to_string(),
                 duration_ms: Some(1500),
                 running: false,
+                expanded: false,
             }),
             ..assistant("")
         };
@@ -2571,6 +2611,7 @@ mod tests {
                 text: "no title".to_string(),
                 duration_ms: None,
                 running: false,
+                expanded: false,
             }),
             ..assistant("")
         };
@@ -3027,6 +3068,7 @@ mod tests {
             text: "**\u{1b}]52;;AAA\u{7}**\n\nbody".into(),
             duration_ms: None,
             running: true,
+            expanded: false,
         });
         reasoning.meta = Some(AssistantMeta {
             model: Some("\u{1b}[2Jmodel".into()),

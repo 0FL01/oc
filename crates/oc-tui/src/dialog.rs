@@ -523,6 +523,10 @@ impl SelectList {
 }
 
 pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
+    if state.panel() == &TuiPanel::Cards && state.card_output.is_some() {
+        render_card_detail(frame, state);
+        return;
+    }
     let title = match state.panel() {
         TuiPanel::None => return,
         TuiPanel::Commands => "Commands",
@@ -539,6 +543,65 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     state
         .select
         .render(frame, title, size, &state.modal_options(), None);
+}
+
+/// The detail viewport has a fixed header and footer and no searchable list.
+/// Use the same geometry for wrapping, keyboard navigation and painting.
+pub(crate) fn card_geometry(area: Rect) -> (Rect, usize, usize) {
+    let rect = DialogFrame::rect(area, DialogSize::Xlarge, (area.height / 2).max(8));
+    if rect.width < 12 || rect.height < 7 {
+        return (rect, 0, 0);
+    }
+    (
+        rect,
+        rect.width.saturating_sub(8) as usize,
+        rect.height.saturating_sub(5) as usize,
+    )
+}
+
+fn render_card_detail(frame: &mut Frame<'_>, state: &TuiState) {
+    let (rect, width, height) = card_geometry(frame.area());
+    DialogFrame::paint(frame, rect, Theme::dark());
+    if width == 0 || height == 0 {
+        return;
+    }
+    let theme = Theme::dark();
+    let text = slot(theme, "text.base");
+    let muted = slot(theme, "text.muted");
+    let lines = crate::views::panel_lines(state);
+    let line = |frame: &mut Frame<'_>, y: u16, content: &str, style: Style| {
+        frame.render_widget(
+            Paragraph::new(ratatui::text::Line::styled(content.to_string(), style)),
+            Rect::new(rect.x + 4, y, width as u16, 1),
+        );
+    };
+    line(
+        frame,
+        rect.y + 1,
+        "Tool result",
+        Style::default().fg(text).add_modifier(Modifier::BOLD),
+    );
+    for (index, content) in lines.iter().enumerate() {
+        let y = if index == 0 {
+            rect.y + 2
+        } else if index == lines.len() - 1 {
+            rect.bottom() - 2
+        } else {
+            rect.y + 2 + index as u16
+        };
+        line(
+            frame,
+            y,
+            content,
+            Style::default().fg(if index == 0 || index == lines.len() - 1 {
+                muted
+            } else {
+                text
+            }),
+        );
+    }
+    let (start, visible, count) = crate::views::card_window(state);
+    state.card_rows_painted(start, (start + visible).min(count));
 }
 
 pub fn size_for(panel: &TuiPanel) -> DialogSize {

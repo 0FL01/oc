@@ -107,7 +107,7 @@ fn bound_preview(raw: Option<String>, bytes: i64) -> (Option<String>, bool) {
         return (None, false);
     };
     let total = bytes.max(0) as usize;
-    if total <= text.len() {
+    if total <= TOOL_OP_PREVIEW_BYTES && total <= text.len() {
         // The SQL prefix already holds every stored byte.
         return (Some(text), false);
     }
@@ -120,6 +120,18 @@ fn bound_preview(raw: Option<String>, bytes: i64) -> (Option<String>, bool) {
         )),
         true,
     )
+}
+
+#[cfg(test)]
+#[test]
+fn v06b_multibyte_output_preview_is_byte_bounded() {
+    let text = "é".repeat(1500);
+    let (preview, truncated) = bound_preview(Some(text.clone()), text.len() as i64);
+    assert!(truncated);
+    let preview = preview.unwrap();
+    assert!(preview.starts_with(&"é".repeat(TOOL_OP_PREVIEW_BYTES / 2)));
+    assert!(preview.ends_with("…[+952]"));
+    assert!(preview.len() < text.len());
 }
 
 /// Owned storage handle: lock file + SQLite connection + blob dir.
@@ -646,9 +658,10 @@ impl Db {
 
     /// Read a byte window of one tool operation's durable output.
     ///
-    /// `offset` and `limit` are byte offsets into the stored text; the
-    /// returned window never splits a UTF-8 char (a trailing partial char is
-    /// withheld, so the next call starts on a boundary). Returns
+    /// `offset` and `limit` specify a byte window in the stored text.
+    /// Requests starting inside a UTF-8 char or beyond the end are rejected;
+    /// a trailing partial char is withheld, so the next call starts on a
+    /// boundary. Returns
     /// `(text, total_bytes, next_offset)`; `next_offset` is `None` once the
     /// end of the result is reached.
     pub fn read_tool_op_output(
@@ -658,12 +671,28 @@ impl Db {
         limit: usize,
     ) -> Result<(String, i64, Option<i64>), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
+        Self::read_tool_op_output_on(&conn, op, offset, limit)
+    }
+
+    fn read_tool_op_output_on(
+        conn: &Connection,
+        op: &str,
+        offset: usize,
+        limit: usize,
+    ) -> Result<(String, i64, Option<i64>), StorageError> {
+        // SQLite BLOB substr is one-indexed; never cast/truncate or add past
+        // the signed index range. The owner API requests at least four bytes.
+        let index = i64::try_from(offset)
+            .ok()
+            .and_then(|value| value.checked_add(1))
+            .ok_or(StorageError::OperationNotFound)?;
+        let limit = i64::try_from(limit).map_err(|_| StorageError::OperationNotFound)?;
         let (window, total): (Option<Vec<u8>>, i64) = conn
             .query_row(
                 "SELECT substr(CAST(output AS BLOB), ?2, ?3),
                         length(CAST(output AS BLOB))
                    FROM tool_operations WHERE id = ?1",
-                params![op, offset as i64 + 1, limit as i64],
+                params![op, index, limit],
                 |row| {
                     Ok((
                         row.get::<_, Option<Vec<u8>>>(0)?,
@@ -674,12 +703,45 @@ impl Db {
             .optional()?
             .ok_or(StorageError::OperationNotFound)?;
         let bytes = window.unwrap_or_default();
+        if total < 0
+            || offset > total as usize
+            || bytes
+                .first()
+                .is_some_and(|byte| byte & 0b1100_0000 == 0b1000_0000)
+        {
+            return Err(StorageError::OperationNotFound);
+        }
         // Withhold an incomplete trailing char so no byte is ever skipped.
         let kept = complete_bytes(&bytes);
         let text = String::from_utf8_lossy(&bytes[..kept]).to_string();
         let next = offset + kept;
+        if next == offset && next < total as usize {
+            return Err(StorageError::OperationNotFound);
+        }
         let next_offset = (next < total as usize).then_some(next as i64);
         Ok((text, total, next_offset))
+    }
+
+    /// Owner-facing continuation: reject an operation from any other session
+    /// before reading its result. One page is limited like the cards preview.
+    pub fn read_session_tool_output(
+        &self,
+        session: &str,
+        op: &str,
+        offset: usize,
+        limit: usize,
+    ) -> Result<(String, i64, Option<i64>), StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Self::require_session(&conn, session)?;
+        let belongs: bool = conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM tool_operations WHERE id=?1 AND session_id=?2)",
+            params![op, session],
+            |row| row.get(0),
+        )?;
+        if !belongs {
+            return Err(StorageError::OperationNotFound);
+        }
+        Self::read_tool_op_output_on(&conn, op, offset, limit.clamp(4, TOOL_OP_PREVIEW_BYTES))
     }
 
     /// Recorded tool-operation rowid bounds `(min, max)`; `None` when empty.

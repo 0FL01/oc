@@ -1307,6 +1307,50 @@ mod tests {
     }
 
     #[test]
+    fn v06b_partial_result_records_only_committed_effects() {
+        struct DenySecond(std::sync::atomic::AtomicUsize);
+        impl super::WritePolicy for DenySecond {
+            fn check(&self, path: &str) -> Result<(), PatchError> {
+                // Both intents pass preflight; only the second execution is
+                // refused, after the first namespace change has committed.
+                if path == "blocked.txt"
+                    && self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 1
+                {
+                    Err(PatchError::Conflict {
+                        path: path.into(),
+                        reason: "refused during execution".into(),
+                    })
+                } else {
+                    Ok(())
+                }
+            }
+        }
+        let (_tmp, project, data) = setup();
+        let patch = "*** Begin Patch\n*** Add File: applied.txt\n+real\n*** Add File: blocked.txt\n+not-applied\n*** End Patch";
+        let result = apply_patch(
+            &project,
+            &data,
+            patch,
+            &DenySecond(std::sync::atomic::AtomicUsize::new(0)),
+        )
+        .unwrap_err();
+        assert_eq!(result.failed_op, 1);
+        assert_eq!(result.done.len(), 1);
+        assert_eq!(result.done[0].path, "applied.txt");
+        assert_eq!(
+            fs::read_to_string(project.join("applied.txt")).unwrap(),
+            "real\n"
+        );
+        assert!(!project.join("blocked.txt").exists());
+        let output = crate::tools::patch_outcome(Err(result));
+        assert!(
+            output.starts_with("error: partial op 1 (blocked.txt):")
+                && output.contains("\ndone add applied.txt "),
+            "{output}"
+        );
+    }
+
+    #[test]
     fn tool02_new_text_file_unicode_crlf() {
         let (_tmp, project, data) = setup();
         let patch =

@@ -30,10 +30,16 @@ prompt = (fixture / 'input.txt').read_text().strip()
 answer = (fixture / 'transcript.md').read_text().strip()
 if spec.get('sample') == 'short':
     answer = 'GEOMETRY-SHORT: one short answer.'
+elif spec.get('sample') == 'reasoning':
+    answer = 'GEOMETRY-SHORT: public reasoning completed.'
+elif spec.get('sample') == 'tools':
+    answer = 'GEOMETRY-SHORT: tool read completed.'
 elif spec.get('sample') == 'rows':
     answer = '```text\n' + '\n'.join(f'ROW-{i:03}' for i in range(90)) + '\n```'
 catalog = json.loads((fixture / 'model-catalog.json').read_text())
 title = json.loads((fixture / 'scenarios.json').read_text())['base']['title']
+transcript_round = 0
+round_lock = threading.Lock()
 
 
 class Provider(BaseHTTPRequestHandler):
@@ -41,6 +47,7 @@ class Provider(BaseHTTPRequestHandler):
         pass
 
     def do_POST(self):
+        global transcript_round
         body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
         serialized = json.dumps(body, ensure_ascii=False)
         valid = self.path == '/v1/responses' and body.get('model') == 'fixture-model-1' and body.get('stream') is True
@@ -48,26 +55,69 @@ class Provider(BaseHTTPRequestHandler):
         system = str(body.get('instructions', '')) + json.dumps([x for x in body.get('input', []) if x.get('role') in ('system', 'developer')], ensure_ascii=False)
         is_title = ('You are a title generator. You output ONLY a thread title.' in system or
                     (not body.get('tools') and body.get('max_output_tokens') == 256 and
-                     'title' in system.lower()))
+                      'title' in system.lower()))
+        with round_lock:
+            round_number = transcript_round
+            if not is_title:
+                transcript_round += 1
         text = title if is_title else answer
         valid = valid and (is_title or prompt in serialized)
+        tool_results = [x for x in body.get('input', []) if x.get('type') == 'function_call_output']
+        if spec.get('sample') == 'tools' and not is_title:
+            valid = valid and 'read' in [x.get('name') for x in body.get('tools', [])]
+            if round_number:
+                calls = [x for x in tool_results if x.get('call_id') == 'call_fixture_read']
+                valid = valid and len(calls) == 1 and 'fixture-content' in str(calls[0].get('output', ''))
         record = {'kind': 'provider', 'path': self.path, 'model': body.get('model'),
                   'stream': body.get('stream'), 'prompt_present': prompt in serialized,
                   'operation': 'title' if is_title else 'transcript', 'valid': valid,
                   'request_sha256': hashlib.sha256(serialized.encode()).hexdigest(),
-                  'registered_tools': [x.get('name') for x in body.get('tools', [])],
+                   'registered_tools': [x.get('name') for x in body.get('tools', [])],
+                   'tool_result_count': len(tool_results),
+                   'fixture_content_returned': any('fixture-content' in str(x.get('output', '')) for x in tool_results),
                   'request_top_level_keys': sorted(body)}
         emit(record)
         if not valid:
             self.send_error(400, 'fixture contract rejected')
             return
-        item = {'id': 'msg_fixture', 'type': 'message', 'role': 'assistant', 'status': 'completed',
-                'content': [{'type': 'output_text', 'text': text, 'annotations': []}]}
+        if spec.get('sample') == 'tools' and not is_title and round_number == 0:
+            item = {'id': 'fc_fixture', 'type': 'function_call', 'status': 'completed',
+                    'call_id': 'call_fixture_read', 'name': 'read',
+                    'arguments': json.dumps({'path': 'fixture-note.txt'})}
+            text = ''
+        else:
+            item = {'id': 'msg_fixture', 'type': 'message', 'role': 'assistant', 'status': 'completed',
+                 'content': [{'type': 'output_text', 'text': text, 'annotations': []}]}
         response = {'id': 'resp_fixture', 'object': 'response', 'created_at': 1700000000,
                     'model': 'fixture-model-1', 'status': 'in_progress', 'output': [],
                     'error': None, 'incomplete_details': None}
         events = [
             {'type': 'response.created', 'response': response},
+        ]
+        if spec.get('sample') == 'reasoning' and not is_title:
+            public = '**Inspecting**\n\nPublic summary only.'
+            events += [
+                {'type': 'response.output_item.added', 'output_index': 0,
+                 'item': {'type': 'reasoning', 'id': 'rs_fixture', 'status': 'in_progress', 'summary': []}},
+                {'type': 'response.reasoning_summary_part.added', 'item_id': 'rs_fixture',
+                 'output_index': 0, 'summary_index': 0, 'part': {'type': 'summary_text', 'text': ''}},
+                {'type': 'response.reasoning_summary_text.delta', 'item_id': 'rs_fixture',
+                 'output_index': 0, 'summary_index': 0, 'delta': public},
+                {'type': 'response.output_item.done', 'output_index': 0,
+                 'item': {'type': 'reasoning', 'id': 'rs_fixture', 'summary': [{'type': 'summary_text', 'text': public}],
+                          'encrypted_content': 'opaque-fixture-must-not-display'}},
+            ]
+        if item['type'] == 'function_call':
+            events += [
+                {'type': 'response.output_item.added', 'output_index': 0,
+                 'item': {**item, 'status': 'in_progress', 'arguments': ''}},
+                {'type': 'response.function_call_arguments.delta', 'item_id': item['id'],
+                 'output_index': 0, 'delta': item['arguments']},
+                {'type': 'response.output_item.done', 'output_index': 0, 'item': item},
+                {'type': 'response.completed', 'response': {**response, 'status': 'completed', 'output': [item]}},
+            ]
+        else:
+          events += [
             {'type': 'response.output_item.added', 'output_index': 0,
              'item': {**item, 'status': 'in_progress', 'content': []}},
             {'type': 'response.content_part.added', 'item_id': item['id'], 'output_index': 0,
@@ -83,7 +133,7 @@ class Provider(BaseHTTPRequestHandler):
              'usage': {'input_tokens': 6000, 'output_tokens': 763, 'total_tokens': 6763,
                        'input_tokens_details': {'cached_tokens': 0},
                        'output_tokens_details': {'reasoning_tokens': 0}}}},
-        ]
+          ]
         payload = ''.join('event: ' + e['type'] + '\ndata: ' + json.dumps({**e, 'sequence_number': i}, ensure_ascii=False) + '\n\n'
                           for i, e in enumerate(events)).encode()
         self.send_response(200)
@@ -102,6 +152,8 @@ home = root / spec['origin'] / 'home'
 project = root / 'project'
 for path in [home, project, *[home / x for x in ('config/opencode', 'cache', 'data', 'state')]]:
     path.mkdir(parents=True, exist_ok=True)
+if spec.get('sample') == 'tools':
+    (project / 'fixture-note.txt').write_text('fixture-content\n')
 settings = {'baseURL': f'http://127.0.0.1:{server.server_port}/v1', 'apiKey': 'fixture-not-a-secret'}
 models = {m['id']: {k: v for k, v in m.items() if k not in ('id', 'variants')} for m in catalog['models']}
 if spec.get('variants'):
@@ -124,7 +176,8 @@ if spec['origin'] == 'upstream':
     argv = [spec['binary'], '--standalone']
 else:
     config = {'model': 'fixture/fixture-model-1', 'provider': {'fixture': {
-        'name': catalog['provider']['name'], 'npm': '@ai-sdk/openai', 'options': settings, 'models': models}}}
+        'name': catalog['provider']['name'], 'npm': '@ai-sdk/openai', 'options': settings, 'models': models}},
+        'permissions': {'read': 'allow'}}
     argv = [spec['binary'], 'tui']
     cli_config = {
         'session': {'sidebar': spec.get('sidebar', 'auto')},

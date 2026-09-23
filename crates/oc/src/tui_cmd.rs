@@ -336,6 +336,13 @@ async fn apply_intent(
             }
             loop_state.cards_before = page.rows.last().map(|row| row.rowid);
         }
+        PanelIntent::LoadCardOutput { op, offset } => {
+            let page = app
+                .tool_output_page(session, op.clone(), offset, 240)
+                .await
+                .map_err(|e| e.to_string())?;
+            state.apply_card_output(op, offset, page);
+        }
         PanelIntent::SelectModel { id } => {
             let snapshot = app
                 .session_selection(session, state.home, SelectionAction::Model(id))
@@ -413,6 +420,7 @@ async fn apply_intent(
             state.attach_page(&page);
             state.apply_catalog(snapshot);
             state.close_panel();
+            loop_state.cards_before = None;
         }
         PanelIntent::SwitchLocation { path } => {
             // The application refuses a switch during a turn; the view-model

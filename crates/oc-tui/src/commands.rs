@@ -17,6 +17,8 @@ pub enum CommandAction {
     OpenCommands,
     /// Toggle the existing native sidebar.
     ToggleSidebar,
+    /// Toggle public reasoning between collapsed title and expanded body.
+    ToggleThinking,
     /// Exit the TUI.
     Quit,
     /// Open the model picker.
@@ -182,6 +184,14 @@ pub const REGISTRY: &[CommandSpec] = &[
         shortcuts: &["ctrl+x b"],
         aliases: &["sidebar"],
         action: CommandAction::ToggleSidebar,
+    },
+    CommandSpec {
+        id: "session.toggle.thinking",
+        title: "Expand thinking",
+        group: "Session",
+        shortcuts: &[],
+        aliases: &["thinking-mode"],
+        action: CommandAction::ToggleThinking,
     },
     CommandSpec {
         id: "model.list",
