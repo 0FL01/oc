@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-23T06:13:19+00:00
-Active: T44
-
-Сверить Git status/diff до выполнения команд.
-Task: T44 — TUI pixel parity с opencode v2.0.12
-Spec: docs/goals/2026-09-21-tui-pixel-parity.md
-Evidence target: evidence/T44/report.md
-
-Полностью воспроизвести интерфейс upstream opencode v2.0.12 в crates/oc-tui: тема/палитра, геометрия layout, рендер сообщений (markdown/reasoning/tool cards/diff), keymap и диалоги; golden-снапшоты PTY на фиксированных размерах. Recon-артефакты evidence/tui/*, коммит+push каждого среза.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 # T44 V07c trusted file-reference admission checkpoint
 
 ## Result
@@ -30,9 +16,3 @@ This verifies a deterministic ancestor replacement, not exhaustive race fuzzing.
 ## Next
 
 V07 negative qualification S03–S06/S08 using actual binary/owner effects (including injected terminal controls and disabled/required/working MCP), then RSS/PSS/CPU/frame-time measurements for equal active view and varied archive. V08–V09 full paired captures and qualification follow.
-
-
-Ready (до 5): T45, T46, T47
-Blocked: T27, T43
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

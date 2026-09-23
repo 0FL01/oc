@@ -103,6 +103,7 @@ pub(crate) async fn load_with_env(
         .map(|root| admit_root(root, &project, root == roots.last().expect("local root")))
         .collect::<Result<_, _>>()?;
     let mut sources = Vec::new();
+    let mut source_roots = BTreeMap::new();
     let mut seen = HashSet::new();
     for (root, admitted) in roots.iter().zip(&admitted_roots) {
         let Some(admitted) = admitted else { continue };
@@ -112,8 +113,16 @@ pub(crate) async fn load_with_env(
                 continue;
             };
             if seen.insert(canonical.clone()) {
+                let directory = canonical
+                    .strip_prefix(&admitted.path)
+                    .expect("admitted source")
+                    .parent()
+                    .unwrap_or_else(|| Path::new(""))
+                    .to_path_buf();
+                let source_path = canonical.to_string_lossy().into_owned();
+                source_roots.insert(source_path.clone(), (&admitted.dir, directory));
                 sources.push(config::Source {
-                    path: canonical.to_string_lossy().into_owned(),
+                    path: source_path,
                     text,
                     trusted: true,
                 });
@@ -424,8 +433,13 @@ pub(crate) async fn load_with_env(
         ));
     }
     let selected_providers = HashSet::from([provider_id.to_string()]);
-    let mut generation = config::assemble(&sources, &parent_env, Some(&selected_providers))
-        .map_err(|e| e.to_string())?;
+    let mut generation = config::assemble_admitted(
+        &sources,
+        &parent_env,
+        Some(&selected_providers),
+        &source_roots,
+    )
+    .map_err(|e| e.to_string())?;
     // Keep central authority independent of the startup primary selection.
     // The effective primary's constraints are snapshotted with its workspace.
     if let Some(level) = dcp_config.compress_permission {
@@ -910,6 +924,59 @@ mod tests {
             .expect("admitted composition");
         assert_eq!(loaded.model_id, "alternate");
         assert_eq!(loaded.provider.api_key, "global-key");
+    }
+
+    #[test]
+    fn v07c_source_substitution_after_ancestor_swap_stays_inside_admitted_root() {
+        use super::{admit_root, read_source_config};
+        use crate::config;
+        use std::collections::{BTreeMap, HashSet};
+        let tmp = tempfile::tempdir().unwrap();
+        let project = tmp.path().join("project");
+        let external = tmp.path().join("external");
+        std::fs::create_dir_all(project.join("branch/source")).unwrap();
+        std::fs::create_dir_all(external.join("source")).unwrap();
+        std::fs::write(project.join("branch/source/key"), "local-fixture-key").unwrap();
+        std::fs::write(external.join("source/key"), "EXTERNAL_V07C_SECRET_734a").unwrap();
+        let config_path = project.join("branch/source/opencode.json");
+        std::fs::write(
+            &config_path,
+            r#"{"provider":{"fixture":{"options":{"apiKey":"{file:key}"}}}}"#,
+        )
+        .unwrap();
+        let root = admit_root(&project, &project, false).unwrap().unwrap();
+        let (canonical, text) = read_source_config(&root, &config_path).unwrap().unwrap();
+        let sources = [config::Source {
+            path: canonical.to_string_lossy().into_owned(),
+            text,
+            trusted: true,
+        }];
+        // Deterministic: config bytes were already admitted, but their source
+        // ancestor is now an outside symlink before provider substitution.
+        std::fs::rename(project.join("branch"), project.join("branch-old")).unwrap();
+        std::os::unix::fs::symlink(&external, project.join("branch")).unwrap();
+        let roots = BTreeMap::from([(
+            sources[0].path.clone(),
+            (&root.dir, std::path::PathBuf::from("branch/source")),
+        )]);
+        let generation = config::assemble_admitted(
+            &sources,
+            &BTreeMap::new(),
+            Some(&HashSet::from(["fixture".into()])),
+            &roots,
+        );
+        let error = generation.expect_err("replaced ancestor must fail closed");
+        assert!(matches!(error, config::ConfigError::Untrusted { .. }));
+        assert!(!error.to_string().contains("EXTERNAL_V07C_SECRET_734a"));
+        // The same root capability can still serve a valid nested reference.
+        std::fs::remove_file(project.join("branch")).unwrap();
+        std::fs::rename(project.join("branch-old"), project.join("branch")).unwrap();
+        let generation =
+            config::assemble_admitted(&sources, &BTreeMap::new(), None, &roots).unwrap();
+        assert_eq!(
+            generation.providers["fixture"].options.api_key,
+            "local-fixture-key"
+        );
     }
 
     #[tokio::test]

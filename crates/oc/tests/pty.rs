@@ -607,6 +607,72 @@ fn v07a_bare_tui_pty_refuses_external_discovered_root_before_read() {
     assert!(fixture.requests.lock().expect("requests").is_empty());
 }
 
+#[test]
+fn v07c_bare_tui_pty_redacts_refused_file_reference() {
+    let fixture = Fixture::new(tempfile::tempdir().expect("fixture"));
+    let outside = fixture.root.path().join("outside");
+    std::fs::create_dir_all(&outside).expect("outside");
+    std::fs::write(outside.join("key"), "EXTERNAL_V07C_SECRET_734a").expect("secret");
+    let config_dir = fixture.root.path().join("home/config/opencode");
+    symlink(&outside, config_dir.join("nested")).expect("external nested reference");
+    let config_path = config_dir.join("opencode.json");
+    let mut config: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&config_path).expect("config")).expect("JSON");
+    config["provider"]["fixture"]["options"]["apiKey"] = serde_json::json!("{file:nested/key}");
+    std::fs::write(&config_path, config.to_string()).expect("config override");
+
+    let (master, slave) = openpty_pair(100, 28);
+    let mut child = fixture
+        .command()
+        .env("TERM", "xterm-256color")
+        .stdin(Stdio::from(dup_fd(&slave)))
+        .stdout(Stdio::from(dup_fd(&slave)))
+        .stderr(Stdio::from(dup_fd(&slave)))
+        .spawn()
+        .expect("bare oc on real PTY");
+    drop(slave);
+    let mut master: std::fs::File = master.into();
+    // SAFETY: master owns a valid PTY fd; F_GETFL reads its flags.
+    let flags = unsafe { libc::fcntl(master.as_raw_fd(), libc::F_GETFL, 0) };
+    assert!(flags >= 0);
+    // SAFETY: master stays open; F_SETFL only changes its nonblocking flag.
+    let result =
+        unsafe { libc::fcntl(master.as_raw_fd(), libc::F_SETFL, flags | libc::O_NONBLOCK) };
+    assert_eq!(result, 0);
+    let mut output = Vec::new();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !contains(&visible_text(&output), b"Configuration load failed") {
+        if Instant::now() > deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("bare TUI blocked before file-reference refusal");
+        }
+        let mut buf = [0; 8192];
+        match master.read(&mut buf) {
+            Ok(n) => output.extend_from_slice(&buf[..n]),
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => std::thread::sleep(POLL),
+            Err(e) => panic!("PTY read: {e}"),
+        }
+    }
+    assert!(!contains(&output, b"EXTERNAL_V07C_SECRET_734a"));
+    master.write_all(b"q").expect("dismiss startup failure");
+    let exit_deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        if let Some(status) = child.try_wait().expect("poll child") {
+            assert!(!status.success());
+            break;
+        }
+        if Instant::now() > exit_deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("bare TUI did not exit after dismissal");
+        }
+        std::thread::sleep(POLL);
+    }
+    assert!(!fixture.data_dir().exists());
+    assert!(fixture.requests.lock().expect("requests").is_empty());
+}
+
 /// Visible text with CSI escape sequences stripped (ratatui writes titles
 /// and widgets in cursor-positioned pieces, so plain phrases are only
 /// contiguous after stripping).

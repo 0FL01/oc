@@ -11,6 +11,21 @@ use std::path::Path;
 /// Files and directories are nonblocking and no-follow at the final component;
 /// intermediate replacements cannot escape the root, including on a race.
 pub(crate) fn open_beneath(dir: &File, relative: &Path, flags: i32) -> io::Result<File> {
+    open_resolved(dir, relative, flags, 0x08 | 0x02)
+}
+
+/// As above, but refuse symlinks in *every* component (not only the leaf).
+/// Substitution references must not traverse a replaced source ancestor.
+pub(crate) fn open_beneath_no_symlinks(
+    dir: &File,
+    relative: &Path,
+    flags: i32,
+) -> io::Result<File> {
+    // RESOLVE_BENEATH | RESOLVE_NO_MAGICLINKS | RESOLVE_NO_SYMLINKS.
+    open_resolved(dir, relative, flags, 0x08 | 0x02 | 0x04)
+}
+
+fn open_resolved(dir: &File, relative: &Path, flags: i32, resolve: u64) -> io::Result<File> {
     #[repr(C)]
     struct OpenHow {
         flags: u64,
@@ -22,8 +37,7 @@ pub(crate) fn open_beneath(dir: &File, relative: &Path, flags: i32) -> io::Resul
     let how = OpenHow {
         flags: (flags | libc::O_CLOEXEC | libc::O_NONBLOCK | libc::O_NOFOLLOW) as u64,
         mode: 0,
-        // RESOLVE_BENEATH | RESOLVE_NO_MAGICLINKS (linux/openat2.h).
-        resolve: 0x08 | 0x02,
+        resolve,
     };
     // SAFETY: syscall borrows a live root fd, a NUL-terminated path and a
     // correctly sized C-compatible open_how; a successful fd is newly owned.

@@ -6,13 +6,10 @@
 //! plugin code are never executed here; future modules are not activated.
 
 use std::collections::{BTreeMap, HashSet};
-use std::ffi::{CString, OsStr};
 use std::fs::{File, OpenOptions};
 use std::io::Read;
-use std::os::fd::{AsRawFd, FromRawFd};
-use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::OpenOptionsExt;
-use std::path::{Component, Path};
+use std::path::{Component, Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -317,6 +314,16 @@ pub fn substitute(
     trusted: bool,
     env: &BTreeMap<String, String>,
 ) -> Result<String, ConfigError> {
+    substitute_with(template, source, trusted, env, &read_trusted_file)
+}
+
+fn substitute_with(
+    template: &str,
+    source: &str,
+    trusted: bool,
+    env: &BTreeMap<String, String>,
+    reader: &impl Fn(&str, &str) -> Result<String, ConfigError>,
+) -> Result<String, ConfigError> {
     let mut out = String::with_capacity(template.len());
     let mut rest = template;
     while let Some(start) = rest.find('{') {
@@ -336,7 +343,7 @@ pub fn substitute(
                         reason: "file read before trust".to_string(),
                     });
                 }
-                out.push_str(&read_trusted_file(path, source)?);
+                out.push_str(&reader(path, source)?);
                 rest = &tail[end + 1..];
                 continue;
             }
@@ -352,66 +359,74 @@ pub fn substitute(
     Ok(out)
 }
 
-fn component_name(value: &OsStr) -> Result<CString, ConfigError> {
-    CString::new(value.as_bytes()).map_err(|_| ConfigError::Invalid {
-        field: "file".to_string(),
-        reason: "invalid file reference".to_string(),
-    })
-}
-
-fn open_relative(dir: &File, name: &CString, flags: i32) -> std::io::Result<File> {
-    // SAFETY: the borrowed directory fd and NUL-terminated name remain valid.
-    let fd = unsafe {
-        libc::openat(
-            dir.as_raw_fd(),
-            name.as_ptr(),
-            flags | libc::O_CLOEXEC | libc::O_NOFOLLOW,
-            0,
-        )
-    };
-    if fd < 0 {
-        return Err(std::io::Error::last_os_error());
-    }
-    // SAFETY: openat returned a new owned descriptor.
-    Ok(unsafe { File::from_raw_fd(fd) })
-}
-
 fn read_trusted_file(path: &str, source: &str) -> Result<String, ConfigError> {
-    const FILE_CAP: usize = 64 * 1024;
+    // Public callers supply their own trust decision, without an admitted root.
+    // Independently verify every source-directory ancestor (no symlinks), then
+    // pin that exact directory for the entire reference read. Never fall back
+    // from an admitted-root failure to this path-based consumer.
+    let source_dir = Path::new(source)
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let (anchor, relative) = if source_dir.is_absolute() {
+        (
+            Path::new("/"),
+            source_dir.strip_prefix("/").expect("absolute"),
+        )
+    } else {
+        (Path::new("."), source_dir)
+    };
+    let refused = || file_refused(source);
+    let anchor = OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW)
+        .open(anchor)
+        .map_err(|_| refused())?;
+    let source_dir = crate::admitted_fs::open_beneath_no_symlinks(
+        &anchor,
+        relative,
+        libc::O_RDONLY | libc::O_DIRECTORY,
+    )
+    .map_err(|_| refused())?;
+    read_trusted_file_rooted(path, source, &source_dir, Path::new(""))
+}
 
-    let refused = || ConfigError::Untrusted {
+fn file_refused(source: &str) -> ConfigError {
+    ConfigError::Untrusted {
         origin: source.to_string(),
         reason: "file reference must be a regular no-follow path inside the config directory"
             .to_string(),
-    };
-    let mut parts = Vec::new();
+    }
+}
+
+fn read_trusted_file_rooted(
+    path: &str,
+    source: &str,
+    root: &File,
+    source_directory: &Path,
+) -> Result<String, ConfigError> {
+    const FILE_CAP: usize = 64 * 1024;
+
+    let refused = || file_refused(source);
+    let mut relative = PathBuf::from(source_directory);
+    let mut has_name = false;
     for part in Path::new(path).components() {
         match part {
-            Component::Normal(part) => parts.push(component_name(part)?),
+            Component::Normal(part) => {
+                relative.push(part);
+                has_name = true;
+            }
             Component::CurDir => {}
             Component::Prefix(_) | Component::RootDir | Component::ParentDir => {
                 return Err(refused());
             }
         }
     }
-    let Some((file_name, directories)) = parts.split_last() else {
+    if !has_name {
         return Err(refused());
-    };
-    let source_dir = Path::new(source)
-        .parent()
-        .filter(|path| !path.as_os_str().is_empty())
-        .unwrap_or_else(|| Path::new("."));
-    let mut dir = OpenOptions::new()
-        .read(true)
-        .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
-        .open(source_dir)
-        .map_err(|_| refused())?;
-    for part in directories {
-        dir =
-            open_relative(&dir, part, libc::O_RDONLY | libc::O_DIRECTORY).map_err(|_| refused())?;
     }
-    let mut file =
-        open_relative(&dir, file_name, libc::O_RDONLY | libc::O_NONBLOCK).map_err(|_| refused())?;
+    let mut file = crate::admitted_fs::open_beneath_no_symlinks(root, &relative, libc::O_RDONLY)
+        .map_err(|_| refused())?;
     let meta = file.metadata().map_err(|_| refused())?;
     if !meta.is_file() {
         return Err(refused());
@@ -460,6 +475,31 @@ pub fn assemble(
     sources: &[Source],
     env: &BTreeMap<String, String>,
     enabled_providers: Option<&HashSet<String>>,
+) -> Result<Generation, ConfigError> {
+    assemble_with_reader(sources, env, enabled_providers, &read_trusted_file)
+}
+
+/// Application-only substitution authority. Every admitted source is paired
+/// with its pinned root and the source's canonical directory relative to it.
+/// A missing entry fails closed; the public Source trust bit is not a directory
+/// capability and cannot expand the application's read boundary.
+pub(crate) fn assemble_admitted(
+    sources: &[Source],
+    env: &BTreeMap<String, String>,
+    enabled_providers: Option<&HashSet<String>>,
+    roots: &BTreeMap<String, (&File, PathBuf)>,
+) -> Result<Generation, ConfigError> {
+    assemble_with_reader(sources, env, enabled_providers, &|path, source| {
+        let (root, directory) = roots.get(source).ok_or_else(|| file_refused(source))?;
+        read_trusted_file_rooted(path, source, root, directory)
+    })
+}
+
+fn assemble_with_reader(
+    sources: &[Source],
+    env: &BTreeMap<String, String>,
+    enabled_providers: Option<&HashSet<String>>,
+    reader: &impl Fn(&str, &str) -> Result<String, ConfigError>,
 ) -> Result<Generation, ConfigError> {
     let mut providers: BTreeMap<String, (ProviderEntry, String)> = BTreeMap::new();
     // Unknown provider option keys: visible warnings, never a hard failure.
@@ -553,10 +593,12 @@ pub fn assemble(
         }
         let trusted = sources.iter().any(|s| s.path == *path && s.trusted);
         let mut entry = entry.clone();
-        entry.options.base_url = substitute(&entry.options.base_url, path, trusted, env)?;
-        entry.options.api_key = substitute(&entry.options.api_key, path, trusted, env)?;
+        entry.options.base_url =
+            substitute_with(&entry.options.base_url, path, trusted, env, reader)?;
+        entry.options.api_key =
+            substitute_with(&entry.options.api_key, path, trusted, env, reader)?;
         for value in entry.options.headers.values_mut() {
-            *value = substitute(value, path, trusted, env)?;
+            *value = substitute_with(value, path, trusted, env, reader)?;
         }
         let selected = enabled_providers.is_none_or(|only| only.contains(id));
         // Only the provider that will actually be used must be on the native
@@ -580,12 +622,12 @@ pub fn assemble(
         let mut entry = entry.clone();
         if entry.enabled {
             if let Some(url) = &entry.url {
-                entry.url = Some(substitute(url, path, trusted, env)?);
+                entry.url = Some(substitute_with(url, path, trusted, env, reader)?);
             }
             for (key, value) in entry.headers.clone() {
                 entry
                     .headers
-                    .insert(key, substitute(&value, path, trusted, env)?);
+                    .insert(key, substitute_with(&value, path, trusted, env, reader)?);
             }
         }
         // Disabled entries keep inert templates: no secret/file read and no launch.
@@ -1409,6 +1451,43 @@ mod tests {
         let explained = explain_redacted(&generation).to_string();
         assert!(!explained.contains("SECRET"));
         assert!(explained.contains("G/opencode.json"));
+    }
+
+    #[test]
+    fn v07c_public_source_uses_verified_directory_not_replaced_ancestor() {
+        let temp = tempfile::tempdir().unwrap();
+        let source_dir = temp.path().join("branch/source");
+        let external = temp.path().join("external/source");
+        std::fs::create_dir_all(&source_dir).unwrap();
+        std::fs::create_dir_all(&external).unwrap();
+        std::fs::write(source_dir.join("opencode.json"), "{}").unwrap();
+        std::fs::write(source_dir.join("key"), "inside").unwrap();
+        std::fs::write(external.join("key"), "EXTERNAL_V07C_SECRET_734a").unwrap();
+        let source = source_dir
+            .join("opencode.json")
+            .to_string_lossy()
+            .into_owned();
+        assert_eq!(
+            substitute("{file:key}", &source, true, &env(&[])).unwrap(),
+            "inside"
+        );
+        std::fs::rename(temp.path().join("branch"), temp.path().join("old")).unwrap();
+        std::os::unix::fs::symlink(temp.path().join("external"), temp.path().join("branch"))
+            .unwrap();
+        let error = substitute("{file:key}", &source, true, &env(&[])).unwrap_err();
+        assert!(matches!(error, ConfigError::Untrusted { .. }));
+        assert!(!error.to_string().contains("EXTERNAL_V07C_SECRET_734a"));
+        let error = assemble(
+            &[src(
+                &source,
+                r#"{"provider":{"fixture":{"options":{"apiKey":"{file:key}"}}}}"#,
+                true,
+            )],
+            &env(&[]),
+            None,
+        )
+        .expect_err("public assembler has the same explicit policy");
+        assert!(matches!(error, ConfigError::Untrusted { .. }));
     }
 
     #[test]

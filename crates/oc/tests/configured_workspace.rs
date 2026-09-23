@@ -720,6 +720,37 @@ fn v07a_binary_explicit_global_and_nested_local_jsonc_are_loaded() {
 }
 
 #[test]
+fn v07c_binary_nested_file_reference_no_follow_and_global_allowed() {
+    let fixture = Fixture::new();
+    let external = fixture.home.join("external-secret");
+    write(&external.join("key"), "EXTERNAL_V07C_SECRET_734a");
+    write(&fixture.global.join("nested/key"), "admitted-global-key");
+    let mut config = fixture.base_config();
+    config["provider"]["fixture"]["options"]["apiKey"] = json!("{file:nested/key}");
+    write(&fixture.global.join("opencode.json"), &config.to_string());
+    let mut process = fixture.spawn(&fixture.project_a, "v07c-global", "hello", "v07c-global");
+    let (mut socket, request) = fixture.accept(&mut process);
+    assert_eq!(request["model"], MODEL);
+    respond_text(&mut socket, "admitted");
+    fixture.respond_title(&mut process);
+    assert!(process.wait().success(), "{}", process.diagnostics());
+    assert_eq!(process.output().trim(), "admitted");
+
+    fs::rename(
+        fixture.global.join("nested"),
+        fixture.global.join("old-nested"),
+    )
+    .unwrap();
+    symlink(&external, fixture.global.join("nested")).unwrap();
+    let mut process = fixture.spawn(&fixture.project_a, "v07c-link", "hello", "v07c-link");
+    assert!(!fixture.wait_for_preflight_failure(&mut process).success());
+    let error = process.diagnostics();
+    assert!(!error.contains("EXTERNAL_V07C_SECRET_734a"), "{error}");
+    fixture.assert_no_request();
+    fixture.assert_no_loader_execution();
+}
+
+#[test]
 fn v07a_binary_external_definition_subdirectories_never_reach_provider() {
     let fixture = Fixture::new();
     fixture.write_base_config(json!({"permissions": {"skill": "allow"}}));
