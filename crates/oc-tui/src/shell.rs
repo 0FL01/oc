@@ -158,8 +158,14 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     let theme = Theme::dark();
     let area = frame.area();
     // Upstream paints the whole frame with `background.base` (`app.tsx:1310-1314`).
+    // Its blank canvas cells carry truecolor white, not the terminal's default
+    // foreground (which resolves differently under the shared PTY profile).
     frame.render_widget(
-        Block::default().style(Style::default().bg(theme.background())),
+        Block::default().style(
+            Style::default()
+                .fg(ratatui::style::Color::Rgb(255, 255, 255))
+                .bg(theme.background()),
+        ),
         area,
     );
     let mut regions = layout::configured_shell_regions(
@@ -246,7 +252,10 @@ fn tab_line(theme: &Theme, available: u16, title: Option<&str>) -> Line<'static>
         Span::styled(" 1 ", Style::default().fg(number).bg(tab_bg)),
         Span::styled(
             title.to_string(),
-            Style::default().fg(theme.text()).bg(tab_bg),
+            Style::default()
+                .fg(theme.text())
+                .bg(tab_bg)
+                .add_modifier(Modifier::BOLD),
         ),
     ];
     let used = 3 + title.chars().count() as u16;
@@ -1013,6 +1022,7 @@ mod tests {
         AgentEntry, CatalogSnapshot, HistoryMessage, HistoryPage, ModelEntry, VariantEntry,
     };
     use oc_core::session::Role;
+    use ratatui::{Terminal, backend::TestBackend, style::Color};
 
     fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
         HistoryMessage {
@@ -1085,6 +1095,43 @@ mod tests {
             msg(2, Role::Assistant, "hi there"),
         ]));
         state
+    }
+
+    #[tokio::test]
+    async fn root_canvas_blanks_have_upstream_truecolor_foreground() {
+        let mut state = golden_state().await;
+        state.chrome.devtools = Some(false);
+        state.chrome.sidebar_hidden = true;
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        for home in [true, false] {
+            state.home = home;
+            terminal.draw(|frame| render(frame, &state)).unwrap();
+            let buffer = terminal.backend().buffer();
+            let blank = if home { (0, 0) } else { (0, 15) };
+            assert_eq!(buffer[blank].symbol(), " ");
+            assert_eq!(buffer[blank].bg, Theme::dark().background());
+            assert_eq!(buffer[blank].fg, Color::Rgb(255, 255, 255));
+            if !home {
+                let user_border = buffer
+                    .content
+                    .iter()
+                    .find(|cell| cell.symbol() == "┃")
+                    .expect("user border");
+                assert_ne!(user_border.fg, Color::Rgb(255, 255, 255));
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn selected_session_tab_title_is_bold() {
+        let state = golden_state().await;
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(3, 0)].symbol(), "U");
+        assert_eq!(buffer[(3, 0)].fg, Theme::dark().text());
+        assert!(buffer[(3, 0)].modifier.contains(Modifier::BOLD));
+        assert!(!buffer[(1, 0)].modifier.contains(Modifier::BOLD));
     }
 
     #[tokio::test]
