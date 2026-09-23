@@ -7,7 +7,7 @@
 
 use std::path::Path;
 use std::process::ExitCode;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crossterm::event::{self, Event as CEvent, MouseEventKind};
 use ratatui::Terminal;
@@ -35,6 +35,13 @@ const PANIC_PROBE_ENV: &str = "OC_TUI_TEST_PANIC";
 /// document on exit so PTY tests can assert retained-state bounds. Never set
 /// in normal use.
 const METRICS_ENV: &str = "OC_TUI_TEST_METRICS";
+
+#[derive(Default)]
+struct FrameMetrics {
+    count: u64,
+    sum_ns: u128,
+    max_ns: u128,
+}
 
 /// Max key events drained per frame (paste bursts stay fast; a flooding
 /// input still yields to the worker drain below each frame).
@@ -125,12 +132,20 @@ async fn drive_ui(app: &CoreApp, session: SessionId, home: bool) -> Result<u8, S
     };
     let mut rx = app.subscribe();
     let mut loop_state = LoopState::default();
+    let mut frame_metrics = std::env::var_os(METRICS_ENV).map(|_| FrameMetrics::default());
 
     loop {
         state.poll_submission();
+        let draw_start = frame_metrics.as_ref().map(|_| Instant::now());
         terminal
             .draw(|frame| render_frame(frame, &state))
             .map_err(|e| format!("draw: {e}"))?;
+        if let (Some(metrics), Some(start)) = (&mut frame_metrics, draw_start) {
+            let elapsed = start.elapsed().as_nanos();
+            metrics.count += 1;
+            metrics.sum_ns += elapsed;
+            metrics.max_ns = metrics.max_ns.max(elapsed);
+        }
         if *state.status() == TuiStatus::Quit {
             break;
         }
@@ -171,7 +186,7 @@ async fn drive_ui(app: &CoreApp, session: SessionId, home: bool) -> Result<u8, S
             loop_state.dcp_seen = false;
         }
     }
-    write_metrics(&state);
+    write_metrics(&state, frame_metrics.as_ref());
     drop(_term);
     Ok(0)
 }
@@ -679,7 +694,7 @@ async fn report_compress_outcome(
 }
 
 /// Bounded view metrics for PTY qualification (opt-in, never in normal use).
-fn write_metrics(state: &TuiState) {
+fn write_metrics(state: &TuiState, frames: Option<&FrameMetrics>) {
     let Some(path) = std::env::var_os(METRICS_ENV) else {
         return;
     };
@@ -690,6 +705,9 @@ fn write_metrics(state: &TuiState) {
         "window_total": state.history().total(),
         "panel": format!("{:?}", state.panel()),
         "status": format!("{:?}", state.status()),
+        "frame_count": frames.map_or(0, |frames| frames.count),
+        "frame_sum_ns": frames.map_or(0, |frames| frames.sum_ns),
+        "frame_max_ns": frames.map_or(0, |frames| frames.max_ns),
     });
     let _ = std::fs::write(path, metrics.to_string());
 }

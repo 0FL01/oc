@@ -2812,3 +2812,271 @@ fn aud31_pty_bounded_backing_state() {
         "switch landed on the next session"
     );
 }
+
+/// S07: identical current transcript tails under the same PTY workload, with
+/// an empty versus a 3000-row older archive. These are process measurements,
+/// not estimates derived from the view-model's retained-bytes accounting.
+#[test]
+fn s07_pty_equal_view_archive_resource_samples() {
+    let small = measure_s07(0);
+    let large = measure_s07(3000);
+    assert_eq!(small.viewport, large.viewport, "active transcript differs");
+    assert_eq!(
+        small.after_viewport, large.after_viewport,
+        "recovered viewport differs"
+    );
+    for (label, run) in [("small", &small), ("large", &large)] {
+        assert_eq!(
+            run.viewport, run.after_viewport,
+            "{label}: viewport not restored"
+        );
+        let metrics = &run.metrics;
+        let rows = metrics["window_rows"].as_u64().expect("window rows");
+        let bytes = metrics["retained_bytes"].as_u64().expect("retained bytes");
+        assert!(
+            rows <= oc_tui::history::WINDOW_ROWS as u64,
+            "{label}: {rows}"
+        );
+        assert!(
+            bytes <= (oc_tui::history::WINDOW_BYTES + oc_tui::app::MAX_INPUT_BYTES) as u64,
+            "{label}: {bytes}"
+        );
+        assert_eq!(metrics["window_total"].as_u64(), Some(200 + run.archive));
+        let frames = metrics["frame_count"].as_u64().expect("frames");
+        let sum = metrics["frame_sum_ns"].as_u64().expect("draw sum");
+        let max = metrics["frame_max_ns"].as_u64().expect("draw max");
+        assert!(frames > 0 && sum >= max && max > 0);
+        println!(
+            "S07 {label}: archive={} rss_kb={} pss_kb={} hwm_kb={} cpu_ticks={} child_max={} retained_bytes={} window_rows={} frames={} draw_sum_ns={} draw_max_ns={} elapsed_ms={}",
+            run.archive,
+            run.peak_rss_kb,
+            run.peak_pss_kb,
+            run.peak_hwm_kb,
+            run.cpu_ticks,
+            run.max_children,
+            bytes,
+            rows,
+            frames,
+            sum,
+            max,
+            run.elapsed.as_millis()
+        );
+    }
+}
+
+struct S07Run {
+    archive: u64,
+    viewport: Vec<String>,
+    after_viewport: Vec<String>,
+    peak_rss_kb: u64,
+    peak_pss_kb: u64,
+    peak_hwm_kb: u64,
+    cpu_ticks: u64,
+    max_children: usize,
+    elapsed: Duration,
+    metrics: serde_json::Value,
+}
+
+#[derive(Clone, Copy)]
+struct ProcSample {
+    rss_kb: u64,
+    pss_kb: u64,
+    hwm_kb: u64,
+    cpu_ticks: u64,
+    children: usize,
+}
+
+fn s07_proc_sample(pid: u32) -> ProcSample {
+    let status = std::fs::read_to_string(format!("/proc/{pid}/status")).expect("child status");
+    let kb = |name: &str| -> u64 {
+        status
+            .lines()
+            .find_map(|line| line.strip_prefix(name))
+            .expect("status field")
+            .split_whitespace()
+            .next()
+            .expect("kilobytes")
+            .parse()
+            .expect("numeric kilobytes")
+    };
+    let rollup =
+        std::fs::read_to_string(format!("/proc/{pid}/smaps_rollup")).expect("child smaps_rollup");
+    let pss_kb = rollup
+        .lines()
+        .find_map(|line| line.strip_prefix("Pss:"))
+        .expect("Pss")
+        .split_whitespace()
+        .next()
+        .expect("Pss kB")
+        .parse()
+        .expect("numeric Pss");
+    let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).expect("child stat");
+    // comm is parenthesized and may contain spaces; fields after it start at
+    // field 3 (state). utime/stime are fields 14/15.
+    let (_, fields) = stat.rsplit_once(") ").expect("stat comm");
+    let fields: Vec<&str> = fields.split_whitespace().collect();
+    let cpu_ticks =
+        fields[11].parse::<u64>().expect("utime") + fields[12].parse::<u64>().expect("stime");
+    let children =
+        std::fs::read_to_string(format!("/proc/{pid}/task/{pid}/children")).expect("child list");
+    ProcSample {
+        rss_kb: kb("VmRSS:"),
+        hwm_kb: kb("VmHWM:"),
+        pss_kb,
+        cpu_ticks,
+        children: children.split_whitespace().count(),
+    }
+}
+
+fn s07_visible_tail(pty: &PtySession) -> Vec<String> {
+    render_screen(&pty.snapshot())
+        .rows()
+        .into_iter()
+        .filter(|row| row.contains("shared tail"))
+        .collect()
+}
+
+fn measure_s07(archive: usize) -> S07Run {
+    let fixture = Fixture::new();
+    let data_dir = fixture.data_dir();
+    let project = fixture.root.path().join("project");
+    let session = "s-s07";
+    seed_session(&data_dir, &project, session, archive);
+    let db = oc_adapters::storage::Db::open(&data_dir).expect("db");
+    for i in 0..200 {
+        let role = if (archive + i).is_multiple_of(2) {
+            "user"
+        } else {
+            "assistant"
+        };
+        db.append_message(session, role, &format!("shared tail {i:02} payload"))
+            .expect("shared tail");
+    }
+    let large_output = "s07-result-line-0123456789\n".repeat(5_000);
+    db.record_tool_intent(
+        "s07-large-output",
+        session,
+        None,
+        "bash",
+        r#"{"argv":["/bin/true"]}"#,
+    )
+    .expect("large tool intent");
+    db.record_tool_outcome("s07-large-output", "completed", Some(&large_output))
+        .expect("large tool result");
+    drop(db);
+    let path = fixture.root.path().join("s07-metrics.json");
+    let mut pty = PtySession::spawn(fixture.clone(), session, Some(&path));
+    pty.wait_visible(READY, DEADLINE);
+    let off = pty.snapshot().len();
+    pty.resize(120, 40);
+    pty.wait_visible_after(off, "shared tail", DEADLINE);
+    wait_screen_row(&pty, "shared tail 199", DEADLINE);
+    let viewport = s07_visible_tail(&pty);
+    assert!(!viewport.is_empty(), "no current tail visible");
+    let pid = pty.child.id();
+    let start = Instant::now();
+    let baseline = s07_proc_sample(pid);
+    let mut peak_rss_kb = baseline.rss_kb;
+    let mut peak_pss_kb = baseline.pss_kb;
+    let mut peak_hwm_kb = baseline.hwm_kb;
+    let mut max_children = baseline.children;
+    let mut sample = || {
+        let now = s07_proc_sample(pid);
+        peak_rss_kb = peak_rss_kb.max(now.rss_kb);
+        peak_pss_kb = peak_pss_kb.max(now.pss_kb);
+        peak_hwm_kb = peak_hwm_kb.max(now.hwm_kb);
+        max_children = max_children.max(now.children);
+        now
+    };
+    // Scroll away and repin, resize twice, then open and search a dialog.
+    // The same events and geometry are used in both independent processes.
+    pty.send(b"\x1b[<64;1;1M");
+    wait_screen_row(&pty, "Jump to latest", DEADLINE);
+    sample();
+    pty.send(b"\x1b[<65;1;1M");
+    let began = Instant::now();
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|row| row.contains("Jump to latest"))
+    {
+        assert!(began.elapsed() < DEADLINE, "scroll did not repin");
+        std::thread::sleep(POLL);
+    }
+    sample();
+    let off = pty.snapshot().len();
+    pty.resize(100, 30);
+    pty.wait_visible_after(off, "shared tail", DEADLINE);
+    sample();
+    let off = pty.snapshot().len();
+    pty.resize(120, 40);
+    pty.wait_visible_after(off, "shared tail", DEADLINE);
+    sample();
+    // A single real bracketed paste is an editor action, not 160 Enter
+    // submissions. Delete its compact chip before restoring the same view.
+    let paste = (0..160)
+        .map(|i| format!("multiline-{i:03}-resource-probe"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    pty.send(format!("\x1b[200~{paste}\x1b[201~").as_bytes());
+    wait_screen_row(&pty, "[Pasted ~160 lines]", DEADLINE);
+    sample();
+    pty.send(b"\x7f");
+    let began = Instant::now();
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|row| row.contains("[Pasted ~160 lines]"))
+    {
+        assert!(began.elapsed() < DEADLINE, "paste chip was not deleted");
+        std::thread::sleep(POLL);
+    }
+    assert!(fixture.requests.lock().unwrap().is_empty());
+    pty.send(b"/cards\r");
+    wait_screen_row(&pty, "cards | newest first", DEADLINE);
+    wait_screen_row(&pty, "bash completed", DEADLINE);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "operation s07-large-output", DEADLINE);
+    wait_screen_row(&pty, "enter next page", DEADLINE);
+    sample();
+    pty.send(b"\r");
+    wait_screen_row(&pty, "bytes", DEADLINE);
+    sample();
+    pty.send(b"\x1b");
+    wait_screen_row(&pty, "cards | newest first", DEADLINE);
+    pty.send(b"\x1b");
+    dismissed(&pty, "cards | newest first");
+    pty.send(b"\x10");
+    wait_screen_row(&pty, "Commands", DEADLINE);
+    pty.send(b"s07-no-match");
+    wait_screen_row(&pty, "No results found", DEADLINE);
+    sample();
+    pty.send(b"\x1b");
+    dismissed(&pty, "Commands");
+    let after_viewport = s07_visible_tail(&pty);
+    assert!(!after_viewport.is_empty(), "no tail after dialog");
+    let end = sample();
+    pty.send(b"/quit\r");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    let elapsed = start.elapsed();
+    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+    assert!(
+        !Path::new(&format!("/proc/{pid}")).exists(),
+        "child not reaped"
+    );
+    assert_eq!(max_children, 0, "unexpected child processes");
+    let metrics: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(path).expect("metrics file")).expect("metrics JSON");
+    S07Run {
+        archive: archive as u64,
+        viewport,
+        after_viewport,
+        peak_rss_kb,
+        peak_pss_kb,
+        peak_hwm_kb,
+        cpu_ticks: end.cpu_ticks.saturating_sub(baseline.cpu_ticks),
+        max_children,
+        elapsed,
+        metrics,
+    }
+}
