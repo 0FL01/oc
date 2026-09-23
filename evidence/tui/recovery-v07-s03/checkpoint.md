@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-23T09:15:32+00:00
-Active: T44
-
-Сверить Git status/diff до выполнения команд.
-Task: T44 — TUI pixel parity с opencode v2.0.12
-Spec: docs/goals/2026-09-21-tui-pixel-parity.md
-Evidence target: evidence/T44/report.md
-
-Полностью воспроизвести интерфейс upstream opencode v2.0.12 в crates/oc-tui: тема/палитра, геометрия layout, рендер сообщений (markdown/reasoning/tool cards/diff), keymap и диалоги; golden-снапшоты PTY на фиксированных размерах. Recon-артефакты evidence/tui/*, коммит+push каждого среза.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 # T44 S03 focused PTY qualification and owner pause
 
 ## Result
@@ -29,9 +15,3 @@ Exact owner shell/catalog status 401 versus 403 and effective identity remain un
 ## Next
 
 Keep T44 active but paused at the owner's instruction, with no new implementation slices until resumed. Compare same-shell status-only catalog GET with freshly built release's typed category, without exporting, logging or copying credentials outside the user's process. Apply the branch-specific plan in `owner-catalog-recon.md`; then continue remaining V07 and V08–V09 only when pause is lifted.
-
-
-Ready (до 5): T45, T46, T47
-Blocked: T27, T43
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

@@ -914,6 +914,95 @@ fn wait_cursor(pty: &PtySession, wanted: (usize, usize)) {
     }
 }
 
+/// V07 S03: terminal bytes, focused dialogs, editor and actual Responses wire.
+#[test]
+fn v07_raw_modifiers_release_and_modal_interrupt_keep_exact_draft() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "v07-keys", None);
+    pty.wait_visible(READY, DEADLINE);
+    pty.send(b"v07-");
+    wait_screen_row(&pty, "v07-", DEADLINE);
+
+    pty.send(b"\x10"); // raw Ctrl+P: opens the palette, never inserts 'p'
+    wait_screen_row(&pty, "Commands", DEADLINE);
+    pty.send(b"\x1b[112;5:3u"); // CSI-u release of Ctrl+P
+    pty.send(b"\x1b");
+    dismissed(&pty, "Commands");
+    assert!(
+        pty.child.try_wait().unwrap().is_none(),
+        "Esc only closes modal"
+    );
+    wait_screen_row(&pty, "v07-", DEADLINE);
+
+    pty.send(b"\x1b[122;3u"); // CSI-u Alt+z is not plain 'z'
+    pty.send(b"\x1bz"); // legacy ESC-prefix Alt+z is not plain 'z'
+    pty.send(b"\x1b[120;1:3u"); // release of 'x' must not insert text
+    pty.send(b"draft");
+    wait_screen_row(&pty, "v07-draft", DEADLINE);
+    pty.send(b"\x1b[13;2u"); // Shift+Enter inserts a newline, not a turn
+    pty.send(b"\x1b[13;1:3u"); // release of Enter must not submit
+    pty.send(b"line-two");
+    wait_screen_row(&pty, "line-two", DEADLINE);
+    assert!(fixture.requests.lock().unwrap().is_empty());
+
+    pty.send(b"\x10"); // dialog owns focus, editor draft remains unchanged
+    wait_screen_row(&pty, "Commands", DEADLINE);
+    pty.send(b"v07-no-match");
+    wait_screen_row(&pty, "No results found", DEADLINE);
+    pty.send(b"\x03"); // Ctrl+C clears the focused dialog search
+    dismissed(&pty, "No results found");
+    wait_screen_row(&pty, "Commands", DEADLINE);
+    assert!(pty.child.try_wait().unwrap().is_none());
+    pty.send(b"\x03"); // empty dialog search: Ctrl+C closes dialog
+    dismissed(&pty, "Commands");
+    assert!(pty.child.try_wait().unwrap().is_none());
+    wait_screen_row(&pty, "v07-draft", DEADLINE);
+    assert!(fixture.requests.lock().unwrap().is_empty());
+
+    pty.send(b"\r");
+    let requests = fixture.wait_requests(1);
+    assert_eq!(
+        last_user_text(&requests[0]).as_deref(),
+        Some("v07-draft\nline-two")
+    );
+    wait_idle(&pty);
+    pty.send(b"\x1b[13;1:3u"); // release after a completed turn stays inert
+    pty.send(b"unsent"); // barrier: input after release has reached the editor
+    wait_screen_row(&pty, "unsent", DEADLINE);
+    assert_eq!(
+        fixture
+            .requests
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|r| !title::is_title(r))
+            .count(),
+        1,
+        "release must not start another provider request"
+    );
+    pty.send(b"\x03"); // Ctrl+C in editor exits without submitting the draft
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+    assert_eq!(
+        fixture
+            .requests
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|r| !title::is_title(r))
+            .count(),
+        1
+    );
+    assert_eq!(
+        persisted(pty.data_dir(), "v07-keys")
+            .iter()
+            .filter(|(role, _)| role == "user")
+            .map(|(_, text)| text.as_str())
+            .collect::<Vec<_>>(),
+        vec!["v07-draft\nline-two"]
+    );
+}
+
 #[test]
 fn v05_raw_unicode_multiline_focus_and_one_durable_submit() {
     let fixture = Fixture::new();
