@@ -1742,54 +1742,35 @@ impl<'a> Runtime<'a> {
                 return Ok(report);
             }
             let stream_started = std::time::Instant::now();
-            let mut observer = |item: &crate::provider::StreamItem| match item {
-                crate::provider::StreamItem::TextDelta(delta) => text_delta(&turn_id, delta),
-                crate::provider::StreamItem::ReasoningDelta(delta) => {
-                    if let Some(last) = turn_log.display_parts.last_mut()
-                        && let Some(text) = last.get("reasoning").and_then(|v| v.as_str())
-                    {
-                        let mut text = text.to_string();
-                        if text.len() + delta.len() > 16 * 1024 {
-                            last["truncated"] = true.into();
+            let generation = match crate::provider::stream_input_observed(
+                &params.provider,
+                &selection.id,
+                selection.variant.as_ref(),
+                &input,
+                &tool_defs,
+                budget.output,
+                params.cancel,
+                &mut |item| match item {
+                    crate::provider::StreamItem::TextDelta(delta) => text_delta(&turn_id, delta),
+                    crate::provider::StreamItem::ReasoningDelta(delta) => {
+                        if let Some(last) = turn_log.display_parts.last_mut()
+                            && let Some(text) = last.get("reasoning").and_then(|v| v.as_str())
+                        {
+                            let mut text = text.to_string();
+                            if text.len() + delta.len() > 16 * 1024 { last["truncated"] = true.into(); }
+                            if text.len() < 16 * 1024 { text.push_str(delta); }
+                            last["reasoning"] = truncate(&text, 16 * 1024).into();
+                            last["duration_ms"] = streamed_ms(stream_started.elapsed()).into();
+                        } else {
+                            turn_log.display_parts.push(serde_json::json!({"reasoning":truncate(delta, 16 * 1024), "duration_ms":streamed_ms(stream_started.elapsed()), "truncated":delta.len()>16*1024}));
                         }
-                        if text.len() < 16 * 1024 {
-                            text.push_str(delta);
-                        }
-                        last["reasoning"] = truncate(&text, 16 * 1024).into();
-                        last["duration_ms"] = streamed_ms(stream_started.elapsed()).into();
-                    } else {
-                        turn_log.display_parts.push(serde_json::json!({"reasoning":truncate(delta, 16 * 1024), "duration_ms":streamed_ms(stream_started.elapsed()), "truncated":delta.len()>16*1024}));
+                        reasoning_delta(&turn_id, delta);
                     }
-                    reasoning_delta(&turn_id, delta);
-                }
-                _ => {}
-            };
-            let generated = if params.catalog.provider == "opencode" {
-                crate::zen_chat::stream_free_input_observed(
-                    &params.provider,
-                    &selection.id,
-                    &params.session,
-                    &input,
-                    &tool_defs,
-                    budget.output,
-                    params.cancel,
-                    &mut observer,
-                )
-                .await
-            } else {
-                crate::provider::stream_input_observed(
-                    &params.provider,
-                    &selection.id,
-                    selection.variant.as_ref(),
-                    &input,
-                    &tool_defs,
-                    budget.output,
-                    params.cancel,
-                    &mut observer,
-                )
-                .await
-            };
-            let generation = match generated {
+                    _ => {}
+                },
+            )
+            .await
+            {
                 Ok(generation) => {
                     streamed += stream_started.elapsed();
                     generation

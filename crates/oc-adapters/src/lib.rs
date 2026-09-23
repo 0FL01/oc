@@ -29,8 +29,6 @@ pub mod tools;
 pub mod trace;
 pub mod tui_workspace;
 pub mod webfetch;
-pub mod zen_catalog;
-pub mod zen_chat;
 
 /// Outbound `User-Agent` for the native HTTP clients (`oc/<version>`).
 ///

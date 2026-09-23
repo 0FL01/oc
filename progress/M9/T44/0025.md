@@ -1,12 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-23T13:32:45+00:00
-Active: нет
-
-Сверить Git status/diff до выполнения команд.
-
-Последний срез: T44 [blocked]; сверить незакоммиченный diff.
-
 # Zen removed from the product (owner decision)
 
 ## Result
@@ -24,11 +15,3 @@ The removed code was self-contained and is restored from Git history if needed. 
 ## Next
 
 Resume the pre-existing backlog: T44 (owner-paused pixel parity) and the ready backend tasks T45–T47. Any future real-provider work (paid Zen key, OpenCode Go, local OpenAI-compatible server) starts as a new, separately approved scope with its own acceptance IDs.
-
-
-Следующий шаг: проверить зависимости и начать первую ready-задачу.
-
-Ready (до 5): T45, T46, T47
-Blocked: T27, T43, T44
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

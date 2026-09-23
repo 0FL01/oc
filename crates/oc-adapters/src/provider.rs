@@ -96,12 +96,6 @@ pub enum ProviderError {
     /// Malformed UTF-8 is never silently replaced.
     #[error("invalid UTF-8 in stream")]
     InvalidUtf8,
-    /// Zen Free eligibility could not be verified immediately before a send.
-    #[error("Zen Free eligibility could not be verified; generation not sent")]
-    ZenFreeUnverified,
-    /// The explicitly enabled live smoke campaign reached its durable limit.
-    #[error("Zen Free live smoke campaign limit reached; generation not sent")]
-    ZenCampaignExhausted,
 }
 
 /// Responses message role, independent of UI event kinds.
