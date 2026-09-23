@@ -1,0 +1,118 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--exploration-click",
+      "true",
+      "--agent-profile",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-profile-01"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "9d1b9881f53da0aa945a03f20f921cecbdbba43c\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "91fd648b3df70fc1f3b0667186ad1991afc9a112\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/scripts/tui_capture/README.md b/scripts/tui_capture/README.md\nindex 4b9916e..6375b7d 100644\n--- a/scripts/tui_capture/README.md\n+++ b/scripts/tui_capture/README.md\n@@ -68,6 +68,18 @@ exit `2` denotes a runner blocker. Neither is parity success.\n   the actual bytes up to capture, `raw.vt` the full run. `protocol.json`,\n   `inputs.json`, `commands.json`, and `capture.lock.json` preserve provenance.\n \n+For a diagnostic pair with the **same configured primary profile**, add\n+`--agent-profile true`. Both isolated configs then select `paired-reader`,\n+with the same fixture-only system instruction and the pinned dark-blue\n+`#5c9cf5` color (native categorical slot zero). The bridge refuses a\n+transcript request unless the configured instruction is really present in\n+the Responses request; the runner also checks that the selected ID appears\n+in the Home prompt. This opt-in does not change the ordinary absent-agent\n+fixture, and does not establish general permission-policy parity: original\n+and native schemas/effective defaults differ outside this exercised read.\n+Original schema: `packages/schema/src/config.ts:35-58` and\n+`config/agent.ts:9-21`; native definitions: `crates/oc-adapters/src/defs.rs`.\n+\n The common environment ID is SHA-256 of recursively key-sorted JSON profile;\n it excludes executable identity. Fixture hash covers hashes of the entire\n supplied fixture directory plus bridge source (including both config adapters\ndiff --git a/scripts/tui_capture/bridge.py b/scripts/tui_capture/bridge.py\nindex b021d6c..a476a3e 100644\n--- a/scripts/tui_capture/bridge.py\n+++ b/scripts/tui_capture/bridge.py\n@@ -27,6 +27,8 @@ spec = json.loads(Path(sys.argv[1]).read_text())\n root = Path(spec['isolated_root'])\n fixture = Path(spec['fixture'])\n prompt = (fixture / 'input.txt').read_text().strip()\n+profile_id = 'paired-reader' if spec.get('agent_profile') else None\n+profile_prompt = 'You are the isolated T44 paired reader.' if profile_id else None\n answer = (fixture / 'transcript.md').read_text().strip()\n if spec.get('sample') == 'short':\n     answer = 'GEOMETRY-SHORT: one short answer.'\n@@ -62,6 +64,9 @@ class Provider(BaseHTTPRequestHandler):\n                 transcript_round += 1\n         text = title if is_title else answer\n         valid = valid and (is_title or prompt in serialized)\n+        profile_prompt_present = profile_prompt is not None and profile_prompt in system\n+        if profile_id and not is_title:\n+            valid = valid and profile_prompt_present\n         tool_results = [x for x in body.get('input', []) if x.get('type') == 'function_call_output']\n         if spec.get('sample') == 'tools' and not is_title:\n             valid = valid and 'read' in [x.get('name') for x in body.get('tools', [])]\n@@ -69,8 +74,9 @@ class Provider(BaseHTTPRequestHandler):\n                 calls = [x for x in tool_results if x.get('call_id') == 'call_fixture_read']\n                 valid = valid and len(calls) == 1 and 'fixture-content' in str(calls[0].get('output', ''))\n         record = {'kind': 'provider', 'path': self.path, 'model': body.get('model'),\n-                  'stream': body.get('stream'), 'prompt_present': prompt in serialized,\n-                  'operation': 'title' if is_title else 'transcript', 'valid': valid,\n+                   'stream': body.get('stream'), 'prompt_present': prompt in serialized,\n+                   'profile_prompt_present': profile_prompt_present,\n+                   'operation': 'title' if is_title else 'transcript', 'valid': valid,\n                   'request_sha256': hashlib.sha256(serialized.encode()).hexdigest(),\n                    'registered_tools': [x.get('name') for x in body.get('tools', [])],\n                    'tool_result_count': len(tool_results),\n@@ -167,7 +173,14 @@ if spec['origin'] == 'upstream':\n     config = {'model': 'fixture/fixture-model-1', 'share': 'disabled', 'update': 'disable',\n               'plugins': ['-opencode.models.dev'],\n               'providers': {'fixture': {'name': catalog['provider']['name'],\n-              'package': '@opencode/ai/providers/openai/responses', 'settings': settings, 'models': models}}}\n+               'package': '@opencode/ai/providers/openai/responses', 'settings': settings, 'models': models}}}\n+    if profile_id:\n+        # v2.0.12 schema/config.ts and schema/config/agent.ts: actual custom\n+        # primary profile, not a painted Build label. The color is the pinned\n+        # dark opencode categorical[0] hue.blue.200.\n+        config['default_agent'] = profile_id\n+        config['agents'] = {profile_id: {'mode': 'primary', 'system': profile_prompt,\n+                                         'color': '#5c9cf5'}}\n     cli_config = {'theme': {'name': 'opencode', 'mode': 'dark'}, 'animations': False,\n                    'session': {'sidebar': spec.get('sidebar', 'auto'), 'tps': False},\n                    'tabs': {'layout': spec.get('tabs', 'horizontal')},\n@@ -178,6 +191,10 @@ else:\n     config = {'model': 'fixture/fixture-model-1', 'provider': {'fixture': {\n         'name': catalog['provider']['name'], 'npm': '@ai-sdk/openai', 'options': settings, 'models': models}},\n         'permissions': {'read': 'allow'}}\n+    if profile_id:\n+        # Native inline definitions use singular `agent` and `prompt`.\n+        config['default_agent'] = profile_id\n+        config['agent'] = {profile_id: {'mode': 'primary', 'prompt': profile_prompt}}\n     argv = [spec['binary'], 'tui']\n     cli_config = {\n         'session': {'sidebar': spec.get('sidebar', 'auto')},\ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex b53f7c2..670ddb4 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -107,6 +107,7 @@ try {\n     const spec = {binary, origin, columns: profile.columns, rows: profile.rows, isolated_root: isolated, fixture,\n       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,\n       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',\n+      agent_profile: args['agent-profile'] === 'true',\n       seed_root: args['seed-root'], session: args.session};\n     fs.writeFileSync(path.join(dir,'bridge-spec.json'), JSON.stringify(spec, null, 2));\n     lock[origin] = {...lock[origin], executable_path: binary, executable_sha256: hash};\n@@ -188,6 +189,8 @@ try {\n         continue;\n       }\n       const initial = await waitFor(f => /Build|Untitled session|MiMo-V2.6-Flash Free/.test(f.text), 'initial prompt');\n+      if(spec.agent_profile && !initial.text.includes('paired-reader · MiMo-V2.6-Flash Free'))\n+        throw Error('Explicit paired profile is not selected in the initial prompt');\n       if(args.geometry === 'true') await capture('home', initial, 'CAPTURED');\n       send('\\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\\x1b[201~','prompt_paste');\n       await sleep(200); send('\\r','submit');\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.26s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-profile-01/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-profile-01/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  }
+]
