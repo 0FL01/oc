@@ -372,17 +372,94 @@ pub(crate) fn transcript_with_cache(
 ) -> Vec<Line> {
     let mut out = Vec::new();
     for (index, row) in rows.iter().enumerate() {
-        out.extend(render_row(
-            row,
-            index,
-            theme,
-            width,
-            terminal_width,
-            &agent_color,
-            cache,
-        ));
+        if let Some(group) = exploration_entry(rows, index, theme) {
+            out.extend(group);
+        } else {
+            out.extend(render_row(
+                row,
+                index,
+                theme,
+                width,
+                terminal_width,
+                &agent_color,
+                cache,
+            ));
+        }
     }
     out
+}
+
+/// Upstream groups adjacent read/glob/grep parts in their first-seen order
+/// (`grouping/session.ts:67-71`, `index.tsx:1865-1929`). Only running or
+/// confirmed, untruncated results are collapsed here: until the UI supports
+/// expansion, failure/unknown/truncation details remain in the transcript.
+fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option<Vec<Line>> {
+    fn kind(row: &HistoryRow) -> Option<(&'static str, bool)> {
+        let card = row.tool.as_ref()?;
+        if row.role != "tool"
+            || !matches!(card.state.as_str(), "completed" | "started" | "running")
+            || card.output_truncated
+        {
+            return None;
+        }
+        let name = match &card.render {
+            crate::tools::ToolRender::Inline(crate::tools::InlineRender::Read { .. }) => {
+                Some("read")
+            }
+            crate::tools::ToolRender::Inline(
+                crate::tools::InlineRender::Glob { .. } | crate::tools::InlineRender::Grep { .. },
+            ) => Some("search"),
+            _ => None,
+        }?;
+        Some((name, card.state == "completed"))
+    }
+    kind(rows.get(index)?)?;
+    if index > 0 && kind(&rows[index - 1]).is_some() {
+        return Some(Vec::new());
+    }
+    let mut counts = Vec::<(&str, usize)>::new();
+    let mut completed = true;
+    for row in &rows[index..] {
+        let Some((name, done)) = kind(row) else { break };
+        completed &= done;
+        if let Some((_, count)) = counts.iter_mut().find(|(known, _)| *known == name) {
+            *count += 1;
+        } else {
+            counts.push((name, 1));
+        }
+    }
+    let label = counts
+        .into_iter()
+        .map(|(name, count)| {
+            format!(
+                "{count} {name}{}",
+                if count == 1 {
+                    ""
+                } else if name == "search" {
+                    "es"
+                } else {
+                    "s"
+                }
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    let muted = Style::default().fg(theme.text_muted());
+    Some(vec![
+        Line::plain(""),
+        Line::new(vec![
+            Span::plain(" ".repeat(MESSAGE_PADDING)),
+            Span::styled(if completed { "→" } else { "⋯" }, muted),
+            Span::plain(" "),
+            Span::styled(
+                format!(
+                    "{} — {label}",
+                    if completed { "Explored" } else { "Exploring" }
+                ),
+                muted,
+            ),
+        ]),
+    ])
 }
 
 fn render_row(
@@ -1224,7 +1301,11 @@ fn visible_transcript_indexed(
     let (height, scroll, live_row) = viewport;
     let mut total = 1usize;
     for (index, row) in rows.iter().enumerate() {
-        if row.role == "assistant" && width > 0 {
+        if let Some(group) = exploration_entry(rows, index, theme) {
+            for line in group {
+                total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
+            }
+        } else if row.role == "assistant" && width > 0 {
             visit_assistant_indexed(
                 row,
                 (index, live_row == Some(index)),
@@ -1264,7 +1345,9 @@ fn visible_transcript_indexed(
         if position >= end {
             break;
         }
-        if row.role == "assistant" && width > 0 {
+        if let Some(group) = exploration_entry(rows, index, theme) {
+            add_visible_lines(group, width, (start, end), &mut position, &mut visible);
+        } else if row.role == "assistant" && width > 0 {
             visit_assistant_indexed(
                 row,
                 (index, live_row == Some(index)),
@@ -2399,7 +2482,9 @@ impl Locale {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::history::card_from_row;
     use crate::styled;
+    use oc_core::queries::ToolOpView;
     use ratatui::buffer::Buffer;
     use ratatui::{Terminal, backend::TestBackend, widgets::Paragraph};
 
@@ -2429,6 +2514,119 @@ mod tests {
             meta: None,
             tool: None,
         }
+    }
+
+    fn exploration_tool(name: &str, state: &str, truncated: bool) -> HistoryRow {
+        let input = match name {
+            "read" => serde_json::json!({"path": "fixture-note.txt"}),
+            _ => serde_json::json!({"pattern": "*.rs"}),
+        };
+        let card = card_from_row(&ToolOpView {
+            rowid: 1,
+            op: name.to_string(),
+            name: name.to_string(),
+            state: state.to_string(),
+            input: Some(input.to_string()),
+            output: Some("fixture result".to_string()),
+            output_bytes: 14,
+            output_truncated: truncated,
+        });
+        HistoryRow {
+            seq: 3,
+            role: "tool".to_string(),
+            text: String::new(),
+            agent: Some("build".to_string()),
+            agent_color_index: None,
+            chips: Vec::new(),
+            reasoning: None,
+            meta: None,
+            tool: Some(card),
+        }
+    }
+
+    #[test]
+    fn completed_exploration_is_grouped_in_full_and_visible_transcript() {
+        // The pinned original's completed read fixture shows exactly one
+        // collapsed `→ Explored — 1 read` row (index.tsx:1865-1929).
+        let theme = Theme::dark();
+        let rows = [
+            exploration_tool("read", "completed", false),
+            exploration_tool("glob", "completed", false),
+            exploration_tool("grep", "completed", false),
+            assistant("After tools"),
+            exploration_tool("read", "completed", false),
+        ];
+        let (full, buffer) = render(&rows, 80, 12);
+        assert_eq!(full[1], "   → Explored — 1 read, 2 searches");
+        assert_eq!(full[5], "   → Explored — 1 read");
+        assert_eq!(buffer[(3, 1)].fg, theme.text_muted());
+        assert!(!full.join("\n").contains("Loaded fixture-note.txt"));
+
+        let cache = RefCell::new(MarkdownCache::default());
+        let (visible, _) = visible_transcript(
+            &rows,
+            theme,
+            80,
+            80,
+            (12, 0, None),
+            |_| theme.categorical_agents()[0],
+            &cache,
+        );
+        let visible = visible
+            .iter()
+            .map(|line| {
+                line.spans()
+                    .iter()
+                    .map(|span| span.content())
+                    .collect::<String>()
+            })
+            .collect::<Vec<_>>();
+        assert!(
+            visible
+                .iter()
+                .any(|line| line == "   → Explored — 1 read, 2 searches")
+        );
+        assert!(visible.iter().any(|line| line == "   → Explored — 1 read"));
+        assert!(
+            !visible
+                .iter()
+                .any(|line| line.contains("Loaded fixture-note.txt"))
+        );
+    }
+
+    #[test]
+    fn exploration_does_not_hide_unresolved_failed_or_truncated_results() {
+        let rows = [
+            exploration_tool("read", "completed", false),
+            exploration_tool("read", "unknown", false),
+            exploration_tool("read", "failed", false),
+            exploration_tool("read", "completed", true),
+        ];
+        let (full, _) = render(&rows, 80, 20);
+        let text = full.join("\n");
+        assert!(text.contains("→ Explored — 1 read"));
+        assert!(text.contains("[outcome unknown]"));
+        assert!(text.contains("fixture result"));
+        assert!(text.contains("[output preview truncated; full result retained]"));
+    }
+
+    #[test]
+    fn exploration_remains_running_until_every_grouped_operation_finishes() {
+        let rows = [
+            exploration_tool("read", "completed", false),
+            exploration_tool("glob", "started", false),
+        ];
+        let (live, _) = render(&rows, 80, 5);
+        assert_eq!(live[1], "   ⋯ Exploring — 1 read, 1 search");
+        let (done, _) = render(
+            &[
+                exploration_tool("read", "completed", false),
+                exploration_tool("glob", "completed", false),
+            ],
+            80,
+            5,
+        );
+        assert_eq!(done[1], "   → Explored — 1 read, 1 search");
     }
 
     /// Render the transcript into a `width x height` buffer and return the

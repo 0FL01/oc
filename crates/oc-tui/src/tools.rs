@@ -1306,7 +1306,7 @@ mod tests {
     }
 
     /// Inline tools (`message-parts.tsx:176-253`, `index.tsx:2688-2759`):
-    /// pending spinner + label, terminal labels, the `↳ Loaded` read row, and
+    /// pending spinner + label, terminal labels, the ungrouped `↳ Loaded` read row, and
     /// the generic `✓/✗ <tool> <args>` with the error text visible.
     #[test]
     fn golden_inline_tool_running_and_completed() {
@@ -1318,9 +1318,19 @@ mod tests {
             None,
         );
         let (rows, buffer) = render(&running, 60, 2);
-        assert_eq!(rows[1], "   ⋯ Reading file…");
+        assert_eq!(rows[1], "   ⋯ Exploring — 1 read");
         assert_eq!(buffer[(3, 1)].symbol(), "⋯");
-        assert_eq!(buffer[(3, 1)].fg, theme.text());
+        assert_eq!(buffer[(3, 1)].fg, theme.text_muted());
+        let individual = tool_block(&running, theme, 60)
+            .iter()
+            .map(|line| {
+                line.spans()
+                    .iter()
+                    .map(|span| span.content())
+                    .collect::<String>()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(individual, ["   ⋯ Reading file…"]);
 
         let completed = make_card(
             "read",
@@ -1329,8 +1339,22 @@ mod tests {
             Some("fn main() {}\n"),
         );
         let (rows, _) = render(&completed, 60, 3);
-        assert_eq!(rows[1], "     Read src/main.rs");
-        assert_eq!(rows[2], "     ↳ Loaded src/main.rs");
+        assert_eq!(rows[1], "   → Explored — 1 read");
+        // The individual renderer is retained for non-collapsed/tool-detail
+        // presentation; grouping changes only the transcript projection.
+        let individual = tool_block(&completed, theme, 60)
+            .iter()
+            .map(|line| {
+                line.spans()
+                    .iter()
+                    .map(|span| span.content())
+                    .collect::<String>()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            individual,
+            ["     Read src/main.rs", "     ↳ Loaded src/main.rs"]
+        );
 
         let glob = make_card(
             "glob",
@@ -1339,7 +1363,7 @@ mod tests {
             Some(r#"{"items":["a.rs","b.rs"],"pagination":{"returned":2,"truncated":false}}"#),
         );
         let (rows, _) = render(&glob, 60, 2);
-        assert_eq!(rows[1], "     Glob \"*.rs\" (2 matches)");
+        assert_eq!(rows[1], "   → Explored — 1 search");
 
         let fetch = make_card(
             "webfetch",
