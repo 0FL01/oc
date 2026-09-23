@@ -455,8 +455,10 @@ fn assert_chat_for_session<'a>(request: &'a Request, session: &str) -> &'a Value
     assert_eq!(body["stream"], true);
     assert_eq!(body["stream_options"]["include_usage"], true);
     assert!(
-        !headers.contains("authorization:"),
-        "keyless means no bearer"
+        headers
+            .to_ascii_lowercase()
+            .contains("authorization: bearer public\r\n"),
+        "keyless must send the official anonymous marker"
     );
     assert!(body.get("input").is_none(), "Chat request, not Responses");
     body
@@ -773,7 +775,7 @@ fn zen_free_binary_rechecks_price_after_tool_round_before_continuation() {
 }
 
 #[test]
-fn zen_free_binary_key_is_explicit_and_public_pseudokey_is_refused() {
+fn zen_free_binary_key_is_explicit_and_public_is_anonymous() {
     let fixture = Fixture::new();
     fixture.set_fixture_key("test-zen-credential");
     let run = fixture.run("first", "read the local note", None);
@@ -796,11 +798,18 @@ fn zen_free_binary_key_is_explicit_and_public_pseudokey_is_refused() {
 
     let fixture = Fixture::new();
     fixture.set_fixture_key("public");
-    let rejected = fixture.run("public", "do not send", None);
-    assert!(!rejected.status.success());
-    assert!(
-        rejected.requests.is_empty(),
-        "pseudokey must be refused before network"
-    );
-    assert!(!rejected.stderr.contains("Bearer public"));
+    let fixture = Fixture::new();
+    fixture.set_fixture_key("public");
+    let anonymous = fixture.run("first", "read the local note", None);
+    assert!(anonymous.status.success(), "{}", anonymous.stderr);
+    for request in anonymous.requests.iter().filter(|r| r.method == "POST") {
+        assert!(
+            request
+                .headers
+                .to_ascii_lowercase()
+                .contains("authorization: bearer public\r\n"),
+            "explicit public is the anonymous mode: {}",
+            request.headers
+        );
+    }
 }

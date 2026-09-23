@@ -10,7 +10,9 @@ Owner-approved temporary pivot while T44 remains paused. T48 does not close the 
 
 ## Setup and authority
 
-Select an exact ID from the **current** public catalogs and configure it, e.g. `"model": "opencode/<chosen-current-free-chat-id>"`; no example ID is a production allowlist. Set `"provider":{"opencode":{"npm":"@ai-sdk/openai-compatible","options":{"baseURL":"https://opencode.ai/zen/v1","apiKey":"{env:ZEN_API_KEY}"}}}` only with an authorized Zen key. For keyless access omit `apiKey` entirely; acceptance is solely the gateway's decision. The legacy `oc2` shell wrapper sources OpenProxy credentials but does not supply or guarantee Zen credentials. Zen Free is temporary and may have different privacy/data-use terms; synthetic fixture only.
+Select an exact ID from the **current** public catalogs and configure it, e.g. `"model": "opencode/<chosen-current-free-chat-id>"`; no example ID is a production allowlist. Set `"provider":{"opencode":{"npm":"@ai-sdk/openai-compatible","options":{"baseURL":"https://opencode.ai/zen/v1","apiKey":"{env:ZEN_API_KEY}"}}}` only with an authorized Zen key. Without a key (or with the literal `public`) the request is anonymous and carries the official `Authorization: Bearer public` marker, exactly as the upstream plugin does; the marker grants nothing and the gateway decides. The legacy `oc2` shell wrapper sources OpenProxy credentials but does not supply or guarantee Zen credentials. Zen Free is temporary and may have different privacy/data-use terms; synthetic fixture only.
+
+**Live status (2026-09-23, bounded probes):** the deployed gateway refuses the free tier to any non-OpenCode client with `403 FreeTierError: OpenCode's free tier can only be used from within OpenCode`, with or without the anonymous marker and with the full official header shape under our own values. Free access from `oc` would require impersonating OpenCode, which this project forbids; see `evidence/T48/free-tier-gate.md`. Real-model testing of `oc` therefore stays on OpenProxy, or on Zen with an owner-authorized real key (paid models), or OpenCode Go, which documents third-party client support.
 
 ## Task ownership
 

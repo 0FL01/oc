@@ -688,13 +688,8 @@ fn validate_provider(id: &str, entry: &ProviderEntry) -> Result<(), ConfigError>
         });
     }
     if id == "opencode" {
-        if entry.options.api_key.trim().eq_ignore_ascii_case("public") {
-            return Err(ConfigError::Invalid {
-                field: format!("provider.{id}.options.apiKey"),
-                reason: "anonymous Zen Free requires no key; public is not a credential"
-                    .to_string(),
-            });
-        }
+        // An absent key and the literal `public` are the same anonymous mode the
+        // official client uses; neither is a credential. The gateway decides.
         if entry.npm.as_deref() != Some("@ai-sdk/openai-compatible") {
             return Err(ConfigError::UnsupportedCapability {
                 field: format!("provider.{id}.npm"),

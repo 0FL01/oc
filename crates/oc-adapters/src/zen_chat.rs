@@ -194,7 +194,7 @@ fn bounded_json(value: &impl serde::Serialize) -> Result<Vec<u8>, ProviderError>
 }
 
 fn headers(config: &ResponsesConfig, session_id: &str) -> Result<HeaderMap, ProviderError> {
-    if session_id.is_empty() || config.api_key.trim().eq_ignore_ascii_case("public") {
+    if session_id.is_empty() {
         return Err(ProviderError::InvalidConfig);
     }
     let mut headers = HeaderMap::new();
@@ -224,12 +224,20 @@ fn headers(config: &ResponsesConfig, session_id: &str) -> Result<HeaderMap, Prov
         value.set_sensitive(true);
         headers.insert(name, value);
     }
-    if !config.api_key.trim().is_empty() {
-        let mut auth = HeaderValue::from_str(&format!("Bearer {}", config.api_key))
-            .map_err(|_| ProviderError::InvalidConfig)?;
-        auth.set_sensitive(true);
-        headers.insert("authorization", auth);
-    }
+    // Official-client parity: a request without a configured key is anonymous
+    // and carries the literal `public` marker the upstream plugin sets as its
+    // apiKey. It is not a credential and grants nothing by itself; the gateway
+    // decides whether anonymous/free use is allowed for this client.
+    let key = config.api_key.trim();
+    let bearer = if key.is_empty() || key.eq_ignore_ascii_case("public") {
+        "public"
+    } else {
+        key
+    };
+    let mut auth = HeaderValue::from_str(&format!("Bearer {bearer}"))
+        .map_err(|_| ProviderError::InvalidConfig)?;
+    auth.set_sensitive(true);
+    headers.insert("authorization", auth);
     let mut session =
         HeaderValue::from_str(session_id).map_err(|_| ProviderError::InvalidConfig)?;
     session.set_sensitive(true);
@@ -1124,6 +1132,35 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn keyless_and_public_use_the_official_anonymous_marker() {
+        for key in ["", "public", "PUBLIC", "  "] {
+            let (base, seen, handle) = server("200 OK", vec![("data: [DONE]\n\n".into(), 0)]).await;
+            let mut cfg = config(base);
+            cfg.api_key = key.into();
+            let _ =
+                stream_input_observed(&cfg, "model", "session", &[], &[], 10, &CANCEL, &mut |_| {})
+                    .await;
+            handle.await.unwrap();
+            let wire = String::from_utf8_lossy(&seen.lock().unwrap()).to_ascii_lowercase();
+            assert!(
+                wire.contains("authorization: bearer public\r\n"),
+                "key={key:?} must be the anonymous marker: {wire}"
+            );
+        }
+        let (base, seen, handle) = server("200 OK", vec![("data: [DONE]\n\n".into(), 0)]).await;
+        let mut cfg = config(base);
+        cfg.api_key = "oc_sk_fixture".into();
+        let _ = stream_input_observed(&cfg, "model", "session", &[], &[], 10, &CANCEL, &mut |_| {})
+            .await;
+        handle.await.unwrap();
+        let wire = String::from_utf8_lossy(&seen.lock().unwrap()).to_ascii_lowercase();
+        assert!(
+            wire.contains("authorization: bearer oc_sk_fixture\r\n"),
+            "real key must be sent: {wire}"
+        );
+    }
+
+    #[tokio::test]
     async fn statuses_cancel_and_header_spoof_refusal() {
         for (status, expected) in [
             ("401 Unauthorized", ProviderError::Unauthorized),
@@ -1162,12 +1199,6 @@ mod tests {
             Err(ProviderError::InvalidConfig)
         );
         cfg.headers.clear();
-        cfg.api_key = "public".into();
-        assert_eq!(
-            stream_input_observed(&cfg, "model", "session", &[], &[], 10, &CANCEL, &mut |_| {})
-                .await,
-            Err(ProviderError::InvalidConfig)
-        );
         cfg.api_key = "test-key".into();
         cfg.allow_private = false;
         assert_eq!(
