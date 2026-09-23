@@ -14,3 +14,15 @@
 4. Validate with an actual release PTY under the same allowed product launch profile (Home versus typed failure, exit/terminal restore, no model turn), fake HTTP regression for the established failure, then applicable Rust gates. Preserve the failed attempt and exact exit/status-only evidence. Restart T44 work only after the owner lifts the pause; remaining VIS and resource gates are unrelated and remain unverified.
 
 The exact owner 401-versus-403 result and provider-side authorization policy are not available to this process. The existing independent product-env 200 is not a fix or an explanation for the owner's failure.
+
+## Resolved by the startup trace (2026-09-23)
+
+- The owner ran `OC_STARTUP_TRACE_FINGERPRINT=1 oc2` in the failing zsh. The trace (`~/.local/state/oc/startup-trace.log`) shows configuration resolution identical to the working smoke: global root `/home/opencode/.config/opencode`, same admitted sources, selected model `ludka2/ocg/muse-spark-1.3-contributor`, provider `ludka2`, base URL `https://ludka2.bash8.de/v1`, `provider.headers configured=0`. The only difference is the effective credential: `env.ref: LUDKA2_API_KEY … fingerprint=1101b285` versus the working `54f454fc`; `LUDKA2_API_URL` matches (`73318bf7`). Result: `discovery.attempt: n=1 status=401 class=Unauthorized`.
+- Sourcing `~/.config/opencode/secrets.env` — the same file the owner's `oc` alias loads — yields `LUDKA2_API_KEY fingerprint=54f454fc` and `LUDKA2_API_URL fingerprint=73318bf7`, i.e. the working identity. Only presence and SHA-256 prefixes were computed; no credential value was read, copied, printed or stored.
+- Conclusion: the 401 is a stale credential exported in that shell session. The native binary, config precedence, discovery URL and request construction match the working environment. The durable fix is to load the credential from the same source as the `oc` alias before running the native binary.
+
+### Plan
+
+1. Immediate: in the failing shell run `set -a; source ~/.config/opencode/secrets.env; set +a` then `OC_STARTUP_TRACE_FINGERPRINT=1 oc2`; expect `provider.api_key … fingerprint=54f454fc`, `discovery.attempt … status=200`, Home and exit 0.
+2. Durable (on owner's word): add an `oc2` wrapper to `~/.zshrc` mirroring `with-opencode-secrets` but `exec`ing the native binary, so both commands share one credential source; the existing `oc` alias is untouched.
+3. After confirmation, resume T44: V07 S05/S06/S08, S07 measurements, V08–V09 paired VIS01–VIS24 and the product gates. No visual or READY claim follows from this fix.

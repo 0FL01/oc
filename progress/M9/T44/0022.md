@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-23T10:05:37+00:00
-Active: T44
-
-Сверить Git status/diff до выполнения команд.
-Task: T44 — TUI pixel parity с opencode v2.0.12
-Spec: docs/goals/2026-09-21-tui-pixel-parity.md
-Evidence target: evidence/T44/report.md
-
-Полностью воспроизвести интерфейс upstream opencode v2.0.12 в crates/oc-tui: тема/палитра, геометрия layout, рендер сообщений (markdown/reasoning/tool cards/diff), keymap и диалоги; golden-снапшоты PTY на фиксированных размерах. Recon-артефакты evidence/tui/*, коммит+push каждого среза.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 # Owner startup failure resolved from the trace
 
 ## Result
@@ -29,9 +15,3 @@ The owner's shell still holds the stale value until it re-sources the secrets fi
 ## Next
 
 Owner runs `set -a; source ~/.config/opencode/secrets.env; set +a; OC_STARTUP_TRACE_FINGERPRINT=1 oc2` and confirms `fingerprint=54f454fc`, `status=200` and Home; on their word add the `oc2` wrapper to `~/.zshrc`. Then resume T44: V07 S05/S06/S08, S07 measurements, V08–V09 VIS01–VIS24 and product gates.
-
-
-Ready (до 5): T45, T46, T47
-Blocked: T27, T43
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.
