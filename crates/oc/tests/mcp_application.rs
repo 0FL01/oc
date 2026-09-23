@@ -464,6 +464,11 @@ enum ResponsesScript {
         calls: Vec<(String, String, Value)>,
         final_text: String,
     },
+    ControlProbe {
+        calls: Vec<(String, String, Value)>,
+        final_text: String,
+        reasoning: String,
+    },
 }
 
 struct FakeResponses {
@@ -541,12 +546,40 @@ impl FakeResponses {
                             );
                         }
                     }
-                    ResponsesScript::ToolBatch { calls, final_text } if index == 0 => {
+                    ResponsesScript::ToolBatch { calls, .. } if index == 0 => {
+                        respond_tools(&mut socket, calls);
+                    }
+                    ResponsesScript::ControlProbe { calls, .. }
+                        if !request.body["input"].as_array().is_some_and(|items| {
+                            items
+                                .iter()
+                                .any(|item| item["type"] == "function_call_output")
+                        }) =>
+                    {
                         respond_tools(&mut socket, calls);
                     }
                     ResponsesScript::ToolBatch { final_text, .. } => {
                         respond_text(&mut socket, final_text);
                     }
+                    ResponsesScript::ControlProbe {
+                        final_text,
+                        reasoning,
+                        ..
+                    } => respond_events(
+                        &mut socket,
+                        &[
+                            json!({"type":"response.reasoning_summary_text.delta","delta":reasoning}),
+                            json!({"type":"response.output_text.delta","delta":final_text}),
+                            json!({"type":"response.completed","response":{
+                                "status":"completed","output":[
+                                    {"type":"reasoning","id":"probe-reason","summary":[]},
+                                    {"type":"message","role":"assistant","content":[
+                                        {"type":"output_text","text":final_text}
+                                    ]}
+                                ]
+                            }}),
+                        ],
+                    ),
                 }
             }
         });
@@ -1390,18 +1423,38 @@ impl PtyProcess {
                         args.push(c);
                     }
                 }
+                '\x1b' if chars.peek() == Some(&']') => {
+                    chars.next();
+                    while let Some(c) = chars.next() {
+                        if c == '\x07' {
+                            break;
+                        }
+                        if c == '\x1b' && chars.peek() == Some(&'\\') {
+                            chars.next();
+                            break;
+                        }
+                    }
+                }
                 '\r' => col = 0,
                 '\n' => row += 1,
                 c if !c.is_control() => {
                     if row < cells.len() && col < cells[row].len() {
                         cells[row][col] = c;
+                        if ratatui::text::Line::from(c.to_string()).width() == 2
+                            && col + 1 < cells[row].len()
+                        {
+                            cells[row][col + 1] = '\0';
+                        }
                     }
-                    col += 1;
+                    col += ratatui::text::Line::from(c.to_string()).width();
                 }
                 _ => {}
             }
         }
-        cells.into_iter().map(|r| r.into_iter().collect()).collect()
+        cells
+            .into_iter()
+            .map(|r| r.into_iter().filter(|c| *c != '\0').collect())
+            .collect()
     }
 
     fn wait_screen(&self, needle: &str, timeout: Duration) {
@@ -1685,6 +1738,258 @@ fn aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns() {
         "disabled restarted generation spawned a child"
     );
     assert!(!trap_log.exists(), "disabled browser trap executed");
+}
+
+/// S04: model text/reasoning, model-supplied tool arguments and a real stdio
+/// MCP error all carry the same inert fixture payload. Check the raw VT stream
+/// as well as the reconstructed cells; renderer cursor/color escapes are fine,
+/// but no payload escape/OSC/BEL/CR may cross the presentation boundary.
+#[test]
+fn v07e_bare_pty_model_and_stdio_tool_controls_are_inert_across_replay() {
+    let sentinel = "CSI\x1b[2J OSC52\x1b]52;c;WA==\x07 OSC8\x1b]8;;https://example.invalid/x\x1b\\ BEL\x07 CR\r END";
+    let answer = format!("Model:{sentinel}\nUnicode: café 漢字\nNext line intact");
+    let reasoning = format!("**Think {sentinel}**\n\nReasoning: café 漢字");
+    let responses = FakeResponses::start(ResponsesScript::ControlProbe {
+        calls: vec![
+            (
+                "s04-item".into(),
+                "s04-call".into(),
+                json!({"__wireName":"probe__ping","arguments":{"note":sentinel}}),
+            ),
+            (
+                "s04-error-item".into(),
+                "s04-error-call".into(),
+                json!({"__wireName":"probe__fail","arguments":{}}),
+            ),
+        ],
+        final_text: answer.clone(),
+        reasoning: reasoning.clone(),
+    });
+    let fixture = Fixture::new();
+    let server = fixture.home.join("stdio-s04.sh");
+    let log = fixture.home.join("stdio-s04.log");
+    let result = json!({"content":[{"type":"text","text":format!("tool output: {sentinel}")}],"isError":false});
+    let error_result = json!({"content":[{"type":"text","text":format!("tool error: {sentinel}")}],"isError":true});
+    let result = format!("'{}'", result.to_string().replace('\'', "'\\''"));
+    let error_result = format!("'{}'", error_result.to_string().replace('\'', "'\\''"));
+    write_executable(
+        &server,
+        &format!(
+            r#"#!/bin/sh
+set -u
+while IFS= read -r line; do
+    id=${{line#*\"id\":}}
+    id=${{id%%,*}}
+    case "$line" in
+        *'"method":"initialize"'*)
+            printf '{{"jsonrpc":"2.0","id":%s,"result":{{"protocolVersion":"2025-11-25","capabilities":{{"tools":{{}}}},"serverInfo":{{"name":"probe","version":"1"}}}}}}\n' "$id"
+            ;;
+        *'"method":"tools/list"'*)
+            printf '{{"jsonrpc":"2.0","id":%s,"result":{{"tools":[{{"name":"ping","inputSchema":{{"type":"object","properties":{{"note":{{"type":"string"}}}}}}}},{{"name":"fail","inputSchema":{{"type":"object","properties":{{}}}}}}]}}}}\n' "$id"
+            ;;
+        *'"method":"tools/call"'*)
+            printf 'called\n' >> {log}
+            case "$line" in
+                *'"name":"fail"'*) printf '{{"jsonrpc":"2.0","id":%s,"result":%s}}\n' "$id" {error_result} ;;
+                *) printf '{{"jsonrpc":"2.0","id":%s,"result":%s}}\n' "$id" {result} ;;
+            esac
+            ;;
+    esac
+done
+"#,
+            log = shell_quote(&log),
+        ),
+    );
+    fixture.write_config(
+        &responses,
+        json!({"probe":{"type":"local","command":[server.to_string_lossy()],"enabled":true}}),
+        json!({"probe__ping":"allow","probe__fail":"allow"}),
+    );
+
+    let mut tui = PtyProcess::spawn(&fixture, "s04-replay");
+    tui.wait_screen(READY, TIMEOUT);
+    let baseline = tui.output.lock().unwrap().clone();
+    let start = tui.send_line("S04 harmless control probe");
+    tui.wait_visible_after(start, "Next line intact");
+    tui.wait_screen("Unicode: café 漢字", TIMEOUT);
+    tui.wait_screen("Next line intact", TIMEOUT);
+    tui.wait_screen("Model:CSI�[2J", TIMEOUT);
+    tui.wait_screen("Thought: Think CSI�[2J", TIMEOUT);
+    tui.wait_screen("probe__ping note: CSI�[2J", TIMEOUT);
+    tui.wait_screen("error: mcp tool reported failure", TIMEOUT);
+    assert!(
+        tui.screen()
+            .iter()
+            .any(|row| row.contains("Unicode: café 漢字"))
+    );
+    let db_path = fixture.home.join("data/oc/oc.sqlite");
+    let deadline = Instant::now() + TIMEOUT;
+    loop {
+        let complete = rusqlite::Connection::open(&db_path)
+            .unwrap()
+            .query_row(
+                "SELECT count(*) FROM turns WHERE status='completed'",
+                [],
+                |r| r.get::<_, i64>(0),
+            )
+            .unwrap()
+            == 1;
+        if complete {
+            break;
+        }
+        assert!(Instant::now() < deadline, "turn never completed");
+        std::thread::sleep(POLL);
+    }
+    let deadline = Instant::now() + TIMEOUT;
+    while !tui
+        .screen()
+        .iter()
+        .any(|row| row.trim_start().starts_with('·') && row.contains("ms"))
+    {
+        assert!(
+            Instant::now() < deadline,
+            "completed assistant footer missing"
+        );
+        std::thread::sleep(POLL);
+    }
+    open_success_card(&mut tui);
+    assert_safe_vt(&baseline, &tui.output.lock().unwrap(), sentinel);
+    let rows = tui.screen();
+    assert!(
+        rows.iter().any(|row| row.contains("tool output: CSI[2J")),
+        "{rows:?}"
+    );
+    tui.raw(b"\x1b");
+    tui.wait_screen("cards | newest first", TIMEOUT);
+    tui.raw(b"\x1b");
+    tui.wait_screen("Next line intact", TIMEOUT);
+    tui.send_line("/quit");
+    assert!(tui.wait_exit().success());
+    assert!(contains(&tui.output.lock().unwrap(), b"\x1b[?1049h"));
+    assert!(contains(&tui.output.lock().unwrap(), b"\x1b[?1049l"));
+
+    let requests = responses.wait_requests(2);
+    let main: Vec<_> = requests.iter().filter(|r| !title::is_title(r)).collect();
+    assert_eq!(main.len(), 2, "one tool roundtrip (title is ancillary)");
+    assert!(function_tool_names(main[0]).contains(&"probe__ping".to_string()));
+    assert!(function_tool_names(main[0]).contains(&"probe__fail".to_string()));
+    // The pre-existing MCP projection removes controls from successful
+    // results before storage/provider continuation; it is not a TUI fix.
+    let projected: String = sentinel.chars().filter(|ch| !ch.is_control()).collect();
+    assert!(function_output(main[1], "s04-call").contains(&projected));
+    assert!(function_output(main[1], "s04-error-call").contains("mcp tool reported failure"));
+    assert_eq!(fs::read_to_string(&log).unwrap().lines().count(), 2);
+    let db = rusqlite::Connection::open(&db_path).unwrap();
+    let (state, input, output): (String, String, String) = db
+        .query_row(
+            "SELECT state, input, output FROM tool_operations WHERE name = 'probe__ping'",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(state, "completed");
+    assert_eq!(
+        serde_json::from_str::<Value>(&input).unwrap()["note"],
+        sentinel
+    );
+    assert!(
+        output.contains(&projected),
+        "MCP projection lost ordinary tool text"
+    );
+    let durable: String = db
+        .query_row(
+            "SELECT text FROM messages WHERE role = 'assistant' ORDER BY seq DESC LIMIT 1",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(durable.contains(&answer));
+    drop(db);
+
+    let mut restarted = PtyProcess::spawn(&fixture, "s04-replay");
+    restarted.wait_screen("Unicode: café 漢字", TIMEOUT);
+    restarted.wait_screen("Next line intact", TIMEOUT);
+    restarted.wait_screen("error: mcp tool reported failure", TIMEOUT);
+    restarted.wait_screen("Model:CSI�[2J", TIMEOUT);
+    restarted.wait_screen("Thought: Think CSI�[2J", TIMEOUT);
+    restarted.wait_screen("probe__ping note: CSI�[2J", TIMEOUT);
+    open_success_card(&mut restarted);
+    assert_safe_vt(&[], &restarted.output.lock().unwrap(), sentinel);
+    restarted.raw(b"\x1b");
+    restarted.wait_screen("cards | newest first", TIMEOUT);
+    restarted.raw(b"\x1b");
+    restarted.wait_screen("Next line intact", TIMEOUT);
+    restarted.send_line("/quit");
+    assert!(restarted.wait_exit().success());
+    assert!(contains(&restarted.output.lock().unwrap(), b"\x1b[?1049h"));
+    assert!(contains(&restarted.output.lock().unwrap(), b"\x1b[?1049l"));
+    assert_eq!(
+        responses.requests().len(),
+        requests.len(),
+        "replay must not call provider"
+    );
+    assert_eq!(
+        fs::read_to_string(&log).unwrap().lines().count(),
+        2,
+        "replay must not call tool"
+    );
+}
+
+fn open_success_card(tui: &mut PtyProcess) {
+    tui.send_line("/cards");
+    tui.wait_screen("cards | newest first", TIMEOUT);
+    // Newest is the intentionally failing call; the older successful MCP
+    // result retains its original text behind the card detail panel.
+    tui.raw(b"\x1b[B");
+    tui.raw(b"\r");
+    tui.wait_screen("tool output: CSI[2J", TIMEOUT);
+}
+
+fn assert_safe_vt(before: &[u8], after: &[u8], sentinel: &str) {
+    let count = |bytes: &[u8], pattern: &[u8]| {
+        bytes
+            .windows(pattern.len())
+            .filter(|w| *w == pattern)
+            .count()
+    };
+    assert!(after.len() >= before.len());
+    // Startup/cleanup may use trusted erase and carriage return; compare the
+    // live phase separately and reject only the sentinel's exact control bytes.
+    for (name, bytes) in [
+        ("OSC52", b"\x1b]52;".as_slice()),
+        ("OSC8", b"\x1b]8;".as_slice()),
+        ("BEL", b"\x07".as_slice()),
+        ("sentinel CR", b"CR\r".as_slice()),
+    ] {
+        assert_eq!(
+            count(after, bytes),
+            count(before, bytes),
+            "untrusted {name} reached raw VT"
+        );
+    }
+    assert_eq!(
+        count(after, b"\x1b[2J"),
+        count(before, b"\x1b[2J"),
+        "untrusted CSI erase reached raw VT"
+    );
+    assert_eq!(
+        count(after, b"\r"),
+        count(before, b"\r"),
+        "untrusted carriage return reached raw VT"
+    );
+    assert!(
+        !after
+            .windows(sentinel.len())
+            .any(|w| w == sentinel.as_bytes())
+    );
+    eprintln!(
+        "S04 raw VT: before={} after={} CSI-prefixes={} trusted-erase-before={} trusted-erase-after={} OSC52=0 OSC8=0 BEL=0 CR=0",
+        before.len(),
+        after.len(),
+        count(after, b"\x1b["),
+        count(before, b"\x1b[2J"),
+        count(after, b"\x1b[2J"),
+    );
 }
 
 #[test]
