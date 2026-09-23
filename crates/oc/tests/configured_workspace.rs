@@ -5,7 +5,7 @@
 use std::fs;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::os::unix::fs::PermissionsExt as _;
+use std::os::unix::fs::{PermissionsExt as _, symlink};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
@@ -591,6 +591,218 @@ fn aud17_binary_malformed_selected_skill_is_visible_and_valid_sibling_survives()
     let diagnostic = process.diagnostics();
     assert!(diagnostic.contains(&malformed.to_string_lossy().to_string()));
     assert!(diagnostic.contains("frontmatter"), "{diagnostic}");
+}
+
+#[test]
+fn v07a_binary_refuses_discovered_external_root_before_any_effect() {
+    let fixture = Fixture::new();
+    let outside = fixture.home.join("outside");
+    fs::create_dir_all(&outside).expect("outside");
+    write(&outside.join("local-secret-fixture"), "external-key");
+    write(
+        &outside.join("opencode.json"),
+        &json!({
+            "model": format!("fixture/{MODEL}"),
+            "provider": {"fixture": {"options": {"baseURL": fixture.endpoint,
+                "apiKey": "{file:local-secret-fixture}"}, "models": {MODEL: {}}}},
+            "mcp": {"trap": {"type": "local", "command": ["node", "trap"]}},
+            "command": {"trap": "node trap"}
+        })
+        .to_string(),
+    );
+    symlink(&outside, fixture.project_a.join(".opencode")).expect("discovered link");
+    let mut process = fixture.spawn(&fixture.project_a, "s-v07a-external", "hello", "external");
+    assert!(!fixture.wait_for_preflight_failure(&mut process).success());
+    let error = process.diagnostics();
+    assert!(
+        error.contains(".opencode") && error.contains("outside"),
+        "{error}"
+    );
+    assert!(!error.contains("external-key"), "{error}");
+    assert!(!fixture.home.join("data/oc").exists());
+    fixture.assert_no_request();
+    fixture.assert_no_loader_execution();
+}
+
+#[test]
+fn v07a_binary_discovered_external_root_is_refused_even_with_fifo_config() {
+    let fixture = Fixture::new();
+    let outside = fixture.home.join("outside");
+    fs::create_dir_all(&outside).expect("outside");
+    let fifo = outside.join("opencode.json");
+    let name = std::ffi::CString::new(fifo.as_os_str().as_encoded_bytes()).expect("path");
+    // SAFETY: a NUL-terminated path inside the isolated test fixture.
+    assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+    write(&outside.join("local-secret-fixture"), "external-key");
+    write(
+        &outside.join("opencode.jsonc"),
+        &json!({
+            "model": format!("fixture/{MODEL}"),
+            "provider": {"fixture": {"options": {"baseURL": fixture.endpoint,
+                "apiKey": "{file:local-secret-fixture}"}, "models": {MODEL: {}}}}
+        })
+        .to_string(),
+    );
+    symlink(&outside, fixture.project_a.join(".opencode")).expect("discovered link");
+    let mut process = fixture.spawn(
+        &fixture.project_a,
+        "s-v07a-external-fifo",
+        "hello",
+        "external-fifo",
+    );
+    assert!(!fixture.wait_for_preflight_failure(&mut process).success());
+    let error = process.diagnostics();
+    assert!(
+        error.contains(".opencode") && error.contains("outside"),
+        "{error}"
+    );
+    assert!(!fixture.home.join("data/oc").exists());
+    fixture.assert_no_request();
+    fixture.assert_no_loader_execution();
+}
+
+#[test]
+fn v07a_binary_rejects_fifo_device_and_oversize_before_reading() {
+    for kind in ["fifo", "device", "oversize"] {
+        let fixture = Fixture::new();
+        let path = fixture.project_a.join("opencode.json");
+        match kind {
+            "fifo" => {
+                let name =
+                    std::ffi::CString::new(path.as_os_str().as_encoded_bytes()).expect("path");
+                // SAFETY: a NUL-terminated path to a temporary directory owned by this test.
+                assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+            }
+            "device" => symlink("/dev/null", &path).expect("device symlink"),
+            _ => write(&path, &"x".repeat(33 * 1024 * 1024)),
+        }
+        let mut process =
+            fixture.spawn(&fixture.project_a, &format!("s-v07a-{kind}"), "hello", kind);
+        assert!(
+            !fixture.wait_for_preflight_failure(&mut process).success(),
+            "{kind}"
+        );
+        let error = process.diagnostics();
+        assert!(error.contains("opencode.json"), "{kind}: {error}");
+        if kind == "oversize" {
+            assert!(
+                error.contains("exceeds") || error.contains("too large"),
+                "{error}"
+            );
+        }
+        assert!(!fixture.home.join("data/oc").exists());
+        fixture.assert_no_request();
+        fixture.assert_no_loader_execution();
+    }
+}
+
+#[test]
+fn v07a_binary_explicit_global_and_nested_local_jsonc_are_loaded() {
+    let fixture = Fixture::new();
+    write(&fixture.global.join("key"), "global-fixture-key");
+    let mut config = fixture.base_config();
+    config["provider"]["fixture"]["options"]["apiKey"] = json!("{file:key}");
+    write(&fixture.global.join("opencode.json"), &config.to_string());
+    let nested = fixture.project_a.join("nested");
+    write(
+        &nested.join("opencode.jsonc"),
+        "{ // admitted JSONC in a nested Location root\n \"permissions\": {\"read\": \"allow\"},}\n",
+    );
+    symlink(&nested, fixture.project_a.join(".opencode")).expect("in-root link");
+    let mut process = fixture.spawn(&fixture.project_a, "s-v07a-positive", "hello", "positive");
+    let (mut socket, request) = fixture.accept(&mut process);
+    assert_eq!(request["model"], MODEL);
+    respond_text(&mut socket, "admitted");
+    fixture.respond_title(&mut process);
+    assert!(process.wait().success(), "{}", process.diagnostics());
+    assert_eq!(process.output().trim(), "admitted");
+    fixture.assert_no_loader_execution();
+}
+
+#[test]
+fn v07a_binary_external_definition_subdirectories_never_reach_provider() {
+    let fixture = Fixture::new();
+    fixture.write_base_config(json!({"permissions": {"skill": "allow"}}));
+    let local = fixture.project_a.join(".opencode");
+    let outside = fixture.home.join("outside-definitions");
+    write_skill(
+        &local.join("skill/local.md"),
+        "local",
+        "V07A_LOCAL_SKILL_7fdd",
+        "V07A_LOCAL_BODY_941d",
+    );
+    write(
+        &local.join("command/local.md"),
+        "---\ndescription: local\n---\nlocal $ARGUMENTS\n",
+    );
+    write_agent(&local.join("agent/local.md"), "local", "local body", None);
+    write_skill(
+        &outside.join("skills/example.md"),
+        "example",
+        "V07A_EXTERNAL_SKILL_eb2f",
+        "V07A_EXTERNAL_BODY_2810",
+    );
+    write(
+        &outside.join("commands/outside.md"),
+        "---\ndescription: outside\n---\nV07A_EXTERNAL_COMMAND_134e\n",
+    );
+    write_agent(
+        &outside.join("agents/outsider.md"),
+        "outside",
+        "V07A_EXTERNAL_AGENT_2985",
+        None,
+    );
+    for kind in ["skills", "agents", "commands"] {
+        symlink(outside.join(kind), local.join(kind)).expect("external intermediate link");
+    }
+    let mut process = fixture.spawn(&fixture.project_a, "s-v07a-defs", "/outside", "defs");
+    let (mut socket, request) = fixture.accept(&mut process);
+    let visible = request.to_string();
+    assert!(visible.contains("V07A_LOCAL_SKILL_7fdd"), "{visible}");
+    assert!(!visible.contains("V07A_EXTERNAL_SKILL_eb2f"), "{visible}");
+    assert_eq!(
+        last_message_text(&request, "user").as_deref(),
+        Some("/outside")
+    );
+    respond_text(&mut socket, "safe");
+    fixture.respond_title(&mut process);
+    assert!(process.wait().success(), "{}", process.diagnostics());
+    let diagnostics = process.diagnostics();
+    assert!(!diagnostics.contains("V07A_EXTERNAL_BODY_2810"));
+    for kind in ["skills", "agents", "commands"] {
+        assert!(
+            diagnostics.contains(&local.join(kind).to_string_lossy().to_string()),
+            "{diagnostics}"
+        );
+    }
+    assert!(
+        diagnostics.contains("outside admitted root"),
+        "{diagnostics}"
+    );
+    fixture.assert_no_loader_execution();
+}
+
+#[test]
+fn v07a_binary_external_agent_subdirectory_cannot_select_primary() {
+    let fixture = Fixture::new();
+    fixture.write_base_config(json!({"default_agent": "outsider"}));
+    let outside = fixture.home.join("outside-agents");
+    write_agent(
+        &outside.join("outsider.md"),
+        "outside",
+        "V07A_UNTRUSTED_PROMPT_54de",
+        None,
+    );
+    let local = fixture.project_a.join(".opencode");
+    fs::create_dir_all(&local).expect("local root");
+    symlink(&outside, local.join("agents")).expect("external intermediate link");
+    let mut process = fixture.spawn(&fixture.project_a, "s-v07a-agent", "hello", "agent-escape");
+    assert!(!fixture.wait_for_preflight_failure(&mut process).success());
+    let error = process.diagnostics();
+    assert!(error.contains("outsider"), "{error}");
+    assert!(!error.contains("V07A_UNTRUSTED_PROMPT_54de"), "{error}");
+    fixture.assert_no_request();
+    assert!(!fixture.home.join("data/oc").exists());
 }
 
 fn run_denied_patch(fixture: &Fixture, project: &Path, session: &str, target: &str, label: &str) {

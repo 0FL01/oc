@@ -10,6 +10,7 @@ use std::io::{Read, Write};
 mod title;
 use std::net::{TcpListener, TcpStream};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -543,6 +544,67 @@ impl Drop for PtySession {
 
 fn contains(haystack: &[u8], needle: &[u8]) -> bool {
     haystack.len() >= needle.len() && haystack.windows(needle.len()).any(|w| w == needle)
+}
+
+#[test]
+fn v07a_bare_tui_pty_refuses_external_discovered_root_before_read() {
+    let fixture = Fixture::new(tempfile::tempdir().expect("fixture"));
+    let outside = fixture.root.path().join("outside");
+    std::fs::create_dir_all(&outside).expect("outside");
+    let fifo = outside.join("opencode.json");
+    let fifo_name = std::ffi::CString::new(fifo.as_os_str().as_encoded_bytes()).expect("path");
+    // SAFETY: NUL-terminated path inside this test's isolated temporary root.
+    assert_eq!(unsafe { libc::mkfifo(fifo_name.as_ptr(), 0o600) }, 0);
+    symlink(&outside, fixture.root.path().join("project/.opencode")).expect("symlink");
+    let (master, slave) = openpty_pair(100, 28);
+    let mut child = fixture
+        .command()
+        .env("TERM", "xterm-256color")
+        .stdin(Stdio::from(dup_fd(&slave)))
+        .stdout(Stdio::from(dup_fd(&slave)))
+        .stderr(Stdio::from(dup_fd(&slave)))
+        .spawn()
+        .expect("bare oc on real PTY");
+    drop(slave);
+    let mut master: std::fs::File = master.into();
+    // SAFETY: master owns a valid open PTY fd; F_GETFL only reads its flags.
+    let flags = unsafe { libc::fcntl(master.as_raw_fd(), libc::F_GETFL, 0) };
+    assert!(flags >= 0);
+    // SAFETY: master remains open; F_SETFL only changes its nonblocking flag.
+    let result =
+        unsafe { libc::fcntl(master.as_raw_fd(), libc::F_SETFL, flags | libc::O_NONBLOCK) };
+    assert_eq!(result, 0);
+    let mut output = Vec::new();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !contains(&visible_text(&output), b"Configuration load failed") {
+        if Instant::now() > deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("bare TUI blocked before config admission");
+        }
+        let mut buf = [0; 8192];
+        match master.read(&mut buf) {
+            Ok(n) => output.extend_from_slice(&buf[..n]),
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => std::thread::sleep(POLL),
+            Err(e) => panic!("PTY read: {e}"),
+        }
+    }
+    master.write_all(b"q").expect("dismiss startup failure");
+    let exit_deadline = Instant::now() + Duration::from_secs(5);
+    let status = loop {
+        if let Some(status) = child.try_wait().expect("poll child") {
+            break status;
+        }
+        if Instant::now() > exit_deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("bare TUI did not exit after dismissal");
+        }
+        std::thread::sleep(POLL);
+    };
+    assert!(!status.success());
+    assert!(!fixture.data_dir().exists());
+    assert!(fixture.requests.lock().expect("requests").is_empty());
 }
 
 /// Visible text with CSI escape sequences stripped (ratatui writes titles

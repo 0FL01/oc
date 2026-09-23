@@ -4,6 +4,7 @@
 //! using Tokio + rusqlite (bundled) + reqwest + rmcp, with no reverse
 //! dependency from `oc-core`.
 
+mod admitted_fs;
 pub mod application;
 pub mod attachments;
 pub mod composition;

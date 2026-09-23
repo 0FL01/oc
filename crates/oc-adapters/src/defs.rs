@@ -15,8 +15,13 @@
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
+use std::fs::{File, OpenOptions};
+use std::io::{self, Read as _};
+use std::os::fd::AsRawFd;
+use std::os::unix::fs::OpenOptionsExt as _;
 use std::path::{Path, PathBuf};
 
+use crate::admitted_fs;
 use crate::config::{
     Permission, legacy_key, normalize_permission, parse_skill, split_frontmatter_value,
 };
@@ -188,22 +193,25 @@ fn valid_id(id: &str) -> bool {
             .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
 }
 
-/// Read a file with no-follow symlink refusal and containment check.
-///
-/// Upstream has no per-file size cap for definitions; total loaded bytes are
-/// bounded once by [`MAX_TOTAL_BYTES`].
-fn read_plain(path: &Path, expected_dir: &Path) -> Result<String, String> {
-    let meta = std::fs::symlink_metadata(path).map_err(|_| "unreadable".to_string())?;
-    if meta.file_type().is_symlink() {
-        return Err("symlink refused".to_string());
-    }
+/// Read only an already-opened, admitted regular file. The same 4 MiB total
+/// policy also bounds each transient read, even if the file grows after fstat.
+fn read_plain(mut file: File) -> Result<String, String> {
+    let meta = file.metadata().map_err(|_| "unreadable".to_string())?;
     if !meta.is_file() {
         return Err("not a file".to_string());
     }
-    if path.parent() != Some(expected_dir) {
-        return Err("outside admitted directory".to_string());
+    if meta.len() > MAX_TOTAL_BYTES as u64 {
+        return Err("total definitions budget exceeded".to_string());
     }
-    std::fs::read_to_string(path).map_err(|_| "unreadable".to_string())
+    let mut bytes = Vec::new();
+    file.by_ref()
+        .take(MAX_TOTAL_BYTES as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "unreadable".to_string())?;
+    if bytes.len() > MAX_TOTAL_BYTES {
+        return Err("total definitions budget exceeded".to_string());
+    }
+    String::from_utf8(bytes).map_err(|_| "not UTF-8".to_string())
 }
 
 /// Parsed Markdown frontmatter (scalar and nested values).
@@ -347,12 +355,55 @@ pub fn load_definitions(roots: &[DefRoot]) -> LoadedDefs {
 
 /// Merge one admitted Markdown definition root at this exact precedence point.
 pub fn merge_definition_root(defs: &mut LoadedDefs, root: &DefRoot) {
+    let canonical = match root.dir.canonicalize() {
+        Ok(path) => path,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return,
+        Err(_) => {
+            defs.diagnostics
+                .push(diag(&root.dir, "definitions", "unreadable root"));
+            return;
+        }
+    };
+    let dir = match OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_DIRECTORY | libc::O_CLOEXEC | libc::O_NOFOLLOW)
+        .open(&canonical)
+    {
+        Ok(dir) => dir,
+        Err(_) => {
+            defs.diagnostics
+                .push(diag(&root.dir, "definitions", "unreadable root"));
+            return;
+        }
+    };
+    if !std::fs::canonicalize(format!("/proc/self/fd/{}", dir.as_raw_fd()))
+        .is_ok_and(|opened| opened == canonical)
+    {
+        defs.diagnostics.push(diag(
+            &root.dir,
+            "definitions",
+            "root changed during admission",
+        ));
+        return;
+    }
+    merge_definition_root_admitted(
+        defs,
+        &DefRoot {
+            dir: canonical,
+            origin: root.origin.clone(),
+        },
+        &dir,
+    );
+}
+
+/// Merge a root previously admitted by composition, using its pinned fd.
+pub(crate) fn merge_definition_root_admitted(defs: &mut LoadedDefs, root: &DefRoot, dir: &File) {
     let total_bytes = existing_definition_bytes(defs);
     let mut out = Collector {
         defs: std::mem::take(defs),
         total_bytes,
     };
-    load_root(&mut out, root);
+    load_root(&mut out, root, dir);
     *defs = out.defs;
 }
 
@@ -687,22 +738,63 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
     *defs = out.defs;
 }
 
-fn load_root(out: &mut Collector, root: &DefRoot) {
-    load_kind(out, root, "skill", &["skill", "skills"]);
-    load_kind(out, root, "agent", &["agent", "agents"]);
-    load_kind(out, root, "command", &["command", "commands"]);
+fn open_admitted(root: &DefRoot, dir: &File, candidate: &Path, flags: i32) -> io::Result<File> {
+    // Canonicalize only to choose an in-root target. Never read or enumerate
+    // it by pathname: the descriptor-relative open is the trust decision.
+    let canonical = candidate.canonicalize()?;
+    let relative = canonical.strip_prefix(&root.dir).map_err(|_| {
+        io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "symlink resolves outside admitted root",
+        )
+    })?;
+    admitted_fs::open_beneath(dir, relative, flags)
 }
 
-fn load_kind(out: &mut Collector, root: &DefRoot, kind: &str, subs: &[&str]) {
+fn load_root(out: &mut Collector, root: &DefRoot, dir: &File) {
+    load_kind(out, root, dir, "skill", &["skill", "skills"]);
+    load_kind(out, root, dir, "agent", &["agent", "agents"]);
+    load_kind(out, root, dir, "command", &["command", "commands"]);
+}
+
+fn load_kind(out: &mut Collector, root: &DefRoot, admitted: &File, kind: &str, subs: &[&str]) {
     for sub in subs {
         let dir = root.dir.join(sub);
-        let Ok(entries) = std::fs::read_dir(&dir) else {
-            continue;
+        let pinned = match open_admitted(root, admitted, &dir, libc::O_RDONLY | libc::O_DIRECTORY) {
+            Ok(pinned) => pinned,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) => {
+                out.defs
+                    .diagnostics
+                    .push(diag(&dir, kind, &error.to_string()));
+                continue;
+            }
         };
-        let mut names: Vec<String> = entries
+        // read_dir reopens only this pinned descriptor, never the pathname that
+        // may be concurrently replaced with an external symlink.
+        let entries = match std::fs::read_dir(format!("/proc/self/fd/{}", pinned.as_raw_fd())) {
+            Ok(entries) => entries,
+            Err(_) => {
+                out.defs
+                    .diagnostics
+                    .push(diag(&dir, kind, "unreadable directory"));
+                continue;
+            }
+        };
+        // 256 definitions per kind are admitted; bound directory enumeration
+        // as well, before sorting names or opening any definition bodies.
+        let names: Vec<String> = entries
+            .take(4097)
             .filter_map(|e| e.ok())
             .map(|e| e.file_name().to_string_lossy().to_string())
             .collect();
+        if names.len() > 4096 {
+            out.defs
+                .diagnostics
+                .push(diag(&dir, kind, "too many directory entries"));
+            continue;
+        }
+        let mut names = names;
         names.sort();
         for name in names {
             if out.total_bytes > MAX_TOTAL_BYTES {
@@ -711,7 +803,7 @@ fn load_kind(out: &mut Collector, root: &DefRoot, kind: &str, subs: &[&str]) {
                     .push(diag(&dir, kind, "total definitions budget exceeded"));
                 return;
             }
-            load_entry(out, root, kind, &dir, &name);
+            load_entry(out, root, admitted, kind, &dir, &name);
         }
     }
 }
@@ -899,25 +991,33 @@ fn agent_mode(mode: Option<String>) -> Result<Option<String>, String> {
     }
 }
 
-fn load_entry(out: &mut Collector, root: &DefRoot, kind: &str, dir: &Path, name: &str) {
+fn load_entry(
+    out: &mut Collector,
+    root: &DefRoot,
+    admitted: &File,
+    kind: &str,
+    dir: &Path,
+    name: &str,
+) {
     let path = dir.join(name);
     match kind {
         "skill" => {
-            let meta = match std::fs::symlink_metadata(&path) {
+            let entry = match open_admitted(root, admitted, &path, libc::O_RDONLY) {
+                Ok(entry) => entry,
+                Err(error) => {
+                    out.defs
+                        .diagnostics
+                        .push(diag(&path, kind, &error.to_string()));
+                    return;
+                }
+            };
+            let meta = match entry.metadata() {
                 Ok(meta) => meta,
                 Err(_) => {
                     out.defs.diagnostics.push(diag(&path, kind, "unreadable"));
                     return;
                 }
             };
-            if meta.file_type().is_symlink() {
-                if name.ends_with(".md") {
-                    out.defs
-                        .diagnostics
-                        .push(diag(&path, kind, "symlink refused"));
-                }
-                return;
-            }
             if meta.is_file() {
                 // Flat `skills/<id>.md` is a skill (upstream scans `*.md`).
                 if !name.ends_with(".md") {
@@ -928,7 +1028,7 @@ fn load_entry(out: &mut Collector, root: &DefRoot, kind: &str, dir: &Path, name:
                     out.defs.diagnostics.push(diag(&path, kind, "invalid id"));
                     return;
                 }
-                let text = match read_plain(&path, dir) {
+                let text = match read_plain(entry) {
                     Ok(text) => text,
                     Err(reason) => {
                         out.defs.diagnostics.push(diag(&path, kind, &reason));
@@ -946,17 +1046,19 @@ fn load_entry(out: &mut Collector, root: &DefRoot, kind: &str, dir: &Path, name:
                 return;
             }
             let file = path.join("SKILL.md");
-            match std::fs::symlink_metadata(&file) {
+            let admitted_file = match open_admitted(root, admitted, &file, libc::O_RDONLY) {
                 // A directory without `SKILL.md` is silently skipped
                 // (upstream scans `**/SKILL.md`, not every file).
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => return,
-                Err(_) => {
-                    out.defs.diagnostics.push(diag(&file, kind, "unreadable"));
+                Err(error) if error.kind() == io::ErrorKind::NotFound => return,
+                Err(error) => {
+                    out.defs
+                        .diagnostics
+                        .push(diag(&file, kind, &error.to_string()));
                     return;
                 }
-                Ok(_) => {}
-            }
-            let text = match read_plain(&file, &path) {
+                Ok(file) => file,
+            };
+            let text = match read_plain(admitted_file) {
                 Ok(text) => text,
                 Err(reason) => {
                     out.defs.diagnostics.push(diag(&file, kind, &reason));
@@ -974,7 +1076,16 @@ fn load_entry(out: &mut Collector, root: &DefRoot, kind: &str, dir: &Path, name:
                 out.defs.diagnostics.push(diag(&path, kind, "invalid id"));
                 return;
             }
-            let text = match read_plain(&path, dir) {
+            let admitted_file = match open_admitted(root, admitted, &path, libc::O_RDONLY) {
+                Ok(file) => file,
+                Err(error) => {
+                    out.defs
+                        .diagnostics
+                        .push(diag(&path, kind, &error.to_string()));
+                    return;
+                }
+            };
+            let text = match read_plain(admitted_file) {
                 Ok(text) => text,
                 Err(reason) => {
                     out.defs.diagnostics.push(diag(&path, kind, &reason));
@@ -1159,42 +1270,60 @@ pub fn agent_digest(agent: &AgentDef) -> String {
 /// body once under a distinct sentinel; repeats canonical-deduplicate;
 /// unreadable files give a diagnostic and contribute no stale text.
 pub fn load_instructions(files: &[(String, PathBuf)]) -> (String, Vec<Diagnostic>) {
+    let mut seen = std::collections::HashSet::new();
+    let texts: Vec<_> = files
+        .iter()
+        .filter(|(display, _)| seen.insert(display.clone()))
+        .map(|(display, path)| {
+            let text = OpenOptions::new()
+                .read(true)
+                .custom_flags(libc::O_NONBLOCK | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+                .open(path)
+                .map_err(|_| "unreadable".to_string())
+                .and_then(|mut file| {
+                    let meta = file.metadata().map_err(|_| "unreadable".to_string())?;
+                    if !meta.is_file() {
+                        return Err("unreadable".to_string());
+                    }
+                    if meta.len() > MAX_INSTRUCTIONS_FILE as u64 {
+                        return Err("file too large".to_string());
+                    }
+                    let mut bytes = Vec::new();
+                    file.by_ref()
+                        .take(MAX_INSTRUCTIONS_FILE as u64 + 1)
+                        .read_to_end(&mut bytes)
+                        .map_err(|_| "unreadable".to_string())?;
+                    if bytes.len() > MAX_INSTRUCTIONS_FILE {
+                        return Err("file too large".to_string());
+                    }
+                    String::from_utf8(bytes).map_err(|_| "unreadable".to_string())
+                });
+            (display.clone(), text)
+        })
+        .collect();
+    load_instruction_texts(&texts)
+}
+
+/// Assemble already-admitted instruction bytes; no path re-open after trust.
+pub(crate) fn load_instruction_texts(
+    files: &[(String, Result<String, String>)],
+) -> (String, Vec<Diagnostic>) {
     let mut seen: Vec<String> = Vec::new();
     let mut parts: Vec<String> = Vec::new();
     let mut diagnostics = Vec::new();
     let mut total = 0usize;
-    for (display, path) in files {
+    for (display, result) in files {
         if seen.contains(display) {
             continue;
         }
         seen.push(display.clone());
-        let text = match std::fs::symlink_metadata(path) {
-            Ok(meta) if !meta.file_type().is_symlink() && meta.is_file() => {
-                if meta.len() > MAX_INSTRUCTIONS_FILE as u64 {
-                    diagnostics.push(Diagnostic {
-                        path: display.clone(),
-                        field: "instructions".to_string(),
-                        reason: "file too large".to_string(),
-                    });
-                    continue;
-                }
-                match std::fs::read_to_string(path) {
-                    Ok(text) => text,
-                    Err(_) => {
-                        diagnostics.push(Diagnostic {
-                            path: display.clone(),
-                            field: "instructions".to_string(),
-                            reason: "unreadable".to_string(),
-                        });
-                        continue;
-                    }
-                }
-            }
-            _ => {
+        let text = match result {
+            Ok(text) => text,
+            Err(reason) => {
                 diagnostics.push(Diagnostic {
                     path: display.clone(),
                     field: "instructions".to_string(),
-                    reason: "unreadable".to_string(),
+                    reason: reason.clone(),
                 });
                 continue;
             }
@@ -1488,6 +1617,78 @@ mod tests {
                 .diagnostics
                 .iter()
                 .any(|d| d.reason.contains("symlink"))
+        );
+    }
+
+    #[test]
+    fn v07a_racing_definition_subdirectory_never_reads_outside() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        let base = tempfile::tempdir().expect("fixture");
+        let local = base.path().join("project/.opencode");
+        let inside = local.join("inside-skills");
+        let outside = base.path().join("outside-skills");
+        write(
+            &inside.join("safe.md"),
+            "---\ndescription: safe\n---\nsafe\n",
+        );
+        write(
+            &outside.join("outside.md"),
+            "---\ndescription: forbidden\n---\nforbidden\n",
+        );
+        let link = local.join("skills");
+        std::os::unix::fs::symlink(&inside, &link).expect("initial link");
+        let stop = AtomicBool::new(false);
+        let mut escaped = false;
+        std::thread::scope(|scope| {
+            let worker = scope.spawn(|| {
+                let mut external = true;
+                while !stop.load(Ordering::Relaxed) {
+                    let replacement = local.join("next-skills");
+                    std::os::unix::fs::symlink(
+                        if external { &outside } else { &inside },
+                        &replacement,
+                    )
+                    .expect("replacement");
+                    fs::rename(&replacement, &link).expect("atomic swap");
+                    external = !external;
+                    std::thread::yield_now();
+                }
+            });
+            for _ in 0..80 {
+                let loaded = load_definitions(&[root(&local, "P")]);
+                escaped |= loaded.skills.contains_key("outside");
+                std::thread::yield_now();
+            }
+            stop.store(true, Ordering::Relaxed);
+            worker.join().expect("swapper");
+        });
+        assert!(
+            !escaped,
+            "external definition was loaded during a symlink race"
+        );
+    }
+
+    #[test]
+    fn v07a_definition_fifo_and_oversize_do_not_block_or_exhaust_budget() {
+        let base = tempfile::tempdir().expect("fixture");
+        let dir = base.path().join(".opencode/skills");
+        write(
+            &dir.join("safe.md"),
+            "---\ndescription: safe\n---\nvalid body",
+        );
+        write(&dir.join("huge.md"), &"x".repeat(MAX_TOTAL_BYTES + 1));
+        let fifo = dir.join("pipe.md");
+        let fifo_name = std::ffi::CString::new(fifo.as_os_str().as_encoded_bytes()).expect("path");
+        // SAFETY: NUL-terminated path inside the isolated test directory.
+        assert_eq!(unsafe { libc::mkfifo(fifo_name.as_ptr(), 0o600) }, 0);
+        let loaded = load_definitions(&[root(&base.path().join(".opencode"), "P")]);
+        assert!(loaded.skills.contains_key("safe"));
+        assert!(!loaded.skills.contains_key("huge") && !loaded.skills.contains_key("pipe"));
+        assert!(
+            loaded
+                .diagnostics
+                .iter()
+                .any(|d| d.path.ends_with("huge.md") && d.reason.contains("budget"))
         );
     }
 

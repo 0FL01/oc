@@ -4,13 +4,15 @@
 //! composes existing adapters; broader config/Location support belongs to T35.
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::fs::{File, OpenOptions};
 use std::io::Read as _;
+use std::os::fd::AsRawFd;
 use std::os::unix::fs::OpenOptionsExt as _;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
-use crate::{config, dcp_auto, defs, discovery, models, provider};
+use crate::{admitted_fs, config, dcp_auto, defs, discovery, models, provider};
 use oc_core::queries::StartupNotice;
 
 /// Fully built application configuration. Contains credentials and must not be logged.
@@ -93,41 +95,22 @@ pub(crate) async fn load_with_env(
     let mut roots: Vec<PathBuf> = global.clone().into_iter().collect();
     roots.push(project.clone());
     roots.push(project.join(".opencode"));
+    // Admit *all* roots before opening any config. A discovered local root
+    // cannot become an external trust boundary, even when its contents are
+    // otherwise valid. Pin directory descriptors for subsequent file opens.
+    let admitted_roots: Vec<Option<AdmittedRoot>> = roots
+        .iter()
+        .map(|root| admit_root(root, &project, root == roots.last().expect("local root")))
+        .collect::<Result<_, _>>()?;
     let mut sources = Vec::new();
     let mut seen = HashSet::new();
-    for root in &roots {
-        // A source is admitted only when it stays inside the canonical root
-        // that declared it. A symlinked config resolving outside is refused
-        // (fail closed) instead of being canonicalized and marked trusted,
-        // which would authorise `{file:}` reads in an outside directory.
-        let canonical_root = match root.canonicalize() {
-            Ok(canonical) => canonical,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
-            Err(e) => {
-                return Err(format!(
-                    "cannot resolve config root {}: {e}",
-                    root.display()
-                ));
-            }
-        };
+    for (root, admitted) in roots.iter().zip(&admitted_roots) {
+        let Some(admitted) = admitted else { continue };
         for name in ["opencode.json", "opencode.jsonc"] {
             let path = root.join(name);
-            let text = match std::fs::read_to_string(&path) {
-                Ok(text) => text,
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
-                Err(e) => return Err(format!("cannot read config {}: {e}", path.display())),
+            let Some((canonical, text)) = read_source_config(admitted, &path)? else {
+                continue;
             };
-            let canonical = path
-                .canonicalize()
-                .map_err(|e| format!("cannot resolve config {}: {e}", path.display()))?;
-            if !canonical.starts_with(&canonical_root) {
-                return Err(format!(
-                    "refusing config {}: resolves outside its admitted root {} ({})",
-                    path.display(),
-                    root.display(),
-                    canonical.display()
-                ));
-            }
             if seen.insert(canonical.clone()) {
                 sources.push(config::Source {
                     path: canonical.to_string_lossy().into_owned(),
@@ -148,8 +131,9 @@ pub(crate) async fn load_with_env(
     // Every admitted source that contributed a DCP fragment: an unsupported
     // option must name the file the owner has to edit, not just the field.
     let mut dcp_sources: Vec<String> = Vec::new();
-    for root in &roots {
-        let root = root.canonicalize().unwrap_or_else(|_| root.clone());
+    for admitted in &admitted_roots {
+        let Some(admitted) = admitted else { continue };
+        let root = &admitted.path;
         for source in &sources {
             if Path::new(&source.path).parent() != Some(root.as_path()) {
                 continue;
@@ -164,7 +148,7 @@ pub(crate) async fn load_with_env(
         }
         for name in ["dcp.json", "dcp.jsonc"] {
             let path = root.join(name);
-            let text = match read_native_config(&root, name) {
+            let text = match read_native_config(admitted, name) {
                 Ok(Some(text)) => text,
                 Ok(None) => continue,
                 Err(error) => {
@@ -276,58 +260,64 @@ pub(crate) async fn load_with_env(
     // inline domains first, then Markdown from the same admitted root.
     let mut loaded_defs = defs::LoadedDefs::default();
     if let Some(global) = global.as_ref() {
-        let global = global.canonicalize().unwrap_or_else(|_| global.clone());
+        let global = admitted_roots[0]
+            .as_ref()
+            .map_or_else(|| global.clone(), |root| root.path.clone());
         merge_config_sources(&mut loaded_defs, &sources, &global)?;
-        defs::merge_definition_root(
-            &mut loaded_defs,
-            &defs::DefRoot {
-                dir: global.clone(),
-                origin: global.to_string_lossy().into_owned(),
-            },
-        );
+        if let Some(admitted) = admitted_roots[0].as_ref() {
+            defs::merge_definition_root_admitted(
+                &mut loaded_defs,
+                &defs::DefRoot {
+                    dir: global.clone(),
+                    origin: global.to_string_lossy().into_owned(),
+                },
+                &admitted.dir,
+            );
+        }
     }
     merge_config_sources(&mut loaded_defs, &sources, &project)?;
     // The `.opencode` definition root is admitted only inside the Location
     // root; a symlinked root resolving outside fails closed.
-    let local_defs = project.join(".opencode");
-    let local_defs = match local_defs.canonicalize() {
-        Ok(canonical) => {
-            if !canonical.starts_with(&project) {
-                return Err(format!(
-                    "refusing {}: resolves outside the Location root {} ({})",
-                    local_defs.display(),
-                    project.display(),
-                    canonical.display()
-                ));
-            }
-            canonical
-        }
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => local_defs,
-        Err(e) => {
-            return Err(format!("cannot resolve {}: {e}", local_defs.display()));
-        }
-    };
+    let local_defs = admitted_roots
+        .last()
+        .and_then(Option::as_ref)
+        .map_or_else(|| project.join(".opencode"), |root| root.path.clone());
     merge_config_sources(&mut loaded_defs, &sources, &local_defs)?;
-    defs::merge_definition_root(
-        &mut loaded_defs,
-        &defs::DefRoot {
-            dir: local_defs.clone(),
-            origin: local_defs.to_string_lossy().into_owned(),
-        },
-    );
+    if let Some(admitted) = admitted_roots.last().and_then(Option::as_ref) {
+        defs::merge_definition_root_admitted(
+            &mut loaded_defs,
+            &defs::DefRoot {
+                dir: local_defs.clone(),
+                origin: local_defs.to_string_lossy().into_owned(),
+            },
+            &admitted.dir,
+        );
+    }
 
     let mut instruction_files = Vec::new();
-    if let Some(global) = global.as_ref() {
+    if let Some(global) = global.as_ref()
+        && let Some(root) = admitted_roots[0].as_ref()
+    {
         let file = global.join("AGENTS.md");
         if let Some(admitted) = admit_instruction(&file, global)? {
-            instruction_files.push((file.to_string_lossy().into_owned(), admitted));
+            instruction_files.push((
+                file.to_string_lossy().into_owned(),
+                read_instruction(root, &admitted),
+            ));
         }
     }
     let local_agents = project.join("AGENTS.md");
-    if let Some(admitted) = admit_instruction(&local_agents, &project)? {
-        instruction_files.push((local_agents.to_string_lossy().into_owned(), admitted));
+    if let Some(root) = admitted_roots
+        .get(usize::from(global.is_some()))
+        .and_then(Option::as_ref)
+        && let Some(admitted) = admit_instruction(&local_agents, &project)?
+    {
+        instruction_files.push((
+            local_agents.to_string_lossy().into_owned(),
+            read_instruction(root, &admitted),
+        ));
     }
-    let (instructions, instruction_diagnostics) = defs::load_instructions(&instruction_files);
+    let (instructions, instruction_diagnostics) = defs::load_instruction_texts(&instruction_files);
 
     // Title is now selected automatically. An explicitly malformed profile
     // cannot be mistaken for absence and replaced with the built-in policy.
@@ -583,9 +573,10 @@ pub(crate) async fn load_with_env(
         ..Default::default()
     };
     // Use the existing admitted-root reader, not arbitrary TUI-side filesystem access.
-    for root in &roots {
+    for (root, admitted) in roots.iter().zip(&admitted_roots) {
+        let Some(admitted) = admitted else { continue };
         for name in ["cli.json", "cli.jsonc"] {
-            let Some(text) = read_native_config(root, name)? else {
+            let Some(text) = read_native_config(admitted, name)? else {
                 continue;
             };
             let value = config::parse_jsonc(&text, &root.join(name).to_string_lossy())
@@ -651,32 +642,131 @@ fn merge_json_object(
     Ok(())
 }
 
-fn read_native_config(root: &Path, name: &str) -> Result<Option<String>, String> {
-    let path = root.join(name);
-    let mut file = match std::fs::OpenOptions::new()
+// JSONC parsing makes several working copies (char vectors, normalized text,
+// JSON values). 16 MiB accepts ordinary multi-MiB user configs while bounding
+// startup allocation; small native DCP/CLI configs retain their existing cap.
+const SOURCE_CONFIG_CAP: usize = 16 * 1024 * 1024;
+const NATIVE_CONFIG_CAP: usize = 1024 * 1024;
+
+struct AdmittedRoot {
+    path: PathBuf,
+    dir: File,
+}
+
+fn admit_root(root: &Path, project: &Path, local: bool) -> Result<Option<AdmittedRoot>, String> {
+    let canonical = match root.canonicalize() {
+        Ok(path) => path,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => {
+            return Err(format!(
+                "cannot resolve config root {}: {e}",
+                root.display()
+            ));
+        }
+    };
+    if local && !canonical.starts_with(project) {
+        return Err(format!(
+            "refusing {}: resolves outside the Location root {} ({})",
+            root.display(),
+            project.display(),
+            canonical.display()
+        ));
+    }
+    let dir = OpenOptions::new()
         .read(true)
-        .custom_flags(libc::O_CLOEXEC | libc::O_NOFOLLOW)
-        .open(&path)
-    {
+        .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open(&canonical)
+        .map_err(|e| format!("cannot open config root {}: {e}", root.display()))?;
+    // If an ancestor was swapped during admission, the opened directory, not
+    // the earlier pathname resolution, decides whether it is still admitted.
+    let opened = std::fs::canonicalize(format!("/proc/self/fd/{}", dir.as_raw_fd()))
+        .map_err(|e| format!("cannot verify config root {}: {e}", root.display()))?;
+    if opened != canonical || (local && !opened.starts_with(project)) {
+        return Err(format!(
+            "refusing config root {}: changed during admission",
+            root.display()
+        ));
+    }
+    Ok(Some(AdmittedRoot {
+        path: canonical,
+        dir,
+    }))
+}
+
+fn read_bounded(mut file: File, cap: usize) -> Result<String, String> {
+    let metadata = file.metadata().map_err(|e| e.to_string())?;
+    if !metadata.is_file() {
+        return Err("not a regular file".to_string());
+    }
+    if metadata.len() > cap as u64 {
+        return Err(format!("exceeds {} MiB config budget", cap / 1024 / 1024));
+    }
+    let mut bytes = Vec::new();
+    file.by_ref()
+        .take(cap as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|e| e.to_string())?;
+    if bytes.len() > cap {
+        return Err(format!("exceeds {} MiB config budget", cap / 1024 / 1024));
+    }
+    String::from_utf8(bytes).map_err(|_| "not UTF-8".to_string())
+}
+
+fn read_source_config(
+    root: &AdmittedRoot,
+    path: &Path,
+) -> Result<Option<(PathBuf, String)>, String> {
+    let canonical = match path.canonicalize() {
+        Ok(path) => path,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(format!("cannot resolve config {}: {e}", path.display())),
+    };
+    let relative = canonical.strip_prefix(&root.path).map_err(|_| {
+        format!(
+            "refusing config {}: resolves outside its admitted root {} ({})",
+            path.display(),
+            root.path.display(),
+            canonical.display()
+        )
+    })?;
+    let file = admitted_fs::open_beneath(&root.dir, relative, libc::O_RDONLY)
+        .map_err(|e| format!("cannot open admitted config {}: {e}", path.display()))?;
+    let text = read_bounded(file, SOURCE_CONFIG_CAP)
+        .map_err(|e| format!("cannot read config {}: {e}", path.display()))?;
+    Ok(Some((canonical, text)))
+}
+
+fn read_native_config(root: &AdmittedRoot, name: &str) -> Result<Option<String>, String> {
+    let file = match admitted_fs::open_beneath(&root.dir, Path::new(name), libc::O_RDONLY) {
         Ok(file) => file,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(error) => return Err(error.to_string()),
     };
-    let metadata = file.metadata().map_err(|error| error.to_string())?;
-    if !metadata.is_file() {
+    read_bounded(file, NATIVE_CONFIG_CAP).map(Some)
+}
+
+fn read_instruction(root: &AdmittedRoot, path: &Path) -> Result<String, String> {
+    let relative = path
+        .strip_prefix(&root.path)
+        .map_err(|_| "outside admitted root".to_string())?;
+    let mut file = admitted_fs::open_beneath(&root.dir, relative, libc::O_RDONLY)
+        .map_err(|_| "unreadable".to_string())?;
+    let meta = file.metadata().map_err(|_| "unreadable".to_string())?;
+    if !meta.is_file() {
         return Err("not a regular file".to_string());
+    }
+    if meta.len() > defs::MAX_INSTRUCTIONS_FILE as u64 {
+        return Err("file too large".to_string());
     }
     let mut bytes = Vec::new();
     file.by_ref()
-        .take(1024 * 1024 + 1)
+        .take(defs::MAX_INSTRUCTIONS_FILE as u64 + 1)
         .read_to_end(&mut bytes)
-        .map_err(|error| error.to_string())?;
-    if bytes.len() > 1024 * 1024 {
-        return Err("exceeds 1 MiB".to_string());
+        .map_err(|_| "unreadable".to_string())?;
+    if bytes.len() > defs::MAX_INSTRUCTIONS_FILE {
+        return Err("file too large".to_string());
     }
-    String::from_utf8(bytes)
-        .map(Some)
-        .map_err(|_| "not UTF-8".to_string())
+    String::from_utf8(bytes).map_err(|_| "not UTF-8".to_string())
 }
 
 fn permission_rank(level: config::Permission) -> u8 {
@@ -761,6 +851,178 @@ mod tests {
     use super::load_with_env;
     use std::collections::BTreeMap;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    #[tokio::test]
+    async fn v07a_external_discovered_root_is_refused_before_config_or_substitution() {
+        let dir = tempfile::tempdir().expect("fixture");
+        let project = dir.path().join("project");
+        let outside = dir.path().join("outside");
+        std::fs::create_dir_all(&project).expect("project");
+        std::fs::create_dir_all(&outside).expect("outside");
+        std::fs::write(outside.join("local-secret-fixture"), "external-key").expect("secret");
+        std::fs::write(
+            outside.join("opencode.json"),
+            r#"{"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"{file:local-secret-fixture}"},"models":{"main":{}}}},"mcp":{"trap":{"type":"local","command":["never-run"]}},"command":{"trap":"never-run"}}"#,
+        )
+        .expect("outside config");
+        std::os::unix::fs::symlink(&outside, project.join(".opencode")).expect("symlink");
+        let error = load_with_env(&project, BTreeMap::new())
+            .await
+            .map(|_| ())
+            .expect_err("discovered root cannot trust outside config");
+        assert!(
+            error.contains(".opencode") && error.contains("outside"),
+            "{error}"
+        );
+        assert!(!error.contains("external-key"), "{error}");
+    }
+
+    #[tokio::test]
+    async fn v07a_explicit_external_global_and_nested_local_jsonc_symlink_work() {
+        let dir = tempfile::tempdir().expect("fixture");
+        let project = dir.path().join("project");
+        let global = dir.path().join("external-global");
+        std::fs::create_dir_all(project.join("nested")).expect("nested");
+        std::fs::create_dir_all(&global).expect("global");
+        std::fs::write(global.join("key"), "global-key").expect("key");
+        std::fs::write(global.join("opencode.json"), r#"{"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"{file:key}"},"models":{"main":{}}}}}"#).expect("global config");
+        std::fs::write(
+            project.join("nested/local.jsonc"),
+            "{ // local override\n \"model\": \"fixture/alternate\",}\n",
+        )
+        .expect("local config");
+        // An in-root symlink for the discovered root is allowed as well.
+        std::os::unix::fs::symlink(project.join("nested"), project.join(".opencode"))
+            .expect("root link");
+        std::os::unix::fs::symlink(
+            project.join("nested/local.jsonc"),
+            project.join("nested/opencode.jsonc"),
+        )
+        .expect("config link");
+        std::fs::write(global.join("opencode.jsonc"), r#"{// global JSONC overrides the preceding JSON
+            "provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"{file:key}"},"models":{"main":{},"alternate":{}}}},}"#).expect("global jsonc");
+        let env = BTreeMap::from([(
+            "OPENCODE_CONFIG_DIR".into(),
+            global.to_string_lossy().into_owned(),
+        )]);
+        let loaded = load_with_env(&project, env)
+            .await
+            .expect("admitted composition");
+        assert_eq!(loaded.model_id, "alternate");
+        assert_eq!(loaded.provider.api_key, "global-key");
+    }
+
+    #[tokio::test]
+    async fn v07a_large_normal_config_is_not_limited_to_one_mib() {
+        let dir = tempfile::tempdir().expect("fixture");
+        let mut config = r#"{"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}},"unused":""#.to_string();
+        config.push_str(&"x".repeat(1024 * 1024 + 16));
+        config.push_str("\"}");
+        std::fs::write(dir.path().join("opencode.json"), config).expect("large config");
+        assert_eq!(
+            load_with_env(dir.path(), BTreeMap::new())
+                .await
+                .expect("large regular config")
+                .model_id,
+            "main"
+        );
+    }
+
+    #[tokio::test]
+    async fn v07a_definitions_symlink_inside_root_and_explicit_external_global_stay_valid() {
+        let dir = tempfile::tempdir().expect("fixture");
+        let project = dir.path().join("project");
+        let global = dir.path().join("external-global");
+        std::fs::create_dir_all(project.join(".opencode/nested/skills")).expect("local skills");
+        std::fs::create_dir_all(global.join("nested/agents")).expect("global agents");
+        std::fs::write(global.join("opencode.json"), r#"{"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}}}"#).expect("config");
+        std::fs::write(
+            project.join(".opencode/nested/skills/local.md"),
+            "---\ndescription: local-in-root\n---\nlocal body",
+        )
+        .expect("skill");
+        std::fs::write(
+            global.join("nested/agents/global.md"),
+            "---\ndescription: global-external\n---\nglobal agent",
+        )
+        .expect("agent");
+        std::os::unix::fs::symlink(
+            project.join(".opencode/nested/skills"),
+            project.join(".opencode/skills"),
+        )
+        .expect("local link");
+        std::os::unix::fs::symlink(global.join("nested/agents"), global.join("agents"))
+            .expect("global link");
+        let env = BTreeMap::from([(
+            "OPENCODE_CONFIG_DIR".into(),
+            global.to_string_lossy().into_owned(),
+        )]);
+        let loaded = load_with_env(&project, env).await.expect("composition");
+        assert!(
+            loaded
+                .skills
+                .iter()
+                .any(|(id, body)| id == "local" && body.contains("local body"))
+        );
+        assert_eq!(loaded.agents["global"].body, "global agent");
+        assert_eq!(loaded.agents["global"].origin, global.to_string_lossy());
+    }
+
+    #[tokio::test]
+    async fn v07a_racing_instruction_symlink_never_reads_external_text() {
+        use std::sync::Arc;
+        use std::sync::atomic::{AtomicBool, Ordering};
+        let dir = tempfile::tempdir().expect("fixture");
+        let project = dir.path().join("project");
+        std::fs::create_dir_all(&project).expect("project");
+        std::fs::write(project.join("opencode.json"), r#"{"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}}}"#).expect("config");
+        std::fs::write(project.join("inside.md"), "V07A_SAFE_INSTRUCTIONS_1033").expect("inside");
+        let outside = dir.path().join("outside.md");
+        std::fs::write(&outside, "V07A_EXTERNAL_INSTRUCTIONS_9b22").expect("outside");
+        let link = project.join("AGENTS.md");
+        std::os::unix::fs::symlink(project.join("inside.md"), &link).expect("initial link");
+        assert!(
+            load_with_env(&project, BTreeMap::new())
+                .await
+                .expect("in-root instruction")
+                .instructions
+                .contains("V07A_SAFE_INSTRUCTIONS_1033")
+        );
+        let stop = Arc::new(AtomicBool::new(false));
+        let worker_stop = stop.clone();
+        let worker_project = project.clone();
+        let worker_outside = outside.clone();
+        let worker = std::thread::spawn(move || {
+            let mut external = true;
+            while !worker_stop.load(Ordering::Relaxed) {
+                let replacement = worker_project.join("next-agents.md");
+                let target = if external {
+                    worker_outside.clone()
+                } else {
+                    worker_project.join("inside.md")
+                };
+                std::os::unix::fs::symlink(target, &replacement).expect("replacement");
+                std::fs::rename(&replacement, worker_project.join("AGENTS.md"))
+                    .expect("atomic swap");
+                external = !external;
+                std::thread::yield_now();
+            }
+        });
+        let mut escaped = false;
+        for _ in 0..80 {
+            if let Ok(loaded) = load_with_env(&project, BTreeMap::new()).await {
+                escaped |= loaded
+                    .instructions
+                    .contains("V07A_EXTERNAL_INSTRUCTIONS_9b22");
+            }
+        }
+        stop.store(true, Ordering::Relaxed);
+        worker.join().expect("swapper");
+        assert!(
+            !escaped,
+            "outside instructions reached a composition generation"
+        );
+    }
 
     #[tokio::test]
     async fn ordered_sources_select_exact_model_and_selected_credentials() {
