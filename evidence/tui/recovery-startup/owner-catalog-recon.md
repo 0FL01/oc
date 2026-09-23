@@ -26,3 +26,9 @@ The exact owner 401-versus-403 result and provider-side authorization policy are
 1. Immediate: in the failing shell run `set -a; source ~/.config/opencode/secrets.env; set +a` then `OC_STARTUP_TRACE_FINGERPRINT=1 oc2`; expect `provider.api_key … fingerprint=54f454fc`, `discovery.attempt … status=200`, Home and exit 0.
 2. Durable (on owner's word): add an `oc2` wrapper to `~/.zshrc` mirroring `with-opencode-secrets` but `exec`ing the native binary, so both commands share one credential source; the existing `oc` alias is untouched.
 3. After confirmation, resume T44: V07 S05/S06/S08, S07 measurements, V08–V09 paired VIS01–VIS24 and the product gates. No visual or READY claim follows from this fix.
+
+## Fix applied in `~/.zshrc` (owner-approved)
+
+- Added `with-oc2-secrets()` + `alias oc2='with-oc2-secrets'` immediately after the existing `alias oc='with-opencode-secrets'`, with comments explaining that the native binary inherits the launching environment, that the `oc` alias loads secrets only inside its own subshell, and that a stale/empty `LUDKA2_API_KEY` produces the catalog 401. The function loads `${OPENCODE_SECRETS:-$HOME/.config/opencode/secrets.env}` with `set -a`, exports `TMPDIR`, and `exec`s `$HOME/.local/bin/oc2`; the original `oc` alias is untouched. A pre-edit copy is at `~/.zshrc.bak-oc2`.
+- `zsh -n ~/.zshrc` exit 0. Functional check in a PTY: the child shell was given a deliberately stale `LUDKA2_API_KEY=stale-test-key-not-a-secret`; the wrapper replaced it from `secrets.env`, and the trace showed `provider.api_key … fingerprint=54f454fc`, `discovery.attempt: n=1 status=200 models=44`, `discovery.ok`, `load.ok`, `spawn.ok`, Home and exit 0, with the stale value absent from the trace (`wrapper_ok: True`).
+- Effect: `oc2` now uses the same credential source as `oc`; no conflict with the original OpenCode alias. The alias activates in new shells or after `source ~/.zshrc`.
