@@ -7,3 +7,5 @@ recovery-v08-tab-fade-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v08-tab-fade-*/*/*.vt binary
 recovery-v08-tab-indicator-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v08-tab-indicator-*/*/*.vt binary
+recovery-v08-home-placeholder-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+recovery-v08-home-placeholder-*/*/*.vt binary

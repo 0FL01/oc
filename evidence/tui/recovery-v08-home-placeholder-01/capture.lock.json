@@ -1,0 +1,233 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-23T21:18:09.193Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "baf1a3ca1adcb7b15667cf2ac877bb701667a03df2b0c867a4239984c78dd75d",
+    "frontend.js": "422f93bd137f00b2b677e2b5e1f8f31170cccffd9330eab2c66f26528820f6ee",
+    "bridge.py": "131d31998afbf9a7506fd240f1d6ad9f82d00a32b60e2a08f44fd885aea02afa"
+  },
+  "fixture_sha256": "dbfc93c470dd18d3af79b33195a13c898e83944ec5e0f242cd32d88b65531644",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "75e1418dd4d3f9a26c7f70700be9ab0a03d54a8c",
+    "tree": "34dc43779d1d8f8afd558c21db7950ebe77480a8",
+    "dirty_diff_sha256": "2cc6e48e6bb871e86a2282a50b6a6447f1e39c2d54d945af6ec20a329984a332",
+    "source_manifest_sha256": "9da61c471f75cf67ca3581ecbe173d5d67b2c47075f0fa7997e07a756c12dd5b",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "0b8af1dfdc7f14d46f9bae31081447b33bad2bf1f8a4142c679ec0ca6f169dd5",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "exploration-expanded",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "exploration-expanded",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "exploration-recollapsed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "exploration-recollapsed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "1ac67513a915c44b5c86290c8188f223deca587c5b23031debcd21cebd04b7db",
+      "png_sha256": "ca6c54af9b1ff2ee529782df92e0f9cfd8b06be4dff598ff96516d80f725f3a1",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "c9b04c58d9a007548e254ac379ba82f808d99ecc6811280522d1e631e2bbfd9e",
+      "png_sha256": "f6bd734e054b14bbfcc1abb46ef4c2ac5426e9caf1378a2bfac2bbb15ede9f02",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "exploration-expanded",
+      "status": "CAPTURED_EXPLORATION_EXPANDED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "0b5dbb142e6afd402e4877b363e433ff5e4ee3f967bac27beee9931351b4c799",
+      "png_sha256": "74e208a06615d75f74a585a001121aa4716f33db6172da9626f000ac55c7cef3",
+      "path": "upstream/exploration-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "exploration-recollapsed",
+      "status": "CAPTURED_EXPLORATION_RECOLLAPSED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "037f165ae184c1978a03362b872ba61642e209a200bcdec68757c2e85eff0f48",
+      "png_sha256": "7f76d15a8fb9648ad6b3b25817849fabb29cfdb272ac64b1f328f8d22bccb351",
+      "path": "upstream/exploration-recollapsed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "e79e580d65ec6ee20e980a2ac671eb6eae076b3bee0dbc0a620eb7917cb3d7a2",
+      "png_sha256": "f04ea8255871ef2c9a7793181dab1b476cdb770ea134b7601ec0fa81b2645e9d",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "146001d4db7a3dc5dfec412a1e0f810efeea4d17f3fe4c7b5afa11308eab91f0",
+      "png_sha256": "9c6ba2fb1ab47c031af31a146d6eb9474af87ef57a4346da24de3ddc903d2766",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "exploration-expanded",
+      "status": "CAPTURED_EXPLORATION_EXPANDED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "edafe4c749ede8efc2fb4aca80e226e558028e70f24b0ff7e27d85ea572cb59c",
+      "png_sha256": "9f90f27c6699be9a35b8d432ef254d8797a6e66d55611a27464fdf68aeaf13d5",
+      "path": "oc/exploration-expanded"
+    },
+    {
+      "origin": "oc",
+      "scenario": "exploration-recollapsed",
+      "status": "CAPTURED_EXPLORATION_RECOLLAPSED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "9808ee97d4a425d4fa45e76a4b39992584b26754cc4ab5fa44f2af48c1e7a139",
+      "png_sha256": "9c6ba2fb1ab47c031af31a146d6eb9474af87ef57a4346da24de3ddc903d2766",
+      "path": "oc/exploration-recollapsed"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "pixel_width": 1011,
+    "pixel_height": 640,
+    "measured_cell_width": 8.425,
+    "measured_cell_height": 16
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-23T21:18:51.171Z",
+  "exit_code": 1
+}

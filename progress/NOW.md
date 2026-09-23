@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-23T21:08:17+00:00
+State updated: 2026-09-23T21:33:40+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,42 +12,37 @@ Evidence target: evidence/T44/report.md
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 — V08 paired status tab indicator
+# T44 — V08 Home normal-mode examples
 
 ## Result
 
-Code commit `fcdcddc` selects upstream default `tabs.indicators=status`,
-accepts explicit `numbers` from admitted ordered CLI config and renders the
-selected idle tab with three blank indicator cells. Genuine busy state gets a
-first-frame spinner; no unread/attention status is invented. Independent paired
-capture `evidence/tui/recovery-v08-tab-indicator-01/` and factual report
-`evidence/tui/recovery-v08-tab-indicator-report.md` show **0/32** styled-cell
-differences in the selected tab in completed and expanded session frames.
+Code `cb5eadb` adds source-backed randomized Home examples as muted, bounded,
+empty-input prompt hints. Session and nonempty prompt remain unaffected; shell
+mode is not falsely presented. Independent original/native captures in
+`evidence/tui/recovery-v08-home-placeholder-{01,02,03,04,05}/` and report
+`evidence/tui/recovery-v08-home-placeholder-report.md` document a matched
+13-cell prefix and uncorrelated random example selection. Prompt blank-cell
+style was corrected after attempt 01. No VIS PASS claimed.
 
 ## Checks
 
-Test-first regressions, config precedence and invalid value tests; the first
-full serial workspace run found a stale real-PTY assertion for the old `1`
-indicator, which was updated to check the correct blank status-tab geometry.
-Targeted PTY rerun and full serial workspace rerun PASS (TUI 180; existing live
-ignores). Fmt, workspace all-target clippy, locked build, docs/progress and
-diff checks PASS. Whole completed frame **360/4,800** styled cells and
-**8,860/647,040** PNG pixels DIFFERENT, runner exit 1, not parity.
+Full serial workspace tests PASS (TUI 183; live ignores), fmt, all-target
+clippy -D warnings, build, Node syntax, docs/progress and diff checks PASS.
+Both real paired PTYs execute the provider contract and explore group click
+in every capture; whole-frame comparisons are DIFFERENT (runner exit 1).
 
 ## Risks
 
-No real add-tab control or multi-tab/unread/attention state; static busy
-spinner does not prove animation parity. Home suggestions, prompt/footer,
-upstream implicit Build versus native unconfigured fixture and variable
-durations remain. VIS01–VIS24, V08–V09 and S07 residual measurements open;
-T44 remains active.
+Uncorrelated original/native random choices prevent asserting exact full
+placeholder equality in attempts 02–05. Native fixture has no implicit Build
+profile; tab add/unread/attention, original prompt/footer, dynamic durations,
+S07 residuals and VIS01–VIS24 remain open. T44 is active, not finished.
 
 ## Next
 
-RECON the upstream add-tab interaction and application-owned session switch,
-or a genuinely equivalent active profile fixture, before painting more tab
-chrome. Re-run fresh paired captures on each change; do not infer full parity
-from the selected-tab region.
+RECON real add-tab action and cross-session navigation against the pinned
+original before painting the `+`; continue paired VIS qualification and
+honest profile-state alignment, no hardcoded default agent.
 
 
 Ready (до 5): T45, T46, T47
