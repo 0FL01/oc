@@ -244,6 +244,18 @@ pub struct TuiChrome {
     pub sidebar_hidden: bool,
     /// Width occupied by configured vertical tabs (zero for horizontal).
     pub vertical_tabs_width: u16,
+    /// Upstream tab indicator presentation; status is the default.
+    pub tab_indicators: TabIndicators,
+}
+
+/// Selected session tab indicator presentation (upstream `tabs.indicators`).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum TabIndicators {
+    /// Blank while idle; busy state displays the first spinner frame.
+    #[default]
+    Status,
+    /// Always display the selected tab number.
+    Numbers,
 }
 
 /// Native debug builds map to upstream's local channel; release builds to packaged.

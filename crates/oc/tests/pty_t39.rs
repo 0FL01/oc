@@ -2064,7 +2064,7 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
     assert!(
         dismissed_screen
             .iter()
-            .any(|r| r.contains("1 Untitled session")),
+            .any(|r| r.starts_with("   Untitled session")),
         "Esc preserves attached tab"
     );
     assert!(

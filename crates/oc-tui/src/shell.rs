@@ -9,10 +9,11 @@
 //! Transient notes render as the upstream toast (`ui/toast.tsx:48-50`). Shared
 //! modal dialogs composite last, without reserving any transcript/prompt rows.
 
+use oc_core::queries::TabIndicators;
 use ratatui::{
     Frame,
     layout::{Alignment, Rect},
-    style::{Modifier, Style},
+    style::{Color, Modifier, Style},
     symbols::border,
     text::{Line, Span},
     widgets::{Block, Borders, Padding, Paragraph},
@@ -183,7 +184,14 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
             ..area
         };
     } else {
-        render_tabs(frame, theme, regions.tabs, state.session_title.as_deref());
+        render_tabs(
+            frame,
+            theme,
+            regions.tabs,
+            state.session_title.as_deref(),
+            state.chrome.tab_indicators,
+            state.is_busy(),
+        );
     }
     let main = session_main(state, regions.session);
     if main.width < regions.session.width {
@@ -244,7 +252,13 @@ pub(crate) fn transcript_area(state: &TuiState, area: Rect) -> Rect {
 
 /// Single active tab in the horizontal strip
 /// (`component/session-tabs.tsx:1506-1508`, `context/session-tabs-model.ts:33-35`).
-fn tab_line(theme: &Theme, available: u16, title: Option<&str>) -> Line<'static> {
+fn tab_line(
+    theme: &Theme,
+    available: u16,
+    title: Option<&str>,
+    indicators: TabIndicators,
+    busy: bool,
+) -> Line<'static> {
     let title = title.unwrap_or(UNTITLED_SESSION);
     let tab_bg = theme.decrease(theme.background_panel());
     let tab_width = layout::single_tab_width(available);
@@ -263,10 +277,23 @@ fn tab_line(theme: &Theme, available: u16, title: Option<&str>) -> Line<'static>
         }
     }
     // Indicator cell: `numberWidth + 1` with the label right-aligned and one
-    // padding cell (`component/session-tabs.tsx:1671-1682`); selected number
-    // color is `tint(text.base, tabBackground, 0.25)` (`:1606-1618`).
+    // padding cell (`component/session-tabs.tsx:1671-1682`). Status has no
+    // idle label; a busy tab uses the first dot-spinner frame even without
+    // animations (`TabIndicator`, `spinner-frames.ts`).
     let number = tint(theme.text(), tab_bg, 0.25);
-    let mut spans = vec![Span::styled(" 1 ", Style::default().fg(number).bg(tab_bg))];
+    let blank = Style::default().fg(Color::Rgb(255, 255, 255)).bg(tab_bg);
+    let mut spans = vec![Span::styled(" ", blank)];
+    match indicators {
+        TabIndicators::Numbers => {
+            spans.push(Span::styled("1", Style::default().fg(number).bg(tab_bg)))
+        }
+        TabIndicators::Status if busy => spans.push(Span::styled(
+            "⠋",
+            Style::default().fg(theme.primary()).bg(tab_bg),
+        )),
+        TabIndicators::Status => spans.push(Span::styled(" ", blank)),
+    }
+    spans.push(Span::styled(" ", blank));
     for (index, grapheme) in visible.iter().enumerate() {
         // At rest the marquee's leading fade is zero. Its trailing fade is
         // 0.2, 0.44, 0.68, 0.92 over the final four visible graphemes.
@@ -293,7 +320,14 @@ fn tab_line(theme: &Theme, available: u16, title: Option<&str>) -> Line<'static>
     Line::from(spans)
 }
 
-fn render_tabs(frame: &mut Frame<'_>, theme: &Theme, area: Rect, title: Option<&str>) {
+fn render_tabs(
+    frame: &mut Frame<'_>,
+    theme: &Theme,
+    area: Rect,
+    title: Option<&str>,
+    indicators: TabIndicators,
+    busy: bool,
+) {
     if area.height == 0 || area.width == 0 {
         return;
     }
@@ -307,7 +341,10 @@ fn render_tabs(frame: &mut Frame<'_>, theme: &Theme, area: Rect, title: Option<&
         width: layout::single_tab_width(area.width),
         ..area
     };
-    frame.render_widget(Paragraph::new(tab_line(theme, area.width, title)), strip);
+    frame.render_widget(
+        Paragraph::new(tab_line(theme, area.width, title, indicators, busy)),
+        strip,
+    );
 }
 
 fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {
@@ -1044,7 +1081,8 @@ mod tests {
     use oc_core::core_app::{CoreApp, MockProvider};
     use oc_core::domain::SessionId;
     use oc_core::queries::{
-        AgentEntry, CatalogSnapshot, HistoryMessage, HistoryPage, ModelEntry, VariantEntry,
+        AgentEntry, CatalogSnapshot, HistoryMessage, HistoryPage, ModelEntry, TabIndicators,
+        VariantEntry,
     };
     use oc_core::session::Role;
     use ratatui::{Terminal, backend::TestBackend, style::Color};
@@ -1157,6 +1195,49 @@ mod tests {
         assert_eq!(buffer[(3, 0)].fg, Theme::dark().text());
         assert!(buffer[(3, 0)].modifier.contains(Modifier::BOLD));
         assert!(!buffer[(1, 0)].modifier.contains(Modifier::BOLD));
+        for x in 0..3 {
+            assert_eq!(buffer[(x, 0)].symbol(), " ");
+            assert_eq!(buffer[(x, 0)].fg, Color::Rgb(255, 255, 255));
+            assert_eq!(
+                buffer[(x, 0)].bg,
+                Theme::dark().decrease(Theme::dark().background_panel())
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn selected_tab_indicator_tracks_busy_turn_and_explicit_numbers() {
+        let mut state = golden_state().await;
+        state.chrome.devtools = Some(false);
+        state.chrome.sidebar_hidden = true;
+        let theme = Theme::dark();
+        let tab_bg = theme.decrease(theme.background_panel());
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        state.chrome.tab_indicators = TabIndicators::Numbers;
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(0, 0)].symbol(), " ");
+        assert_eq!(buffer[(1, 0)].symbol(), "1");
+        assert_eq!(buffer[(1, 0)].fg, tint(theme.text(), tab_bg, 0.25));
+        assert_eq!(buffer[(2, 0)].symbol(), " ");
+        assert_eq!(buffer[(3, 0)].symbol(), "U");
+
+        state.chrome.tab_indicators = TabIndicators::Status;
+        state.handle_key(KeyAction::Char('h')).await;
+        state.handle_key(KeyAction::Enter).await;
+        assert!(state.is_busy());
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(0, 0)].symbol(), " ");
+        assert_eq!(buffer[(1, 0)].symbol(), "⠋");
+        assert_eq!(buffer[(1, 0)].fg, theme.primary());
+        assert_eq!(buffer[(1, 0)].bg, tab_bg);
+        assert_eq!(buffer[(2, 0)].symbol(), " ");
+        assert_eq!(buffer[(3, 0)].symbol(), "U");
+
+        state.chrome.tab_indicators = TabIndicators::Numbers;
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(1, 0)].symbol(), "1");
     }
 
     #[test]
@@ -1171,6 +1252,8 @@ mod tests {
                     theme,
                     Rect::new(0, 0, 40, 1),
                     Some("abcdefghijklmnopqrstuvwxyz123456789"),
+                    TabIndicators::Numbers,
+                    false,
                 );
             })
             .unwrap();
@@ -1204,7 +1287,16 @@ mod tests {
         for (width, title) in [(32, "Short"), (32, exact.as_str())] {
             let mut terminal = Terminal::new(TestBackend::new(width, 1)).unwrap();
             terminal
-                .draw(|frame| render_tabs(frame, theme, Rect::new(0, 0, width, 1), Some(title)))
+                .draw(|frame| {
+                    render_tabs(
+                        frame,
+                        theme,
+                        Rect::new(0, 0, width, 1),
+                        Some(title),
+                        TabIndicators::Status,
+                        false,
+                    )
+                })
                 .unwrap();
             let buffer = terminal.backend().buffer();
             for x in 3..(3 + title.len() as u16) {
@@ -1219,7 +1311,14 @@ mod tests {
         let mut terminal = Terminal::new(TestBackend::new(7, 1)).unwrap();
         terminal
             .draw(|frame| {
-                render_tabs(frame, theme, Rect::new(0, 0, 7, 1), Some("overflows"));
+                render_tabs(
+                    frame,
+                    theme,
+                    Rect::new(0, 0, 7, 1),
+                    Some("overflows"),
+                    TabIndicators::Status,
+                    false,
+                );
             })
             .unwrap();
         for x in 3..7 {
@@ -1229,7 +1328,14 @@ mod tests {
         let mut terminal = Terminal::new(TestBackend::new(32, 1)).unwrap();
         terminal
             .draw(|frame| {
-                render_tabs(frame, theme, Rect::new(0, 0, 32, 1), Some(&exact_unicode));
+                render_tabs(
+                    frame,
+                    theme,
+                    Rect::new(0, 0, 32, 1),
+                    Some(&exact_unicode),
+                    TabIndicators::Status,
+                    false,
+                );
             })
             .unwrap();
         let buffer = terminal.backend().buffer();
@@ -1244,7 +1350,16 @@ mod tests {
         let mut terminal = Terminal::new(TestBackend::new(32, 1)).unwrap();
         let title = format!("{}e\u{301}界ZQRmore", "a".repeat(23));
         terminal
-            .draw(|frame| render_tabs(frame, theme, Rect::new(0, 0, 32, 1), Some(&title)))
+            .draw(|frame| {
+                render_tabs(
+                    frame,
+                    theme,
+                    Rect::new(0, 0, 32, 1),
+                    Some(&title),
+                    TabIndicators::Status,
+                    false,
+                )
+            })
             .unwrap();
         let buffer = terminal.backend().buffer();
         assert_eq!(buffer[(26, 0)].symbol(), "e\u{301}");
@@ -1259,7 +1374,16 @@ mod tests {
 
         let title = format!("{}界tail", "a".repeat(28));
         terminal
-            .draw(|frame| render_tabs(frame, theme, Rect::new(0, 0, 32, 1), Some(&title)))
+            .draw(|frame| {
+                render_tabs(
+                    frame,
+                    theme,
+                    Rect::new(0, 0, 32, 1),
+                    Some(&title),
+                    TabIndicators::Status,
+                    false,
+                )
+            })
             .unwrap();
         let buffer = terminal.backend().buffer();
         assert_eq!(buffer[(30, 0)].symbol(), "a");
@@ -1449,8 +1573,8 @@ mod tests {
         let state = golden_state().await;
         let hints = "shift+tab agents  ctrl+p commands";
         let mut expected = vec![String::new(); 24];
-        // Tabs rail: single active tab, upstream number cell + title.
-        expected[0] = " 1 Untitled session".to_string();
+        // Tabs rail: default idle status leaves the indicator blank before the title.
+        expected[0] = "   Untitled session".to_string();
         // Transcript: sticky bottom, content padding 2. Iteration 3a renders
         // the upstream message presentation: the user block carries the `┃`
         // border with 1/2 padding (`routes/session/index.tsx:2298-2335`), the
@@ -1479,7 +1603,7 @@ mod tests {
         let state = golden_state().await;
         let hints = "shift+tab agents  ctrl+p commands";
         let mut expected = vec![String::new(); 40];
-        expected[0] = " 1 Untitled session".to_string();
+        expected[0] = "   Untitled session".to_string();
         // Same message presentation as 80x24, just taller.
         expected[2] = "  ┃".to_string();
         expected[3] = "  ┃  hello".to_string();

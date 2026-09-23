@@ -907,6 +907,13 @@ async fn load_stages(
                     _ => return Err("tabs.layout must be horizontal or vertical".into()),
                 };
             }
+            if let Some(v) = value.pointer("/tabs/indicators") {
+                tui_chrome.tab_indicators = match v.as_str() {
+                    Some("status") => oc_core::queries::TabIndicators::Status,
+                    Some("numbers") => oc_core::queries::TabIndicators::Numbers,
+                    _ => return Err("tabs.indicators must be status or numbers".into()),
+                };
+            }
         }
     }
     Ok(Composition {
@@ -1205,8 +1212,68 @@ fn env_refs(template: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::load_with_env;
+    use oc_core::queries::TabIndicators;
     use std::collections::BTreeMap;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    #[tokio::test]
+    async fn tab_indicators_default_ordered_overrides_and_invalid_value() {
+        let dir = tempfile::tempdir().expect("fixture");
+        let global = dir.path().join("config/opencode");
+        let project = dir.path().join("project");
+        std::fs::create_dir_all(&global).expect("global");
+        std::fs::create_dir_all(project.join(".opencode")).expect("local");
+        std::fs::write(project.join("opencode.json"), r#"{"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}}}"#).expect("config");
+        let env = BTreeMap::from([(
+            "XDG_CONFIG_HOME".into(),
+            dir.path().join("config").to_string_lossy().into_owned(),
+        )]);
+        let load = || load_with_env(&project, env.clone());
+        assert_eq!(
+            load().await.expect("default").tui_chrome.tab_indicators,
+            TabIndicators::Status
+        );
+
+        std::fs::write(
+            global.join("cli.json"),
+            r#"{"tabs":{"indicators":"numbers"}}"#,
+        )
+        .expect("global cli");
+        assert_eq!(
+            load()
+                .await
+                .expect("global numbers")
+                .tui_chrome
+                .tab_indicators,
+            TabIndicators::Numbers
+        );
+        std::fs::write(
+            project.join(".opencode/cli.jsonc"),
+            "{ // local override\n \"tabs\": {\"indicators\": \"status\"},}",
+        )
+        .expect("local cli");
+        assert_eq!(
+            load()
+                .await
+                .expect("local status")
+                .tui_chrome
+                .tab_indicators,
+            TabIndicators::Status
+        );
+        for invalid in ["\"dots\"", "42", "null"] {
+            std::fs::write(
+                project.join(".opencode/cli.jsonc"),
+                format!("{{\"tabs\":{{\"indicators\":{invalid}}}}}"),
+            )
+            .expect("invalid cli");
+            let error = load().await.map(|_| ()).expect_err("invalid indicators");
+            assert!(
+                error.contains("tabs.indicators must be status or numbers"),
+                "{error}"
+            );
+            assert!(!error.contains(invalid), "{error}");
+        }
+    }
 
     #[tokio::test]
     async fn v07a_external_discovered_root_is_refused_before_config_or_substitution() {
