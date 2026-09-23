@@ -249,12 +249,21 @@ struct PendingSubmission {
     compress: bool,
 }
 
+/// Upstream Home normal-mode examples (`routes/home.tsx:19-23`).
+pub(crate) const HOME_EXAMPLES: [&str; 3] = [
+    "Fix a TODO in the codebase",
+    "What is the tech stack of this project?",
+    "Fix broken tests",
+];
+
 /// Bounded chat state bound to one session on the shared handle.
 pub struct TuiState {
     pub chrome: oc_core::queries::TuiChrome,
     pub parent_id: Option<String>,
     /// New interactive launch, distinct from an explicitly attached session.
     pub home: bool,
+    /// Sampled once per UI instance; never changes during a redraw.
+    pub(crate) home_example: &'static str,
     viewport_max_scroll: std::cell::Cell<Option<usize>>,
     /// Current session's durable human title, refreshed with history.
     pub session_title: Option<String>,
@@ -343,10 +352,14 @@ pub struct TuiState {
 impl TuiState {
     /// Bind to a session; the session must already exist on the handle.
     pub fn new(app: CoreApp, session: SessionId) -> Self {
+        let index = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |now| now.subsec_nanos() as usize % HOME_EXAMPLES.len());
         Self {
             chrome: Default::default(),
             parent_id: None,
             home: false,
+            home_example: HOME_EXAMPLES[index],
             viewport_max_scroll: std::cell::Cell::new(None),
             session_title: None,
             auto_accept: oc_core::queries::AutoAcceptState::Unsupported,

@@ -770,6 +770,25 @@ fn render_prompt(
                     ..row(1)
                 },
             );
+            if state.home && state.input().is_empty() && visible > 0 && text_width > 0 {
+                // `routes/home.tsx:19-23` + `component/prompt/index.tsx:1583-1595`.
+                let hint = format!("Ask anything… \"{}\"", state.home_example);
+                let hint = clip_placeholder(&hint, text_width as usize);
+                let hint_rect = Rect {
+                    width: UnicodeWidthStr::width(hint) as u16,
+                    ..row(1)
+                };
+                frame.render_widget(
+                    Block::default()
+                        .style(Style::default().fg(Color::Rgb(255, 255, 255)).bg(prompt_bg)),
+                    row(1),
+                );
+                frame.render_widget(
+                    Paragraph::new(hint)
+                        .style(Style::default().fg(theme.text_muted()).bg(prompt_bg)),
+                    hint_rect,
+                );
+            }
             if visible > 0 && text_width > 0 {
                 frame.set_cursor_position((
                     text_x + (caret.1 as u16).min(text_width - 1),
@@ -796,6 +815,21 @@ fn render_prompt(
         }
         frame.render_widget(Paragraph::new(Line::from(spans)), underline);
     }
+}
+
+/// A clipped placeholder must never leave a partial extended grapheme at the edge.
+fn clip_placeholder(text: &str, width: usize) -> &str {
+    let mut used = 0;
+    let mut end = 0;
+    for (offset, grapheme) in text.grapheme_indices(true) {
+        let cells = UnicodeWidthStr::width(grapheme);
+        if used + cells > width {
+            break;
+        }
+        used += cells;
+        end = offset + grapheme.len();
+    }
+    &text[..end]
 }
 
 /// Prompt metadata row (`component/prompt/metadata.tsx:53-99`): `agent · model
@@ -1077,6 +1111,7 @@ fn text_width(text: &str) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::app::HOME_EXAMPLES;
     use crate::events::KeyAction;
     use oc_core::core_app::{CoreApp, MockProvider};
     use oc_core::domain::SessionId;
@@ -1158,6 +1193,85 @@ mod tests {
             msg(2, Role::Assistant, "hi there"),
         ]));
         state
+    }
+
+    #[tokio::test]
+    async fn home_empty_prompt_shows_one_muted_example_and_preserves_caret() {
+        let mut state = golden_state().await;
+        state.home = true;
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        let rows = screen(&state, 80, 24);
+        let (y, row) = rows
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.contains("Ask anything… \""))
+            .expect("Home placeholder");
+        let start = row.find("Ask anything… \"").unwrap();
+        let start_col = UnicodeWidthStr::width(&row[..start]);
+        let expected = format!("Ask anything… \"{}\"", state.home_example);
+        assert!(HOME_EXAMPLES.contains(&state.home_example));
+        assert!(row[start..].starts_with(&expected));
+        for x in start_col..start_col + UnicodeWidthStr::width(expected.as_str()) {
+            assert_eq!(buffer[(x as u16, y as u16)].fg, Theme::dark().text_muted());
+            assert_eq!(
+                buffer[(x as u16, y as u16)].bg,
+                Theme::dark().decrease(Theme::dark().background_panel())
+            );
+        }
+        assert_eq!(
+            buffer[(
+                (start_col + UnicodeWidthStr::width(expected.as_str())) as u16,
+                y as u16
+            )]
+                .fg,
+            Color::Rgb(255, 255, 255),
+            "spaces after the placeholder retain the upstream canvas foreground"
+        );
+        assert_eq!(state.prompt_layout(70).1, (0, 0));
+    }
+
+    #[tokio::test]
+    async fn home_hint_is_hidden_when_typing_and_session_has_no_hint() {
+        let mut state = golden_state().await;
+        state.home = true;
+        state.handle_key(KeyAction::Char('x')).await;
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let rows = screen(&state, 80, 24);
+        assert!(!rows.iter().any(|row| row.contains("Ask anything…")));
+        assert!(rows.iter().any(|row| row.contains("┃  x")));
+        state.home = false;
+        state.handle_key(KeyAction::Backspace).await;
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        assert!(
+            !screen(&state, 80, 24)
+                .iter()
+                .any(|row| row.contains("Ask anything…"))
+        );
+    }
+
+    #[tokio::test]
+    async fn home_hint_respects_actual_text_width_at_breakpoints() {
+        let mut state = golden_state().await;
+        state.home = true;
+        for (width, max_cells) in [(24, 19), (43, 38), (44, 35), (120, 70)] {
+            let mut terminal = Terminal::new(TestBackend::new(width, 24)).unwrap();
+            terminal.draw(|frame| render(frame, &state)).unwrap();
+            let rows = screen(&state, width, 24);
+            let row = rows
+                .iter()
+                .find(|row| row.contains("Ask anything… \""))
+                .unwrap();
+            let hint = &row[row.find("Ask anything… \"").unwrap()..];
+            let full_hint = format!("Ask anything… \"{}\"", state.home_example);
+            assert_eq!(hint, clip_placeholder(&full_hint, max_cells).trim_end());
+            assert!(UnicodeWidthStr::width(hint) <= max_cells, "{width}: {hint}");
+        }
+        assert_eq!(clip_placeholder("a界e\u{301}z", 2), "a");
+        assert_eq!(clip_placeholder("a界e\u{301}z", 3), "a界");
+        assert_eq!(clip_placeholder("a界e\u{301}z", 4), "a界e\u{301}");
     }
 
     #[tokio::test]
