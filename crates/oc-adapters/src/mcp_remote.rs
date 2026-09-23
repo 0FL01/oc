@@ -658,18 +658,44 @@ impl CodexWebClient {
             .ok_or(McpError::InvalidArguments)?;
         let mut params = rmcp::model::CallToolRequestParams::new(tool.to_string());
         params.arguments = Some(arguments);
-        let outcome = self
-            .run_cancel(
-                cancel,
-                async {
-                    self.peer.call_tool_once(params).await.map_err(|error| {
-                        crate::mcp_result::rpc_failure(&error)
-                            .map_or(McpError::Transport, McpError::ToolFailedDetail)
-                    })
-                },
-                "call",
-            )
-            .await?;
+        let request =
+            rmcp::model::ClientRequest::CallToolRequest(rmcp::model::CallToolRequest::new(params));
+        let deadline = tokio::time::Instant::now() + self.timeout;
+        let mut handle = tokio::select! {
+            biased;
+            _ = wait_cancelled(cancel) => return Err(McpError::Cancelled),
+            result = tokio::time::timeout_at(deadline, self.peer.send_cancellable_request(
+                request, rmcp::service::PeerRequestOptions::no_options()
+            )) => result.map_err(|_| McpError::Deadline)?.map_err(|_| McpError::Transport)?,
+        };
+        let outcome = tokio::select! {
+            biased;
+            _ = wait_cancelled(cancel) => None,
+            result = tokio::time::timeout_at(deadline, &mut handle.rx) => Some(result),
+        };
+        let outcome = match outcome {
+            None | Some(Err(_)) => {
+                let reason = if outcome.is_none() {
+                    McpError::Cancelled
+                } else {
+                    McpError::Deadline
+                };
+                tokio::time::timeout(CLOSE_TIMEOUT, handle.cancel(Some("request stopped".into())))
+                    .await
+                    .map_err(|_| McpError::CleanupFailed)?
+                    .map_err(|_| McpError::CleanupFailed)?;
+                return Err(reason);
+            }
+            Some(Ok(Ok(Ok(rmcp::model::ServerResult::CallToolResult(result))))) => {
+                rmcp::model::CallToolResponse::Complete(result)
+            }
+            Some(Ok(Ok(Ok(_)))) => return Err(McpError::UnsupportedResult),
+            Some(Ok(Ok(Err(error)))) => {
+                return Err(crate::mcp_result::rpc_failure(&error)
+                    .map_or(McpError::Transport, McpError::ToolFailedDetail));
+            }
+            Some(Ok(Err(_))) => return Err(McpError::Transport),
+        };
         match outcome {
             rmcp::model::CallToolResponse::Complete(result) => {
                 crate::mcp_result::project(result, &self.secrets).map_err(|error| match error {
@@ -685,8 +711,8 @@ impl CodexWebClient {
         }
     }
 
-    /// Run a peer future with timeout + explicit cancellation. Dropping the
-    /// future on cancel aborts the request; nothing is retried here.
+    /// Run a catalog future with timeout and cancellation. Calls use an rmcp
+    /// RequestHandle instead, so their request id is explicitly cancelled.
     async fn run_cancel<T>(
         &self,
         cancel: &AtomicBool,

@@ -129,17 +129,105 @@ struct McpRecord {
     authorization: Option<String>,
     protocol_version: Option<String>,
     rpc_method: String,
+    request_id: Option<Value>,
     arguments: Option<Value>,
 }
 
 struct FakeMcp {
     url: String,
     records: Arc<Mutex<Vec<McpRecord>>>,
+    call_socket_closed: Arc<AtomicBool>,
     stop: Arc<AtomicBool>,
     thread: Option<std::thread::JoinHandle<()>>,
 }
 
 impl FakeMcp {
+    fn stalled_call() -> Self {
+        Self::stalled_call_with_cancel_failure(false)
+    }
+
+    fn stalled_call_with_cancel_failure(reject_cancel: bool) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let url = format!("http://{}/strict/v1/mcp", listener.local_addr().unwrap());
+        let records = Arc::new(Mutex::new(Vec::new()));
+        let captured = records.clone();
+        let stop = Arc::new(AtomicBool::new(false));
+        let stopping = stop.clone();
+        let call_socket_closed = Arc::new(AtomicBool::new(false));
+        let closed = call_socket_closed.clone();
+        let thread = std::thread::spawn(move || {
+            let mut stalled: Vec<TcpStream> = Vec::new();
+            while !stopping.load(Ordering::Relaxed) {
+                let (socket, _) = match listener.accept() {
+                    Ok(pair) => pair,
+                    Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                        for socket in &mut stalled {
+                            if matches!(socket.peek(&mut [0u8; 1]), Ok(0)) {
+                                closed.store(true, Ordering::Relaxed);
+                            }
+                        }
+                        std::thread::sleep(POLL);
+                        continue;
+                    }
+                    Err(error) => panic!("MCP accept: {error}"),
+                };
+                let Some((mut socket, request)) = read_http(socket) else {
+                    continue;
+                };
+                let method = request.body["method"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
+                captured.lock().unwrap().push(McpRecord {
+                    http_method: request.method,
+                    path: request.path,
+                    authorization: request.headers.get("authorization").cloned(),
+                    protocol_version: request.headers.get("mcp-protocol-version").cloned(),
+                    rpc_method: method.clone(),
+                    request_id: request.body.get("id").cloned(),
+                    arguments: request.body.get("params").cloned(),
+                });
+                let id = request.body.get("id").cloned().unwrap_or(Value::Null);
+                match method.as_str() {
+                    "initialize" => write_json(
+                        &mut socket,
+                        id,
+                        json!({
+                        "protocolVersion":"2025-11-25", "capabilities":{"tools":{}},
+                        "serverInfo":{"name":"stall","version":"1"}}),
+                    ),
+                    "notifications/cancelled" if reject_cancel => {
+                        write_http(&mut socket, 500, "text/plain", b"PRIVATE_CANCEL_FAILURE")
+                    }
+                    "notifications/initialized" | "notifications/cancelled" => {
+                        write_http(&mut socket, 202, "application/json", b"")
+                    }
+                    "tools/list" => write_json(
+                        &mut socket,
+                        id,
+                        json!({"tools":[{
+                            "name":"ping","inputSchema":{"type":"object","properties":{}}
+                        }]}),
+                    ),
+                    "tools/call" => {
+                        socket.set_nonblocking(true).unwrap();
+                        stalled.push(socket); // ignores cancellation; remote effect may continue
+                    }
+                    _ => write_http(&mut socket, 404, "application/json", b""),
+                }
+            }
+            drop(stalled);
+        });
+        Self {
+            url,
+            records,
+            call_socket_closed,
+            stop,
+            thread: Some(thread),
+        }
+    }
+
     fn stalled_initialize() -> (Self, Arc<AtomicBool>) {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         listener.set_nonblocking(true).unwrap();
@@ -172,6 +260,7 @@ impl FakeMcp {
                         .as_str()
                         .unwrap_or_default()
                         .to_string(),
+                    request_id: request.body.get("id").cloned(),
                     arguments: None,
                 });
                 socket
@@ -202,6 +291,7 @@ impl FakeMcp {
             Self {
                 url,
                 records,
+                call_socket_closed: Arc::new(AtomicBool::new(false)),
                 stop,
                 thread: Some(thread),
             },
@@ -246,6 +336,7 @@ impl FakeMcp {
                     authorization: authorization.clone(),
                     protocol_version,
                     rpc_method: rpc_method.clone(),
+                    request_id: request.body.get("id").cloned(),
                     arguments: request.body.pointer("/params/arguments").cloned(),
                 });
                 if request.method != "POST"
@@ -306,6 +397,16 @@ impl FakeMcp {
                                 }],
                                 "isError": false,
                             }),
+                            "v07b_unsupported" => json!({
+                                "content":[{"type":"text","text":"PRIVATE_RESULT_BODY"},
+                                    {"type":"image","data":"aGVsbG8=","mimeType":"image/png"}],
+                                "isError":false,
+                            }),
+                            "v07b_bad_result" => json!({"content":[],"isError":false}),
+                            "v07b_is_error" => json!({
+                                "content":[{"type":"text","text":"PRIVATE_DECLARED_ERROR"}],
+                                "isError":true,
+                            }),
                             _ => json!({
                                 "content": [{
                                     "type": "text",
@@ -331,6 +432,7 @@ impl FakeMcp {
         Self {
             url: format!("http://{address}/strict/v1/mcp"),
             records,
+            call_socket_closed: Arc::new(AtomicBool::new(false)),
             stop,
             thread: Some(thread),
         }
@@ -356,6 +458,8 @@ impl Drop for FakeMcp {
 #[derive(Clone)]
 enum ResponsesScript {
     TextByPrompt,
+    ToolEveryTurn,
+    ToolNamed(String),
     ToolBatch {
         calls: Vec<(String, String, Value)>,
         final_text: String,
@@ -408,6 +512,34 @@ impl FakeResponses {
                     ResponsesScript::TextByPrompt => {
                         let prompt = last_user_text(&request.body).unwrap_or_default();
                         respond_text(&mut socket, &format!("answer:{prompt}"));
+                    }
+                    ResponsesScript::ToolEveryTurn | ResponsesScript::ToolNamed(_) => {
+                        if request.body["input"].as_array().is_some_and(|items| {
+                            let current = items
+                                .iter()
+                                .rposition(|item| {
+                                    item["type"] == "message" && item["role"] == "user"
+                                })
+                                .unwrap_or(0);
+                            items
+                                .iter()
+                                .skip(current)
+                                .any(|item| item["type"] == "function_call_output")
+                        }) {
+                            respond_text(&mut socket, "retry complete");
+                        } else {
+                            respond_tools(
+                                &mut socket,
+                                &[(
+                                    "item-stall".into(),
+                                    format!("call-{index}"),
+                                    json!({"__wireName": match &script {
+                                        ResponsesScript::ToolNamed(name) => name.as_str(),
+                                        _ => "stall__ping",
+                                    },"arguments":{}}),
+                                )],
+                            );
+                        }
                     }
                     ResponsesScript::ToolBatch { calls, final_text } if index == 0 => {
                         respond_tools(&mut socket, calls);
@@ -988,13 +1120,31 @@ fn aud24_binary_surfaces_is_error_and_unsupported_result_modality() {
 
     let mut process = fixture.spawn_run("aud24-result-semantics");
     let status = process.wait();
-    assert!(status.success(), "{}", process.diagnostics());
-    assert_eq!(process.output().trim(), "MCP failures observed");
+    assert!(
+        !status.success(),
+        "unsupported post-effect result claimed success"
+    );
+    assert!(process.diagnostics().contains("MCP outcome unknown"));
+    assert!(!process.output().contains("server-declared failure"));
     let requests = responses.requests();
-    assert_eq!(requests.len(), 3, "tool round, final round, title");
-    assert!(title::is_title(&requests[2]));
-    let declared = function_output(&requests[1], "call-error");
-    let unsupported = function_output(&requests[1], "call-image");
+    assert_eq!(
+        requests.len(),
+        1,
+        "unknown outcome was sent back to provider"
+    );
+    let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
+    let results = db
+        .prepare("SELECT state, output FROM tool_operations ORDER BY rowid")
+        .unwrap()
+        .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(results.len(), 2);
+    let (declared_state, declared) = &results[0];
+    let (unsupported_state, unsupported) = &results[1];
+    assert_eq!(declared_state, "failed");
+    assert_eq!(unsupported_state, "unknown");
     assert!(
         declared.starts_with("error:"),
         "isError was reported as success: {declared:?}"
@@ -1008,6 +1158,18 @@ fn aud24_binary_surfaces_is_error_and_unsupported_result_modality() {
         "server isError and unsupported modality must remain distinguishable"
     );
     assert_eq!(logged_calls(&server_log), ["is_error", "image"]);
+    let pid: libc::pid_t = fs::read_to_string(&server_log)
+        .unwrap()
+        .lines()
+        .next()
+        .unwrap()
+        .strip_prefix("spawn ")
+        .unwrap()
+        .parse()
+        .unwrap();
+    // SAFETY: signal zero only probes the child PID owned by this fixture.
+    let alive = unsafe { libc::kill(pid, 0) };
+    assert_ne!(alive, 0, "poisoned stdio child survived exit");
 }
 
 fn function_tool_names(request: &Value) -> Vec<String> {
@@ -1958,4 +2120,907 @@ fn v01_remote_pending_cancel_closes_request_before_fake_release() {
         .query_row("SELECT count(*) FROM turns", [], |r| r.get(0))
         .unwrap();
     assert_eq!(turns, 0);
+}
+
+#[test]
+fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retry() {
+    let responses = FakeResponses::start(ResponsesScript::ToolEveryTurn);
+    let mcp = FakeMcp::stalled_call();
+    let fixture = Fixture::new();
+    fixture.write_config(
+        &responses,
+        json!({"stall": {
+            "type":"remote", "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
+        }}),
+        json!({"stall__ping":"allow"}),
+    );
+    let mut tui = PtyProcess::spawn(&fixture, "v07b-remote");
+    tui.wait_visible(READY);
+    tui.send_line("remote side effect");
+    let deadline = Instant::now() + TIMEOUT;
+    while !mcp.records().iter().any(|r| r.rpc_method == "tools/call") {
+        assert!(Instant::now() < deadline, "call not sent");
+        std::thread::sleep(POLL);
+    }
+    tui.raw(b"\x1b"); // real PTY key, not a direct cancel helper
+    while !mcp
+        .records()
+        .iter()
+        .any(|r| r.rpc_method == "notifications/cancelled")
+    {
+        assert!(
+            Instant::now() < deadline,
+            "request-specific cancellation not sent"
+        );
+        std::thread::sleep(POLL);
+    }
+    let records = mcp.records();
+    let call = records
+        .iter()
+        .find(|r| r.rpc_method == "tools/call")
+        .unwrap();
+    let cancelled = records
+        .iter()
+        .find(|r| r.rpc_method == "notifications/cancelled")
+        .unwrap();
+    assert_eq!(
+        cancelled.arguments.as_ref().unwrap()["requestId"],
+        call.request_id.clone().unwrap()
+    );
+    assert_eq!(cancelled.http_method, "POST");
+    assert_eq!(cancelled.protocol_version.as_deref(), Some("2025-11-25"));
+    let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
+    while db
+        .query_row(
+            "SELECT count(*) FROM tool_operations WHERE state='unknown'",
+            [],
+            |r| r.get::<_, i64>(0),
+        )
+        .unwrap()
+        != 1
+    {
+        assert!(Instant::now() < deadline, "outcome not durable unknown");
+        std::thread::sleep(POLL);
+    }
+    tui.wait_screen("MCP outcome unknown", IO_TIMEOUT);
+    while !mcp.call_socket_closed.load(Ordering::Relaxed) {
+        assert!(
+            Instant::now() < deadline,
+            "client HTTP request did not close"
+        );
+        std::thread::sleep(POLL);
+    }
+    let first_provider_requests = responses.requests().len();
+    tui.send_line("explicit retry");
+    tui.wait_screen("unsafe_retry", IO_TIMEOUT);
+    assert_eq!(
+        responses.requests().len(),
+        first_provider_requests,
+        "unsafe retry reached the model"
+    );
+    assert_eq!(
+        mcp.records()
+            .iter()
+            .filter(|r| r.rpc_method == "tools/call")
+            .count(),
+        1,
+        "remote still owns first operation; retry must not overlap"
+    );
+    tui.raw(b"\x03");
+    assert!(tui.wait_exit().success());
+}
+
+#[test]
+fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
+    let responses = FakeResponses::start(ResponsesScript::ToolEveryTurn);
+    let mcp = FakeMcp::stalled_call(); // keeps the first side effect running after cancellation
+    let fixture = Fixture::new();
+    fixture.write_config(
+        &responses,
+        json!({"stall": {
+            "type":"remote", "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
+        }}),
+        json!({"stall__ping":"allow"}),
+    );
+    let b = fixture._root.path().join("project-b");
+    let c = fixture._root.path().join("project-c");
+    fs::create_dir_all(&b).unwrap();
+    fs::create_dir_all(&c).unwrap();
+    fs::write(
+        b.join("opencode.json"),
+        json!({"permissions":{"bash":"deny"}}).to_string(),
+    )
+    .unwrap();
+    let local = fixture.home.join("v07b-switch-stdio");
+    let local_log = fixture.home.join("v07b-switch-stdio.log");
+    let _fallback = FixtureChildren(local_log.clone());
+    write_stdio_server(&local, &local_log);
+    fs::write(
+        c.join("opencode.json"),
+        json!({"mcp":{"stall":{
+        "type":"local", "command":[local], "enabled":true, "timeout":3000
+    }}, "permissions":{"stall__ping":"allow"}})
+        .to_string(),
+    )
+    .unwrap();
+
+    let mut tui = PtyProcess::spawn(&fixture, "v07b-switch-a");
+    tui.wait_visible(READY);
+    tui.send_line("first remote side effect");
+    let deadline = Instant::now() + TIMEOUT;
+    while mcp
+        .records()
+        .iter()
+        .filter(|r| r.rpc_method == "tools/call")
+        .count()
+        != 1
+    {
+        assert!(Instant::now() < deadline, "first remote call not sent");
+        std::thread::sleep(POLL);
+    }
+    tui.raw(b"\x1b"); // real Esc through the PTY
+    tui.wait_screen("MCP outcome unknown", TIMEOUT);
+    assert!(
+        mcp.records()
+            .iter()
+            .any(|r| r.rpc_method == "notifications/cancelled")
+    );
+    let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
+    assert_eq!(
+        db.query_row("SELECT state FROM tool_operations", [], |r| r
+            .get::<_, String>(0))
+            .unwrap(),
+        "unknown"
+    );
+    let first_provider_requests = responses.requests().len();
+
+    tui.send_line(&format!("/location {}", b.display()));
+    let deadline = Instant::now() + TIMEOUT;
+    while db
+        .query_row("SELECT count(*) FROM sessions", [], |r| r.get::<_, i64>(0))
+        .unwrap()
+        != 2
+    {
+        assert!(Instant::now() < deadline, "Location B not published");
+        std::thread::sleep(POLL);
+    }
+    tui.wait_screen("location:", TIMEOUT);
+    std::thread::sleep(Duration::from_millis(750)); // allow the terminal switch event to settle
+    let from = tui.send_line("explicit retry in B");
+    let deadline = Instant::now() + TIMEOUT;
+    while mcp
+        .records()
+        .iter()
+        .filter(|r| r.rpc_method == "tools/call")
+        .count()
+        == 1
+    {
+        let bytes = tui.output.lock().unwrap().clone();
+        if bytes.len() >= from && contains(&normalize(&bytes[from..]), b"unsafe_retry") {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "B retry not resolved: provider={}, turns={}",
+            responses.requests().len(),
+            db.query_row("SELECT count(*) FROM turns", [], |r| r.get::<_, i64>(0))
+                .unwrap()
+        );
+        std::thread::sleep(POLL);
+    }
+    assert_eq!(
+        mcp.records()
+            .iter()
+            .filter(|r| r.rpc_method == "tools/call")
+            .count(),
+        1,
+        "Location B sent a second call while A's remote effect is still active"
+    );
+    tui.wait_visible_after(from, "unsafe_retry");
+    assert_eq!(
+        responses.requests().len(),
+        first_provider_requests,
+        "retry reached provider in B"
+    );
+    assert_eq!(
+        mcp.records()
+            .iter()
+            .filter(|r| r.rpc_method == "tools/call")
+            .count(),
+        1,
+        "Location B repeated remote effect while A is still in flight"
+    );
+    assert_eq!(
+        db.query_row("SELECT state FROM tool_operations", [], |r| r
+            .get::<_, String>(0))
+            .unwrap(),
+        "unknown"
+    );
+
+    // A different Location with a local-only MCP owner is unrelated to the
+    // remote uncertainty; its explicitly submitted tool may run after switch.
+    tui.raw(&[0x7f; 160]); // preflight refusal keeps B's draft; clear it before /location
+    std::thread::sleep(Duration::from_millis(200));
+    tui.send_line(&format!("/location {}", c.display()));
+    let deadline = Instant::now() + TIMEOUT;
+    while db
+        .query_row("SELECT count(*) FROM sessions", [], |r| r.get::<_, i64>(0))
+        .unwrap()
+        != 3
+    {
+        assert!(
+            Instant::now() < deadline,
+            "Location C not published: {:?}",
+            tui.screen()
+                .into_iter()
+                .filter(|r| !r.trim().is_empty())
+                .collect::<Vec<_>>()
+        );
+        std::thread::sleep(POLL);
+    }
+    tui.wait_screen("location:", TIMEOUT);
+    std::thread::sleep(Duration::from_millis(750));
+    let from = tui.send_line("local-only tool in C");
+    tui.wait_visible_after(from, "retry complete");
+    assert_eq!(
+        mcp.records()
+            .iter()
+            .filter(|r| r.rpc_method == "tools/call")
+            .count(),
+        1
+    );
+    assert_eq!(
+        fs::read_to_string(&local_log)
+            .unwrap()
+            .lines()
+            .filter(|line| *line == "call")
+            .count(),
+        1
+    );
+    assert_eq!(
+        db.query_row(
+            "SELECT state FROM tool_operations ORDER BY rowid LIMIT 1",
+            [],
+            |r| r.get::<_, String>(0)
+        )
+        .unwrap(),
+        "unknown"
+    );
+    let deadline = Instant::now() + TIMEOUT;
+    while db
+        .query_row(
+            "SELECT count(*) FROM turns WHERE status='completed'",
+            [],
+            |r| r.get::<_, i64>(0),
+        )
+        .unwrap()
+        != 1
+    {
+        assert!(
+            Instant::now() < deadline,
+            "local-only turn did not complete"
+        );
+        std::thread::sleep(POLL);
+    }
+    std::thread::sleep(Duration::from_millis(750)); // allow final UI handoff before switching
+    tui.send_line(&format!("/location {}", b.display()));
+    tui.wait_screen(&b.to_string_lossy(), TIMEOUT);
+    let local_pid: libc::pid_t = fs::read_to_string(&local_log)
+        .unwrap()
+        .lines()
+        .next()
+        .unwrap()
+        .strip_prefix("spawn ")
+        .unwrap()
+        .parse()
+        .unwrap();
+    let deadline = Instant::now() + TIMEOUT;
+    loop {
+        // SAFETY: signal zero only probes this fixture-owned local child PID.
+        if unsafe { libc::kill(local_pid, 0) } != 0 {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "local child survived Location switch"
+        );
+        std::thread::sleep(POLL);
+    }
+    let first_requests = responses.requests().len();
+    std::thread::sleep(Duration::from_millis(750));
+    let from = tui.send_line("retry again in B");
+    tui.wait_visible_after(from, "unsafe_retry");
+    assert_eq!(
+        responses.requests().len(),
+        first_requests,
+        "quarantine lost after local-only Location"
+    );
+    assert_eq!(
+        mcp.records()
+            .iter()
+            .filter(|r| r.rpc_method == "tools/call")
+            .count(),
+        1
+    );
+    for location in [&fixture.project, &b, &c] {
+        assert_eq!(
+            db.query_row(
+                "SELECT count(*) FROM prefs WHERE key LIKE 'tui.session_location.%' AND value=?1",
+                [location.to_string_lossy().as_ref()],
+                |r| r.get::<_, i64>(0)
+            )
+            .unwrap(),
+            1,
+            "Location session/prefs were not isolated for {}",
+            location.display()
+        );
+    }
+    tui.raw(b"\x03");
+    assert!(tui.wait_exit().success());
+}
+
+#[test]
+fn v07b_remote_cancel_notification_failure_is_safe_and_poisoned() {
+    let responses = FakeResponses::start(ResponsesScript::ToolEveryTurn);
+    let mcp = FakeMcp::stalled_call_with_cancel_failure(true);
+    let fixture = Fixture::new();
+    fixture.write_config(
+        &responses,
+        json!({"stall": {
+            "type":"remote", "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
+        }}),
+        json!({"stall__ping":"allow"}),
+    );
+    let mut tui = PtyProcess::spawn(&fixture, "v07b-cancel-failure");
+    tui.wait_visible(READY);
+    tui.send_line("rejected cancel");
+    let deadline = Instant::now() + TIMEOUT;
+    while !mcp.records().iter().any(|r| r.rpc_method == "tools/call") {
+        assert!(Instant::now() < deadline, "call not sent");
+        std::thread::sleep(POLL);
+    }
+    tui.raw(b"\x1b");
+    tui.wait_screen("mcp shutdown failed", TIMEOUT);
+    let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
+    assert_eq!(
+        db.query_row("SELECT state FROM tool_operations", [], |r| r
+            .get::<_, String>(0))
+            .unwrap(),
+        "unknown"
+    );
+    tui.send_line("explicit retry");
+    tui.wait_screen("mcp shutdown failed", TIMEOUT);
+    assert_eq!(
+        mcp.records()
+            .iter()
+            .filter(|r| r.rpc_method == "tools/call")
+            .count(),
+        1
+    );
+    let output = String::from_utf8_lossy(&tui.output.lock().unwrap()).to_string();
+    assert!(
+        !output.contains("PRIVATE_CANCEL_FAILURE"),
+        "server body leaked into terminal"
+    );
+    tui.raw(b"\x03");
+    assert!(
+        !tui.wait_exit().success(),
+        "cleanup failure was reported as clean shutdown"
+    );
+}
+
+#[test]
+fn v07b_remote_unsupported_after_effect_is_unknown_and_quarantined() {
+    v07b_remote_unverified_result("v07b_unsupported");
+}
+
+#[test]
+fn v07b_remote_malformed_after_effect_is_unknown_and_quarantined() {
+    v07b_remote_unverified_result("v07b_bad_result");
+}
+
+fn v07b_remote_unverified_result(tool: &str) {
+    let responses = FakeResponses::start(ResponsesScript::ToolNamed(format!("effects__{tool}")));
+    let mcp = FakeMcp::start("effects", "", &[tool]);
+    let fixture = Fixture::new();
+    fixture.write_config(
+        &responses,
+        json!({"effects": {
+            "type":"remote", "url":mcp.url, "enabled":true, "oauth":false, "timeout":3000
+        }}),
+        json!({format!("effects__{tool}"):"allow"}),
+    );
+    let mut tui = PtyProcess::spawn(&fixture, &format!("v07b-remote-{tool}"));
+    tui.wait_visible(READY);
+    tui.send_line("perform side effect");
+    let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
+    let deadline = Instant::now() + TIMEOUT;
+    loop {
+        let state = db.query_row("SELECT state FROM tool_operations LIMIT 1", [], |row| {
+            row.get::<_, String>(0)
+        });
+        if state.as_deref() == Ok("unknown") {
+            break;
+        }
+        assert!(
+            state.as_deref() != Ok("failed"),
+            "after-effect result was recorded failed, not unknown"
+        );
+        assert!(
+            Instant::now() < deadline,
+            "after-effect result was not unknown: {state:?}"
+        );
+        std::thread::sleep(POLL);
+    }
+    let deadline = Instant::now() + TIMEOUT;
+    loop {
+        let status = db
+            .query_row("SELECT status FROM turns", [], |r| r.get::<_, String>(0))
+            .unwrap();
+        if status == "failed" {
+            break;
+        }
+        assert_ne!(status, "completed", "unverified result claimed success");
+        assert!(
+            Instant::now() < deadline,
+            "turn did not settle after unknown operation"
+        );
+        std::thread::sleep(POLL);
+    }
+    tui.wait_screen("MCP outcome unknown", TIMEOUT);
+    let first_requests = responses.requests().len();
+    tui.send_line("explicit retry");
+    tui.wait_screen("unsafe_retry", TIMEOUT);
+    assert_eq!(
+        responses.requests().len(),
+        first_requests,
+        "retry reached provider"
+    );
+    assert_eq!(
+        mcp.records()
+            .iter()
+            .filter(|r| r.rpc_method == "tools/call")
+            .count(),
+        1,
+        "server side effect repeated"
+    );
+    let output = String::from_utf8_lossy(&tui.output.lock().unwrap()).to_string();
+    assert!(
+        !output.contains("PRIVATE_RESULT_BODY"),
+        "unsupported response content leaked"
+    );
+    tui.raw(b"\x03");
+    assert!(tui.wait_exit().success());
+}
+
+#[test]
+fn v07b_remote_definitive_is_error_remains_failed_and_reusable() {
+    let tool = "v07b_is_error";
+    let responses = FakeResponses::start(ResponsesScript::ToolNamed(format!("effects__{tool}")));
+    let mcp = FakeMcp::start("effects", "", &[tool]);
+    let fixture = Fixture::new();
+    fixture.write_config(
+        &responses,
+        json!({"effects": {
+            "type":"remote", "url":mcp.url, "enabled":true, "oauth":false, "timeout":3000
+        }}),
+        json!({format!("effects__{tool}"):"allow"}),
+    );
+    let mut tui = PtyProcess::spawn(&fixture, "v07b-definitive-error");
+    tui.wait_visible(READY);
+    tui.send_line("declared error one");
+    tui.wait_visible("retry complete");
+    let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
+    let deadline = Instant::now() + TIMEOUT;
+    while db
+        .query_row(
+            "SELECT count(*) FROM turns WHERE status='completed'",
+            [],
+            |r| r.get::<_, i64>(0),
+        )
+        .unwrap()
+        != 1
+    {
+        assert!(Instant::now() < deadline);
+        std::thread::sleep(POLL);
+    }
+    std::thread::sleep(Duration::from_millis(750)); // delta precedes the terminal event
+    tui.send_line("declared error two");
+    let deadline = Instant::now() + TIMEOUT;
+    while db
+        .query_row(
+            "SELECT count(*) FROM tool_operations WHERE state='failed'",
+            [],
+            |r| r.get::<_, i64>(0),
+        )
+        .unwrap()
+        != 2
+    {
+        assert!(
+            Instant::now() < deadline,
+            "valid isError did not remain retryable"
+        );
+        std::thread::sleep(POLL);
+    }
+    assert_eq!(
+        mcp.records()
+            .iter()
+            .filter(|r| r.rpc_method == "tools/call")
+            .count(),
+        2
+    );
+    assert_eq!(
+        mcp.records()
+            .iter()
+            .filter(|r| r.rpc_method == "initialize")
+            .count(),
+        1,
+        "definitive result unnecessarily retired generation"
+    );
+    assert_eq!(
+        db.query_row(
+            "SELECT count(*) FROM tool_operations WHERE state='unknown'",
+            [],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
+        0
+    );
+    tui.raw(b"\x03");
+    assert!(tui.wait_exit().success());
+}
+
+#[test]
+fn v07b_stdio_inflight_raw_esc_reaps_before_explicit_retry() {
+    let responses = FakeResponses::start(ResponsesScript::ToolEveryTurn);
+    let fixture = Fixture::new();
+    let server = fixture.home.join("v07b-stdio");
+    let log = fixture.home.join("v07b-stdio.log");
+    let _fallback = FixtureChildren(log.clone());
+    write_executable(
+        &server,
+        &format!(
+            r#"#!/usr/bin/python3
+import json, os, sys
+log = {log:?}
+with open(log, 'a') as f: f.write('spawn %s\n' % os.getpid())
+for line in sys.stdin:
+    request = json.loads(line)
+    method = request['method']
+    with open(log, 'a') as f: f.write(method + '\n')
+    if method == 'initialize': result = {{'protocolVersion':'2025-11-25','capabilities':{{'tools':{{}}}},'serverInfo':{{'name':'stall','version':'1'}}}}
+    elif method == 'tools/list': result = {{'tools':[{{'name':'ping','inputSchema':{{'type':'object','properties':{{}}}}}}]}}
+    elif method == 'tools/call':
+        if os.path.exists({release:?}): result = {{'content':[{{'type':'text','text':'pong'}}]}}
+        else: continue
+    else: continue
+    print(json.dumps({{'jsonrpc':'2.0','id':request['id'],'result':result}}), flush=True)
+"#,
+            log = log.to_string_lossy(),
+            release = fixture.home.join("release").to_string_lossy()
+        ),
+    );
+    fixture.write_config(
+        &responses,
+        json!({"stall": {
+            "type":"local", "command":[server], "enabled":true, "timeout":10000
+        }}),
+        json!({"stall__ping":"allow"}),
+    );
+    let mut tui = PtyProcess::spawn(&fixture, "v07b-stdio");
+    tui.wait_visible(READY);
+    tui.send_line("local side effect");
+    let deadline = Instant::now() + TIMEOUT;
+    while !fs::read_to_string(&log)
+        .unwrap_or_default()
+        .contains("tools/call")
+    {
+        assert!(Instant::now() < deadline, "call not sent");
+        std::thread::sleep(POLL);
+    }
+    let first: libc::pid_t = fs::read_to_string(&log)
+        .unwrap()
+        .lines()
+        .next()
+        .unwrap()
+        .strip_prefix("spawn ")
+        .unwrap()
+        .parse()
+        .unwrap();
+    tui.raw(b"\x1b");
+    // SAFETY: signal zero only probes the recorded fixture-owned child PID.
+    while unsafe { libc::kill(first, 0) } == 0 {
+        assert!(Instant::now() < deadline, "stdio child not reaped");
+        std::thread::sleep(POLL);
+    }
+    let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
+    assert_eq!(
+        db.query_row(
+            "SELECT count(*) FROM tool_operations WHERE state='unknown'",
+            [],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
+        1
+    );
+    assert!(
+        fs::read_to_string(&log)
+            .unwrap()
+            .contains("notifications/cancelled"),
+        "missing rmcp cancellation notification"
+    );
+    while db
+        .query_row(
+            "SELECT count(*) FROM turns WHERE status='failed'",
+            [],
+            |r| r.get::<_, i64>(0),
+        )
+        .unwrap()
+        != 1
+    {
+        assert!(Instant::now() < deadline, "turn failed status not durable");
+        std::thread::sleep(POLL);
+    }
+    tui.wait_screen("MCP outcome unknown", IO_TIMEOUT);
+    fs::write(fixture.home.join("release"), "now safe").unwrap();
+    tui.send_line("explicit retry");
+    tui.wait_visible("retry complete");
+    tui.raw(b"\x03");
+    assert!(tui.wait_exit().success());
+    let lifecycle = fs::read_to_string(&log).unwrap();
+    assert_eq!(
+        lifecycle
+            .lines()
+            .filter(|line| *line == "tools/call")
+            .count(),
+        2
+    );
+    let statuses = db
+        .prepare("SELECT status FROM turns ORDER BY rowid")
+        .unwrap()
+        .query_map([], |row| row.get::<_, String>(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(statuses, ["failed", "completed"]);
+    assert_eq!(
+        db.query_row(
+            "SELECT count(*) FROM tool_operations WHERE state='unknown'",
+            [],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
+        1
+    );
+    for pid in lifecycle
+        .lines()
+        .filter_map(|line| line.strip_prefix("spawn "))
+        .map(|pid| pid.parse::<libc::pid_t>().unwrap())
+    {
+        // SAFETY: signal zero only probes fixture-owned PIDs from the log.
+        assert_ne!(unsafe { libc::kill(pid, 0) }, 0, "owned child still alive");
+    }
+}
+
+#[test]
+fn v07b_stdio_unsupported_after_effect_reaps_before_explicit_retry() {
+    v07b_stdio_unverified_result("unsupported");
+}
+
+#[test]
+fn v07b_stdio_malformed_after_effect_reaps_before_explicit_retry() {
+    v07b_stdio_unverified_result("bad_result");
+}
+
+#[test]
+fn v07b_stdio_definitive_is_error_remains_failed_and_reusable() {
+    let responses = FakeResponses::start(ResponsesScript::ToolNamed("results__is_error".into()));
+    let fixture = Fixture::new();
+    let server = fixture.home.join("v07b-declared-stdio");
+    let log = fixture.home.join("v07b-declared-stdio.log");
+    let _fallback = FixtureChildren(log.clone());
+    write_routing_stdio_server(&server, &log, "declared", &["is_error"]);
+    fixture.write_config(
+        &responses,
+        json!({"results": {
+            "type":"local", "command":[server], "enabled":true, "timeout":3000
+        }}),
+        json!({"results__is_error":"allow"}),
+    );
+    let mut tui = PtyProcess::spawn(&fixture, "v07b-declared-stdio");
+    tui.wait_visible(READY);
+    tui.send_line("declared failure one");
+    tui.wait_visible("retry complete");
+    let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
+    let deadline = Instant::now() + TIMEOUT;
+    while db
+        .query_row(
+            "SELECT count(*) FROM turns WHERE status='completed'",
+            [],
+            |r| r.get::<_, i64>(0),
+        )
+        .unwrap()
+        != 1
+    {
+        assert!(
+            Instant::now() < deadline,
+            "definitive failure did not complete turn"
+        );
+        std::thread::sleep(POLL);
+    }
+    std::thread::sleep(Duration::from_millis(750)); // terminal UI handoff after delta
+    tui.send_line("declared failure two");
+    let deadline = Instant::now() + TIMEOUT;
+    while db
+        .query_row(
+            "SELECT count(*) FROM tool_operations WHERE state='failed'",
+            [],
+            |r| r.get::<_, i64>(0),
+        )
+        .unwrap()
+        != 2
+    {
+        assert!(
+            Instant::now() < deadline,
+            "valid isError did not reuse stdio child"
+        );
+        std::thread::sleep(POLL);
+    }
+    let lifecycle = fs::read_to_string(&log).unwrap();
+    assert_eq!(
+        lifecycle
+            .lines()
+            .filter(|line| *line == "call is_error")
+            .count(),
+        2
+    );
+    assert_eq!(
+        lifecycle
+            .lines()
+            .filter(|line| line.starts_with("spawn "))
+            .count(),
+        1,
+        "definitive result needlessly retired stdio child"
+    );
+    assert_eq!(
+        db.query_row(
+            "SELECT count(*) FROM tool_operations WHERE state='unknown'",
+            [],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
+        0
+    );
+    tui.raw(b"\x03");
+    assert!(tui.wait_exit().success());
+}
+
+fn v07b_stdio_unverified_result(mode: &str) {
+    let responses = FakeResponses::start(ResponsesScript::ToolEveryTurn);
+    let fixture = Fixture::new();
+    let server = fixture.home.join("v07b-result-stdio");
+    let log = fixture.home.join("v07b-result-stdio.log");
+    let _fallback = FixtureChildren(log.clone());
+    let release = fixture.home.join("release");
+    write_executable(
+        &server,
+        &format!(
+            r#"#!/usr/bin/python3
+import json, os, sys
+log = {log:?}
+release = {release:?}
+mode = {mode:?}
+with open(log, 'a') as f: f.write('spawn %s\n' % os.getpid())
+for line in sys.stdin:
+    request = json.loads(line)
+    method = request['method']
+    if method == 'initialize': result = {{'protocolVersion':'2025-11-25','capabilities':{{'tools':{{}}}},'serverInfo':{{'name':'result','version':'1'}}}}
+    elif method == 'tools/list': result = {{'tools':[{{'name':'ping','inputSchema':{{'type':'object','properties':{{}}}}}}]}}
+    elif method == 'tools/call':
+        with open(log, 'a') as f: f.write('effect\n')
+        if os.path.exists(release): result = {{'content':[{{'type':'text','text':'pong'}}]}}
+        elif mode == 'unsupported': result = {{'content':[{{'type':'text','text':'PRIVATE_RESULT_BODY'}},{{'type':'image','data':'aGVsbG8=','mimeType':'image/png'}}]}}
+        else: result = {{'content':[]}}
+    else: continue
+    print(json.dumps({{'jsonrpc':'2.0','id':request['id'],'result':result}}), flush=True)
+"#,
+            log = log.to_string_lossy(),
+            release = release.to_string_lossy()
+        ),
+    );
+    fixture.write_config(
+        &responses,
+        json!({"stall": {
+            "type":"local", "command":[server], "enabled":true, "timeout":3000
+        }}),
+        json!({"stall__ping":"allow"}),
+    );
+    let mut tui = PtyProcess::spawn(&fixture, &format!("v07b-result-{mode}"));
+    tui.wait_visible(READY);
+    tui.send_line("perform local effect");
+    let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
+    let deadline = Instant::now() + TIMEOUT;
+    loop {
+        let state = db.query_row("SELECT state FROM tool_operations LIMIT 1", [], |r| {
+            r.get::<_, String>(0)
+        });
+        if state.as_deref() == Ok("unknown") {
+            break;
+        }
+        assert!(
+            state.as_deref() != Ok("failed"),
+            "after-effect result was recorded failed, not unknown"
+        );
+        assert!(
+            Instant::now() < deadline,
+            "missing unknown outcome: {state:?}"
+        );
+        std::thread::sleep(POLL);
+    }
+    tui.wait_screen("MCP outcome unknown", TIMEOUT);
+    let lifecycle = fs::read_to_string(&log).unwrap();
+    let first: libc::pid_t = lifecycle
+        .lines()
+        .next()
+        .unwrap()
+        .strip_prefix("spawn ")
+        .unwrap()
+        .parse()
+        .unwrap();
+    // SAFETY: signal zero probes only the child PID recorded by this fake.
+    let alive = unsafe { libc::kill(first, 0) };
+    assert_ne!(alive, 0, "old child survived after outcome unknown");
+    assert_eq!(
+        lifecycle.lines().filter(|line| *line == "effect").count(),
+        1
+    );
+    fs::write(&release, "explicit retry after reap").unwrap();
+    let from = tui.send_line("explicit retry");
+    tui.wait_visible_after(from, "retry complete");
+    tui.raw(b"\x03");
+    assert!(tui.wait_exit().success());
+    let lifecycle = fs::read_to_string(&log).unwrap();
+    assert_eq!(
+        lifecycle.lines().filter(|line| *line == "effect").count(),
+        2
+    );
+    assert_eq!(
+        lifecycle
+            .lines()
+            .filter(|line| line.starts_with("spawn "))
+            .count(),
+        2
+    );
+    assert_eq!(
+        db.query_row(
+            "SELECT count(*) FROM tool_operations WHERE state='unknown'",
+            [],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
+        1
+    );
+    assert_eq!(
+        db.query_row(
+            "SELECT count(*) FROM tool_operations WHERE state='completed'",
+            [],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
+        1
+    );
+    let output = String::from_utf8_lossy(&tui.output.lock().unwrap()).to_string();
+    assert!(
+        !output.contains("PRIVATE_RESULT_BODY"),
+        "unsupported response content leaked"
+    );
+    for pid in lifecycle
+        .lines()
+        .filter_map(|line| line.strip_prefix("spawn "))
+        .map(|pid| pid.parse::<libc::pid_t>().unwrap())
+    {
+        // SAFETY: signal zero probes only fixture child PIDs recorded in the log.
+        let alive = unsafe { libc::kill(pid, 0) };
+        assert_ne!(alive, 0, "owned child survived shutdown");
+    }
 }

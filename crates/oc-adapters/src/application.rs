@@ -521,6 +521,9 @@ async fn start_worker(
     if ready.send(Ok(diagnostics)).is_err() {
         return Ok(());
     }
+    // This worker, not any one Location runtime, owns unresolved remote calls.
+    // No endpoint identity or credential leaves the runtime/application boundary.
+    let mut remote_retry_quarantined = false;
     loop {
         let outcome = worker(
             &runtime,
@@ -551,6 +554,10 @@ async fn start_worker(
                             .shutdown_mcp()
                             .await
                             .map_err(|error| error.to_string())?;
+                        remote_retry_quarantined |= runtime.remote_retry_quarantined();
+                        if remote_retry_quarantined {
+                            next.quarantine_remote_retries();
+                        }
                         runtime = next;
                         let location = runtime.location().to_string();
                         let catalog = next_effective.snapshot(&next_composition);

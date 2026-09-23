@@ -333,6 +333,217 @@ fn params<'c>(
 
 static NO_CANCEL: AtomicBool = AtomicBool::new(false);
 
+/// Real runtime/provider/MCP path: dropping a polled tools/call future must
+/// remain quarantined even if the caller reloads before starting a new turn.
+#[tokio::test]
+async fn v07b_dropped_remote_call_reload_keeps_unknown_and_refuses_retry() {
+    dropped_remote_call_cannot_retry_after(false).await;
+}
+
+#[tokio::test]
+async fn v07b_dropped_remote_call_shutdown_keeps_unknown_and_refuses_retry() {
+    dropped_remote_call_cannot_retry_after(true).await;
+}
+
+async fn dropped_remote_call_cannot_retry_after(shutdown: bool) {
+    use std::net::TcpStream;
+    use std::sync::atomic::AtomicUsize;
+
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let url = format!("http://{}/mcp", listener.local_addr().unwrap());
+    let calls = Arc::new(AtomicUsize::new(0));
+    let calls_out = calls.clone();
+    let stop = Arc::new(AtomicBool::new(false));
+    let stopping = stop.clone();
+    let server = std::thread::spawn(move || {
+        let mut stalled = Vec::<TcpStream>::new();
+        while !stopping.load(Ordering::Relaxed) {
+            let (socket, _) = match listener.accept() {
+                Ok(pair) => pair,
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    std::thread::sleep(Duration::from_millis(10));
+                    continue;
+                }
+                Err(error) => panic!("fake MCP accept: {error}"),
+            };
+            let mut reader = BufReader::new(socket);
+            reader
+                .get_mut()
+                .set_read_timeout(Some(Duration::from_secs(2)))
+                .unwrap();
+            let mut content_length = 0;
+            loop {
+                let mut line = String::new();
+                if reader.read_line(&mut line).unwrap() == 0 {
+                    break;
+                }
+                if line == "\r\n" {
+                    break;
+                }
+                if let Some((name, value)) = line.split_once(':')
+                    && name.eq_ignore_ascii_case("content-length")
+                {
+                    content_length = value.trim().parse::<usize>().unwrap();
+                }
+            }
+            let mut body = vec![0u8; content_length];
+            reader.read_exact(&mut body).unwrap();
+            let request: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
+            let id = request
+                .get("id")
+                .cloned()
+                .unwrap_or(serde_json::Value::Null);
+            let response = match request["method"].as_str().unwrap_or_default() {
+                "initialize" => Some(serde_json::json!({"jsonrpc":"2.0","id":id,"result":{
+                    "protocolVersion":"2025-11-25", "capabilities":{"tools":{}},
+                    "serverInfo":{"name":"fake","version":"1"}}})),
+                "tools/list" => Some(serde_json::json!({"jsonrpc":"2.0","id":id,"result":{
+                    "tools":[{"name":"ping","inputSchema":{"type":"object","properties":{}}}]}})),
+                "tools/call" => {
+                    calls_out.fetch_add(1, Ordering::SeqCst);
+                    stalled.push(reader.into_inner()); // server-side effect stays active
+                    continue;
+                }
+                _ => None,
+            };
+            let socket = reader.get_mut();
+            if let Some(body) = response {
+                let body = body.to_string();
+                let _ = write!(
+                    socket,
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+            } else {
+                let _ = socket.write_all(
+                    b"HTTP/1.1 202 Accepted\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                );
+            }
+        }
+        drop(stalled);
+    });
+
+    let mut permissions = allow_all();
+    permissions.insert("stall__ping".into(), Permission::Allow);
+    let (harness, mut generation) = make_harness(permissions);
+    generation.mcp.insert(
+        "stall".into(),
+        McpEntry {
+            kind: "remote".into(),
+            url: Some(url),
+            enabled: true,
+            oauth: false,
+            headers: BTreeMap::new(),
+            command: Vec::new(),
+            timeout: Some(10_000),
+            codemode: None,
+        },
+    );
+    let project = harness._project.path();
+    let runtime = Runtime::new(
+        &harness.db,
+        "work",
+        generation.clone(),
+        ProtectedGlobs {
+            patterns: Vec::new(),
+        },
+        oc_adapters::files::Files::new(project, harness._data.path()).unwrap(),
+        oc_adapters::shell::Shell::new(project).unwrap(),
+        BTreeMap::from([("OC_TEST_ALLOW_LOOPBACK".into(), "1".into())]),
+        oc_adapters::tools::ToolRoots {
+            project: project.to_path_buf(),
+            data: harness._data.path().to_path_buf(),
+        },
+        None,
+        false,
+        DcpConfig::default(),
+    )
+    .unwrap();
+    runtime.create_session("dropped").unwrap();
+    let tool = sse_tool_call("drop", "stall__ping", &serde_json::json!({}));
+    let (base, _, requests) = Fake::start_recording(vec![tool + &sse_completed()], Duration::ZERO);
+    let mut turn = Box::pin(runtime.run_turn(params(
+        "dropped",
+        "first",
+        &harness,
+        provider_of(&base),
+        &NO_CANCEL,
+    )));
+    tokio::time::timeout(Duration::from_secs(8), async {
+        while calls.load(Ordering::SeqCst) == 0 {
+            tokio::select! {
+                result = &mut turn => panic!("turn finished before MCP stall: {result:?}"),
+                _ = tokio::time::sleep(Duration::from_millis(10)) => {},
+            }
+        }
+    })
+    .await
+    .expect("MCP call not sent");
+    drop(turn); // neither cancel flag nor turn callback: the real owner future is dropped
+    if shutdown {
+        runtime
+            .shutdown_mcp()
+            .await
+            .expect("shutdown after caller drop");
+    } else {
+        runtime
+            .reload(generation.clone())
+            .await
+            .expect("reload after caller drop");
+        runtime
+            .reload(generation)
+            .await
+            .expect("second reload cannot clear quarantine");
+    }
+    runtime.create_session("retry").unwrap();
+    let error = runtime
+        .run_turn(params(
+            "retry",
+            "explicit retry",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(
+            error,
+            oc_adapters::runtime::RuntimeError::McpAttach {
+                safe_code: "unsafe_retry",
+                retryable: false,
+                ..
+            }
+        ),
+        "unsafe retry admitted: {error:?}"
+    );
+    assert_eq!(
+        calls.load(Ordering::SeqCst),
+        1,
+        "overlapping server-side effects"
+    );
+    assert_eq!(requests.lock().unwrap().len(), 1, "retry reached provider");
+    let ops = harness.db.list_tool_ops("dropped").unwrap();
+    assert_eq!(ops.len(), 1);
+    assert_eq!(
+        ops[0].state, "unknown",
+        "dropped call must be durable unknown"
+    );
+    let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    let turn_status: String = sql
+        .query_row(
+            "SELECT status FROM turns WHERE session_id='dropped'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(turn_status, "unknown");
+    assert!(runtime.shutdown_mcp().await.is_ok());
+    stop.store(true, Ordering::Relaxed);
+    server.join().unwrap();
+}
+
 #[tokio::test]
 async fn resource_permissions_gate_real_dispatch_before_side_effects() {
     let (harness, mut generation) = make_harness(allow_all());

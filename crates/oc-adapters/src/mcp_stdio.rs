@@ -673,9 +673,47 @@ impl StdioClient {
             .ok_or(StdioError::NonObjectArguments)?;
         let mut params = rmcp::model::CallToolRequestParams::new(tool.to_string());
         params.arguments = Some(arguments);
-        let outcome = self
-            .run_cancel(cancel, self.peer.call_tool_once(params))
-            .await?;
+        let request =
+            rmcp::model::ClientRequest::CallToolRequest(rmcp::model::CallToolRequest::new(params));
+        let deadline = tokio::time::Instant::now() + self.config.timeout;
+        let mut handle = tokio::select! {
+            biased;
+            _ = wait_cancelled(cancel) => return Err(StdioError::Cancelled),
+            result = tokio::time::timeout_at(deadline, self.peer.send_cancellable_request(
+                request, rmcp::service::PeerRequestOptions::no_options()
+            )) => result.map_err(|_| StdioError::Deadline)?.map_err(|_| StdioError::Transport)?,
+        };
+        let outcome = tokio::select! {
+            biased;
+            _ = wait_cancelled(cancel) => None,
+            result = tokio::time::timeout_at(deadline, &mut handle.rx) => Some(result),
+        };
+        let outcome = match outcome {
+            None | Some(Err(_)) => {
+                let reason = if outcome.is_none() {
+                    StdioError::Cancelled
+                } else {
+                    StdioError::Deadline
+                };
+                tokio::time::timeout(
+                    SERVICE_CLOSE_TIMEOUT,
+                    handle.cancel(Some("request stopped".into())),
+                )
+                .await
+                .map_err(|_| StdioError::CleanupFailed)?
+                .map_err(|_| StdioError::CleanupFailed)?;
+                return Err(reason);
+            }
+            Some(Ok(Ok(Ok(rmcp::model::ServerResult::CallToolResult(result))))) => {
+                rmcp::model::CallToolResponse::Complete(result)
+            }
+            Some(Ok(Ok(Ok(_)))) => return Err(StdioError::UnsupportedModality),
+            Some(Ok(Ok(Err(error)))) => {
+                return Err(crate::mcp_result::rpc_failure(&error)
+                    .map_or(StdioError::Transport, StdioError::ToolFailedDetail));
+            }
+            Some(Ok(Err(_))) => return Err(StdioError::Transport),
+        };
         match outcome {
             rmcp::model::CallToolResponse::Complete(result) => {
                 crate::mcp_result::project(result, &self.redactions).map_err(|error| match error {
@@ -723,22 +761,6 @@ impl StdioClient {
         let config = self.config.clone();
         self.shutdown().await?;
         Self::launch_generation(&config, generation).await
-    }
-
-    async fn run_cancel<T>(
-        &self,
-        cancel: &std::sync::atomic::AtomicBool,
-        future: impl std::future::Future<Output = Result<T, rmcp::service::ServiceError>> + Send,
-    ) -> Result<T, StdioError> {
-        tokio::select! {
-            biased;
-            _ = wait_cancelled(cancel) => Err(StdioError::Cancelled),
-            result = tokio::time::timeout(self.config.timeout, future) => match result {
-                Err(_) => Err(StdioError::Deadline),
-                Ok(Err(error)) => Err(crate::mcp_result::rpc_failure(&error).map_or(StdioError::Transport, StdioError::ToolFailedDetail)),
-                Ok(Ok(value)) => Ok(value),
-            },
-        }
     }
 }
 

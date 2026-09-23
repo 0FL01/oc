@@ -489,6 +489,41 @@ struct McpGeneration {
     servers: Vec<AttachedMcp>,
     entries: Vec<mcp_remote::RegistryEntry>,
     degraded: Vec<RuntimeError>,
+    /// An in-flight call has no proven result: this entire generation is retired.
+    poisoned: AtomicBool,
+    /// A remote owner cannot prove its server stopped merely by closing HTTP.
+    remote_unknown: AtomicBool,
+    /// The request-specific cancellation notification could not be confirmed.
+    cleanup_error: AtomicBool,
+}
+
+/// If an owning turn future is dropped in the middle of an MCP call, the
+/// request result is unknown. A later turn must retire the old generation.
+struct McpCallLease<'a> {
+    generation: &'a McpGeneration,
+    db: &'a Db,
+    op: &'a str,
+    turn: &'a str,
+    remote: bool,
+    armed: bool,
+}
+
+impl Drop for McpCallLease<'_> {
+    fn drop(&mut self) {
+        if self.armed {
+            self.generation.poisoned.store(true, Ordering::SeqCst);
+            if self.remote {
+                self.generation.remote_unknown.store(true, Ordering::SeqCst);
+            }
+            if self
+                .db
+                .mark_dropped_mcp_call_unknown(self.op, self.turn)
+                .is_err()
+            {
+                self.generation.cleanup_error.store(true, Ordering::SeqCst);
+            }
+        }
+    }
 }
 
 impl McpGeneration {
@@ -904,6 +939,8 @@ pub struct Runtime<'a> {
     nudge_state: Mutex<BTreeMap<String, NudgeState>>,
     stats: Mutex<crate::dcp_auto::DcpStats>,
     mcp_generation: tokio::sync::Mutex<Option<McpGeneration>>,
+    mcp_unsafe_retry: AtomicBool,
+    mcp_cleanup_failed: AtomicBool,
     subagent_seq: AtomicU64,
 }
 
@@ -960,6 +997,8 @@ impl<'a> Runtime<'a> {
             nudge_state: Mutex::new(BTreeMap::new()),
             stats: Mutex::new(DcpStats::default()),
             mcp_generation: tokio::sync::Mutex::new(None),
+            mcp_unsafe_retry: AtomicBool::new(false),
+            mcp_cleanup_failed: AtomicBool::new(false),
             subagent_seq: AtomicU64::new(0),
         })
     }
@@ -978,8 +1017,16 @@ impl<'a> Runtime<'a> {
     /// between turns; returns the new id.
     pub async fn reload(&self, generation: Generation) -> Result<u64, RuntimeError> {
         let _lease = self.begin_active()?;
-        if let Some(old) = self.mcp_generation.lock().await.take() {
-            close_generation(old).await?;
+        let mut slot = self.mcp_generation.lock().await;
+        self.retire_poisoned(&mut slot).await?;
+        if self.mcp_cleanup_failed.load(Ordering::SeqCst) {
+            return Err(RuntimeError::McpShutdown);
+        }
+        if let Some(old) = slot.take()
+            && let Err(error) = close_generation(old).await
+        {
+            self.mcp_cleanup_failed.store(true, Ordering::SeqCst);
+            return Err(error);
         }
         let mut current = self.current.write().expect("generation lock");
         let id = current.id + 1;
@@ -1001,10 +1048,29 @@ impl<'a> Runtime<'a> {
 
     /// Close the current Location/config generation's MCP resources.
     pub async fn shutdown_mcp(&self) -> Result<(), RuntimeError> {
-        if let Some(generation) = self.mcp_generation.lock().await.take() {
-            close_generation(generation).await?;
+        let mut slot = self.mcp_generation.lock().await;
+        self.retire_poisoned(&mut slot).await?;
+        if let Some(generation) = slot.take()
+            && let Err(error) = close_generation(generation).await
+        {
+            self.mcp_cleanup_failed.store(true, Ordering::SeqCst);
+            return Err(error);
         }
-        Ok(())
+        if self.mcp_cleanup_failed.load(Ordering::SeqCst) {
+            Err(RuntimeError::McpShutdown)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Owner-only status, read after shutdown has retired any poisoned MCP
+    /// generation. The application carries it across Location runtimes.
+    pub(crate) fn remote_retry_quarantined(&self) -> bool {
+        self.mcp_unsafe_retry.load(Ordering::SeqCst)
+    }
+
+    pub(crate) fn quarantine_remote_retries(&self) {
+        self.mcp_unsafe_retry.store(true, Ordering::SeqCst);
     }
 
     /// Replace the DCP config between turns.
@@ -1200,6 +1266,7 @@ impl<'a> Runtime<'a> {
                 &mut tool_event,
             )
             .await;
+        self.retire_poisoned(&mut mcp).await?;
         drop(mcp);
         let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
         result.and_then(|mut report| {
@@ -1835,6 +1902,24 @@ impl<'a> Runtime<'a> {
                 )
                 .await?;
             calls.extend(round_calls);
+            if calls.iter().any(|call| call.state == "unknown") {
+                let mut report = self.commit_turn(
+                    &turn_log,
+                    turn_id,
+                    &params.session,
+                    TurnStatus::Failed,
+                    text,
+                    rounds,
+                    streamed_ms(streamed),
+                    usage,
+                    calls,
+                    nudge_hint,
+                    &published,
+                )?;
+                report.diagnostic =
+                    Some("MCP outcome unknown; retry may duplicate side effects".into());
+                return Ok(report);
+            }
             if projection_changed {
                 let refreshed = self.active_projection(&params.session)?;
                 projected = refreshed.projected;
@@ -2466,7 +2551,9 @@ impl<'a> Runtime<'a> {
                         let output = execute_batch(ctx, vec![guarded]).await.remove(0).output;
                         (output_state(&output), output)
                     }
-                    Assembled::Call(call) => Self::execute_mcp(call, attached, cancel).await,
+                    Assembled::Call(call) => {
+                        self.execute_mcp(call, &op, turn_id, attached, cancel).await
+                    }
                     Assembled::Failed(_) => unreachable!("assembly failure rejected above"),
                 }
             };
@@ -2483,6 +2570,9 @@ impl<'a> Runtime<'a> {
                 state: state.to_string(),
                 output: truncate(&output, REPORT_OUTPUT_CAP),
             });
+            if state == "unknown" {
+                break; // no later side effects in this provider batch
+            }
         }
         Ok((records, projection_changed))
     }
@@ -2512,7 +2602,10 @@ impl<'a> Runtime<'a> {
 
     /// Dispatch only after the common permission and durable intent path.
     async fn execute_mcp(
+        &self,
         call: &crate::tools::ToolCall,
+        op: &str,
+        turn: &str,
         attached: &McpGeneration,
         cancel: &AtomicBool,
     ) -> (&'static str, String) {
@@ -2533,21 +2626,106 @@ impl<'a> Runtime<'a> {
                 format!("error: unknown mcp server {}", entry.server),
             );
         };
-        match &server.client {
+        let mut lease = McpCallLease {
+            generation: attached,
+            db: self.db,
+            op,
+            turn,
+            remote: matches!(&server.client, AttachedServer::Remote(_)),
+            armed: true,
+        };
+        let result = match &server.client {
             AttachedServer::Remote(client) => client
                 .call_tool(&entry.tool, call.arguments.clone(), cancel)
                 .await
                 .map_or_else(
-                    |error| remote_mcp_failure(error, cancel),
+                    |error| {
+                        if matches!(
+                            error,
+                            McpError::Cancelled
+                                | McpError::Deadline
+                                | McpError::Transport
+                                | McpError::CleanupFailed
+                                | McpError::UnsupportedResult
+                                | McpError::BadResult
+                        ) || cancel.load(Ordering::Relaxed)
+                        {
+                            attached.poisoned.store(true, Ordering::SeqCst);
+                            attached.remote_unknown.store(true, Ordering::SeqCst);
+                            if error == McpError::CleanupFailed {
+                                attached.cleanup_error.store(true, Ordering::SeqCst);
+                            }
+                            return (
+                                "unknown",
+                                "error: mcp outcome unknown; remote retry unsafe".into(),
+                            );
+                        }
+                        remote_mcp_failure(error, cancel)
+                    },
                     |text| ("completed", text),
                 ),
             AttachedServer::Stdio(child) => child
                 .call_tool(&entry.tool, call.arguments.clone(), cancel)
                 .await
                 .map_or_else(
-                    |error| stdio_mcp_failure(error, cancel),
+                    |error| {
+                        if matches!(
+                            error,
+                            StdioError::Cancelled
+                                | StdioError::Deadline
+                                | StdioError::Transport
+                                | StdioError::CleanupFailed
+                                | StdioError::UnsupportedModality
+                                | StdioError::BadResult
+                        ) || cancel.load(Ordering::Relaxed)
+                        {
+                            attached.poisoned.store(true, Ordering::SeqCst);
+                            if error == StdioError::CleanupFailed {
+                                attached.cleanup_error.store(true, Ordering::SeqCst);
+                            }
+                            return (
+                                "unknown",
+                                "error: mcp outcome unknown; local owner stopping".into(),
+                            );
+                        }
+                        stdio_mcp_failure(error, cancel)
+                    },
                     |text| ("completed", text),
                 ),
+        };
+        lease.armed = false;
+        result
+    }
+
+    async fn retire_poisoned(&self, slot: &mut Option<McpGeneration>) -> Result<(), RuntimeError> {
+        if !slot
+            .as_ref()
+            .is_some_and(|g| g.poisoned.load(Ordering::SeqCst))
+        {
+            return Ok(());
+        }
+        if slot
+            .as_ref()
+            .is_some_and(|g| g.remote_unknown.load(Ordering::SeqCst))
+        {
+            self.mcp_unsafe_retry.store(true, Ordering::SeqCst);
+        }
+        let cleanup_error = slot
+            .as_ref()
+            .is_some_and(|g| g.cleanup_error.load(Ordering::SeqCst));
+        if cleanup_error {
+            self.mcp_cleanup_failed.store(true, Ordering::SeqCst);
+        }
+        if let Some(generation) = slot.take()
+            && let Err(error) = close_generation(generation).await
+        {
+            self.mcp_cleanup_failed.store(true, Ordering::SeqCst);
+            return Err(error);
+        }
+        if cleanup_error {
+            Err(RuntimeError::McpShutdown)
+        } else {
+            Ok(())
         }
     }
 
@@ -2558,14 +2736,43 @@ impl<'a> Runtime<'a> {
         published: &PublishedGeneration,
         cancel: &AtomicBool,
     ) -> Result<&'m McpGeneration, RuntimeError> {
+        self.retire_poisoned(slot).await?;
+        if self.mcp_cleanup_failed.load(Ordering::SeqCst) {
+            return Err(RuntimeError::McpShutdown);
+        }
+        if self.mcp_unsafe_retry.load(Ordering::SeqCst)
+            && published
+                .config
+                .mcp
+                .values()
+                .any(|entry| entry.enabled && entry.kind == "remote")
+        {
+            return Err(RuntimeError::McpAttach {
+                server: "generation".into(),
+                stage: "call",
+                safe_code: "unsafe_retry",
+                retryable: false,
+            });
+        }
         let reusable = slot
             .as_ref()
             .is_some_and(|generation| generation.publication == published.id);
         if !reusable {
-            if let Some(old) = slot.take() {
-                close_generation(old).await?;
+            if let Some(old) = slot.take()
+                && let Err(error) = close_generation(old).await
+            {
+                self.mcp_cleanup_failed.store(true, Ordering::SeqCst);
+                return Err(error);
             }
-            *slot = Some(self.attach_mcp(published, cancel).await?);
+            *slot = Some(match self.attach_mcp(published, cancel).await {
+                Ok(generation) => generation,
+                Err(error) => {
+                    if error == RuntimeError::McpShutdown {
+                        self.mcp_cleanup_failed.store(true, Ordering::SeqCst);
+                    }
+                    return Err(error);
+                }
+            });
         } else if let Some(generation) = slot.as_mut() {
             generation.refresh_if_changed(cancel).await?;
         }
@@ -2754,6 +2961,27 @@ impl<'a> Runtime<'a> {
                 // Per-server attach failure degrades that server only: upstream
                 // opencode v2.0.12 marks the server failed and keeps the turn.
                 Err(error @ RuntimeError::McpAttach { .. }) => {
+                    if matches!(
+                        &error,
+                        RuntimeError::McpAttach {
+                            stage: "cleanup",
+                            ..
+                        }
+                    ) {
+                        self.mcp_cleanup_failed.store(true, Ordering::SeqCst);
+                        let cleanup = close_generation(McpGeneration {
+                            publication: published.id,
+                            servers: attached,
+                            entries: Vec::new(),
+                            degraded: Vec::new(),
+                            poisoned: AtomicBool::new(false),
+                            remote_unknown: AtomicBool::new(false),
+                            cleanup_error: AtomicBool::new(false),
+                        })
+                        .await;
+                        cleanup?;
+                        return Err(RuntimeError::McpShutdown);
+                    }
                     record_degradation(&mut degraded, error);
                 }
                 Err(error) => {
@@ -2762,6 +2990,9 @@ impl<'a> Runtime<'a> {
                         servers: attached,
                         entries: Vec::new(),
                         degraded: Vec::new(),
+                        poisoned: AtomicBool::new(false),
+                        remote_unknown: AtomicBool::new(false),
+                        cleanup_error: AtomicBool::new(false),
                     })
                     .await;
                     cleanup?;
@@ -2775,6 +3006,9 @@ impl<'a> Runtime<'a> {
                 servers: attached,
                 entries,
                 degraded,
+                poisoned: AtomicBool::new(false),
+                remote_unknown: AtomicBool::new(false),
+                cleanup_error: AtomicBool::new(false),
             }),
             Err(error) => {
                 let cleanup = close_generation(McpGeneration {
@@ -2782,6 +3016,9 @@ impl<'a> Runtime<'a> {
                     servers: attached,
                     entries: Vec::new(),
                     degraded: Vec::new(),
+                    poisoned: AtomicBool::new(false),
+                    remote_unknown: AtomicBool::new(false),
+                    cleanup_error: AtomicBool::new(false),
                 })
                 .await;
                 cleanup?;

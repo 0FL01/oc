@@ -1867,6 +1867,38 @@ impl Db {
         Ok(())
     }
 
+    /// An in-flight MCP call lost its owning future. Preserve its checkpointed
+    /// wire log and atomically mark both intent and turn unknown without replay.
+    pub(crate) fn mark_dropped_mcp_call_unknown(
+        &self,
+        op: &str,
+        turn: &str,
+    ) -> Result<(), StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        let count = tx.execute(
+            "UPDATE tool_operations SET state='unknown', output='error: mcp outcome unknown; retry may duplicate side effects' \
+             WHERE id=?1 AND turn_id=?2 AND state='started'",
+            params![op, turn],
+        )?;
+        if count != 1 {
+            return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
+        }
+        let count = tx.execute(
+            "UPDATE turns SET status='unknown' WHERE id=?1 AND status='started'",
+            [turn],
+        )?;
+        if count != 1 {
+            return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
+        }
+        tx.execute(
+            "INSERT INTO events(session_id,kind,payload) SELECT session_id,'turn_unknown',id FROM turns WHERE id=?1",
+            [turn],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
     /// Crash recovery: mark `started` operations and turns as `unknown`.
     ///
     /// Never replays the mutation; a new explicit attempt must use a new

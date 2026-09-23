@@ -157,6 +157,37 @@ credential values; TERM→grace→KILL адресуется только соб�
 небезопасные/длинные identity кодируются provider-safe именем с hash-suffix, а
 exact server/tool сохраняется в dispatch map (никакого `split_once("__")`).
 
+Вызов `tools/call` удерживает rmcp `RequestHandle`: Esc/deadline отправляют
+`notifications/cancelled` с исходным request id под ограниченным deadline. Это
+сигнал намерения, а не подтверждение отката side effect. Если ответ не получен,
+durable operation получает `unknown`, turn — `failed`, дальнейший batch/round не
+выполняется, подключённая generation закрывается. Local stdio можно явно
+повторить только после успешного kill/reap всей owned process group и нового
+handshake; при ошибке cleanup runtime отказывает дальнейшему подключению и
+shutdown завершается с ошибкой. Для remote закрытый HTTP/request и HTTP 202 на
+уведомление не доказывают остановку сервера: текущий owner блокирует повтор с
+`unsafe_retry`; после restart прежний `unknown` требует внешнего выяснения,
+автоматического replay нет. Случайный drop future во время вызова также помечает
+generation poisoned и атомарно сохраняет unknown operation/turn; reload и
+shutdown сначала переносят remote quarantine в runtime, затем закрывают старую
+generation. Повтор в том же runtime после них остаётся `unsafe_retry`.
+
+При смене Location приложение переносит sticky remote quarantine из закрытого
+Runtime в новый до публикации target. Любой включённый remote MCP в этом
+application owner получает безопасный `unsafe_retry` **до** вызова модели:
+без надёжной идентичности remote side effect нельзя гарантировать, что другой
+URL/Location независим. Это консервативно для других remote endpoints; локальная
+Location только со stdio MCP продолжает работу после успешного закрытия прежнего
+owner. Ошибка cleanup по-прежнему прерывает switch/shutdown, а не сбрасывается
+созданием нового Runtime. Перезапуск процесса не доказывает исход старого
+remote вызова и не выполняет автоматическую сверку.
+
+Структурно неподдерживаемый или пустой/некорректный ответ после `tools/call`
+также означает `unknown`: сервер мог уже выполнить side effect. Он проходит тот
+же путь retirement и remote quarantine (либо stdio kill/reap перед явным
+повтором). Валидное `isError:true` — окончательный ответ сервера: остаётся
+`failed`, без ложного `unknown` и без принудительного закрытия generation.
+
 `tools/list_changed` claim-ится атомарно перед relist; перечитывается только
 изменившийся server, а notification, пришедшая во время relist, остаётся pending
 для следующего turn. Failed relist восстанавливает claim и сохраняет прежний
