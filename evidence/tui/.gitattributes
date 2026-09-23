@@ -1,3 +1,5 @@
 # Terminal cell dumps deliberately retain full-width blank cells and line endings.
 recovery-v08-read-group-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v08-read-group-*/*/*.vt binary
+recovery-v08-canvas-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+recovery-v08-canvas-*/*/*.vt binary
