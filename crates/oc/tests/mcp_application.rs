@@ -1997,6 +1997,138 @@ fn v01_pending_initialize_raw_pty_cancel_edit_duplicate_and_retry() {
     pending_initialize_raw_pty(false, false);
 }
 
+/// S06: the real key route must refuse both navigation actions while a
+/// submission is waiting for MCP admission, without accepting a stale turn.
+#[test]
+fn s06_pending_submit_refuses_navigation_and_keeps_draft() {
+    let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
+    let fixture = Fixture::new();
+    let other = fixture._root.path().join("other-location");
+    fs::create_dir(&other).unwrap();
+    let server = fixture.home.join("stalled-s06");
+    let log = fixture.home.join("stalled-s06.log");
+    let _cleanup = FixtureChildren(log.clone());
+    let release = fixture.home.join("release-s06");
+    write_executable(
+        &server,
+        &format!(
+            r#"#!/usr/bin/python3
+import json, os, sys, time
+log = {log:?}
+release = {release:?}
+with open(log, 'a') as f: f.write('spawn %s\n' % os.getpid())
+for line in sys.stdin:
+    request = json.loads(line)
+    with open(log, 'a') as f: f.write(request['method'] + '\n')
+    if request['method'] == 'initialize':
+        while not os.path.exists(release): time.sleep(0.01)
+        result = {{'protocolVersion':'2025-11-25','capabilities':{{'tools':{{}}}},'serverInfo':{{'name':'stall','version':'1'}}}}
+    elif request['method'] == 'tools/list': result = {{'tools':[]}}
+    else: continue
+    print(json.dumps({{'jsonrpc':'2.0','id':request['id'],'result':result}}), flush=True)
+"#,
+            log = log.to_string_lossy(),
+            release = release.to_string_lossy(),
+        ),
+    );
+    fixture.write_config(
+        &responses,
+        json!({"stall": {"type":"local", "command":[server], "enabled":true, "timeout":10000}}),
+        json!({}),
+    );
+    let session = "s06-pending";
+    let draft = "retain this draft";
+    let mut tui = PtyProcess::spawn(&fixture, session);
+    tui.wait_visible(READY);
+    tui.send_line(draft);
+    let deadline = Instant::now() + IO_TIMEOUT;
+    while !fs::read_to_string(&log)
+        .unwrap_or_default()
+        .contains("initialize")
+    {
+        assert!(Instant::now() < deadline, "MCP initialize did not stall");
+        std::thread::sleep(POLL);
+    }
+    tui.wait_screen("submission pending; Esc to cancel", IO_TIMEOUT);
+
+    // Ctrl+X L is the real session-list binding. While busy the picker is
+    // unavailable, so a session cannot be selected from it.
+    tui.raw(b"\x18l");
+    tui.wait_screen("turn active; action unavailable", IO_TIMEOUT);
+    assert!(!tui.screen().iter().any(|row| row.contains("Sessions |")));
+    tui.raw(b"\r"); // duplicate Enter resets the note to pending
+    tui.wait_screen("submission pending; Esc to cancel", IO_TIMEOUT);
+
+    // There is no direct Location key: the slash command goes through the
+    // editor. Replace the draft temporarily and restore it after the refusal.
+    tui.raw(&vec![0x7f; draft.len()]);
+    let command = format!("/location {}", other.display());
+    tui.send_line(&command);
+    tui.wait_screen("turn active; action unavailable", IO_TIMEOUT);
+    tui.raw(&vec![0x7f; command.len()]);
+    tui.raw(draft.as_bytes());
+    tui.wait_screen(draft, IO_TIMEOUT);
+    assert!(
+        responses.requests().is_empty(),
+        "unaccepted turn reached provider"
+    );
+    let db_path = fixture.home.join("data/oc/oc.sqlite");
+    let db = rusqlite::Connection::open(&db_path).unwrap();
+    let sessions = || {
+        db.prepare("SELECT id FROM sessions ORDER BY id")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(0))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+    };
+    assert_eq!(sessions(), [session]);
+    let count: i64 = db
+        .query_row("SELECT count(*) FROM turns", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(count, 0, "navigation accepted a pending turn");
+
+    tui.raw(b"\x1b"); // cancel via the real keyboard before release
+    tui.wait_screen("cancelled", IO_TIMEOUT);
+    let pid: libc::pid_t = fs::read_to_string(&log)
+        .unwrap()
+        .lines()
+        .next()
+        .unwrap()
+        .strip_prefix("spawn ")
+        .unwrap()
+        .parse()
+        .unwrap();
+    let deadline = Instant::now() + IO_TIMEOUT;
+    // SAFETY: signal zero only probes the child PID recorded by this fixture.
+    while unsafe { libc::kill(pid, 0) } == 0 {
+        assert!(Instant::now() < deadline, "cancel did not reap MCP child");
+        std::thread::sleep(POLL);
+    }
+    assert!(!release.exists(), "cancel must precede fake release");
+    fs::write(&release, "release").unwrap();
+    std::thread::sleep(Duration::from_millis(250));
+    assert!(
+        tui.screen().iter().any(|row| row.contains(draft)),
+        "draft lost after cancel"
+    );
+    assert!(
+        responses.requests().is_empty(),
+        "late acceptance reached provider"
+    );
+    assert_eq!(sessions(), [session]);
+    let turns: i64 = db
+        .query_row("SELECT count(*) FROM turns", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(turns, 0, "late turn was accepted after release");
+    let messages: i64 = db
+        .query_row("SELECT count(*) FROM messages", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(messages, 0, "late turn reached transcript");
+    tui.raw(b"\x03");
+    assert!(tui.wait_exit().success());
+}
+
 #[test]
 fn v01_manual_compress_raw_pty_cancel_shutdown_and_retry() {
     pending_initialize_raw_pty(true, false);

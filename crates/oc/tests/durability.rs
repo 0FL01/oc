@@ -244,7 +244,7 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
     recovered.state = "unknown".into();
     assert_eq!(
         db.list_tool_ops(SESSION).expect("recovered operation"),
-        vec![recovered],
+        vec![recovered.clone()],
         "only state changes; identity/input retained, no new operation or outcome"
     );
     assert_eq!(
@@ -268,22 +268,53 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
     // V02: the same actual-crash record is served through the application,
     // including the unknown operation, rather than reconstructed as success.
     tokio::runtime::Runtime::new().unwrap().block_on(async {
-        let env=std::collections::BTreeMap::from([
-            ("HOME".into(),home.display().to_string()),
-            ("XDG_CONFIG_HOME".into(),home.join("config").display().to_string()),
-            ("OC_TEST_ALLOW_LOOPBACK".into(),"1".into()),
+        let env = std::collections::BTreeMap::from([
+            ("HOME".into(), home.display().to_string()),
+            (
+                "XDG_CONFIG_HOME".into(),
+                home.join("config").display().to_string(),
+            ),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
         ]);
-        let (app,guard,_)=oc_adapters::application::spawn_with_env(&project,&data,env).await.unwrap();
-        let session=oc_core::domain::SessionId(SESSION.to_string());
-        let page=app.history_page(session.clone(),None,None,100).await.unwrap();
-        let turn=page.rows[0].turn.as_ref().expect("crashed turn projection");
-        assert_eq!(turn.status,"unknown");
-        assert_eq!(turn.model_label,"Durability fixture");
-        assert!(turn.parts.iter().any(|part|matches!(part,oc_core::queries::TranscriptPart::Tool(op) if op.state=="unknown" && op.output.is_none())));
-        let mut state=oc_tui::app::TuiState::new(app.clone(),session);
+        let (app, guard, _) = oc_adapters::application::spawn_with_env(&project, &data, env)
+            .await
+            .unwrap();
+        let session = oc_core::domain::SessionId(SESSION.to_string());
+        let page = app
+            .history_page(session.clone(), None, None, 100)
+            .await
+            .unwrap();
+        let turn = page.rows[0].turn.as_ref().expect("crashed turn projection");
+        assert_eq!(turn.status, "unknown");
+        assert_eq!(turn.model_label, "Durability fixture");
+        assert!(turn.parts.iter().any(|part| matches!(part, oc_core::queries::TranscriptPart::Tool(op) if op.state == "unknown" && op.output.is_none())));
+        let mut state = oc_tui::app::TuiState::new(app.clone(), session.clone());
         state.attach_page(&page);
-        assert!(state.history().rows().iter().any(|row|row.tool.as_ref().is_some_and(|card|card.state=="unknown")));
-        app.shutdown().await.unwrap();guard.join().await.unwrap();
+        assert!(state.history().rows().iter().any(|row| row.tool.as_ref().is_some_and(|card| card.state == "unknown")));
+        let transcript = oc_tui::views::render_test(&state, 120, 40).join("\n");
+        assert!(
+            transcript.contains("Outcome unknown (operation was interrupted)"),
+            "replayed shell must not render an unknown effect as success: {transcript}"
+        );
+
+        for ch in "/cards".chars() {
+            state.handle_key(oc_tui::events::KeyAction::Char(ch)).await;
+        }
+        let action = state.handle_key(oc_tui::events::KeyAction::Enter).await;
+        assert_eq!(action.intent, Some(oc_tui::app::PanelIntent::LoadCards));
+        let ops = app.tool_ops_page(session, None, 20).await.unwrap();
+        assert_eq!(ops.rows.len(), 1);
+        assert_eq!(ops.rows[0].op, recovered.op);
+        assert_eq!(ops.rows[0].state, recovered.state);
+        assert_eq!(ops.rows[0].input, recovered.input);
+        assert_eq!(ops.rows[0].output, recovered.output);
+        state.apply_cards(oc_tui::history::cards_from_rows(&ops.rows), ops.has_older);
+        let row = format!("bash unknown ({})", recovered.op);
+        assert!(oc_tui::views::panel_lines(&state)[1].contains(&row));
+        let frame = oc_tui::views::render_test(&state, 120, 40).join("\n");
+        assert!(frame.contains(&row), "recovered /cards row must be painted: {frame}");
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
     });
 }
 
