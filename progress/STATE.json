@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-09-23T11:49:47+00:00",
-  "current": "T48",
+  "updated_at": "2026-09-23T12:15:37+00:00",
+  "current": null,
   "tasks": {
     "T00": {
       "status": "done",
@@ -340,9 +340,9 @@
       "reopen_reason": null
     },
     "T48": {
-      "status": "active",
-      "last_seq": 1,
-      "latest": "progress/M9/T48/0001.md",
+      "status": "blocked",
+      "last_seq": 2,
+      "latest": "progress/M9/T48/0002.md",
       "evidence": null,
       "reopen_reason": null
     }

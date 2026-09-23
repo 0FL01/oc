@@ -1,12 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-09-23T12:15:37+00:00
-Active: нет
-
-Сверить Git status/diff до выполнения команд.
-
-Последний срез: T48 [blocked]; сверить незакоммиченный diff.
-
 # T48 — official direct Zen Free Chat qualification
 
 ## Result
@@ -18,6 +9,7 @@ The single owner-approved direct text-only **keyless** smoke selected `big-pickl
 ## Checks
 
 - `cargo fmt --all -- --check`, `cargo clippy --locked --workspace --all-targets -- -D warnings`, `RUST_TEST_THREADS=2 cargo test -q --locked --workspace`, `cargo build --locked`, `python3 scripts/check_docs.py`, `python3 scripts/progress.py check`, `git diff --check`: **exit 0** after the final implementation edits. Default ignored live tests remain ignored; this does **not** convert them to PASS. `target/debug/oc --help` exit 0 in the preceding complete gate.
+- `cargo build --release --locked` exit 0; existing `$HOME/.local/bin/oc2` resolves to the rebuilt `target/release/oc`; `/home/opencode/.local/bin/oc2 --smoke` exit 0. This verifies delivery of the native release binary, not Zen inference access.
 - `cargo test --locked -p oc --test zen_free`: **6/6 PASS** (actual binary loopback dynamic ID, Chat SSE read→result→continuation, title, restart, DCP compression with unchanged raw history and retained call/result, child own session and fresh catalog, before/after first POST price change, explicit key vs keyless and rejected pseudokey). Private `OC_TEST_ZEN_CAMPAIGN_DIR` in each fixture counts every POST including title and child across restarts; an eligibility refusal consumes no generation slot.
 - `cargo test --locked -p oc-adapters zen_ --lib`: 10 normal tests PASS, two opt-in live tests ignored; opt-in `read_only_official_catalog_preflight` PASS on live two-feed public GETs. Unit test `live_campaign_slots_survive_restart_and_cap_actual_sends` uses 24 durable `create_new` slots and rejects the 25th or >2048 smoke output.
 - Before external action, `progress.py checkpoint --note evidence/T48/prelive.md` exit 0. Exactly one direct attempt: `env -u OC_TEST_ZEN_API_KEY -u OC_TEST_ZEN_METADATA_URL OC_TEST_ZEN_LIVE=1 OC_TEST_ZEN_MODEL=big-pickle OC_TEST_ZEN_CAMPAIGN_DIR=/home/opencode/.local/state/oc-zen-campaign-20260923 CARGO_BUILD_JOBS=2 cargo test --locked -p oc-adapters live_free_chat_text_smoke --lib -- --ignored` → **exit 101**, typed `Forbidden` (403); persistent `generation-00` present, no other generation marker. No MCP configured (searches 0/4), output requested 32/2048 smoke tokens, one attempt/24, no automatic retries or real response-body/key logging.
@@ -29,11 +21,3 @@ The two metadata snapshots are not an atomic billing quote; zero metadata pricin
 ## Next
 
 If an owner-authorized Zen product key and direct-client access become available, export **only** `OC_TEST_ZEN_API_KEY` in an isolated run environment (never in committed config/evidence), reuse the existing private campaign directory and explicitly selected current catalog-confirmed Chat free ID. Run a single bounded text smoke, stop on 401/403/429, then a bounded synthetic tool roundtrip if the gateway accepts the client; update ZEN03 evidence and journal state without replacing OpenProxy acceptance. Without that external authorization/resource, retain BLOCKED_LIVE; offline feature is committed and ready for an authorized environment.
-
-
-Следующий шаг: проверить зависимости и начать первую ready-задачу.
-
-Ready (до 5): T45, T46, T47
-Blocked: T27, T43, T44, T48
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.
