@@ -2390,6 +2390,105 @@ fn v01_degraded_remote_diagnostic_is_staged_and_redacted_in_tui() {
 }
 
 #[test]
+fn v07_s05_disabled_and_failed_mcp_only_retry_after_explicit_repair() {
+    let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
+    let disabled = FakeMcp::start("disabled", "", &["probe"]);
+    let required = FakeMcp::start("required", "Bearer repaired-token", &["search"]);
+    let fixture = Fixture::new();
+    let mut disabled_entry = remote_entry(&disabled, "Authorization", "Bearer disabled-token");
+    disabled_entry["enabled"] = json!(false);
+    fixture.write_config(
+        &responses,
+        json!({
+            "disabled": disabled_entry,
+            "required": remote_entry(&required, "Authorization", "Bearer wrong-token"),
+        }),
+        json!({}),
+    );
+    let mut first = fixture.spawn_run("v07-s05-failed");
+    assert!(first.wait().success(), "{}", first.diagnostics());
+    assert_eq!(first.output().trim(), "answer:exercise configured MCP");
+    let failure = first.diagnostics();
+    assert!(
+        failure.contains("warning: mcp required initialize: unauthorized (retryable=false)"),
+        "missing explicit degraded-server diagnostic: {failure}"
+    );
+    for private in [
+        "wrong-token",
+        "PRIVATE_RESPONSE_BODY_SENTINEL",
+        &required.url,
+    ] {
+        assert!(
+            !failure.contains(private),
+            "MCP diagnostic leaked fixture data"
+        );
+    }
+    assert!(disabled.records().is_empty(), "disabled MCP was probed");
+    let failed_records = required.records();
+    assert_eq!(failed_records.len(), 1, "failed attach retried implicitly");
+    assert_eq!(failed_records[0].rpc_method, "initialize");
+    let failed_turns = responses
+        .requests()
+        .into_iter()
+        .filter(|request| !title::is_title(request))
+        .collect::<Vec<_>>();
+    assert_eq!(failed_turns.len(), 1);
+    assert!(
+        !function_tool_names(&failed_turns[0])
+            .iter()
+            .any(|name| name.starts_with("required__") || name.starts_with("disabled__")),
+        "degraded MCP exposed a tool to the provider"
+    );
+
+    // Repairing the configuration alone must not replay the previous turn.
+    fixture.write_config(
+        &responses,
+        json!({
+            "disabled": disabled_entry,
+            "required": remote_entry(&required, "Authorization", "Bearer repaired-token"),
+        }),
+        json!({}),
+    );
+    assert_eq!(required.records().len(), failed_records.len());
+    assert!(disabled.records().is_empty());
+    assert_eq!(
+        responses
+            .requests()
+            .into_iter()
+            .filter(|request| !title::is_title(request))
+            .count(),
+        1,
+        "config repair replayed the previous turn"
+    );
+    // A new explicit invocation loads the repaired generation and its catalog.
+    let mut second = fixture.spawn_run("v07-s05-repaired");
+    assert!(second.wait().success(), "{}", second.diagnostics());
+    assert_eq!(second.output().trim(), "answer:exercise configured MCP");
+    assert!(!second.diagnostics().contains("warning: mcp required"));
+    assert!(
+        disabled.records().is_empty(),
+        "disabled MCP probed after repair"
+    );
+    let records = required.records();
+    assert_eq!(records.len(), failed_records.len() + 3, "{records:?}");
+    assert_eq!(records[1].rpc_method, "initialize");
+    assert_eq!(records[2].rpc_method, "notifications/initialized");
+    assert_eq!(records[3].rpc_method, "tools/list");
+    assert!(records[1..].iter().all(|record| {
+        record.authorization.as_deref() == Some("Bearer repaired-token")
+            && record.path == "/strict/v1/mcp"
+    }));
+    let turns = responses
+        .requests()
+        .into_iter()
+        .filter(|request| !title::is_title(request))
+        .collect::<Vec<_>>();
+    assert_eq!(turns.len(), 2, "no hidden provider retry");
+    assert!(function_tool_names(&turns[1]).contains(&"required__search".to_string()));
+    assert!(!function_tool_names(&turns[1]).contains(&"disabled__probe".to_string()));
+}
+
+#[test]
 fn v01_remote_pending_cancel_closes_request_before_fake_release() {
     let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
     let (mcp, closed) = FakeMcp::stalled_initialize();
