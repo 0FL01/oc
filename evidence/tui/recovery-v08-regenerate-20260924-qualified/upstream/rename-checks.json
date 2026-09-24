@@ -1,0 +1,493 @@
+{
+  "baseline": {
+    "transcript": 2,
+    "title": 1,
+    "completed_transcript": 2,
+    "completed_title": 1,
+    "invalid": 0
+  },
+  "checks": [
+    {
+      "stage": "completed-and-titled",
+      "predicate": "one fixture-titled tab, completed read, no modal or new requests",
+      "passed": true,
+      "header": "   Какие инструменты доступны ас +",
+      "old_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "renamed_tabs": [],
+      "regenerated_tabs": [],
+      "dialog": false,
+      "prefilled": false,
+      "renamed_value": false,
+      "transcript": true,
+      "home": false,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 1,
+        "completed_transcript": 2,
+        "completed_title": 1,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "provider-baseline",
+      "predicate": "two completed transcript requests and one completed title request, valid fixture contract",
+      "passed": true,
+      "header": "   Какие инструменты доступны ас +",
+      "old_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "renamed_tabs": [],
+      "regenerated_tabs": [],
+      "dialog": false,
+      "prefilled": false,
+      "renamed_value": false,
+      "transcript": true,
+      "home": false,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 1,
+        "completed_transcript": 2,
+        "completed_title": 1,
+        "invalid": 0
+      },
+      "baseline": {
+        "transcript": 2,
+        "title": 1,
+        "completed_transcript": 2,
+        "completed_title": 1,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "dialog-prefilled",
+      "predicate": "Rename session dialog with actual fixture title prefilled, no provider requests",
+      "passed": true,
+      "header": "   Какие инструменты доступны ас +",
+      "old_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "renamed_tabs": [],
+      "regenerated_tabs": [],
+      "dialog": true,
+      "prefilled": true,
+      "renamed_value": false,
+      "transcript": true,
+      "home": false,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 1,
+        "completed_transcript": 2,
+        "completed_title": 1,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "dialog-edited",
+      "predicate": "modal input displays replacement title, original prefill absent, no provider requests",
+      "passed": true,
+      "header": "   Какие инструменты доступны ас +",
+      "old_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "renamed_tabs": [],
+      "regenerated_tabs": [],
+      "dialog": true,
+      "prefilled": false,
+      "renamed_value": true,
+      "transcript": true,
+      "home": false,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 1,
+        "completed_transcript": 2,
+        "completed_title": 1,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "renamed-in-session",
+      "predicate": "renamed tab/header with completed transcript, original title gone, no provider requests",
+      "passed": true,
+      "header": "   Paired renamed session        +",
+      "old_tabs": [],
+      "renamed_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "regenerated_tabs": [],
+      "dialog": false,
+      "prefilled": false,
+      "renamed_value": false,
+      "transcript": true,
+      "home": false,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 1,
+        "completed_transcript": 2,
+        "completed_title": 1,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "rename-capture-verified",
+      "predicate": "renamed tab and transcript persist without provider requests",
+      "passed": true,
+      "header": "   Paired renamed session        +",
+      "old_tabs": [],
+      "renamed_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "regenerated_tabs": [],
+      "dialog": false,
+      "prefilled": false,
+      "renamed_value": false,
+      "transcript": true,
+      "home": false,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 1,
+        "completed_transcript": 2,
+        "completed_title": 1,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "before-regeneration",
+      "predicate": "manual title unique, original and regenerated titles absent; one genuine completed title",
+      "passed": true,
+      "header": "   Paired renamed session        +",
+      "old_tabs": [],
+      "renamed_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "regenerated_tabs": [],
+      "dialog": false,
+      "prefilled": false,
+      "renamed_value": false,
+      "transcript": true,
+      "home": false,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 1,
+        "completed_transcript": 2,
+        "completed_title": 1,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "regenerate-command-draft",
+      "predicate": "bare /rename in composer with manual title still present, no new provider requests",
+      "passed": true,
+      "header": "   Paired renamed session        +",
+      "old_tabs": [],
+      "renamed_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "regenerated_tabs": [],
+      "dialog": true,
+      "prefilled": false,
+      "renamed_value": false,
+      "transcript": true,
+      "home": false,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 1,
+        "completed_transcript": 2,
+        "completed_title": 1,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "regenerate-command-before-submit",
+      "predicate": "manual tab and composer slash visible, exactly baseline requests",
+      "passed": true,
+      "header": "   Paired renamed session        +",
+      "old_tabs": [],
+      "renamed_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "regenerated_tabs": [],
+      "dialog": true,
+      "prefilled": false,
+      "renamed_value": false,
+      "transcript": true,
+      "home": false,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 1,
+        "completed_transcript": 2,
+        "completed_title": 1,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "regenerate-suggestions-dismissed",
+      "predicate": "bare /rename still in composer after dismissing upstream autocomplete",
+      "passed": true,
+      "header": "   Paired renamed session        +",
+      "old_tabs": [],
+      "renamed_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "regenerated_tabs": [],
+      "dialog": false,
+      "prefilled": false,
+      "renamed_value": false,
+      "transcript": true,
+      "home": false,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 1,
+        "completed_transcript": 2,
+        "completed_title": 1,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "regenerated-in-session",
+      "predicate": "distinct provider-completed title on unique painted tab, one additional title and zero transcript requests",
+      "passed": true,
+      "header": "   Regenerated fixture title     +",
+      "old_tabs": [],
+      "renamed_tabs": [],
+      "regenerated_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "dialog": false,
+      "prefilled": false,
+      "renamed_value": false,
+      "transcript": true,
+      "home": false,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 2,
+        "completed_transcript": 2,
+        "completed_title": 2,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "regeneration-capture-verified",
+      "predicate": "genuine regenerated title remains painted; provider counts stop at exactly two titles",
+      "passed": true,
+      "header": "   Regenerated fixture title     +",
+      "old_tabs": [],
+      "renamed_tabs": [],
+      "regenerated_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "dialog": false,
+      "prefilled": false,
+      "renamed_value": false,
+      "transcript": true,
+      "home": false,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 2,
+        "completed_transcript": 2,
+        "completed_title": 2,
+        "invalid": 0
+      },
+      "expected": {
+        "transcript": 2,
+        "title": 2,
+        "completed_transcript": 2,
+        "completed_title": 2,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "graceful-exit",
+      "predicate": "first process exited naturally with code 0; no provider requests",
+      "passed": true,
+      "header": "   Regenerated fixture title     +",
+      "old_tabs": [],
+      "renamed_tabs": [],
+      "regenerated_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "dialog": false,
+      "prefilled": false,
+      "renamed_value": false,
+      "transcript": true,
+      "home": false,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 2,
+        "completed_transcript": 2,
+        "completed_title": 2,
+        "invalid": 0
+      },
+      "exit": {
+        "kind": "exit",
+        "generation": 0,
+        "code": 0,
+        "termination": "natural"
+      }
+    },
+    {
+      "stage": "restored-home",
+      "predicate": "Home with persisted final title, no transcript or provider requests",
+      "passed": true,
+      "header": "   Regenerated fixture title     + New session",
+      "old_tabs": [],
+      "renamed_tabs": [],
+      "regenerated_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "dialog": false,
+      "prefilled": false,
+      "renamed_value": false,
+      "transcript": false,
+      "home": true,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 2,
+        "completed_transcript": 2,
+        "completed_title": 2,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "restored-tab-target",
+      "predicate": "one painted final-title tab on Home and no provider requests",
+      "passed": true,
+      "header": "   Regenerated fixture title     + New session",
+      "old_tabs": [],
+      "renamed_tabs": [],
+      "regenerated_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "dialog": false,
+      "prefilled": false,
+      "renamed_value": false,
+      "transcript": false,
+      "home": true,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 2,
+        "completed_transcript": 2,
+        "completed_title": 2,
+        "invalid": 0
+      },
+      "target": {
+        "x": 3,
+        "y": 0
+      }
+    },
+    {
+      "stage": "restored-tab-click",
+      "point": {
+        "x": 3,
+        "y": 0
+      },
+      "down_base64": "G1s8MDs0OzFN",
+      "up_base64": "G1s8MDs0OzFt"
+    },
+    {
+      "stage": "restored-renamed-session",
+      "predicate": "final-title tab selected from Home, durable transcript visible, no provider requests",
+      "passed": true,
+      "header": "   Regenerated fixture title  ✕  +",
+      "old_tabs": [],
+      "renamed_tabs": [],
+      "regenerated_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "dialog": false,
+      "prefilled": false,
+      "renamed_value": false,
+      "transcript": true,
+      "home": false,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 2,
+        "completed_transcript": 2,
+        "completed_title": 2,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "post-capture-no-requests",
+      "predicate": "final title and transcript persist after restart and click, no additional provider requests",
+      "passed": true,
+      "header": "   Regenerated fixture title  ✕  +",
+      "old_tabs": [],
+      "renamed_tabs": [],
+      "regenerated_tabs": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "dialog": false,
+      "prefilled": false,
+      "renamed_value": false,
+      "transcript": true,
+      "home": false,
+      "provider_counts": {
+        "transcript": 2,
+        "title": 2,
+        "completed_transcript": 2,
+        "completed_title": 2,
+        "invalid": 0
+      },
+      "expected": {
+        "transcript": 2,
+        "title": 2,
+        "completed_transcript": 2,
+        "completed_title": 2,
+        "invalid": 0
+      }
+    }
+  ]
+}

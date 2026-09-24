@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-24T12:09:39+00:00
+State updated: 2026-09-24T13:18:12+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,19 +14,19 @@ Evidence target: evidence/T44/report.md
 
 ## Result
 
-Pinned v2.0.12 Rename session (Ctrl+R and Commands) now works through a dedicated, focused 60-cell dialog and application-owned durable root-title update, rather than an inert command entry. `/rename <title>` submits directly after validation and owner acknowledgement. The owner checks Location/root, persists title and event in one SQLite transaction, and keeps explicit titles ahead of late generated titles. A refused write leaves modal edit or slash draft intact; Home, read-only child, foreign Location and busy routes are refused. The isolated modal preserves the composer and grapheme-safe editing; generated titles longer than the 256-byte manual limit cannot be silently truncated on unchanged Enter. Owner validation rejects invisible/bidi/control titles and accepts valid visible joined emoji. Code/runner commit `5a37756`. Four independent paired attempts, fixture/executable/profile hashes, measured outcomes and limitations: `evidence/tui/recovery-v08-rename-report.md`.
+Bare `/rename` now performs a real owner-mediated, tool-free title-agent Responses request for an attached root in the current Location. The owning session selection/model is validated before provider I/O, the title context is bounded and excludes tools/journal, the 10-second request can be cancelled independently of conversational turns, and a successful title/event commit checks the original title **and** title-event sequence, preventing A→B→A manual-rename races. Provider/selection/storage errors retain the old title and slash draft. Closing the initiating tab cancels only its title request after successful deck close; refusal to close leaves the job intact. No turn, fake usage, model ID allowlist, or user-supplied title is fabricated. Code/runner commit `8901e1d`. Evidence/report: `evidence/tui/recovery-v08-regenerate-report.md`; five immutable attempts, including `recovery-v08-regenerate-20260924-current/` built with the final code.
 
 ## Checks
 
-Both pinned original and Rust real PTYs pass prefilled/edited Ctrl+R, explicit rename, natural quit and restored title with no added provider requests. Final prefilled and edited dialog whole-frame grids, cursor and PNG compare EQUAL (0/4800 styled cells, 0/647040 pixels). Other frames still DIFFERENT in live elapsed digits and real version: never claim VIS PASS. Full serialized locked workspace tests passed (235 TUI, 29 pty_t42, 35 bin, existing opt-in live ignores), fmt, all-target Clippy -D warnings, locked build, Node syntax, docs/progress/diff checks PASS. First full serial run concurrently with Clippy/build had one intermittent signal-exit 0 vs130; isolated, full PTY and final serial workspace reruns all PASS without changes to test or expected exit.
+Both pinned OpenCode v2.0.12 and Rust real PTYs report `REGENERATE_TITLE_CHECKS_PASS` and `provider_contract=true`: a manual rename is followed by exactly one additional completed title request per side (two transcript and two title requests total); the new title remains after natural quit and restart without another provider call. Prefilled and edited dialogs compare EQUAL in full styled grid, cursor and PNG; regenerated/restored session frames still DIFFERENT by two measured elapsed digits (2/4800 cells, 123/647040 pixels); Home differs in six real version glyphs. Full serialized locked workspace tests PASS 0 failures (235 TUI, 30 pty_t42, 37 bin, 193 adapter unit tests; opt-in live ignores); workspace fmt, all-target Clippy -D warnings, locked build, Node syntax, docs/progress and diff checks PASS. Focused SQL-trigger, ABA, provider-bound, title cancellation/closed-tab refusal and restart tests PASS.
 
 ## Risks
 
-T44 remains active and full VIS01–24, V08–V09/S07 pixel acceptance is open. Pinned `/rename` with no argument requests title regeneration; native explicitly marks that path unavailable pending a real application/provider operation, not a fabricated title. Other Commands/Models actions, VIS05 80×24 PNG edge, error/replay and model effects remain unqualified. Genuine elapsed time, native 0.1.0 versus pinned original 2.0.12 and Home random examples were not forged. Existing `.opencode/` was not accessed.
+T44 remains ACTIVE, no full VIS01–24/V08–V09/S07 pixel parity PASS. Native generated-title policy currently uses its admitted configured title model or owning model and 10-second timeout, while pinned upstream can choose a small model and has different retry/timeout semantics; no claim of full title-generation policy parity. Independent Home examples, true native 0.1.0/version, real elapsed timing are not spoofed. Broad Commands/Models, errors/replay, VIS05 80×24 last-pixel PNG edge and remaining resource cases open. `.opencode/` untouched.
 
 ## Next
 
-RECON a safe owner-mediated title regeneration for bare `/rename` with real model/provider request, cancellation and durable title precedence, or choose the next source-backed Commands/Models capability with actual effect. Continue paired, dimension, error/replay and resource gates without disguising DIFFERENT as PASS.
+Continue a source-backed, measurable Commands/Models or error/replay VIS slice with paired original/native captures, retaining unmatched original interactions and binary/build identity; revisit title-model retry policy using verified catalog metadata and keep real input/turn ownership guarantees. Do not mark T44 done from this single successful interaction or mask unpaired/dynamic differences.
 
 
 Ready (до 5): T45, T46, T47

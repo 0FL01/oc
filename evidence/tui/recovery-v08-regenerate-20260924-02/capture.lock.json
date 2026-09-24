@@ -1,0 +1,1170 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-24T12:47:43.141Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "9fc0b8efcf8fb4242aa6bab2686c4e959e3662a7e5d9c906c2f60408ec2489c2",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "05a8b8b6b9da204e8005a9fd6d3627b1624cf1ca86d11fe7d7f141c1e8ac3b5d"
+  },
+  "fixture_sha256": "16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "f4282d4b53a8e2e25d9db025f1a909c483d47ca1",
+    "tree": "1c202dc993613e16184209497462ee0fb55cb8d6",
+    "dirty_diff_sha256": "73df7b96d0664758e50f4a00fb4079c5812e9d452296ea9947624336a4e807a2",
+    "source_manifest_sha256": "b23a15f9cc30dfb2d36313a80df3e22666a531fa51bf43d1c150ff046821e0b0",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "3f990054b5a34ad48f52357393440e5aa9e74bae21031021392b508a9b559c61",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "FAILED",
+      "reason": "Rename predicate failed: regenerated-in-session"
+    },
+    {
+      "origin": "oc",
+      "status": "REGENERATE_TITLE_CHECKS_PASS",
+      "baseline": {
+        "transcript": 2,
+        "title": 1,
+        "completed_transcript": 2,
+        "completed_title": 1,
+        "invalid": 0
+      },
+      "after": {
+        "transcript": 2,
+        "title": 2,
+        "completed_transcript": 2,
+        "completed_title": 2,
+        "invalid": 0
+      },
+      "predicates": [
+        "completed-and-titled",
+        "provider-baseline",
+        "dialog-prefilled",
+        "dialog-edited",
+        "renamed-in-session",
+        "rename-capture-verified",
+        "before-regeneration",
+        "regenerate-command-draft",
+        "regenerate-command-before-submit",
+        "regenerated-in-session",
+        "regeneration-capture-verified",
+        "graceful-exit",
+        "restored-home",
+        "restored-tab-target",
+        "restored-renamed-session",
+        "post-capture-no-requests"
+      ]
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "rename-prefilled",
+      "mode": "grid",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "rename-prefilled",
+      "mode": "png",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "rename-edited",
+      "mode": "grid",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "rename-edited",
+      "mode": "png",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "rename-after",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "rename-after",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "failure-diagnostic",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "failure-diagnostic",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "rename-regenerated",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "rename-regenerated",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "rename-regenerated-restored-home",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "rename-regenerated-restored-home",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "rename-regenerated-restored-session",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "rename-regenerated-restored-session",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "a9e23d1df8b5d054e375160d3cd0c494734ad6cb525eca1368645af82a4efe9f",
+      "png_sha256": "650f1c4ac8fcab74828bb678b4734f36a5eceffcf355022a63218aa54398d017",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "8ab4edd623a89401ff678924d1969451e4e507566471d821955d952aab19ee29",
+      "png_sha256": "830807c1f0abecc8ed058e8376703b617bde426364ee48ee722e81946d3f0001",
+      "render_sha256": "31f31f7967a9b188338e122ceec9ca19a46a316b78492e4ee12ffd5204ba486e",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "rename-prefilled",
+      "status": "CAPTURED_RENAME_PREFILLED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2e27242e5a753d4b241773232b797db8099f8ff67f38fdaaaee4386153121322",
+      "png_sha256": "5ed706e280e52f2e51fd8ec9ad15a5a24ace5a93d1327d956d4da797bff55036",
+      "render_sha256": "29a4ba42693681e2a964bede138a9c263b7c93479bf08fcb8676664cd5c55546",
+      "path": "upstream/rename-prefilled"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "rename-edited",
+      "status": "CAPTURED_RENAME_EDITED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "0587037e2fca28c8fde9fffaa7b05f1d91d7a83c7fd0aa55f87b26e6a2f82820",
+      "png_sha256": "e64fca286d7b595f5ba8c3b98ded68055cbb75ef73dd56b4a45cf88fcd618f9e",
+      "render_sha256": "fdc46d636dd2f6e515dc51fe7f2d59146c49f3362ba00f45dc7607075143c7a8",
+      "path": "upstream/rename-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "rename-after",
+      "status": "CAPTURED_RENAMED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "199a2bfb9308248891c58d915bfc33067bfd20c2b20c17d64d8c93ed3eff18d4",
+      "png_sha256": "5d0e5a4b71f5120f073b9e8565a997417f4c57b0551787ff5ecf895a03983ef3",
+      "render_sha256": "7ad7e9ffa1b7c41bf5eb5ecc17d4699ffd2b7bf8f8dc0f28bbcfd5c906488cb5",
+      "path": "upstream/rename-after"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "failure-diagnostic",
+      "status": "FAILED_STATE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "639dceea27652474ce45bb2a76557e14d5d63d3e7cf29c96b8c1269462bf5873",
+      "png_sha256": "ef8ea5c0c94bf05ff34c0413a05d2e7e7bd216455fa66ccb1f6dd6e23f3f77c8",
+      "render_sha256": "13aad3d0b5dff7fa6e35a0af9cf592e65060e4b75bfec1730e74b052b497ee86",
+      "path": "upstream/failure-diagnostic"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "7323fde296d26637116f601788ddf388ddc334b9d7ca33838f13205fba6f277a",
+      "png_sha256": "3e104d59c930f233fecea8db35311d342f37659de9d070e8c45669fcd778217d",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "06f7cdcd1cab0ed482eab8ccba72f8acf6efe2a1bf08c6f68dc9d31ac8d82841",
+      "png_sha256": "8467f414f9d8266d60d61fdbdcb71dfb8b8f06fa6c7174ea0d0f7c0c21568d78",
+      "render_sha256": "bbcb61aa1a235504674a1c080c5988494874fc609d68d829d07af90a21840b16",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "rename-prefilled",
+      "status": "CAPTURED_RENAME_PREFILLED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "b86fb62d014539bdec7b700692d4ee5b59f7c422eaaf3c5e42cc478122c01cd9",
+      "png_sha256": "5ed706e280e52f2e51fd8ec9ad15a5a24ace5a93d1327d956d4da797bff55036",
+      "render_sha256": "2743b07d170c46af69d2ae8b2e4bf2252f28d94e331c5f07c381afac57e60d97",
+      "path": "oc/rename-prefilled"
+    },
+    {
+      "origin": "oc",
+      "scenario": "rename-edited",
+      "status": "CAPTURED_RENAME_EDITED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "cf77c196cf6e39bdfa6c60590eccfe85c10405215eef18948df3696bd0c7db99",
+      "png_sha256": "e64fca286d7b595f5ba8c3b98ded68055cbb75ef73dd56b4a45cf88fcd618f9e",
+      "render_sha256": "528078b96aeea1886e429516e4a0027d3ce9c8c28b6e3e014fb75dc5152ff26f",
+      "path": "oc/rename-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "rename-after",
+      "status": "CAPTURED_RENAMED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "394959b23c6fc95581618dc66ee6235aabec52050330c4ac9bee443dd59de439",
+      "png_sha256": "7b5a6e527dafa3c6e66ccbb8777ba8d459c8e84edaac1f1fc4e5b34a8cb30942",
+      "render_sha256": "06d3164d5484c3cb179ff70c42db3f711559829ea05aa73bf511e9464f57ca5a",
+      "path": "oc/rename-after"
+    },
+    {
+      "origin": "oc",
+      "scenario": "rename-regenerated",
+      "status": "CAPTURED_REGENERATED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "8fa15800243f8fba51b47b96c1a2d61f5b83e1520461c78543cca29a4d95472e",
+      "png_sha256": "aeec7509accfc0849d5b551e87267079765d9c9a65bbd96e586d621444db10e3",
+      "render_sha256": "d701acb1b690c5da6102e052085cda59f4be10b00c54f39e3f64b0330d55ad98",
+      "path": "oc/rename-regenerated"
+    },
+    {
+      "origin": "oc",
+      "scenario": "rename-regenerated-restored-home",
+      "status": "CAPTURED_RENAME_RESTORED_HOME",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "90b60e8bdc7d8487b73592383e66bc4fa022174f2e5799e6068efa432d8f9893",
+      "png_sha256": "63371169bce704da293027514fe4dd2bdd7005cbc48ae138f1579779d7f32947",
+      "render_sha256": "92686bc861834395d050a79d0bd61d69060ff7730522c7336d357494ed4606c0",
+      "path": "oc/rename-regenerated-restored-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "rename-regenerated-restored-session",
+      "status": "CAPTURED_RENAME_RESTORED_SESSION",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3f5d0ffd3ca4f5025c06ce53dc6d5de39716d7875026c6d4e864aadc562a997b",
+      "png_sha256": "b47849f993f125cdbad9216f97b495d53698c76a354ec2e6a0510435ccd058c4",
+      "render_sha256": "4986897d9ac9054cd83f71bfc6a47fbcb14bfa2eb8c44530c9e67b6c160023ab",
+      "path": "oc/rename-regenerated-restored-session"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "rename_interactions": {
+    "upstream": {
+      "status": "FAILED",
+      "baseline": {
+        "transcript": 2,
+        "title": 1,
+        "completed_transcript": 2,
+        "completed_title": 1,
+        "invalid": 0
+      },
+      "checks": [
+        {
+          "stage": "completed-and-titled",
+          "predicate": "one fixture-titled tab, completed read, no modal or new requests",
+          "passed": true,
+          "header": "   Какие инструменты доступны ас +",
+          "old_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "renamed_tabs": [],
+          "regenerated_tabs": [],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "provider-baseline",
+          "predicate": "two completed transcript requests and one completed title request, valid fixture contract",
+          "passed": true,
+          "header": "   Какие инструменты доступны ас +",
+          "old_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "renamed_tabs": [],
+          "regenerated_tabs": [],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "baseline": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "dialog-prefilled",
+          "predicate": "Rename session dialog with actual fixture title prefilled, no provider requests",
+          "passed": true,
+          "header": "   Какие инструменты доступны ас +",
+          "old_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "renamed_tabs": [],
+          "regenerated_tabs": [],
+          "dialog": true,
+          "prefilled": true,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "dialog-edited",
+          "predicate": "modal input displays replacement title, original prefill absent, no provider requests",
+          "passed": true,
+          "header": "   Какие инструменты доступны ас +",
+          "old_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "renamed_tabs": [],
+          "regenerated_tabs": [],
+          "dialog": true,
+          "prefilled": false,
+          "renamed_value": true,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "renamed-in-session",
+          "predicate": "renamed tab/header with completed transcript, original title gone, no provider requests",
+          "passed": true,
+          "header": "   Paired renamed session        +",
+          "old_tabs": [],
+          "renamed_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "regenerated_tabs": [],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "rename-capture-verified",
+          "predicate": "renamed tab and transcript persist without provider requests",
+          "passed": true,
+          "header": "   Paired renamed session        +",
+          "old_tabs": [],
+          "renamed_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "regenerated_tabs": [],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "before-regeneration",
+          "predicate": "manual title unique, original and regenerated titles absent; one genuine completed title",
+          "passed": true,
+          "header": "   Paired renamed session        +",
+          "old_tabs": [],
+          "renamed_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "regenerated_tabs": [],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "regenerate-command-draft",
+          "predicate": "bare /rename in composer with manual title still present, no new provider requests",
+          "passed": true,
+          "header": "   Paired renamed session        +",
+          "old_tabs": [],
+          "renamed_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "regenerated_tabs": [],
+          "dialog": true,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "regenerate-command-before-submit",
+          "predicate": "manual tab and composer slash visible, exactly baseline requests",
+          "passed": true,
+          "header": "   Paired renamed session        +",
+          "old_tabs": [],
+          "renamed_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "regenerated_tabs": [],
+          "dialog": true,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "regenerated-in-session",
+          "predicate": "distinct provider-completed title on unique painted tab, one additional title and zero transcript requests: Timed out waiting for distinct provider-completed title on unique painted tab, one additional title and zero transcript requests",
+          "passed": false,
+          "header": "   Paired renamed session        +",
+          "old_tabs": [],
+          "renamed_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "regenerated_tabs": [],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        }
+      ]
+    },
+    "oc": {
+      "status": "PASS",
+      "baseline": {
+        "transcript": 2,
+        "title": 1,
+        "completed_transcript": 2,
+        "completed_title": 1,
+        "invalid": 0
+      },
+      "checks": [
+        {
+          "stage": "completed-and-titled",
+          "predicate": "one fixture-titled tab, completed read, no modal or new requests",
+          "passed": true,
+          "header": "   Какие инструменты доступны ас +",
+          "old_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "renamed_tabs": [],
+          "regenerated_tabs": [],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "provider-baseline",
+          "predicate": "two completed transcript requests and one completed title request, valid fixture contract",
+          "passed": true,
+          "header": "   Какие инструменты доступны ас +",
+          "old_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "renamed_tabs": [],
+          "regenerated_tabs": [],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "baseline": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "dialog-prefilled",
+          "predicate": "Rename session dialog with actual fixture title prefilled, no provider requests",
+          "passed": true,
+          "header": "   Какие инструменты доступны ас +",
+          "old_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "renamed_tabs": [],
+          "regenerated_tabs": [],
+          "dialog": true,
+          "prefilled": true,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "dialog-edited",
+          "predicate": "modal input displays replacement title, original prefill absent, no provider requests",
+          "passed": true,
+          "header": "   Какие инструменты доступны ас +",
+          "old_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "renamed_tabs": [],
+          "regenerated_tabs": [],
+          "dialog": true,
+          "prefilled": false,
+          "renamed_value": true,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "renamed-in-session",
+          "predicate": "renamed tab/header with completed transcript, original title gone, no provider requests",
+          "passed": true,
+          "header": "   Paired renamed session        +",
+          "old_tabs": [],
+          "renamed_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "regenerated_tabs": [],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "rename-capture-verified",
+          "predicate": "renamed tab and transcript persist without provider requests",
+          "passed": true,
+          "header": "   Paired renamed session        +",
+          "old_tabs": [],
+          "renamed_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "regenerated_tabs": [],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "before-regeneration",
+          "predicate": "manual title unique, original and regenerated titles absent; one genuine completed title",
+          "passed": true,
+          "header": "   Paired renamed session        +",
+          "old_tabs": [],
+          "renamed_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "regenerated_tabs": [],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "regenerate-command-draft",
+          "predicate": "bare /rename in composer with manual title still present, no new provider requests",
+          "passed": true,
+          "header": "   Paired renamed session        +",
+          "old_tabs": [],
+          "renamed_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "regenerated_tabs": [],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "regenerate-command-before-submit",
+          "predicate": "manual tab and composer slash visible, exactly baseline requests",
+          "passed": true,
+          "header": "   Paired renamed session        +",
+          "old_tabs": [],
+          "renamed_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "regenerated_tabs": [],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed_transcript": 2,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "regenerated-in-session",
+          "predicate": "distinct provider-completed title on unique painted tab, one additional title and zero transcript requests",
+          "passed": true,
+          "header": "   Regenerated fixture title     +",
+          "old_tabs": [],
+          "renamed_tabs": [],
+          "regenerated_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 2,
+            "completed_transcript": 2,
+            "completed_title": 2,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "regeneration-capture-verified",
+          "predicate": "genuine regenerated title remains painted; provider counts stop at exactly two titles",
+          "passed": true,
+          "header": "   Regenerated fixture title     +",
+          "old_tabs": [],
+          "renamed_tabs": [],
+          "regenerated_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 2,
+            "completed_transcript": 2,
+            "completed_title": 2,
+            "invalid": 0
+          },
+          "expected": {
+            "transcript": 2,
+            "title": 2,
+            "completed_transcript": 2,
+            "completed_title": 2,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "graceful-exit",
+          "predicate": "first process exited naturally with code 0; no provider requests",
+          "passed": true,
+          "header": "   Paired renamed session        +",
+          "old_tabs": [],
+          "renamed_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "regenerated_tabs": [],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 2,
+            "completed_transcript": 2,
+            "completed_title": 2,
+            "invalid": 0
+          },
+          "exit": {
+            "kind": "exit",
+            "generation": 0,
+            "code": 0,
+            "termination": "natural"
+          }
+        },
+        {
+          "stage": "restored-home",
+          "predicate": "Home with persisted final title, no transcript or provider requests",
+          "passed": true,
+          "header": "   Regenerated fixture title     + New session",
+          "old_tabs": [],
+          "renamed_tabs": [],
+          "regenerated_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": false,
+          "home": true,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 2,
+            "completed_transcript": 2,
+            "completed_title": 2,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "restored-tab-target",
+          "predicate": "one painted final-title tab on Home and no provider requests",
+          "passed": true,
+          "header": "   Regenerated fixture title     + New session",
+          "old_tabs": [],
+          "renamed_tabs": [],
+          "regenerated_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": false,
+          "home": true,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 2,
+            "completed_transcript": 2,
+            "completed_title": 2,
+            "invalid": 0
+          },
+          "target": {
+            "x": 3,
+            "y": 0
+          }
+        },
+        {
+          "stage": "restored-tab-click",
+          "point": {
+            "x": 3,
+            "y": 0
+          },
+          "down_base64": "G1s8MDs0OzFN",
+          "up_base64": "G1s8MDs0OzFt"
+        },
+        {
+          "stage": "restored-renamed-session",
+          "predicate": "final-title tab selected from Home, durable transcript visible, no provider requests",
+          "passed": true,
+          "header": "   Regenerated fixture title  ✕  +",
+          "old_tabs": [],
+          "renamed_tabs": [],
+          "regenerated_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 2,
+            "completed_transcript": 2,
+            "completed_title": 2,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "post-capture-no-requests",
+          "predicate": "final title and transcript persist after restart and click, no additional provider requests",
+          "passed": true,
+          "header": "   Regenerated fixture title  ✕  +",
+          "old_tabs": [],
+          "renamed_tabs": [],
+          "regenerated_tabs": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "dialog": false,
+          "prefilled": false,
+          "renamed_value": false,
+          "transcript": true,
+          "home": false,
+          "provider_counts": {
+            "transcript": 2,
+            "title": 2,
+            "completed_transcript": 2,
+            "completed_title": 2,
+            "invalid": 0
+          },
+          "expected": {
+            "transcript": 2,
+            "title": 2,
+            "completed_transcript": 2,
+            "completed_title": 2,
+            "invalid": 0
+          }
+        }
+      ]
+    }
+  },
+  "generations": {
+    "oc": [
+      {
+        "generation": 0,
+        "root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-regenerate-20260924-02",
+        "project": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-regenerate-20260924-02/project",
+        "home": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-regenerate-20260924-02/oc/home",
+        "executable_sha256": "3f990054b5a34ad48f52357393440e5aa9e74bae21031021392b508a9b559c61",
+        "bridge_spec_sha256": "bb3a32d1a4c7539e53290a947a381cf2c7efdd3d66fd4d44a7251b9987b899cd",
+        "source_manifest_sha256": "b23a15f9cc30dfb2d36313a80df3e22666a531fa51bf43d1c150ff046821e0b0",
+        "raw_vt_sha256": "f19ce3d329da6176febbd52d67431836455a4ebf5979baab5488d51dd71ce9da",
+        "protocol_sha256": "94ab9acdc999b2401ec159ccfbfea9e476970362066c3d587bfd7df00dc81e80",
+        "inputs_sha256": "c152227adaf03fd5682426db11ada395c7096ec5b5df56bda2e6449a7f3ba32e"
+      },
+      {
+        "generation": 1,
+        "root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-regenerate-20260924-02",
+        "project": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-regenerate-20260924-02/project",
+        "home": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-regenerate-20260924-02/oc/home",
+        "executable_sha256": "3f990054b5a34ad48f52357393440e5aa9e74bae21031021392b508a9b559c61",
+        "bridge_spec_sha256": "bb3a32d1a4c7539e53290a947a381cf2c7efdd3d66fd4d44a7251b9987b899cd",
+        "source_manifest_sha256": "b23a15f9cc30dfb2d36313a80df3e22666a531fa51bf43d1c150ff046821e0b0",
+        "raw_vt_sha256": "cc740e575dadf85649d186cd0565777686e597e183a159b8987e777b453f519b",
+        "protocol_sha256": "e7c338b19ea937ce618f7c7edd334bc62fc99b0e1564524b99039d5d3daf08d9",
+        "inputs_sha256": "697a86d95b339a1686f12e975626a7893a48bcbb78a4e77b2b33309f494baee7"
+      }
+    ]
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-24T12:49:23.618Z",
+  "exit_code": 1
+}
