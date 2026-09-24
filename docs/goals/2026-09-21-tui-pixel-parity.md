@@ -2,7 +2,7 @@
 
 Status: active
 Source: user instructions 2026-09-21 and reviewed recovery amendment 2026-09-22, reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`).
-Last updated: 2026-09-22
+Last updated: 2026-09-24
 
 ## Objective
 
@@ -15,7 +15,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 The owner's reviewed [T44 amendment](../../tui-recovery/T44_CONTRACT_AMENDMENT.md)
 supersedes the weaker self-authored interpretation below. Execute V00–V09 from
 [IMPLEMENTATION_GUIDE](../../tui-recovery/IMPLEMENTATION_GUIDE.md), all mandatory
-VIS01–VIS24 in [ACCEPTANCE.json](../../tui-recovery/ACCEPTANCE.json), and
+VIS01–VIS26 in [ACCEPTANCE.json](../../tui-recovery/ACCEPTANCE.json), and
 [SAFETY_REGRESSIONS](../../tui-recovery/SAFETY_REGRESSIONS.md). These are specifications,
 not executed results or a second task engine. `progress.py` remains the task-state owner.
 
@@ -48,8 +48,8 @@ not executed results or a second task engine. `progress.py` remains the task-sta
   - Status: implemented-partial/unverified
   - Evidence: iterations 3a+3b (committed): `crates/oc-tui/src/messages.rs` renders user blocks with `┃`/raised background/chips, assistant markdown (paddingLeft 3, headings/lists/code fences with syntax colors/blockquotes), collapsed reasoning (`Thinking` → `Thought: … · duration`), and the `agent · model · dur · tok/s · interrupted` footer; additive DTOs `ReasoningDelta`/`TurnUsage`/`duration_ms` wired through the provider stream (2 adapter end-to-end tests). Tool cards: inline rows (read/glob/grep/webfetch/skill/generic with upstream labels and spinner), shell `$ cmd` with stdout/stderr/exit/truncation, apply_patch `# Created`/`← Patched`/`# Deleted` with diff hunks using `diff.text.*` roles, subagent card parsed from the real `<subagent …>` wrapper, pending/running/completed/error/cancelled states; additive `ToolCallStarted/Finished` events emitted after durable writes. Known R4 residual: committed history rows carry no tool cards after a page reload (live turns only).
 
-- R5: Interaction parity — keybindings, command palette, dialogs (session list, model, agent, help, error details), input editor behavior (multi-line, paste, history), and status hints match upstream.
-  - Acceptance: keymap table test (key → action) mirroring upstream defaults + PTY tests exercising each dialog.
+- R5: Interaction parity — keybindings, command palette, dialogs (session list, model, agent, help, error details), input editor behavior (multi-line, paste, history), inline `/` autocomplete and `@` mention overlays (owner amendment 2026-09-24), and status hints match upstream.
+  - Acceptance: keymap table test (key → action) mirroring upstream defaults + PTY tests exercising each dialog; paired original/native frames for VIS25/VIS26 trigger, filtered query and after-Tab states.
   - Primary evidence: keymap test + dialog snapshots.
   - Status: pending
   - Evidence:
@@ -85,14 +85,14 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 ## Current Checkpoint
 
 - Closes: no visual gate yet.
-- Smallest next action: **owner startup failure root cause is proven by the startup trace and the fix is applied** — the failing zsh exported a stale `LUDKA2_API_KEY` (fingerprint `1101b285`) while the working identity (`54f454fc`) is available from the same `secrets.env` the `oc` alias loads; config resolution, provider and discovery URL matched exactly and the server answered 401 for the stale credential. The owner-approved `with-oc2-secrets` wrapper + `alias oc2` in `~/.zshrc` now load that file before `exec`ing the native binary (backup `~/.zshrc.bak-oc2`; `zsh -n` and a stale-key PTY run both pass with `status=200`/Home). Owner activates it with `source ~/.zshrc` or a new terminal. T44 remains paused; on resumption continue S05/S06/S08, S07 resources and V08–V09 VIS01–VIS24. See `evidence/tui/recovery-startup/{owner-catalog-recon,trace-report,resolved-checkpoint}.md`.
+- Smallest next action: **owner startup failure root cause is proven by the startup trace and the fix is applied** — the failing zsh exported a stale `LUDKA2_API_KEY` (fingerprint `1101b285`) while the working identity (`54f454fc`) is available from the same `secrets.env` the `oc` alias loads; config resolution, provider and discovery URL matched exactly and the server answered 401 for the stale credential. The owner-approved `with-oc2-secrets` wrapper + `alias oc2` in `~/.zshrc` now load that file before `exec`ing the native binary (backup `~/.zshrc.bak-oc2`; `zsh -n` and a stale-key PTY run both pass with `status=200`/Home). Owner activates it with `source ~/.zshrc` or a new terminal. T44 remains paused; on resumption continue S05/S06/S08, S07 resources and V08–V09 VIS01–VIS26. See `evidence/tui/recovery-startup/{owner-catalog-recon,trace-report,resolved-checkpoint}.md`.
 - Expected evidence: capture lock, independent original frames, commands/exit codes and raw input/application effects; exact checkpoint after each slice.
 - Stop or replan if: reference/profile unavailable → BLOCKED_REFERENCE, never closest-rendering parity. Independent fixes remain executable.
 
 ## Current State
 
 - Resolved: source/theme/component groundwork landed through `d232baa`; historical reports remain unchanged.
-- Last relevant evidence: V00 real diagnostic paired captures in `evidence/tui/recovery-v00` (all comparisons unequal); V01 raw PTY stalled MCP prompt and manual compression cancellation/retry plus safe diagnostics in `evidence/tui/recovery-v01/report.md`. These do not qualify VIS01–VIS24.
+- Last relevant evidence: V00 real diagnostic paired captures in `evidence/tui/recovery-v00` (all comparisons unequal); V01 raw PTY stalled MCP prompt and manual compression cancellation/retry plus safe diagnostics in `evidence/tui/recovery-v01/report.md`. These do not qualify VIS01–VIS26.
 - Blocker: the owner's exact 401-versus-403 catalog result and upstream policy cannot be determined from this process's product environment; independent T44 work remains executable. Exact capture freeze and missing genuine backend capabilities are open. V07b quarantines uncertain in-flight MCP calls only during the owning process; remote side effects across restart still require reconciliation.
 - Next: V06a Markdown and V06b public reasoning/tool/patch/replay verified locally with actual application effects and paired original/native captures; all whole-frame comparisons still DIFFERENT. See `evidence/tui/recovery-v06{a,b}/checkpoint.md`; VIS13–VIS17/R4 remain unverified. V07a–c source/MCP negative checks and V07e one raw-PTY terminal-control path have factual checkpoints; remaining V07 safety/resources, V08–V09 and missing backend/service actions remain open. Owner-reported exported credentials refute the prior missing-export root-cause claim. Their newer 401/403 catalog screen and the current process's separate 200 catalog smoke (report/checkpoint under `evidence/tui/recovery-startup/catalog-smoke-*`) distinguish Responses use from catalog authorization, not the owner's remote policy. Positive live visual inspection is not a waiver; native autoaccept remains Unsupported (`evidence/tui/recovery-v02/auto-capability.md`).
 
@@ -126,6 +126,8 @@ not executed results or a second task engine. `progress.py` remains the task-sta
 - 2026-09-23: V07 S03 current-HEAD actual binary raw PTY test passed Ctrl/Alt/Shift+Enter/release, modal Esc/Ctrl+C, exact provider request and durable prompt. Existing production key routing needed no change; agent workspace passed with five existing ignores, parent targeted/fmt/diff exited 0. Owner explicitly paused T44 to prioritize their startup RECON and requested checkpoint/commit. `evidence/tui/recovery-v07-s03/{report,checkpoint}.md` and `evidence/tui/recovery-startup/owner-catalog-recon.md` preserve facts and the discriminating plan; no VIS gate or owner-specific root cause claimed.
 - 2026-09-23: Owner requested file-based startup diagnostics. Added `oc_adapters::trace`: bounded 256 KiB, 0600, per-launch-truncated trace with 512-char single-line messages, no new dependencies, silent no-op on failure; call sites cover bootstrap/TUI/headless, application spawn, config selectors/roots/sources/selected model/provider/credential source/env refs/DCP/definitions, discovery attempts/status/class, storage and typed categories. Parent review reduced the headless stage to `detail_len` so a quoting serde error cannot reach a second surface. Trace unit tests 6, startup integration 3, serial workspace 0 (five existing ignores), clippy/fmt/diff 0; release rebuilt; real-profile smoke Home/exit 0 with credential absent from the trace and working fingerprint `54f454fc`. See `evidence/tui/recovery-startup/trace-{report,checkpoint}.md`; owner-specific cause still unproven.
 - 2026-09-23: Owner's traced run resolved the startup cause: the failing shell exported a stale `LUDKA2_API_KEY` (`fingerprint=1101b285`), while `~/.config/opencode/secrets.env` — the file the `oc` alias loads — holds the working identity (`54f454fc`); config root/sources/model/provider/URL matched the working smoke and the catalog answered 401 for the stale key. Fix is credential sourcing, not a binary defect; durable `oc2` wrapper proposed. Recorded in `evidence/tui/recovery-startup/owner-catalog-recon.md`; T44 remains paused with S05/S06/S08, S07 and VIS01–VIS24 open.
+
+- 2026-09-24: Owner amendment adds mandatory inline `/` autocomplete (VIS25) and `@` file mention (VIS26) to R5; implementation slices, deferred skills/non-primary agent sections (T45) and supported differences are recorded in `tui-recovery/T44_CONTRACT_AMENDMENT.md`; ACCEPTANCE.json extended to VIS01–VIS26.
 
 ## Completion
 

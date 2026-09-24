@@ -131,7 +131,7 @@ skipped и итог не преобразует exit2 в PASS. Не правит
 
 ## Артефакты результата
 
-На каждый обязательный VIS01–VIS24: case ID, status, code SHA/tree hash, test command,
+На каждый обязательный VIS01–VIS26: case ID, status, code SHA/tree hash, test command,
 exit code, timestamp, environment/fixture hash, paths всех evidence; failed attempt list.
 Для VIS без визуального результата допустимы structured protocol/DB/PTY assertions,
 но они не подменяют тройку Session/Commands/Models.

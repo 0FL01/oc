@@ -743,7 +743,7 @@
       "tests": [
         "A02"
       ],
-      "work": "Background subagents + synthetic notices + reap, command routing (agent/model/subagent/subtask), DCP allowSubAgents для child turns, TUI/history child rows. Built-in build/general/explore и остаток typed upstream agent fields (color/steps/system/request) с реальной семантикой, не silent acceptance; hidden/permission-filtered catalog опирается на T43 backend regression. Foreground prerequisite уже в 7895f43; removed T43 done-dependency устраняет взаимоблокировку, не объявляет остаток выполненным. Источник: evidence/subagents/upstream-v2.0.12-plan.md (срезы 5-8). TUI-часть координировать с владельцем T44, не менять в backend-blockers slice.",
+      "work": "Background subagents + synthetic notices + reap, command routing (agent/model/subagent/subtask), DCP allowSubAgents для child turns, TUI/history child rows. Built-in build/general/explore и остаток typed upstream agent fields (color/steps/system/request) с реальной семантикой, не silent acceptance; hidden/permission-filtered catalog опирается на T43 backend regression. Foreground prerequisite уже в 7895f43; removed T43 done-dependency устраняет взаимоблокировку, не объявляет остаток выполненным. Источник: evidence/subagents/upstream-v2.0.12-plan.md (срезы 5-8). TUI-часть координировать с владельцем T44, не менять в backend-blockers slice. T44 VIS26 ожидает non-primary agent exposure (mode/hidden фильтр) для `@`-mention; координировать без блокировки срезов T44.",
       "evidence": "evidence/T45/report.md",
       "spec": "docs/goals/2026-09-21-config-compat-and-subagents.md"
     },

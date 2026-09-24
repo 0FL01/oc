@@ -333,6 +333,32 @@
       "mandatory": true,
       "execution_status": "NOT_RUN",
       "evidence": []
+    },
+    {
+      "id": "VIS25",
+      "step": "V05",
+      "title": "Slash autocomplete overlay",
+      "expected": "Typing / in the prompt opens an inline filtered list of built-in and current-generation workspace commands in both session and Home; Up/Ctrl+P and Down/Ctrl+N move the selection; Tab completes; Enter executes an argument-free built-in or inserts '/alias ' for an argument-taking/workspace command; Esc closes the list without discarding the draft; a space between trigger and cursor hides the list and an empty filter shows the no-match state. Paired original/native styled-cell/PNG frames for trigger, filtered query and after Tab.",
+      "sources": [
+        "U07",
+        "U08"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS26",
+      "step": "V05",
+      "title": "@ file mention overlay",
+      "expected": "Typing @ at line start or after a space with no spaces in the query opens a location-relative file list bounded to the admitted current-Location root (sorted, no absolute paths, no symlink/data-root escape); selection inserts a relative @path mention and submit reaches a real durable turn. Paired original/native styled-cell/PNG frames for trigger, filtered query and after Tab; skills/non-primary agent sections are deferred (T45) supported differences, not passed.",
+      "sources": [
+        "U07",
+        "U08"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
     }
   ]
 }

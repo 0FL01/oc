@@ -8,6 +8,41 @@
 числом. Новая пользовательская инструкция имеет приоритет над self-authored запретом
 «не добавлять requirements from reviews». При этом случайные советы не становятся scope.
 
+## Owner amendment 2026-09-24: inline autocomplete
+
+Новая инструкция владельца (2026-09-24) добавляет в R5 два обязательных элемента.
+
+1. **Slash autocomplete overlay:** при вводе `/` в prompt появляется inline-список
+   подходящих команд (built-in registry и workspace-команды текущей generation) в session
+   и на Home; Up/Ctrl+P и Down/Ctrl+N перемещают выбор, Tab дополняет, Enter исполняет
+   команду без аргументов либо вставляет `/alias ` для команды с аргументами, Esc
+   закрывает список, сохраняя draft. Пробел между триггером и курсором скрывает список,
+   пустой фильтр показывает no-match состояние. Источник: pinned `autocomplete.tsx`
+   (modes, trigger wiring, выбор) и `prompt/display.ts` (`slashTriggerIndex`), keybind
+   `prompt.autocomplete.*`.
+2. **`@` file mention overlay:** при вводе `@` (в начале строки или после пробела, без
+   пробелов в query до курсора) появляется список файлов относительно текущей Location;
+   выбор вставляет относительный `@path`. Модель читает файл штатным инструментом `read`:
+   mention остаётся текстовым, а не структурированной prompt part — A13 требует skill
+   body только как bounded result `skill`, а parts без расширения storage нарушили бы
+   live/replay консистентность (C5/A09).
+
+Сценарии: **VIS25** и **VIS26** в ACCEPTANCE.json (step V05, mandatory, NOT_RUN).
+Срезы реализации, по порядку: (1) slash overlay в `oc-tui`; (2) bounded
+location-implicit file query (Files-level: skip VCS/build, truncation вместо
+`BudgetExhausted`, только относительные пути); (3) `@` overlay; (4) paired capture probe
+(`--autocomplete`, Tab-only, record-only предикаты). До реализации полные визуальные
+gates VIS25/26 остаются открытыми.
+
+Зафиксированные supported differences (не маскируются):
+
+- ranking: существующий fuzzy-движок без frecency/fff упорядочивания эталона;
+- `@` без секций skills/agents/subagents: non-primary agent exposure (`!hidden &&
+  mode !== "primary"`) принадлежит scope T45, VIS26 проверяет файлы;
+- описания workspace-команд в списке — только после расширения CatalogSnapshot
+  (не обязательны для gate);
+- mentions передаются текстом (`@path`), structured prompt parts не планируются.
+
 ## Заменить ослабленное Material Decision
 
 Pixel-perfect — не «наши тесты совпадают с нашими expected».
@@ -37,7 +72,7 @@ R6: pending до full rerun на финальном code SHA; сохранить
 
 ## Обязательные результаты нового прохода
 
-V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS24 из ACCEPTANCE.json:
+V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS26 из ACCEPTANCE.json:
 1. Изолированный upstream reference + identical fixture/state для трёх пользовательских экранов.
 2. Исправленные UI event loop/keymap и диагностируемый MCP error без потери draft.
 3. Shell/sidebar/tabs/prompt/footer из реальных данных с геометрией эталона.

@@ -372,7 +372,7 @@ isolated rerun успешен. Либо воспроизвести и испра
 бездоказательным увеличением timeout. Current Actions=0 не доказывает отсутствие local
 run, но независимый обычный CI job с артефактами снимет часть этой неопределённости.
 
-Обновить T44 evidence с VIS01–VIS24: pass/fail/blocked/not-run, source SHA, capture inputs,
+Обновить T44 evidence с VIS01–VIS26: pass/fail/blocked/not-run, source SHA, capture inputs,
 все outstanding gaps. Новый визуальный milestone не отменяет T43/T45, live T27 и FINAL T30.
 После offline qualification — только разрешённая bounded live campaign на настоящем `oc`,
 не массовый перебор платных моделей. Полный READY запрещён при открытой обязательной

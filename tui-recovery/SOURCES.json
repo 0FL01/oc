@@ -201,6 +201,24 @@
       "locator": "App, line 472",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/app.tsx",
       "purpose": "Devtools conditional on config or local channel, not unconditional"
+    },
+    {
+      "id": "U07",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/prompt/autocomplete.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "modes command/reference/directory; trigger wiring; list; Tab/Return selection",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/autocomplete.tsx",
+      "purpose": "Inline autocomplete overlay: / commands (keymap+server), @ files/skills/agents; Up/Down/Tab/Return/Esc semantics; limit 20"
+    },
+    {
+      "id": "U08",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/prompt/display.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "mentionTriggerIndex; slashTriggerIndex",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/prompt/display.ts",
+      "purpose": "Trigger rules for @ (start/after space, no spaces in query) and /"
     }
   ],
   "external_primary_sources": [
