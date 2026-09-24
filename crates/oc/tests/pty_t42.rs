@@ -962,6 +962,251 @@ fn tool_names(body: &serde_json::Value) -> Vec<String> {
         .unwrap_or_default()
 }
 
+/// Inspect the isolated SQLite journal only after the PTY releases its lock.
+fn journal_counts(fixture: &Fixture) -> (i64, i64, i64, i64, i64) {
+    let db = rusqlite::Connection::open(fixture.data_dir().join("oc.sqlite")).expect("journal");
+    let count = |table: &str| -> i64 {
+        db.query_row(&format!("SELECT count(*) FROM {table}"), [], |row| {
+            row.get(0)
+        })
+        .expect("journal count")
+    };
+    let bound: i64 = db
+        .query_row(
+            "SELECT count(*) FROM prefs WHERE key LIKE ?1",
+            [format!(
+                "{}%",
+                oc_adapters::runtime::SESSION_LOCATION_PREFIX
+            )],
+            |row| row.get(0),
+        )
+        .expect("Location bindings");
+    (
+        count("sessions"),
+        count("events"),
+        count("turns"),
+        count("messages"),
+        bound,
+    )
+}
+
+#[test]
+fn bare_home_abandon_and_new_do_not_create_a_root() {
+    let fixture = Fixture::new();
+    let metrics = fixture.root.path().join("home-metrics.json");
+    let mut pty = PtySession::spawn(fixture.clone(), &fixture.project_a(), &[], Some(&metrics));
+    pty.wait_visible("█▀▀█", DEADLINE);
+    pty.send(b"/models\r");
+    wait_screen_row(&pty, "T42 model", DEADLINE);
+    pty.send(b"\x1b");
+    std::thread::sleep(Duration::from_millis(150));
+    pty.send(b"/new\r");
+    pty.wait_visible("█▀▀█", DEADLINE);
+    // Blank submissions are refused, and Esc with an unsubmitted draft
+    // abandons Home without accepting a first turn.
+    pty.send(b" \r");
+    pty.send(b"draft never submitted\x1b");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success(), "Home exits cleanly");
+    assert!(contains(&output, ALT_LEAVE), "alternate screen left");
+    assert!(pty.restored(), "terminal restored");
+    let metrics: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(metrics).expect("Home metrics")).expect("json");
+    assert!(metrics["session"].is_null(), "Home has no fabricated ID");
+    assert_eq!(journal_counts(&fixture), (0, 0, 0, 0, 0));
+    assert!(fixture.requests.lock().expect("requests").is_empty());
+}
+
+#[test]
+fn home_location_refusal_and_a_b_a_b_remain_sessionless_until_first_submit() {
+    let fixture = Fixture::new();
+    let bad = fixture.root.path().join("bad-location");
+    std::fs::create_dir(&bad).unwrap();
+    std::fs::write(
+        bad.join("opencode.json"),
+        r#"{"model":"fixture/LEAKME-MODEL"}"#,
+    )
+    .unwrap();
+    let metrics = fixture.root.path().join("location-home-metrics.json");
+    let mut pty = PtySession::spawn(fixture.clone(), &fixture.project_a(), &[], Some(&metrics));
+    pty.wait_visible("█▀▀█", DEADLINE);
+    pty.send(format!("/location {}\r", bad.display()).as_bytes());
+    wait_screen_row(&pty, "Location configuration failed", DEADLINE);
+    let screen = render_screen(&pty.snapshot()).rows().join("\n");
+    assert!(screen.contains("/location"), "refusal preserves the draft");
+    assert!(!screen.contains("LEAKME-MODEL"), "no config text in status");
+    // The failed switch did not replace the Location or its Home selection.
+    assert!(
+        screen.contains("proj-alpha"),
+        "original Location remains visible"
+    );
+    assert!(
+        screen.contains("T42 model"),
+        "original Home choice remains visible"
+    );
+    pty.send(&vec![0x7f; 512]);
+    for project in [
+        fixture.project_b(),
+        fixture.project_a(),
+        fixture.project_b(),
+    ] {
+        pty.send(format!("/location {}\r", project.display()).as_bytes());
+        let name = project.file_name().unwrap().to_str().unwrap();
+        wait_screen_row(&pty, name, DEADLINE);
+        // A successful Home switch still has no candidate root, even if B
+        // configured additional skills/MCP resources.
+        assert_eq!(journal_counts(&fixture), (0, 0, 0, 0, 0));
+    }
+    assert!(fixture.requests.lock().unwrap().is_empty());
+    pty.send(b"first on B\r");
+    let main = fixture.wait_requests(1);
+    assert_eq!(last_user_text(&main[0]).as_deref(), Some("first on B"));
+    let (roots, _, turns, messages, bindings) = journal_counts(&fixture);
+    assert_eq!((roots, turns, bindings), (1, 1, 1));
+    assert!((1..=2).contains(&messages), "user durable before reply");
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    pty.send(b"/quit\r");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success());
+    assert!(contains(&output, ALT_LEAVE));
+    assert!(pty.restored());
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    let id = db.list_sessions().unwrap().remove(0);
+    assert_eq!(
+        db.get_pref(&format!(
+            "{}{}",
+            oc_adapters::runtime::SESSION_LOCATION_PREFIX,
+            id
+        ))
+        .unwrap(),
+        Some(
+            fixture
+                .project_b()
+                .canonicalize()
+                .unwrap()
+                .to_string_lossy()
+                .into_owned()
+        )
+    );
+    let metrics: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(metrics).unwrap()).unwrap();
+    assert!(
+        metrics["session"].as_str().is_some(),
+        "first accepted turn binds the root"
+    );
+}
+
+#[test]
+fn bare_first_accepted_prompt_creates_exactly_one_bound_root_and_turn() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), &fixture.project_a(), &[], None);
+    pty.wait_visible("█▀▀█", DEADLINE);
+    let off = submit(&mut pty, "slow stream");
+    let accepted = fixture.wait_requests(1);
+    assert_eq!(last_user_text(&accepted[0]).as_deref(), Some("slow stream"));
+    // The scripted peer is still sending heartbeats: acceptance has committed
+    // one user message atomically with the new root, turn and Location binding.
+    let (roots, events, turns, messages, bindings) = journal_counts(&fixture);
+    assert_eq!((roots, turns, messages, bindings), (1, 1, 1, 1));
+    assert!(events >= 2, "root and turn journaled at acceptance");
+    pty.wait_visible_after(off, "answer:slow stream", DEADLINE);
+    // Synchronize on the accepted turn's durable page rather than the first
+    // streaming delta before quitting.
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    pty.send(b"/quit\r");
+    let (status, _) = pty.wait_exit(DEADLINE);
+    assert!(status.success());
+    let (roots, events, turns, messages, bindings) = journal_counts(&fixture);
+    assert_eq!((roots, turns, messages, bindings), (1, 1, 2, 1));
+    assert!(events >= 2, "root and turn journaled");
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).expect("db");
+    let session = db.list_sessions().expect("root").remove(0);
+    assert_eq!(
+        db.read_history(&session).expect("history"),
+        vec![
+            ("user".into(), "slow stream".into()),
+            ("assistant".into(), "answer:slow stream".into()),
+        ]
+    );
+    assert_eq!(
+        db.get_pref(&format!(
+            "{}{session}",
+            oc_adapters::runtime::SESSION_LOCATION_PREFIX
+        ))
+        .expect("binding"),
+        Some(
+            fixture
+                .project_a()
+                .canonicalize()
+                .expect("Location")
+                .to_string_lossy()
+                .into_owned()
+        )
+    );
+    let requests: Vec<_> = fixture
+        .requests
+        .lock()
+        .expect("requests")
+        .iter()
+        .filter(|body| !title::is_title(body))
+        .cloned()
+        .collect();
+    assert_eq!(requests.len(), 1, "exactly one Responses turn");
+    assert_eq!(last_user_text(&requests[0]).as_deref(), Some("slow stream"));
+}
+
+#[test]
+fn explicit_session_still_attaches_and_creates_before_first_prompt() {
+    let fixture = Fixture::new();
+    let metrics = fixture.root.path().join("attached-metrics.json");
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &fixture.project_a(),
+        &["tui", "--session", "explicit-home-test"],
+        Some(&metrics),
+    );
+    pty.wait_visible(READY, DEADLINE);
+    pty.send(b"/quit\r");
+    let (status, _) = pty.wait_exit(DEADLINE);
+    assert!(status.success());
+    assert_eq!(journal_counts(&fixture), (1, 1, 0, 0, 1));
+    let metrics: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(metrics).expect("metrics")).expect("json");
+    assert_eq!(metrics["session"], "explicit-home-test");
+    assert!(fixture.requests.lock().expect("requests").is_empty());
+}
+
+#[test]
+fn new_from_attached_returns_home_without_an_extra_root() {
+    let fixture = Fixture::new();
+    let metrics = fixture.root.path().join("new-home-metrics.json");
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &fixture.project_a(),
+        &["tui", "--session", "prior-root"],
+        Some(&metrics),
+    );
+    pty.wait_visible(READY, DEADLINE);
+    pty.send(b"/new\r");
+    pty.wait_visible("█▀▀█", DEADLINE);
+    let path = fixture.project_b().canonicalize().expect("target Location");
+    pty.send(format!("/location {}\r", path.display()).as_bytes());
+    wait_screen_row(&pty, "proj-beta", DEADLINE);
+    assert_eq!(
+        journal_counts(&fixture),
+        (1, 1, 0, 0, 1),
+        "Home switch creates no B root"
+    );
+    pty.send(b"/quit\r");
+    let (status, _) = pty.wait_exit(DEADLINE);
+    assert!(status.success());
+    let metrics: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(metrics).expect("metrics")).expect("json");
+    assert!(metrics["session"].is_null());
+    assert_eq!(journal_counts(&fixture), (1, 1, 0, 0, 1));
+    assert!(fixture.requests.lock().expect("requests").is_empty());
+}
+
 /// AUD38: bare `oc` launches the local TUI on a terminal; without a
 /// terminal it is an actionable error, never a hidden headless run.
 #[test]

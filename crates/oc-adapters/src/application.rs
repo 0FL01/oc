@@ -11,8 +11,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use oc_core::core_app::{CoreApp, CoreEvent, InboxMsg, WorkerGuard, WorkerTurnId};
 use oc_core::domain::SessionId;
 use oc_core::queries::{
-    AgentEntry, CatalogSnapshot, DcpSnapshot, HistoryMessage, HistoryPage, LocationSnapshot,
-    ModelEntry, SkillCard, StartupNotice, ToolOpPage, ToolOpView, VariantEntry,
+    AgentEntry, CatalogSnapshot, DcpSnapshot, HistoryMessage, HistoryPage, HomeLocationSnapshot,
+    LocationSnapshot, ModelEntry, SkillCard, StartupNotice, ToolOpPage, ToolOpView, VariantEntry,
 };
 use oc_core::session::{CoreError, LocationSwitchFailure, MAX_QUEUE_ITEMS, MessageId, Role};
 use tokio::sync::{broadcast, mpsc, oneshot};
@@ -579,16 +579,21 @@ enum WorkerOutcome {
         /// Target project path.
         path: String,
         /// Acceptance after the complete target generation is published.
-        ack: oneshot::Sender<Result<LocationSnapshot, CoreError>>,
+        ack: SwitchAck,
     },
+}
+
+enum SwitchAck {
+    Session(oneshot::Sender<Result<LocationSnapshot, CoreError>>),
+    Home(oneshot::Sender<Result<HomeLocationSnapshot, CoreError>>),
 }
 
 /// Own the whole application task: build the runtime, publish the workspace
 /// exactly once, then run the command loop and close owned MCP resources.
 ///
 /// A Location switch builds the complete target generation (config, catalog,
-/// agents/skills/commands, MCP resources, runtime, session) before it is
-/// published; a failure keeps the current Location untouched.
+/// agents/skills/commands, MCP resources, runtime, and for attached switches
+/// the session) before publication; a failure keeps the current Location.
 async fn start_worker(
     db: Db,
     mut composition: Composition,
@@ -622,6 +627,7 @@ async fn start_worker(
         skill_metas(&composition),
     );
     let mut sessions: BTreeMap<String, String> = BTreeMap::new();
+    let mut home_choices: BTreeMap<String, Effective> = BTreeMap::new();
     let mut diagnostics = effective.apply_persisted_model(&db, &composition);
     diagnostics.extend(effective.apply_persisted_agent(&db, &composition, &mut registry));
     if let Err(error) = publish_workspace(&runtime, &composition, &effective) {
@@ -647,6 +653,7 @@ async fn start_worker(
             &mut inbox,
             &events,
             &mut sessions,
+            &mut home_choices,
         )
         .await?;
         match outcome {
@@ -658,9 +665,40 @@ async fn start_worker(
                 break;
             }
             WorkerOutcome::Switch { path, ack } => {
-                match switch_target(&db, &path, &mut sessions, composition.parent_env.clone()).await
+                let home = matches!(ack, SwitchAck::Home(_));
+                match switch_target(
+                    &db,
+                    &path,
+                    &mut sessions,
+                    composition.parent_env.clone(),
+                    home,
+                )
+                .await
                 {
                     Ok((next, next_composition, next_effective, next_registry, session, notes)) => {
+                        let home_catalog = if home {
+                            let selected = match home_choices.get(next.location()) {
+                                Some(selected) => Ok(selected.clone()),
+                                None => {
+                                    selection::home_current(&db, &next_composition, &next_effective)
+                                }
+                            };
+                            match selected {
+                                Ok(selected) => Some(selected.snapshot(&next_composition)),
+                                Err(error) => {
+                                    let _ = next.shutdown_mcp().await;
+                                    if let SwitchAck::Home(ack) = ack {
+                                        let _ = ack.send(Err(CoreError::LocationSwitch {
+                                            category: LocationSwitchFailure::Storage,
+                                            detail: error.to_string(),
+                                        }));
+                                    }
+                                    continue;
+                                }
+                            }
+                        } else {
+                            None
+                        };
                         // The target generation is complete: only now drop the
                         // old Location's MCP resources and swap the state.
                         runtime
@@ -673,7 +711,6 @@ async fn start_worker(
                         }
                         runtime = next;
                         let location = runtime.location().to_string();
-                        let catalog = next_effective.snapshot(&next_composition);
                         let mut notices = next_composition.startup_notices.clone();
                         if notes.len() > next_composition.diagnostics.len() {
                             notices.push(StartupNotice::SavedSelection);
@@ -681,13 +718,25 @@ async fn start_worker(
                         composition = next_composition;
                         effective = next_effective;
                         registry = next_registry;
-                        let _ = ack.send(Ok(LocationSnapshot {
-                            location,
-                            session: session.0,
-                            catalog,
-                            diagnostics: notes,
-                            notices,
-                        }));
+                        match ack {
+                            SwitchAck::Session(ack) => {
+                                let _ = ack.send(Ok(LocationSnapshot {
+                                    location,
+                                    session: session.expect("attached switch has a session").0,
+                                    catalog: effective.snapshot(&composition),
+                                    diagnostics: notes,
+                                    notices,
+                                }));
+                            }
+                            SwitchAck::Home(ack) => {
+                                let _ = ack.send(Ok(HomeLocationSnapshot {
+                                    location,
+                                    catalog: home_catalog.expect("Home switch has a catalog"),
+                                    diagnostics: notes,
+                                    notices,
+                                }));
+                            }
+                        }
                     }
                     Err(issue) => {
                         let category = match issue.category {
@@ -697,10 +746,18 @@ async fn start_worker(
                             SpawnFailure::Storage => LocationSwitchFailure::Storage,
                             _ => LocationSwitchFailure::Runtime,
                         };
-                        let _ = ack.send(Err(CoreError::LocationSwitch {
+                        let error = CoreError::LocationSwitch {
                             category,
                             detail: issue.detail,
-                        }));
+                        };
+                        match ack {
+                            SwitchAck::Session(ack) => {
+                                let _ = ack.send(Err(error));
+                            }
+                            SwitchAck::Home(ack) => {
+                                let _ = ack.send(Err(error));
+                            }
+                        }
                     }
                 }
             }
@@ -719,13 +776,14 @@ async fn switch_target<'a>(
     path: &str,
     sessions: &mut BTreeMap<String, String>,
     env: BTreeMap<String, String>,
+    home: bool,
 ) -> Result<
     (
         Runtime<'a>,
         Composition,
         Effective,
         WorkspaceRegistry,
-        SessionId,
+        Option<SessionId>,
         Vec<String>,
     ),
     SpawnIssue,
@@ -750,24 +808,28 @@ async fn switch_target<'a>(
     notes.extend(effective.apply_persisted_agent(db, &composition, &mut registry));
     publish_workspace(&runtime, &composition, &effective)
         .map_err(|error| SpawnIssue::new(SpawnFailure::Runtime, error.to_string()))?;
-    // Sessions stay Location-bound: a return to a visited Location reopens
-    // its recorded session, a first visit mints one for the new Location.
+    // Home publishes only the target generation. Attached switches retain
+    // their existing Location-bound reopen/create behavior.
     let location = runtime.location().to_string();
-    let session = match sessions.get(&location).cloned() {
-        Some(id) => {
-            runtime
-                .open_session(&id)
-                .map_err(|error| SpawnIssue::new(SpawnFailure::Storage, error.to_string()))?;
-            SessionId(id)
-        }
-        None => {
-            let id = format!("s-loc-{}", nanos());
-            runtime
-                .create_session(&id)
-                .map_err(|error| SpawnIssue::new(SpawnFailure::Storage, error.to_string()))?;
-            sessions.insert(location, id.clone());
-            SessionId(id)
-        }
+    let session = if home {
+        None
+    } else {
+        Some(match sessions.get(&location).cloned() {
+            Some(id) => {
+                runtime
+                    .open_session(&id)
+                    .map_err(|error| SpawnIssue::new(SpawnFailure::Storage, error.to_string()))?;
+                SessionId(id)
+            }
+            None => {
+                let id = format!("s-loc-{}", nanos());
+                runtime
+                    .create_session(&id)
+                    .map_err(|error| SpawnIssue::new(SpawnFailure::Storage, error.to_string()))?;
+                sessions.insert(location, id.clone());
+                SessionId(id)
+            }
+        })
     };
     Ok((runtime, composition, effective, registry, session, notes))
 }
@@ -869,6 +931,7 @@ fn compress_prompt(focus: &str) -> String {
 
 /// Handle one owner-only query or action. Never runs while a turn streams
 /// except for read-only snapshots.
+#[allow(clippy::too_many_arguments)]
 fn query(
     db: &Db,
     runtime: &Runtime<'_>,
@@ -876,6 +939,7 @@ fn query(
     effective: &mut Effective,
     registry: &mut WorkspaceRegistry,
     sessions: &mut BTreeMap<String, String>,
+    home_choices: &mut BTreeMap<String, Effective>,
     message: InboxMsg,
 ) {
     match message {
@@ -1069,6 +1133,26 @@ fn query(
             })();
             let _ = ack.send(result);
         }
+        InboxMsg::HomeSelection { action, ack } => {
+            let result = (|| {
+                if runtime.turn_active() {
+                    return Err(CoreError::TurnBusy);
+                }
+                let location = runtime.location();
+                let current = match home_choices.get(location) {
+                    Some(selected) => selected.clone(),
+                    None => selection::home_current(db, composition, effective)?,
+                };
+                let explicit = action != oc_core::queries::SessionSelectionAction::Current;
+                let selected = selection::home(db, composition, effective, &current, action)?;
+                let snapshot = selected.snapshot(composition);
+                if explicit {
+                    home_choices.insert(location.to_string(), selected);
+                }
+                Ok(snapshot)
+            })();
+            let _ = ack.send(result);
+        }
         InboxMsg::Skills { ack } => {
             let _ = ack.send(Ok(skill_cards(composition)));
         }
@@ -1123,6 +1207,9 @@ fn query(
             // A switch never races the active turn: it is refused while the
             // worker is streaming and can be retried afterwards.
             let _ = ack.send(Err(app_error("turn active; location switch refused")));
+        }
+        InboxMsg::SwitchLocationHome { ack, .. } => {
+            let _ = ack.send(Err(CoreError::TurnBusy));
         }
         InboxMsg::Dcp { session, ack } => {
             let result = (|| -> Result<DcpSnapshot, CoreError> {
@@ -1192,6 +1279,9 @@ fn query(
         InboxMsg::Submit { ack, .. } => {
             let _ = ack.send(Err(CoreError::TurnBusy));
         }
+        InboxMsg::SubmitFresh { ack, .. } => {
+            let _ = ack.send(Err(CoreError::TurnBusy));
+        }
         InboxMsg::Compress { ack, .. } => {
             let _ = ack.send(Err(CoreError::TurnBusy));
         }
@@ -1209,6 +1299,7 @@ async fn worker(
     inbox: &mut mpsc::Receiver<InboxMsg>,
     events: &broadcast::Sender<CoreEvent>,
     sessions: &mut BTreeMap<String, String>,
+    home_choices: &mut BTreeMap<String, Effective>,
 ) -> Result<WorkerOutcome, String> {
     while let Some(message) = inbox.recv().await {
         // A manual compress request is a real turn: the model drives the
@@ -1228,10 +1319,28 @@ async fn worker(
         match message {
             InboxMsg::Shutdown => return Ok(WorkerOutcome::Stop),
             InboxMsg::SwitchLocation { path, ack } => {
-                return Ok(WorkerOutcome::Switch { path, ack });
+                return Ok(WorkerOutcome::Switch {
+                    path,
+                    ack: SwitchAck::Session(ack),
+                });
             }
-            InboxMsg::Submit { session, text, ack } => {
-                sessions.insert(runtime.location().to_string(), session.0.clone());
+            InboxMsg::SwitchLocationHome { path, ack } => {
+                return Ok(WorkerOutcome::Switch {
+                    path,
+                    ack: SwitchAck::Home(ack),
+                });
+            }
+            message @ (InboxMsg::Submit { .. } | InboxMsg::SubmitFresh { .. }) => {
+                let (session, text, fresh, ack) = match message {
+                    InboxMsg::Submit { session, text, ack } => (session, text, None, ack),
+                    InboxMsg::SubmitFresh {
+                        session,
+                        text,
+                        selection,
+                        ack,
+                    } => (session, text, Some(selection), ack),
+                    _ => unreachable!(),
+                };
                 if text.trim().is_empty() {
                     let _ = ack.send(Err(app_error("empty prompt")));
                     continue;
@@ -1244,27 +1353,55 @@ async fn worker(
                     }
                 };
                 let cancel = AtomicBool::new(false);
+                let is_fresh = fresh.is_some();
                 // Resolve from the owning session, never whichever TUI tab was
                 // most recently viewed. Title and inherited child requests use
                 // this same selection and agent workspace.
-                let turn_selection =
-                    match selection::for_turn(db, composition, effective, &session.0).and_then(
-                        |selected| {
-                            let base = crate::models::select_model(&composition.catalog, &selected.model_id)
+                let (turn_selection, initial_selection) = match (|| -> Result<_, CoreError> {
+                    if is_fresh {
+                        match db.session_meta(&session.0) {
+                            Ok(_) => return Err(CoreError::SessionAlreadyExists),
+                            Err(StorageError::SessionNotFound) => {}
+                            Err(error) => return Err(app_error(error)),
+                        }
+                    }
+                    let (selected, initial_selection) = match fresh {
+                        Some(Some(choice)) => {
+                            let (selected, record) =
+                                selection::fresh(composition, effective, &session.0, choice)?;
+                            (selected, Some(record))
+                        }
+                        Some(None) => {
+                            let home = match home_choices.get(runtime.location()) {
+                                Some(selected) => selected.clone(),
+                                None => selection::home_current(db, composition, effective)?,
+                            };
+                            let choice = oc_core::core_app::FreshSelection {
+                                agent_id: home.agent_id.clone(),
+                                model_id: home.model_id.clone(),
+                                variant: home.variant.clone(),
+                            };
+                            let (selected, record) =
+                                selection::fresh(composition, effective, &session.0, choice)?;
+                            (selected, Some(record))
+                        }
+                        None => (
+                            selection::for_turn(db, composition, effective, &session.0)?,
+                            None,
+                        ),
+                    };
+                    crate::models::select_model(&composition.catalog, &selected.model_id)
                                 .and_then(|base| crate::models::select_variant(&base, selected.variant.as_deref()))
                                 .map_err(|e| app_error(format!("selected model/variant unavailable; select an admitted replacement or Default: {e}")))?;
-                            let _ = base;
-                            publish_workspace(runtime, composition, &selected)
-                                .map_err(app_error)?;
-                            Ok(selected)
-                        },
-                    ) {
-                        Ok(selected) => selected,
-                        Err(error) => {
-                            let _ = ack.send(Err(error));
-                            continue;
-                        }
-                    };
+                    publish_workspace(runtime, composition, &selected).map_err(app_error)?;
+                    Ok((selected, initial_selection))
+                })() {
+                    Ok(selected) => selected,
+                    Err(error) => {
+                        let _ = ack.send(Err(error));
+                        continue;
+                    }
+                };
                 // Resolve before accepting a turn: an invalid configured title
                 // profile is a configuration error, never a silent fallback.
                 let title_agent = composition.agents.get("title");
@@ -1319,76 +1456,93 @@ async fn worker(
                 let result;
                 {
                     let operation = async {
-                        let mut report = runtime
-                            .run_turn_with_tool_events(
-                                params,
-                                |id| {
-                                    let id = WorkerTurnId(id.to_string());
-                                    turn = Some(id.clone());
-                                    if let Some(ack) = ack.take() {
-                                        let _ = ack.send(Ok(id.clone()));
+                        let on_accept = |id: &str| {
+                            let id = WorkerTurnId(id.to_string());
+                            turn = Some(id.clone());
+                            if let Some(ack) = ack.take() {
+                                let _ = ack.send(Ok(id.clone()));
+                            }
+                            let _ = events.send(CoreEvent::TurnStarted {
+                                session: session.clone(),
+                                turn: id,
+                            });
+                        };
+                        let on_text = |id: &str, delta: &str| {
+                            let _ = events.send(CoreEvent::TextDelta {
+                                session: session.clone(),
+                                turn: WorkerTurnId(id.to_string()),
+                                delta: delta.to_string(),
+                            });
+                        };
+                        let on_reasoning = |id: &str, delta: &str| {
+                            let _ = events.send(CoreEvent::ReasoningDelta {
+                                session: session.clone(),
+                                turn: WorkerTurnId(id.to_string()),
+                                delta: delta.to_string(),
+                            });
+                        };
+                        let on_tool = |id: &str, event: &ToolCallEvent| {
+                            let turn = WorkerTurnId(id.to_string());
+                            let _ = events.send(match event {
+                                ToolCallEvent::Started { op, name, input } => {
+                                    CoreEvent::ToolCallStarted {
+                                        session: session.clone(),
+                                        turn,
+                                        op: op.clone(),
+                                        name: name.clone(),
+                                        input: input.clone(),
                                     }
-                                    let _ = events.send(CoreEvent::TurnStarted {
-                                        session: session.clone(),
-                                        turn: id.clone(),
-                                    });
+                                }
+                                ToolCallEvent::Finished {
+                                    op,
+                                    name,
+                                    state,
+                                    output,
+                                    output_bytes,
+                                    output_truncated,
+                                } => CoreEvent::ToolCallFinished {
+                                    session: session.clone(),
+                                    turn,
+                                    op: op.clone(),
+                                    name: name.clone(),
+                                    state: state.clone(),
+                                    output: output.clone(),
+                                    output_bytes: *output_bytes,
+                                    output_truncated: *output_truncated,
                                 },
-                                |id, delta| {
-                                    let _ = events.send(CoreEvent::TextDelta {
-                                        session: session.clone(),
-                                        turn: WorkerTurnId(id.to_string()),
-                                        delta: delta.to_string(),
-                                    });
-                                },
-                                |id, delta| {
-                                    let _ = events.send(CoreEvent::ReasoningDelta {
-                                        session: session.clone(),
-                                        turn: WorkerTurnId(id.to_string()),
-                                        delta: delta.to_string(),
-                                    });
-                                },
-                                |id, event| {
-                                    let turn = WorkerTurnId(id.to_string());
-                                    let _ = events.send(match event {
-                                        ToolCallEvent::Started { op, name, input } => {
-                                            CoreEvent::ToolCallStarted {
-                                                session: session.clone(),
-                                                turn,
-                                                op: op.clone(),
-                                                name: name.clone(),
-                                                input: input.clone(),
-                                            }
-                                        }
-                                        ToolCallEvent::Finished {
-                                            op,
-                                            name,
-                                            state,
-                                            output,
-                                            output_bytes,
-                                            output_truncated,
-                                        } => CoreEvent::ToolCallFinished {
-                                            session: session.clone(),
-                                            turn,
-                                            op: op.clone(),
-                                            name: name.clone(),
-                                            state: state.clone(),
-                                            output: output.clone(),
-                                            output_bytes: *output_bytes,
-                                            output_truncated: *output_truncated,
-                                        },
-                                    });
-                                    if let Ok(Some(projection)) =
-                                        db.turn_presentation(&session.0, id)
-                                    {
-                                        let _ = events.send(CoreEvent::TurnPresentation {
-                                            session: session.clone(),
-                                            turn: WorkerTurnId(id.to_string()),
-                                            projection,
-                                        });
-                                    }
-                                },
-                            )
-                            .await?;
+                            });
+                            if let Ok(Some(projection)) = db.turn_presentation(&session.0, id) {
+                                let _ = events.send(CoreEvent::TurnPresentation {
+                                    session: session.clone(),
+                                    turn: WorkerTurnId(id.to_string()),
+                                    projection,
+                                });
+                            }
+                        };
+                        let mut report = if is_fresh {
+                            runtime
+                                .run_fresh_turn_with_tool_events(
+                                    params,
+                                    initial_selection
+                                        .as_ref()
+                                        .map(|(key, value)| (key.as_str(), value.as_str())),
+                                    on_accept,
+                                    on_text,
+                                    on_reasoning,
+                                    on_tool,
+                                )
+                                .await?
+                        } else {
+                            runtime
+                                .run_turn_with_tool_events(
+                                    params,
+                                    on_accept,
+                                    on_text,
+                                    on_reasoning,
+                                    on_tool,
+                                )
+                                .await?
+                        };
                         if let Some(projection) =
                             db.turn_presentation(&session.0, &report.turn_id)?
                         {
@@ -1509,11 +1663,15 @@ async fn worker(
                                     effective,
                                     registry,
                                     sessions,
+                                    home_choices,
                                     command,
                                 ),
                             }
                         }
                     };
+                }
+                if turn.is_some() {
+                    sessions.insert(runtime.location().to_string(), session.0.clone());
                 }
                 if let Some(ack) = ack {
                     let error = result.err().unwrap_or(RuntimeError::Storage);
@@ -1604,6 +1762,7 @@ async fn worker(
                 effective,
                 registry,
                 sessions,
+                home_choices,
                 message,
             ),
         }

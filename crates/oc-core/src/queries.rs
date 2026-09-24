@@ -315,6 +315,20 @@ pub struct LocationSnapshot {
     pub notices: Vec<StartupNotice>,
 }
 
+/// Published Location generation for a sessionless Home composer.
+/// No root session is created by this switch.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HomeLocationSnapshot {
+    /// Canonical Location id now served.
+    pub location: String,
+    /// Current Home choice and catalog in the target Location.
+    pub catalog: CatalogSnapshot,
+    /// Detailed diagnostics for application callers; frontends display `notices`.
+    pub diagnostics: Vec<String>,
+    /// Allowlisted interactive warnings.
+    pub notices: Vec<StartupNotice>,
+}
+
 /// Source of non-fatal composition/persisted-selection diagnostics. Never
 /// contains user input or text from the underlying error.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

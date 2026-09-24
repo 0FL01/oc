@@ -13,13 +13,28 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 
 use crate::domain::SessionId;
 use crate::queries::{
-    CatalogSnapshot, DcpSnapshot, HistoryPage, LocationSnapshot, SkillCard, ToolOpPage,
+    CatalogSnapshot, DcpSnapshot, HistoryPage, HomeLocationSnapshot, LocationSnapshot, SkillCard,
+    ToolOpPage,
 };
 use crate::session::{CoreError, MAX_INPUT_BYTES, MAX_QUEUE_ITEMS, Message, MessageId, Role};
 
 /// Opaque turn id for the worker (monotonic `t0001`, …).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WorkerTurnId(pub String);
+
+/// Explicit first-turn choice for a new root. `None` at the API boundary uses
+/// the application's current Home choice; `Some` pins these exact values to
+/// the new session and turn. The owner validates the model, variant and agent
+/// against its current Location before creating anything.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FreshSelection {
+    /// Selected primary agent, if any.
+    pub agent_id: Option<String>,
+    /// Exact selected model id.
+    pub model_id: String,
+    /// Exact variant, or the explicit Default variant.
+    pub variant: Option<String>,
+}
 
 /// One enqueued submission's acceptance receipt. The application owns the
 /// operation even if this receipt is dropped; cancel/shutdown it through CoreApp.
@@ -219,6 +234,19 @@ pub enum InboxMsg {
         /// Durable acceptance or rejection.
         ack: oneshot::Sender<Result<WorkerTurnId, CoreError>>,
     },
+    /// Atomically accept the first turn and create its Location-bound root.
+    /// A refusal must not create a session; acknowledgement follows durable
+    /// acceptance of the root, selection, turn and user message.
+    SubmitFresh {
+        /// New, unused root session id.
+        session: SessionId,
+        /// Input text.
+        text: String,
+        /// Optional explicit Home selection for this root.
+        selection: Option<FreshSelection>,
+        /// Durable acceptance or rejection.
+        ack: oneshot::Sender<Result<WorkerTurnId, CoreError>>,
+    },
     /// Cancel the active turn.
     Cancel {
         /// Owning session.
@@ -287,6 +315,13 @@ pub enum InboxMsg {
         /// Actual accepted selection and catalog.
         ack: oneshot::Sender<Result<CatalogSnapshot, CoreError>>,
     },
+    /// Read/change the sessionless Home selection in the current Location.
+    HomeSelection {
+        /// Exact selection action; no session id or session preference exists.
+        action: crate::queries::SessionSelectionAction,
+        /// Actual selected choice and catalog.
+        ack: oneshot::Sender<Result<CatalogSnapshot, CoreError>>,
+    },
     /// Skill catalog cards (metadata only).
     Skills {
         /// Query result.
@@ -318,6 +353,13 @@ pub enum InboxMsg {
         path: String,
         /// Resulting Location/session/catalog snapshot after acceptance.
         ack: oneshot::Sender<Result<LocationSnapshot, CoreError>>,
+    },
+    /// Publish another Location's complete generation for sessionless Home.
+    SwitchLocationHome {
+        /// Target project path.
+        path: String,
+        /// Location/catalog/diagnostics without an attached session.
+        ack: oneshot::Sender<Result<HomeLocationSnapshot, CoreError>>,
     },
     /// DCP context/stats snapshot for a session.
     Dcp {
@@ -502,6 +544,56 @@ impl CoreApp {
         Ok(SubmissionReceipt(receipt))
     }
 
+    /// Enqueue a new root's first turn without waiting for durable acceptance.
+    /// Rejection leaves no session; the receipt resolves only from the owner.
+    pub fn request_submit_fresh(
+        &self,
+        session: SessionId,
+        text: String,
+        selection: Option<FreshSelection>,
+    ) -> Result<SubmissionReceipt, CoreError> {
+        if text.len() > MAX_INPUT_BYTES {
+            return Err(CoreError::InputTooLarge);
+        }
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .try_send(InboxMsg::SubmitFresh {
+                session,
+                text,
+                selection,
+                ack,
+            })
+            .map_err(|error| match error {
+                mpsc::error::TrySendError::Full(_) => CoreError::QueueFull,
+                mpsc::error::TrySendError::Closed(_) => CoreError::Shutdown,
+            })?;
+        Ok(SubmissionReceipt(receipt))
+    }
+
+    /// Create a new root and submit its first turn, awaiting the owner's
+    /// acceptance acknowledgement. A rejected input never creates a root.
+    pub async fn submit_fresh(
+        &self,
+        session: SessionId,
+        text: String,
+        selection: Option<FreshSelection>,
+    ) -> Result<WorkerTurnId, CoreError> {
+        if text.len() > MAX_INPUT_BYTES {
+            return Err(CoreError::InputTooLarge);
+        }
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::SubmitFresh {
+                session,
+                text,
+                selection,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        receipt.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Cancel the active turn for a session.
     pub async fn cancel(&self, session: SessionId) -> Result<(), CoreError> {
         let (ack_tx, ack_rx) = oneshot::channel();
@@ -634,6 +726,19 @@ impl CoreApp {
         result.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// Read/change the application's Home choice without creating a session.
+    pub async fn home_selection(
+        &self,
+        action: crate::queries::SessionSelectionAction,
+    ) -> Result<CatalogSnapshot, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::HomeSelection { action, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Switch the running application to another Location (project path).
     pub async fn switch_location(&self, path: String) -> Result<LocationSnapshot, CoreError> {
         let (ack_tx, ack_rx) = oneshot::channel();
@@ -642,6 +747,20 @@ impl CoreApp {
             .await
             .map_err(|_| CoreError::Shutdown)?;
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Switch a sessionless Home composer without minting a root. A failed
+    /// target validation leaves the currently published generation untouched.
+    pub async fn switch_location_home(
+        &self,
+        path: String,
+    ) -> Result<HomeLocationSnapshot, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::SwitchLocationHome { path, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
     }
 
     /// Skill catalog cards (metadata only).
@@ -805,6 +924,9 @@ async fn worker_loop(
                         Some(InboxMsg::Submit { session: _, text: _, ack }) => {
                             let _ = ack.send(Err(CoreError::TurnBusy));
                         }
+                        Some(InboxMsg::SubmitFresh { ack, .. }) => {
+                            let _ = ack.send(Err(CoreError::TurnBusy));
+                        }
                         Some(InboxMsg::Cancel { session, ack }) => {
                             if session == turn.session {
                                 let partial = turn.accumulated.clone();
@@ -881,31 +1003,35 @@ async fn worker_loop(
                     let _ = ack.send(res);
                 }
                 Some(InboxMsg::Submit { session, text, ack }) => {
-                    if text.len() > MAX_INPUT_BYTES {
-                        let _ = ack.send(Err(CoreError::InputTooLarge));
-                        continue;
-                    }
-                    let Some(sess) = sessions.get_mut(&session.0) else {
-                        let _ = ack.send(Err(CoreError::SessionNotFound));
-                        continue;
-                    };
-                    turn_counter += 1;
-                    let turn_id = WorkerTurnId(format!("t{:04}", turn_counter));
-                    sess.push(Role::User, text.clone());
-                    let chunks = provider.plan(&text);
-                    active = Some(ActiveTurn {
-                        session: session.clone(),
-                        turn: turn_id.clone(),
-                        chunks,
-                        index: 0,
-                        accumulated: String::new(),
-                        started: std::time::Instant::now(),
-                    });
-                    let _ = ack.send(Ok(turn_id.clone()));
-                    let _ = events.send(CoreEvent::TurnStarted {
+                    scripted_accept_submit(
+                        &provider,
+                        &events,
+                        &mut sessions,
+                        &mut active,
+                        &mut turn_counter,
                         session,
-                        turn: turn_id.clone(),
-                    });
+                        text,
+                        false,
+                        ack,
+                    );
+                }
+                Some(InboxMsg::SubmitFresh {
+                    session,
+                    text,
+                    selection: _,
+                    ack,
+                }) => {
+                    scripted_accept_submit(
+                        &provider,
+                        &events,
+                        &mut sessions,
+                        &mut active,
+                        &mut turn_counter,
+                        session,
+                        text,
+                        true,
+                        ack,
+                    );
                 }
                 Some(InboxMsg::Cancel { session: _, ack }) => {
                     let _ = ack.send(Err(CoreError::TurnNotActive));
@@ -928,6 +1054,55 @@ async fn worker_loop(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
+fn scripted_accept_submit(
+    provider: &MockProvider,
+    events: &broadcast::Sender<CoreEvent>,
+    sessions: &mut HashMap<String, SessionState>,
+    active: &mut Option<ActiveTurn>,
+    turn_counter: &mut u64,
+    session: SessionId,
+    text: String,
+    fresh: bool,
+    ack: oneshot::Sender<Result<WorkerTurnId, CoreError>>,
+) {
+    if text.len() > MAX_INPUT_BYTES {
+        let _ = ack.send(Err(CoreError::InputTooLarge));
+        return;
+    }
+    if fresh {
+        if text.trim().is_empty() {
+            let _ = ack.send(Err(CoreError::Application("empty prompt".to_string())));
+            return;
+        }
+        if sessions.contains_key(&session.0) {
+            let _ = ack.send(Err(CoreError::SessionAlreadyExists));
+            return;
+        }
+        sessions.insert(session.0.clone(), SessionState::new(session.clone()));
+    }
+    let Some(sess) = sessions.get_mut(&session.0) else {
+        let _ = ack.send(Err(CoreError::SessionNotFound));
+        return;
+    };
+    *turn_counter += 1;
+    let turn_id = WorkerTurnId(format!("t{:04}", turn_counter));
+    sess.push(Role::User, text.clone());
+    *active = Some(ActiveTurn {
+        session: session.clone(),
+        turn: turn_id.clone(),
+        chunks: provider.plan(&text),
+        index: 0,
+        accumulated: String::new(),
+        started: std::time::Instant::now(),
+    });
+    let _ = ack.send(Ok(turn_id.clone()));
+    let _ = events.send(CoreEvent::TurnStarted {
+        session,
+        turn: turn_id,
+    });
+}
+
 /// Whole milliseconds since `started`, saturating at `u64::MAX`.
 fn elapsed_ms(started: std::time::Instant) -> u64 {
     started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64
@@ -946,7 +1121,9 @@ fn scripted_unsupported(message: InboxMsg) {
         InboxMsg::ToolOutput { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
-        InboxMsg::Catalog { ack } | InboxMsg::SessionSelection { ack, .. } => {
+        InboxMsg::Catalog { ack }
+        | InboxMsg::SessionSelection { ack, .. }
+        | InboxMsg::HomeSelection { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::Skills { ack } => {
@@ -961,6 +1138,9 @@ fn scripted_unsupported(message: InboxMsg) {
         InboxMsg::SwitchLocation { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
+        InboxMsg::SwitchLocationHome { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::Dcp { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
@@ -969,6 +1149,7 @@ fn scripted_unsupported(message: InboxMsg) {
         }
         InboxMsg::Create { .. }
         | InboxMsg::Submit { .. }
+        | InboxMsg::SubmitFresh { .. }
         | InboxMsg::Cancel { .. }
         | InboxMsg::List { .. }
         | InboxMsg::Read { .. }
@@ -978,9 +1159,11 @@ fn scripted_unsupported(message: InboxMsg) {
 
 #[cfg(test)]
 mod tests {
-    use super::{CoreApp, CoreEvent, MockProvider, WorkerGuard};
+    use super::{
+        CoreApp, CoreEvent, FreshSelection, InboxMsg, MockProvider, WorkerGuard, WorkerTurnId,
+    };
     use crate::domain::SessionId;
-    use crate::session::Role;
+    use crate::session::{CoreError, Role};
     use std::time::Duration;
 
     fn sid(raw: &str) -> SessionId {
@@ -1055,6 +1238,112 @@ mod tests {
         let sessions = app.list_sessions().await.expect("list");
         assert_eq!(sessions, vec![sid("s-1")]);
 
+        app.shutdown().await.expect("shutdown");
+        guard.join().await.expect("join");
+    }
+
+    #[tokio::test]
+    async fn fresh_receipt_waits_for_owner_ack_and_preserves_explicit_selection() {
+        let (app, mut inbox, _) = CoreApp::channel(1);
+        let selected = FreshSelection {
+            agent_id: Some("build".into()),
+            model_id: "model-x".into(),
+            variant: None,
+        };
+        let mut receipt = app
+            .request_submit_fresh(sid("fresh"), "prompt".into(), Some(selected.clone()))
+            .expect("enqueued");
+        assert!(receipt.try_result().is_none(), "enqueue is not acceptance");
+        let err = app
+            .request_submit_fresh(sid("other"), "prompt".into(), None)
+            .err()
+            .expect("bounded queue must refuse");
+        assert_eq!(err, CoreError::QueueFull);
+        let Some(InboxMsg::SubmitFresh {
+            session,
+            text,
+            selection,
+            ack,
+        }) = inbox.recv().await
+        else {
+            panic!("expected fresh submit");
+        };
+        assert_eq!(session, sid("fresh"));
+        assert_eq!(text, "prompt");
+        assert_eq!(selection, Some(selected));
+        assert!(receipt.try_result().is_none());
+        ack.send(Ok(WorkerTurnId("durable-turn".into())))
+            .expect("ack");
+        assert_eq!(
+            receipt.try_result(),
+            Some(Ok(WorkerTurnId("durable-turn".into())))
+        );
+        assert_eq!(
+            app.request_submit_fresh(
+                sid("large"),
+                "x".repeat(crate::session::MAX_INPUT_BYTES + 1),
+                None
+            )
+            .err(),
+            Some(CoreError::InputTooLarge)
+        );
+        drop(inbox);
+        assert_eq!(
+            app.request_submit_fresh(sid("closed"), "prompt".into(), None)
+                .err(),
+            Some(CoreError::Shutdown)
+        );
+    }
+
+    #[tokio::test]
+    async fn mock_fresh_rejects_without_creating_and_keeps_existing_submit_path() {
+        let (app, guard) = CoreApp::spawn(MockProvider::fixed(vec!["reply".into()], 100));
+        assert_eq!(
+            app.submit_fresh(sid("fresh"), "  \n ".into(), None).await,
+            Err(CoreError::Application("empty prompt".into()))
+        );
+        assert!(app.list_sessions().await.expect("list").is_empty());
+        app.create_session(sid("taken")).await.expect("create");
+        assert_eq!(
+            app.submit_fresh(sid("taken"), "prompt".into(), None).await,
+            Err(CoreError::SessionAlreadyExists)
+        );
+        assert!(
+            app.read_history(sid("taken"))
+                .await
+                .expect("history")
+                .is_empty()
+        );
+        let turn = app
+            .submit_fresh(sid("fresh"), "first".into(), None)
+            .await
+            .expect("accepted");
+        assert_eq!(turn, WorkerTurnId("t0001".into()));
+        assert_eq!(
+            app.list_sessions().await.expect("list"),
+            [sid("fresh"), sid("taken")]
+        );
+        assert_eq!(
+            app.read_history(sid("fresh")).await.expect("history")[0].text,
+            "first"
+        );
+        assert_eq!(
+            app.submit_fresh(sid("busy"), "second".into(), None).await,
+            Err(CoreError::TurnBusy)
+        );
+        assert_eq!(
+            app.read_history(sid("busy")).await,
+            Err(CoreError::SessionNotFound)
+        );
+        app.cancel(sid("fresh")).await.expect("cancel");
+        assert_eq!(
+            app.submit_fresh(sid("fresh"), "again".into(), None).await,
+            Err(CoreError::SessionAlreadyExists)
+        );
+        assert_eq!(
+            app.submit(sid("fresh"), "continued".into()).await,
+            Ok(WorkerTurnId("t0002".into()))
+        );
         app.shutdown().await.expect("shutdown");
         guard.join().await.expect("join");
     }

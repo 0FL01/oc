@@ -351,6 +351,47 @@ impl Db {
         self.create_root_session(id, Some(location))
     }
 
+    /// Fresh-session durable acceptance: root, creation event, Location
+    /// binding, optional prevalidated session selection, started turn/event
+    /// and user message/event commit together.
+    /// Unlike `create_bound_session`, an existing root (even one bound to this
+    /// Location) is always a duplicate; no existing history is modified.
+    pub(crate) fn create_bound_session_and_accept_turn(
+        &self,
+        id: &str,
+        location: &str,
+        turn: &str,
+        prompt: &str,
+        user_text: &str,
+        initial_selection: Option<(&str, &str)>,
+    ) -> Result<String, StorageError> {
+        if let Some((key, _)) = initial_selection {
+            // The application owns selection validation and encoding. Accept
+            // only its session-scoped key for this exact root; never let the
+            // optional UPSERT replace a Location binding or global preference.
+            let belongs_to_session = key
+                .strip_prefix("tui.selection.session:")
+                .and_then(|parts| serde_json::from_str::<Vec<String>>(parts).ok())
+                .is_some_and(|parts| parts.len() == 3 && parts[2] == id);
+            if !belongs_to_session {
+                return Err(StorageError::Io(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "invalid initial session selection key",
+                )));
+            }
+        }
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        Self::insert_root_session(&tx, id)?;
+        Self::insert_location_binding(&tx, id, location)?;
+        let message = Self::insert_accepted_turn(&tx, turn, id, prompt, user_text)?;
+        if let Some((key, value)) = initial_selection {
+            Self::upsert_pref(&tx, key, value)?;
+        }
+        tx.commit()?;
+        Ok(message)
+    }
+
     fn create_root_session(
         &self,
         id: &str,
@@ -358,15 +399,15 @@ impl Db {
     ) -> Result<BoundSessionCreation, StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let binding = location.map(|location| (format!("{SESSION_LOCATION_PREFIX}{id}"), location));
-        if let Some((key, location)) = &binding {
+        if let Some(location) = location {
+            let key = format!("{SESSION_LOCATION_PREFIX}{id}");
             let owner: Option<String> = tx
                 .query_row("SELECT value FROM prefs WHERE key = ?1", [key], |row| {
                     row.get(0)
                 })
                 .optional()?;
             if let Some(owner) = owner {
-                return Ok(if owner == *location {
+                return Ok(if owner == location {
                     BoundSessionCreation::AlreadyBound
                 } else {
                     BoundSessionCreation::BoundElsewhere(owner)
@@ -374,14 +415,27 @@ impl Db {
             }
         }
         Self::insert_root_session(&tx, id)?;
-        if let Some((key, location)) = &binding {
-            tx.execute(
-                "INSERT INTO prefs(key, value, updated_at) VALUES (?1, ?2, ?3)",
-                params![key, location, now_rfc3339()],
-            )?;
+        if let Some(location) = location {
+            Self::insert_location_binding(&tx, id, location)?;
         }
         tx.commit()?;
         Ok(BoundSessionCreation::Created)
+    }
+
+    fn insert_location_binding(
+        conn: &Connection,
+        id: &str,
+        location: &str,
+    ) -> Result<(), StorageError> {
+        conn.execute(
+            "INSERT INTO prefs(key, value, updated_at) VALUES (?1, ?2, ?3)",
+            params![
+                format!("{SESSION_LOCATION_PREFIX}{id}"),
+                location,
+                now_rfc3339()
+            ],
+        )?;
+        Ok(())
     }
 
     fn insert_root_session(conn: &Connection, id: &str) -> Result<(), StorageError> {
@@ -1107,13 +1161,18 @@ impl Db {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         for (key, value) in values {
-            tx.prepare_cached(
+            Self::upsert_pref(&tx, key, value)?;
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
+    fn upsert_pref(conn: &Connection, key: &str, value: &str) -> Result<(), StorageError> {
+        conn.prepare_cached(
             "INSERT INTO prefs(key, value, updated_at) VALUES (?1, ?2, ?3)
              ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
         )?
         .execute(params![key, value, now_rfc3339()])?;
-        }
-        tx.commit()?;
         Ok(())
     }
 
@@ -1149,10 +1208,20 @@ impl Db {
     ) -> Result<String, StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        Self::insert_turn(&tx, turn, session, prompt)?;
-        let message = Self::insert_message(&tx, session, "user", user_text)?;
+        let message = Self::insert_accepted_turn(&tx, turn, session, prompt, user_text)?;
         tx.commit()?;
         Ok(message)
+    }
+
+    fn insert_accepted_turn(
+        conn: &Connection,
+        turn: &str,
+        session: &str,
+        prompt: &str,
+        user_text: &str,
+    ) -> Result<String, StorageError> {
+        Self::insert_turn(conn, turn, session, prompt)?;
+        Self::insert_message(conn, session, "user", user_text)
     }
 
     fn insert_turn(
@@ -2301,7 +2370,7 @@ fn apply_schema(conn: &Connection) -> Result<(), StorageError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Db, SessionMeta, StorageError};
+    use super::{Db, SESSION_LOCATION_PREFIX, SessionMeta, StorageError};
     use rusqlite::OptionalExtension as _;
     use std::fs;
     use std::os::unix::fs::PermissionsExt as _;
@@ -2869,6 +2938,298 @@ mod tests {
             .unwrap();
         assert_eq!(sessions, 1);
         assert_eq!(events, 1);
+    }
+
+    /// Verify every durable component, including the binding, through the
+    /// backing tables rather than through the public session projection.
+    fn fresh_turn_rows(db: &Db, session: &str, turn: &str) -> (i64, i64, i64, i64, i64) {
+        let conn = db.conn.lock().unwrap();
+        let count = |sql: &str, value: &str| -> i64 {
+            conn.query_row(sql, [value], |row| row.get(0)).unwrap()
+        };
+        (
+            count("SELECT count(*) FROM sessions WHERE id = ?1", session),
+            count(
+                "SELECT count(*) FROM prefs WHERE key = ?1",
+                &format!("{SESSION_LOCATION_PREFIX}{session}"),
+            ),
+            count("SELECT count(*) FROM events WHERE session_id = ?1", session),
+            count("SELECT count(*) FROM turns WHERE id = ?1", turn),
+            count(
+                "SELECT count(*) FROM messages WHERE session_id = ?1",
+                session,
+            ),
+        )
+    }
+
+    #[test]
+    fn fresh_turn_sql_failures_roll_back_root_binding_and_every_event() {
+        let tmp = tmp_root("fresh-turn-failure");
+        let db = Db::open(&tmp.path().join("data")).unwrap();
+        let selection_key = |session: &str| {
+            format!("tui.selection.session:[\"/project\",\"provider\",\"{session}\"]")
+        };
+        for (table, session, turn) in [
+            ("turns", "turn-fail", "t1"),
+            ("messages", "message-fail", "t2"),
+        ] {
+            let trigger = format!(
+                "CREATE TRIGGER fail_fresh BEFORE INSERT ON {table}
+                 BEGIN SELECT RAISE(ABORT, 'injected fresh turn failure'); END;"
+            );
+            db.conn.lock().unwrap().execute_batch(&trigger).unwrap();
+            assert!(matches!(
+                db.create_bound_session_and_accept_turn(
+                    session,
+                    "/project",
+                    turn,
+                    "prompt",
+                    "visible input",
+                    Some((&selection_key(session), "choice"))
+                ),
+                Err(StorageError::Sqlite(_))
+            ));
+            assert_eq!(fresh_turn_rows(&db, session, turn), (0, 0, 0, 0, 0));
+            assert_eq!(db.get_pref(&selection_key(session)).unwrap(), None);
+            db.conn
+                .lock()
+                .unwrap()
+                .execute_batch("DROP TRIGGER fail_fresh;")
+                .unwrap();
+            assert_eq!(
+                db.create_bound_session_and_accept_turn(
+                    session,
+                    "/project",
+                    turn,
+                    "prompt",
+                    "visible input",
+                    Some((&selection_key(session), "choice"))
+                )
+                .unwrap(),
+                if session == "turn-fail" {
+                    "m0001"
+                } else {
+                    "m0002"
+                }
+            );
+            assert_eq!(fresh_turn_rows(&db, session, turn), (1, 1, 3, 1, 1));
+            assert_eq!(
+                db.get_pref(&selection_key(session)).unwrap().as_deref(),
+                Some("choice")
+            );
+        }
+    }
+
+    #[test]
+    fn fresh_turn_selection_insert_failure_rolls_back_everything_and_retries() {
+        let tmp = tmp_root("fresh-selection-failure");
+        let db = Db::open(&tmp.path().join("data")).unwrap();
+        let key = "tui.selection.session:[\"/project\",\"provider\",\"fresh\"]";
+        db.conn
+            .lock()
+            .unwrap()
+            .execute_batch(
+                "CREATE TRIGGER fail_selection BEFORE INSERT ON prefs
+             WHEN NEW.key LIKE 'tui.selection.session:%'
+             BEGIN SELECT RAISE(ABORT, 'injected selection failure'); END;",
+            )
+            .unwrap();
+        assert!(matches!(
+            db.create_bound_session_and_accept_turn(
+                "fresh",
+                "/project",
+                "turn",
+                "prompt",
+                "user",
+                Some((key, "choice"))
+            ),
+            Err(StorageError::Sqlite(_))
+        ));
+        assert_eq!(fresh_turn_rows(&db, "fresh", "turn"), (0, 0, 0, 0, 0));
+        assert_eq!(db.get_pref(key).unwrap(), None);
+        db.conn
+            .lock()
+            .unwrap()
+            .execute_batch("DROP TRIGGER fail_selection;")
+            .unwrap();
+        assert_eq!(
+            db.create_bound_session_and_accept_turn(
+                "fresh",
+                "/project",
+                "turn",
+                "prompt",
+                "user",
+                Some((key, "choice"))
+            )
+            .unwrap(),
+            "m0001"
+        );
+        assert_eq!(fresh_turn_rows(&db, "fresh", "turn"), (1, 1, 3, 1, 1));
+        assert_eq!(db.get_pref(key).unwrap().as_deref(), Some("choice"));
+    }
+
+    #[test]
+    fn fresh_turn_selection_key_cannot_override_binding_or_other_prefs() {
+        let tmp = tmp_root("fresh-selection-key");
+        let db = Db::open(&tmp.path().join("data")).unwrap();
+        let unrelated = "tui.selection.variant:[\"provider\",\"model\"]";
+        db.set_pref(unrelated, "original").unwrap();
+        for (index, key) in [
+            "tui.session_location.fresh",
+            "tui.session_location.other",
+            unrelated,
+            "dcp.nudge.fresh",
+            "tui.selection.session:[\"/project\",\"provider\",\"other\"]",
+            "tui.selection.session:not-json",
+        ]
+        .iter()
+        .enumerate()
+        {
+            assert!(
+                db.create_bound_session_and_accept_turn(
+                    "fresh",
+                    "/project",
+                    &format!("turn{index}"),
+                    "prompt",
+                    "user",
+                    Some((key, "bad"))
+                )
+                .is_err()
+            );
+            assert_eq!(
+                fresh_turn_rows(&db, "fresh", &format!("turn{index}")),
+                (0, 0, 0, 0, 0)
+            );
+            assert_eq!(db.get_pref("tui.session_location.fresh").unwrap(), None);
+            assert_eq!(db.get_pref("tui.session_location.other").unwrap(), None);
+        }
+        assert_eq!(db.get_pref(unrelated).unwrap().as_deref(), Some("original"));
+        assert_eq!(db.get_pref("dcp.nudge.fresh").unwrap(), None);
+    }
+
+    #[test]
+    fn fresh_turn_is_fresh_only_and_preserves_existing_accept_turn() {
+        let tmp = tmp_root("fresh-turn-success");
+        let db = Db::open(&tmp.path().join("data")).unwrap();
+        let key = "tui.selection.session:[\"/project\",\"provider\",\"new\"]";
+        db.set_pref(key, "old choice").unwrap();
+        let first = db
+            .create_bound_session_and_accept_turn(
+                "new",
+                "/project",
+                "first",
+                "raw prompt",
+                "rendered user text",
+                Some((key, "new choice")),
+            )
+            .unwrap();
+        assert_eq!(first, "m0001");
+        assert_eq!(db.get_pref(key).unwrap().as_deref(), Some("new choice"));
+        assert_eq!(
+            db.get_pref("tui.session_location.new").unwrap().as_deref(),
+            Some("/project")
+        );
+        assert_eq!(db.session_meta("new").unwrap().parent_id, None);
+        assert_eq!(
+            db.read_history_full("new").unwrap(),
+            vec![(first.clone(), "user".into(), "rendered user text".into())]
+        );
+        {
+            let conn = db.conn.lock().unwrap();
+            let turn: (String, String, Option<String>) = conn
+                .query_row(
+                    "SELECT status, prompt, result FROM turns WHERE id = 'first'",
+                    [],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                )
+                .unwrap();
+            assert_eq!(turn, ("started".into(), "raw prompt".into(), None));
+            let events: Vec<(String, String)> = conn
+                .prepare("SELECT kind, payload FROM events WHERE session_id = 'new' ORDER BY seq")
+                .unwrap()
+                .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+                .unwrap()
+                .collect::<Result<_, _>>()
+                .unwrap();
+            assert_eq!(
+                events,
+                vec![
+                    ("session_created".into(), "{}".into()),
+                    ("turn_started".into(), "first".into()),
+                    ("message".into(), first),
+                ]
+            );
+        }
+        for location in ["/project", "/other"] {
+            assert!(matches!(
+                db.create_bound_session_and_accept_turn(
+                    "new",
+                    location,
+                    "duplicate",
+                    "bad",
+                    "bad",
+                    Some((key, "bad choice"))
+                ),
+                Err(StorageError::SessionAlreadyExists)
+            ));
+        }
+        assert_eq!(db.get_pref(key).unwrap().as_deref(), Some("new choice"));
+        assert_eq!(fresh_turn_rows(&db, "new", "duplicate"), (1, 1, 3, 0, 1));
+        db.create_session("unbound").unwrap();
+        assert!(matches!(
+            db.create_bound_session_and_accept_turn(
+                "unbound",
+                "/project",
+                "duplicate",
+                "bad",
+                "bad",
+                None
+            ),
+            Err(StorageError::SessionAlreadyExists)
+        ));
+        assert_eq!(
+            fresh_turn_rows(&db, "unbound", "duplicate"),
+            (1, 0, 1, 0, 0)
+        );
+        assert_eq!(
+            db.accept_turn("next", "new", "another prompt", "next user")
+                .unwrap(),
+            "m0002"
+        );
+        assert_eq!(fresh_turn_rows(&db, "new", "next"), (1, 1, 5, 1, 2));
+        assert!(matches!(
+            db.accept_turn("next", "new", "bad", "bad"),
+            Err(StorageError::Sqlite(_))
+        ));
+        assert_eq!(fresh_turn_rows(&db, "new", "next"), (1, 1, 5, 1, 2));
+    }
+
+    #[test]
+    fn fresh_turn_duplicate_turn_id_cannot_strand_new_session() {
+        let tmp = tmp_root("fresh-duplicate-turn");
+        let db = Db::open(&tmp.path().join("data")).unwrap();
+        db.create_session("existing").unwrap();
+        db.accept_turn("taken", "existing", "first", "first")
+            .unwrap();
+        assert!(matches!(
+            db.create_bound_session_and_accept_turn(
+                "new", "/project", "taken", "second", "second", None
+            ),
+            Err(StorageError::Sqlite(_))
+        ));
+        assert_eq!(fresh_turn_rows(&db, "new", "taken"), (0, 0, 0, 1, 0));
+        assert_eq!(
+            db.read_history("existing").unwrap(),
+            vec![("user".into(), "first".into())]
+        );
+        assert_eq!(
+            db.create_bound_session_and_accept_turn(
+                "new", "/project", "free", "second", "second", None
+            )
+            .unwrap(),
+            "m0002"
+        );
+        assert_eq!(fresh_turn_rows(&db, "new", "free"), (1, 1, 3, 1, 1));
     }
 
     #[test]

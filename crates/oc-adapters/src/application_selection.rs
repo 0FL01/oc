@@ -2,6 +2,7 @@
 //! transcript copy. Keys are structured tuples (no delimiter collisions); only
 //! one session's admitted agent drafts are loaded for an action/turn.
 use super::*;
+use oc_core::core_app::FreshSelection;
 use oc_core::queries::SessionSelectionAction as Action;
 use serde::{Deserialize, Serialize};
 
@@ -172,6 +173,124 @@ pub(super) fn for_turn(
         Some(choice) if choice.epoch >= fallback.legacy_epoch => resolve(db, c, fallback, &choice),
         Some(_) => Ok(fallback.clone()), // explicit legacy API supersedes older scoped drafts
         None => Ok(fallback.clone()),    // existing headless selection contract
+    }
+}
+
+/// Prevalidate an explicit Home choice and encode its session preference for
+/// the same transaction that accepts the new root's first user message.
+pub(super) fn fresh(
+    c: &Composition,
+    fallback: &Effective,
+    session: &str,
+    choice: FreshSelection,
+) -> Result<(Effective, (String, String)), CoreError> {
+    let mut selected = base_for_agent(c, fallback, choice.agent_id.as_deref())?;
+    set_model(
+        &mut selected,
+        c,
+        ModelChoice {
+            id: choice.model_id,
+            variant: choice.variant,
+        },
+    )?;
+    let agent = selected.agent_id.clone().unwrap_or_default();
+    let session_choice = SessionChoice {
+        agent: selected.agent_id.clone(),
+        models: BTreeMap::from([(agent, model(&selected))]),
+        epoch: fallback.legacy_epoch,
+    };
+    Ok((selected, record(session_key(c, session), &session_choice)?))
+}
+
+/// Sessionless Home selection. Only Location/agent drafts and the existing
+/// provider/model variant preference are durable; the Home choice itself is
+/// owned by the application worker and never uses a fabricated session id.
+fn home_for_agent(
+    db: &Db,
+    c: &Composition,
+    fallback: &Effective,
+    agent: Option<&str>,
+) -> Result<Effective, CoreError> {
+    let mut selected = base_for_agent(c, fallback, agent)?;
+    let choice = match load::<ModelChoice>(db, &draft_key(c, agent))? {
+        Some(draft) => draft,
+        None => preferred(db, c, &selected, selected.model_id.clone())?,
+    };
+    // A retired draft stays visible until the user explicitly replaces it.
+    selected.model_id = choice.id;
+    selected.variant = choice.variant;
+    Ok(selected)
+}
+
+/// Resolve an unchosen Home from this generation and the effective agent's
+/// durable Location draft. A read must not turn this into an explicit choice.
+pub(super) fn home_current(
+    db: &Db,
+    c: &Composition,
+    fallback: &Effective,
+) -> Result<Effective, CoreError> {
+    home_for_agent(db, c, fallback, fallback.agent_id.as_deref())
+}
+
+pub(super) fn home(
+    db: &Db,
+    c: &Composition,
+    fallback: &Effective,
+    current: &Effective,
+    action: Action,
+) -> Result<Effective, CoreError> {
+    match action {
+        Action::Current => Ok(current.clone()),
+        Action::Agent(agent) | Action::New(Some(agent)) => {
+            home_for_agent(db, c, fallback, Some(&agent))
+        }
+        Action::New(None) => home_for_agent(db, c, fallback, fallback.agent_id.as_deref()),
+        Action::Model(id) => {
+            // An explicit replacement must work even when the old Home model
+            // has retired. Keep a valid same-model choice, otherwise restore
+            // the remembered variant (or explicitly remediate a retired one).
+            let mut choice = if current.model_id == id {
+                model(current)
+            } else {
+                preferred(db, c, current, id.clone())?
+            };
+            let mut records = Vec::new();
+            if let Some(variant) = choice.variant.as_deref() {
+                let base = crate::models::select_model(&c.catalog, &id).map_err(app_error)?;
+                if crate::models::select_variant(&base, Some(variant)).is_err() {
+                    choice.variant = None;
+                    records.push(record(variant_key(c, &id), &Option::<String>::None)?);
+                }
+            }
+            let mut selected = current.clone();
+            set_model(&mut selected, c, choice)?;
+            records.push(record(
+                draft_key(c, selected.agent_id.as_deref()),
+                &model(&selected),
+            )?);
+            db.set_prefs(&records).map_err(app_error)?;
+            Ok(selected)
+        }
+        Action::Variant(variant) => {
+            let mut selected = current.clone();
+            set_model(
+                &mut selected,
+                c,
+                ModelChoice {
+                    id: current.model_id.clone(),
+                    variant: variant.clone(),
+                },
+            )?;
+            db.set_prefs(&[
+                record(variant_key(c, &selected.model_id), &variant)?,
+                record(
+                    draft_key(c, selected.agent_id.as_deref()),
+                    &model(&selected),
+                )?,
+            ])
+            .map_err(app_error)?;
+            Ok(selected)
+        }
     }
 }
 

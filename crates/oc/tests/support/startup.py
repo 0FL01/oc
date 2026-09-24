@@ -210,9 +210,17 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
                 **fixture, 'dcp': {'LEAKME-SWITCH-WARNING': True}}))
             os.write(master, f'/location {other}\r'.encode())
             result = drain(master, .8)
-            assert 'valid-location' in result and 'Offline' in result, (name, result)
+            assert 'valid-location' in result, (name, result)
             assert 'warning:' in result and 'DCP settings have unsupported' in result, (name, result)
             assert 'LEAKME-SWITCH-WARNING' not in result, (name, result)
+            # Sessionless Home may leave an unchanged model label on-screen
+            # without repainting its bytes. Open the actual target catalog to
+            # assert the selected model survived the failed switch and retry.
+            os.write(master, b'/models\r')
+            catalog = drain(master, .3)
+            assert 'Offline' in catalog, (name, 'target model missing', catalog)
+            os.write(master, b'\x1b')
+            drain(master, .1)
             os.write(master, b'\x03')
             drain(master, .2)
             assert child.wait(timeout=5) == 0, name

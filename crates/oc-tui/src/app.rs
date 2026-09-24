@@ -8,7 +8,8 @@
 //! for a stale turn can never corrupt the view.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::time::{Duration, Instant};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use oc_adapters::models::ModelCatalog;
@@ -240,6 +241,7 @@ struct PendingSubmission {
     request_id: u64,
     generation: u64,
     session: SessionId,
+    fresh: bool,
     draft: String,
     revision: u64,
     receipt: SubmissionReceipt,
@@ -256,7 +258,7 @@ pub(crate) const HOME_EXAMPLES: [&str; 3] = [
     "Fix broken tests",
 ];
 
-/// Bounded chat state bound to one session on the shared handle.
+/// Bounded chat state on the shared handle, optionally attached to a session.
 pub struct TuiState {
     pub chrome: oc_core::queries::TuiChrome,
     pub parent_id: Option<String>,
@@ -270,7 +272,7 @@ pub struct TuiState {
     /// Session autoaccept capability supplied by the application.
     pub auto_accept: oc_core::queries::AutoAcceptState,
     app: CoreApp,
-    session: SessionId,
+    session: Option<SessionId>,
     status: TuiStatus,
     panel: TuiPanel,
     pub(crate) select: crate::dialog::SelectList,
@@ -352,13 +354,23 @@ pub struct TuiState {
 impl TuiState {
     /// Bind to a session; the session must already exist on the handle.
     pub fn new(app: CoreApp, session: SessionId) -> Self {
-        let index = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
+        Self::with_session(app, Some(session))
+    }
+
+    /// Start a Home composer without creating or retaining a session ID.
+    pub fn new_home(app: CoreApp) -> Self {
+        Self::with_session(app, None)
+    }
+
+    fn with_session(app: CoreApp, session: Option<SessionId>) -> Self {
+        let index = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
             .map_or(0, |now| now.subsec_nanos() as usize % HOME_EXAMPLES.len());
+        let home = session.is_none();
         Self {
             chrome: Default::default(),
             parent_id: None,
-            home: false,
+            home,
             home_example: HOME_EXAMPLES[index],
             viewport_max_scroll: std::cell::Cell::new(None),
             session_title: None,
@@ -421,9 +433,15 @@ impl TuiState {
         }
     }
 
-    /// Attached session id.
+    /// Attached session ID, if this view has an accepted or resumed session.
+    pub fn attached_session(&self) -> Option<&SessionId> {
+        self.session.as_ref()
+    }
+
+    /// Attached session ID. Only call after checking `attached_session()`.
     pub fn session(&self) -> &SessionId {
-        &self.session
+        self.attached_session()
+            .expect("Home has no attached session")
     }
 
     pub(crate) fn set_detail_area(&self, area: ratatui::layout::Rect) {
@@ -507,7 +525,7 @@ impl TuiState {
         self.session_title = None;
         self.generation += 1;
         self.invalidate_submission();
-        self.session = session;
+        self.session = Some(session);
         self.input.clear();
         self.editor.clear();
         self.window = HistoryWindow::new();
@@ -643,7 +661,7 @@ impl TuiState {
                         s.clone(),
                         "Sessions",
                         String::new(),
-                        s == &self.session.0,
+                        self.attached_session().is_some_and(|id| s == &id.0),
                     )
                 })
                 .collect(),
@@ -672,6 +690,14 @@ impl TuiState {
     }
 
     pub fn command_unavailable(&self, action: &CommandAction) -> Option<&'static str> {
+        if self.session.is_none()
+            && matches!(
+                action,
+                CommandAction::OpenCards | CommandAction::DcpCompress { .. }
+            )
+        {
+            return Some("no session yet");
+        }
         crate::commands::spec(action).unavailable(
             self.is_busy(),
             self.picker.as_ref().is_some_and(|p| p.has_variants()),
@@ -1390,12 +1416,19 @@ impl TuiState {
         if self.is_busy() {
             return Err(CoreError::TurnBusy);
         }
-        let receipt = self.app.request_compress(self.session.clone(), focus)?;
-        self.begin_submission(receipt, true);
+        let session = self.session.clone().ok_or(CoreError::SessionNotFound)?;
+        let receipt = self.app.request_compress(session.clone(), focus)?;
+        self.begin_submission(receipt, session, false, true);
         Ok(())
     }
 
-    fn begin_submission(&mut self, receipt: SubmissionReceipt, compress: bool) {
+    fn begin_submission(
+        &mut self,
+        receipt: SubmissionReceipt,
+        session: SessionId,
+        fresh: bool,
+        compress: bool,
+    ) {
         self.request_id += 1;
         let agent = self.active_agent.clone();
         let agent_color_index = agent.as_deref().and_then(|agent| {
@@ -1407,7 +1440,8 @@ impl TuiState {
         self.pending = Some(PendingSubmission {
             request_id: self.request_id,
             generation: self.generation,
-            session: self.session.clone(),
+            session,
+            fresh,
             draft: self.input.clone(),
             revision: self.input_revision,
             receipt,
@@ -1687,11 +1721,18 @@ impl TuiState {
                     let session = self
                         .pending
                         .as_ref()
-                        .map_or(&self.session, |p| &p.session)
-                        .clone();
+                        .map(|p| &p.session)
+                        .or(self.session.as_ref())
+                        .cloned();
                     if let Some(pending) = &mut self.pending {
                         pending.cancelling = true;
                     }
+                    let Some(session) = session else {
+                        return KeyOutcome {
+                            note: Some("no session yet".into()),
+                            ..KeyOutcome::default()
+                        };
+                    };
                     match self.app.cancel(session).await {
                         Ok(()) => KeyOutcome::default(),
                         Err(error) => KeyOutcome {
@@ -1807,9 +1848,18 @@ impl TuiState {
                 ..KeyOutcome::default()
             };
         }
-        match self.app.request_submit(self.session.clone(), text) {
+        // The application owns Home selection and validates it on acceptance;
+        // `None` resolves the current Home choice without session preferences.
+        let fresh = self.session.is_none();
+        let session = self.session.clone().unwrap_or_else(fresh_session_id);
+        let result = if fresh {
+            self.app.request_submit_fresh(session.clone(), text, None)
+        } else {
+            self.app.request_submit(session.clone(), text)
+        };
+        match result {
             Ok(receipt) => {
-                self.begin_submission(receipt, false);
+                self.begin_submission(receipt, session, fresh, false);
                 KeyOutcome::default()
             }
             Err(error) => KeyOutcome {
@@ -1829,12 +1879,16 @@ impl TuiState {
         if self.status == TuiStatus::Quit
             || pending.request_id != self.request_id
             || pending.generation != self.generation
-            || pending.session != self.session
+            || (pending.fresh != self.session.is_none())
+            || (!pending.fresh && self.session.as_ref() != Some(&pending.session))
         {
             return;
         }
         match result {
             Ok(turn) => {
+                if pending.fresh {
+                    self.session = Some(pending.session);
+                }
                 self.live_preview_truncated = false;
                 self.live_part_states.clear();
                 self.live_terminal_status = None;
@@ -2177,6 +2231,10 @@ impl TuiState {
                 self.panel = TuiPanel::None;
             }
             TuiPanel::Cards => {
+                if self.session.is_none() {
+                    outcome.note = Some("no session yet".into());
+                    return outcome;
+                }
                 if let Some(detail) = &self.card_output {
                     if let Some(offset) = detail.page.next_offset {
                         outcome.intent = Some(PanelIntent::LoadCardOutput {
@@ -2194,9 +2252,13 @@ impl TuiState {
                 }
             }
             TuiPanel::Dcp => {
-                outcome.intent = Some(PanelIntent::Compress {
-                    focus: String::new(),
-                });
+                if self.session.is_some() {
+                    outcome.intent = Some(PanelIntent::Compress {
+                        focus: String::new(),
+                    });
+                } else {
+                    outcome.note = Some("no session yet".into());
+                }
             }
             TuiPanel::Help(_) | TuiPanel::None => {
                 self.panel = TuiPanel::None;
@@ -2610,6 +2672,21 @@ impl TuiState {
     }
 }
 
+/// A candidate identity exists only for an actual fresh submission, never for
+/// an idle Home. The counter disambiguates submissions within a process even
+/// when the clock resolution is coarse (including immediate rejected retries).
+fn fresh_session_id() -> SessionId {
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |now| now.as_nanos());
+    SessionId(format!(
+        "s-tui-{nanos:x}-{:x}-{:x}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ))
+}
+
 /// Mark a command as fully handled, or request its snapshot when the view
 /// has never loaded one.
 fn open_snapshot(outcome: &mut KeyOutcome, loaded: bool, intent: PanelIntent) {
@@ -2887,8 +2964,8 @@ pub enum PumpOutcome {
 #[cfg(test)]
 mod tests {
     use super::{
-        KeyOutcome, LIVE_PARTS_MAX, MAX_INPUT_BYTES, PanelIntent, PumpOutcome, ScriptDriver,
-        TuiPanel, TuiState, TuiStatus, VIEWPORT_LINES,
+        HOME_EXAMPLES, KeyOutcome, LIVE_PARTS_MAX, MAX_INPUT_BYTES, PanelIntent, PumpOutcome,
+        ScriptDriver, TuiPanel, TuiState, TuiStatus, VIEWPORT_LINES,
     };
     use crate::events::KeyAction;
     use crate::history::{WINDOW_BYTES, WINDOW_ROWS};
@@ -3290,6 +3367,207 @@ mod tests {
         })
         .await
         .expect("submission completed");
+    }
+
+    #[tokio::test]
+    async fn sessionless_home_keeps_bounded_editor_and_refuses_session_actions() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new_home(app);
+        assert!(state.home);
+        assert!(HOME_EXAMPLES.contains(&state.home_example));
+        assert_eq!(state.attached_session(), None);
+        assert!(state.history().rows().is_empty());
+        assert!(
+            crate::views::render_test(&state, 80, 24)
+                .join("\n")
+                .contains("Ask anything")
+        );
+        state.handle_key(KeyAction::Enter).await;
+        state.handle_paste("  \n ");
+        state.handle_key(KeyAction::Enter).await;
+        assert!(
+            inbox.try_recv().is_err(),
+            "empty Home has no candidate session"
+        );
+        assert!(state.attached_session().is_none());
+        assert_eq!(
+            state.request_compress(String::new()),
+            Err(CoreError::SessionNotFound)
+        );
+        for action in [
+            crate::commands::CommandAction::OpenCards,
+            crate::commands::CommandAction::DcpCompress {
+                focus: String::new(),
+            },
+        ] {
+            let result = state.run_command(action);
+            assert_eq!(result.note.as_deref(), Some("no session yet"));
+            assert_eq!(result.intent, None);
+            assert_eq!(state.panel(), &TuiPanel::None);
+        }
+        state.panel = TuiPanel::Dcp;
+        assert_eq!(state.handle_panel_key(KeyAction::Enter).intent, None);
+        state.panel = TuiPanel::Cards;
+        assert_eq!(state.handle_panel_key(KeyAction::Enter).intent, None);
+        state.close_panel();
+        state.handle_paste(&"x".repeat(MAX_INPUT_BYTES + 1));
+        assert_eq!(state.input().len(), MAX_INPUT_BYTES);
+        assert!(state.attached_session().is_none());
+    }
+
+    #[tokio::test]
+    async fn fresh_rejection_preserves_home_draft_and_retry_uses_new_candidate() {
+        use oc_core::core_app::InboxMsg;
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new_home(app);
+        type_text(&mut state, "retry me").await;
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::SubmitFresh {
+            session: first,
+            text,
+            selection,
+            ack,
+        }) = inbox.recv().await
+        else {
+            panic!("fresh submit")
+        };
+        assert_eq!(text, "retry me");
+        assert!(
+            selection.is_none(),
+            "the application owns the Home selection"
+        );
+        assert!(state.attached_session().is_none());
+        assert!(state.history().rows().is_empty());
+        state.handle_key(KeyAction::Enter).await;
+        assert!(inbox.try_recv().is_err(), "no duplicate while pending");
+        ack.send(Err(CoreError::Application("refused".into())))
+            .unwrap();
+        state.poll_submission();
+        assert!(state.home);
+        assert!(state.attached_session().is_none());
+        assert_eq!(state.input(), "retry me");
+        assert!(state.history().rows().is_empty());
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::SubmitFresh {
+            session: retry,
+            ack,
+            ..
+        }) = inbox.recv().await
+        else {
+            panic!("fresh retry")
+        };
+        assert_ne!(first, retry);
+        state.set_session(sid("switched"));
+        assert!(ack.send(Ok(WorkerTurnId("stale".into()))).is_err());
+        state.poll_submission();
+        assert!(state.history().rows().is_empty());
+    }
+
+    #[tokio::test]
+    async fn mock_busy_rejection_creates_no_fresh_root() {
+        let (app, guard) = CoreApp::spawn(MockProvider::fixed(vec!["slow".into(); 20], 100));
+        let existing = sid("busy-existing");
+        app.create_session(existing.clone()).await.unwrap();
+        app.try_submit(existing.clone(), "occupy worker".into())
+            .await
+            .unwrap();
+        let mut state = TuiState::new_home(app.clone());
+        type_text(&mut state, "retry later").await;
+        state.handle_key(KeyAction::Enter).await;
+        await_submission(&mut state).await;
+        assert!(state.home);
+        assert_eq!(state.attached_session(), None);
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        assert_eq!(state.input(), "retry later");
+        assert!(state.history().rows().is_empty());
+        assert_eq!(app.list_sessions().await.unwrap(), vec![existing.clone()]);
+        app.cancel(existing).await.unwrap();
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn mock_fresh_acceptance_binds_only_on_receipt_and_preserves_pending_edit() {
+        let (app, guard) = CoreApp::spawn(MockProvider::echo());
+        let mut driver = ScriptDriver::attach(&app);
+        let mut state = TuiState::new_home(app.clone());
+        type_text(&mut state, "first prompt").await;
+        state.handle_key(KeyAction::Enter).await;
+        assert_eq!(state.status(), &TuiStatus::PendingSubmission);
+        assert!(state.home);
+        assert!(state.attached_session().is_none());
+        // Paste does not poll the receipt, so this edit deterministically
+        // precedes reconciliation even if the mock owner already accepted.
+        state.handle_paste(" edited");
+        await_submission(&mut state).await;
+        let accepted = state.attached_session().expect("accepted ID").clone();
+        assert!(!state.home);
+        assert_eq!(state.input(), "first prompt edited");
+        assert_eq!(state.history().rows()[0].text, "first prompt");
+        assert_eq!(state.status(), &TuiStatus::Streaming);
+        assert_eq!(app.list_sessions().await.unwrap(), vec![accepted.clone()]);
+        assert_eq!(
+            driver
+                .pump_until_idle(&mut state, Duration::from_secs(5))
+                .await,
+            PumpOutcome::Finished("echo: first prompt".into())
+        );
+        assert_eq!(state.attached_session(), Some(&accepted));
+        state.handle_key(KeyAction::Enter).await;
+        await_submission(&mut state).await;
+        assert_eq!(state.attached_session(), Some(&accepted));
+        assert_eq!(
+            state
+                .history()
+                .rows()
+                .iter()
+                .filter(|row| row.role == "user")
+                .count(),
+            2
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn fresh_cancel_pending_uses_candidate_and_keeps_draft_on_late_accept() {
+        use oc_core::core_app::InboxMsg;
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new_home(app);
+        type_text(&mut state, "cancel me").await;
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::SubmitFresh {
+            session: candidate,
+            ack: submit_ack,
+            ..
+        }) = inbox.recv().await
+        else {
+            panic!("fresh request")
+        };
+        assert!(state.attached_session().is_none());
+        let cancel = tokio::spawn(async move {
+            let Some(InboxMsg::Cancel { session, ack }) = inbox.recv().await else {
+                panic!("candidate cancel")
+            };
+            assert_eq!(session, candidate);
+            ack.send(Ok(())).unwrap();
+            submit_ack
+                .send(Ok(WorkerTurnId("accepted-after-cancel".into())))
+                .unwrap();
+            session
+        });
+        assert_eq!(state.handle_key(KeyAction::Cancel).await.note, None);
+        let candidate = cancel.await.unwrap();
+        await_submission(&mut state).await;
+        assert_eq!(state.attached_session(), Some(&candidate));
+        assert_eq!(
+            state.input(),
+            "cancel me",
+            "cancel keeps the editable draft"
+        );
+        assert!(!state.home);
+        assert_eq!(state.history().rows()[0].text, "cancel me");
     }
 
     #[tokio::test]

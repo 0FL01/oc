@@ -1254,6 +1254,7 @@ impl<'a> Runtime<'a> {
                 params,
                 &lane,
                 attached,
+                None,
                 &mut accepted,
                 &mut text_delta,
                 &mut reasoning_delta,
@@ -1262,6 +1263,62 @@ impl<'a> Runtime<'a> {
             .await;
         self.retire_poisoned(&mut mcp).await?;
         drop(mcp);
+        let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
+        result.and_then(|mut report| {
+            report.duration_ms = duration_ms;
+            report.warnings.extend(mcp_warnings);
+            self.db.update_turn_display(
+                &report.turn_id,
+                &serde_json::json!({
+                    "duration_ms": duration_ms, "streamed_ms": report.streamed_ms,
+                    "usage": report.usage,
+                }),
+            )?;
+            Ok(report)
+        })
+    }
+
+    /// Accept the first turn of a new Location-bound root in one transaction.
+    /// `params.session` must be an unused candidate id. `initial_selection`, if
+    /// present, is an application-prevalidated session-scoped preference pair;
+    /// its key must target this id. The acceptance callback runs only after the
+    /// root, binding, selection, turn and user message have committed.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn run_fresh_turn_with_tool_events(
+        &self,
+        params: TurnParams<'_>,
+        initial_selection: Option<(&str, &str)>,
+        mut accepted: impl FnMut(&str) + Send,
+        mut text_delta: impl FnMut(&str, &str) + Send,
+        mut reasoning_delta: impl FnMut(&str, &str) + Send,
+        mut tool_event: impl FnMut(&str, &ToolCallEvent) + Send,
+    ) -> Result<TurnReport, RuntimeError> {
+        let started = std::time::Instant::now();
+        let _lease = self.begin_active()?;
+        let published = self.current.read().expect("generation lock").clone();
+        let lane = self.primary_lane(&published);
+        let mut mcp = self.mcp_generation.lock().await;
+        let attached = self
+            .ensure_mcp_generation(&mut mcp, &published, params.cancel)
+            .await?;
+        let mcp_warnings = attached.warnings();
+        let result = self
+            .run_turn_inner(
+                params,
+                &lane,
+                attached,
+                Some(initial_selection),
+                &mut accepted,
+                &mut text_delta,
+                &mut reasoning_delta,
+                &mut tool_event,
+            )
+            .await;
+        // A committed fresh root must remain observable through the acceptance
+        // callback even if cleanup or display-metadata writes later fail.
+        let cleanup = self.retire_poisoned(&mut mcp).await;
+        drop(mcp);
+        cleanup?;
         let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
         result.and_then(|mut report| {
             report.duration_ms = duration_ms;
@@ -1458,6 +1515,7 @@ impl<'a> Runtime<'a> {
         params: TurnParams<'_>,
         lane: &TurnLane,
         attached: &McpGeneration,
+        fresh_selection: Option<Option<(&str, &str)>>,
         accepted: &mut (dyn FnMut(&str) + Send),
         text_delta: &mut (dyn FnMut(&str, &str) + Send),
         reasoning_delta: &mut (dyn FnMut(&str, &str) + Send),
@@ -1478,6 +1536,7 @@ impl<'a> Runtime<'a> {
                 params,
                 lane,
                 attached,
+                fresh_selection,
                 accepted,
                 text_delta,
                 reasoning_delta,
@@ -1497,6 +1556,7 @@ impl<'a> Runtime<'a> {
         params: TurnParams<'_>,
         lane: &TurnLane,
         attached: &McpGeneration,
+        fresh_selection: Option<Option<(&str, &str)>>,
         accepted: &mut (dyn FnMut(&str) + Send),
         text_delta: &mut (dyn FnMut(&str, &str) + Send),
         reasoning_delta: &mut (dyn FnMut(&str, &str) + Send),
@@ -1504,7 +1564,22 @@ impl<'a> Runtime<'a> {
         budget: &models::AdmissionBudget,
     ) -> Result<TurnReport, RuntimeError> {
         let published = self.current.read().expect("generation lock").clone();
-        self.open_session(&params.session)?;
+        if fresh_selection.is_some() {
+            if params.session.trim().is_empty() {
+                return Err(RuntimeError::InvalidArgs("empty session id".into()));
+            }
+            match self.db.session_meta(&params.session) {
+                Err(StorageError::SessionNotFound) => {}
+                Ok(_) => {
+                    return Err(RuntimeError::InvalidArgs(
+                        "session id already exists".into(),
+                    ));
+                }
+                Err(error) => return Err(error.into()),
+            }
+        } else {
+            self.open_session(&params.session)?;
+        }
         // Exact model selection + admission before any side effect.
         let base = models::select_model(params.catalog, &params.model_id)
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
@@ -1513,20 +1588,25 @@ impl<'a> Runtime<'a> {
         let workspace = self.workspace.read().expect("workspace lock").clone();
         // Outbound context honors compression blocks + prune mark: covered
         // members collapse to summaries, raw history is never rewritten.
-        let ActiveContext {
-            after_seq,
-            mut projected,
-            blocks: sblocks,
-        } = self.active_projection(&params.session)?;
-        let mut history = self.wire_history(
-            &params.session,
-            &projected,
-            &sblocks,
-            &selection.id,
-            &params.catalog.provider,
-            lane.agent_digest.as_deref(),
-            after_seq,
-        )?;
+        let (mut projected, mut history) = if fresh_selection.is_some() {
+            (Vec::new(), Vec::new())
+        } else {
+            let ActiveContext {
+                after_seq,
+                projected,
+                blocks,
+            } = self.active_projection(&params.session)?;
+            let history = self.wire_history(
+                &params.session,
+                &projected,
+                &blocks,
+                &selection.id,
+                &params.catalog.provider,
+                lane.agent_digest.as_deref(),
+                after_seq,
+            )?;
+            (projected, history)
+        };
         let dcp_config = self.dcp_config.read().expect("dcp lock").clone();
         let compress_available = dcp_config.enabled
             && !dcp_config.manual_mode
@@ -1541,7 +1621,11 @@ impl<'a> Runtime<'a> {
                 "effective DCP minContextLimit exceeds maxContextLimit".into(),
             ));
         }
-        let mut tool_projection = self.db.load_dcp_tool_projection(&params.session)?;
+        let mut tool_projection = if fresh_selection.is_some() {
+            Default::default()
+        } else {
+            self.db.load_dcp_tool_projection(&params.session)?
+        };
         apply_dcp_projection(&mut history, &tool_projection);
         let mut anchors = compress_available
             .then(|| dcp_config_input(&projected, &dcp_config))
@@ -1553,9 +1637,14 @@ impl<'a> Runtime<'a> {
         {
             let mut states = self.nudge_state.lock().expect("nudge lock");
             if !states.contains_key(&state_key) {
-                let state = match self.db.get_pref(&state_key)? {
-                    Some(raw) => serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?,
-                    None => NudgeState::default(),
+                let state = match fresh_selection {
+                    Some(_) => NudgeState::default(),
+                    None => match self.db.get_pref(&state_key)? {
+                        Some(raw) => {
+                            serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?
+                        }
+                        None => NudgeState::default(),
+                    },
                 };
                 states.insert(state_key.clone(), state);
             }
@@ -1581,9 +1670,19 @@ impl<'a> Runtime<'a> {
         // Durable intent before any side effect.
         let turn_id = next_turn_id(&params.session, millis());
         let user_text = params.invocation.as_deref().unwrap_or(&params.prompt);
-        let user_message =
+        let user_message = if let Some(initial_selection) = fresh_selection {
+            self.db.create_bound_session_and_accept_turn(
+                &params.session,
+                &self.location,
+                &turn_id,
+                &params.prompt,
+                user_text,
+                initial_selection,
+            )?
+        } else {
             self.db
-                .accept_turn(&turn_id, &params.session, &params.prompt, user_text)?;
+                .accept_turn(&turn_id, &params.session, &params.prompt, user_text)?
+        };
         accepted(&turn_id);
         let mut tool_defs = builtin_tool_defs();
         if !compress_available {
@@ -2033,6 +2132,7 @@ impl<'a> Runtime<'a> {
             params,
             &lane,
             attached,
+            None,
             &mut |_: &str| {},
             &mut |_: &str, _: &str| {},
             &mut |_: &str, _: &str| {},

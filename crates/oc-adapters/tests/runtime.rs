@@ -298,6 +298,365 @@ fn runtime_with_dcp<'a>(
     .expect("runtime")
 }
 
+#[tokio::test]
+async fn fresh_turn_commits_root_binding_selection_before_ack_and_streams_normally() {
+    let mut permissions = allow_all();
+    permissions.insert("read".into(), Permission::Deny);
+    let (harness, generation) = make_harness(permissions);
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    let selection_key = "tui.selection.session:[\"/project\",\"test\",\"fresh\"]";
+    let selection = r#"{"agent":null,"models":{"":{"id":"m","variant":null}},"epoch":0}"#;
+    let (base, hits, requests) = Fake::start_recording(
+        vec![
+            sse_tool_call("denied-read", "read", &serde_json::json!({"path":"secret"}))
+                + &sse_completed(),
+            sse_delta("answer") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let mut acknowledgements = Vec::new();
+    let mut deltas = Vec::new();
+    let callback_order = Arc::new(Mutex::new(Vec::new()));
+    let accepted_order = callback_order.clone();
+    let tool_order = callback_order.clone();
+    let report = runtime
+        .run_fresh_turn_with_tool_events(
+            params(
+                "fresh",
+                "expanded prompt",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ),
+            Some((selection_key, selection)),
+            |turn| {
+                let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+                let (status, prompt): (String, String) = conn
+                    .query_row(
+                        "SELECT status, prompt FROM turns WHERE id = ?1",
+                        [turn],
+                        |row| Ok((row.get(0)?, row.get(1)?)),
+                    )
+                    .unwrap();
+                assert_eq!(
+                    (status.as_str(), prompt.as_str()),
+                    ("started", "expanded prompt")
+                );
+                assert_eq!(
+                    harness.db.get_pref(selection_key).unwrap().as_deref(),
+                    Some(selection)
+                );
+                runtime.open_session("fresh").unwrap();
+                assert_eq!(
+                    harness.db.read_history("fresh").unwrap(),
+                    [("user".into(), "expanded prompt".into())]
+                );
+                accepted_order.lock().unwrap().push("accepted");
+                acknowledgements.push(turn.to_string());
+            },
+            |turn, text| deltas.push((turn.to_string(), text.to_string())),
+            |_, _| {},
+            |_, event| {
+                tool_order.lock().unwrap().push(match event {
+                    ToolCallEvent::Started { .. } => "started",
+                    ToolCallEvent::Finished { .. } => "finished",
+                });
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(report.text, "answer");
+    assert_eq!(
+        acknowledgements.as_slice(),
+        std::slice::from_ref(&report.turn_id)
+    );
+    assert_eq!(deltas, [(report.turn_id.clone(), "answer".into())]);
+    assert_eq!(report.calls[0].output, "error: denied read");
+    assert_eq!(
+        *callback_order.lock().unwrap(),
+        ["accepted", "started", "finished"]
+    );
+    assert_eq!(*hits.lock().unwrap(), 2);
+    assert_eq!(requests.lock().unwrap()[0]["model"], "m");
+    assert_eq!(
+        function_output(&requests.lock().unwrap()[1], "denied-read"),
+        Some("error: denied read")
+    );
+    assert_eq!(harness.db.session_meta("fresh").unwrap().parent_id, None);
+    assert_eq!(harness.db.read_history("fresh").unwrap().len(), 2);
+    let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    let events: Vec<String> = conn
+        .prepare("SELECT kind FROM events WHERE session_id='fresh' ORDER BY rowid")
+        .unwrap()
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    assert_eq!(
+        events,
+        [
+            "session_created",
+            "turn_started",
+            "message",
+            "message",
+            "turn_finished"
+        ]
+    );
+
+    // The old path can continue the root, while fresh-only admission cannot
+    // claim it or rewrite its selection/history.
+    let duplicate = runtime
+        .run_fresh_turn_with_tool_events(
+            params(
+                "fresh",
+                "duplicate",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ),
+            None,
+            |_| panic!("duplicate accepted"),
+            |_, _| {},
+            |_, _| {},
+            |_, _| {},
+        )
+        .await;
+    assert!(matches!(duplicate, Err(RuntimeError::InvalidArgs(_))));
+    assert_eq!(harness.db.read_history("fresh").unwrap().len(), 2);
+    assert_eq!(
+        runtime
+            .run_turn(params(
+                "fresh",
+                "next",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL
+            ))
+            .await
+            .unwrap()
+            .status,
+        TurnStatus::Completed
+    );
+    assert_eq!(harness.db.read_history("fresh").unwrap().len(), 4);
+}
+
+#[tokio::test]
+async fn cancelled_fresh_turn_keeps_the_durable_acceptance_receipt() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    let cancelled = AtomicBool::new(true);
+    let (base, hits) = Fake::start(
+        vec![sse_delta("unexpected") + &sse_completed()],
+        Duration::ZERO,
+    );
+    let mut accepted = None;
+    let report = runtime
+        .run_fresh_turn_with_tool_events(
+            params(
+                "cancelled-fresh",
+                "input",
+                &harness,
+                provider_of(&base),
+                &cancelled,
+            ),
+            None,
+            |turn| accepted = Some(turn.to_string()),
+            |_, _| panic!("cancelled turn streamed text"),
+            |_, _| {},
+            |_, _| {},
+        )
+        .await
+        .unwrap();
+    assert_eq!(accepted.as_deref(), Some(report.turn_id.as_str()));
+    assert_eq!(report.status, TurnStatus::Cancelled);
+    assert_eq!(*hits.lock().unwrap(), 0);
+    runtime.open_session("cancelled-fresh").unwrap();
+    assert_eq!(
+        harness.db.read_history("cancelled-fresh").unwrap(),
+        [("user".into(), "input".into())]
+    );
+}
+
+#[tokio::test]
+async fn post_accept_failure_still_delivers_fresh_root_and_turn_receipt() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    conn.execute_batch(
+        "CREATE TRIGGER fail_checkpoint BEFORE UPDATE ON turns
+         WHEN NEW.session_id = 'checkpoint-fresh'
+         BEGIN SELECT RAISE(ABORT, 'injected checkpoint failure'); END;",
+    )
+    .unwrap();
+    let (base, hits) = Fake::start(vec![sse_delta("never") + &sse_completed()], Duration::ZERO);
+    let mut accepted = None;
+    let result = runtime
+        .run_fresh_turn_with_tool_events(
+            params(
+                "checkpoint-fresh",
+                "input",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ),
+            None,
+            |turn| accepted = Some(turn.to_string()),
+            |_, _| {},
+            |_, _| {},
+            |_, _| {},
+        )
+        .await;
+    assert_eq!(result.unwrap_err(), RuntimeError::Storage);
+    let turn = accepted.expect("committed root and turn must have a receipt");
+    runtime.open_session("checkpoint-fresh").unwrap();
+    let state: String = conn
+        .query_row("SELECT status FROM turns WHERE id = ?1", [turn], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(state, "started");
+    assert_eq!(
+        harness.db.read_history("checkpoint-fresh").unwrap(),
+        [("user".into(), "input".into())]
+    );
+    assert_eq!(*hits.lock().unwrap(), 0);
+}
+
+#[tokio::test]
+async fn fresh_provider_failure_after_accept_retains_root_and_reports_failed_turn() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    let mut accepted = None;
+    let report = runtime
+        .run_fresh_turn_with_tool_events(
+            params(
+                "provider-fresh",
+                "input",
+                &harness,
+                provider_of("http://127.0.0.1:9/v1"),
+                &NO_CANCEL,
+            ),
+            None,
+            |turn| accepted = Some(turn.to_string()),
+            |_, _| {},
+            |_, _| {},
+            |_, _| {},
+        )
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Failed);
+    assert_eq!(accepted.as_deref(), Some(report.turn_id.as_str()));
+    runtime.open_session("provider-fresh").unwrap();
+    assert_eq!(
+        harness.db.read_history("provider-fresh").unwrap(),
+        [("user".into(), "input".into())]
+    );
+}
+
+#[tokio::test]
+async fn rejected_fresh_turn_leaves_no_root_or_selection_and_can_retry() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    let key = "tui.selection.session:[\"/project\",\"test\",\"retry\"]";
+    let wrong = "tui.selection.session:[\"/project\",\"test\",\"other\"]";
+    let (base, hits) = Fake::start(vec![sse_delta("ok") + &sse_completed()], Duration::ZERO);
+    let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    let runtime_ref = &runtime;
+    let rejected = |params, selection| async move {
+        runtime_ref
+            .run_fresh_turn_with_tool_events(
+                params,
+                selection,
+                |_| panic!("rejected fresh turn acknowledged"),
+                |_, _| {},
+                |_, _| {},
+                |_, _| {},
+            )
+            .await
+    };
+    let mut invalid_model = params("retry", "prompt", &harness, provider_of(&base), &NO_CANCEL);
+    invalid_model.model_id = "absent".into();
+    assert!(matches!(
+        rejected(invalid_model, Some((key, "choice"))).await,
+        Err(RuntimeError::InvalidArgs(_))
+    ));
+    let mut invalid_variant = params("retry", "prompt", &harness, provider_of(&base), &NO_CANCEL);
+    invalid_variant.variant = Some("absent".into());
+    assert!(matches!(
+        rejected(invalid_variant, Some((key, "choice"))).await,
+        Err(RuntimeError::InvalidArgs(_))
+    ));
+    let mut tiny_catalog = harness.catalog.clone();
+    tiny_catalog.models.insert(
+        "m".into(),
+        serde_json::json!({"limit":{"context":1,"output":1}}),
+    );
+    let mut over_budget = params("retry", "prompt", &harness, provider_of(&base), &NO_CANCEL);
+    over_budget.catalog = &tiny_catalog;
+    assert!(matches!(
+        rejected(over_budget, Some((key, "choice"))).await,
+        Err(RuntimeError::InvalidArgs(_))
+    ));
+    assert_eq!(
+        rejected(
+            params("retry", "prompt", &harness, provider_of(&base), &NO_CANCEL),
+            Some((wrong, "choice"))
+        )
+        .await
+        .unwrap_err(),
+        RuntimeError::Storage
+    );
+
+    conn.execute_batch("CREATE TRIGGER fail_fresh_input BEFORE INSERT ON messages WHEN NEW.session_id = 'retry' BEGIN SELECT RAISE(ABORT, 'injected input failure'); END;").unwrap();
+    assert_eq!(
+        rejected(
+            params("retry", "prompt", &harness, provider_of(&base), &NO_CANCEL),
+            Some((key, "choice"))
+        )
+        .await
+        .unwrap_err(),
+        RuntimeError::Storage
+    );
+    for table in ["sessions", "turns", "messages", "events"] {
+        let query = format!("SELECT COUNT(*) FROM {table} WHERE session_id = 'retry'");
+        let query = if table == "sessions" {
+            "SELECT COUNT(*) FROM sessions WHERE id = 'retry'"
+        } else {
+            &query
+        };
+        let count: i64 = conn.query_row(query, [], |row| row.get(0)).unwrap();
+        assert_eq!(count, 0, "{table} left after refusal");
+    }
+    assert_eq!(harness.db.get_pref(key).unwrap(), None);
+    assert_eq!(
+        harness
+            .db
+            .get_pref(&format!("{SESSION_LOCATION_PREFIX}retry"))
+            .unwrap(),
+        None
+    );
+    assert_eq!(*hits.lock().unwrap(), 0);
+
+    conn.execute_batch("DROP TRIGGER fail_fresh_input").unwrap();
+    let mut accepted = None;
+    let report = runtime
+        .run_fresh_turn_with_tool_events(
+            params("retry", "prompt", &harness, provider_of(&base), &NO_CANCEL),
+            Some((key, "choice")),
+            |turn| accepted = Some(turn.to_string()),
+            |_, _| {},
+            |_, _| {},
+            |_, _| {},
+        )
+        .await
+        .unwrap();
+    assert_eq!(accepted.as_deref(), Some(report.turn_id.as_str()));
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(harness.db.get_pref(key).unwrap().as_deref(), Some("choice"));
+    assert_eq!(*hits.lock().unwrap(), 1);
+}
+
 #[test]
 fn root_location_creation_rolls_back_on_pref_failure_and_retries() {
     let (harness, generation) = make_harness(allow_all());
@@ -4100,4 +4459,926 @@ async fn dto_application_events_surface_tool_calls() {
     );
     app.shutdown().await.expect("shutdown");
     guard.join().await.expect("join");
+}
+
+#[tokio::test]
+async fn application_fresh_turn_validates_and_atomically_pins_home_choice() {
+    use oc_adapters::application;
+    use oc_core::core_app::{CoreEvent, FreshSelection};
+    use oc_core::domain::SessionId;
+    use oc_core::queries::SessionSelectionAction;
+    use oc_core::session::CoreError;
+
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    let (base, _, requests) = Fake::start_recording(
+        vec![sse_delta("answer") + &sse_completed()],
+        Duration::from_millis(100),
+    );
+    let config = serde_json::json!({
+        "model":"fixture/main", "default_agent":"build",
+        "provider":{"fixture":{
+            "npm":"@ai-sdk/openai", "options":{"baseURL":base,"apiKey":"fixture-key"},
+            "models":{
+                "main":{"limit":{"context":65536,"output":4096},
+                    "variants":{"low":{"reasoningEffort":"low"}}},
+                "other":{"limit":{"context":65536,"output":4096},
+                    "variants":{"deep":{"reasoningEffort":"high"}}}
+            }
+        }},
+        "agent":{
+            "build":{"mode":"primary","prompt":"BUILD_PRIMARY"},
+            "review":{"mode":"primary","prompt":"REVIEW_PRIMARY"},
+            "helper":{"mode":"subagent","prompt":"HELPER_CHILD"}
+        }
+    });
+    std::fs::write(project.path().join("opencode.json"), config.to_string()).unwrap();
+    let env = BTreeMap::from([
+        ("HOME".into(), home.path().to_string_lossy().into_owned()),
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+    ]);
+    let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env)
+        .await
+        .unwrap();
+    let sid = |name| SessionId::new(name).unwrap();
+    let chosen = |agent: &str, model: &str, variant: Option<&str>| FreshSelection {
+        agent_id: Some(agent.into()),
+        model_id: model.into(),
+        variant: variant.map(str::to_string),
+    };
+    app.select_model("main".into(), Some("low".into()))
+        .await
+        .unwrap();
+    for (id, text, choice) in [
+        ("empty", " \n ", None),
+        ("bad-agent", "prompt", Some(chosen("helper", "main", None))),
+        (
+            "bad-variant",
+            "prompt",
+            Some(chosen("review", "main", Some("missing"))),
+        ),
+        (
+            "bad-model",
+            "prompt",
+            Some(chosen("review", "missing", None)),
+        ),
+    ] {
+        assert!(
+            app.submit_fresh(sid(id), text.into(), choice)
+                .await
+                .is_err(),
+            "{id} must be refused"
+        );
+        assert!(app.read_history(sid(id)).await.is_err());
+    }
+    assert!(app.list_sessions().await.unwrap().is_empty());
+    assert!(
+        requests.lock().unwrap().is_empty(),
+        "refusal never calls provider"
+    );
+
+    let mut events = app.subscribe();
+    let implicit = sid("fresh-implicit");
+    app.submit_fresh(implicit.clone(), "first".into(), None)
+        .await
+        .expect("durable first turn");
+    assert_eq!(
+        app.submit_fresh(sid("fresh-busy"), "busy".into(), None)
+            .await,
+        Err(CoreError::TurnBusy)
+    );
+    assert!(app.read_history(sid("fresh-busy")).await.is_err());
+    loop {
+        match tokio::time::timeout(Duration::from_secs(10), events.recv())
+            .await
+            .unwrap()
+            .unwrap()
+        {
+            CoreEvent::TurnFinished { session, .. } if session == implicit => break,
+            CoreEvent::TurnFailed { error, .. } => panic!("implicit turn failed: {error}"),
+            _ => {}
+        }
+    }
+    assert_eq!(
+        app.session_selection(implicit.clone(), false, SessionSelectionAction::Current)
+            .await
+            .unwrap()
+            .variant
+            .as_deref(),
+        Some("low")
+    );
+
+    let explicit = sid("fresh-explicit");
+    app.submit_fresh(
+        explicit.clone(),
+        "second".into(),
+        Some(chosen("review", "other", Some("deep"))),
+    )
+    .await
+    .expect("explicit first turn");
+    loop {
+        match tokio::time::timeout(Duration::from_secs(10), events.recv())
+            .await
+            .unwrap()
+            .unwrap()
+        {
+            CoreEvent::TurnFinished { session, .. } if session == explicit => break,
+            CoreEvent::TurnFailed { error, .. } => panic!("explicit turn failed: {error}"),
+            _ => {}
+        }
+    }
+    let actual = app
+        .session_selection(explicit.clone(), false, SessionSelectionAction::Current)
+        .await
+        .unwrap();
+    assert_eq!(actual.agent_id.as_deref(), Some("review"));
+    assert_eq!(actual.model_id, "other");
+    assert_eq!(actual.variant.as_deref(), Some("deep"));
+    assert_eq!(
+        app.read_history(explicit.clone()).await.unwrap()[0].text,
+        "second"
+    );
+    assert_eq!(
+        app.read_history(implicit.clone()).await.unwrap()[0].text,
+        "first"
+    );
+    assert_eq!(
+        app.submit_fresh(explicit.clone(), "again".into(), None)
+            .await,
+        Err(CoreError::SessionAlreadyExists)
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+
+    let db = Db::open(data.path()).unwrap();
+    let location = project
+        .path()
+        .canonicalize()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    for id in ["fresh-implicit", "fresh-explicit"] {
+        assert_eq!(
+            db.get_pref(&format!("{SESSION_LOCATION_PREFIX}{id}"))
+                .unwrap()
+                .as_deref(),
+            Some(location.as_str())
+        );
+    }
+    let key = |id: &str| {
+        format!(
+            "tui.selection.session:{}",
+            serde_json::json!([location, "fixture", id])
+        )
+    };
+    let implicit_record: serde_json::Value = serde_json::from_str(
+        &db.get_pref(&key("fresh-implicit"))
+            .unwrap()
+            .expect("implicit Home choice pinned with first turn"),
+    )
+    .unwrap();
+    assert_eq!(implicit_record["agent"], "build");
+    assert_eq!(implicit_record["models"]["build"]["id"], "main");
+    assert_eq!(implicit_record["models"]["build"]["variant"], "low");
+    let record: serde_json::Value = serde_json::from_str(
+        &db.get_pref(&key("fresh-explicit"))
+            .unwrap()
+            .expect("atomic selection"),
+    )
+    .unwrap();
+    assert_eq!(record["agent"], "review");
+    assert_eq!(record["models"]["review"]["id"], "other");
+    assert_eq!(record["models"]["review"]["variant"], "deep");
+    assert_eq!(record["epoch"], 1);
+    let captured = requests.lock().unwrap();
+    // The title provider may add a request after each turn; locate the turn
+    // requests by their user input instead of relying on title call ordering.
+    assert!(captured.iter().any(|r| r["model"] == "main"
+        && r["input"].to_string().contains("first")
+        && r["input"].to_string().contains("BUILD_PRIMARY")));
+    assert!(captured.iter().any(|r| r["model"] == "other"
+        && r["input"].to_string().contains("second")
+        && r["input"].to_string().contains("REVIEW_PRIMARY")));
+}
+
+#[tokio::test]
+async fn application_home_actions_are_sessionless_and_fresh_turn_pins_current_location_choice() {
+    use oc_adapters::application;
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+    use oc_core::queries::SessionSelectionAction as Action;
+    use oc_core::session::CoreError;
+
+    let project = tempfile::tempdir().unwrap();
+    let other_location = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let user_home = tempfile::tempdir().unwrap();
+    let (base, _, requests) = Fake::start_recording(
+        vec![sse_delta("answer") + &sse_completed()],
+        Duration::from_millis(200),
+    );
+    let config = |model: &str| {
+        serde_json::json!({
+            "model":format!("fixture/{model}"), "default_agent":"build",
+            "provider":{"fixture":{
+                "npm":"@ai-sdk/openai", "options":{"baseURL":base,"apiKey":"fixture-key"},
+                "models":{
+                    "main":{"limit":{"context":65536,"output":4096},
+                        "variants":{"low":{"reasoningEffort":"low"}}},
+                    "other":{"limit":{"context":65536,"output":4096},
+                        "variants":{"deep":{"reasoningEffort":"high"}}}
+                }
+            }},
+            "agent":{
+                "build":{"mode":"primary","prompt":"BUILD_PRIMARY"},
+                "review":{"mode":"primary","prompt":"REVIEW_PRIMARY"},
+                "helper":{"mode":"subagent"}
+            }
+        })
+    };
+    std::fs::write(
+        project.path().join("opencode.json"),
+        config("main").to_string(),
+    )
+    .unwrap();
+    std::fs::write(
+        other_location.path().join("opencode.json"),
+        config("other").to_string(),
+    )
+    .unwrap();
+    let env = BTreeMap::from([
+        (
+            "HOME".into(),
+            user_home.path().to_string_lossy().into_owned(),
+        ),
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+    ]);
+    let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env)
+        .await
+        .unwrap();
+    let sid = SessionId::new("home-chosen").unwrap();
+    let location = project
+        .path()
+        .canonicalize()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    let other = other_location
+        .path()
+        .canonicalize()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    let current = app.home_selection(Action::Current).await.unwrap();
+    assert_eq!(current.chrome.location.as_deref(), Some(location.as_str()));
+    assert_eq!(current.model_id, "main");
+    assert_eq!(current.agent_id.as_deref(), Some("build"));
+
+    let selected = app
+        .home_selection(Action::Model("other".into()))
+        .await
+        .unwrap();
+    assert_eq!(
+        (selected.model_id.as_str(), selected.variant.as_deref()),
+        ("other", None)
+    );
+    assert_eq!(
+        app.home_selection(Action::Variant(Some("deep".into())))
+            .await
+            .unwrap()
+            .variant
+            .as_deref(),
+        Some("deep")
+    );
+    let review = app
+        .home_selection(Action::Agent("review".into()))
+        .await
+        .unwrap();
+    assert_eq!(
+        (review.model_id.as_str(), review.agent_id.as_deref()),
+        ("main", Some("review"))
+    );
+    let review = app
+        .home_selection(Action::Model("other".into()))
+        .await
+        .unwrap();
+    assert_eq!(review.variant.as_deref(), Some("deep"));
+    let review = app.home_selection(Action::Variant(None)).await.unwrap();
+    assert_eq!(review.variant, None);
+    let build = app
+        .home_selection(Action::Agent("build".into()))
+        .await
+        .unwrap();
+    assert_eq!(
+        (build.model_id.as_str(), build.variant.as_deref()),
+        ("other", Some("deep"))
+    );
+    let review = app
+        .home_selection(Action::Agent("review".into()))
+        .await
+        .unwrap();
+    assert_eq!((review.model_id.as_str(), review.variant), ("other", None));
+    assert_eq!(
+        app.home_selection(Action::New(Some("review".into())))
+            .await
+            .unwrap()
+            .model_id,
+        "other"
+    );
+    let reset = app.home_selection(Action::New(None)).await.unwrap();
+    assert_eq!(
+        (
+            reset.agent_id.as_deref(),
+            reset.model_id.as_str(),
+            reset.variant.as_deref()
+        ),
+        (Some("build"), "other", Some("deep"))
+    );
+    let before = app.home_selection(Action::Current).await.unwrap();
+    for rejected in [
+        Action::Model("retired".into()),
+        Action::Variant(Some("missing".into())),
+        Action::Agent("helper".into()),
+    ] {
+        assert!(app.home_selection(rejected).await.is_err());
+        assert_eq!(app.home_selection(Action::Current).await.unwrap(), before);
+    }
+    assert!(
+        app.list_sessions().await.unwrap().is_empty(),
+        "Home-only actions must not create a root"
+    );
+    let conn = rusqlite::Connection::open(data.path().join("oc.sqlite")).unwrap();
+    let session_prefs: i64 = conn
+        .query_row(
+            "SELECT count(*) FROM prefs WHERE key LIKE 'tui.selection.session:%'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(session_prefs, 0, "Home has no phantom session preference");
+    assert_eq!(
+        app.select_model("main".into(), Some("low".into()))
+            .await
+            .unwrap()
+            .model_id,
+        "main"
+    );
+
+    let mut events = app.subscribe();
+    app.submit_fresh(sid.clone(), "chosen Home".into(), None)
+        .await
+        .expect("durable first turn");
+    assert_eq!(
+        app.home_selection(Action::Variant(None)).await,
+        Err(CoreError::TurnBusy)
+    );
+    assert_eq!(
+        app.home_selection(Action::Current).await,
+        Err(CoreError::TurnBusy)
+    );
+    let key = format!(
+        "tui.selection.session:{}",
+        serde_json::json!([location, "fixture", "home-chosen"])
+    );
+    let pinned: serde_json::Value = serde_json::from_str(
+        &conn
+            .query_row("SELECT value FROM prefs WHERE key = ?1", [&key], |r| {
+                r.get::<_, String>(0)
+            })
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(pinned["agent"], "build");
+    assert_eq!(pinned["models"]["build"]["id"], "other");
+    assert_eq!(pinned["models"]["build"]["variant"], "deep");
+    assert_eq!(pinned["epoch"], 1);
+    loop {
+        match tokio::time::timeout(Duration::from_secs(10), events.recv())
+            .await
+            .unwrap()
+            .unwrap()
+        {
+            CoreEvent::TurnFinished { session, .. } if session == sid => break,
+            CoreEvent::TurnFailed { error, .. } => panic!("Home turn failed: {error}"),
+            _ => {}
+        }
+    }
+    let actual = app
+        .session_selection(sid.clone(), false, Action::Current)
+        .await
+        .unwrap();
+    assert_eq!(
+        (actual.model_id.as_str(), actual.variant.as_deref()),
+        ("other", Some("deep"))
+    );
+    assert!(
+        requests
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|r| r["model"] == "other"
+                && r["input"].to_string().contains("chosen Home")
+                && r["input"].to_string().contains("BUILD_PRIMARY"))
+    );
+
+    let switched = app.switch_location(other.clone()).await.unwrap();
+    assert_eq!(switched.location, other);
+    let baseline = app.list_sessions().await.unwrap().len(); // legacy switch creates its own session
+    let second = app.home_selection(Action::Current).await.unwrap();
+    assert_eq!(
+        (second.model_id.as_str(), second.agent_id.as_deref()),
+        ("main", Some("build"))
+    );
+    let second = app
+        .home_selection(Action::Model("other".into()))
+        .await
+        .unwrap();
+    assert_eq!(
+        (second.model_id.as_str(), second.variant.as_deref()),
+        ("other", None)
+    );
+    assert_eq!(app.list_sessions().await.unwrap().len(), baseline);
+    let home_again = app.switch_location(location.clone()).await.unwrap();
+    assert_eq!(home_again.location, location);
+    let restored = app.home_selection(Action::Current).await.unwrap();
+    assert_eq!(
+        (
+            restored.agent_id.as_deref(),
+            restored.model_id.as_str(),
+            restored.variant.as_deref()
+        ),
+        (Some("build"), "other", Some("deep"))
+    );
+    assert_eq!(
+        app.session_selection(sid, false, Action::Current)
+            .await
+            .unwrap()
+            .model_id,
+        "other"
+    );
+    // A catalog refresh can retire an earlier Home id. Keep the exact visible
+    // choice, refuse a re-selection/first turn, and leave all existing rows and
+    // preferences untouched until an explicit admitted replacement is chosen.
+    let mut reduced = config("main");
+    reduced["provider"]["fixture"]["models"]
+        .as_object_mut()
+        .unwrap()
+        .remove("other");
+    std::fs::write(project.path().join("opencode.json"), reduced.to_string()).unwrap();
+    app.switch_location(other).await.unwrap();
+    app.switch_location(location).await.unwrap();
+    let retired = app.home_selection(Action::Current).await.unwrap();
+    assert_eq!(retired.model_id, "other");
+    assert!(!retired.models.iter().any(|model| model.id == "other"));
+    let rows_before = app.list_sessions().await.unwrap();
+    let pref_before: String = conn
+        .query_row("SELECT value FROM prefs WHERE key = ?1", [&key], |r| {
+            r.get(0)
+        })
+        .unwrap();
+    assert!(
+        app.home_selection(Action::Model("other".into()))
+            .await
+            .is_err()
+    );
+    assert_eq!(app.home_selection(Action::Current).await.unwrap(), retired);
+    assert!(
+        app.submit_fresh(
+            SessionId::new("retired-home").unwrap(),
+            "refused".into(),
+            None
+        )
+        .await
+        .is_err()
+    );
+    assert_eq!(app.list_sessions().await.unwrap(), rows_before);
+    assert_eq!(
+        conn.query_row("SELECT value FROM prefs WHERE key = ?1", [&key], |r| r
+            .get::<_, String>(
+            0
+        ))
+        .unwrap(),
+        pref_before
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn home_location_switch_restores_choices_without_roots_and_first_turn_binds_target() {
+    use oc_adapters::application;
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+    use oc_core::queries::SessionSelectionAction as Action;
+    use oc_core::session::{CoreError, LocationSwitchFailure};
+
+    let a = tempfile::tempdir().unwrap();
+    let b = tempfile::tempdir().unwrap();
+    let bad = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let (url, _, requests) = Fake::start_recording(
+        vec![sse_delta("answer") + &sse_completed()],
+        Duration::from_millis(40),
+    );
+    let config = |default: &str| {
+        serde_json::json!({
+            "model": format!("fixture/{default}"),
+            "provider": {"fixture": {
+                "npm": "@ai-sdk/openai", "options": {"baseURL": url, "apiKey": "dummy"},
+                "models": {"main": {"limit": {"context": 65536, "output": 4096}},
+                           "other": {"limit": {"context": 65536, "output": 4096}}}
+            }}
+        })
+    };
+    std::fs::write(a.path().join("opencode.json"), config("main").to_string()).unwrap();
+    std::fs::write(b.path().join("opencode.json"), config("other").to_string()).unwrap();
+    std::fs::write(
+        bad.path().join("opencode.json"),
+        config("missing").to_string(),
+    )
+    .unwrap();
+    let (app, guard, _) = application::spawn_with_env(
+        a.path(),
+        data.path(),
+        BTreeMap::from([
+            ("HOME".into(), home.path().to_string_lossy().into_owned()),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]),
+    )
+    .await
+    .unwrap();
+    let a_path = a
+        .path()
+        .canonicalize()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    let b_path = b
+        .path()
+        .canonicalize()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    let original = app
+        .home_selection(Action::Model("other".into()))
+        .await
+        .unwrap();
+    assert_eq!(original.model_id, "other");
+    let error = app
+        .switch_location_home(bad.path().display().to_string())
+        .await
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        CoreError::LocationSwitch {
+            category: LocationSwitchFailure::Configuration,
+            ..
+        }
+    ));
+    assert_eq!(app.home_selection(Action::Current).await.unwrap(), original);
+    assert!(app.list_sessions().await.unwrap().is_empty());
+
+    let target = app.switch_location_home(b_path.clone()).await.unwrap();
+    assert_eq!(target.location, b_path);
+    assert_eq!(target.catalog.model_id, "other");
+    assert_eq!(
+        target.catalog.chrome.location.as_deref(),
+        Some(b_path.as_str())
+    );
+    assert!(app.list_sessions().await.unwrap().is_empty());
+    let target = app.switch_location_home(a_path.clone()).await.unwrap();
+    assert_eq!(target.catalog.model_id, "other");
+    assert_eq!(
+        target.catalog.chrome.location.as_deref(),
+        Some(a_path.as_str())
+    );
+    app.home_selection(Action::Model("main".into()))
+        .await
+        .unwrap();
+    let target = app.switch_location_home(b_path.clone()).await.unwrap();
+    assert_eq!(
+        target.catalog.model_id, "other",
+        "B keeps its own Home choice"
+    );
+    assert!(app.list_sessions().await.unwrap().is_empty());
+
+    let mut events = app.subscribe();
+    let b_id = SessionId::new("fresh-in-b").unwrap();
+    app.submit_fresh(b_id.clone(), "first B".into(), None)
+        .await
+        .unwrap();
+    loop {
+        match tokio::time::timeout(Duration::from_secs(10), events.recv())
+            .await
+            .unwrap()
+            .unwrap()
+        {
+            CoreEvent::TurnFinished { session, .. } if session == b_id => break,
+            CoreEvent::TurnFailed { error, .. } => panic!("B: {error}"),
+            _ => {}
+        }
+    }
+    assert_eq!(app.list_sessions().await.unwrap(), vec![b_id.clone()]);
+    assert_eq!(
+        app.switch_location_home(a_path.clone())
+            .await
+            .unwrap()
+            .catalog
+            .model_id,
+        "main"
+    );
+    let a_id = SessionId::new("fresh-in-a").unwrap();
+    app.submit_fresh(a_id.clone(), "first A".into(), None)
+        .await
+        .unwrap();
+    loop {
+        match tokio::time::timeout(Duration::from_secs(10), events.recv())
+            .await
+            .unwrap()
+            .unwrap()
+        {
+            CoreEvent::TurnFinished { session, .. } if session == a_id => break,
+            CoreEvent::TurnFailed { error, .. } => panic!("A: {error}"),
+            _ => {}
+        }
+    }
+    assert_eq!(app.list_sessions().await.unwrap().len(), 2);
+    let db = rusqlite::Connection::open(data.path().join("oc.sqlite")).unwrap();
+    for (id, path) in [(&a_id, &a_path), (&b_id, &b_path)] {
+        let bound: String = db
+            .query_row(
+                "SELECT value FROM prefs WHERE key = ?1",
+                [format!(
+                    "{}{}",
+                    oc_adapters::runtime::SESSION_LOCATION_PREFIX,
+                    id.0
+                )],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(bound, *path);
+    }
+    {
+        let captured = requests.lock().unwrap();
+        assert!(
+            captured
+                .iter()
+                .any(|r| r["model"] == "other" && r["input"].to_string().contains("first B"))
+        );
+        assert!(
+            captured
+                .iter()
+                .any(|r| r["model"] == "main" && r["input"].to_string().contains("first A"))
+        );
+    }
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn home_current_reloads_config_after_location_roundtrip_without_explicit_choice() {
+    use oc_adapters::application;
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+    use oc_core::queries::SessionSelectionAction as Action;
+
+    let a = tempfile::tempdir().unwrap();
+    let b = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    let (url, _, requests) = Fake::start_recording(
+        vec![sse_delta("answer") + &sse_completed()],
+        Duration::from_millis(30),
+    );
+    let config = |model: &str| {
+        serde_json::json!({
+            "model": format!("fixture/{model}"),
+            "provider": {"fixture": {
+                "npm": "@ai-sdk/openai", "options": {"baseURL": url, "apiKey": "dummy"},
+                "models": {"main": {}, "other": {}}
+            }}
+        })
+    };
+    std::fs::write(a.path().join("opencode.json"), config("main").to_string()).unwrap();
+    std::fs::write(b.path().join("opencode.json"), config("main").to_string()).unwrap();
+    let env = BTreeMap::from([
+        ("HOME".into(), home.path().to_string_lossy().into_owned()),
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+    ]);
+    let (app, guard, _) = application::spawn_with_env(a.path(), data.path(), env)
+        .await
+        .unwrap();
+    assert_eq!(
+        app.home_selection(Action::Current).await.unwrap().model_id,
+        "main"
+    );
+    app.switch_location_home(b.path().display().to_string())
+        .await
+        .unwrap();
+    std::fs::write(a.path().join("opencode.json"), config("other").to_string()).unwrap();
+    let reloaded = app
+        .switch_location_home(a.path().display().to_string())
+        .await
+        .unwrap();
+    assert_eq!(reloaded.catalog.model_id, "other");
+    assert_eq!(
+        app.home_selection(Action::Current).await.unwrap().model_id,
+        "other"
+    );
+    let mut events = app.subscribe();
+    let sid = SessionId::new("config-reloaded").unwrap();
+    app.submit_fresh(sid.clone(), "reloaded turn".into(), None)
+        .await
+        .unwrap();
+    loop {
+        match tokio::time::timeout(Duration::from_secs(10), events.recv())
+            .await
+            .unwrap()
+            .unwrap()
+        {
+            CoreEvent::TurnFinished { session, .. } if session == sid => break,
+            CoreEvent::TurnFailed { error, .. } => panic!("reloaded turn: {error}"),
+            _ => {}
+        }
+    }
+    assert!(
+        requests
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|r| r["model"] == "other" && r["input"].to_string().contains("reloaded turn"))
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn home_draft_hydrates_after_restart_and_retirement_requires_explicit_replacement() {
+    use oc_adapters::application;
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+    use oc_core::queries::SessionSelectionAction as Action;
+
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    let (url, _, requests) = Fake::start_recording(
+        vec![sse_delta("answer") + &sse_completed()],
+        Duration::from_millis(30),
+    );
+    let config = |retired: bool| {
+        let mut config = serde_json::json!({
+            "model": "fixture/main", "default_agent": "build",
+            "provider": {"fixture": {
+                "npm": "@ai-sdk/openai", "options": {"baseURL": url, "apiKey": "dummy"},
+                "models": {
+                    "main": {"variants": {"low": {"reasoningEffort": "low"}}},
+                    "other": {"variants": {"deep": {"reasoningEffort": "high"}}}
+                }
+            }},
+            "agent": {
+                "build": {"mode": "primary", "prompt": "BUILD_PRIMARY"},
+                "review": {"mode": "primary", "prompt": "REVIEW_PRIMARY"}
+            }
+        });
+        if retired {
+            config["provider"]["fixture"]["models"]
+                .as_object_mut()
+                .unwrap()
+                .remove("other");
+        }
+        config
+    };
+    let path = project.path().join("opencode.json");
+    std::fs::write(&path, config(false).to_string()).unwrap();
+    let env = BTreeMap::from([
+        ("HOME".into(), home.path().to_string_lossy().into_owned()),
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+    ]);
+    let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env.clone())
+        .await
+        .unwrap();
+    assert_eq!(
+        app.home_selection(Action::Current).await.unwrap().model_id,
+        "main"
+    );
+    app.home_selection(Action::Model("other".into()))
+        .await
+        .unwrap();
+    app.home_selection(Action::Variant(Some("deep".into())))
+        .await
+        .unwrap();
+    app.home_selection(Action::Agent("review".into()))
+        .await
+        .unwrap();
+    app.home_selection(Action::Variant(Some("low".into())))
+        .await
+        .unwrap();
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+
+    let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env.clone())
+        .await
+        .unwrap();
+    let current = app.home_selection(Action::Current).await.unwrap();
+    assert_eq!(
+        (
+            current.agent_id.as_deref(),
+            current.model_id.as_str(),
+            current.variant.as_deref()
+        ),
+        (Some("build"), "other", Some("deep"))
+    );
+    let sid = SessionId::new("restored-home-draft").unwrap();
+    let mut events = app.subscribe();
+    app.submit_fresh(sid.clone(), "restored turn".into(), None)
+        .await
+        .unwrap();
+    loop {
+        match tokio::time::timeout(Duration::from_secs(10), events.recv())
+            .await
+            .unwrap()
+            .unwrap()
+        {
+            CoreEvent::TurnFinished { session, .. } if session == sid => break,
+            CoreEvent::TurnFailed { error, .. } => panic!("restored turn: {error}"),
+            _ => {}
+        }
+    }
+    assert!(
+        requests
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|r| r["model"] == "other"
+                && r["input"].to_string().contains("restored turn")
+                && r["input"].to_string().contains("BUILD_PRIMARY"))
+    );
+    assert_eq!(
+        app.session_selection(sid, false, Action::Current)
+            .await
+            .unwrap()
+            .variant
+            .as_deref(),
+        Some("deep")
+    );
+    let review = app
+        .home_selection(Action::Agent("review".into()))
+        .await
+        .unwrap();
+    assert_eq!(
+        (
+            review.agent_id.as_deref(),
+            review.model_id.as_str(),
+            review.variant.as_deref()
+        ),
+        (Some("review"), "main", Some("low"))
+    );
+    let build = app
+        .home_selection(Action::Agent("build".into()))
+        .await
+        .unwrap();
+    assert_eq!(
+        (build.model_id.as_str(), build.variant.as_deref()),
+        ("other", Some("deep"))
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+
+    std::fs::write(&path, config(true).to_string()).unwrap();
+    let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env)
+        .await
+        .unwrap();
+    let retired = app.home_selection(Action::Current).await.unwrap();
+    assert_eq!(
+        (retired.model_id.as_str(), retired.variant.as_deref()),
+        ("other", Some("deep"))
+    );
+    assert!(!retired.models.iter().any(|m| m.id == "other"));
+    assert!(
+        app.submit_fresh(
+            SessionId::new("retired-draft").unwrap(),
+            "refuse".into(),
+            None
+        )
+        .await
+        .is_err()
+    );
+    assert!(
+        app.read_history(SessionId::new("retired-draft").unwrap())
+            .await
+            .is_err()
+    );
+    assert_eq!(app.home_selection(Action::Current).await.unwrap(), retired);
+    assert_eq!(
+        app.home_selection(Action::Model("main".into()))
+            .await
+            .unwrap()
+            .model_id,
+        "main"
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
 }

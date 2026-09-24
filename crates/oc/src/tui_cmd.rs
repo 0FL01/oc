@@ -16,8 +16,8 @@ use ratatui::backend::CrosstermBackend;
 use oc_adapters::application::{HISTORY_PAGE_LIMIT, TOOL_OPS_PAGE_LIMIT};
 use oc_core::core_app::{CoreApp, CoreEvent};
 use oc_core::domain::SessionId;
-use oc_core::queries::SessionSelectionAction as SelectionAction;
 use oc_core::queries::StartupNotice;
+use oc_core::queries::{CatalogSnapshot, SessionSelectionAction as SelectionAction};
 use oc_core::session::{CoreError, LocationSwitchFailure};
 use oc_tui::app::{KeyOutcome, PanelIntent, TuiPanel, TuiState, TuiStatus};
 use oc_tui::dcp_panel::DcpOutcome;
@@ -77,11 +77,9 @@ async fn run_stages(data_dir: &Path, session_opt: Option<String>) -> Result<u8, 
     }
     let project = std::env::current_dir().map_err(|e| e.to_string())?;
     oc_adapters::trace::log("tui.begin", &format!("project={}", project.display()));
-    let home = session_opt.is_none();
-    let session = match session_opt {
-        Some(raw) => SessionId::new(raw).ok_or_else(|| "invalid session id".to_string())?,
-        None => SessionId::new(format!("s-tui-{}", nanos())).ok_or("id".to_string())?,
-    };
+    let session = session_opt
+        .map(|raw| SessionId::new(raw).ok_or_else(|| "invalid session id".to_string()))
+        .transpose()?;
     let (app, guard, notices) = match oc_adapters::application::spawn_diagnostic(&project, data_dir)
         .await
     {
@@ -100,7 +98,7 @@ async fn run_stages(data_dir: &Path, session_opt: Option<String>) -> Result<u8, 
     for notice in notices {
         eprintln!("warning: {}", startup_notice(notice));
     }
-    let result = drive_ui(&app, session, home).await;
+    let result = drive_ui(&app, session).await;
     let _ = app.shutdown().await;
     guard
         .join()
@@ -119,14 +117,14 @@ struct LoopState {
     dcp_seen: bool,
 }
 
-async fn drive_ui(app: &CoreApp, session: SessionId, home: bool) -> Result<u8, String> {
+async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, String> {
     let _term = enter()?;
     if std::env::var_os(PANIC_PROBE_ENV).is_some() {
         panic!("{PANIC_PROBE_ENV} probe");
     }
     let backend = CrosstermBackend::new(std::io::stdout());
     let mut terminal = Terminal::new(backend).map_err(|e| format!("terminal: {e}"))?;
-    let mut state = match initial_state(app, session, home).await {
+    let mut state = match initial_state(app, session).await {
         Ok(state) => state,
         Err(failure) => return startup_failure(&mut terminal, failure).map(|_| 1),
     };
@@ -174,13 +172,15 @@ async fn drive_ui(app: &CoreApp, session: SessionId, home: bool) -> Result<u8, S
         // Worker events, non-blocking drain.
         while let Ok(event) = rx.try_recv() {
             state.poll_submission();
-            let current = state.session().clone();
-            handle_worker_event(app, &mut state, &mut loop_state, &current, event).await?;
+            if let Some(current) = state.attached_session().cloned() {
+                handle_worker_event(app, &mut state, &mut loop_state, &current, event).await?;
+            }
         }
         // The DCP panel shows runtime counters: refresh when it opens.
         if *state.panel() == TuiPanel::Dcp && !loop_state.dcp_seen {
-            let current = state.session().clone();
-            refresh_dcp(app, &mut state, &current).await;
+            if let Some(current) = state.attached_session().cloned() {
+                refresh_dcp(app, &mut state, &current).await;
+            }
             loop_state.dcp_seen = true;
         } else if *state.panel() != TuiPanel::Dcp {
             loop_state.dcp_seen = false;
@@ -209,9 +209,17 @@ fn startup_notice(source: StartupNotice) -> &'static str {
 
 async fn initial_state(
     app: &CoreApp,
-    session: SessionId,
-    home: bool,
+    session: Option<SessionId>,
 ) -> Result<TuiState, StartupFailure> {
+    let Some(session) = session else {
+        let snapshot = app
+            .home_selection(SelectionAction::Current)
+            .await
+            .map_err(|_| StartupFailure::Query)?;
+        let mut state = TuiState::new_home(app.clone());
+        state.apply_catalog(snapshot);
+        return Ok(state);
+    };
     app.create_session(session.clone())
         .await
         .map_err(|_| StartupFailure::Query)?;
@@ -221,16 +229,11 @@ async fn initial_state(
         .map_err(|_| StartupFailure::Query)?;
     let mut state = TuiState::new(app.clone(), session);
     state.attach_page(&page);
-    state.home = home && page.total == 0;
     // A failed catalog is an initialization error, never a usable empty snapshot.
     state.apply_catalog(
-        app.session_selection(
-            state.session().clone(),
-            state.home,
-            SelectionAction::Current,
-        )
-        .await
-        .map_err(|_| StartupFailure::Query)?,
+        app.session_selection(state.session().clone(), false, SelectionAction::Current)
+            .await
+            .map_err(|_| StartupFailure::Query)?,
     );
     Ok(state)
 }
@@ -337,13 +340,9 @@ async fn apply_intent(
     loop_state: &mut LoopState,
     intent: PanelIntent,
 ) -> Result<(), String> {
-    let session = state.session().clone();
     match intent {
         PanelIntent::LoadCatalog => {
-            let snapshot = app
-                .session_selection(session, state.home, SelectionAction::Current)
-                .await
-                .map_err(|e| e.to_string())?;
+            let snapshot = selection(app, state, SelectionAction::Current).await?;
             state.apply_catalog(snapshot);
         }
         PanelIntent::LoadSessions => {
@@ -355,6 +354,7 @@ async fn apply_intent(
             state.apply_skills(cards);
         }
         PanelIntent::LoadCards => {
+            let session = require_session(state)?;
             let page = app
                 .tool_ops_page(session, loop_state.cards_before, TOOL_OPS_PAGE_LIMIT)
                 .await
@@ -368,6 +368,7 @@ async fn apply_intent(
             loop_state.cards_before = page.rows.last().map(|row| row.rowid);
         }
         PanelIntent::LoadCardOutput { op, offset } => {
+            let session = require_session(state)?;
             let page = app
                 .tool_output_page(session, op.clone(), offset, 240)
                 .await
@@ -375,55 +376,33 @@ async fn apply_intent(
             state.apply_card_output(op, offset, page);
         }
         PanelIntent::SelectModel { id } => {
-            let snapshot = app
-                .session_selection(session, state.home, SelectionAction::Model(id))
-                .await
-                .map_err(|e| e.to_string())?;
+            let snapshot = selection(app, state, SelectionAction::Model(id)).await?;
             let note = format!("model: {}", snapshot.model_id);
             state.model_choice_applied(snapshot);
             state.push_note(&note);
         }
         PanelIntent::ChooseModel { variant, .. } => {
-            let snapshot = app
-                .session_selection(session, state.home, SelectionAction::Variant(variant))
-                .await
-                .map_err(|e| e.to_string())?;
+            let snapshot = selection(app, state, SelectionAction::Variant(variant)).await?;
             state.model_choice_applied(snapshot);
         }
         PanelIntent::NewSession => {
             if state.is_busy() {
                 return Err("turn active; action unavailable".into());
             }
-            let target = SessionId::new(format!("tui-{}", nanos())).ok_or("bad session id")?;
-            app.create_session(target.clone())
-                .await
-                .map_err(|e| e.to_string())?;
-            let page = app
-                .history_page(target.clone(), None, None, HISTORY_PAGE_LIMIT)
-                .await
-                .map_err(|e| e.to_string())?;
             let snapshot = app
-                .session_selection(
-                    target.clone(),
-                    true,
-                    SelectionAction::New(state.active_agent().map(str::to_string)),
-                )
+                .home_selection(SelectionAction::New(
+                    state.active_agent().map(str::to_string),
+                ))
                 .await
                 .map_err(|e| e.to_string())?;
-            state.set_session(target);
-            state.attach_page(&page);
-            state.apply_catalog(snapshot);
-            state.home = true;
+            let mut home = TuiState::new_home(app.clone());
+            home.apply_catalog(snapshot);
+            *state = home;
             loop_state.cards_before = None;
             loop_state.dcp_seen = false;
-            let session = state.session().clone();
-            refresh_dcp(app, state, &session).await;
         }
         PanelIntent::SelectAgent { id } => {
-            let snapshot = app
-                .session_selection(session, state.home, SelectionAction::Agent(id))
-                .await
-                .map_err(|e| e.to_string())?;
+            let snapshot = selection(app, state, SelectionAction::Agent(id)).await?;
             let note = match &snapshot.agent_id {
                 Some(agent) => format!("agent: {agent}"),
                 None => "agent: none".to_string(),
@@ -459,18 +438,21 @@ async fn apply_intent(
             if state.is_busy() {
                 return Err("turn active; location switch refused".to_string());
             }
-            let snapshot = app.switch_location(path).await.map_err(|error| match error {
-                CoreError::LocationSwitch { category, .. } => match category {
-                    LocationSwitchFailure::Configuration =>
-                        "Location configuration failed; check the target directory, opencode.json/jsonc and selected model".to_string(),
-                    LocationSwitchFailure::Storage =>
-                        "Location storage failed; check the data directory and saved selection".to_string(),
-                    LocationSwitchFailure::Runtime =>
-                        "Location runtime failed; check the target's native settings".to_string(),
-                },
-                CoreError::TurnBusy => "turn active; location switch refused".to_string(),
-                _ => "Location switch unavailable; retry after checking the data directory".to_string(),
-            })?;
+            if state.attached_session().is_none() {
+                // Do not touch the view (including its editable draft) until
+                // the owner has validated and published the target generation.
+                let snapshot = app.switch_location_home(path).await.map_err(switch_error)?;
+                state.reset_workspace();
+                state.apply_catalog(snapshot.catalog);
+                loop_state.cards_before = None;
+                loop_state.dcp_seen = false;
+                state.push_note(&format!("location: {}", snapshot.location));
+                for notice in snapshot.notices {
+                    state.push_note(&format!("warning: {}", startup_notice(notice)));
+                }
+                return Ok(());
+            }
+            let snapshot = app.switch_location(path).await.map_err(switch_error)?;
             let target = SessionId::new(snapshot.session.clone())
                 .ok_or_else(|| "bad session id".to_string())?;
             let page = app
@@ -495,6 +477,7 @@ async fn apply_intent(
             }
         }
         PanelIntent::LoadOlder => {
+            let session = require_session(state)?;
             let before = state
                 .history()
                 .rows()
@@ -510,6 +493,7 @@ async fn apply_intent(
             }
         }
         PanelIntent::LoadNewer => {
+            let session = require_session(state)?;
             let after = state
                 .history()
                 .rows()
@@ -526,10 +510,47 @@ async fn apply_intent(
             }
         }
         PanelIntent::Compress { focus } => {
+            require_session(state)?;
             state.request_compress(focus).map_err(|e| e.to_string())?;
         }
     }
     Ok(())
+}
+
+fn switch_error(error: CoreError) -> String {
+    match error {
+        CoreError::LocationSwitch { category, .. } => match category {
+            LocationSwitchFailure::Configuration =>
+                "Location configuration failed; check the target directory, opencode.json/jsonc and selected model".to_string(),
+            LocationSwitchFailure::Storage =>
+                "Location storage failed; check the data directory and saved selection".to_string(),
+            LocationSwitchFailure::Runtime =>
+                "Location runtime failed; check the target's native settings".to_string(),
+        },
+        CoreError::TurnBusy => "turn active; location switch refused".to_string(),
+        _ => "Location switch unavailable; retry after checking the data directory".to_string(),
+    }
+}
+
+fn require_session(state: &TuiState) -> Result<SessionId, String> {
+    state
+        .attached_session()
+        .cloned()
+        .ok_or_else(|| "no active session; submit a prompt first".to_string())
+}
+
+async fn selection(
+    app: &CoreApp,
+    state: &TuiState,
+    action: SelectionAction,
+) -> Result<CatalogSnapshot, String> {
+    match state.attached_session() {
+        Some(session) => app
+            .session_selection(session.clone(), state.home, action)
+            .await
+            .map_err(|e| e.to_string()),
+        None => app.home_selection(action).await.map_err(|e| e.to_string()),
+    }
 }
 
 async fn handle_worker_event(
@@ -551,7 +572,7 @@ async fn handle_worker_event(
         | CoreEvent::TurnInterrupted { session, .. }
         | CoreEvent::TurnFailed { session, .. } => session,
     };
-    if owner != state.session() {
+    if state.attached_session() != Some(owner) {
         return Ok(());
     }
     match event {
@@ -699,7 +720,7 @@ fn write_metrics(state: &TuiState, frames: Option<&FrameMetrics>) {
         return;
     };
     let metrics = serde_json::json!({
-        "session": state.session().0,
+        "session": state.attached_session().map(|session| &session.0),
         "retained_bytes": state.retained_bytes(),
         "window_rows": state.history().len(),
         "window_total": state.history().total(),
@@ -710,13 +731,6 @@ fn write_metrics(state: &TuiState, frames: Option<&FrameMetrics>) {
         "frame_max_ns": frames.map_or(0, |frames| frames.max_ns),
     });
     let _ = std::fs::write(path, metrics.to_string());
-}
-
-fn nanos() -> u128 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos()
 }
 
 #[cfg(test)]
@@ -744,9 +758,58 @@ mod tests {
             ack.send(Err(oc_core::session::CoreError::Shutdown))
                 .unwrap();
         });
-        let result = initial_state(&app, SessionId::new("catalog-failure").unwrap(), true).await;
+        let result = initial_state(&app, Some(SessionId::new("catalog-failure").unwrap())).await;
         assert!(matches!(result, Err(StartupFailure::Query)));
         worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn bare_home_queries_selection_without_creating_or_reading_history() {
+        use oc_core::core_app::InboxMsg;
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::HomeSelection { action, ack }) = inbox.recv().await else {
+                panic!("Home must query selection first")
+            };
+            assert_eq!(action, SelectionAction::Current);
+            ack.send(Err(CoreError::Shutdown)).unwrap();
+            assert!(inbox.try_recv().is_err(), "no root or history query");
+        });
+        assert!(matches!(
+            initial_state(&app, None).await,
+            Err(StartupFailure::Query)
+        ));
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn home_refuses_session_scoped_queries() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new_home(app.clone());
+        let mut loop_state = LoopState::default();
+        for intent in [
+            PanelIntent::LoadCards,
+            PanelIntent::LoadCardOutput {
+                op: "op".into(),
+                offset: 0,
+            },
+            PanelIntent::LoadOlder,
+            PanelIntent::LoadNewer,
+            PanelIntent::Compress {
+                focus: String::new(),
+            },
+        ] {
+            assert!(
+                apply_intent(&app, &mut state, &mut loop_state, intent)
+                    .await
+                    .unwrap_err()
+                    .contains("no active session")
+            );
+            assert!(
+                inbox.try_recv().is_err(),
+                "no session-scoped query reached worker"
+            );
+        }
     }
 
     #[tokio::test]
