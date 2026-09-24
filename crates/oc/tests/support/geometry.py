@@ -91,11 +91,14 @@ for session in [None, 'empty']:
     child, fd = launch(session)
     try:
         initial = drain(fd, .8)
-        assert ('█▀▀█' in initial) == (session is None), initial
-        assert ('Context' in initial) == (session == 'empty'), initial
+        # Bare launch restores the previously opened 'wrapped' real tab;
+        # an explicit empty session selects its own tab without losing the deck.
+        assert '█▀▀█' not in initial, initial
+        assert 'Context' in initial, initial
+        assert ('LAST-ANCHOR' in initial) == (session is None), initial
     finally:
         stop(child, fd)
-print('bare home and explicit empty session PASS')
+print('bare retained tab and explicit empty session PASS')
 
 child, fd = launch('foreign')
 failed = drain(fd, .8)

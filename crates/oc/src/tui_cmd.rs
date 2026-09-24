@@ -16,8 +16,8 @@ use ratatui::backend::CrosstermBackend;
 use oc_adapters::application::{HISTORY_PAGE_LIMIT, TOOL_OPS_PAGE_LIMIT};
 use oc_core::core_app::{CoreApp, CoreEvent};
 use oc_core::domain::SessionId;
-use oc_core::queries::StartupNotice;
 use oc_core::queries::{CatalogSnapshot, SessionSelectionAction as SelectionAction};
+use oc_core::queries::{SessionProbe, StartupNotice, TabDeckSnapshot};
 use oc_core::session::{CoreError, LocationSwitchFailure};
 use oc_tui::app::{KeyOutcome, PanelIntent, TabPresentation, TuiPanel, TuiState, TuiStatus};
 use oc_tui::commands::{CommandAction, dispatch};
@@ -100,7 +100,18 @@ async fn run_stages(data_dir: &Path, session_opt: Option<String>) -> Result<u8, 
     for notice in notices {
         eprintln!("warning: {}", startup_notice(notice));
     }
-    let result = drive_ui(&app, session).await;
+    let result = if let Some(id) = session.as_ref().filter(|id| !valid_tab_id(&id.0)) {
+        match app.probe_session(id.clone()).await {
+            Ok(SessionProbe::Absent) => Err(
+                "invalid --session id: use a trimmed, non-control ID of at most 128 bytes"
+                    .to_string(),
+            ),
+            Err(_) => Err("session lookup failed; check the data directory".to_string()),
+            _ => drive_ui(&app, session).await,
+        }
+    } else {
+        drive_ui(&app, session).await
+    };
     let _ = app.shutdown().await;
     guard
         .join()
@@ -125,11 +136,100 @@ struct LoopState {
     tab_cards_before: Vec<Option<i64>>,
     active_tab: Option<usize>,
     home: Option<TuiState>,
+    /// Binding and opaque CAS token from the owner. Directly constructed
+    /// mock decks have no Location and do not write a preference.
+    location: Option<String>,
+    revision: Option<String>,
+    /// A projected or unreadable preference cannot be safely rewritten from
+    /// the visible tabs: hidden IDs must survive until a clean reload/repair.
+    save_disabled: bool,
+    /// A child requested by --session is a standalone history view. Never
+    /// submit a turn or promote it into the Location's root-tab preference.
+    read_only: bool,
 }
 
 impl LoopState {
     fn can_open_session(&self) -> bool {
         self.tabs.len() < MAX_TABS - usize::from(self.home.is_some() || self.active_tab.is_none())
+    }
+
+    fn snapshot(&self, state: &TuiState) -> TabDeckSnapshot {
+        let sessions = self
+            .tabs
+            .iter()
+            .enumerate()
+            .map(|(index, parked)| {
+                let view = if self.active_tab == Some(index) {
+                    state
+                } else {
+                    parked.as_ref().expect("parked tab")
+                };
+                view.attached_session()
+                    .expect("real tab has session")
+                    .clone()
+            })
+            .collect();
+        TabDeckSnapshot {
+            location: self.location.clone().unwrap_or_default(),
+            revision: self.revision.clone(),
+            sessions,
+            active: self
+                .active_tab
+                .and_then(|_| state.attached_session().cloned()),
+        }
+    }
+
+    async fn save(&mut self, app: &CoreApp, state: &mut TuiState) {
+        if self.save_disabled {
+            state.push_note("tab deck could not be saved; review saved tabs");
+        } else if self.location.as_deref() == Some("") {
+            state.push_note("tab deck could not be saved; invalid Location binding");
+        } else if self.save_checked(app, state).await.is_err() {
+            // The action was accepted locally. A conflict must not replace
+            // the token, or retry against an unrelated Location/revision.
+            state.push_note(
+                "tab deck could not be saved; saved tabs changed or storage unavailable",
+            );
+        }
+    }
+
+    async fn save_checked(&mut self, app: &CoreApp, state: &TuiState) -> Result<(), CoreError> {
+        self.save_snapshot_checked(app, self.snapshot(state)).await
+    }
+
+    async fn save_snapshot_checked(
+        &mut self,
+        app: &CoreApp,
+        requested: TabDeckSnapshot,
+    ) -> Result<(), CoreError> {
+        if self.save_disabled {
+            return Err(CoreError::StoredTabDeck);
+        }
+        let Some(location) = self.location.as_ref() else {
+            return Ok(());
+        };
+        if location.is_empty() || requested.location != *location {
+            return Err(CoreError::InvalidTabDeck);
+        }
+        match app.save_tab_deck(requested.clone()).await {
+            Ok(saved) if saved.location == requested.location && saved.revision.is_some() => {
+                self.revision = saved.revision;
+                Ok(())
+            }
+            Ok(_) => Err(CoreError::TabDeckStorage),
+            Err(error) => Err(error),
+        }
+    }
+
+    async fn save_if_changed(
+        &mut self,
+        app: &CoreApp,
+        state: &mut TuiState,
+        before: &TabDeckSnapshot,
+    ) {
+        if self.snapshot(state) != *before {
+            self.save(app, state).await;
+        }
     }
 
     fn sync_tabs(&mut self, state: &mut TuiState) {
@@ -159,7 +259,7 @@ impl LoopState {
             })
             .collect();
         let active = self.active_tab.unwrap_or(self.tabs.len());
-        let can_add = !state.is_busy() && self.tabs.len() < MAX_TABS;
+        let can_add = !state.is_busy() && self.can_open_session();
         let (shown, selected, allowed) = state.tab_presentation();
         // `set_tab_strip` cancels a pending mouse Down: never call it while
         // nothing painted has changed, even across the 50ms redraw loop.
@@ -237,6 +337,15 @@ impl LoopState {
             // only route. When selected, activate the last real view before
             // discarding the parked Home (and its draft).
             if self.active_tab.is_none() && !self.tabs.is_empty() {
+                let mut candidate = self.snapshot(state);
+                candidate.active = self.tabs.last().and_then(|view| {
+                    view.as_ref()
+                        .and_then(|view| view.attached_session())
+                        .cloned()
+                });
+                self.save_snapshot_checked(app, candidate)
+                    .await
+                    .map_err(|_| "tab close refused; saved tabs unavailable".to_string())?;
                 self.activate(state, self.tabs.len() - 1)?;
             } else if self.home.is_none() {
                 return Err("tab unavailable".into());
@@ -248,6 +357,40 @@ impl LoopState {
         if index >= self.tabs.len() {
             return Err("tab unavailable".into());
         }
+        // Fetch a replacement Home while the active tab and its draft still
+        // exist. A failed query must not retire the pending-root marker or
+        // change the visible route.
+        let replacement_home =
+            if self.active_tab == Some(index) && self.tabs.len() == 1 && self.home.is_none() {
+                let catalog = app
+                    .home_selection(SelectionAction::Current)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                let mut home = TuiState::new_home(app.clone());
+                home.apply_catalog(catalog);
+                Some(home)
+            } else {
+                None
+            };
+        // A fresh Home root can be accepted before its first preference save
+        // succeeds. Retire the owner's pending-root marker while the full
+        // visible deck still contains that root; otherwise closing it locally
+        // can make a later restart resurrect an explicitly closed tab.
+        // This CAS also refuses stale or unreadable projected preferences.
+        self.save_checked(app, state)
+            .await
+            .map_err(|_| "tab close refused; saved tabs unavailable".to_string())?;
+        let mut candidate = self.snapshot(state);
+        candidate.sessions.remove(index);
+        candidate.active = if self.active_tab == Some(index) {
+            // Immediately previous if available, otherwise the next tab.
+            (self.tabs.len() > 1).then(|| candidate.sessions[index.saturating_sub(1)].clone())
+        } else {
+            candidate.active
+        };
+        self.save_snapshot_checked(app, candidate)
+            .await
+            .map_err(|_| "tab close refused; saved tabs unavailable".to_string())?;
         if self.active_tab == Some(index) {
             if self.tabs.len() == 1 {
                 if self.home.is_some() {
@@ -257,22 +400,15 @@ impl LoopState {
                     self.sync_tabs(state);
                     return Ok(());
                 }
-                // A failed owner query must leave the active view and the
-                // entire deck intact; closing never creates a durable root.
-                let snapshot = app
-                    .home_selection(SelectionAction::Current)
-                    .await
-                    .map_err(|e| e.to_string())?;
-                let mut home = TuiState::new_home(app.clone());
-                home.apply_catalog(snapshot);
-                *state = home;
+                *state = replacement_home.expect("Home fetched before close save");
                 self.reset_deck();
                 self.sync_tabs(state);
                 return Ok(());
             }
             // Immediately previous if available, otherwise the next tab.
             let survivor = if index > 0 { index - 1 } else { 1 };
-            self.activate(state, survivor)?;
+            self.activate(state, survivor)
+                .expect("idle surviving tab is available");
         }
         // The former active view is now parked. Removing the parallel cursor
         // at the same index keeps paging state aligned with the real tabs.
@@ -304,18 +440,16 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
     }
     let backend = CrosstermBackend::new(std::io::stdout());
     let mut terminal = Terminal::new(backend).map_err(|e| format!("terminal: {e}"))?;
-    let mut state = match initial_state(app, session).await {
-        Ok(state) => state,
+    let (mut state, mut loop_state) = match restore_initial(app, session).await {
+        Ok(restored) => restored,
         Err(failure) => return startup_failure(&mut terminal, failure).map(|_| 1),
     };
     let mut rx = app.subscribe();
-    let mut loop_state = LoopState::default();
     loop_state.sync_tabs(&mut state);
     let mut frame_metrics = std::env::var_os(METRICS_ENV).map(|_| FrameMetrics::default());
 
     loop {
-        state.poll_submission();
-        loop_state.sync_tabs(&mut state);
+        poll_and_sync(app, &mut state, &mut loop_state).await;
         let draw_start = frame_metrics.as_ref().map(|_| Instant::now());
         terminal
             .draw(|frame| render_frame(frame, &state))
@@ -346,14 +480,14 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
                 }
             }
         }
-        // Quit wins over an acceptance/terminal event already queued this
-        // frame. run_inner owns application shutdown and joins its worker.
+        // Quit stops input/event processing; the unique pending Home receipt
+        // is reconciled below before run_inner shuts down the owner.
         if *state.status() == TuiStatus::Quit {
             break;
         }
         // Worker events, non-blocking drain.
         while let Ok(event) = rx.try_recv() {
-            state.poll_submission();
+            poll_and_sync(app, &mut state, &mut loop_state).await;
             if let Some(current) = state.attached_session().cloned() {
                 handle_worker_event(app, &mut state, &mut loop_state, &current, event).await?;
             }
@@ -369,9 +503,40 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
             loop_state.dcp_seen = false;
         }
     }
-    write_metrics(&state, frame_metrics.as_ref());
+    reconcile_exit(app, &mut state, &mut loop_state).await?;
+    write_metrics(&state, &loop_state, frame_metrics.as_ref());
     drop(_term);
     Ok(0)
+}
+
+async fn poll_and_sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+    let fresh = deck.active_tab.is_none() && state.attached_session().is_none();
+    state.poll_submission();
+    deck.sync_tabs(state);
+    if fresh && state.attached_session().is_some() {
+        deck.save(app, state).await;
+    }
+}
+
+async fn reconcile_exit(
+    app: &CoreApp,
+    state: &mut TuiState,
+    deck: &mut LoopState,
+) -> Result<(), String> {
+    state
+        .reconcile_fresh_quit()
+        .await
+        .map_err(|error| format!("quit cancellation: {error}"))?;
+    // `handle_key` can consume an acceptance just before setting Quit, after
+    // the frame's final poll_and_sync. Only a newly attached Home needs a
+    // save; an already-durable tab never waits or writes again.
+    if deck.active_tab.is_none() && state.attached_session().is_some() {
+        deck.sync_tabs(state);
+        deck.save_checked(app, state)
+            .await
+            .map_err(|error| format!("quit tab deck: {error}"))?;
+    }
+    Ok(())
 }
 
 fn at_tty() -> bool {
@@ -421,6 +586,187 @@ async fn initial_state(
     Ok(state)
 }
 
+// Match the owner's tab-deck ID predicate before creating a new explicit
+// root. Existing legacy IDs are still readable, but cannot be saved as tabs.
+fn valid_tab_id(id: &str) -> bool {
+    !id.is_empty() && id.len() <= 128 && id == id.trim() && !id.chars().any(char::is_control)
+}
+
+async fn standalone_explicit(
+    app: &CoreApp,
+    deck: &mut LoopState,
+    id: SessionId,
+    child: bool,
+) -> Result<TuiState, StartupFailure> {
+    let mut state = load_tab(app, id).await.map_err(|_| StartupFailure::Query)?;
+    deck.active_tab = Some(0);
+    deck.tabs.push(None);
+    deck.tab_cards_before.push(None);
+    deck.save_disabled = true;
+    deck.read_only = child;
+    state.push_note(if child {
+        "child session: read-only history; saved tabs are unchanged"
+    } else {
+        "legacy session id cannot be saved; review saved tabs"
+    });
+    Ok(state)
+}
+
+/// Restore all readable views in preference order. Once one is omitted the
+/// resulting route is a projection, never a replacement for the stored list.
+async fn restore_views(
+    app: &CoreApp,
+    deck: &mut LoopState,
+    ids: Vec<SessionId>,
+    active: Option<SessionId>,
+    explicit: Option<&SessionId>,
+    home: Option<TuiState>,
+) -> Result<TuiState, StartupFailure> {
+    let mut views = Vec::with_capacity(ids.len());
+    for id in ids {
+        match load_tab(app, id.clone()).await {
+            Ok(view) => views.push((id, view)),
+            Err(_) if explicit == Some(&id) => return Err(StartupFailure::Query),
+            Err(_) => deck.save_disabled = true,
+        }
+    }
+    let active_index = active
+        .as_ref()
+        .and_then(|id| views.iter().position(|(candidate, _)| candidate == id));
+    let mut state = if let Some(index) = active_index {
+        deck.active_tab = Some(index);
+        views.remove(index).1
+    } else if views.len() == MAX_TABS {
+        deck.active_tab = Some(0);
+        views.remove(0).1
+    } else if let Some(home) = home {
+        home
+    } else {
+        initial_state(app, None).await?
+    };
+    deck.tabs = views.into_iter().map(|(_, view)| Some(view)).collect();
+    if let Some(index) = deck.active_tab {
+        deck.tabs.insert(index, None);
+    }
+    deck.tab_cards_before.resize(deck.tabs.len(), None);
+    if deck.save_disabled {
+        state.push_note("saved tabs partially unavailable; review saved tabs");
+    }
+    Ok(state)
+}
+
+/// Load the complete Location-scoped route before the first frame. Parked
+/// views use the same bounded history page and catalog path as an active view.
+async fn restore_initial(
+    app: &CoreApp,
+    explicit: Option<SessionId>,
+) -> Result<(TuiState, LoopState), StartupFailure> {
+    let mut deck = LoopState::default();
+    let stored = match app.tab_deck().await {
+        Ok(snapshot) => snapshot,
+        Err(_) => {
+            // An unreadable/malformed preference is never repaired on read.
+            // Obtain the Location from the owner's catalog, but keep an empty
+            // expected revision: CAS prevents overwriting the broken record.
+            let mut state = if let Some(id) = explicit {
+                let kind = app
+                    .probe_session(id.clone())
+                    .await
+                    .map_err(|_| StartupFailure::Query)?;
+                if kind == SessionProbe::Absent {
+                    if !valid_tab_id(&id.0) {
+                        return Err(StartupFailure::Query);
+                    }
+                    app.create_session(id.clone())
+                        .await
+                        .map_err(|_| StartupFailure::Query)?;
+                }
+                standalone_explicit(app, &mut deck, id, kind == SessionProbe::Child).await?
+            } else {
+                initial_state(app, None).await?
+            };
+            deck.location = Some(
+                state
+                    .chrome
+                    .location
+                    .as_ref()
+                    .filter(|location| !location.is_empty())
+                    .ok_or(StartupFailure::Query)?
+                    .clone(),
+            );
+            deck.save_disabled = true;
+            if !deck.read_only {
+                state.push_note("saved tab deck unavailable; review saved tabs");
+            }
+            return Ok((state, deck));
+        }
+    };
+    if stored.location.is_empty()
+        || stored.sessions.len() > MAX_TABS
+        || (stored.active.is_none() && stored.sessions.len() == MAX_TABS)
+        || stored
+            .active
+            .as_ref()
+            .is_some_and(|active| !stored.sessions.contains(active))
+    {
+        return Err(StartupFailure::Query);
+    }
+    deck.location = Some(stored.location);
+    deck.revision = stored.revision;
+    let mut ids = stored.sessions;
+    let mut active = stored.active;
+    let mut save_explicit = false;
+    if let Some(id) = explicit.as_ref() {
+        if !ids.contains(id) {
+            let kind = app
+                .probe_session(id.clone())
+                .await
+                .map_err(|_| StartupFailure::Query)?;
+            if kind == SessionProbe::Child || (kind == SessionProbe::Root && !valid_tab_id(&id.0)) {
+                let state =
+                    standalone_explicit(app, &mut deck, id.clone(), kind == SessionProbe::Child)
+                        .await?;
+                return Ok((state, deck));
+            }
+            if ids.len() >= MAX_TABS {
+                return Err(StartupFailure::Query);
+            }
+            if kind == SessionProbe::Absent {
+                if !valid_tab_id(&id.0) {
+                    return Err(StartupFailure::Query);
+                }
+                app.create_session(id.clone())
+                    .await
+                    .map_err(|_| StartupFailure::Query)?;
+            }
+            ids.push(id.clone());
+        }
+        save_explicit = active.as_ref() != Some(id);
+        active = Some(id.clone());
+    }
+    let mut state = restore_views(app, &mut deck, ids, active, explicit.as_ref(), None).await?;
+    if deck.save_disabled && explicit.as_ref().is_some_and(|id| !valid_tab_id(&id.0)) {
+        state.push_note("legacy session id cannot be saved; review saved tabs");
+    }
+    if save_explicit && !deck.save_disabled {
+        deck.save(app, &mut state).await;
+    }
+    Ok((state, deck))
+}
+
+async fn load_tab(app: &CoreApp, id: SessionId) -> Result<TuiState, CoreError> {
+    let page = app
+        .history_page(id.clone(), None, None, HISTORY_PAGE_LIMIT)
+        .await?;
+    let catalog = app
+        .session_selection(id.clone(), false, SelectionAction::Current)
+        .await?;
+    let mut state = TuiState::new(app.clone(), id);
+    state.attach_page(&page);
+    state.apply_catalog(catalog);
+    Ok(state)
+}
+
 fn startup_failure(
     terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>,
     failure: StartupFailure,
@@ -460,6 +806,14 @@ async fn handle_event(
 ) -> Result<(), String> {
     match map_event(cev) {
         Some(UiEvent::Key(action)) => {
+            if loop_state.read_only
+                && *state.panel() == TuiPanel::None
+                && action == KeyAction::Enter
+                && dispatch(state.input().trim()) != Some(CommandAction::Quit)
+            {
+                state.push_note("child session: read-only history; saved tabs are unchanged");
+                return Ok(());
+            }
             let typed_new = action == KeyAction::Enter
                 && *state.panel() == TuiPanel::None
                 && dispatch(state.input().trim()) == Some(CommandAction::NewSession);
@@ -592,6 +946,21 @@ async fn apply_intent_with_origin(
     intent: PanelIntent,
     typed_new: bool,
 ) -> Result<(), String> {
+    if loop_state.read_only
+        && matches!(
+            intent,
+            PanelIntent::NewSession
+                | PanelIntent::SwitchSession { .. }
+                | PanelIntent::CloseTab { .. }
+                | PanelIntent::ActivateTab { .. }
+                | PanelIntent::SelectModel { .. }
+                | PanelIntent::ChooseModel { .. }
+                | PanelIntent::SelectAgent { .. }
+                | PanelIntent::Compress { .. }
+        )
+    {
+        return Err("child session: read-only history; saved tabs are unchanged".into());
+    }
     match intent {
         PanelIntent::LoadCatalog => {
             let snapshot = selection(app, state, SelectionAction::Current).await?;
@@ -641,11 +1010,13 @@ async fn apply_intent_with_origin(
             if state.is_busy() {
                 return Err("turn active; action unavailable".into());
             }
+            let before = loop_state.snapshot(state);
             if loop_state.home.is_some() {
                 if typed_new {
                     state.accept_intent();
                 }
                 loop_state.restore_home(state);
+                loop_state.save_if_changed(app, state, &before).await;
                 return Ok(());
             }
             if loop_state.tabs.len() >= MAX_TABS && state.attached_session().is_some() {
@@ -663,9 +1034,16 @@ async fn apply_intent_with_origin(
                 state.accept_intent();
             }
             loop_state.open_home(state, home);
+            loop_state.save_if_changed(app, state, &before).await;
         }
-        PanelIntent::ActivateTab { index } => loop_state.activate(state, index)?,
-        PanelIntent::CloseTab { index } => loop_state.close_tab(app, state, index).await?,
+        PanelIntent::ActivateTab { index } => {
+            let before = loop_state.snapshot(state);
+            loop_state.activate(state, index)?;
+            loop_state.save_if_changed(app, state, &before).await;
+        }
+        PanelIntent::CloseTab { index } => {
+            loop_state.close_tab(app, state, index).await?;
+        }
         PanelIntent::SelectAgent { id } => {
             let snapshot = selection(app, state, SelectionAction::Agent(id)).await?;
             let note = match &snapshot.agent_id {
@@ -682,6 +1060,7 @@ async fn apply_intent_with_origin(
             if state.is_busy() {
                 return Err("turn active; session switch refused".to_string());
             }
+            let before = loop_state.snapshot(state);
             let target = SessionId::new(id).ok_or_else(|| "bad session id".to_string())?;
             if let Some(index) = loop_state
                 .tabs
@@ -697,6 +1076,7 @@ async fn apply_intent_with_origin(
                 })
             {
                 loop_state.activate(state, index)?;
+                loop_state.save_if_changed(app, state, &before).await;
                 return Ok(());
             }
             if !loop_state.can_open_session() {
@@ -726,6 +1106,7 @@ async fn apply_intent_with_origin(
             loop_state.cards_before = None;
             loop_state.dcp_seen = false;
             loop_state.sync_tabs(state);
+            loop_state.save_if_changed(app, state, &before).await;
         }
         PanelIntent::SwitchLocation { path } => {
             // The application refuses a switch during a turn; the view-model
@@ -733,49 +1114,13 @@ async fn apply_intent_with_origin(
             if state.is_busy() {
                 return Err("turn active; location switch refused".to_string());
             }
-            if state.attached_session().is_none() {
-                // Do not touch the view (including its editable draft) until
-                // the owner has validated and published the target generation.
-                let snapshot = app.switch_location_home(path).await.map_err(switch_error)?;
-                loop_state.reset_deck();
-                state.reset_workspace();
-                state.apply_catalog(snapshot.catalog);
-                loop_state.cards_before = None;
-                loop_state.dcp_seen = false;
-                state.push_note(&format!("location: {}", snapshot.location));
-                for notice in snapshot.notices {
-                    state.push_note(&format!("warning: {}", startup_notice(notice)));
-                }
-                return Ok(());
-            }
-            let snapshot = app.switch_location(path).await.map_err(switch_error)?;
-            let target = SessionId::new(snapshot.session.clone())
-                .ok_or_else(|| "bad session id".to_string())?;
-            // Publication changed the application generation. No parked view
-            // from the old Location may be reactivated, even if a later
-            // history/catalog read in the new generation fails.
-            loop_state.reset_deck();
-            state.reset_workspace();
-            state.set_session(target.clone());
-            let page = app
-                .history_page(target.clone(), None, None, HISTORY_PAGE_LIMIT)
-                .await
-                .map_err(|_| {
-                    "Location history unavailable; check data-directory access".to_string()
-                })?;
-            let catalog = app
-                .session_selection(target.clone(), false, SelectionAction::Current)
-                .await
-                .map_err(|_| "Location selection unavailable; check saved selection".to_string())?;
-            state.attach_page(&page);
-            state.apply_catalog(catalog);
-            state.close_panel();
-            loop_state.cards_before = None;
-            state.push_note(&format!("location: {}", snapshot.location));
+            // Publish a sessionless generation first: even when switching
+            // from a real tab, a saved Home route cannot mint a new root.
+            let snapshot = app.switch_location_home(path).await.map_err(switch_error)?;
+            adopt_location(app, state, loop_state, snapshot.catalog, &snapshot.location).await;
             for notice in snapshot.notices {
                 state.push_note(&format!("warning: {}", startup_notice(notice)));
             }
-            loop_state.sync_tabs(state);
         }
         PanelIntent::LoadOlder => {
             let session = require_session(state)?;
@@ -831,6 +1176,73 @@ fn switch_error(error: CoreError) -> String {
         CoreError::TurnBusy => "turn active; location switch refused".to_string(),
         _ => "Location switch unavailable; retry after checking the data directory".to_string(),
     }
+}
+
+/// A published Location invalidates every old view, including the parked
+/// Home draft. On a broken preference keep the new Location's Home and show
+/// a static diagnostic rather than accidentally repainting old-location data.
+async fn adopt_location(
+    app: &CoreApp,
+    state: &mut TuiState,
+    deck: &mut LoopState,
+    catalog: CatalogSnapshot,
+    location: &str,
+) {
+    deck.reset_deck();
+    // Never carry A's binding or token into a successfully published B.
+    deck.location = None;
+    deck.revision = None;
+    deck.save_disabled = false;
+    deck.read_only = false;
+    *state = TuiState::new_home(app.clone());
+    state.apply_catalog(catalog);
+    match app.tab_deck().await {
+        Ok(snapshot)
+            if snapshot.location != location
+                || snapshot.location.is_empty()
+                || snapshot.sessions.len() > MAX_TABS
+                || (snapshot.active.is_none() && snapshot.sessions.len() == MAX_TABS)
+                || snapshot
+                    .active
+                    .as_ref()
+                    .is_some_and(|active| !snapshot.sessions.contains(active)) =>
+        {
+            deck.save_disabled = true;
+            state.push_note("Location tabs unavailable; check saved tabs");
+        }
+        Ok(snapshot) => {
+            deck.location = Some(snapshot.location);
+            deck.revision = snapshot.revision;
+            let home = std::mem::replace(state, TuiState::new_home(app.clone()));
+            // `home` carries B's published catalog; no old Location view can
+            // be reactivated even if one of B's parked reads fails.
+            *state = restore_views(
+                app,
+                deck,
+                snapshot.sessions,
+                snapshot.active,
+                None,
+                Some(home),
+            )
+            .await
+            .expect("published Home is already available");
+        }
+        Err(_) => {
+            // With no read token the owner will refuse to overwrite an
+            // existing broken preference. A successful switch supplies B.
+            deck.location = (!location.is_empty()).then(|| location.to_string());
+            deck.save_disabled = true;
+            state.push_note("saved tab deck unavailable; review saved tabs");
+        }
+    }
+    // A route change must preserve the fixed diagnostic, including when a
+    // loaded active view replaces the Home state.
+    if deck.save_disabled {
+        state.push_note("Location tabs unavailable; check saved tabs");
+    } else {
+        state.push_note(&format!("location: {location}"));
+    }
+    deck.sync_tabs(state);
 }
 
 fn require_session(state: &TuiState) -> Result<SessionId, String> {
@@ -1016,13 +1428,15 @@ async fn report_compress_outcome(
 }
 
 /// Bounded view metrics for PTY qualification (opt-in, never in normal use).
-fn write_metrics(state: &TuiState, frames: Option<&FrameMetrics>) {
+fn write_metrics(state: &TuiState, deck: &LoopState, frames: Option<&FrameMetrics>) {
     let Some(path) = std::env::var_os(METRICS_ENV) else {
         return;
     };
     let metrics = serde_json::json!({
         "session": state.attached_session().map(|session| &session.0),
         "tab_count": state.tab_presentation().0.len(),
+        "tab_ids": deck.snapshot(state).sessions.iter().map(|id| id.0.as_str()).collect::<Vec<_>>(),
+        "active_tab": deck.active_tab,
         "retained_bytes": state.retained_bytes(),
         "window_rows": state.history().len(),
         "window_total": state.history().total(),
@@ -1042,6 +1456,354 @@ mod tests {
     use oc_core::core_app::WorkerTurnId;
     use oc_core::queries::{AutoAcceptState, HistoryMessage, HistoryPage, ToolOpPage, ToolOpView};
     use oc_core::session::Role;
+
+    #[tokio::test]
+    async fn immediate_quit_reconciles_only_accepted_fresh_root_before_owner_shutdown() {
+        // Both receipt schedules are real channel orderings: one is already
+        // delivered when the Quit key polls, the other arrives only after
+        // Quit has requested cancellation through the owner.
+        for ack_before_quit in [true, false] {
+            for accepted in [true, false] {
+                let (app, mut inbox, _) = CoreApp::channel(8);
+                let mut state = TuiState::new_home(app.clone());
+                state.chrome.location = Some("/fixture".into());
+                let mut deck = LoopState {
+                    location: Some("/fixture".into()),
+                    ..Default::default()
+                };
+                state.handle_paste("first prompt");
+                state.handle_key(KeyAction::Enter).await;
+                let Some(InboxMsg::SubmitFresh {
+                    session, text, ack, ..
+                }) = inbox.recv().await
+                else {
+                    panic!("one fresh submission")
+                };
+                assert_eq!(text, "first prompt");
+                // The user can still edit the draft while acceptance is pending.
+                state.handle_key(KeyAction::Char('!')).await;
+                let root = session.clone();
+                let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
+                let worker = tokio::spawn(async move {
+                    let decision = || {
+                        if accepted {
+                            Ok(WorkerTurnId("first-turn".into()))
+                        } else {
+                            Err(CoreError::Application("rejected".into()))
+                        }
+                    };
+                    if ack_before_quit {
+                        ack.send(decision()).unwrap();
+                        ready_tx.send(()).unwrap();
+                    } else {
+                        let Some(InboxMsg::Cancel {
+                            session: target,
+                            ack: cancel,
+                        }) = inbox.recv().await
+                        else {
+                            panic!("cancel must follow pending fresh submit")
+                        };
+                        assert_eq!(target, root);
+                        ack.send(decision()).unwrap();
+                        cancel
+                            .send(if accepted {
+                                Ok(())
+                            } else {
+                                Err(CoreError::TurnNotActive)
+                            })
+                            .unwrap();
+                    }
+                    let mut saves = 0;
+                    loop {
+                        match inbox.recv().await.expect("owner must shut down") {
+                            InboxMsg::SaveTabDeck { deck, ack } => {
+                                assert!(
+                                    accepted && saves == 0,
+                                    "only the accepted root is saved once"
+                                );
+                                assert_eq!(deck.sessions, vec![root.clone()]);
+                                assert_eq!(deck.active, Some(root.clone()));
+                                assert_eq!(deck.location, "/fixture");
+                                saves += 1;
+                                ack.send(Ok(TabDeckSnapshot {
+                                    revision: Some("saved".into()),
+                                    ..deck
+                                }))
+                                .unwrap();
+                            }
+                            InboxMsg::Shutdown => break,
+                            _ => panic!("no replay or unexpected owner work"),
+                        }
+                    }
+                    saves
+                });
+                if ack_before_quit {
+                    ready_rx.await.unwrap();
+                }
+                state.handle_key(KeyAction::Quit).await;
+                assert_eq!(state.status(), &TuiStatus::Quit);
+                reconcile_exit(&app, &mut state, &mut deck).await.unwrap();
+                assert_eq!(state.status(), &TuiStatus::Quit);
+                assert_eq!(state.input(), "first prompt!");
+                assert_eq!(state.attached_session(), accepted.then_some(&session));
+                assert_eq!(deck.tabs.len(), usize::from(accepted));
+                app.shutdown().await.unwrap();
+                assert_eq!(worker.await.unwrap(), usize::from(accepted));
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn quit_with_pending_existing_tab_does_not_wait_for_receipt_or_save() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let root = SessionId::new("durable").unwrap();
+        let mut state = TuiState::new(app.clone(), root.clone());
+        let mut deck = LoopState {
+            location: Some("/fixture".into()),
+            tabs: vec![None],
+            tab_cards_before: vec![None],
+            active_tab: Some(0),
+            ..Default::default()
+        };
+        state.handle_paste("followup");
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::Submit { session, ack, .. }) = inbox.recv().await else {
+            panic!("existing turn")
+        };
+        assert_eq!(session, root);
+        state.handle_key(KeyAction::Quit).await;
+        reconcile_exit(&app, &mut state, &mut deck).await.unwrap();
+        assert_eq!(state.status(), &TuiStatus::Quit);
+        assert_eq!(state.input(), "followup");
+        assert_eq!(deck.tabs.len(), 1);
+        assert!(
+            inbox.try_recv().is_err(),
+            "no cancel or tab save on existing root"
+        );
+        app.shutdown().await.unwrap();
+        assert!(matches!(inbox.recv().await, Some(InboxMsg::Shutdown)));
+        drop(ack);
+    }
+
+    #[tokio::test]
+    async fn accepted_quit_reports_deck_save_failure_before_owner_shutdown() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new_home(app.clone());
+        let mut deck = LoopState {
+            location: Some("/fixture".into()),
+            ..Default::default()
+        };
+        state.handle_paste("first turn");
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::SubmitFresh { ack, .. }) = inbox.recv().await else {
+            panic!("first turn")
+        };
+        ack.send(Ok(WorkerTurnId("committed".into()))).unwrap();
+        state.handle_key(KeyAction::Quit).await;
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::SaveTabDeck { ack, .. }) = inbox.recv().await else {
+                panic!("persist before shutdown")
+            };
+            ack.send(Err(CoreError::TabDeckConflict)).unwrap();
+            assert!(matches!(inbox.recv().await, Some(InboxMsg::Shutdown)));
+        });
+        assert_eq!(
+            reconcile_exit(&app, &mut state, &mut deck).await,
+            Err("quit tab deck: tab deck changed; reload before saving".into())
+        );
+        app.shutdown().await.unwrap();
+        worker.await.unwrap();
+    }
+
+    #[test]
+    fn explicit_root_id_matches_owner_tab_predicate() {
+        assert!(valid_tab_id("valid-root"));
+        assert!(valid_tab_id(&"é".repeat(64)));
+        for id in ["", " root", "root ", "a\nb", &"é".repeat(65)] {
+            assert!(!valid_tab_id(id), "admitted invalid root ID");
+        }
+    }
+
+    #[tokio::test]
+    async fn unreadable_parked_tab_keeps_good_route_and_disables_saves() {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::TabDeck { ack }) = inbox.recv().await else {
+                panic!("deck")
+            };
+            ack.send(Ok(TabDeckSnapshot {
+                location: "/fixture".into(),
+                revision: Some("unchanged".into()),
+                sessions: ["good", "broken", "last"]
+                    .into_iter()
+                    .map(|id| SessionId::new(id).unwrap())
+                    .collect(),
+                active: Some(SessionId::new("good").unwrap()),
+            }))
+            .unwrap();
+            for (id, fails) in [("good", false), ("broken", true), ("last", false)] {
+                let Some(InboxMsg::History { session, ack, .. }) = inbox.recv().await else {
+                    panic!("history")
+                };
+                assert_eq!(session.0, id);
+                ack.send(Ok(Default::default())).unwrap();
+                let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+                    panic!("catalog")
+                };
+                if fails {
+                    ack.send(Err(CoreError::StoredTabDeck)).unwrap();
+                } else {
+                    ack.send(Ok(catalog())).unwrap();
+                }
+            }
+            assert!(inbox.try_recv().is_err(), "filtered route was written");
+        });
+        let (mut state, mut deck) = restore_initial(&app, None).await.unwrap();
+        deck.sync_tabs(&mut state);
+        assert_eq!(state.session().0, "good");
+        assert_eq!(deck.tabs.len(), 2);
+        assert_eq!(
+            state.note(),
+            Some("saved tabs partially unavailable; review saved tabs")
+        );
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::ActivateTab { index: 1 },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.session().0, "last");
+        assert_eq!(deck.revision.as_deref(), Some("unchanged"));
+        assert_eq!(
+            state.note(),
+            Some("tab deck could not be saved; review saved tabs")
+        );
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn existing_legacy_explicit_id_remains_readable_but_never_saved() {
+        let id = SessionId::new(" legacy-root").unwrap();
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let expected = id.clone();
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::TabDeck { ack }) = inbox.recv().await else {
+                panic!("deck")
+            };
+            ack.send(Ok(TabDeckSnapshot {
+                location: "/fixture".into(),
+                ..Default::default()
+            }))
+            .unwrap();
+            let Some(InboxMsg::ProbeSession { id, ack }) = inbox.recv().await else {
+                panic!("lookup legacy row")
+            };
+            assert_eq!(id, expected);
+            ack.send(Ok(SessionProbe::Root)).unwrap();
+            let Some(InboxMsg::History { session, ack, .. }) = inbox.recv().await else {
+                panic!("legacy history")
+            };
+            assert_eq!(session, expected);
+            ack.send(Ok(Default::default())).unwrap();
+            let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+                panic!("legacy selection")
+            };
+            ack.send(Ok(catalog())).unwrap();
+            assert!(inbox.try_recv().is_err(), "legacy ID was created or saved");
+        });
+        let (state, deck) = restore_initial(&app, Some(id)).await.unwrap();
+        assert!(deck.save_disabled);
+        assert_eq!(
+            state.note(),
+            Some("legacy session id cannot be saved; review saved tabs")
+        );
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn failed_active_tab_falls_back_to_home_with_surviving_parked_tab() {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::TabDeck { ack }) = inbox.recv().await else {
+                panic!("deck")
+            };
+            ack.send(Ok(TabDeckSnapshot {
+                location: "/fixture".into(),
+                revision: Some("keep".into()),
+                sessions: ["broken", "good"]
+                    .into_iter()
+                    .map(|id| SessionId::new(id).unwrap())
+                    .collect(),
+                active: Some(SessionId::new("broken").unwrap()),
+            }))
+            .unwrap();
+            let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
+                panic!("broken history")
+            };
+            ack.send(Err(CoreError::StoredTabDeck)).unwrap();
+            let Some(InboxMsg::History { session, ack, .. }) = inbox.recv().await else {
+                panic!("good history")
+            };
+            assert_eq!(session.0, "good");
+            ack.send(Ok(Default::default())).unwrap();
+            let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+                panic!("good selection")
+            };
+            ack.send(Ok(catalog())).unwrap();
+            let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
+                panic!("fallback Home")
+            };
+            ack.send(Ok(catalog())).unwrap();
+            assert!(inbox.try_recv().is_err());
+        });
+        let (mut state, mut deck) = restore_initial(&app, None).await.unwrap();
+        deck.sync_tabs(&mut state);
+        assert!(state.attached_session().is_none());
+        assert_eq!(
+            deck.snapshot(&state).sessions,
+            vec![SessionId::new("good").unwrap()]
+        );
+        assert!(deck.save_disabled);
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::ActivateTab { index: 0 },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.session().0, "good");
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn explicit_failed_view_is_a_startup_error() {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::TabDeck { ack }) = inbox.recv().await else {
+                panic!("deck")
+            };
+            ack.send(Ok(TabDeckSnapshot {
+                location: "/fixture".into(),
+                sessions: vec![SessionId::new("broken").unwrap()],
+                active: None,
+                ..Default::default()
+            }))
+            .unwrap();
+            let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
+                panic!("explicit history")
+            };
+            ack.send(Err(CoreError::StoredTabDeck)).unwrap();
+            assert!(inbox.try_recv().is_err());
+        });
+        assert!(matches!(
+            restore_initial(&app, Some(SessionId::new("broken").unwrap())).await,
+            Err(StartupFailure::Query)
+        ));
+        worker.await.unwrap();
+    }
 
     fn catalog() -> CatalogSnapshot {
         CatalogSnapshot {
@@ -1069,6 +1831,312 @@ mod tests {
         deck.tab_cards_before.push(None);
         deck.cards_before = None;
         deck.sync_tabs(state);
+    }
+
+    #[tokio::test]
+    async fn restore_home_with_parked_views_keeps_order_and_failed_save_keeps_route() {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::TabDeck { ack }) = inbox.recv().await else {
+                panic!("read deck first")
+            };
+            ack.send(Ok(TabDeckSnapshot {
+                location: "/fixture".into(),
+                revision: Some("rev-1".into()),
+                sessions: vec![
+                    SessionId::new("one").unwrap(),
+                    SessionId::new("two").unwrap(),
+                ],
+                active: None,
+            }))
+            .unwrap();
+            for id in ["one", "two"] {
+                let Some(InboxMsg::History {
+                    session,
+                    limit,
+                    ack,
+                    ..
+                }) = inbox.recv().await
+                else {
+                    panic!("read bounded history")
+                };
+                assert_eq!(session.0, id);
+                assert_eq!(limit, HISTORY_PAGE_LIMIT);
+                ack.send(Ok(Default::default())).unwrap();
+                let Some(InboxMsg::SessionSelection {
+                    session,
+                    action,
+                    ack,
+                    ..
+                }) = inbox.recv().await
+                else {
+                    panic!("read selection")
+                };
+                assert_eq!(session.0, id);
+                assert_eq!(action, SelectionAction::Current);
+                ack.send(Ok(catalog())).unwrap();
+            }
+            let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
+                panic!("Home selection")
+            };
+            ack.send(Ok(catalog())).unwrap();
+            let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+                panic!("activate saves route")
+            };
+            assert_eq!(
+                deck.sessions
+                    .iter()
+                    .map(|id| id.0.as_str())
+                    .collect::<Vec<_>>(),
+                ["one", "two"]
+            );
+            assert_eq!(deck.active.as_ref().map(|id| id.0.as_str()), Some("one"));
+            assert_eq!(deck.location, "/fixture");
+            assert_eq!(deck.revision.as_deref(), Some("rev-1"));
+            ack.send(Err(CoreError::TabDeckConflict)).unwrap();
+            let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+                panic!("another action retains the expected token")
+            };
+            assert_eq!(deck.location, "/fixture");
+            assert_eq!(deck.revision.as_deref(), Some("rev-1"));
+            assert_eq!(deck.active.as_ref().map(|id| id.0.as_str()), Some("two"));
+            ack.send(Err(CoreError::TabDeckConflict)).unwrap();
+            assert!(
+                inbox.try_recv().is_err(),
+                "restore/switch never creates or submits"
+            );
+        });
+        let (mut state, mut deck) = restore_initial(&app, None).await.unwrap();
+        deck.sync_tabs(&mut state);
+        assert!(state.attached_session().is_none());
+        assert_eq!(deck.tabs.len(), 2);
+        assert_eq!(state.tab_presentation().1, 2);
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::ActivateTab { index: 0 },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.session().0, "one");
+        assert_eq!(deck.tabs.len(), 2);
+        assert_eq!(deck.revision.as_deref(), Some("rev-1"));
+        assert_eq!(
+            state.note(),
+            Some("tab deck could not be saved; saved tabs changed or storage unavailable")
+        );
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::ActivateTab { index: 1 },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.session().0, "two");
+        assert_eq!(deck.revision.as_deref(), Some("rev-1"));
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn pruned_home_deck_keeps_all_owner_projected_tabs() {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::TabDeck { ack }) = inbox.recv().await else {
+                panic!("read deck")
+            };
+            ack.send(Ok(TabDeckSnapshot {
+                location: "/fixture".into(),
+                revision: Some("rev-home".into()),
+                sessions: (0..MAX_TABS - 1)
+                    .map(|i| SessionId::new(format!("tab-{i}")).unwrap())
+                    .collect(),
+                active: None,
+            }))
+            .unwrap();
+            for i in 0..MAX_TABS - 1 {
+                let Some(InboxMsg::History { session, ack, .. }) = inbox.recv().await else {
+                    panic!("history")
+                };
+                assert_eq!(session.0, format!("tab-{i}"));
+                ack.send(Ok(Default::default())).unwrap();
+                let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+                    panic!("selection")
+                };
+                ack.send(Ok(catalog())).unwrap();
+            }
+            let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
+                panic!("Home selection")
+            };
+            ack.send(Ok(catalog())).unwrap();
+            assert!(
+                inbox.try_recv().is_err(),
+                "no Home root or automatic repair write"
+            );
+        });
+        let (mut state, mut deck) = restore_initial(&app, None).await.unwrap();
+        deck.sync_tabs(&mut state);
+        assert_eq!(state.tab_presentation().0.len(), MAX_TABS - 1);
+        assert_eq!(state.tab_presentation().1, MAX_TABS - 1);
+        assert_eq!(deck.snapshot(&state).sessions.len(), MAX_TABS - 1);
+        assert!(state.attached_session().is_none());
+        assert_eq!(deck.revision.as_deref(), Some("rev-home"));
+        assert!(!deck.can_open_session(), "Home consumes the remaining slot");
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn explicit_restore_adopts_successful_revision_for_next_save() {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::TabDeck { ack }) = inbox.recv().await else {
+                panic!("read deck")
+            };
+            ack.send(Ok(TabDeckSnapshot {
+                location: "/fixture".into(),
+                revision: Some("loaded".into()),
+                sessions: vec![SessionId::new("one").unwrap()],
+                active: None,
+            }))
+            .unwrap();
+            let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
+                panic!("read history")
+            };
+            ack.send(Ok(Default::default())).unwrap();
+            let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+                panic!("read catalog")
+            };
+            ack.send(Ok(catalog())).unwrap();
+            let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+                panic!("explicit session saves")
+            };
+            assert_eq!(deck.revision.as_deref(), Some("loaded"));
+            assert_eq!(deck.active.as_ref().map(|id| id.0.as_str()), Some("one"));
+            ack.send(Ok(TabDeckSnapshot {
+                revision: Some("after-explicit".into()),
+                ..deck
+            }))
+            .unwrap();
+            let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
+                panic!("open Home")
+            };
+            ack.send(Ok(catalog())).unwrap();
+            let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+                panic!("save Home route")
+            };
+            assert_eq!(deck.location, "/fixture");
+            assert_eq!(deck.revision.as_deref(), Some("after-explicit"));
+            assert!(deck.active.is_none());
+            ack.send(Ok(TabDeckSnapshot {
+                revision: Some("after-home".into()),
+                ..deck
+            }))
+            .unwrap();
+            assert!(inbox.try_recv().is_err());
+        });
+        let (mut state, mut deck) = restore_initial(&app, Some(SessionId::new("one").unwrap()))
+            .await
+            .unwrap();
+        assert_eq!(deck.revision.as_deref(), Some("after-explicit"));
+        apply_intent(&app, &mut state, &mut deck, PanelIntent::NewSession)
+            .await
+            .unwrap();
+        assert_eq!(deck.revision.as_deref(), Some("after-home"));
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn invalid_owner_home_layout_or_location_is_not_silently_saved() {
+        for invalid in [
+            TabDeckSnapshot {
+                location: "/fixture".into(),
+                sessions: (0..MAX_TABS)
+                    .map(|i| SessionId::new(format!("tab-{i}")).unwrap())
+                    .collect(),
+                ..Default::default()
+            },
+            TabDeckSnapshot {
+                sessions: vec![SessionId::new("one").unwrap()],
+                ..Default::default()
+            },
+        ] {
+            let (app, mut inbox, _) = CoreApp::channel(8);
+            let worker = tokio::spawn(async move {
+                let Some(InboxMsg::TabDeck { ack }) = inbox.recv().await else {
+                    panic!("read deck")
+                };
+                ack.send(Ok(invalid)).unwrap();
+                assert!(inbox.try_recv().is_err(), "invalid read never saves");
+            });
+            assert!(matches!(
+                restore_initial(&app, None).await,
+                Err(StartupFailure::Query)
+            ));
+            worker.await.unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn published_location_uses_new_owner_binding_and_token_for_next_save() {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::TabDeck { ack }) = inbox.recv().await else {
+                panic!("read B preference")
+            };
+            ack.send(Ok(TabDeckSnapshot {
+                location: "/B".into(),
+                revision: Some("B-loaded".into()),
+                sessions: vec![SessionId::new("b-root").unwrap()],
+                active: None,
+            }))
+            .unwrap();
+            let Some(InboxMsg::History { session, ack, .. }) = inbox.recv().await else {
+                panic!("read B root")
+            };
+            assert_eq!(session.0, "b-root");
+            ack.send(Ok(Default::default())).unwrap();
+            let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+                panic!("read B catalog")
+            };
+            ack.send(Ok(catalog())).unwrap();
+            let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+                panic!("save B route")
+            };
+            assert_eq!(deck.location, "/B");
+            assert_eq!(deck.revision.as_deref(), Some("B-loaded"));
+            assert_eq!(deck.sessions, vec![SessionId::new("b-root").unwrap()]);
+            ack.send(Ok(TabDeckSnapshot {
+                revision: Some("B-saved".into()),
+                ..deck
+            }))
+            .unwrap();
+            assert!(inbox.try_recv().is_err());
+        });
+        let mut state = TuiState::new(app.clone(), SessionId::new("a-root").unwrap());
+        let mut deck = LoopState {
+            location: Some("/A".into()),
+            revision: Some("A-stale".into()),
+            tabs: vec![None],
+            tab_cards_before: vec![None],
+            active_tab: Some(0),
+            ..Default::default()
+        };
+        adopt_location(&app, &mut state, &mut deck, catalog(), "/B").await;
+        assert!(state.attached_session().is_none());
+        assert_eq!(deck.location.as_deref(), Some("/B"));
+        assert_eq!(deck.revision.as_deref(), Some("B-loaded"));
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::ActivateTab { index: 0 },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.session().0, "b-root");
+        assert_eq!(deck.revision.as_deref(), Some("B-saved"));
+        worker.await.unwrap();
     }
 
     #[tokio::test]
@@ -1204,6 +2272,340 @@ mod tests {
                 .contains("first viewport marker")
         );
         assert_eq!(deck.cards_before, Some(11));
+    }
+
+    #[tokio::test]
+    async fn failed_preclose_save_keeps_accepted_home_root_and_parked_cursor() {
+        // Home acceptance attached a real root, but the first preference
+        // write failed. Neither a stale CAS nor storage failure may turn a
+        // subsequent close into a local removal before marker retirement.
+        for failure in [CoreError::TabDeckConflict, CoreError::TabDeckStorage] {
+            let (app, mut inbox, _) = CoreApp::channel(4);
+            let mut state = TuiState::new(app.clone(), SessionId::new("fresh").unwrap());
+            state.handle_paste("retained draft");
+            let mut deck = LoopState {
+                location: Some("/fixture".into()),
+                revision: Some("old-token".into()),
+                ..Default::default()
+            };
+            deck.sync_tabs(&mut state); // accepted fresh Home receipt
+            deck.cards_before = Some(42);
+            let worker = tokio::spawn(async move {
+                let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
+                    panic!("Home query before any writes or removal")
+                };
+                ack.send(Ok(catalog())).unwrap();
+                let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+                    panic!("pre-close save must precede removal")
+                };
+                assert_eq!(deck.sessions, vec![SessionId::new("fresh").unwrap()]);
+                assert_eq!(deck.active, Some(SessionId::new("fresh").unwrap()));
+                assert_eq!(deck.revision.as_deref(), Some("old-token"));
+                ack.send(Err(failure)).unwrap();
+                assert!(
+                    inbox.try_recv().is_err(),
+                    "no candidate save after failed preflight"
+                );
+            });
+            apply_outcome(
+                &app,
+                &mut state,
+                &mut deck,
+                KeyOutcome {
+                    intent: Some(PanelIntent::CloseTab { index: 0 }),
+                    ..Default::default()
+                },
+                false,
+            )
+            .await;
+            assert_eq!(
+                state.note(),
+                Some("tab close refused; saved tabs unavailable")
+            );
+            assert_eq!(state.input(), "retained draft");
+            assert_eq!(state.session().0, "fresh");
+            assert_eq!(deck.snapshot(&state).sessions.len(), 1);
+            assert_eq!(deck.cards_before, Some(42));
+            assert_eq!(deck.tab_cards_before, [None]);
+            assert_eq!(deck.revision.as_deref(), Some("old-token"));
+            worker.await.unwrap();
+        }
+
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("active").unwrap());
+        let mut deck = LoopState {
+            location: Some("/fixture".into()),
+            save_disabled: true,
+            ..Default::default()
+        };
+        deck.sync_tabs(&mut state);
+        append_tab(&app, &mut deck, &mut state, "other");
+        deck.cards_before = Some(12);
+        deck.tab_cards_before[0] = Some(9);
+        assert_eq!(
+            apply_intent(
+                &app,
+                &mut state,
+                &mut deck,
+                PanelIntent::CloseTab { index: 0 }
+            )
+            .await
+            .unwrap_err(),
+            "tab close refused; saved tabs unavailable"
+        );
+        assert_eq!(deck.snapshot(&state).sessions.len(), 2);
+        assert_eq!(deck.active_tab, Some(1));
+        assert_eq!(deck.cards_before, Some(12));
+        assert_eq!(deck.tab_cards_before, [Some(9), None]);
+        assert!(inbox.try_recv().is_err(), "disabled save never calls owner");
+    }
+
+    #[tokio::test]
+    async fn real_close_commits_candidate_before_removal_or_retains_full_deck_on_failure() {
+        for failure in [
+            Some(CoreError::TabDeckConflict),
+            Some(CoreError::TabDeckStorage),
+            None,
+        ] {
+            let failed = failure.is_some();
+            let (app, mut inbox, _) = CoreApp::channel(4);
+            let mut state = TuiState::new(app.clone(), SessionId::new("fresh").unwrap());
+            state.handle_paste("retained draft");
+            let mut deck = LoopState {
+                location: Some("/fixture".into()),
+                revision: Some("before".into()),
+                ..Default::default()
+            };
+            deck.sync_tabs(&mut state);
+            deck.cards_before = Some(42);
+            let worker = tokio::spawn(async move {
+                let Some(InboxMsg::HomeSelection { action, ack }) = inbox.recv().await else {
+                    panic!("Home queried before either save")
+                };
+                assert_eq!(action, SelectionAction::Current);
+                ack.send(Ok(catalog())).unwrap();
+                let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+                    panic!("full deck preflight")
+                };
+                assert_eq!(deck.sessions, vec![SessionId::new("fresh").unwrap()]);
+                assert_eq!(deck.active, Some(SessionId::new("fresh").unwrap()));
+                assert_eq!(deck.revision.as_deref(), Some("before"));
+                let persisted_full = deck.clone();
+                ack.send(Ok(TabDeckSnapshot {
+                    revision: Some("marker-retired".into()),
+                    ..deck
+                }))
+                .unwrap();
+                let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+                    panic!("candidate saved before visible removal")
+                };
+                assert!(deck.sessions.is_empty());
+                assert!(deck.active.is_none());
+                assert_eq!(deck.location, "/fixture");
+                assert_eq!(deck.revision.as_deref(), Some("marker-retired"));
+                ack.send(match failure {
+                    Some(error) => Err(error),
+                    None => Ok(TabDeckSnapshot {
+                        revision: Some("closed".into()),
+                        ..deck
+                    }),
+                })
+                .unwrap();
+                assert!(inbox.try_recv().is_err(), "no redundant post-close save");
+                persisted_full
+            });
+            let result = apply_intent(
+                &app,
+                &mut state,
+                &mut deck,
+                PanelIntent::CloseTab { index: 0 },
+            )
+            .await;
+            if failed {
+                assert_eq!(
+                    result.unwrap_err(),
+                    "tab close refused; saved tabs unavailable"
+                );
+                assert_eq!(state.session().0, "fresh");
+                assert_eq!(state.input(), "retained draft");
+                assert_eq!(deck.snapshot(&state).sessions.len(), 1);
+                assert_eq!(deck.active_tab, Some(0));
+                assert_eq!(deck.cards_before, Some(42));
+                assert_eq!(deck.tab_cards_before, [None]);
+                assert_eq!(deck.revision.as_deref(), Some("marker-retired"));
+            } else {
+                result.unwrap();
+                assert!(state.attached_session().is_none());
+                assert!(deck.tabs.is_empty());
+                assert_eq!(deck.revision.as_deref(), Some("closed"));
+            }
+            let persisted_full = worker.await.unwrap();
+            if failed {
+                assert_eq!(
+                    persisted_full.sessions,
+                    vec![SessionId::new("fresh").unwrap()]
+                );
+                assert_eq!(
+                    persisted_full.active,
+                    Some(SessionId::new("fresh").unwrap())
+                );
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn selected_middle_close_saves_order_and_previous_survivor_before_changing_cursors() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("a").unwrap());
+        let mut deck = LoopState {
+            location: Some("/fixture".into()),
+            revision: Some("old".into()),
+            ..Default::default()
+        };
+        deck.sync_tabs(&mut state);
+        deck.cards_before = Some(10);
+        append_tab(&app, &mut deck, &mut state, "b");
+        deck.cards_before = Some(20);
+        append_tab(&app, &mut deck, &mut state, "c");
+        deck.cards_before = Some(30);
+        deck.activate(&mut state, 1).unwrap();
+        state.handle_paste("middle draft");
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+                panic!("full ordered preflight")
+            };
+            assert_eq!(
+                deck.sessions
+                    .iter()
+                    .map(|id| id.0.as_str())
+                    .collect::<Vec<_>>(),
+                ["a", "b", "c"]
+            );
+            assert_eq!(deck.active.as_ref().map(|id| id.0.as_str()), Some("b"));
+            assert_eq!(deck.revision.as_deref(), Some("old"));
+            ack.send(Ok(TabDeckSnapshot {
+                revision: Some("preflight".into()),
+                ..deck
+            }))
+            .unwrap();
+            let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+                panic!("survivors saved before mutation")
+            };
+            assert_eq!(
+                deck.sessions
+                    .iter()
+                    .map(|id| id.0.as_str())
+                    .collect::<Vec<_>>(),
+                ["a", "c"]
+            );
+            assert_eq!(deck.active.as_ref().map(|id| id.0.as_str()), Some("a"));
+            assert_eq!(deck.revision.as_deref(), Some("preflight"));
+            ack.send(Ok(TabDeckSnapshot {
+                revision: Some("closed".into()),
+                ..deck
+            }))
+            .unwrap();
+            assert!(inbox.try_recv().is_err(), "no third write");
+        });
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::CloseTab { index: 1 },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.session().0, "a");
+        assert_eq!(deck.cards_before, Some(10));
+        assert_eq!(deck.tab_cards_before, [Some(10), Some(30)]);
+        assert_eq!(deck.active_tab, Some(0));
+        assert_eq!(
+            deck.snapshot(&state)
+                .sessions
+                .iter()
+                .map(|id| id.0.as_str())
+                .collect::<Vec<_>>(),
+            ["a", "c"]
+        );
+        assert_eq!(deck.revision.as_deref(), Some("closed"));
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn rejected_candidate_close_keeps_parked_tab_draft_and_cursor() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("a").unwrap());
+        let mut deck = LoopState {
+            location: Some("/fixture".into()),
+            revision: Some("old".into()),
+            ..Default::default()
+        };
+        deck.sync_tabs(&mut state);
+        state.handle_paste("parked draft");
+        deck.cards_before = Some(11);
+        append_tab(&app, &mut deck, &mut state, "b");
+        state.handle_paste("active draft");
+        deck.cards_before = Some(22);
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+                panic!("full deck preflight")
+            };
+            assert_eq!(
+                deck.sessions
+                    .iter()
+                    .map(|id| id.0.as_str())
+                    .collect::<Vec<_>>(),
+                ["a", "b"]
+            );
+            let persisted = deck.clone();
+            ack.send(Ok(TabDeckSnapshot {
+                revision: Some("preflight".into()),
+                ..deck
+            }))
+            .unwrap();
+            let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+                panic!("candidate write")
+            };
+            assert_eq!(deck.sessions, vec![SessionId::new("b").unwrap()]);
+            assert_eq!(deck.active, Some(SessionId::new("b").unwrap()));
+            assert_eq!(deck.revision.as_deref(), Some("preflight"));
+            ack.send(Err(CoreError::TabDeckConflict)).unwrap();
+            assert!(inbox.try_recv().is_err());
+            persisted
+        });
+        apply_outcome(
+            &app,
+            &mut state,
+            &mut deck,
+            KeyOutcome {
+                intent: Some(PanelIntent::CloseTab { index: 0 }),
+                ..Default::default()
+            },
+            false,
+        )
+        .await;
+        assert_eq!(
+            state.note(),
+            Some("tab close refused; saved tabs unavailable")
+        );
+        assert_eq!(state.session().0, "b");
+        assert_eq!(state.input(), "active draft");
+        assert_eq!(deck.cards_before, Some(22));
+        assert_eq!(deck.tab_cards_before, [Some(11), None]);
+        assert_eq!(deck.active_tab, Some(1));
+        assert_eq!(deck.revision.as_deref(), Some("preflight"));
+        deck.activate(&mut state, 0).unwrap();
+        assert_eq!(state.input(), "parked draft");
+        assert_eq!(deck.cards_before, Some(11));
+        let persisted = worker.await.unwrap();
+        assert_eq!(
+            persisted
+                .sessions
+                .iter()
+                .map(|id| id.0.as_str())
+                .collect::<Vec<_>>(),
+            ["a", "b"]
+        );
     }
 
     #[tokio::test]

@@ -2811,16 +2811,14 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
     let first_provider_requests = responses.requests().len();
 
     tui.send_line(&format!("/location {}", b.display()));
-    let deadline = Instant::now() + TIMEOUT;
-    while db
-        .query_row("SELECT count(*) FROM sessions", [], |r| r.get::<_, i64>(0))
-        .unwrap()
-        != 2
-    {
-        assert!(Instant::now() < deadline, "Location B not published");
-        std::thread::sleep(POLL);
-    }
     tui.wait_screen("location:", TIMEOUT);
+    // Switching to B now publishes a sessionless Home; the unsafe remote
+    // retry below must not create a B root before an accepted first turn.
+    assert_eq!(
+        db.query_row("SELECT count(*) FROM sessions", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
     std::thread::sleep(Duration::from_millis(750)); // allow the terminal switch event to settle
     let from = tui.send_line("explicit retry in B");
     let deadline = Instant::now() + TIMEOUT;
@@ -2878,26 +2876,22 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
     tui.raw(&[0x7f; 160]); // preflight refusal keeps B's draft; clear it before /location
     std::thread::sleep(Duration::from_millis(200));
     tui.send_line(&format!("/location {}", c.display()));
-    let deadline = Instant::now() + TIMEOUT;
-    while db
-        .query_row("SELECT count(*) FROM sessions", [], |r| r.get::<_, i64>(0))
-        .unwrap()
-        != 3
-    {
-        assert!(
-            Instant::now() < deadline,
-            "Location C not published: {:?}",
-            tui.screen()
-                .into_iter()
-                .filter(|r| !r.trim().is_empty())
-                .collect::<Vec<_>>()
-        );
-        std::thread::sleep(POLL);
-    }
-    tui.wait_screen("location:", TIMEOUT);
+    tui.wait_screen("project-c", TIMEOUT);
+    assert_eq!(
+        db.query_row("SELECT count(*) FROM sessions", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        1,
+        "neither a refused B retry nor C's Home creates a root"
+    );
     std::thread::sleep(Duration::from_millis(750));
     let from = tui.send_line("local-only tool in C");
     tui.wait_visible_after(from, "retry complete");
+    assert_eq!(
+        db.query_row("SELECT count(*) FROM sessions", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        2,
+        "C's accepted local turn creates exactly one bound root"
+    );
     assert_eq!(
         mcp.records()
             .iter()
@@ -2940,7 +2934,8 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
     }
     std::thread::sleep(Duration::from_millis(750)); // allow final UI handoff before switching
     tui.send_line(&format!("/location {}", b.display()));
-    tui.wait_screen(&b.to_string_lossy(), TIMEOUT);
+    // Toast may wrap the absolute path; the active footer retains its suffix.
+    tui.wait_screen("project-b", TIMEOUT);
     let local_pid: libc::pid_t = fs::read_to_string(&local_log)
         .unwrap()
         .lines()
@@ -2978,7 +2973,7 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
             .count(),
         1
     );
-    for location in [&fixture.project, &b, &c] {
+    for (location, expected) in [(&fixture.project, 1), (&b, 0), (&c, 1)] {
         assert_eq!(
             db.query_row(
                 "SELECT count(*) FROM prefs WHERE key LIKE 'tui.session_location.%' AND value=?1",
@@ -2986,7 +2981,7 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
                 |r| r.get::<_, i64>(0)
             )
             .unwrap(),
-            1,
+            expected,
             "Location session/prefs were not isolated for {}",
             location.display()
         );

@@ -45,6 +45,11 @@ fn key(kind: &str, parts: &[&str]) -> String {
     )
 }
 
+/// Same collision-free Location tuple convention as the selection drafts.
+pub(super) fn tab_deck_key(location: &str) -> String {
+    crate::storage::tab_deck_key(location)
+}
+
 fn session_key(c: &Composition, session: &str) -> String {
     key(
         "session",

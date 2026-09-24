@@ -990,12 +990,619 @@ fn journal_counts(fixture: &Fixture) -> (i64, i64, i64, i64, i64) {
     )
 }
 
+fn deck_key(project: &Path) -> String {
+    format!(
+        "tui.selection.tab_deck:{}",
+        serde_json::json!([project.canonicalize().unwrap().to_string_lossy()])
+    )
+}
+
+fn deck_record(fixture: &Fixture, project: &Path) -> Option<String> {
+    oc_adapters::storage::Db::open(&fixture.data_dir())
+        .unwrap()
+        .get_pref(&deck_key(project))
+        .unwrap()
+}
+
+fn session_selection_key(project: &Path, session: &str) -> String {
+    format!(
+        "tui.selection.session:{}",
+        serde_json::json!([
+            project.canonicalize().unwrap().to_string_lossy(),
+            "fixture",
+            session
+        ])
+    )
+}
+
+fn metrics(path: &Path) -> serde_json::Value {
+    serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap()
+}
+
+fn quit(pty: &mut PtySession) {
+    pty.send(b"/quit\r");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+}
+
+fn wait_idle(pty: &PtySession) {
+    let start = Instant::now();
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|row| row.contains("esc interrupt") || row.contains("submission pending"))
+    {
+        assert!(start.elapsed() < DEADLINE, "turn remained active");
+        std::thread::sleep(POLL);
+    }
+    // The finished answer may precede the application event that replaces
+    // the streaming view with the durable page.
+    std::thread::sleep(Duration::from_millis(150));
+}
+
+#[test]
+fn immediate_ctrl_c_after_first_home_submit_restores_committed_root_on_restart() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let path = fixture.root.path().join("quit-first-turn-metrics.json");
+    let mut pty = PtySession::spawn(fixture.clone(), &project, &[], None);
+    wait_screen_row(&pty, "Ask anything", DEADLINE);
+    // One PTY write keeps Quit adjacent to the first Enter. The channel unit
+    // test controls the exact receipt order; here the real owner must persist
+    // the accepted route before restoring the terminal and shutting down.
+    pty.send(b"quit first turn\r\x03");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+    let saved: serde_json::Value =
+        serde_json::from_str(&deck_record(&fixture, &project).expect("accepted root deck"))
+            .unwrap();
+    let root = saved["active"].as_str().expect("active new root");
+    assert_eq!(saved["sessions"], serde_json::json!([root]));
+    assert_eq!(journal_counts(&fixture).0, 1);
+    let requests = fixture.requests.lock().unwrap().len();
+
+    let mut reopened = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&reopened, "quit first turn", DEADLINE);
+    quit(&mut reopened);
+    assert_eq!(metrics(&path)["session"], root);
+    assert_eq!(metrics(&path)["tab_ids"], serde_json::json!([root]));
+    assert_eq!(journal_counts(&fixture).0, 1);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+}
+
 /// One-based xterm SGR coordinates; a complete press/release must reach the
 /// binary across ordinary redraws before the release is interpreted.
 fn click(pty: &mut PtySession, x: u16, y: u16) {
     pty.send(format!("\x1b[<0;{x};{y}M").as_bytes());
     std::thread::sleep(Duration::from_millis(120));
     pty.send(format!("\x1b[<0;{x};{y}m").as_bytes());
+}
+
+#[test]
+fn corrupt_parked_selection_keeps_good_tabs_and_original_preference() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let path = fixture.root.path().join("filtered-deck-metrics.json");
+    let mut seed = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "good-root"],
+        None,
+    );
+    seed.wait_visible(READY, DEADLINE);
+    submit(&mut seed, "good retained prompt");
+    wait_screen_row(&seed, "echo: good retained prompt", DEADLINE);
+    wait_idle(&seed);
+    seed.send(b"/new\r");
+    wait_screen_row(&seed, "New session", DEADLINE);
+    submit(&mut seed, "parked prompt");
+    wait_screen_row(&seed, "echo: parked prompt", DEADLINE);
+    wait_idle(&seed);
+    click(&mut seed, 10, 1);
+    wait_screen_row(&seed, "good retained prompt", DEADLINE);
+    quit(&mut seed);
+    let counts = journal_counts(&fixture);
+    assert_eq!(counts.0, 2);
+    let ids = oc_adapters::storage::Db::open(&fixture.data_dir())
+        .unwrap()
+        .list_sessions()
+        .unwrap();
+    let parked = ids.iter().find(|id| *id != "good-root").unwrap();
+    let saved = deck_record(&fixture, &project).unwrap();
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    db.set_pref(&session_selection_key(&project, parked), "not-json")
+        .unwrap();
+    drop(db);
+
+    let mut restored = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&restored, "saved tabs partially unavailable", DEADLINE);
+    wait_screen_row(&restored, "good retained prompt", DEADLINE);
+    restored.send(b"/new\r");
+    wait_screen_row(&restored, "tab deck could not be saved", DEADLINE);
+    click(&mut restored, 10, 1);
+    wait_screen_row(&restored, "good retained prompt", DEADLINE);
+    quit(&mut restored);
+    assert_eq!(metrics(&path)["tab_ids"], serde_json::json!(["good-root"]));
+    assert_eq!(metrics(&path)["session"], "good-root");
+    assert_eq!(
+        deck_record(&fixture, &project).as_deref(),
+        Some(saved.as_str())
+    );
+    assert_eq!(journal_counts(&fixture), counts);
+
+    let mut roaming = PtySession::spawn(fixture.clone(), &fixture.project_b(), &[], Some(&path));
+    wait_screen_row(&roaming, "Ask anything", DEADLINE);
+    roaming.send(format!("/location {}\r", project.display()).as_bytes());
+    wait_screen_row(&roaming, "Location tabs unavailable", DEADLINE);
+    wait_screen_row(&roaming, "good retained prompt", DEADLINE);
+    roaming.send(b"/new\r");
+    wait_screen_row(&roaming, "tab deck could not be saved", DEADLINE);
+    quit(&mut roaming);
+    assert_eq!(metrics(&path)["tab_ids"], serde_json::json!(["good-root"]));
+    assert_eq!(
+        deck_record(&fixture, &project).as_deref(),
+        Some(saved.as_str())
+    );
+    assert_eq!(journal_counts(&fixture), counts);
+}
+
+#[test]
+fn invalid_absent_explicit_root_is_rejected_without_creating_a_row() {
+    for id in [" root", "root ", "bad\troot", &"x".repeat(129)] {
+        let fixture = Fixture::new();
+        let project = fixture.project_a();
+        let mut pty = PtySession::spawn(fixture.clone(), &project, &["tui", "--session", id], None);
+        let (status, output) = pty.wait_exit(DEADLINE);
+        assert!(!status.success() && pty.restored());
+        assert!(contains(&output, b"invalid --session id"));
+        assert_eq!(journal_counts(&fixture).0, 0);
+        assert!(deck_record(&fixture, &project).is_none());
+    }
+}
+
+#[test]
+fn explicit_child_is_standalone_read_only_and_preserves_saved_home() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let path = fixture.root.path().join("explicit-child-metrics.json");
+    let mut seed = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "parent"],
+        None,
+    );
+    seed.wait_visible(READY, DEADLINE);
+    quit(&mut seed);
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    db.create_child_session("parent", "child-view", None, None, Some("Child view"))
+        .unwrap();
+    db.set_pref(
+        &format!(
+            "{}child-view",
+            oc_adapters::runtime::SESSION_LOCATION_PREFIX
+        ),
+        &project.to_string_lossy(),
+    )
+    .unwrap();
+    db.append_message("child-view", "assistant", "child history sentinel")
+        .unwrap();
+    drop(db);
+    let mut home = PtySession::spawn(fixture.clone(), &project, &[], None);
+    home.wait_visible(READY, DEADLINE);
+    home.send(b"/new\r");
+    wait_screen_row(&home, "New session", DEADLINE);
+    quit(&mut home);
+    let saved = deck_record(&fixture, &project).unwrap();
+    assert!(serde_json::from_str::<serde_json::Value>(&saved).unwrap()["active"].is_null());
+    let counts = journal_counts(&fixture);
+    let requests = fixture.requests.lock().unwrap().len();
+
+    let mut child = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "child-view"],
+        Some(&path),
+    );
+    wait_screen_row(&child, "child history sentinel", DEADLINE);
+    wait_screen_row(&child, "read-only history", DEADLINE);
+    child.send(b"should not submit\r");
+    wait_screen_row(&child, "read-only history", DEADLINE);
+    child.send(b"\x03");
+    let (status, output) = child.wait_exit(DEADLINE);
+    assert!(status.success() && child.restored() && contains(&output, ALT_LEAVE));
+    assert_eq!(metrics(&path)["session"], "child-view");
+    assert_eq!(
+        deck_record(&fixture, &project).as_deref(),
+        Some(saved.as_str())
+    );
+    assert_eq!(journal_counts(&fixture), counts);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+}
+
+#[test]
+fn explicit_foreign_and_unbound_rows_are_refused_without_claiming_or_listing() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    for i in 0..1500 {
+        db.create_session(&format!("closed-{i:04}")).unwrap();
+    }
+    for id in ["foreign-root", "unbound-root"] {
+        db.create_session(id).unwrap();
+    }
+    db.set_pref(
+        &format!(
+            "{}foreign-root",
+            oc_adapters::runtime::SESSION_LOCATION_PREFIX
+        ),
+        &fixture.project_b().to_string_lossy(),
+    )
+    .unwrap();
+    drop(db);
+    for id in ["foreign-root", "unbound-root"] {
+        let mut pty = PtySession::spawn(fixture.clone(), &project, &["tui", "--session", id], None);
+        wait_screen_row(&pty, "startup", DEADLINE);
+        pty.send(b"q");
+        let (status, _) = pty.wait_exit(DEADLINE);
+        assert!(!status.success() && pty.restored());
+        assert!(deck_record(&fixture, &project).is_none());
+    }
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    assert!(
+        db.get_pref(&format!(
+            "{}unbound-root",
+            oc_adapters::runtime::SESSION_LOCATION_PREFIX
+        ))
+        .unwrap()
+        .is_none()
+    );
+    assert_eq!(journal_counts(&fixture).0, 1502);
+    drop(db);
+    // Only the requested ID is probed even with a large closed archive.
+    let mut fresh = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "new-root"],
+        None,
+    );
+    fresh.wait_visible(READY, DEADLINE);
+    quit(&mut fresh);
+    assert_eq!(journal_counts(&fixture).0, 1503);
+    let saved: serde_json::Value =
+        serde_json::from_str(&deck_record(&fixture, &project).unwrap()).unwrap();
+    assert_eq!(saved["active"], "new-root");
+    assert_eq!(saved["sessions"], serde_json::json!(["new-root"]));
+}
+
+#[test]
+fn persisted_deck_restores_order_home_close_and_explicit_session_without_new_work() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let path = fixture.root.path().join("restart-deck-metrics.json");
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "first-deck-root"],
+        None,
+    );
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "first deck prompt");
+    wait_screen_row(&pty, "echo: first deck prompt", DEADLINE);
+    wait_idle(&pty);
+    pty.send(b"/new\r");
+    wait_screen_row(&pty, "New session", DEADLINE);
+    submit(&mut pty, "second deck prompt");
+    wait_screen_row(&pty, "echo: second deck prompt", DEADLINE);
+    wait_idle(&pty);
+    fixture.wait_requests(2);
+    // Clicking the first tab changes the persisted active route without a turn.
+    click(&mut pty, 10, 1);
+    wait_screen_row(&pty, "first deck prompt", DEADLINE);
+    quit(&mut pty);
+    let counts = journal_counts(&fixture);
+    assert_eq!((counts.0, counts.2), (2, 2));
+    let ids = oc_adapters::storage::Db::open(&fixture.data_dir())
+        .unwrap()
+        .list_sessions()
+        .unwrap();
+    let second = ids
+        .iter()
+        .find(|id| *id != "first-deck-root")
+        .unwrap()
+        .clone();
+    let saved_raw = deck_record(&fixture, &project).unwrap();
+    let saved: serde_json::Value = serde_json::from_str(&saved_raw).unwrap();
+    assert_eq!(
+        saved["sessions"],
+        serde_json::json!(["first-deck-root", second])
+    );
+    assert_eq!(saved["active"], "first-deck-root");
+    let requests = fixture.requests.lock().unwrap().len();
+
+    let mut restart = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&restart, "first deck prompt", DEADLINE);
+    assert!(render_screen(&restart.snapshot()).rows()[0].contains("Fixture session title"));
+    let bad = fixture.root.path().join("invalid-deck-location");
+    std::fs::create_dir(&bad).unwrap();
+    std::fs::write(bad.join("opencode.json"), r#"{"model":"fixture/unknown"}"#).unwrap();
+    restart.send(format!("/location {}\r", bad.display()).as_bytes());
+    wait_screen_row(&restart, "Location configuration failed", DEADLINE);
+    assert!(
+        render_screen(&restart.snapshot())
+            .rows()
+            .join("\n")
+            .contains("first deck prompt")
+    );
+    restart.send(&[0x7f; 512]);
+    quit(&mut restart);
+    assert_eq!(
+        deck_record(&fixture, &project).as_deref(),
+        Some(saved_raw.as_str())
+    );
+    let restored = metrics(&path);
+    assert_eq!(
+        restored["tab_ids"],
+        serde_json::json!(["first-deck-root", second])
+    );
+    assert_eq!(restored["session"], "first-deck-root");
+    assert_eq!(restored["active_tab"], 0);
+    assert_eq!(journal_counts(&fixture), counts);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+
+    let mut home = PtySession::spawn(fixture.clone(), &project, &[], None);
+    wait_screen_row(&home, "first deck prompt", DEADLINE);
+    home.send(b"/new\r");
+    wait_screen_row(&home, "New session", DEADLINE);
+    quit(&mut home);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&deck_record(&fixture, &project).unwrap())
+            .unwrap()["active"],
+        serde_json::Value::Null
+    );
+    let mut home_restart = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&home_restart, "New session", DEADLINE);
+    quit(&mut home_restart);
+    assert_eq!(
+        metrics(&path)["tab_ids"],
+        serde_json::json!(["first-deck-root", second])
+    );
+    assert!(metrics(&path)["session"].is_null());
+    assert_eq!(metrics(&path)["tab_count"], 2);
+
+    // Explicit --session wins over saved Home, without creating an existing root.
+    let mut explicit = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", &second],
+        Some(&path),
+    );
+    wait_screen_row(&explicit, "second deck prompt", DEADLINE);
+    quit(&mut explicit);
+    assert_eq!(
+        metrics(&path)["tab_ids"],
+        serde_json::json!(["first-deck-root", second])
+    );
+    assert_eq!(metrics(&path)["session"], second);
+
+    let mut close = PtySession::spawn(fixture.clone(), &project, &[], None);
+    wait_screen_row(&close, "second deck prompt", DEADLINE);
+    close.send(b"\x1b[<35;63;1M");
+    wait_screen_row(&close, "✕", DEADLINE);
+    click(&mut close, 63, 1);
+    wait_screen_row(&close, "first deck prompt", DEADLINE);
+    let conn = rusqlite::Connection::open(fixture.data_dir().join("oc.sqlite")).unwrap();
+    let closed_raw: String = conn
+        .query_row(
+            "SELECT value FROM prefs WHERE key = ?1",
+            [deck_key(&project)],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let closed: serde_json::Value = serde_json::from_str(&closed_raw).unwrap();
+    assert_eq!(closed["sessions"], serde_json::json!(["first-deck-root"]));
+    assert_eq!(closed["active"], "first-deck-root");
+    drop(conn);
+    quit(&mut close);
+    assert_eq!(
+        journal_counts(&fixture),
+        counts,
+        "closed root remains durable"
+    );
+    let mut after_close = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&after_close, "first deck prompt", DEADLINE);
+    quit(&mut after_close);
+    assert_eq!(
+        metrics(&path)["tab_ids"],
+        serde_json::json!(["first-deck-root"])
+    );
+    assert_eq!(
+        journal_counts(&fixture),
+        counts,
+        "closing only changes the deck"
+    );
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+
+    // Explicitly naming a closed root appends it to the loaded deck without
+    // re-creating the session or sending another turn.
+    let mut reopen = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", &second],
+        Some(&path),
+    );
+    wait_screen_row(&reopen, "second deck prompt", DEADLINE);
+    quit(&mut reopen);
+    assert_eq!(
+        metrics(&path)["tab_ids"],
+        serde_json::json!(["first-deck-root", second])
+    );
+    assert_eq!(metrics(&path)["session"], second);
+    assert_eq!(journal_counts(&fixture), counts);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+}
+
+#[test]
+fn concurrent_sqlite_deck_edit_cannot_be_overwritten_by_restored_tui() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let path = fixture.root.path().join("cas-deck-metrics.json");
+    let mut seed = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "cas-root"],
+        None,
+    );
+    seed.wait_visible(READY, DEADLINE);
+    quit(&mut seed);
+    let original = deck_record(&fixture, &project).expect("initial explicit route saved");
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&original).unwrap()["active"],
+        "cas-root"
+    );
+    let counts = journal_counts(&fixture);
+    let requests = fixture.requests.lock().unwrap().len();
+
+    let mut restored = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    restored.wait_visible(READY, DEADLINE);
+    // A second SQLite client edits exactly the preference the running TUI
+    // loaded. The owner must reject the TUI's now-stale expected revision.
+    let replacement = serde_json::json!({
+        "version": 1,
+        "sessions": ["cas-root"],
+        "active": null
+    })
+    .to_string();
+    let conn = rusqlite::Connection::open(fixture.data_dir().join("oc.sqlite")).unwrap();
+    assert_eq!(
+        conn.execute(
+            "UPDATE prefs SET value = ?1 WHERE key = ?2",
+            rusqlite::params![replacement, deck_key(&project)]
+        )
+        .unwrap(),
+        1
+    );
+    drop(conn);
+    restored.send(b"/new\r");
+    wait_screen_row(&restored, "tab deck could not be saved", DEADLINE);
+    wait_screen_row(&restored, "New session", DEADLINE);
+    // The stale owner token must also block closing the parked real tab.
+    // The close hit-test is the first tab's hover glyph at column 31.
+    restored.send(b"\x1b[<35;31;1M");
+    wait_screen_row(&restored, "✕", DEADLINE);
+    click(&mut restored, 31, 1);
+    wait_screen_row(
+        &restored,
+        "tab close refused; saved tabs unavailable",
+        DEADLINE,
+    );
+    quit(&mut restored);
+    assert!(
+        metrics(&path)["session"].is_null(),
+        "live route was retained"
+    );
+    assert_eq!(metrics(&path)["tab_ids"], serde_json::json!(["cas-root"]));
+    assert_eq!(
+        deck_record(&fixture, &project).as_deref(),
+        Some(replacement.as_str())
+    );
+
+    let mut fresh = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&fresh, "New session", DEADLINE);
+    quit(&mut fresh);
+    assert_eq!(metrics(&path)["tab_ids"], serde_json::json!(["cas-root"]));
+    assert!(metrics(&path)["session"].is_null());
+    assert_eq!(
+        deck_record(&fixture, &project).as_deref(),
+        Some(replacement.as_str())
+    );
+    assert_eq!(journal_counts(&fixture), counts);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+}
+
+#[test]
+fn deck_location_isolation_and_corrupt_preference_are_safe_on_restart() {
+    let fixture = Fixture::new();
+    let alpha = fixture.project_a();
+    let beta = fixture.project_b();
+    let path = fixture.root.path().join("locations-deck-metrics.json");
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &alpha,
+        &["tui", "--session", "alpha-deck"],
+        None,
+    );
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "alpha location prompt");
+    wait_screen_row(&pty, "echo: alpha location prompt", DEADLINE);
+    wait_idle(&pty);
+    pty.send(format!("/location {}\r", beta.display()).as_bytes());
+    wait_screen_row(&pty, "proj-beta", DEADLINE);
+    assert_eq!(
+        journal_counts(&fixture).0,
+        1,
+        "switch to Home makes no root"
+    );
+    submit(&mut pty, "beta location prompt");
+    wait_screen_row(&pty, "echo: beta location prompt", DEADLINE);
+    wait_idle(&pty);
+    pty.send(format!("/location {}\r", alpha.display()).as_bytes());
+    wait_screen_row(&pty, "alpha location prompt", DEADLINE);
+    quit(&mut pty);
+    let counts = journal_counts(&fixture);
+    assert_eq!((counts.0, counts.2), (2, 2));
+    let requests = fixture.requests.lock().unwrap().len();
+
+    let mut beta_restart = PtySession::spawn(fixture.clone(), &beta, &[], Some(&path));
+    wait_screen_row(&beta_restart, "beta location prompt", DEADLINE);
+    assert!(
+        !render_screen(&beta_restart.snapshot())
+            .rows()
+            .join("\n")
+            .contains("alpha location prompt")
+    );
+    quit(&mut beta_restart);
+    assert_eq!(metrics(&path)["tab_count"], 1);
+    assert_ne!(deck_record(&fixture, &alpha), deck_record(&fixture, &beta));
+    assert_eq!(journal_counts(&fixture), counts);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+
+    // A saved Home on B remains selected even when the switch originates
+    // from A's real tab; B's parked tab must remain available in order.
+    let mut roaming = PtySession::spawn(fixture.clone(), &beta, &[], None);
+    wait_screen_row(&roaming, "beta location prompt", DEADLINE);
+    roaming.send(b"/new\r");
+    wait_screen_row(&roaming, "New session", DEADLINE);
+    roaming.send(format!("/location {}\r", alpha.display()).as_bytes());
+    wait_screen_row(&roaming, "alpha location prompt", DEADLINE);
+    roaming.send(format!("/location {}\r", beta.display()).as_bytes());
+    wait_screen_row(&roaming, "New session", DEADLINE);
+    quit(&mut roaming);
+    let mut beta_home = PtySession::spawn(fixture.clone(), &beta, &[], Some(&path));
+    wait_screen_row(&beta_home, "New session", DEADLINE);
+    quit(&mut beta_home);
+    assert!(metrics(&path)["session"].is_null());
+    assert_eq!(metrics(&path)["tab_count"], 1);
+    assert_eq!(journal_counts(&fixture), counts);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+
+    let corrupt = r#"{"version":55,"sessions":["alpha-deck"],"active":"alpha-deck"}"#;
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    db.set_pref(&deck_key(&alpha), corrupt).unwrap();
+    drop(db);
+    let mut broken = PtySession::spawn(fixture.clone(), &alpha, &[], Some(&path));
+    wait_screen_row(&broken, "saved tab deck unavailable", DEADLINE);
+    assert!(
+        !render_screen(&broken.snapshot())
+            .rows()
+            .join("\n")
+            .contains("alpha location prompt")
+    );
+    quit(&mut broken);
+    assert_eq!(metrics(&path)["tab_count"], 0);
+    assert!(metrics(&path)["session"].is_null());
+    assert_eq!(deck_record(&fixture, &alpha).as_deref(), Some(corrupt));
+    assert_eq!(journal_counts(&fixture), counts);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
 }
 
 #[test]

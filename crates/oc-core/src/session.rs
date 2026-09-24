@@ -101,6 +101,18 @@ pub enum CoreError {
     /// Native application/storage error; no secrets or provider payloads.
     #[error("application: {0}")]
     Application(String),
+    /// An invalid tab-deck save request; no preference was modified.
+    #[error("invalid tab deck")]
+    InvalidTabDeck,
+    /// Stored deck has an unsupported version or malformed/oversize payload.
+    #[error("invalid stored tab deck")]
+    StoredTabDeck,
+    /// Tab-deck storage/validation could not be completed.
+    #[error("tab deck storage unavailable")]
+    TabDeckStorage,
+    /// Location changed or another writer changed the tab preference.
+    #[error("tab deck changed; reload before saving")]
+    TabDeckConflict,
     /// Application-owned Location-switch stage; detailed text is retained for
     /// existing non-TUI callers, while interactive UIs use only `category`.
     #[error("application: {detail}")]

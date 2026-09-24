@@ -4,7 +4,57 @@
 //! These are view-model DTOs: counts, ids and bounded previews only. No
 //! storage handles, no transcripts beyond the requested page, no secrets.
 
+use crate::domain::SessionId;
 use crate::session::Role;
+
+/// One Location-verified session ID, without enumerating the archive.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SessionProbe {
+    /// No row and no Location binding exist for this ID.
+    Absent,
+    /// An existing root in the current Location.
+    Root,
+    /// An existing child in the current Location; never a root tab.
+    Child,
+}
+
+/// Ordered root tabs in the current Location. `None` leaves Home sessionless,
+/// even when other tabs are open; this is not a session creation request.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct TabDeckSnapshot {
+    /// Canonical Location served by the application at load/save time.
+    pub location: String,
+    /// Opaque token for the exact stored preference, or None if absent.
+    /// Projected restores carry a non-writable token; carry it unchanged into
+    /// a save so the owner can refuse writes that would erase hidden tabs.
+    /// Adopt the returned token only after a save succeeds.
+    pub revision: Option<String>,
+    /// Existing Location-bound root sessions, in display order.
+    pub sessions: Vec<SessionId>,
+    /// Selected tab, or sessionless Home.
+    pub active: Option<SessionId>,
+}
+
+impl TabDeckSnapshot {
+    /// The stored preference contained tabs or an active route that could not
+    /// be restored exactly. A projected deck is read-only until repaired.
+    pub fn projected(&self) -> bool {
+        self.revision
+            .as_deref()
+            .is_some_and(|revision| revision.starts_with("projected:"))
+    }
+
+    /// Mark an incomplete restore without losing the original CAS fingerprint.
+    /// The revision remains opaque to consumers and cannot be used for a save.
+    pub fn mark_projected(&mut self) {
+        if !self.projected() {
+            self.revision = Some(format!(
+                "projected:{}",
+                self.revision.as_deref().unwrap_or("")
+            ));
+        }
+    }
+}
 
 /// Prefs key holding the persisted model selection JSON.
 pub const PREF_MODEL_SELECTION: &str = "tui.model_selection";

@@ -13,8 +13,8 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 
 use crate::domain::SessionId;
 use crate::queries::{
-    CatalogSnapshot, DcpSnapshot, HistoryPage, HomeLocationSnapshot, LocationSnapshot, SkillCard,
-    ToolOpPage,
+    CatalogSnapshot, DcpSnapshot, HistoryPage, HomeLocationSnapshot, LocationSnapshot,
+    SessionProbe, SkillCard, TabDeckSnapshot, ToolOpPage,
 };
 use crate::session::{CoreError, MAX_INPUT_BYTES, MAX_QUEUE_ITEMS, Message, MessageId, Role};
 
@@ -48,6 +48,12 @@ impl SubmissionReceipt {
             Err(oneshot::error::TryRecvError::Empty) => None,
             Err(oneshot::error::TryRecvError::Closed) => Some(Err(CoreError::Shutdown)),
         }
+    }
+
+    /// Wait for the owner's acceptance decision on this already-enqueued
+    /// request. A closed owner is a failure, never an accepted turn.
+    pub async fn wait(&mut self) -> Result<WorkerTurnId, CoreError> {
+        (&mut self.0).await.map_err(|_| CoreError::Shutdown)?
     }
 }
 
@@ -258,6 +264,20 @@ pub enum InboxMsg {
     List {
         /// Query result; storage errors are not an empty list.
         ack: oneshot::Sender<Result<Vec<SessionId>, CoreError>>,
+    },
+    /// Probe one ID through the application owner, including Location binding.
+    ProbeSession {
+        id: SessionId,
+        ack: oneshot::Sender<Result<SessionProbe, CoreError>>,
+    },
+    /// Restore the current Location's ordered root tabs without opening a root.
+    TabDeck {
+        ack: oneshot::Sender<Result<TabDeckSnapshot, CoreError>>,
+    },
+    /// Persist one validated deck in the current Location.
+    SaveTabDeck {
+        deck: TabDeckSnapshot,
+        ack: oneshot::Sender<Result<TabDeckSnapshot, CoreError>>,
     },
     /// Read committed history.
     Read {
@@ -617,6 +637,36 @@ impl CoreApp {
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// Check one Location-bound ID without listing any other sessions.
+    pub async fn probe_session(&self, id: SessionId) -> Result<SessionProbe, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ProbeSession { id, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Read the current Location's bounded deck (no root or provider work).
+    pub async fn tab_deck(&self) -> Result<TabDeckSnapshot, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::TabDeck { ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Persist an ordered deck for the current Location after owner validation.
+    pub async fn save_tab_deck(&self, deck: TabDeckSnapshot) -> Result<TabDeckSnapshot, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::SaveTabDeck { deck, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Read committed history (user + finished assistant messages only).
     pub async fn read_history(&self, session: SessionId) -> Result<Vec<Message>, CoreError> {
         let (ack_tx, ack_rx) = oneshot::channel();
@@ -949,6 +999,10 @@ async fn worker_loop(
                             ids.sort_by(|a, b| a.0.cmp(&b.0));
                             let _ = ack.send(Ok(ids));
                         }
+                        Some(InboxMsg::ProbeSession { id, ack }) => {
+                            let kind = sessions.get(&id.0).map_or(SessionProbe::Absent, |_| SessionProbe::Root);
+                            let _ = ack.send(Ok(kind));
+                        }
                         Some(InboxMsg::Read { session, ack }) => {
                             let res = sessions
                                 .get(&session.0)
@@ -1041,6 +1095,12 @@ async fn worker_loop(
                     ids.sort_by(|a, b| a.0.cmp(&b.0));
                     let _ = ack.send(Ok(ids));
                 }
+                Some(InboxMsg::ProbeSession { id, ack }) => {
+                    let kind = sessions
+                        .get(&id.0)
+                        .map_or(SessionProbe::Absent, |_| SessionProbe::Root);
+                    let _ = ack.send(Ok(kind));
+                }
                 Some(InboxMsg::Read { session, ack }) => {
                     let res = sessions
                         .get(&session.0)
@@ -1129,6 +1189,12 @@ fn scripted_unsupported(message: InboxMsg) {
         InboxMsg::Skills { ack } => {
             let _ = ack.send(Err(error()));
         }
+        InboxMsg::TabDeck { ack } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::SaveTabDeck { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::SelectModel { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
@@ -1152,6 +1218,7 @@ fn scripted_unsupported(message: InboxMsg) {
         | InboxMsg::SubmitFresh { .. }
         | InboxMsg::Cancel { .. }
         | InboxMsg::List { .. }
+        | InboxMsg::ProbeSession { .. }
         | InboxMsg::Read { .. }
         | InboxMsg::Shutdown => {}
     }

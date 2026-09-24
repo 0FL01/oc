@@ -8,6 +8,7 @@
 //! `oc.lock` (advisory exclusive flock, never deleted), `oc.sqlite`,
 //! `oc.sqlite-wal/shm` (SQLite), `blobs/<sha256>` (content-addressed).
 
+use std::collections::HashSet;
 use std::fs::{self, File, OpenOptions};
 use std::io::Write as _;
 use std::os::unix::fs::PermissionsExt as _;
@@ -17,6 +18,7 @@ use std::time::{Duration, SystemTime};
 
 use fs2::FileExt as _;
 use rusqlite::{Connection, OptionalExtension as _, params};
+use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 use thiserror::Error;
 
@@ -29,6 +31,75 @@ pub const SCHEMA_VERSION: i64 = 1;
 pub const CHILD_SESSION_SCHEMA_VERSION: i64 = 3;
 /// Preference namespace for root session Location ownership.
 pub(crate) const SESSION_LOCATION_PREFIX: &str = "tui.session_location.";
+const TAB_ADOPTION_PREFIX: &str = "tui.selection.tab_adoption:";
+const MAX_TAB_ADOPTIONS: usize = 16;
+const MAX_TAB_ADOPTION_KEY_BYTES: usize = 8192;
+const TAB_ADOPTION_VALUE: &str = "pending";
+pub(crate) const MAX_TABS: usize = 16;
+pub(crate) const MAX_TAB_DECK_BYTES: usize = 4096;
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct StoredDeck {
+    pub(crate) version: u8,
+    pub(crate) sessions: Vec<String>,
+    pub(crate) active: Option<String>,
+}
+
+pub(crate) fn tab_deck_key(location: &str) -> String {
+    format!(
+        "tui.selection.tab_deck:{}",
+        serde_json::to_string(&[location]).expect("strings")
+    )
+}
+
+pub(crate) fn parse_stored_deck(raw: Option<&str>) -> Result<StoredDeck, StorageError> {
+    let deck = match raw {
+        Some(raw) => serde_json::from_str(raw).map_err(|_| invalid_stored_tab_deck())?,
+        None => StoredDeck {
+            version: 1,
+            sessions: Vec::new(),
+            active: None,
+        },
+    };
+    if deck.version != 1 || deck.sessions.len() > MAX_TABS {
+        return Err(invalid_stored_tab_deck());
+    }
+    Ok(deck)
+}
+
+pub(crate) fn valid_tab_id(id: &str) -> bool {
+    !id.is_empty() && id.len() <= 128 && id == id.trim() && !id.chars().any(char::is_control)
+}
+
+fn tab_adoption_key(location: &str, id: &str) -> String {
+    format!(
+        "{TAB_ADOPTION_PREFIX}{}",
+        serde_json::to_string(&[location, id]).expect("strings")
+    )
+}
+
+fn tab_adoption_scope(location: &str) -> String {
+    format!(
+        "{TAB_ADOPTION_PREFIX}[{},",
+        serde_json::to_string(location).expect("string")
+    )
+}
+
+fn invalid_tab_adoption() -> StorageError {
+    StorageError::Io(std::io::Error::new(
+        std::io::ErrorKind::InvalidData,
+        "invalid pending tab adoption",
+    ))
+}
+
+fn invalid_stored_tab_deck() -> StorageError {
+    StorageError::Io(std::io::Error::new(
+        std::io::ErrorKind::InvalidData,
+        "stored tab deck invalid or full",
+    ))
+}
+
 /// Nullable `sessions` columns added by [`CHILD_SESSION_SCHEMA_VERSION`].
 const CHILD_SESSION_COLUMNS: [(&str, &str); 4] = [
     ("parent_id", "TEXT"),
@@ -181,6 +252,14 @@ pub(crate) enum BoundSessionCreation {
     Created,
     AlreadyBound,
     BoundElsewhere(String),
+}
+
+/// A preference read with a SQL-enforced byte limit; an absent row is not
+/// interchangeable with a present row whose value exceeds the limit.
+pub(crate) enum BoundedPref {
+    Missing,
+    TooLarge,
+    Value(String),
 }
 
 /// One tool operation row for TUI tool cards (T22).
@@ -365,6 +444,13 @@ impl Db {
         user_text: &str,
         initial_selection: Option<(&str, &str)>,
     ) -> Result<String, StorageError> {
+        if !valid_tab_id(id) || tab_adoption_scope(location).len() > MAX_TAB_ADOPTION_KEY_BYTES {
+            return Err(invalid_tab_adoption());
+        }
+        let marker = tab_adoption_key(location, id);
+        if marker.len() > MAX_TAB_ADOPTION_KEY_BYTES {
+            return Err(invalid_tab_adoption());
+        }
         if let Some((key, _)) = initial_selection {
             // The application owns selection validation and encoding. Accept
             // only its session-scoped key for this exact root; never let the
@@ -382,12 +468,30 @@ impl Db {
         }
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
+        // Admission and the root write must see the same scoped deck and
+        // marker set. Reject before any root/turn/event insert.
+        let stored =
+            match Self::get_pref_bounded_in(&tx, &tab_deck_key(location), MAX_TAB_DECK_BYTES)? {
+                BoundedPref::Missing => parse_stored_deck(None)?,
+                BoundedPref::TooLarge => return Err(invalid_stored_tab_deck()),
+                BoundedPref::Value(raw) => parse_stored_deck(Some(&raw))?,
+            };
+        let mut occupied: HashSet<String> = stored.sessions.into_iter().collect();
+        occupied.extend(Self::tab_adoptions_in(&tx, location)?);
+        if occupied.len() >= MAX_TABS {
+            return Err(invalid_stored_tab_deck());
+        }
         Self::insert_root_session(&tx, id)?;
         Self::insert_location_binding(&tx, id, location)?;
         let message = Self::insert_accepted_turn(&tx, turn, id, prompt, user_text)?;
         if let Some((key, value)) = initial_selection {
             Self::upsert_pref(&tx, key, value)?;
         }
+        // The marker is inserted last; failures roll back the entire turn.
+        tx.execute(
+            "INSERT INTO prefs(key, value, updated_at) VALUES (?1, ?2, ?3)",
+            params![marker, TAB_ADOPTION_VALUE, now_rfc3339()],
+        )?;
         tx.commit()?;
         Ok(message)
     }
@@ -1156,6 +1260,98 @@ impl Db {
         self.set_prefs(&[(key.to_string(), value.to_string())])
     }
 
+    /// Bounded, strictly decoded pending roots for one Location, in acceptance
+    /// order. A key encodes both scope and root; the value is only a tag.
+    pub(crate) fn tab_adoptions(&self, location: &str) -> Result<Vec<String>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Self::tab_adoptions_in(&conn, location)
+    }
+
+    fn tab_adoptions_in(conn: &Connection, location: &str) -> Result<Vec<String>, StorageError> {
+        let scope = tab_adoption_scope(location);
+        if scope.len() > MAX_TAB_ADOPTION_KEY_BYTES {
+            return Err(invalid_tab_adoption());
+        }
+        let mut stmt = conn.prepare(
+            "SELECT CASE WHEN length(CAST(key AS BLOB)) <= ?2 THEN key END,
+                    CASE WHEN length(CAST(value AS BLOB)) <= ?3 THEN value END
+               FROM prefs WHERE substr(key, 1, length(?1)) = ?1
+              ORDER BY rowid LIMIT 17",
+        )?;
+        let rows = stmt.query_map(
+            params![
+                scope,
+                MAX_TAB_ADOPTION_KEY_BYTES as i64,
+                TAB_ADOPTION_VALUE.len() as i64
+            ],
+            |row| {
+                Ok((
+                    row.get::<_, Option<String>>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                ))
+            },
+        )?;
+        let mut ids = Vec::new();
+        for row in rows {
+            let (key, value) = row?;
+            let key = key.ok_or_else(invalid_tab_adoption)?;
+            let suffix = key
+                .strip_prefix(TAB_ADOPTION_PREFIX)
+                .ok_or_else(invalid_tab_adoption)?;
+            let parts: Vec<String> =
+                serde_json::from_str(suffix).map_err(|_| invalid_tab_adoption())?;
+            if parts.len() != 2
+                || parts[0] != location
+                || !valid_tab_id(&parts[1])
+                || tab_adoption_key(location, &parts[1]) != key
+                || value.as_deref() != Some(TAB_ADOPTION_VALUE)
+                || ids.contains(&parts[1])
+            {
+                return Err(invalid_tab_adoption());
+            }
+            ids.push(parts[1].clone());
+            if ids.len() > MAX_TAB_ADOPTIONS {
+                return Err(invalid_tab_adoption());
+            }
+        }
+        Ok(ids)
+    }
+
+    /// CAS preference and retire only included adoption markers in one write
+    /// transaction. A late acceptance absent from the candidate refuses CAS.
+    pub(crate) fn compare_set_tab_deck(
+        &self,
+        key: &str,
+        expected: Option<&str>,
+        value: &str,
+        location: &str,
+        included: &[String],
+    ) -> Result<bool, StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+        let current: Option<String> = tx
+            .query_row("SELECT value FROM prefs WHERE key = ?1", [key], |row| {
+                row.get(0)
+            })
+            .optional()?;
+        if current.as_deref().map(pref_revision) != expected.map(str::to_owned) {
+            return Ok(false);
+        }
+        let pending = Self::tab_adoptions_in(&tx, location)?;
+        if pending.iter().any(|id| !included.contains(id)) {
+            return Ok(false);
+        }
+        Self::upsert_pref(&tx, key, value)?;
+        for id in pending {
+            tx.execute(
+                "DELETE FROM prefs WHERE key = ?1 AND value = ?2",
+                params![tab_adoption_key(location, &id), TAB_ADOPTION_VALUE],
+            )?;
+        }
+        tx.commit()?;
+        Ok(true)
+    }
+
     /// Atomically persist a selection and its associated model preference.
     pub fn set_prefs(&self, values: &[(String, String)]) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
@@ -1187,6 +1383,36 @@ impl Db {
             )
             .optional()?;
         Ok(value)
+    }
+
+    /// Materialize a preference only when its stored UTF-8 byte length fits.
+    pub(crate) fn get_pref_bounded(
+        &self,
+        key: &str,
+        max_bytes: usize,
+    ) -> Result<BoundedPref, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Self::get_pref_bounded_in(&conn, key, max_bytes)
+    }
+
+    fn get_pref_bounded_in(
+        conn: &Connection,
+        key: &str,
+        max_bytes: usize,
+    ) -> Result<BoundedPref, StorageError> {
+        let value: Option<Option<String>> = conn
+            .query_row(
+                "SELECT CASE WHEN length(CAST(value AS BLOB)) <= ?2 THEN value END
+                   FROM prefs WHERE key = ?1",
+                params![key, i64::try_from(max_bytes).unwrap_or(i64::MAX)],
+                |row| row.get(0),
+            )
+            .optional()?;
+        Ok(match value {
+            None => BoundedPref::Missing,
+            Some(None) => BoundedPref::TooLarge,
+            Some(Some(raw)) => BoundedPref::Value(raw),
+        })
     }
 
     /// Begin a turn (durable intent before any side effect).
@@ -2219,6 +2445,11 @@ fn hex_digest(data: &[u8]) -> String {
     format!("{:x}", hasher.finalize())
 }
 
+/// Revision of the exact raw pref value. No raw JSON crosses the app boundary.
+pub(crate) fn pref_revision(raw: &str) -> String {
+    hex_digest(raw.as_bytes())
+}
+
 fn invalid_blob() -> StorageError {
     std::io::Error::new(
         std::io::ErrorKind::InvalidData,
@@ -2370,7 +2601,10 @@ fn apply_schema(conn: &Connection) -> Result<(), StorageError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Db, SESSION_LOCATION_PREFIX, SessionMeta, StorageError};
+    use super::{
+        Db, SESSION_LOCATION_PREFIX, SessionMeta, StorageError, StoredDeck, TAB_ADOPTION_VALUE,
+        tab_adoption_key, tab_deck_key,
+    };
     use rusqlite::OptionalExtension as _;
     use std::fs;
     use std::os::unix::fs::PermissionsExt as _;
@@ -2960,6 +3194,61 @@ mod tests {
                 session,
             ),
         )
+    }
+
+    #[test]
+    fn fresh_admission_checks_union_before_root_insert_and_deduplicates_markers() {
+        let tmp = tmp_root("fresh-deck-union");
+        let db = Db::open(&tmp.path().join("data")).unwrap();
+        let location = "/project";
+        let key = tab_deck_key(location);
+        let names: Vec<String> = (0..15).map(|i| format!("saved-{i}")).collect();
+        let deck = StoredDeck {
+            version: 1,
+            sessions: names,
+            active: Some("saved-0".into()),
+        };
+        db.set_pref(&key, &serde_json::to_string(&deck).unwrap())
+            .unwrap();
+        // A marker already represented by the stored preference must not
+        // consume a second slot.
+        db.create_bound_session("saved-0", location).unwrap();
+        db.set_pref(&tab_adoption_key(location, "saved-0"), TAB_ADOPTION_VALUE)
+            .unwrap();
+        db.conn.lock().unwrap().execute_batch(
+            "CREATE TRIGGER reject_root BEFORE INSERT ON sessions
+             WHEN NEW.id = 'blocked' BEGIN SELECT RAISE(ABORT, 'root inserted before admission'); END;"
+        ).unwrap();
+        let accepted = db.create_bound_session_and_accept_turn(
+            "sixteenth",
+            location,
+            "t1",
+            "prompt",
+            "user",
+            None,
+        );
+        assert_eq!(accepted.unwrap(), "m0001");
+        let refusal = db.create_bound_session_and_accept_turn(
+            "blocked", location, "t2", "prompt", "user", None,
+        );
+        assert!(
+            matches!(refusal, Err(StorageError::Io(ref e)) if e.kind() == std::io::ErrorKind::InvalidData)
+        );
+        assert_eq!(fresh_turn_rows(&db, "blocked", "t2"), (0, 0, 0, 0, 0));
+        assert_eq!(
+            db.get_pref(&tab_adoption_key(location, "blocked")).unwrap(),
+            None
+        );
+        db.conn
+            .lock()
+            .unwrap()
+            .execute_batch("DROP TRIGGER reject_root")
+            .unwrap();
+        // The trigger is gone; the full union still refuses the root.
+        assert!(matches!(
+            db.create_bound_session_and_accept_turn("blocked", location, "t2", "prompt", "user", None),
+            Err(StorageError::Io(ref e)) if e.kind() == std::io::ErrorKind::InvalidData
+        ));
     }
 
     #[test]

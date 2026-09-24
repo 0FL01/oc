@@ -2165,7 +2165,47 @@ impl TuiState {
             return;
         };
         let pending = self.pending.take().expect("polled receipt");
-        if self.status == TuiStatus::Quit
+        self.reconcile_submission(pending, result, false);
+    }
+
+    /// Quit must not discard an in-flight Home root after the owner commits
+    /// it. Cancel through the owner first (so tool work is stopped safely),
+    /// then resolve the *same* receipt before the application shuts down.
+    /// Existing-session turns already have a durable tab and need no wait.
+    pub async fn reconcile_fresh_quit(&mut self) -> Result<(), CoreError> {
+        let Some(pending) = self.pending.as_mut().filter(|p| p.fresh) else {
+            return Ok(());
+        };
+        pending.cancelling = true;
+        let session = pending.session.clone();
+        // Cancel follows SubmitFresh in the owner's inbox. A rejected or
+        // already-finished turn has nothing left to cancel.
+        match self.app.cancel(session).await {
+            Ok(()) | Err(CoreError::TurnNotActive) => {}
+            Err(error) => return Err(error),
+        }
+        let result = self
+            .pending
+            .as_mut()
+            .expect("fresh receipt still pending")
+            .receipt
+            .wait()
+            .await;
+        let pending = self.pending.take().expect("fresh receipt still pending");
+        if result == Err(CoreError::Shutdown) {
+            return Err(CoreError::Shutdown);
+        }
+        self.reconcile_submission(pending, result, true);
+        Ok(())
+    }
+
+    fn reconcile_submission(
+        &mut self,
+        pending: PendingSubmission,
+        result: Result<WorkerTurnId, CoreError>,
+        exiting: bool,
+    ) {
+        if (self.status == TuiStatus::Quit && !exiting)
             || pending.request_id != self.request_id
             || pending.generation != self.generation
             || (pending.fresh != self.session.is_none())
@@ -2200,7 +2240,9 @@ impl TuiState {
                 self.reasoning_finished = None;
                 self.turn_usage = None;
                 self.active_turn = Some(turn);
-                self.status = TuiStatus::Streaming;
+                if !exiting {
+                    self.status = TuiStatus::Streaming;
+                }
                 self.scroll = 0;
                 if self.input_revision == pending.revision && !pending.cancelling {
                     self.input.clear();
@@ -2210,7 +2252,9 @@ impl TuiState {
                 self.note = None;
             }
             Err(error) => {
-                self.status = TuiStatus::Idle;
+                if !exiting {
+                    self.status = TuiStatus::Idle;
+                }
                 self.note = Some(format!("submit: {error}"));
             }
         }

@@ -12,7 +12,8 @@ use oc_core::core_app::{CoreApp, CoreEvent, InboxMsg, WorkerGuard, WorkerTurnId}
 use oc_core::domain::SessionId;
 use oc_core::queries::{
     AgentEntry, CatalogSnapshot, DcpSnapshot, HistoryMessage, HistoryPage, HomeLocationSnapshot,
-    LocationSnapshot, ModelEntry, SkillCard, StartupNotice, ToolOpPage, ToolOpView, VariantEntry,
+    LocationSnapshot, ModelEntry, SessionProbe, SkillCard, StartupNotice, ToolOpPage, ToolOpView,
+    VariantEntry,
 };
 use oc_core::session::{CoreError, LocationSwitchFailure, MAX_QUEUE_ITEMS, MessageId, Role};
 use tokio::sync::{broadcast, mpsc, oneshot};
@@ -27,6 +28,8 @@ use crate::tui_workspace::{AgentEntry as WorkspaceAgent, WorkspaceError, Workspa
 
 #[path = "application_selection.rs"]
 mod selection;
+#[path = "application_tab_deck.rs"]
+mod tab_deck;
 
 /// Bounded focus bytes accepted for a manual compress request.
 pub const COMPRESS_FOCUS_MAX: usize = 256;
@@ -956,6 +959,39 @@ fn query(
                     .map(|ids| ids.into_iter().map(SessionId).collect())
                     .map_err(app_error),
             );
+        }
+        InboxMsg::ProbeSession { id, ack } => {
+            // A missing binding alone does not prove absence: an unbound row
+            // must never be claimed by a new Location-bound root. A foreign
+            // binding is likewise a refusal, even when its row is missing.
+            let result = match runtime.open_session(&id.0) {
+                Ok(()) => db
+                    .session_meta(&id.0)
+                    .map(|meta| {
+                        if meta.parent_id.is_some() {
+                            SessionProbe::Child
+                        } else {
+                            SessionProbe::Root
+                        }
+                    })
+                    .map_err(app_error),
+                Err(RuntimeError::SessionNotFound) => match db.session_meta(&id.0) {
+                    Err(StorageError::SessionNotFound) => Ok(SessionProbe::Absent),
+                    Ok(_) => Err(app_error("session has no Location binding")),
+                    Err(error) => Err(app_error(error)),
+                },
+                Err(RuntimeError::LocationMismatch { .. }) => {
+                    Err(app_error("session belongs to another Location"))
+                }
+                Err(error) => Err(app_error(error)),
+            };
+            let _ = ack.send(result);
+        }
+        InboxMsg::TabDeck { ack } => {
+            let _ = ack.send(tab_deck::load(db, runtime));
+        }
+        InboxMsg::SaveTabDeck { deck, ack } => {
+            let _ = ack.send(tab_deck::save(db, runtime, &deck));
         }
         InboxMsg::Read { session, ack } => {
             let result = runtime
