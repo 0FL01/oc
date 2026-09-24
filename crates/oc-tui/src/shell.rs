@@ -228,10 +228,16 @@ fn shell_regions(state: &TuiState, area: Rect) -> layout::ShellRegions {
 }
 
 /// Shared painted rectangles for the strip and nonmodal mouse routing.
-pub(crate) fn tab_strip(state: &TuiState, area: Rect) -> Option<layout::HorizontalTabStrip> {
+pub fn tab_strip(state: &TuiState, area: Rect) -> Option<layout::HorizontalTabStrip> {
     let (tabs, active, can_add) = state.tab_presentation();
     if state.home && tabs.is_empty() {
         return None;
+    }
+    if let Some(hold) = &state.close_hold
+        && hold.area == area
+        && hold.until > std::time::Instant::now()
+    {
+        return Some(hold.strip.clone());
     }
     let region = shell_regions(state, area).tabs;
     if region.width == 0 || region.height == 0 {
@@ -254,6 +260,10 @@ pub(crate) fn tab_strip(state: &TuiState, area: Rect) -> Option<layout::Horizont
         0,
         !tabs.is_empty() && !state.home && can_add,
     ))
+}
+
+pub(crate) fn tab_region(state: &TuiState, area: Rect) -> Rect {
+    shell_regions(state, area).tabs
 }
 
 fn session_main(state: &TuiState, area: Rect) -> Rect {
@@ -299,7 +309,7 @@ fn tab_line(
     busy: bool,
 ) -> Line<'static> {
     deck_tab_line(
-        theme, tab_width, title, indicators, busy, 0, true, false, false,
+        theme, tab_width, title, indicators, busy, 0, true, false, false, false,
     )
 }
 
@@ -314,6 +324,7 @@ fn deck_tab_line(
     selected: bool,
     home_slot: bool,
     hovered: bool,
+    close_hovered: bool,
 ) -> Line<'static> {
     let title = if home_slot {
         NEW_SESSION_TAB_TITLE
@@ -415,7 +426,11 @@ fn deck_tab_line(
         spans.push(Span::styled(
             "✕",
             Style::default()
-                .fg(tint(theme.text_muted(), theme.text(), 0.6))
+                .fg(if close_hovered {
+                    theme.text()
+                } else {
+                    tint(theme.text_muted(), theme.text(), 0.6)
+                })
                 .bg(tab_bg),
         ));
         spans.push(Span::styled(" ", Style::default().bg(tab_bg)));
@@ -483,6 +498,12 @@ fn render_deck_tabs(
                 selected,
                 home_slot || presentation.is_some_and(|p| p.home),
                 hovered,
+                hovered
+                    && state.mouse_position().is_some_and(|(x, y, area)| {
+                        area == frame.area()
+                            && y == tab.rect.y
+                            && Some(x) == layout::tab_close_cell(tab.rect)
+                    }),
             )),
             tab.rect,
         );

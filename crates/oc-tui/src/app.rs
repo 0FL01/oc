@@ -161,6 +161,23 @@ enum TabPress {
     Close(usize),
 }
 
+/// Geometry and pointer from a genuine mouse release on a painted close cell.
+/// Kept across the binary's replacement of the active view only on success.
+pub struct TabCloseSnapshot {
+    area: Rect,
+    strip: crate::layout::HorizontalTabStrip,
+    tabs: Vec<TabPresentation>,
+    home: bool,
+    closed: usize,
+    pointer: (u16, u16),
+}
+
+pub(crate) struct TabCloseHold {
+    pub(crate) area: Rect,
+    pub(crate) strip: crate::layout::HorizontalTabStrip,
+    pub(crate) until: Instant,
+}
+
 /// One key handling result: optional status note, optional intent for the
 /// binary to apply, and whether the input buffer was consumed.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -299,6 +316,8 @@ pub struct TuiState {
     mouse_down: Option<crate::dialog::DialogHit>,
     tab_down: Option<TabPress>,
     hovered_tab: std::cell::Cell<Option<(usize, Rect)>>,
+    last_mouse: Option<(u16, u16, Rect)>,
+    pub(crate) close_hold: Option<TabCloseHold>,
     tabs: Vec<TabPresentation>,
     active_tab: usize,
     can_add_tab: bool,
@@ -407,6 +426,8 @@ impl TuiState {
             mouse_down: None,
             tab_down: None,
             hovered_tab: std::cell::Cell::new(None),
+            last_mouse: None,
+            close_hold: None,
             tabs: Vec::new(),
             active_tab: 0,
             can_add_tab: false,
@@ -498,10 +519,106 @@ impl TuiState {
             || self.can_add_tab != (can_add && count > 0)
         {
             self.hovered_tab.set(None);
+            self.close_hold = None;
         }
         self.tabs = tabs.into_iter().take(16).collect();
         self.active_tab = active.min(self.tabs.len().saturating_sub(1));
         self.can_add_tab = can_add && !self.tabs.is_empty();
+    }
+
+    /// Clear the recorded SGR coordinate when a resize invalidates its frame.
+    pub fn clear_mouse_position(&mut self) {
+        self.last_mouse = None;
+        self.hovered_tab.set(None);
+        self.close_hold = None;
+        self.tab_down = None;
+    }
+
+    /// Recover hover after a successful mouse tab activation (never on keys).
+    pub fn restore_mouse_hover(&mut self, pointer: (u16, u16, Rect)) {
+        let (x, y, area) = pointer;
+        if self.panel != TuiPanel::None || self.is_busy() {
+            return;
+        }
+        self.last_mouse = Some(pointer);
+        self.hovered_tab.set(
+            crate::shell::tab_strip(self, area)
+                .and_then(|strip| strip.hit_test(x, y))
+                .map(|index| (index, area)),
+        );
+    }
+
+    pub fn mouse_position(&self) -> Option<(u16, u16, Rect)> {
+        self.last_mouse
+    }
+
+    /// Snapshot must be taken before the owner mutates the deck. A plain
+    /// CloseTab intent (e.g. keyboard) cannot create a mouse hold.
+    pub fn mouse_close_snapshot(&self, index: usize) -> Option<TabCloseSnapshot> {
+        let (x, y, area) = self.last_mouse?;
+        let region = crate::shell::tab_region(self, area);
+        if self.panel != TuiPanel::None
+            || self.is_busy()
+            || region.height != 1
+            || region.width != area.width
+            || self.tab_hit(area, x, y) != Some(TabPress::Close(index))
+        {
+            return None;
+        }
+        Some(TabCloseSnapshot {
+            area,
+            strip: crate::shell::tab_strip(self, area)?,
+            tabs: self.tabs.clone(),
+            home: self.home,
+            closed: index,
+            pointer: (x, y),
+        })
+    }
+
+    /// `session-tabs.tsx:237-274,1446-1467`: hold the adjacent visible
+    /// survivor under the release column for up to five seconds. Reject a
+    /// changed deck or a clipped cell; re-hit-test exactly what is painted.
+    pub fn restore_mouse_close(&mut self, snapshot: TabCloseSnapshot) {
+        let old_count = snapshot.tabs.len() + usize::from(snapshot.home);
+        let new_count = self.tabs.len() + usize::from(self.home);
+        if self.panel != TuiPanel::None || self.is_busy() || old_count != new_count + 1 {
+            return;
+        }
+        let old_tabs = snapshot.tabs.len();
+        let mut old = snapshot.tabs;
+        if snapshot.closed < old.len() {
+            old.remove(snapshot.closed);
+        }
+        if old != self.tabs || (snapshot.closed != old_tabs && snapshot.home != self.home) {
+            return;
+        }
+        let target = if snapshot.closed < old_count - 1 {
+            snapshot.closed
+        } else if snapshot.closed > 0 {
+            snapshot.closed - 1
+        } else {
+            return;
+        };
+        let region = crate::shell::tab_region(self, snapshot.area);
+        if region.height != 1 || region.width != snapshot.area.width {
+            return; // The surviving route changed orientation or terminal geometry.
+        }
+        if let Some(strip) = crate::layout::held_after_close(
+            &snapshot.strip,
+            region,
+            snapshot.closed,
+            new_count,
+            target,
+            snapshot.pointer.0,
+            !self.home && self.can_add_tab,
+        ) {
+            self.close_hold = Some(TabCloseHold {
+                area: snapshot.area,
+                strip,
+                until: Instant::now() + std::time::Duration::from_secs(5),
+            });
+        }
+        self.restore_mouse_hover((snapshot.pointer.0, snapshot.pointer.1, snapshot.area));
     }
 
     pub(crate) fn set_detail_area(&self, area: ratatui::layout::Rect) {
@@ -792,6 +909,8 @@ impl TuiState {
     fn open_variants(&mut self) {
         self.panel = TuiPanel::Variant;
         self.hovered_tab.set(None);
+        self.close_hold = None;
+        self.last_mouse = None;
         // A press belongs to the dialog where it began, not the replacement.
         self.mouse_down = None;
         self.select.reset();
@@ -933,6 +1052,8 @@ impl TuiState {
         self.mouse_down = None;
         self.tab_down = None;
         self.hovered_tab.set(None);
+        self.close_hold = None;
+        self.last_mouse = None;
         self.exploration_down = None;
         self.select.reset();
     }
@@ -942,6 +1063,16 @@ impl TuiState {
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
         use crate::dialog::DialogHit;
+        self.last_mouse = (self.panel == TuiPanel::None).then_some((event.column, event.row, area));
+        if self.close_hold.as_ref().is_some_and(|hold| {
+            hold.area != area
+                || hold.until <= Instant::now()
+                || event.row != hold.strip.tabs.first().map_or(u16::MAX, |tab| tab.rect.y)
+                || !area.contains((event.column, event.row).into())
+        }) || matches!(event.kind, MouseEventKind::Down(_))
+        {
+            self.close_hold = None;
+        }
         if self.panel == TuiPanel::None {
             match event.kind {
                 MouseEventKind::Moved => {
@@ -1023,6 +1154,7 @@ impl TuiState {
         self.exploration_down = None;
         self.tab_down = None;
         self.hovered_tab.set(None);
+        self.close_hold = None;
         if self.panel == TuiPanel::Cards && self.card_output.is_some() {
             let (rect, _, _) = crate::dialog::card_geometry(area);
             let inside = rect.contains((event.column, event.row).into());
@@ -1147,7 +1279,17 @@ impl TuiState {
             return None;
         }
         match self.hovered_tab.get() {
-            Some((index, painted)) if painted == area => Some(index),
+            Some((index, painted))
+                if painted == area
+                    && self.last_mouse.is_some_and(|(x, y, pointer_area)| {
+                        pointer_area == area
+                            && crate::shell::tab_strip(self, area)
+                                .and_then(|strip| strip.hit_test(x, y))
+                                == Some(index)
+                    }) =>
+            {
+                Some(index)
+            }
             Some(_) => {
                 self.hovered_tab.set(None);
                 None
@@ -1157,7 +1299,7 @@ impl TuiState {
     }
 
     /// Same eligibility and cell for the painted overlay and mouse action.
-    pub(crate) fn tab_close_cell(&self, area: Rect, index: usize, rect: Rect) -> Option<u16> {
+    pub fn tab_close_cell(&self, area: Rect, index: usize, rect: Rect) -> Option<u16> {
         (!self.tabs.is_empty()
             && (index < self.tabs.len() || (self.home && index == self.tabs.len()))
             && self.hovered_tab(area) == Some(index)
@@ -1540,6 +1682,7 @@ impl TuiState {
         self.active_turn = Some(turn);
         self.status = TuiStatus::Streaming;
         self.panel = TuiPanel::Dcp;
+        self.clear_mouse_position();
         self.input.clear();
         self.editor.clear();
         self.live_text.clear();
@@ -2084,6 +2227,8 @@ impl TuiState {
         self.mouse_down = None;
         self.tab_down = None;
         self.hovered_tab.set(None);
+        self.close_hold = None;
+        self.last_mouse = None;
         self.leader = None;
         let mut outcome = KeyOutcome::default();
         match action {
@@ -3113,7 +3258,7 @@ pub enum PumpOutcome {
 mod tests {
     use super::{
         HOME_EXAMPLES, KeyOutcome, LIVE_PARTS_MAX, MAX_INPUT_BYTES, PanelIntent, PumpOutcome,
-        ScriptDriver, TabPresentation, TuiPanel, TuiState, TuiStatus, VIEWPORT_LINES,
+        ScriptDriver, TabCloseHold, TabPresentation, TuiPanel, TuiState, TuiStatus, VIEWPORT_LINES,
     };
     use crate::events::KeyAction;
     use crate::history::{WINDOW_BYTES, WINDOW_ROWS};
@@ -3469,6 +3614,77 @@ mod tests {
         assert_eq!(state.hovered_tab(area), None);
         state.handle_mouse(event(MouseEventKind::Moved, home_close, plain), area);
         state.set_tab_strip(vec![], 0, false);
+        assert_eq!(state.hovered_tab(area), None);
+    }
+
+    #[tokio::test]
+    async fn post_close_hold_is_released_when_a_modal_opens() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        use ratatui::layout::Rect;
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new_home(app);
+        let real = TabPresentation {
+            title: Some("survivor".into()),
+            home: false,
+            busy: false,
+        };
+        state.set_tab_strip(vec![real.clone()], 0, false);
+        let area = Rect::new(0, 0, 120, 40);
+        let before = crate::shell::tab_strip(&state, area).unwrap();
+        let x = before.tabs[1].rect.right() - 2;
+        let mouse = |kind| MouseEvent {
+            kind,
+            column: x,
+            row: 0,
+            modifiers: KeyModifiers::NONE,
+        };
+        state.handle_mouse(mouse(MouseEventKind::Moved), area);
+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left)), area);
+        assert_eq!(
+            state
+                .handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left)), area)
+                .intent,
+            Some(PanelIntent::CloseTab { index: 1 })
+        );
+        let snapshot = state.mouse_close_snapshot(1).unwrap();
+        state.home = false;
+        state.set_tab_strip(vec![real], 0, true);
+        state.restore_mouse_close(snapshot);
+        assert_eq!(
+            crate::shell::tab_strip(&state, area).unwrap().tabs[0]
+                .rect
+                .width,
+            64
+        );
+        state.run_command(crate::commands::CommandAction::OpenCommands);
+        assert_eq!(
+            crate::shell::tab_strip(&state, area).unwrap().tabs[0]
+                .rect
+                .width,
+            32
+        );
+        state.close_panel();
+        assert_eq!(state.mouse_position(), None);
+        assert_eq!(
+            state.tab_close_cell(
+                area,
+                0,
+                crate::shell::tab_strip(&state, area).unwrap().tabs[0].rect
+            ),
+            None
+        );
+        // Wheel input below the tab strip also moves the pointer and ends
+        // the temporary close hold without disabling transcript scrolling.
+        state.restore_mouse_hover((x, 0, area));
+        state.close_hold = Some(TabCloseHold {
+            area,
+            strip: crate::shell::tab_strip(&state, area).unwrap(),
+            until: Instant::now() + std::time::Duration::from_secs(5),
+        });
+        let mut wheel = mouse(MouseEventKind::ScrollDown);
+        wheel.row = 12;
+        state.handle_mouse(wheel, area);
+        assert!(state.close_hold.is_none());
         assert_eq!(state.hovered_tab(area), None);
     }
 

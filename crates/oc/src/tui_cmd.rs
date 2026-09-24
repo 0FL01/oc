@@ -477,22 +477,75 @@ async fn handle_event(
             }
         }
         Some(UiEvent::Mouse(mouse)) => {
-            let outcome = if *state.panel() == TuiPanel::None
+            let (cols, rows) =
+                crossterm::terminal::size().map_err(|e| format!("mouse terminal size: {e}"))?;
+            let area = ratatui::layout::Rect::new(0, 0, cols, rows);
+            if *state.panel() == TuiPanel::None
                 && matches!(
                     mouse.kind,
                     MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
-                ) {
-                state.scroll_transcript(mouse.kind == MouseEventKind::ScrollUp)
+                )
+            {
+                // A wheel event also moves the pointer. Keep transcript
+                // scrolling, but invalidate a held tab when it leaves the strip.
+                state.handle_mouse(mouse, area);
+                let outcome = state.scroll_transcript(mouse.kind == MouseEventKind::ScrollUp);
+                apply_outcome(app, state, loop_state, outcome, false).await;
             } else {
-                let (cols, rows) =
-                    crossterm::terminal::size().map_err(|e| format!("mouse terminal size: {e}"))?;
-                state.handle_mouse(mouse, ratatui::layout::Rect::new(0, 0, cols, rows))
-            };
-            apply_outcome(app, state, loop_state, outcome, false).await;
+                let outcome = state.handle_mouse(mouse, area);
+                apply_mouse_outcome(
+                    app,
+                    state,
+                    loop_state,
+                    outcome,
+                    area,
+                    mouse.column,
+                    mouse.row,
+                )
+                .await;
+            }
         }
-        Some(UiEvent::Resize) | None => {}
+        Some(UiEvent::Resize) => state.clear_mouse_position(),
+        None => {}
     }
     Ok(())
+}
+
+/// A tab view replacement loses the old view's hover. Re-hit-test only the
+/// last real mouse release, and only after the application accepts the action.
+async fn apply_mouse_outcome(
+    app: &CoreApp,
+    state: &mut TuiState,
+    loop_state: &mut LoopState,
+    outcome: KeyOutcome,
+    area: ratatui::layout::Rect,
+    x: u16,
+    y: u16,
+) {
+    if let Some(note) = outcome.note {
+        state.push_note(&note);
+    }
+    let Some(intent) = outcome.intent else { return };
+    let pointer = (state.mouse_position() == Some((x, y, area))).then_some((x, y, area));
+    let close = match intent {
+        PanelIntent::CloseTab { index } if pointer.is_some() => state.mouse_close_snapshot(index),
+        _ => None,
+    };
+    let activate = matches!(intent, PanelIntent::ActivateTab { .. });
+    match apply_intent_with_origin(app, state, loop_state, intent, false).await {
+        Ok(()) => {
+            loop_state.sync_tabs(state);
+            if let Some(snapshot) = close {
+                state.restore_mouse_close(snapshot);
+            } else if activate && let Some(pointer) = pointer {
+                state.restore_mouse_hover(pointer);
+            }
+        }
+        Err(message) => {
+            state.apply_intent_error(message);
+            loop_state.sync_tabs(state);
+        }
+    }
 }
 
 /// Report a note, then apply the intent (or its typed failure).
@@ -1016,6 +1069,90 @@ mod tests {
         deck.tab_cards_before.push(None);
         deck.cards_before = None;
         deck.sync_tabs(state);
+    }
+
+    #[tokio::test]
+    async fn mouse_close_home_holds_survivor_at_the_pointer_but_keyboard_switch_does_not() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent};
+        use ratatui::layout::Rect;
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("kept").unwrap());
+        state.session_title = Some("Какие инструменты доступны ассистенту".into());
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        deck.open_home(&mut state, TuiState::new_home(app.clone()));
+        let area = Rect::new(0, 0, 120, 40);
+        let before = oc_tui::shell::tab_strip(&state, area).unwrap();
+        let close = before.tabs[1].rect.right() - 2;
+        let mouse = |kind| MouseEvent {
+            kind,
+            column: close,
+            row: 0,
+            modifiers: KeyModifiers::NONE,
+        };
+        state.handle_mouse(mouse(MouseEventKind::Moved), area);
+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left)), area);
+        let outcome = state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left)), area);
+        assert_eq!(outcome.intent, Some(PanelIntent::CloseTab { index: 1 }));
+        apply_mouse_outcome(&app, &mut state, &mut deck, outcome, area, close, 0).await;
+        let after = oc_tui::shell::tab_strip(&state, area).unwrap();
+        assert!(deck.home.is_none());
+        assert_eq!(state.session().0, "kept");
+        assert_eq!(after.tabs[0].rect.right() - 2, close);
+        assert_eq!(
+            state.tab_close_cell(area, 0, after.tabs[0].rect),
+            Some(close)
+        );
+        assert_eq!(after.add.unwrap().x, close + 2);
+        assert!(inbox.try_recv().is_err());
+
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|frame| render_frame(frame, &state)).unwrap();
+        let cells = terminal.backend().buffer();
+        let row: String = (0..120).map(|x| cells[(x, 0)].symbol()).collect();
+        assert!(
+            row.starts_with("   Какие инструменты доступны ассистенту"),
+            "{row}"
+        );
+        assert_eq!(cells[(close, 0)].symbol(), "✕");
+        assert_eq!(
+            cells[(close, 0)].fg,
+            ratatui::style::Color::Rgb(238, 238, 238)
+        );
+        assert_eq!(cells[(close + 3, 0)].symbol(), "+");
+
+        state.clear_mouse_position(); // PTY resize invalidates the held frame.
+        let resized = oc_tui::shell::tab_strip(&state, area).unwrap();
+        assert_eq!(resized.tabs[0].rect.width, 32);
+        assert_eq!(state.tab_close_cell(area, 0, resized.tabs[0].rect), None);
+
+        // Clicking a real tab replaces Home's view too: re-hit-test the
+        // release, rather than relying on the parked view's stale hover.
+        deck.open_home(&mut state, TuiState::new_home(app.clone()));
+        let point = |kind| MouseEvent {
+            kind,
+            column: 3,
+            row: 0,
+            modifiers: KeyModifiers::NONE,
+        };
+        state.handle_mouse(point(MouseEventKind::Moved), area);
+        state.handle_mouse(point(MouseEventKind::Down(MouseButton::Left)), area);
+        let activate = state.handle_mouse(point(MouseEventKind::Up(MouseButton::Left)), area);
+        assert_eq!(activate.intent, Some(PanelIntent::ActivateTab { index: 0 }));
+        apply_mouse_outcome(&app, &mut state, &mut deck, activate, area, 3, 0).await;
+        let clicked = oc_tui::shell::tab_strip(&state, area).unwrap().tabs[0].rect;
+        assert_eq!(
+            state.tab_close_cell(area, 0, clicked),
+            Some(clicked.right() - 2)
+        );
+
+        // A keyboard switch has no pointer event and must not manufacture hover.
+        deck.open_home(&mut state, TuiState::new_home(app.clone()));
+        deck.activate(&mut state, 0).unwrap();
+        let normal = oc_tui::shell::tab_strip(&state, area).unwrap();
+        assert_eq!(normal.tabs[0].rect.width, 32);
+        assert_eq!(state.tab_close_cell(area, 0, normal.tabs[0].rect), None);
     }
 
     #[tokio::test]

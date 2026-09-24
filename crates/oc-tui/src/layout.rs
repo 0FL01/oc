@@ -137,6 +137,93 @@ impl HorizontalTabStrip {
     }
 }
 
+/// Pinned `session-tabs.tsx:237-274,1446-1467`: on a mouse close, keep
+/// surviving visible widths and stretch the adjacent tab until its close cell
+/// occupies the actual release column. The hold is owned by the view and is
+/// released independently of the ordinary adaptive solver.
+pub fn held_after_close(
+    old: &HorizontalTabStrip,
+    area: Rect,
+    closed: usize,
+    count: usize,
+    target: usize,
+    pointer_x: u16,
+    can_add: bool,
+) -> Option<HorizontalTabStrip> {
+    if target >= count || area.height == 0 || pointer_x < area.x || pointer_x >= area.right() {
+        return None;
+    }
+    let remap = |index: usize| (index != closed).then(|| index - usize::from(index > closed));
+    let mut visible: Vec<(usize, u16)> = old
+        .tabs
+        .iter()
+        .filter_map(|tab| remap(tab.index).map(|index| (index, tab.rect.width)))
+        .collect();
+    if !visible.iter().any(|(index, _)| *index == target) {
+        visible.push((target, 1));
+        visible.sort_by_key(|(index, _)| *index);
+    }
+    let start = visible.first()?.0;
+    if visible
+        .iter()
+        .enumerate()
+        .any(|(offset, (index, _))| *index != start + offset)
+    {
+        return None;
+    }
+    let before = start;
+    let after = count.checked_sub(start + visible.len())?;
+    let marker_width = |hidden: usize| (hidden > 0).then(|| hidden.to_string().len() as u16 + 2);
+    let leading = marker_width(before).unwrap_or(0);
+    let preceding: u32 = visible
+        .iter()
+        .take_while(|(index, _)| *index != target)
+        .map(|(_, width)| u32::from(*width))
+        .sum();
+    let target_start = u32::from(area.x) + u32::from(leading) + preceding;
+    let width = u32::from(pointer_x)
+        .checked_add(2)?
+        .checked_sub(target_start)?;
+    if width < 5 || width > u32::from(u16::MAX) {
+        return None;
+    }
+    visible.iter_mut().find(|(index, _)| *index == target)?.1 = width as u16;
+    let mut x = area.x;
+    let mut take = |width: u16| {
+        let width = width.min(area.right().saturating_sub(x));
+        let rect = Rect::new(x, area.y, width, area.height.min(1));
+        x = x.saturating_add(width);
+        rect
+    };
+    let before_marker = marker_width(before).map(&mut take);
+    let tabs: Vec<_> = visible
+        .into_iter()
+        .map(|(index, width)| TabSlot {
+            index,
+            rect: take(width),
+        })
+        .collect();
+    let after_marker = marker_width(after).map(&mut take);
+    let add = can_add.then(|| take(3));
+    if tabs
+        .iter()
+        .find(|tab| tab.index == target)
+        .and_then(|tab| tab_close_cell(tab.rect))
+        != Some(pointer_x)
+    {
+        return None;
+    }
+    Some(HorizontalTabStrip {
+        start,
+        before,
+        after,
+        before_marker,
+        tabs,
+        after_marker,
+        add,
+    })
+}
+
 /// `context/session-tabs-model.ts:33-37,175-257` adaptive window and widths;
 /// `component/session-tabs.tsx:1316-1338,1739-1772` reserves the three-cell
 /// add affordance only when its action is available. Rectangles are clipped
@@ -532,6 +619,32 @@ mod tests {
             }
         );
         assert_eq!(window.after_marker, Some(Rect::new(28, 0, 3, 1)));
+    }
+
+    #[test]
+    fn closing_hovered_home_holds_close_column_then_clips_at_resize() {
+        let area = Rect::new(0, 0, 120, 1);
+        let old = horizontal_tab_strip(area, 2, Some(1), 0, false);
+        let close = old.tabs[1].rect.right() - 2;
+        let held = held_after_close(&old, area, 1, 1, 0, close, true).unwrap();
+        assert_eq!(held.tabs[0].rect, Rect::new(0, 0, 64, 1));
+        assert_eq!(held.add, Some(Rect::new(64, 0, 3, 1)));
+        assert_eq!(held.hit_test(close, 0), Some(0));
+        assert_eq!(
+            held_after_close(&old, Rect::new(0, 0, 40, 1), 1, 1, 0, close, true),
+            None
+        );
+
+        // Overflow: if the next sibling was hidden, bring it into the
+        // visible window, retaining the before marker and the pointer cell.
+        let narrow = Rect::new(0, 0, 31, 1);
+        let window = horizontal_tab_strip(narrow, 3, Some(1), 0, false);
+        let close = window.tabs[0].rect.right() - 2;
+        let next = held_after_close(&window, narrow, 1, 2, 1, close, false).unwrap();
+        assert_eq!((next.before, next.after), (1, 0));
+        assert_eq!(next.tabs[0].index, 1);
+        assert_eq!(next.hit_test(close, 0), Some(1));
+        assert_eq!(tab_close_cell(next.tabs[0].rect), Some(close));
     }
 
     #[test]
