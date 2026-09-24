@@ -1,0 +1,1867 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-24T20:54:09.243Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "bc70f2e28363a23dddcf417b87473d006e9b550dbc5ccae9db9c2f2e5a6dba42",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "05a8b8b6b9da204e8005a9fd6d3627b1624cf1ca86d11fe7d7f141c1e8ac3b5d"
+  },
+  "fixture_sha256": "16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "f5321bb6308291d48b4d0a8f52eb5f89c3eed46f",
+    "tree": "8f749db3b881e810f155d65d4bae08322e4938a4",
+    "dirty_diff_sha256": "c1b9bc70e6e03ed562b5ac31697fbc8ca4e85f373232cd23d3d26959e3dfe554",
+    "source_manifest_sha256": "545fcb74aef0c75c64d8ca4994bf79b050d9d1423c35ed548925442987fa4142",
+    "build_provenance": "Existing binary; build/source association not attested by this run",
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "b653ec5dc5502312114de944fe7cf97b6ce188326182224b3eddfebcc85c4eeb",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "AUTOCOMPLETE_KEYS_CHECKS_PASS",
+      "predicates": [
+        {
+          "route": "home",
+          "stage": "before-enter",
+          "draft_visible": true,
+          "reload_option_visible": true,
+          "prior_reload_notice_absent": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "after-enter",
+          "reload_success_visible": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "reload-notice-expired",
+          "reload_notice_absent": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "before-esc",
+          "draft_visible": true,
+          "menu_visible": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "after-esc",
+          "draft_retained": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "before-enter",
+          "draft_visible": true,
+          "reload_option_visible": true,
+          "prior_reload_notice_absent": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "after-enter",
+          "reload_success_visible": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "reload-notice-expired",
+          "reload_notice_absent": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "before-esc",
+          "draft_visible": true,
+          "menu_visible": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "after-esc",
+          "draft_retained": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "rename-before-enter",
+          "draft_visible": true,
+          "menu_visible": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "rename-after-enter",
+          "command_with_space_inserted": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "rename-cleared",
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        }
+      ]
+    },
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "AUTOCOMPLETE_KEYS_CHECKS_PASS",
+      "predicates": [
+        {
+          "route": "home",
+          "stage": "before-enter",
+          "draft_visible": true,
+          "reload_option_visible": true,
+          "prior_reload_notice_absent": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "after-enter",
+          "reload_success_visible": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "reload-notice-expired",
+          "reload_notice_absent": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "before-esc",
+          "draft_visible": true,
+          "menu_visible": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "after-esc",
+          "draft_retained": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "before-enter",
+          "draft_visible": true,
+          "reload_option_visible": true,
+          "prior_reload_notice_absent": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "after-enter",
+          "reload_success_visible": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "reload-notice-expired",
+          "reload_notice_absent": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "before-esc",
+          "draft_visible": true,
+          "menu_visible": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "after-esc",
+          "draft_retained": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "rename-before-enter",
+          "draft_visible": true,
+          "menu_visible": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "rename-after-enter",
+          "command_with_space_inserted": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "rename-cleared",
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        }
+      ]
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-before-enter",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-before-enter",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-after-enter",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-after-enter",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-before-esc",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-before-esc",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-after-esc",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-after-esc",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-before-enter",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-before-enter",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-after-enter",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-after-enter",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-before-esc",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-before-esc",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-after-esc",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-after-esc",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-rename-before-enter",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-rename-before-enter",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-rename-after-enter",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-rename-after-enter",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "733a4198ff13ee87a3f8e49dd376014aa08cc4e05852f6090cfb0212bd78c4a5",
+      "png_sha256": "48045d44f9918366a0cd9dfa4d0fc064f99bb5853b9454c11c6bcc1b1d25f2fe",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-home-before-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "27f88d7f7ac74df4d075d96344498b05643acbe616450d63b6aae54d08a9bfc9",
+      "png_sha256": "1fbff464b583fa55b953240d403416118cac7c94348baf5c67da63effe98a585",
+      "render_sha256": "5ed81bc3b153b84977e7d7f2c105ecc665712079b38e8ae04aaaf639194e208b",
+      "path": "upstream/autocomplete-keys-home-before-enter"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-home-after-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "78a29c4b3118bb902b522695d7a841216f81a36c43ec67d4e6656bbe27177d82",
+      "png_sha256": "00e67a8c188715937f08c4fd3256197ccace1c834ea299bb2369d43d6323cb81",
+      "render_sha256": "f3ce68fbf16edb44a0b76d6790a13e9de9fa79e2070060decae61d2d6d64d24d",
+      "path": "upstream/autocomplete-keys-home-after-enter"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-home-before-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "783600636347cf84b17856c74087344911653dc1f3b7115a19bee6c1ca089be7",
+      "png_sha256": "dc4942079e9fb44b933a14b3246059cb6db860aab15646513fbad464b9bb19fe",
+      "render_sha256": "19875e42739ca24f8ab5a2ce3d0df47106fc7b81a259af8c4eec67e19980b04e",
+      "path": "upstream/autocomplete-keys-home-before-esc"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-home-after-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f1f3f3741cc5a8f0fd04ecf6b049a0cd811d959f4ecef4658a4ee614aca3e691",
+      "png_sha256": "e0e416918b2c755c7416fd07ea688f8ed910f508a1d07a87d28b73bb90bf5b35",
+      "render_sha256": "0bc0c935335e33965d727084d8310022ea7719baa9afd067367625d2510825c4",
+      "path": "upstream/autocomplete-keys-home-after-esc"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "31b1fa00ee9e1bd5ef5879250205b820bd700eeffa74ca0f8cabc0bf69497243",
+      "png_sha256": "4495cc1503da7aeabb2af5ddb5f9590da09b0ac2c5672dbde2edf8ab0c18462b",
+      "render_sha256": "174157f35ee532033fd15633ace6adb59f7dfca286e52282f242f130e2737d02",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-session-before-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f778e768c4eed916feca0f8e3ac0ca9f4b9e411b03d39bfd1f00ddfa5ad394bb",
+      "png_sha256": "b79baaeaef7d7d89481c1436a99bda28dc41c6f22de10c13d38bec33956359ef",
+      "render_sha256": "f9700c800c77a2a67c76d269dba757b0bc47be0fc19644a597b28fd584f24407",
+      "path": "upstream/autocomplete-keys-session-before-enter"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-session-after-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "87653a9b8577939bec2f91c15141b2f8e008a469d306b109e72f39fc7cc06f9d",
+      "png_sha256": "ad0a44ae685ccf6dbf03f17f90484d98594eeecd316b06bfe64edd85ae462b0d",
+      "render_sha256": "1ffe5d45c39ddbfeb4df66cc005d84883a8c181b46bd186638f9d39acf65fa06",
+      "path": "upstream/autocomplete-keys-session-after-enter"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-session-before-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "1e439a0cbf8af6b74cae440db4e433a1a39cc31dc0ce0d920781fe8116d15994",
+      "png_sha256": "ceaa49d7ac39e6fedd920466d16bdcdeb781d8185faae29467a3919e0ab1388a",
+      "render_sha256": "1d4fbce518cc59dadc818ad843139bb85c07aaa12eccac7c38f655c8398109f1",
+      "path": "upstream/autocomplete-keys-session-before-esc"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-session-after-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "05b1f814b5e489127f139ae602311cf6ce3796c59ee8645d75b26f77f1983e25",
+      "png_sha256": "f31dd0be5b1a2cfea272cd377c7ce096f63459e57601486435bfa858a6a67a14",
+      "render_sha256": "1ca1067939f256135bdebd09c4c8d0e9ce880c921aa91177752b517de38683a9",
+      "path": "upstream/autocomplete-keys-session-after-esc"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-session-rename-before-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d95185274afdae424d3a5806edc072b030e73c334a48e9ae84a03f3b47821967",
+      "png_sha256": "0c896785c899567be796e7013ee0653fd545e51329212ac5e9407f23f2e6f099",
+      "render_sha256": "625701d3294338453ae834672ab8863d16a77fc696651d7a031e367c6ac4a427",
+      "path": "upstream/autocomplete-keys-session-rename-before-enter"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-session-rename-after-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "5c8b8bff4fea59d8086076b29cb53cff3cf62e9e8106861771bd46664401b64c",
+      "png_sha256": "731815cd73220f7d2705d90cb0d36b22c5ae96a5e34f8a9d0d5bb8772ab5b653",
+      "render_sha256": "e5e2ad3f29fba98e00df7c6690c1ad90f4f2dbc651a5ba8bec3460d2cc3f12d2",
+      "path": "upstream/autocomplete-keys-session-rename-after-enter"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e3ecc693a298d464c5d39a80565412ff9b2a53337dd26216a81352ff37be8831",
+      "png_sha256": "80662ffeb98ab20e30c04d55a294392c459ea146c9d8dd67f6af081cd88fd37d",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-home-before-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "08b0e4f21e84437dd24a5f366667888578a69753a9d33e3370e154c7b407d885",
+      "png_sha256": "7b6a33897d90180e2f51be8c38a61260734a316b95c81e34870aa00345780f6a",
+      "render_sha256": "5a74ff0e58376c97151e3faa22be3a5d6f5a0163deabfe6bede529ec249f3630",
+      "path": "oc/autocomplete-keys-home-before-enter"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-home-after-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "cba0705f80e31222e6f680427a1e8cd8a7e45402bc744414b0ef9e383f0c7b24",
+      "png_sha256": "676685ba47dc66ac1add1bf9aa40292eb76bbb4a71f6eb0b60d8e271163bf869",
+      "render_sha256": "ae1045e78f51be350c59a38b59424281e8e8b214e2b832d8f58a9113c20eabff",
+      "path": "oc/autocomplete-keys-home-after-enter"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-home-before-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "40889b7c91ac6d476b4599f8e8b51054bdb6b548044dd763f94925f071bef51e",
+      "png_sha256": "b70400d72b10de451c284c0eabdfe0b7f2ef3ae231bfafc885664740156eb8b8",
+      "render_sha256": "b8fe201b6b03242e7d2df604735c158ac9dfac8c3fb450d7431dc3937d0c3d6d",
+      "path": "oc/autocomplete-keys-home-before-esc"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-home-after-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "cb4527d3ad524556fc49340c17f045aefc24eb5777cd4ae9dea11b44dfacde45",
+      "png_sha256": "bc6d8de9c66040af202c13a23039cd7100596765c8f1dfab1be2eb70b4101535",
+      "render_sha256": "f347f071a084fcbfa8e17062723b12868f338a7869fbe38cb28545e48bdd79a0",
+      "path": "oc/autocomplete-keys-home-after-esc"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "67b0d85a33e6cdd7273786a2b0b3e2164bc0a3f15888a4a0a1a77885e1969039",
+      "png_sha256": "94428455a6a5d1ce0ee70409b9da1e08eff4d0610bed32626e58e46357adc3eb",
+      "render_sha256": "46773fc00448873e0035f8ccdfb36305df35244ad4c4f8e35e3ca74a59b3dd6e",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-session-before-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d8b093d529fcc4db06ff94a27a298152e8a47d9b122a0de2639890b3f58ab17a",
+      "png_sha256": "690b2d2409d3d1e4b950d9c611e473250daf0719ef5a40d12170af3581f24be7",
+      "render_sha256": "b6b8f8deeffc02f74f55c3ae8e9f4ce57e3ad70f1e4df41fc11a051b03b40ba2",
+      "path": "oc/autocomplete-keys-session-before-enter"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-session-after-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "da153a5e8623e27fab40212230182f0079a9a25a4d0e6ab839099d9f38763dc5",
+      "png_sha256": "7ee77b97f975f4414e5b0005cc43dfe73fce9373f95cc5d77f03df43987ccb59",
+      "render_sha256": "02485858823d0e08d5e80a232335038d6e8aca692c46083da1a935d16f9d4272",
+      "path": "oc/autocomplete-keys-session-after-enter"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-session-before-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "65b20a08225d001547d9d363cb1df31e6cf83bea1cf194a055ebf22882e4ad2f",
+      "png_sha256": "a72f66aef9a96e971cf65cd355cdf653c56c2cda864a50c5ad177204a92c9923",
+      "render_sha256": "3dd0f152e38c589561ea4d373845d682b8125e689d9aa5665dd9846f1276b89e",
+      "path": "oc/autocomplete-keys-session-before-esc"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-session-after-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "609af4863b7914d1f6c6e40a2eb0def6038bf26821e9418a91aaf6717cca2fdf",
+      "png_sha256": "cb10ed04ca163f54e024141c91f45b7f3ecbc22573d8ad76fc32405492e8add0",
+      "render_sha256": "ab7074e72212bb84668b2c9b2b3dc0418dc0292e7e6fbffde62ef89223489615",
+      "path": "oc/autocomplete-keys-session-after-esc"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-session-rename-before-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "782acc23e7e1924b55e577e422c35ed9d251f2b07018234321b0e050df523fba",
+      "png_sha256": "1a68e6c3f4acb1b31ed85c888aab6b9a2ef06dd1816ac4358a0d33e4363cbbf2",
+      "render_sha256": "d03d32fd7cf288c2863fadd19e996686604e6eb1f75ef9aa3736ea41d37336f5",
+      "path": "oc/autocomplete-keys-session-rename-before-enter"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-session-rename-after-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "fbd8c757e50a7fe90bcc0abab68516800c15a249d92de7b79ef278ebd152b9f8",
+      "png_sha256": "f4d27cdc74804af7d13696bd2b41a060804adea940fef41c05581305ec504285",
+      "render_sha256": "5bb33d56dda9d6def67b63aeed5c4173432a9f086b0b1720b00b9b32f683f12b",
+      "path": "oc/autocomplete-keys-session-rename-after-enter"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "autocomplete_keys": {
+    "upstream": {
+      "status": "PASS",
+      "checks": [
+        {
+          "route": "home",
+          "stage": "before-enter",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/reload",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 19,
+                "text": "                       ┃ /reload      Reload configuration                                       ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 33,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "reload_option_visible": true,
+            "prior_reload_notice_absent": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "fcaebff1ace10ad94d9d26720b5e5172383bccf5cb572da307eae4f7f0300a06"
+        },
+        {
+          "route": "home",
+          "stage": "after-enter",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "Ask anything… \"What is the tech stack of this project?\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": true,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_success_visible": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "edbccf731eb9d59918c1aa37ca05e86571a2c7eae1f474b05c967e18a02a642a"
+        },
+        {
+          "route": "home",
+          "stage": "reload-notice-expired",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "Ask anything… \"What is the tech stack of this project?\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_notice_absent": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "6037734318df8b7e621842910c86f752a7684e4644862081a92f0f2d02907567"
+        },
+        {
+          "route": "home",
+          "stage": "before-esc",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload      Reload configuration                                       ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "menu_visible": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "1268e223cfc13350b77c30314fb6e5729112c1026b83e7ea0855a57667731007"
+        },
+        {
+          "route": "home",
+          "stage": "after-esc",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_retained": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "2b23942d6862a4a71582ff5c8da8444114bcadbd59e5b0710fa675c8135543bf"
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "Ask anything… \"What is the tech stack of this project?\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "6037734318df8b7e621842910c86f752a7684e4644862081a92f0f2d02907567"
+        },
+        {
+          "route": "session",
+          "stage": "before-enter",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/reload",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 32,
+                "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 12,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "reload_option_visible": true,
+            "prior_reload_notice_absent": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "b995cad3bb009fa32ed8cd8b365891eba85b066f464dd69ccca954b291a0f568"
+        },
+        {
+          "route": "session",
+          "stage": "after-enter",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_success_visible": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "f71b75c2792a647eb8b4f57be1a5cc896abdebfe95e6858c6039be45a0cca9e8"
+        },
+        {
+          "route": "session",
+          "stage": "reload-notice-expired",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_notice_absent": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "bd2b4c5433e33215ef7b31cde914f99bcf78a00daff38b43936756b636e52041"
+        },
+        {
+          "route": "session",
+          "stage": "before-esc",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              },
+              {
+                "y": 27,
+                "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+              },
+              {
+                "y": 28,
+                "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+              },
+              {
+                "y": 29,
+                "text": "  ┃ /share       Share session                                                                                       ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /fork        Fork session                                                                                        ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /export      Export session transcript                                                                           ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "menu_visible": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "b501ad7d6c44e070fbcf53a19eb75604d432875930ab8dd8ffaf360fcdf4f786"
+        },
+        {
+          "route": "session",
+          "stage": "after-esc",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_retained": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "0dc0f96614b7480093efba3ddfda263fc6e06a7b187710058436540fdabacfab"
+        },
+        {
+          "route": "session",
+          "stage": "cleared",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "bd2b4c5433e33215ef7b31cde914f99bcf78a00daff38b43936756b636e52041"
+        },
+        {
+          "route": "session",
+          "stage": "rename-before-enter",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/rename",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 31,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 31,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 12,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "menu_visible": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "6f87ccc64b1c079409f6188b20c6d68833bf6c8f707fc431e155480959ffa1db"
+        },
+        {
+          "route": "session",
+          "stage": "rename-after-enter",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/rename",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 13,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "command_with_space_inserted": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "c0be02d0a0930bbc0c422695469a2e247093e2474247ec497807ab650046eae1"
+        },
+        {
+          "route": "session",
+          "stage": "rename-cleared",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "bd2b4c5433e33215ef7b31cde914f99bcf78a00daff38b43936756b636e52041"
+        }
+      ]
+    },
+    "oc": {
+      "status": "PASS",
+      "checks": [
+        {
+          "route": "home",
+          "stage": "before-enter",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/reload",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 19,
+                "text": "                       ┃ /reload          Reload configuration                                   ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 33,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "reload_option_visible": true,
+            "prior_reload_notice_absent": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "5eaad809650621de4fb877738f236574018264994404b46f8ad63ac4e7c54cb3"
+        },
+        {
+          "route": "home",
+          "stage": "after-enter",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": true,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_success_visible": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "ea761244d968d23ada555cc61090686a80c1b2e781ed6262b3ff14b75598816b"
+        },
+        {
+          "route": "home",
+          "stage": "reload-notice-expired",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_notice_absent": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "523f696ce4287add5dbc370c5cea4c2060147b2c26bb8187fe57f72a422597d1"
+        },
+        {
+          "route": "home",
+          "stage": "before-esc",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload          Reload configuration                                   ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review          review changes [commit|branch|pr], defaults to uncommit┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "menu_visible": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "9b145e3c528646e4433778b26e0835ecc0c9ffe5eef0c778d1d500235dd9090d"
+        },
+        {
+          "route": "home",
+          "stage": "after-esc",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_retained": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "bcdceec52f60eacda9e601daf6f4d443a62e8e545772c47d4e1c7d4528819ec3"
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "523f696ce4287add5dbc370c5cea4c2060147b2c26bb8187fe57f72a422597d1"
+        },
+        {
+          "route": "session",
+          "stage": "before-enter",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/reload",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 32,
+                "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 12,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "reload_option_visible": true,
+            "prior_reload_notice_absent": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "e3329d039d4136ff601daf9ec58d0e29c1e12c8ab5c2301dd7986345fe412ac4"
+        },
+        {
+          "route": "session",
+          "stage": "after-enter",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_success_visible": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "f622d5d30371a016e707c57b20d005274652b5b0d7f17e804c03059a6c6a06fd"
+        },
+        {
+          "route": "session",
+          "stage": "reload-notice-expired",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_notice_absent": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "17ff14f5ab8901bd501d763954dc163e572efa2a14ba08699c49dcad0313a48f"
+        },
+        {
+          "route": "session",
+          "stage": "before-esc",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "menu_visible": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "1dbbf46d9dc05f03e5a4a453f46487cd198d1037ca7dba8c3018a37660809648"
+        },
+        {
+          "route": "session",
+          "stage": "after-esc",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_retained": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "aa5c9a1923cd7793899a280369db96141fdb33dad7ceacba80536a8f6992b0f2"
+        },
+        {
+          "route": "session",
+          "stage": "cleared",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "17ff14f5ab8901bd501d763954dc163e572efa2a14ba08699c49dcad0313a48f"
+        },
+        {
+          "route": "session",
+          "stage": "rename-before-enter",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/rename",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 31,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 31,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 12,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "menu_visible": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "41b6e421e4b1aaa558e2f5300a57fb6b007e4bcd20e16e127df5bb5df2eafd58"
+        },
+        {
+          "route": "session",
+          "stage": "rename-after-enter",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/rename",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 13,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "command_with_space_inserted": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "7338e8f3496de3e57452f8eb351a6b0675c172d5c1ef78e5ab8d3558c24578be"
+        },
+        {
+          "route": "session",
+          "stage": "rename-cleared",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "17ff14f5ab8901bd501d763954dc163e572efa2a14ba08699c49dcad0313a48f"
+        }
+      ]
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-24T20:55:53.941Z",
+  "exit_code": 1
+}

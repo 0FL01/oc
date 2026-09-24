@@ -47,17 +47,27 @@ if (args['sidebar-palette'] !== undefined && !['true','false'].includes(args['si
 const autocomplete = args.autocomplete === 'true';
 if (args.autocomplete !== undefined && !['true','false'].includes(args.autocomplete))
   throw Error('--autocomplete must be true or false');
+const autocompleteKeys = args['autocomplete-keys'] === 'true';
+if (args['autocomplete-keys'] !== undefined && !['true','false'].includes(args['autocomplete-keys']))
+  throw Error('--autocomplete-keys must be true or false');
+const autocompleteKeysRename = args['autocomplete-keys-rename'] === 'true';
+if (args['autocomplete-keys-rename'] !== undefined && !['true','false'].includes(args['autocomplete-keys-rename']))
+  throw Error('--autocomplete-keys-rename must be true or false');
+if (autocompleteKeysRename && !autocompleteKeys)
+  throw Error('--autocomplete-keys-rename true requires --autocomplete-keys true');
 const mention = args.mention === 'true';
 if (args.mention !== undefined && !['true','false'].includes(args.mention))
   throw Error('--mention must be true or false');
 if (mention && autocomplete) throw Error('--mention true and --autocomplete true are mutually exclusive');
-if ((autocomplete || mention) && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
+if (autocompleteKeys && (autocomplete || mention))
+  throw Error('--autocomplete-keys true is mutually exclusive with --autocomplete true and --mention true');
+if ((autocomplete || mention || autocompleteKeys) && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
     args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
     args.tabs === 'vertical' || tabClick || explorationClick || renameSession || sidebarPalette ||
     regenerateTitle || tabClose || tabCloseKey || tabRestart))
-  throw Error('--autocomplete/--mention true requires paired binaries, --geometry true --sample tools --sidebar hide --agent-profile true --columns 120 --rows 40 and no other interaction/resize modes');
+  throw Error('--autocomplete/--mention/--autocomplete-keys true requires paired binaries, --geometry true --sample tools --sidebar hide --agent-profile true --columns 120 --rows 40 and no other interaction/resize modes');
 if (sidebarPalette && (args.geometry !== 'true' || args.sample !== 'tools' ||
     !['hide','auto'].includes(args.sidebar) || Number(args.columns) !== 160 || Number(args.rows) !== 48 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
@@ -315,6 +325,106 @@ try {
           reload_notice:f.text.includes('Configuration reloaded'),
           cursor:f.cursor,provider_counts:providerCounts()};
       };
+       const autocompleteKeysChecks=[];
+       const probeAutocompleteKeys=async route=>{
+         const baseline=providerCounts();
+         const save=()=>{
+           fs.writeFileSync(path.join(dir,'autocomplete-keys-checks.json'),JSON.stringify({checks:autocompleteKeysChecks},null,2)+'\n');
+           json('capture.lock.json',lock);
+         };
+         const empty=o=>o.cursor.x===o.draft_x && (o.draft==='' || o.draft?.startsWith('Ask anything…'));
+         const noRequests=()=>canonical(providerCounts())===canonical(baseline);
+         const check=(stage,f,predicates)=>{
+           autocompleteKeysChecks.push({route,stage,baseline,observed:autocompleteObserve(f),predicates,
+             grid_sha256:sha(JSON.stringify(f))});
+           save();
+           if(Object.values(predicates).some(value=>value!==true))
+             throw Error('Autocomplete keyboard predicate failed: '+route+' '+stage);
+         };
+         const awaitState=async(stage,predicate)=>{
+           try {return await waitFor(predicate,`autocomplete keys ${route} ${stage}`,12000);}
+           catch(e) {
+             autocompleteKeysChecks.push({route,stage,baseline,observed:autocompleteObserve(await frame()),
+               predicates:{state_reached:false},reason:e.message});
+             save();
+             throw e;
+           }
+         };
+         const shot=async(stage,f)=>{
+           if(await capture(`autocomplete-keys-${route}-${stage}`,f,'CAPTURED_AUTOCOMPLETE_KEYS')!=='CAPTURED_AUTOCOMPLETE_KEYS')
+             throw Error('Unstable autocomplete keyboard '+route+' '+stage);
+         };
+         // Exact /reload + Enter tests command execution, not fuzzy /ren + Tab.
+         // Keep both routes' actual suggestions; never equate their inventories.
+         send('/reload',`autocomplete_keys_${route}_reload_type`);
+         const beforeEnter=await awaitState('before-enter',f=>{const o=autocompleteObserve(f);
+           return o.draft==='/reload' && o.menu.some(r=>/┃\s+\/reload(?:\s|┃)/.test(r.text)) &&
+             !o.reload_notice && noRequests();});
+         const ready=autocompleteObserve(beforeEnter);
+         check('before-enter',beforeEnter,{draft_visible:ready.draft==='/reload',
+           reload_option_visible:ready.menu.some(r=>/┃\s+\/reload(?:\s|┃)/.test(r.text)),
+           prior_reload_notice_absent:!ready.reload_notice,no_provider_request:noRequests()});
+         await shot('before-enter',beforeEnter);
+         send('\r',`autocomplete_keys_${route}_reload_enter`);
+         const afterEnter=await awaitState('after-enter',f=>{const o=autocompleteObserve(f);
+           return o.reload_notice && empty(o) && o.menu.length===0 && noRequests();});
+         const reloaded=autocompleteObserve(afterEnter);
+         check('after-enter',afterEnter,{reload_success_visible:reloaded.reload_notice,
+           draft_cleared:empty(reloaded),menu_hidden:reloaded.menu.length===0,no_provider_request:noRequests()});
+         await shot('after-enter',afterEnter);
+         // The /reload success toast lasts 5s. Wait for its actual disappearance
+         // before taking the /ren screenshot so the captured grid cannot change
+         // solely because that toast expires during PNG capture.
+         const expiredNotice=await awaitState('reload-notice-expired',f=>{const o=autocompleteObserve(f);
+           return !o.reload_notice && empty(o) && o.menu.length===0 && noRequests();});
+         const expired=autocompleteObserve(expiredNotice);
+         check('reload-notice-expired',expiredNotice,{reload_notice_absent:!expired.reload_notice,
+           draft_cleared:empty(expired),menu_hidden:expired.menu.length===0,no_provider_request:noRequests()});
+         send('/ren',`autocomplete_keys_${route}_ren_type`);
+         const beforeEsc=await awaitState('before-esc',f=>{const o=autocompleteObserve(f);
+           return o.draft==='/ren' && o.menu.length>0 && noRequests();});
+         const ren=autocompleteObserve(beforeEsc);
+         check('before-esc',beforeEsc,{draft_visible:ren.draft==='/ren',
+           menu_visible:ren.menu.length>0,no_provider_request:noRequests()});
+         await shot('before-esc',beforeEsc);
+         send('\x1b',`autocomplete_keys_${route}_ren_escape`);
+         const afterEsc=await awaitState('after-esc',f=>{const o=autocompleteObserve(f);
+           return o.draft==='/ren' && o.menu.length===0 && noRequests();});
+         const escaped=autocompleteObserve(afterEsc);
+         check('after-esc',afterEsc,{draft_retained:escaped.draft==='/ren',
+           menu_hidden:escaped.menu.length===0,no_provider_request:noRequests()});
+         await shot('after-esc',afterEsc);
+         send('\x7f'.repeat(32),`autocomplete_keys_${route}_ren_clear`);
+         const cleared=await awaitState('cleared',f=>{const o=autocompleteObserve(f);
+           return empty(o) && o.menu.length===0 && noRequests();});
+         const reset=autocompleteObserve(cleared);
+         check('cleared',cleared,{draft_cleared:empty(reset),menu_hidden:reset.menu.length===0,
+           no_provider_request:noRequests()});
+         if(route==='session' && autocompleteKeysRename) {
+           send('/rename',`autocomplete_keys_${route}_rename_type`);
+           const beforeRename=await awaitState('rename-before-enter',f=>{const o=autocompleteObserve(f);
+             return o.draft==='/rename' && o.menu.length>0 && noRequests();});
+           const rename=autocompleteObserve(beforeRename);
+           check('rename-before-enter',beforeRename,{draft_visible:rename.draft==='/rename',
+             menu_visible:rename.menu.length>0,no_provider_request:noRequests()});
+           await shot('rename-before-enter',beforeRename);
+           send('\r',`autocomplete_keys_${route}_rename_enter`);
+           const afterRename=await awaitState('rename-after-enter',f=>{const o=autocompleteObserve(f);
+             return o.draft==='/rename' && o.cursor.x===o.draft_x+'/rename '.length &&
+               o.menu.length===0 && noRequests();});
+           const inserted=autocompleteObserve(afterRename);
+           check('rename-after-enter',afterRename,{command_with_space_inserted:inserted.draft==='/rename' &&
+             inserted.cursor.x===inserted.draft_x+'/rename '.length,
+             menu_hidden:inserted.menu.length===0,no_provider_request:noRequests()});
+           await shot('rename-after-enter',afterRename);
+           send('\x7f'.repeat(32),`autocomplete_keys_${route}_rename_clear`);
+           const afterClear=await awaitState('rename-cleared',f=>{const o=autocompleteObserve(f);
+             return empty(o) && o.menu.length===0 && noRequests();});
+           const final=autocompleteObserve(afterClear);
+           check('rename-cleared',afterClear,{draft_cleared:empty(final),menu_hidden:final.menu.length===0,
+             no_provider_request:noRequests()});
+         }
+       };
       const probeAutocomplete=async route=>{
         const baseline=providerCounts();
         const states=[['trigger','/'],['filtered','ren'],['after-tab','\t']];
@@ -407,6 +517,11 @@ try {
           predicates:{draft_cleared:true,no_provider_request:providerCounts().requests===0}});
         fs.writeFileSync(path.join(dir,'autocomplete-checks.json'),JSON.stringify(autocompleteChecks,null,2)+'\n');
       }
+      if(autocompleteKeys) {
+        lock.autocomplete_keys ??= {};
+        lock.autocomplete_keys[origin]={status:'IN_PROGRESS',checks:autocompleteKeysChecks};
+        await probeAutocompleteKeys('home');
+      }
       if(mention) {
         lock.mention ??= {};
         lock.mention[origin]={status:'IN_PROGRESS',checks:mentionChecks};
@@ -426,6 +541,13 @@ try {
          json('capture.lock.json',lock);
          lock.attempts.push({origin,status:'AUTOCOMPLETE_RECORDED',
            predicates:autocompleteChecks.map(c=>({route:c.route,stage:c.stage,...c.predicates}))});
+       }
+       if(autocompleteKeys) {
+         await probeAutocompleteKeys('session');
+         lock.autocomplete_keys[origin].status='PASS';
+         json('capture.lock.json',lock);
+         lock.attempts.push({origin,status:'AUTOCOMPLETE_KEYS_CHECKS_PASS',
+           predicates:autocompleteKeysChecks.map(c=>({route:c.route,stage:c.stage,...c.predicates}))});
        }
         if(mention) {
           await probeMention('session');
@@ -1128,6 +1250,7 @@ try {
         if(renameSession && lock.rename_interactions?.[origin]) lock.rename_interactions[origin].status='FAILED';
         if(sidebarPalette && lock.sidebar_palette?.[origin]) lock.sidebar_palette[origin].status='FAILED';
         if(autocomplete && lock.autocomplete?.[origin]) lock.autocomplete[origin].status='FAILED';
+        if(autocompleteKeys && lock.autocomplete_keys?.[origin]) lock.autocomplete_keys[origin].status='FAILED';
          if(mention && lock.mention?.[origin]) lock.mention[origin].status='FAILED';
       await capture('failure-diagnostic',await frame(),'FAILED_STATE');
     } finally {

@@ -1,0 +1,576 @@
+{
+  "checks": [
+    {
+      "route": "home",
+      "stage": "before-enter",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/reload",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 19,
+            "text": "                       ┃ /reload      Reload configuration                                       ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 33,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "reload_option_visible": true,
+        "prior_reload_notice_absent": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "fcaebff1ace10ad94d9d26720b5e5172383bccf5cb572da307eae4f7f0300a06"
+    },
+    {
+      "route": "home",
+      "stage": "after-enter",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "Ask anything… \"What is the tech stack of this project?\"",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": true,
+        "cursor": {
+          "x": 26,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_success_visible": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "edbccf731eb9d59918c1aa37ca05e86571a2c7eae1f474b05c967e18a02a642a"
+    },
+    {
+      "route": "home",
+      "stage": "reload-notice-expired",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "Ask anything… \"What is the tech stack of this project?\"",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 26,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_notice_absent": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "6037734318df8b7e621842910c86f752a7684e4644862081a92f0f2d02907567"
+    },
+    {
+      "route": "home",
+      "stage": "before-esc",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 17,
+            "text": "                       ┃ /reload      Reload configuration                                       ┃"
+          },
+          {
+            "y": 18,
+            "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+          },
+          {
+            "y": 19,
+            "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "menu_visible": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "1268e223cfc13350b77c30314fb6e5729112c1026b83e7ea0855a57667731007"
+    },
+    {
+      "route": "home",
+      "stage": "after-esc",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_retained": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "2b23942d6862a4a71582ff5c8da8444114bcadbd59e5b0710fa675c8135543bf"
+    },
+    {
+      "route": "home",
+      "stage": "cleared",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "Ask anything… \"What is the tech stack of this project?\"",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 26,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "6037734318df8b7e621842910c86f752a7684e4644862081a92f0f2d02907567"
+    },
+    {
+      "route": "session",
+      "stage": "before-enter",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/reload",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 32,
+            "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 12,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "reload_option_visible": true,
+        "prior_reload_notice_absent": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "b995cad3bb009fa32ed8cd8b365891eba85b066f464dd69ccca954b291a0f568"
+    },
+    {
+      "route": "session",
+      "stage": "after-enter",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": true,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_success_visible": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "f71b75c2792a647eb8b4f57be1a5cc896abdebfe95e6858c6039be45a0cca9e8"
+    },
+    {
+      "route": "session",
+      "stage": "reload-notice-expired",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_notice_absent": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "bd2b4c5433e33215ef7b31cde914f99bcf78a00daff38b43936756b636e52041"
+    },
+    {
+      "route": "session",
+      "stage": "before-esc",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 26,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          },
+          {
+            "y": 27,
+            "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+          },
+          {
+            "y": 28,
+            "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+          },
+          {
+            "y": 29,
+            "text": "  ┃ /share       Share session                                                                                       ┃"
+          },
+          {
+            "y": 30,
+            "text": "  ┃ /fork        Fork session                                                                                        ┃"
+          },
+          {
+            "y": 31,
+            "text": "  ┃ /export      Export session transcript                                                                           ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 26,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "menu_visible": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "b501ad7d6c44e070fbcf53a19eb75604d432875930ab8dd8ffaf360fcdf4f786"
+    },
+    {
+      "route": "session",
+      "stage": "after-esc",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_retained": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "0dc0f96614b7480093efba3ddfda263fc6e06a7b187710058436540fdabacfab"
+    },
+    {
+      "route": "session",
+      "stage": "cleared",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "bd2b4c5433e33215ef7b31cde914f99bcf78a00daff38b43936756b636e52041"
+    },
+    {
+      "route": "session",
+      "stage": "rename-before-enter",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/rename",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 31,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 31,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 12,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "menu_visible": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "6f87ccc64b1c079409f6188b20c6d68833bf6c8f707fc431e155480959ffa1db"
+    },
+    {
+      "route": "session",
+      "stage": "rename-after-enter",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/rename",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 13,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "command_with_space_inserted": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "c0be02d0a0930bbc0c422695469a2e247093e2474247ec497807ab650046eae1"
+    },
+    {
+      "route": "session",
+      "stage": "rename-cleared",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "bd2b4c5433e33215ef7b31cde914f99bcf78a00daff38b43936756b636e52041"
+    }
+  ]
+}

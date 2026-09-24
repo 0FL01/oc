@@ -1,0 +1,564 @@
+{
+  "checks": [
+    {
+      "route": "home",
+      "stage": "before-enter",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/reload",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 19,
+            "text": "                       ┃ /reload          Reload configuration                                   ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 33,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "reload_option_visible": true,
+        "prior_reload_notice_absent": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "5eaad809650621de4fb877738f236574018264994404b46f8ad63ac4e7c54cb3"
+    },
+    {
+      "route": "home",
+      "stage": "after-enter",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": true,
+        "cursor": {
+          "x": 26,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_success_visible": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "ea761244d968d23ada555cc61090686a80c1b2e781ed6262b3ff14b75598816b"
+    },
+    {
+      "route": "home",
+      "stage": "reload-notice-expired",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 26,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_notice_absent": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "523f696ce4287add5dbc370c5cea4c2060147b2c26bb8187fe57f72a422597d1"
+    },
+    {
+      "route": "home",
+      "stage": "before-esc",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 17,
+            "text": "                       ┃ /reload          Reload configuration                                   ┃"
+          },
+          {
+            "y": 18,
+            "text": "                       ┃ /review          review changes [commit|branch|pr], defaults to uncommit┃"
+          },
+          {
+            "y": 19,
+            "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "menu_visible": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "9b145e3c528646e4433778b26e0835ecc0c9ffe5eef0c778d1d500235dd9090d"
+    },
+    {
+      "route": "home",
+      "stage": "after-esc",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_retained": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "bcdceec52f60eacda9e601daf6f4d443a62e8e545772c47d4e1c7d4528819ec3"
+    },
+    {
+      "route": "home",
+      "stage": "cleared",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 26,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "523f696ce4287add5dbc370c5cea4c2060147b2c26bb8187fe57f72a422597d1"
+    },
+    {
+      "route": "session",
+      "stage": "before-enter",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/reload",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 32,
+            "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 12,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "reload_option_visible": true,
+        "prior_reload_notice_absent": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "e3329d039d4136ff601daf9ec58d0e29c1e12c8ab5c2301dd7986345fe412ac4"
+    },
+    {
+      "route": "session",
+      "stage": "after-enter",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": true,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_success_visible": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "f622d5d30371a016e707c57b20d005274652b5b0d7f17e804c03059a6c6a06fd"
+    },
+    {
+      "route": "session",
+      "stage": "reload-notice-expired",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_notice_absent": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "17ff14f5ab8901bd501d763954dc163e572efa2a14ba08699c49dcad0313a48f"
+    },
+    {
+      "route": "session",
+      "stage": "before-esc",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 29,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          },
+          {
+            "y": 30,
+            "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+          },
+          {
+            "y": 31,
+            "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 29,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "menu_visible": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "1dbbf46d9dc05f03e5a4a453f46487cd198d1037ca7dba8c3018a37660809648"
+    },
+    {
+      "route": "session",
+      "stage": "after-esc",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_retained": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "aa5c9a1923cd7793899a280369db96141fdb33dad7ceacba80536a8f6992b0f2"
+    },
+    {
+      "route": "session",
+      "stage": "cleared",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "17ff14f5ab8901bd501d763954dc163e572efa2a14ba08699c49dcad0313a48f"
+    },
+    {
+      "route": "session",
+      "stage": "rename-before-enter",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/rename",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 31,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 31,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 12,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "menu_visible": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "41b6e421e4b1aaa558e2f5300a57fb6b007e4bcd20e16e127df5bb5df2eafd58"
+    },
+    {
+      "route": "session",
+      "stage": "rename-after-enter",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/rename",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 13,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "command_with_space_inserted": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "7338e8f3496de3e57452f8eb351a6b0675c172d5c1ef78e5ab8d3558c24578be"
+    },
+    {
+      "route": "session",
+      "stage": "rename-cleared",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "17ff14f5ab8901bd501d763954dc163e572efa2a14ba08699c49dcad0313a48f"
+    }
+  ]
+}

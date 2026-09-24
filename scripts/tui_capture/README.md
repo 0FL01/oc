@@ -395,6 +395,42 @@ without expecting either outcome.
 Comparator inequality still exits 1 and leaves VIS25 unverified. Failed
 attempts, including runner-predicate failures, remain separate immutable paths.
 
+For a separate **keyboard** probe, use a fresh path and replace
+`--autocomplete true` with `--autocomplete-keys true` (exclusive with
+`--autocomplete true` and `--mention true`):
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc \
+  --geometry true --sample tools --sidebar hide --agent-profile true \
+  --columns 120 --rows 40 --autocomplete-keys true \
+  --output /home/opencode/ai/oc/evidence/tui/NEW-AUTOCOMPLETE-KEYS-ATTEMPT
+```
+
+On Home and again after the fixture-backed read/title completes, this opt-in
+types `/reload`, captures the actual suggestion overlay, sends Enter, and
+requires a visible `Configuration reloaded` success, an empty draft and no
+provider request. After capturing this success frame, it waits for the actual
+five-second reload toast to disappear with the draft empty, menu hidden and no
+provider request, recording `reload-notice-expired` predicates for both routes.
+Only then does it type `/ren`, capture the overlay, send Escape,
+require the `/ren` draft to remain with the suggestion menu hidden, and clear
+the draft with Backspace before submitting the fixture or leaving the session.
+Add `--autocomplete-keys-rename true` to also type `/rename` in the completed
+session, capture before/after Enter, check the inserted `/rename ` by its
+cursor position and no new provider request, and clear that draft. The optional
+flag requires `--autocomplete-keys true`.
+
+Each `autocomplete-keys-{home,session}-{before-enter,after-enter,before-esc,after-esc}`
+frame (plus optional rename frames) retains its full styled grid, PNG, VT and
+ordinary whole-frame grid/PNG comparison. `autocomplete-keys-checks.json` and
+`capture.lock.json` record actual per-side drafts, menu rows, cursor, baseline
+and provider counts, predicates and result. Home and session menu inventories
+are observations, not asserted equal; neither frames nor upstream inputs are
+masked or synthesized. A failed predicate is a failed diagnostic, and a passed
+interaction does not claim full-frame parity.
+
 ## VIS26 file-mention diagnostic
 
 Once the native binary has been rebuilt with VIS26, run both pinned executables
