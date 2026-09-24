@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-24T01:17:18+00:00
+State updated: 2026-09-24T02:04:39+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,48 +12,47 @@ Evidence target: evidence/T44/report.md
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 — retained session tabs and executable add control
+# T44 — hovered tab close with durable-session reopen
 
 ## Result
 
-Code/test/runner commit `d17621c` retains bounded per-tab views, editor,
-history/scroll and card cursor; Home is a synthetic sessionless tab and the
-painted `+` is a real, guarded mouse action. First accepted Home turn creates
-one durable root through the prior atomic path. Real PTY + SQLite and unit
-regressions cover return/draft, `/new`, busy and failed Location guards,
-16-tab reservation and Sessions dialog deduplication. Report and immutable
-paired attempts: `evidence/tui/recovery-v08-retained-tab-report.md`.
+Commit `1a946bf` adds a real mouse-hover-only `✕` on eligible tab cells,
+matching press/release hit testing, and a guarded close intent. The bounded
+deck removes only the local view, preserves other tabs' drafts and card paging,
+and restores a parked sessionless Home (including its draft) or opens Home
+through the application before discarding a last real tab. The closed durable
+session remains reopenable through `/sessions` without creating another root.
+Report and immutable paired attempts: `evidence/tui/recovery-v08-tab-close-report.md`.
 
 ## Checks
 
-Final serialized `cargo test --locked --workspace --no-fail-fast --quiet`
-PASS 0 failed (TUI 199; existing opt-in live ignores). Workspace fmt,
-all-target Clippy `-D warnings`, locked build, Node syntax, docs/progress and
-diff checks PASS. Actual paired 120×40 pinned original/native captures on
-matching Reader/read fixture pass both sides' provider and SGR add/return
-predicates. Final full-frame comparisons are DIFFERENT: added Home 159/4800
-styled cells, returned Session 210/4800; no VIS PASS. An earlier workspace
-attempt had a stale selected-indicator style expectation (corrected against
-source), and later attempts exposed raw-VT substring and partially settled
-resize snapshots; target-only safe warning plus stable full-tail sampling
-replaced those fragile synchronization assumptions, preserving the required
-behavioral checks. All reruns passed.
+Final serial `cargo test --locked --workspace --no-fail-fast --quiet` PASS
+0 failed (202 TUI tests; existing opt-in live ignores). Workspace fmt,
+all-target Clippy `-D warnings`, locked build, Node syntax, docs/progress,
+and diff checks PASS. Pinned original/native actual 120x40 fake Responses
+capture both report provider contract and mouse add, hover-close success,
+without extra provider requests. The synthetic hovered Home tab x32–65,y0
+is identical in all 34 styled cells. Whole frames still DIFFERENT: hovered
+157/4800 and closed 248/4800 styled cells. Failed re-add predicate in an
+earlier diagnostic capture was removed; an old unit test hung expecting an
+owner query after the now-correct parked Home restoration. Corrected and
+rerun targeted/full suites passed.
 
 ## Risks
 
-The tab deck is process-local and capped at 16 views. Pinned upstream's
-hovered close glyph/action, persisted tab order, inactive-tab status and
-background-turn navigation are not implemented; intentionally no inert close
-control. Independently random Home examples, real app versions, elapsed times
-and other VIS scenarios still differ. S07 remaining metrics, V08–V09 and
-VIS01–VIS24 remain open. T44 active; old `.opencode/` untracked and untouched.
+The single-turn native UI refuses close while busy, stricter than original
+background-tab navigation. After close the original kept pointer hover and
+rendered a wider tab; native did not. The deck is process-local, not persisted
+across restart. Original and Rust still differ in Home random example, actual
+binary version, elapsed timing, Location text, and other VIS cells.
+VIS01–VIS24, V08–V09 and remaining S07 measurements are open; T44 stays
+active. Pre-existing untracked `.opencode/` was untouched.
 
 ## Next
 
-Source-backed hovered tab close plus actual action or tab-order persistence,
-then independent original/native PTY+SQLite and paired frame qualification
-at narrow/wide sizes. Continue the frozen mandatory VIS grid and safety/resource
-outcomes without treating this interaction slice as full parity.
+Investigate persisted tab order and parity over resize/overflow in actual
+paired PTYs; continue frozen mandatory VIS and safety/resource outcomes without
+treating the functional hovered close as full pixel parity.
 
 
 Ready (до 5): T45, T46, T47

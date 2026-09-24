@@ -1,0 +1,759 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-24T01:34:46.036Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "2b8569ee1537513e52c071e3b8367596056beb077563850c08f636297d5f37d5",
+    "frontend.js": "422f93bd137f00b2b677e2b5e1f8f31170cccffd9330eab2c66f26528820f6ee",
+    "bridge.py": "a0b9ae95043bf2a84f96dedd03b8b7e487458bacc7f0fea7a7cec55db01eeace"
+  },
+  "fixture_sha256": "d18132f88c4a7a638a244b0ea92007163246fc3ce0bbe5bcb2b90df02a67bb39",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "c43dc59488ce260c99153ddbd4a5f0d438138488",
+    "tree": "06f78ab9d97ab0e7d73a1968cda7539ca2d63f7b",
+    "dirty_diff_sha256": "a2edc9d06d44ad703996149b3a7a172bc2fb63ea52fa4fdc016930a5369c68a4",
+    "source_manifest_sha256": "e765d523f51c95360e9e0650807b217d0a5e44d75c0b91c1f18ab1c6096c7ce0",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "3d2fa5ad205caa2977d1c7afa64765badd29e1fefac1925952d749c7ebe7fbe9",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "TAB_CLOSE_CHECKS_PASS",
+      "provider_counts": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "transcript_requests": 2,
+        "title_requests": 1
+      },
+      "predicates": [
+        "home-hovered",
+        "before-close",
+        "home-closed",
+        "closed-capture-verified"
+      ]
+    },
+    {
+      "origin": "upstream",
+      "status": "TAB_INTERACTION_CHECKS_PASS",
+      "predicates": [
+        "completed-before-add",
+        "tab-added"
+      ]
+    },
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "TAB_CLOSE_CHECKS_PASS",
+      "provider_counts": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "transcript_requests": 2,
+        "title_requests": 1
+      },
+      "predicates": [
+        "home-hovered",
+        "before-close",
+        "home-closed",
+        "closed-capture-verified"
+      ]
+    },
+    {
+      "origin": "oc",
+      "status": "TAB_INTERACTION_CHECKS_PASS",
+      "predicates": [
+        "completed-before-add",
+        "tab-added"
+      ]
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-added",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-added",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-close-hovered-before",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-close-hovered-before",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-close-closed-after",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-close-closed-after",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "5e9ec9461ec2e0ca7e6d892945219412d35c90df24c63e3221f37276ff587f50",
+      "png_sha256": "f6b1e0c1ba5ff77dec1757b92b08c9a0fc6c515709bbad7dcffce6acbe6077d5",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "892c78f90d9233bb1f7352a941287c0d770078bf822ebe35e4a18f165a7d1673",
+      "png_sha256": "f4ce257ac7abcfadb6f6e00c99b85c5cef0a42fcb0cff39529b1d7f2a4ce2081",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tab-added",
+      "status": "CAPTURED_TAB_ADDED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "939e09f9cce4e331baeec0ac33adc415f170dfec42d1605dfb251cce53367748",
+      "png_sha256": "f467ab8423871cb7cac36cdb5bb943be5b241c7d63f5ba4569a232d1ab1d00c0",
+      "path": "upstream/tab-added"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tab-close-hovered-before",
+      "status": "CAPTURED_TAB_CLOSE_HOVERED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "d00ccfd640388647dafd68b8053c496158f28eaba8f79f6ae5e2dc576b3463f2",
+      "png_sha256": "f467ab8423871cb7cac36cdb5bb943be5b241c7d63f5ba4569a232d1ab1d00c0",
+      "path": "upstream/tab-close-hovered-before"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tab-close-closed-after",
+      "status": "CAPTURED_TAB_CLOSE_CLOSED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "b5b025ef9b942a11d0c14e16c2728e0ca18e2d9040028a535f562aad48d5812f",
+      "png_sha256": "c7f76daaf7f58e570ca3129aaa4aa5b09104c37adfa46820cdf594d40125362b",
+      "path": "upstream/tab-close-closed-after"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "1ad7740eb102a34cf622d06638901e1799f075ad8f8aab27abeafeb8cfa2edd8",
+      "png_sha256": "226207b0179efc3a2c4621c39c479d9357248c83edd6503d4d572234b9193fdc",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "b324dcf4bf88b24509c6db57beaf32b94516809874456b11a649b864a17dbcc1",
+      "png_sha256": "8cebc2578d0c230c4eaf1e971869a1d56c78dfb72dbb1593d33155bd4b0d4501",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tab-added",
+      "status": "CAPTURED_TAB_ADDED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "d3b43a9fbf0839c46f9ce12c1ef42b0cc0172c5f55be7e95a83c734fb74bf52c",
+      "png_sha256": "de4161c5919643444c2b6662e9bc3f042f146ec5e3719ec44b72f326ee01d802",
+      "path": "oc/tab-added"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tab-close-hovered-before",
+      "status": "CAPTURED_TAB_CLOSE_HOVERED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "ca86286f306f990bed4628b3f9522dfeb7f3d2d3a7872996083f7422b3b98c4b",
+      "png_sha256": "48738626fecfd558eff2cf265b4b95f62a985523ba4d21b4879fea8baa27f801",
+      "path": "oc/tab-close-hovered-before"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tab-close-closed-after",
+      "status": "CAPTURED_TAB_CLOSE_CLOSED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "c0b3d7c635b762a88d39de4736e8570896b760754b03aab58a83533ecdffb71b",
+      "png_sha256": "8cebc2578d0c230c4eaf1e971869a1d56c78dfb72dbb1593d33155bd4b0d4501",
+      "path": "oc/tab-close-closed-after"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "pixel_width": 1011,
+    "pixel_height": 640,
+    "measured_cell_width": 8.425,
+    "measured_cell_height": 16
+  },
+  "tab_interactions": {
+    "upstream": {
+      "status": "PASS",
+      "checks": [
+        {
+          "stage": "completed-before-add",
+          "predicate": "unique painted row-0 + after original tab, completed old transcript, no Home",
+          "passed": true,
+          "add": [
+            {
+              "x": 32,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": true,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ас +"
+        },
+        {
+          "stage": "add-click",
+          "point": {
+            "x": 33,
+            "y": 0
+          },
+          "pty_column": 34,
+          "pty_row": 1,
+          "down_base64": "G1s8MDszNDsxTQ==",
+          "up_base64": "G1s8MDszNDsxbQ=="
+        },
+        {
+          "stage": "tab-added",
+          "predicate": "old tab + synthetic New session on Home, old transcript absent",
+          "passed": true,
+          "add": [],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [
+            {
+              "x": 33,
+              "y": 0
+            }
+          ],
+          "old_content": false,
+          "home_prompt": true,
+          "header": "   Какие инструменты доступны ас + New session                ✕"
+        }
+      ]
+    },
+    "oc": {
+      "status": "PASS",
+      "checks": [
+        {
+          "stage": "completed-before-add",
+          "predicate": "unique painted row-0 + after original tab, completed old transcript, no Home",
+          "passed": true,
+          "add": [
+            {
+              "x": 32,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": true,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ас +"
+        },
+        {
+          "stage": "add-click",
+          "point": {
+            "x": 33,
+            "y": 0
+          },
+          "pty_column": 34,
+          "pty_row": 1,
+          "down_base64": "G1s8MDszNDsxTQ==",
+          "up_base64": "G1s8MDszNDsxbQ=="
+        },
+        {
+          "stage": "tab-added",
+          "predicate": "old tab + synthetic New session on Home, old transcript absent",
+          "passed": true,
+          "add": [],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [
+            {
+              "x": 33,
+              "y": 0
+            }
+          ],
+          "old_content": false,
+          "home_prompt": true,
+          "header": "   Какие инструменты доступны ас + New session"
+        }
+      ]
+    }
+  },
+  "tab_close_interactions": {
+    "upstream": {
+      "status": "PASS",
+      "baseline": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "transcript_requests": 2,
+        "title_requests": 1
+      },
+      "checks": [
+        {
+          "stage": "home-hover-move",
+          "point": {
+            "x": 36,
+            "y": 0
+          },
+          "pty_column": 37,
+          "pty_row": 1,
+          "move_base64": "G1s8MzU7Mzc7MU0=",
+          "provider_counts": {
+            "provider_requests": 3,
+            "provider_completed": 3,
+            "transcript_requests": 2,
+            "title_requests": 1
+          }
+        },
+        {
+          "stage": "home-hovered",
+          "predicate": "one visible ✕ after the synthetic title, Home selected, no new provider request",
+          "passed": true,
+          "add": [],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [
+            {
+              "x": 33,
+              "y": 0
+            }
+          ],
+          "old_content": false,
+          "home_prompt": true,
+          "header": "   Какие инструменты доступны ас + New session                ✕",
+          "provider_counts": {
+            "provider_requests": 3,
+            "provider_completed": 3,
+            "transcript_requests": 2,
+            "title_requests": 1
+          },
+          "hover": {
+            "x": 36,
+            "y": 0
+          },
+          "glyph": {
+            "x": 62,
+            "y": 0
+          }
+        },
+        {
+          "stage": "before-close",
+          "predicate": "one still-visible synthetic ✕, no provider call",
+          "passed": true,
+          "add": [],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [
+            {
+              "x": 33,
+              "y": 0
+            }
+          ],
+          "old_content": false,
+          "home_prompt": true,
+          "header": "   Какие инструменты доступны ас + New session                ✕",
+          "provider_counts": {
+            "provider_requests": 3,
+            "provider_completed": 3,
+            "transcript_requests": 2,
+            "title_requests": 1
+          },
+          "glyph": {
+            "x": 62,
+            "y": 0
+          }
+        },
+        {
+          "stage": "home-close-click",
+          "point": {
+            "x": 62,
+            "y": 0
+          },
+          "pty_column": 63,
+          "pty_row": 1,
+          "down_base64": "G1s8MDs2MzsxTQ==",
+          "up_base64": "G1s8MDs2MzsxbQ==",
+          "provider_counts": {
+            "provider_requests": 3,
+            "provider_completed": 3,
+            "transcript_requests": 2,
+            "title_requests": 1
+          }
+        },
+        {
+          "stage": "home-closed",
+          "predicate": "old transcript restored, synthetic slot gone, provider counts unchanged",
+          "passed": true,
+          "add": [
+            {
+              "x": 64,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": true,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ассистенту                      ✕  +",
+          "provider_counts": {
+            "provider_requests": 3,
+            "provider_completed": 3,
+            "transcript_requests": 2,
+            "title_requests": 1
+          }
+        },
+        {
+          "stage": "closed-capture-verified",
+          "predicate": "old transcript and synthetic removal persist, provider counts unchanged",
+          "passed": true,
+          "add": [
+            {
+              "x": 64,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": true,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ассистенту                      ✕  +",
+          "provider_counts": {
+            "provider_requests": 3,
+            "provider_completed": 3,
+            "transcript_requests": 2,
+            "title_requests": 1
+          }
+        }
+      ]
+    },
+    "oc": {
+      "status": "PASS",
+      "baseline": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "transcript_requests": 2,
+        "title_requests": 1
+      },
+      "checks": [
+        {
+          "stage": "home-hover-move",
+          "point": {
+            "x": 36,
+            "y": 0
+          },
+          "pty_column": 37,
+          "pty_row": 1,
+          "move_base64": "G1s8MzU7Mzc7MU0=",
+          "provider_counts": {
+            "provider_requests": 3,
+            "provider_completed": 3,
+            "transcript_requests": 2,
+            "title_requests": 1
+          }
+        },
+        {
+          "stage": "home-hovered",
+          "predicate": "one visible ✕ after the synthetic title, Home selected, no new provider request",
+          "passed": true,
+          "add": [],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [
+            {
+              "x": 33,
+              "y": 0
+            }
+          ],
+          "old_content": false,
+          "home_prompt": true,
+          "header": "   Какие инструменты доступны ас + New session                ✕",
+          "provider_counts": {
+            "provider_requests": 3,
+            "provider_completed": 3,
+            "transcript_requests": 2,
+            "title_requests": 1
+          },
+          "hover": {
+            "x": 36,
+            "y": 0
+          },
+          "glyph": {
+            "x": 62,
+            "y": 0
+          }
+        },
+        {
+          "stage": "before-close",
+          "predicate": "one still-visible synthetic ✕, no provider call",
+          "passed": true,
+          "add": [],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [
+            {
+              "x": 33,
+              "y": 0
+            }
+          ],
+          "old_content": false,
+          "home_prompt": true,
+          "header": "   Какие инструменты доступны ас + New session                ✕",
+          "provider_counts": {
+            "provider_requests": 3,
+            "provider_completed": 3,
+            "transcript_requests": 2,
+            "title_requests": 1
+          },
+          "glyph": {
+            "x": 62,
+            "y": 0
+          }
+        },
+        {
+          "stage": "home-close-click",
+          "point": {
+            "x": 62,
+            "y": 0
+          },
+          "pty_column": 63,
+          "pty_row": 1,
+          "down_base64": "G1s8MDs2MzsxTQ==",
+          "up_base64": "G1s8MDs2MzsxbQ==",
+          "provider_counts": {
+            "provider_requests": 3,
+            "provider_completed": 3,
+            "transcript_requests": 2,
+            "title_requests": 1
+          }
+        },
+        {
+          "stage": "home-closed",
+          "predicate": "old transcript restored, synthetic slot gone, provider counts unchanged",
+          "passed": true,
+          "add": [
+            {
+              "x": 32,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": true,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ас +",
+          "provider_counts": {
+            "provider_requests": 3,
+            "provider_completed": 3,
+            "transcript_requests": 2,
+            "title_requests": 1
+          }
+        },
+        {
+          "stage": "closed-capture-verified",
+          "predicate": "old transcript and synthetic removal persist, provider counts unchanged",
+          "passed": true,
+          "add": [
+            {
+              "x": 32,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": true,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ас +",
+          "provider_counts": {
+            "provider_requests": 3,
+            "provider_completed": 3,
+            "transcript_requests": 2,
+            "title_requests": 1
+          }
+        }
+      ]
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-24T01:35:21.551Z",
+  "exit_code": 1
+}

@@ -1,0 +1,190 @@
+{
+  "baseline": {
+    "provider_requests": 3,
+    "provider_completed": 3,
+    "transcript_requests": 2,
+    "title_requests": 1
+  },
+  "checks": [
+    {
+      "stage": "home-hover-move",
+      "point": {
+        "x": 36,
+        "y": 0
+      },
+      "pty_column": 37,
+      "pty_row": 1,
+      "move_base64": "G1s8MzU7Mzc7MU0=",
+      "provider_counts": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "transcript_requests": 2,
+        "title_requests": 1
+      }
+    },
+    {
+      "stage": "home-hovered",
+      "predicate": "one visible ✕ after the synthetic title, Home selected, no new provider request",
+      "passed": true,
+      "add": [],
+      "old": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "new_title": [
+        {
+          "x": 33,
+          "y": 0
+        }
+      ],
+      "old_content": false,
+      "home_prompt": true,
+      "header": "   Какие инструменты доступны ас + New session                ✕",
+      "provider_counts": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "transcript_requests": 2,
+        "title_requests": 1
+      },
+      "hover": {
+        "x": 36,
+        "y": 0
+      },
+      "glyph": {
+        "x": 62,
+        "y": 0
+      }
+    },
+    {
+      "stage": "before-close",
+      "predicate": "one still-visible synthetic ✕, no provider call",
+      "passed": true,
+      "add": [],
+      "old": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "new_title": [
+        {
+          "x": 33,
+          "y": 0
+        }
+      ],
+      "old_content": false,
+      "home_prompt": true,
+      "header": "   Какие инструменты доступны ас + New session                ✕",
+      "provider_counts": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "transcript_requests": 2,
+        "title_requests": 1
+      },
+      "glyph": {
+        "x": 62,
+        "y": 0
+      }
+    },
+    {
+      "stage": "home-close-click",
+      "point": {
+        "x": 62,
+        "y": 0
+      },
+      "pty_column": 63,
+      "pty_row": 1,
+      "down_base64": "G1s8MDs2MzsxTQ==",
+      "up_base64": "G1s8MDs2MzsxbQ==",
+      "provider_counts": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "transcript_requests": 2,
+        "title_requests": 1
+      }
+    },
+    {
+      "stage": "home-closed",
+      "predicate": "old transcript restored, synthetic slot gone, provider counts unchanged",
+      "passed": true,
+      "add": [
+        {
+          "x": 64,
+          "y": 0
+        }
+      ],
+      "old": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "new_title": [],
+      "old_content": true,
+      "home_prompt": false,
+      "header": "   Какие инструменты доступны ассистенту                      ✕  +",
+      "provider_counts": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "transcript_requests": 2,
+        "title_requests": 1
+      }
+    },
+    {
+      "stage": "before-readd",
+      "predicate": "old tab and unique painted add after close, no provider call",
+      "passed": true,
+      "add": [
+        {
+          "x": 64,
+          "y": 0
+        }
+      ],
+      "old": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "new_title": [],
+      "old_content": true,
+      "home_prompt": false,
+      "header": "   Какие инструменты доступны ассистенту                      ✕  +",
+      "provider_counts": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "transcript_requests": 2,
+        "title_requests": 1
+      }
+    },
+    {
+      "stage": "home-readded",
+      "predicate": "synthetic Home re-added without provider call: Timed out waiting for Home re-added before original return",
+      "passed": false,
+      "add": [
+        {
+          "x": 32,
+          "y": 0
+        }
+      ],
+      "old": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "new_title": [],
+      "old_content": true,
+      "home_prompt": false,
+      "header": "   Какие инструменты доступны ас +",
+      "provider_counts": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "transcript_requests": 2,
+        "title_requests": 1
+      }
+    }
+  ]
+}

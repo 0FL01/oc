@@ -1,0 +1,57 @@
+[
+  {
+    "at_ms": 1790213590037,
+    "kind": "prompt_paste",
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "at_ms": 1790213590237,
+    "kind": "submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790213594790,
+    "kind": "add_mouse_down",
+    "base64": "G1s8MDszNDsxTQ=="
+  },
+  {
+    "at_ms": 1790213594790,
+    "kind": "add_mouse_up",
+    "base64": "G1s8MDszNDsxbQ=="
+  },
+  {
+    "at_ms": 1790213597425,
+    "kind": "home_close_mouse_move",
+    "base64": "G1s8MzU7Mzc7MU0="
+  },
+  {
+    "at_ms": 1790213600387,
+    "kind": "home_close_mouse_down",
+    "base64": "G1s8MDs2MzsxTQ=="
+  },
+  {
+    "at_ms": 1790213600388,
+    "kind": "home_close_mouse_up",
+    "base64": "G1s8MDs2MzsxbQ=="
+  },
+  {
+    "at_ms": 1790213603575,
+    "kind": "readd_mouse_down",
+    "base64": "G1s8MDszNDsxTQ=="
+  },
+  {
+    "at_ms": 1790213603575,
+    "kind": "readd_mouse_up",
+    "base64": "G1s8MDszNDsxbQ=="
+  },
+  {
+    "at_ms": 1790213606264,
+    "kind": "return_mouse_down",
+    "base64": "G1s8MDs0OzFN"
+  },
+  {
+    "at_ms": 1790213606264,
+    "kind": "return_mouse_up",
+    "base64": "G1s8MDs0OzFt"
+  }
+]

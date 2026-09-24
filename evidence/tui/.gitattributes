@@ -17,3 +17,5 @@ recovery-v08-sessionless-home-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v08-sessionless-home-*/*/*.vt binary
 recovery-v08-retained-tab-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v08-retained-tab-*/*/*.vt binary
+recovery-v08-tab-close-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+recovery-v08-tab-close-*/*/*.vt binary
