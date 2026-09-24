@@ -1,0 +1,21 @@
+{
+  "sample": "rows-reflow",
+  "origin": "upstream",
+  "anchors": {
+    "away": {
+      "marker": "ROW-041",
+      "index": 41,
+      "y": 1
+    },
+    "shrink": {
+      "marker": "ROW-014",
+      "index": 14,
+      "y": 2
+    },
+    "grow": {
+      "marker": "ROW-041",
+      "index": 41,
+      "y": 1
+    }
+  }
+}

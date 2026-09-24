@@ -1,0 +1,342 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "rows-reflow",
+      "--scroll-resize",
+      "true",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "160",
+      "--rows",
+      "48",
+      "--devtools",
+      "false",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "cdd0cd6068467a8591f3f79c1ac460430544a1ac\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "38414a07748797de8ff86f2b38b5a80d6d5717c4\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/messages.rs b/crates/oc-tui/src/messages.rs\nindex 15d42f8..eed97ea 100644\n--- a/crates/oc-tui/src/messages.rs\n+++ b/crates/oc-tui/src/messages.rs\n@@ -2159,7 +2159,7 @@ fn markdown_at_width_with_columns(\n                                     }\n                                     let highlighted =\n                                         code_lines(Some(&lang), &[safe_text(line)], theme);\n-                                    out.extend(styled::wrap_line_limited(\n+                                    out.extend(styled::wrap_code_line_limited(\n                                         &highlighted[0],\n                                         width,\n                                         (MAX_MARKDOWN_ROWS + 1).saturating_sub(out.len()),\n@@ -2652,7 +2652,11 @@ mod tests {\n     use crate::styled;\n     use oc_core::queries::ToolOpView;\n     use ratatui::buffer::Buffer;\n-    use ratatui::{Terminal, backend::TestBackend, widgets::Paragraph};\n+    use ratatui::{\n+        Terminal,\n+        backend::TestBackend,\n+        widgets::{Block, Paragraph},\n+    };\n \n     fn user(text: &str, chips: Vec<Chip>) -> HistoryRow {\n         HistoryRow {\n@@ -4564,6 +4568,131 @@ mod tests {\n         );\n     }\n \n+    #[test]\n+    fn fenced_code_preserves_only_source_separator_on_word_wrap() {\n+        // In the pinned rows-reflow fixture ROW-000..040 have a source\n+        // separator before a long x word; ROW-041..089 do not.\n+        let theme = Theme::dark();\n+        let paint = |lines: Vec<Line>, width: u16| {\n+            let wrapped = styled::wrap_lines(&lines, width as usize);\n+            let count = wrapped.len();\n+            let mut terminal = Terminal::new(TestBackend::new(width, 8)).unwrap();\n+            terminal\n+                .draw(|frame| {\n+                    frame.render_widget(\n+                        Block::default().style(Style::default().fg(theme.text())),\n+                        frame.area(),\n+                    );\n+                    frame.render_widget(\n+                        Paragraph::new(styled::Lines::from(wrapped).into_text()),\n+                        frame.area(),\n+                    );\n+                })\n+                .unwrap();\n+            (count, terminal.backend().buffer().clone())\n+        };\n+        for (width, code, expected, separator) in [\n+            (\n+                80,\n+                format!(\"ROW-014 {}\", \"x\".repeat(90)),\n+                vec![\"ROW-014 \".to_string(), \"x\".repeat(77), \"x\".repeat(13)],\n+                true,\n+            ),\n+            (\n+                80,\n+                \"ROW-041\".to_string(),\n+                vec![\"ROW-041\".to_string()],\n+                false,\n+            ),\n+            (\n+                10,\n+                \"ROW-041\".to_string(),\n+                vec![\"ROW-041\".to_string()],\n+                false,\n+            ),\n+        ] {\n+            let row = assistant(&format!(\"```text\\n{code}\\n```\"));\n+            let full = transcript(std::slice::from_ref(&row), theme, width, width, |_| {\n+                theme.text()\n+            });\n+            let cache = RefCell::new(MarkdownCache::default());\n+            let (visible, total) = visible_transcript(\n+                std::slice::from_ref(&row),\n+                theme,\n+                width,\n+                width,\n+                (8, 0, None),\n+                |_| theme.text(),\n+                &cache,\n+            );\n+            for (index, expected_row) in expected.iter().enumerate() {\n+                let text = format!(\"   {expected_row}\");\n+                assert_eq!(full[index + 1].plain_text(), text, \"width {width}\");\n+                assert_eq!(\n+                    visible[index + 2].plain_text(),\n+                    text,\n+                    \"indexed width {width}\"\n+                );\n+            }\n+            let (full_count, full_buffer) = paint(full, width);\n+            let (visible_count, visible_buffer) = paint(visible, width);\n+            assert_eq!(\n+                full_count,\n+                expected.len() + 1,\n+                \"width {width}: no extra code row\"\n+            );\n+            assert_eq!(\n+                visible_count,\n+                expected.len() + 2,\n+                \"width {width}: indexed leading blank + code\"\n+            );\n+            assert_eq!(total, expected.len() + 2, \"width {width}: seek height\");\n+            let x = MESSAGE_PADDING as u16 + 7;\n+            for (buffer, y) in [(&full_buffer, 1), (&visible_buffer, 2)] {\n+                assert_eq!(\n+                    buffer[(x - 1, y)].symbol(),\n+                    if separator { \"4\" } else { \"1\" },\n+                    \"width {width}\"\n+                );\n+                if separator {\n+                    assert_eq!(buffer[(x, y)].symbol(), \" \");\n+                    assert_eq!(\n+                        buffer[(x, y)].fg,\n+                        theme.markdown(MarkdownToken::CodeBlock),\n+                        \"width {width}\"\n+                    );\n+                    assert_eq!(\n+                        buffer[(x + 1, y)].fg,\n+                        theme.text(),\n+                        \"width {width}: no synthetic cell\"\n+                    );\n+                } else if x < width {\n+                    assert_eq!(\n+                        buffer[(x, y)].fg,\n+                        theme.text(),\n+                        \"width {width}: short row blank stays default\"\n+                    );\n+                } else {\n+                    assert_eq!(x, width, \"width {width}: exact fit\");\n+                }\n+            }\n+            for (index, _) in expected.iter().enumerate() {\n+                for x in 0..width {\n+                    assert_eq!(\n+                        full_buffer[(x, index as u16 + 1)],\n+                        visible_buffer[(x, index as u16 + 2)],\n+                        \"width {width}, row {index}, x {x}\"\n+                    );\n+                }\n+            }\n+        }\n+\n+        let prose = assistant(\"ROW-041\");\n+        let (count, buffer) = paint(transcript(&[prose], theme, 80, 80, |_| theme.text()), 80);\n+        assert_eq!(count, 2);\n+        assert_eq!(buffer[(10, 1)].fg, theme.text(), \"prose tail stays default\");\n+    }\n+\n     /// `reasoningSummary` (`context/thinking.ts:10-19`) extracts only a leading\n     /// `**Title**` block; everything else stays title-less.\n     #[test]\ndiff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs\nindex 104a71e..4424244 100644\n--- a/crates/oc-tui/src/shell.rs\n+++ b/crates/oc-tui/src/shell.rs\n@@ -612,19 +612,23 @@ fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area:\n         area.width.saturating_sub(4),\n         area.height.saturating_sub(2),\n     );\n-    let title = wrap_text(\n+    let title = wrap_text_with_breaks(\n         state.session_title.as_deref().unwrap_or(UNTITLED_SESSION),\n         inner.width.saturating_sub(2) as usize,\n     );\n+    let title_style = Style::default()\n+        .fg(theme.text())\n+        .add_modifier(Modifier::BOLD);\n     let mut lines: Vec<Line<'static>> = title\n         .into_iter()\n-        .map(|t| {\n-            Line::styled(\n-                t,\n-                Style::default()\n-                    .fg(theme.text())\n-                    .add_modifier(Modifier::BOLD),\n-            )\n+        .map(|(t, wrapped_at_space)| {\n+            let mut line = Line::styled(t, title_style);\n+            if wrapped_at_space {\n+                // The title_shimmer renders one bold text node: the original\n+                // separator before the next word remains on the preceding row.\n+                line.spans.push(Span::styled(\" \", title_style));\n+            }\n+            line\n         })\n         .collect();\n     lines.push(Line::default());\n@@ -1370,10 +1374,18 @@ fn render_toast(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Re\n /// (`ui/toast.tsx:75`). Words longer than the width are split so no bounded\n /// notice is silently dropped; returns at least one (possibly empty) line.\n fn wrap_text(text: &str, width: usize) -> Vec<String> {\n+    wrap_text_with_breaks(text, width)\n+        .into_iter()\n+        .map(|(line, _)| line)\n+        .collect()\n+}\n+\n+/// Whether the next row starts after a source-space rather than a hard word split.\n+fn wrap_text_with_breaks(text: &str, width: usize) -> Vec<(String, bool)> {\n     if width == 0 {\n-        return vec![String::new()];\n+        return vec![(String::new(), false)];\n     }\n-    let mut lines: Vec<String> = Vec::new();\n+    let mut lines: Vec<(String, bool)> = Vec::new();\n     let mut current = String::new();\n     let mut current_width = 0usize;\n     for word in text.split(' ') {\n@@ -1389,14 +1401,14 @@ fn wrap_text(text: &str, width: usize) -> Vec<String> {\n             continue;\n         }\n         if !current.is_empty() {\n-            lines.push(std::mem::take(&mut current));\n+            lines.push((std::mem::take(&mut current), true));\n         }\n         let mut chunk = String::new();\n         let mut chunk_width = 0usize;\n         for ch in word.chars() {\n             let char_width = text_width(&ch.to_string());\n             if chunk_width + char_width > width && !chunk.is_empty() {\n-                lines.push(std::mem::take(&mut chunk));\n+                lines.push((std::mem::take(&mut chunk), false));\n                 chunk_width = 0;\n             }\n             chunk.push(ch);\n@@ -1406,7 +1418,7 @@ fn wrap_text(text: &str, width: usize) -> Vec<String> {\n         current_width = chunk_width;\n     }\n     if !current.is_empty() || lines.is_empty() {\n-        lines.push(current);\n+        lines.push((current, false));\n     }\n     lines\n }\n@@ -2572,6 +2584,78 @@ mod tests {\n         assert!(blanks > 1609, \"expected the predominantly empty sidebar\");\n     }\n \n+    #[tokio::test]\n+    async fn paired_wrapped_sidebar_title_styles_separator_not_final_tail() {\n+        let mut state = golden_state().await;\n+        // Pinned VIS05 scroll-away: the title wraps just before \"ассистенту\".\n+        let title = \"Какие инструменты доступны ассистенту\";\n+        state.session_title = Some(title.into());\n+        state.chrome.devtools = Some(false);\n+        state.close_panel();\n+        let theme = Theme::dark();\n+        let white = Color::Rgb(255, 255, 255);\n+        let mut terminal = Terminal::new(TestBackend::new(160, 48)).unwrap();\n+        terminal.draw(|frame| render(frame, &state)).unwrap();\n+        let buffer = terminal.backend().buffer();\n+        let session = shell_regions(&state, Rect::new(0, 0, 160, 48)).session;\n+        let sidebar_x = session.right() - layout::SESSION_SIDEBAR_WIDTH;\n+        let title_x = sidebar_x + 2;\n+        let first_y = session.y + 1;\n+        let first = \"Какие инструменты доступны\";\n+        let second = \"ассистенту\";\n+        for (row, expected) in [(first_y, first), (first_y + 1, second)] {\n+            let printed = (title_x..session.right() - 2)\n+                .map(|x| buffer[(x, row)].symbol().to_string())\n+                .collect::<String>();\n+            assert_eq!(printed.trim_end(), expected);\n+        }\n+        let separator = &buffer[(title_x + text_width(first) as u16, first_y)];\n+        assert_eq!(separator.symbol(), \" \");\n+        assert_eq!(separator.fg, theme.text());\n+        assert!(separator.modifier.contains(Modifier::BOLD));\n+        let final_tail = &buffer[(title_x + text_width(second) as u16, first_y + 1)];\n+        assert_eq!(final_tail.symbol(), \" \");\n+        assert_eq!(final_tail.fg, white);\n+        assert!(!final_tail.modifier.contains(Modifier::BOLD));\n+        for (row, after) in [\n+            (first_y, title_x + text_width(first) as u16 + 1),\n+            (first_y + 1, title_x + text_width(second) as u16),\n+        ] {\n+            for x in after..session.right() - 2 {\n+                let cell = &buffer[(x, row)];\n+                assert_eq!(cell.symbol(), \" \", \"({x},{row})\");\n+                assert_eq!(cell.fg, white, \"({x},{row})\");\n+                assert!(!cell.modifier.contains(Modifier::BOLD), \"({x},{row})\");\n+            }\n+        }\n+    }\n+\n+    #[tokio::test]\n+    async fn hard_wrapped_unicode_sidebar_title_has_no_separator_cell() {\n+        let mut state = golden_state().await;\n+        state.session_title = Some(\"界\".repeat(22));\n+        let theme = Theme::dark();\n+        let white = Color::Rgb(255, 255, 255);\n+        let mut terminal = Terminal::new(TestBackend::new(40, 12)).unwrap();\n+        terminal\n+            .draw(|frame| {\n+                frame.render_widget(\n+                    Block::default().style(Style::default().fg(white).bg(theme.background())),\n+                    frame.area(),\n+                );\n+                render_sidebar(frame, &state, theme, frame.area());\n+            })\n+            .unwrap();\n+        let buffer = terminal.backend().buffer();\n+        // 17 double-width glyphs fill the first 34-cell wrapped row; five\n+        // remain on the final row. Neither wrap splits at a space.\n+        assert_eq!(buffer[(36, 1)].fg, white);\n+        assert_eq!(buffer[(12, 2)].symbol(), \" \");\n+        assert_eq!(buffer[(12, 2)].fg, white);\n+        assert!(!buffer[(12, 2)].modifier.contains(Modifier::BOLD));\n+        assert_eq!(buffer[(13, 2)].fg, white);\n+    }\n+\n     /// The buffer rows with trailing spaces removed, so snapshots stay small\n     /// enough to review while leading padding is still asserted.\n     fn screen(state: &TuiState, width: u16, height: u16) -> Vec<String> {\ndiff --git a/crates/oc-tui/src/styled.rs b/crates/oc-tui/src/styled.rs\nindex bbe1b88..854cda4 100644\n--- a/crates/oc-tui/src/styled.rs\n+++ b/crates/oc-tui/src/styled.rs\n@@ -193,6 +193,21 @@ pub fn wrap_line(line: &Line, width: usize) -> Vec<Line> {\n \n /// At most `limit` wrapped rows; used for bounded Markdown previews.\n pub fn wrap_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {\n+    wrap_line_with_space_mode(line, width, limit, false)\n+}\n+\n+/// Code-fence wrap keeps source separator spaces on the row before a long\n+/// word, so their original style is painted without inventing blank cells.\n+pub fn wrap_code_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {\n+    wrap_line_with_space_mode(line, width, limit, true)\n+}\n+\n+fn wrap_line_with_space_mode(\n+    line: &Line,\n+    width: usize,\n+    limit: usize,\n+    preserve_break_space: bool,\n+) -> Vec<Line> {\n     let max = width.max(1);\n     let mut out: Vec<Vec<(String, Style)>> = Vec::new();\n     let mut current: Vec<(String, Style)> = Vec::new();\n@@ -223,8 +238,10 @@ pub fn wrap_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {\n                             rest.remove(0);\n                         }\n                         let mut head = std::mem::take(&mut current);\n-                        while head.last().is_some_and(|(ch, _)| ch == \" \") {\n-                            head.pop();\n+                        if !preserve_break_space {\n+                            while head.last().is_some_and(|(ch, _)| ch == \" \") {\n+                                head.pop();\n+                            }\n                         }\n                         out.push(head);\n                         current = rest;\n@@ -382,6 +399,27 @@ mod tests {\n         assert_eq!(wrap_line_limited(&Line::plain(\"abcdefghij\"), 2, 2).len(), 2);\n     }\n \n+    #[test]\n+    fn code_wrap_keeps_source_separator_style_and_row_limit() {\n+        use ratatui::style::Color;\n+\n+        let code = Style::default().fg(Color::Rgb(238, 238, 238));\n+        let line = Line::new(vec![\n+            Span::styled(\"ROW-014 \", code),\n+            Span::plain(\"x\".repeat(90)),\n+        ]);\n+        let code_rows = wrap_code_line_limited(&line, 77, 2);\n+        assert_eq!(code_rows.len(), 2);\n+        assert_eq!(code_rows[0].plain_text(), \"ROW-014 \");\n+        assert_eq!(code_rows[0].spans()[0].style(), code);\n+        assert_eq!(code_rows[1].plain_text(), \"x\".repeat(77));\n+        assert_eq!(\n+            wrap_line_limited(&line, 77, 2)[0].plain_text(),\n+            \"ROW-014\",\n+            \"default prose wrap still drops break spaces\"\n+        );\n+    }\n+\n     #[test]\n     fn conversion_to_ratatui_matches_the_source_text() {\n         let lines = Lines::from(vec![\"a\".to_string(), \"b\".to_string()]);\ndiff --git a/scripts/tui_capture/README.md b/scripts/tui_capture/README.md\nindex 2012372..8f54ab1 100644\n--- a/scripts/tui_capture/README.md\n+++ b/scripts/tui_capture/README.md\n@@ -122,7 +122,9 @@ Source contract anchors (pinned upstream source):\n \n `--geometry true` captures actual Home and completed-session screens and skips\n dialog inputs. `--sample short` supplies a one-line answer; `--sample rows` supplies\n-a 90-line code block. The selected sample participates in the fixture hash.\n+a 90-line code block. `--sample rows-reflow` keeps 90 ROW markers in a code fence,\n+with 90 ASCII characters after ROW-000 through ROW-040 so those lines wrap at\n+80 columns but not 160. The selected sample participates in the fixture hash.\n `--matrix true` then resizes both real PTYs through 80×24,120×40,160×48,\n 43/44/119/120/121×48,120×80 and back to 160×48. Per-side\n `geometry-checks.json` records observed row-marker counts and sidebar presence;\n@@ -140,8 +142,19 @@ cursor-at-draft-end assertions. Original uses its supported Ctrl+Alt+Y/E scroll\n bindings; native uses actual SGR wheel events over the transcript, since Up/Down\n navigate the focused editor/history and would overwrite the draft. This does\n not qualify keymap parity.\n-Both sides check that the first visible marker survives shrink/grow. Native\n-additionally checks a top-offset clamp after growing to 160×80.\n+For `--sample rows`, both sides check that the first visible marker survives\n+shrink/grow; native additionally checks a top-offset clamp after growing to\n+160×80. For a width-sensitive diagnostic, use `--geometry true\n+--sample rows-reflow --scroll-resize true` with an initial 160×48 terminal and\n+a fresh output path. Each side records the first visible ROW marker and its screen y\n+coordinate for away, 80×24 shrink and 160×48 grow in `scroll-checks.json` and\n+`scroll-resize-anchors.json`. The original may retain a physical scroll offset\n+rather than the same semantic marker; neither side fails solely for an anchor\n+change. Draft/cursor checks and bottom re-pin still apply. This fixture grows\n+back to ROW-041 before the Down input and requires the first visible marker to\n+advance to ROW-042; an unchanged frame is a failed scroll. `--sample rows-reflow\n+--matrix true` is rejected; the native 160×80 clamp is rows-only to keep those\n+existing marker-count and clamp assertions.\n \n For the completed real-read exploration group, run a **fresh** output directory:\n \ndiff --git a/scripts/tui_capture/bridge.py b/scripts/tui_capture/bridge.py\nindex fd0d397..eb56a42 100644\n--- a/scripts/tui_capture/bridge.py\n+++ b/scripts/tui_capture/bridge.py\n@@ -38,6 +38,9 @@ elif spec.get('sample') == 'tools':\n     answer = 'GEOMETRY-SHORT: tool read completed.'\n elif spec.get('sample') == 'rows':\n     answer = '```text\\n' + '\\n'.join(f'ROW-{i:03}' for i in range(90)) + '\\n```'\n+elif spec.get('sample') == 'rows-reflow':\n+    answer = '```text\\n' + '\\n'.join(\n+        f'ROW-{i:03}' + (' ' + 'x' * 90 if i <= 40 else '') for i in range(90)) + '\\n```'\n catalog = json.loads((fixture / 'model-catalog.json').read_text())\n title = json.loads((fixture / 'scenarios.json').read_text())['base']['title']\n transcript_round = 0\ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex b2c0bab..d8587e9 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -38,6 +38,8 @@ if (tabClick && (args.geometry !== 'true' || args.sample !== 'tools' || args.sid\n     args.matrix === 'true' || args['scroll-resize'] === 'true' || args['startup-error'] === 'true' ||\n     args['seed-root'] || args.tabs === 'vertical' || !args.reference || !args.oc))\n   throw Error('--tab-click true requires both binaries, --geometry true --sample tools --sidebar hide --agent-profile true --columns 120 --rows 40, horizontal tabs and no matrix/scroll-resize/startup-error/seed-root');\n+if (args.sample === 'rows-reflow' && args.matrix === 'true')\n+  throw Error('--sample rows-reflow does not support --matrix true; use --sample rows for the matrix/clamp run');\n const output = path.resolve(args.output || path.join(repo, 'evidence/tui/recovery-v00', new Date().toISOString().replaceAll(':', '-')));\n fs.mkdirSync(path.dirname(output), {recursive: true});\n try { fs.mkdirSync(output); }\n@@ -235,7 +237,7 @@ try {\n       if(args.geometry === 'true') await capture('home', initial, 'CAPTURED');\n       send('\\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\\x1b[201~','prompt_paste');\n       await sleep(200); send('\\r','submit');\n-       const marker = ['short','reasoning','tools'].includes(args.sample) ? 'GEOMETRY-SHORT' : args.sample === 'rows' ? 'ROW-089' : 'Через Code Mode';\n+       const marker = ['short','reasoning','tools'].includes(args.sample) ? 'GEOMETRY-SHORT' : ['rows','rows-reflow'].includes(args.sample) ? 'ROW-089' : 'Через Code Mode';\n        const done = await waitFor(f => f.text.includes(marker) &&\n         /MiMo-V2.6-Flash Free · \\d/.test(f.text) &&\n          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript'), 'completed transcript');\n@@ -531,13 +533,23 @@ try {\n       if(args['scroll-resize'] === 'true') {\n         const checks = [];\n         const markers = f => [...f.text.matchAll(/ROW-(\\d+)/g)].map(m=>Number(m[1]));\n+        const reflow = args.sample === 'rows-reflow';\n+        const firstVisibleRow = f => {\n+          for (const [y, cells] of f.cells.entries()) {\n+            const row = cells.map(c=>c.symbol).join('');\n+            const match = /ROW-(\\d{3})/.exec(row);\n+            if (match) return {marker:match[0], index:Number(match[1]), y};\n+          }\n+          return null;\n+        };\n         const check = async (name, predicate) => {\n           const f = await waitFor(predicate, name);\n           await capture(name, f, 'CAPTURED_SCROLL_GEOMETRY');\n           const draftRow = f.cells.findIndex(row=>row.map(c=>c.symbol).join('').includes('scroll-draft'));\n           const rowText = draftRow < 0 ? '' : f.cells[draftRow].map(c=>c.symbol).join('');\n           const draftX = rowText.indexOf('scroll-draft');\n-          const c = {scenario:name, markers:markers(f), cursor:f.cursor, draft_row:draftRow,\n+          const c = {scenario:name, columns:f.columns, rows:f.rows, markers:markers(f),\n+            first_visible_row:firstVisibleRow(f), cursor:f.cursor, draft_row:draftRow,\n             cursor_at_draft_end:f.cursor.visible && f.cursor.x===draftX+12 && f.cursor.y===draftRow};\n           checks.push(c);\n           fs.writeFileSync(path.join(dir,'scroll-checks.json'),JSON.stringify(checks,null,2)+'\\n');\n@@ -551,15 +563,27 @@ try {\n         // user message. The original retains its documented scroll binding.\n         send((origin==='oc' ? '\\x1b[<64;10;15M' : '\\x1b\\x19').repeat(12),'scroll_away_12_lines');\n         const away = await check('scroll-away',f=>f.text.includes('scroll-draft') && markers(f).length>0 && !f.text.includes('ROW-089'));\n+        const resizeAnchors = {away:away.first_visible_row};\n+        let grown;\n         for(const [columns,rows,name] of [[80,24,'scroll-shrink'],[160,48,'scroll-grow']]) {\n           profile.columns=columns; profile.rows=rows;\n           await page.evaluate(({columns,rows})=>term.resize(columns,rows),{columns,rows});\n           child.stdin.write(JSON.stringify({kind:'resize',columns,rows})+'\\n');\n-          const c = await check(name,f=>f.columns===columns && f.rows===rows && f.text.includes('scroll-draft') && !f.text.includes('ROW-089'));\n-          if(c.markers[0]!==away.markers[0]) throw Error('scroll top row lost during resize: '+name);\n+          const c = await check(name,f=>f.columns===columns && f.rows===rows && f.text.includes('scroll-draft') &&\n+            markers(f).length>0 && (reflow || !f.text.includes('ROW-089')));\n+          resizeAnchors[name==='scroll-shrink'?'shrink':'grow'] = c.first_visible_row;\n+          if(name==='scroll-grow') grown=c;\n+          if(!reflow && c.markers[0]!==away.markers[0]) throw Error('scroll top row lost during resize: '+name);\n         }\n+        fs.writeFileSync(path.join(dir,'scroll-resize-anchors.json'),JSON.stringify({sample:spec.sample,\n+          origin, anchors:resizeAnchors},null,2)+'\\n');\n         send(origin==='oc' ? '\\x1b[<65;10;15M' : '\\x1b\\x05','scroll_down_one');\n-        const down = await check('scroll-down-one',f=>markers(f).at(-1)===away.markers.at(-1)+1);\n+        // This fixture grows back to the short rows after ROW-041. One scroll\n+        // must advance that visible marker; accepting any stable frame would\n+        // mistakenly pass if the Down event were lost.\n+        const down = await check('scroll-down-one',f=>reflow\n+          ? f.text.includes('scroll-draft') && firstVisibleRow(f)?.index===grown.first_visible_row.index+1\n+          : markers(f).at(-1)===away.markers.at(-1)+1);\n         send((origin==='oc' ? '\\x1b[<65;10;15M' : '\\x1b\\x05').repeat(100),'scroll_repin');\n         await check('scroll-repinned',f=>f.text.includes('ROW-089') && f.text.includes('scroll-draft'));\n         lock.attempts.push({origin,status:'SCROLL_RESIZE_CHECKS_PASS',one_line_down:down.markers.at(-1)});\n@@ -591,7 +615,7 @@ try {\n       // This native-only clamp test changes transcript position. Run it after\n       // the paired matrix, never before: both sides must enter paired captures\n       // with the same repinned viewport.\n-      if(args['scroll-resize'] === 'true' && origin==='oc') {\n+      if(args['scroll-resize'] === 'true' && args.sample==='rows' && origin==='oc') {\n         const markers = f => [...f.text.matchAll(/ROW-(\\d+)/g)].map(m=>Number(m[1]));\n         const draftBefore = await frame();\n         const draftAtStart = draftBefore.cells.findIndex(line=>line.map(c=>c.symbol).join('').includes('scroll-draft'));\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.19s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"ad26fb898c41090a010e3d462a80c59971a192adba1fb93161c752b99c0468e4\", \"actual_sha256\": \"58ab783ea32013aefc8589093c8e3b0d22e9eb78d8456029b42d670b5d1f87a3\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 7680, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [152, 46, 157, 46], \"samples\": [{\"x\": 152, \"y\": 46, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 153, \"y\": 46, \"different_fields\": [\"symbol\"]}, {\"x\": 154, \"y\": 46, \"different_fields\": [\"symbol\"]}, {\"x\": 155, \"y\": 46, \"different_fields\": [\"symbol\"]}, {\"x\": 156, \"y\": 46, \"different_fields\": [\"symbol\"]}, {\"x\": 157, \"y\": 46, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"0c9bb21638c797ba3eff05df945b2fdfcdbf0605b75a7a3cf036bc871343c808\", \"actual_sha256\": \"17c34c153352166462c65e3bfd71fd8eb639bd0850d2d9d87ad4d66646622c7a\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 294, \"changed_fraction_diagnostic_only\": 0.0002837750185322461, \"difference_bbox_inclusive\": [1281, 739, 1329, 748]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"4b529b76c7e9bef9459ce97a84e4d30df255c933c15b5f8a164f41545e882d7d\", \"actual_sha256\": \"5b7c5d8e4fca3034be4e1eaf45c962044d5f6ea4bc8b74bae5d5239476b4d58b\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 7680, \"different_cells\": 20, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 39, 56, 39], \"samples\": [{\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 56, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"b7279d4908535b2da2e2df60c98f665e216d7ecae942ba9fed41a2ac43bed6ec\", \"actual_sha256\": \"0c1df9bdf32bdff9ebd50af020e419b2e5e3e63d9d8010052d7617aa2d3fd4a7\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 752, \"changed_fraction_diagnostic_only\": 0.000725846305905609, \"difference_bbox_inclusive\": [312, 626, 478, 638]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/scroll-pinned-draft.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/scroll-pinned-draft.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/scroll-pinned-draft.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-pinned-draft\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"2ff20b2962079c39967456a6ac2cb94c850b2aaa8123321323022e1421b9a4fa\", \"actual_sha256\": \"a047597d67440789b9b8704c6c21025ae0f220eac4ebdcd9504b1d651b6e2bf7\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 7680, \"different_cells\": 20, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 39, 56, 39], \"samples\": [{\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 56, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/scroll-pinned-draft.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/scroll-pinned-draft.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/scroll-pinned-draft.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"20721db3e6338754e99fc01189b58abac177b15adae5dafceb3cac6eafc705c8\", \"actual_sha256\": \"6de3e36ae81c9db66f2f185c00d1bcc6a922b42108ddadbc23823186dbecce8e\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 752, \"changed_fraction_diagnostic_only\": 0.000725846305905609, \"difference_bbox_inclusive\": [312, 626, 478, 638]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/scroll-away.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/scroll-away.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/scroll-away.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-away\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"0a32fe3915863b62da804cffbb88c1bc26c8dc3642ec95fcd235d5e1af52fd62\", \"actual_sha256\": \"cb11ed12bd8952217ac35bb5afcc504654469519cc462bd1abda84e38f1645ff\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 7680, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/scroll-away.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/scroll-away.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/scroll-away.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"06bb8f493434ca48a33604b3df3665118767118389969afb50a2a28666a0fead\", \"actual_sha256\": \"06bb8f493434ca48a33604b3df3665118767118389969afb50a2a28666a0fead\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/scroll-shrink.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/scroll-shrink.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/scroll-shrink.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-shrink\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"6aa890173f389a18364888fb2a4199d1af74e42ac4a735ef7e961a7f3d8a9ef5\", \"reference_sha256\": \"78d0cbac370f52f6ba8feabe593e55eeb065d960c5133692cd83c65dccf36968\", \"actual_sha256\": \"55037fbd5e133d22e68bb848b2811e089392b70aeca542acad7ca1ae7b4e2682\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 1920, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/scroll-shrink.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/scroll-shrink.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/scroll-shrink.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"02d83aa5db2883ca7c1a35e45d0f85d3928d852e697419a9ddb6a067d86023f2\", \"actual_sha256\": \"1c8984af527bb167f60b9299b07e9fedd4324a65d78996c43b93f62e7c72346d\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 32, \"changed_fraction_diagnostic_only\": 0.00012363996043521266, \"difference_bbox_inclusive\": [673, 352, 673, 383]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/scroll-grow.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/scroll-grow.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/scroll-grow.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-grow\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"c3755ac693b2bd48346707dcfa7d814b2e919d2f192b55df8c35de242e27f75e\", \"actual_sha256\": \"34f70aef6261465f5d66da77c14a0d192dbc341425a930d9d28c332c69129b57\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 7680, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/scroll-grow.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/scroll-grow.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/scroll-grow.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"06bb8f493434ca48a33604b3df3665118767118389969afb50a2a28666a0fead\", \"actual_sha256\": \"06bb8f493434ca48a33604b3df3665118767118389969afb50a2a28666a0fead\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/scroll-down-one.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/scroll-down-one.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/scroll-down-one.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-down-one\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"fcc731affe885ead98baa1b28b985130b3cc0970a699e6df0fa9241a92f744ec\", \"actual_sha256\": \"b851658a596e5bcaa0aaf85864e58be48336c707d2b497360fea979819391657\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 7680, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/scroll-down-one.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/scroll-down-one.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/scroll-down-one.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"d356230c5943993630f590a1a67844976800b7f408965ee236b99f9deef9c57c\", \"actual_sha256\": \"d356230c5943993630f590a1a67844976800b7f408965ee236b99f9deef9c57c\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/scroll-repinned.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/scroll-repinned.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/scroll-repinned.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-repinned\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"e7e56018d43eabb349a362cfea4cb4164f59d54392da46be24d9cf8fc6a08ff7\", \"actual_sha256\": \"f554bbdd46e4aa241dd9ffd9933e9fdaf5d28ebf483d12d965d94b4b029924f0\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 7680, \"different_cells\": 20, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 39, 56, 39], \"samples\": [{\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 56, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/upstream/scroll-repinned.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/oc/scroll-repinned.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-qualified/scroll-repinned.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"20721db3e6338754e99fc01189b58abac177b15adae5dafceb3cac6eafc705c8\", \"actual_sha256\": \"6de3e36ae81c9db66f2f185c00d1bcc6a922b42108ddadbc23823186dbecce8e\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 752, \"changed_fraction_diagnostic_only\": 0.000725846305905609, \"difference_bbox_inclusive\": [312, 626, 478, 638]}\n",
+    "stderr": ""
+  }
+]

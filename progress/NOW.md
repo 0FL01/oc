@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-24T08:16:03+00:00
+State updated: 2026-09-24T08:59:12+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,19 +14,19 @@ Evidence target: evidence/T44/report.md
 
 ## Result
 
-The current pinned v2.0.12 original/native VIS05 matrix in `evidence/tui/recovery-v03/vis05-fresh-20260924-final/` confirms actual scroll/resize, draft/cursor and 80x24/120x40/160x48/43/44/119/120/121x48 geometry state predicates on both PTYs. TUI now preserves the first displayed transcript row when resizing a scrolled viewport; test harness uses SGR wheel instead of Up/Down history recall, keeps paired states equal before comparison, and verifies draft/cursor in each matrix frame. Pinned metadata fitting and sidebar blank foreground were corrected with test-first regressions. Full comparator still DIFFERENT, so VIS05 and T44 stay ACTIVE. Factual report `evidence/tui/recovery-v03/vis05-current-report.md`; immutable attempts `vis05-fresh-20260924-01` through `-10`, plus `-final` preserve failure/diagnosis and final result.
+Paired pinned v2.0.12/native 160×48→80×24→160×48 reflow fixture established that both scroll by rendered position, changing the first visible marker ROW-041→ROW-014→ROW-041; no unsupported semantic-anchor rewrite. Corrected two actual style discrepancies: preserve source delimiter color in fenced-code word wraps and sidebar title wraps, not synthetic whitespace. Factual report `evidence/tui/recovery-v03/vis05-reflow-report.md`; immutable attempts `vis05-reflow-20260924-01`, `-02`, `-03`, `-qualified`. Production/tooling commit `991f6ce`.
 
 ## Checks
 
-Final full serialized locked workspace tests PASS (212 TUI tests; existing opt-in live ignored), workspace fmt/clippy all targets `-D warnings`, locked build, Node syntax, docs/progress/diff PASS. Final both sides `SCROLL_RESIZE_CHECKS_PASS`, `provider_contract=true`, 0/1920 styled-cell differences on 80x24 scroll-shrink but 32 PNG edge pixels differ. Matrix visible marker counts, draft row and cursor agree; full-frame runner exits 1 honestly.
+Serialized full locked workspace suite passed with 216 TUI tests; fmt, all-target Clippy -D warnings, locked build, Node syntax, docs/progress and diff checks PASS. Both paired PTYs passed provider and real scroll/draft/caret predicates; four scrolled frames have zero styled-cell differences, three zero PNG differences. Narrow shrink still differs by 32 PNG edge pixels; full capture exit 1 DIFFERENT. An earlier parallel TUI catalog latency test exceeded its existing time threshold; serial rerun green, threshold unchanged.
 
 ## Risks
 
-This fixture does not test semantic anchoring if preceding lines reflow under width change; current top anchor is a wrapped-row index. Pinned original/native duration, tok-s, Home random example, true app version and a remaining sidebar blank style differ. Some existing T44 VIS states and S07/V08/V09 qualification remain unmeasured; no mask/threshold relaxation. Old untracked `.opencode/` untouched.
+VIS05 and VIS01–24/V08–V09/S07 remain open. Shrink PNG x673,y352–383 differs despite equal grids; actual elapsed/tok-s fields differ in pinned frame, actual binary versions differ on Home. No masks or fabricated metadata; Markdown/table reflow and dialogs/replay not covered by this fixture. Old untracked `.opencode/` untouched.
 
 ## Next
 
-Test width-sensitive multiline/Markdown content above a scrolled anchor against the pinned reference; resolve any actual mis-anchoring. Continue paired Commands/Models, error/replay and remaining VIS geometries and safety gates until mandatory zero-unexplained-diff acceptance; do not mark T44 done on this slice.
+Diagnose narrow PNG edge with same-size paired styled/PNG captures without masking. Continue pinned Commands/Models, error/replay and V08–V09/S07 mandatory gates; do not mark T44 complete on this diagnostic slice.
 
 
 Ready (до 5): T45, T46, T47

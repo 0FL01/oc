@@ -1,4 +1,5 @@
 # Complete terminal grids deliberately retain every blank cell and row.
 v03-attempt-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 vis05-fresh-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+vis05-reflow-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 *.vt binary

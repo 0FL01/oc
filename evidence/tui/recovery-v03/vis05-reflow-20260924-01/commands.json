@@ -1,0 +1,342 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "rows-reflow",
+      "--scroll-resize",
+      "true",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "160",
+      "--rows",
+      "48",
+      "--devtools",
+      "false",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "cdd0cd6068467a8591f3f79c1ac460430544a1ac\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "38414a07748797de8ff86f2b38b5a80d6d5717c4\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/scripts/tui_capture/README.md b/scripts/tui_capture/README.md\nindex 2012372..03d76b8 100644\n--- a/scripts/tui_capture/README.md\n+++ b/scripts/tui_capture/README.md\n@@ -122,7 +122,9 @@ Source contract anchors (pinned upstream source):\n \n `--geometry true` captures actual Home and completed-session screens and skips\n dialog inputs. `--sample short` supplies a one-line answer; `--sample rows` supplies\n-a 90-line code block. The selected sample participates in the fixture hash.\n+a 90-line code block. `--sample rows-reflow` keeps 90 ROW markers in a code fence,\n+with 90 ASCII characters after ROW-000 through ROW-040 so those lines wrap at\n+80 columns but not 160. The selected sample participates in the fixture hash.\n `--matrix true` then resizes both real PTYs through 80×24,120×40,160×48,\n 43/44/119/120/121×48,120×80 and back to 160×48. Per-side\n `geometry-checks.json` records observed row-marker counts and sidebar presence;\n@@ -140,8 +142,18 @@ cursor-at-draft-end assertions. Original uses its supported Ctrl+Alt+Y/E scroll\n bindings; native uses actual SGR wheel events over the transcript, since Up/Down\n navigate the focused editor/history and would overwrite the draft. This does\n not qualify keymap parity.\n-Both sides check that the first visible marker survives shrink/grow. Native\n-additionally checks a top-offset clamp after growing to 160×80.\n+For `--sample rows`, both sides check that the first visible marker survives\n+shrink/grow; native additionally checks a top-offset clamp after growing to\n+160×80. For a width-sensitive diagnostic, use `--geometry true\n+--sample rows-reflow --scroll-resize true` with an initial 160×48 terminal and\n+a fresh output path. Each side records the first visible ROW marker and its screen y\n+coordinate for away, 80×24 shrink and 160×48 grow in `scroll-checks.json` and\n+`scroll-resize-anchors.json`. The original may retain a physical scroll offset\n+rather than the same semantic marker; neither side fails solely for an anchor\n+change. Draft/cursor checks and bottom re-pin still apply. One Down is captured\n+as observed because reflow or bottom clamping can prevent a marker increment.\n+`--sample rows-reflow --matrix true` is rejected; the native 160×80 clamp is\n+rows-only to keep those existing marker-count and clamp assertions.\n \n For the completed real-read exploration group, run a **fresh** output directory:\n \ndiff --git a/scripts/tui_capture/bridge.py b/scripts/tui_capture/bridge.py\nindex fd0d397..eb56a42 100644\n--- a/scripts/tui_capture/bridge.py\n+++ b/scripts/tui_capture/bridge.py\n@@ -38,6 +38,9 @@ elif spec.get('sample') == 'tools':\n     answer = 'GEOMETRY-SHORT: tool read completed.'\n elif spec.get('sample') == 'rows':\n     answer = '```text\\n' + '\\n'.join(f'ROW-{i:03}' for i in range(90)) + '\\n```'\n+elif spec.get('sample') == 'rows-reflow':\n+    answer = '```text\\n' + '\\n'.join(\n+        f'ROW-{i:03}' + (' ' + 'x' * 90 if i <= 40 else '') for i in range(90)) + '\\n```'\n catalog = json.loads((fixture / 'model-catalog.json').read_text())\n title = json.loads((fixture / 'scenarios.json').read_text())['base']['title']\n transcript_round = 0\ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex b2c0bab..c807a31 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -38,6 +38,8 @@ if (tabClick && (args.geometry !== 'true' || args.sample !== 'tools' || args.sid\n     args.matrix === 'true' || args['scroll-resize'] === 'true' || args['startup-error'] === 'true' ||\n     args['seed-root'] || args.tabs === 'vertical' || !args.reference || !args.oc))\n   throw Error('--tab-click true requires both binaries, --geometry true --sample tools --sidebar hide --agent-profile true --columns 120 --rows 40, horizontal tabs and no matrix/scroll-resize/startup-error/seed-root');\n+if (args.sample === 'rows-reflow' && args.matrix === 'true')\n+  throw Error('--sample rows-reflow does not support --matrix true; use --sample rows for the matrix/clamp run');\n const output = path.resolve(args.output || path.join(repo, 'evidence/tui/recovery-v00', new Date().toISOString().replaceAll(':', '-')));\n fs.mkdirSync(path.dirname(output), {recursive: true});\n try { fs.mkdirSync(output); }\n@@ -235,7 +237,7 @@ try {\n       if(args.geometry === 'true') await capture('home', initial, 'CAPTURED');\n       send('\\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\\x1b[201~','prompt_paste');\n       await sleep(200); send('\\r','submit');\n-       const marker = ['short','reasoning','tools'].includes(args.sample) ? 'GEOMETRY-SHORT' : args.sample === 'rows' ? 'ROW-089' : 'Через Code Mode';\n+       const marker = ['short','reasoning','tools'].includes(args.sample) ? 'GEOMETRY-SHORT' : ['rows','rows-reflow'].includes(args.sample) ? 'ROW-089' : 'Через Code Mode';\n        const done = await waitFor(f => f.text.includes(marker) &&\n         /MiMo-V2.6-Flash Free · \\d/.test(f.text) &&\n          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript'), 'completed transcript');\n@@ -531,13 +533,23 @@ try {\n       if(args['scroll-resize'] === 'true') {\n         const checks = [];\n         const markers = f => [...f.text.matchAll(/ROW-(\\d+)/g)].map(m=>Number(m[1]));\n+        const reflow = args.sample === 'rows-reflow';\n+        const firstVisibleRow = f => {\n+          for (const [y, cells] of f.cells.entries()) {\n+            const row = cells.map(c=>c.symbol).join('');\n+            const match = /ROW-(\\d{3})/.exec(row);\n+            if (match) return {marker:match[0], index:Number(match[1]), y};\n+          }\n+          return null;\n+        };\n         const check = async (name, predicate) => {\n           const f = await waitFor(predicate, name);\n           await capture(name, f, 'CAPTURED_SCROLL_GEOMETRY');\n           const draftRow = f.cells.findIndex(row=>row.map(c=>c.symbol).join('').includes('scroll-draft'));\n           const rowText = draftRow < 0 ? '' : f.cells[draftRow].map(c=>c.symbol).join('');\n           const draftX = rowText.indexOf('scroll-draft');\n-          const c = {scenario:name, markers:markers(f), cursor:f.cursor, draft_row:draftRow,\n+          const c = {scenario:name, columns:f.columns, rows:f.rows, markers:markers(f),\n+            first_visible_row:firstVisibleRow(f), cursor:f.cursor, draft_row:draftRow,\n             cursor_at_draft_end:f.cursor.visible && f.cursor.x===draftX+12 && f.cursor.y===draftRow};\n           checks.push(c);\n           fs.writeFileSync(path.join(dir,'scroll-checks.json'),JSON.stringify(checks,null,2)+'\\n');\n@@ -551,15 +563,25 @@ try {\n         // user message. The original retains its documented scroll binding.\n         send((origin==='oc' ? '\\x1b[<64;10;15M' : '\\x1b\\x19').repeat(12),'scroll_away_12_lines');\n         const away = await check('scroll-away',f=>f.text.includes('scroll-draft') && markers(f).length>0 && !f.text.includes('ROW-089'));\n+        const resizeAnchors = {away:away.first_visible_row};\n         for(const [columns,rows,name] of [[80,24,'scroll-shrink'],[160,48,'scroll-grow']]) {\n           profile.columns=columns; profile.rows=rows;\n           await page.evaluate(({columns,rows})=>term.resize(columns,rows),{columns,rows});\n           child.stdin.write(JSON.stringify({kind:'resize',columns,rows})+'\\n');\n-          const c = await check(name,f=>f.columns===columns && f.rows===rows && f.text.includes('scroll-draft') && !f.text.includes('ROW-089'));\n-          if(c.markers[0]!==away.markers[0]) throw Error('scroll top row lost during resize: '+name);\n+          const c = await check(name,f=>f.columns===columns && f.rows===rows && f.text.includes('scroll-draft') &&\n+            markers(f).length>0 && (reflow || !f.text.includes('ROW-089')));\n+          resizeAnchors[name==='scroll-shrink'?'shrink':'grow'] = c.first_visible_row;\n+          if(!reflow && c.markers[0]!==away.markers[0]) throw Error('scroll top row lost during resize: '+name);\n         }\n+        fs.writeFileSync(path.join(dir,'scroll-resize-anchors.json'),JSON.stringify({sample:spec.sample,\n+          origin, anchors:resizeAnchors},null,2)+'\\n');\n         send(origin==='oc' ? '\\x1b[<65;10;15M' : '\\x1b\\x05','scroll_down_one');\n-        const down = await check('scroll-down-one',f=>markers(f).at(-1)===away.markers.at(-1)+1);\n+        // With wrapped rows the grow can clamp to the bottom, and one physical\n+        // line of scroll need not advance a semantic ROW marker. Observe it.\n+        if(reflow) await sleep(500);\n+        const down = await check('scroll-down-one',f=>reflow\n+          ? f.text.includes('scroll-draft') && markers(f).length>0\n+          : markers(f).at(-1)===away.markers.at(-1)+1);\n         send((origin==='oc' ? '\\x1b[<65;10;15M' : '\\x1b\\x05').repeat(100),'scroll_repin');\n         await check('scroll-repinned',f=>f.text.includes('ROW-089') && f.text.includes('scroll-draft'));\n         lock.attempts.push({origin,status:'SCROLL_RESIZE_CHECKS_PASS',one_line_down:down.markers.at(-1)});\n@@ -591,7 +613,7 @@ try {\n       // This native-only clamp test changes transcript position. Run it after\n       // the paired matrix, never before: both sides must enter paired captures\n       // with the same repinned viewport.\n-      if(args['scroll-resize'] === 'true' && origin==='oc') {\n+      if(args['scroll-resize'] === 'true' && args.sample==='rows' && origin==='oc') {\n         const markers = f => [...f.text.matchAll(/ROW-(\\d+)/g)].map(m=>Number(m[1]));\n         const draftBefore = await frame();\n         const draftAtStart = draftBefore.cells.findIndex(line=>line.map(c=>c.symbol).join('').includes('scroll-draft'));\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.19s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"b3c35b21e48031d6a1b745079008ae9ccb366b6749506e83858aa07c6a05d799\", \"actual_sha256\": \"c64b23f5e34de00d2e921ba62b5d111bd7159c2ce1b0c1556b4513cc44d0c1b7\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 7680, \"different_cells\": 46, \"cursor_differs\": false, \"difference_bbox_inclusive\": [61, 25, 157, 46], \"samples\": [{\"x\": 61, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 62, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 63, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 64, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 65, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 66, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 67, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 68, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 69, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 70, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 71, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 72, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 77, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 78, \"y\": 25, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 79, \"y\": 25, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 80, \"y\": 25, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"da5a6641e57f5146e05154ad53484bf3a7f97cc6d3ee25c10f77f3e5f7d388fe\", \"actual_sha256\": \"2897eda3113ba30f1e5d73c5a64572c5fc587ecc2f03714c7ff025056cac03e7\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 1783, \"changed_fraction_diagnostic_only\": 0.0017209893130714108, \"difference_bbox_inclusive\": [513, 402, 1329, 748]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"880e1efcd2f9249378dbe24477c4cc389c66393444a159dfeee4387941b80dda\", \"actual_sha256\": \"f3df134528a35beb7b47068c5e7d1352115ae10f4dfc761b63a5cf90c3277484\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 7680, \"different_cells\": 18, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 2, 146, 39], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}, {\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"0ea4b6f05bc0065d3620fd608cd61ca0d005d20b882c07b4b15bb7070feabeab\", \"actual_sha256\": \"f30ad92409a4d6ada3bcd1785cac726bf8f4d43fd86dd79fff418c3eba01a627\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 552, \"changed_fraction_diagnostic_only\": 0.0005328020756115641, \"difference_bbox_inclusive\": [312, 626, 470, 638]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/scroll-pinned-draft.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/scroll-pinned-draft.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/scroll-pinned-draft.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-pinned-draft\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"5e7cdb44d6322f7c0444e8e7f48c7984a2e85df8160c6b9c05489cad34785c36\", \"actual_sha256\": \"d5ad78cb63078534311163eca48cca1c8ff532e43b03262b6d83eddff1aa9340\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 7680, \"different_cells\": 18, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 2, 146, 39], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}, {\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/scroll-pinned-draft.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/scroll-pinned-draft.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/scroll-pinned-draft.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"9323d93390edd0525a6e54d53675b249381282c55c7a0b4a6534ee856542c425\", \"actual_sha256\": \"1f3e121036e49ab5176804717d6d54f17c969a9ea60e52476fdc5271622e7ead\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 552, \"changed_fraction_diagnostic_only\": 0.0005328020756115641, \"difference_bbox_inclusive\": [312, 626, 470, 638]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/scroll-away.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/scroll-away.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/scroll-away.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-away\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"6dc11a8c66206f4a96224c311a77eedf783ddacf480d358a000b15fed820f688\", \"actual_sha256\": \"ba9745202697cb726ac22c65448ab79b43dc8f4824ad25d0409bde216ed97321\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 7680, \"different_cells\": 1, \"cursor_differs\": false, \"difference_bbox_inclusive\": [146, 2, 146, 2], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/scroll-away.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/scroll-away.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/scroll-away.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"50446b6adede579089539c5d8a7f742783e733503e804217227d8671ebd7fb84\", \"actual_sha256\": \"50446b6adede579089539c5d8a7f742783e733503e804217227d8671ebd7fb84\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/scroll-shrink.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/scroll-shrink.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/scroll-shrink.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-shrink\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"6aa890173f389a18364888fb2a4199d1af74e42ac4a735ef7e961a7f3d8a9ef5\", \"reference_sha256\": \"db54243686d0fb2576e9a3e4b2230b15f6bc23bd26253ea78534194927b0cabc\", \"actual_sha256\": \"e908439093f05e34099488401edf6873022e926e5cc024231af9323efe8c2e15\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 1920, \"different_cells\": 5, \"cursor_differs\": false, \"difference_bbox_inclusive\": [12, 2, 12, 14], \"samples\": [{\"x\": 12, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 5, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 8, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 11, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 14, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/scroll-shrink.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/scroll-shrink.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/scroll-shrink.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"b4281311f262b42820ca791ee47255280a07191016b743fd5720d56cdd0cef7c\", \"actual_sha256\": \"bbcab2c22db1d570141e90681090a81cdead59515a776ac0730b8280f0cf892f\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 32, \"changed_fraction_diagnostic_only\": 0.00012363996043521266, \"difference_bbox_inclusive\": [673, 352, 673, 383]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/scroll-grow.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/scroll-grow.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/scroll-grow.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-grow\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"ad500c30d9346c4f2582ce2d3791cd664b13ed758a1bf6c72dab4fa1bd11cc60\", \"actual_sha256\": \"c58a4bb8ebcba03e01debf64df534ce1d171c31bc23cd6a6bd6f45cf54ec970c\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 7680, \"different_cells\": 1, \"cursor_differs\": false, \"difference_bbox_inclusive\": [146, 2, 146, 2], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/scroll-grow.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/scroll-grow.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/scroll-grow.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"50446b6adede579089539c5d8a7f742783e733503e804217227d8671ebd7fb84\", \"actual_sha256\": \"50446b6adede579089539c5d8a7f742783e733503e804217227d8671ebd7fb84\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/scroll-down-one.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/scroll-down-one.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/scroll-down-one.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-down-one\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"1db3a166c82ba27e54fbb1692248b61deeb66539eb3e84242eb62f5b3ba02512\", \"actual_sha256\": \"a103807b20033ec577f6159b6144d895ce5dff2eb634b8e9e44516bc8627ac91\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 7680, \"different_cells\": 1, \"cursor_differs\": false, \"difference_bbox_inclusive\": [146, 2, 146, 2], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/scroll-down-one.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/scroll-down-one.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/scroll-down-one.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"bd75e8b90a927e59956ed592375c5ad75f0fa1fee747fc17ae763ad2ab865e23\", \"actual_sha256\": \"bd75e8b90a927e59956ed592375c5ad75f0fa1fee747fc17ae763ad2ab865e23\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/scroll-repinned.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/scroll-repinned.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/scroll-repinned.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-repinned\", \"fixture_sha256\": \"d8a8a24d5639214a6708d97e6336fec6cb3d7e43fe4691fbb9a2e50230d48fc5\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"1e3513092569d11217c0dc26b374385eb66728bd5f61525320137933bbea6534\", \"actual_sha256\": \"e1a35df792996c34a7d8f46685ab1a69c52c46c911b6108806584b4460b37601\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cdd0cd6068467a8591f3f79c1ac460430544a1ac\", \"cells_checked\": 7680, \"different_cells\": 18, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 2, 146, 39], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}, {\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/upstream/scroll-repinned.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/oc/scroll-repinned.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-reflow-20260924-01/scroll-repinned.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"9323d93390edd0525a6e54d53675b249381282c55c7a0b4a6534ee856542c425\", \"actual_sha256\": \"1f3e121036e49ab5176804717d6d54f17c969a9ea60e52476fdc5271622e7ead\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 552, \"changed_fraction_diagnostic_only\": 0.0005328020756115641, \"difference_bbox_inclusive\": [312, 626, 470, 638]}\n",
+    "stderr": ""
+  }
+]
