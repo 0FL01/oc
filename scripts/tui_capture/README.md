@@ -340,6 +340,21 @@ then show native diagnostics, while the packaged original defaults to hidden.
 Explicit `true`/`false` overrides the default in either application. These are
 honest effective-channel differences, not identical-state comparisons.
 
+For the completed Reader/tools sidebar palette probe, run two **fresh** attempts
+at 160×48 with `--geometry true --sample tools --columns 160 --rows 48
+--sidebar-palette true --build-oc true` and both explicit binaries above: use
+`--sidebar hide` for initially hidden and `--sidebar auto` for initially visible.
+The runner asserts the initial state independently from painted `Context` and
+the styled right-edge cell, sends real PTY Ctrl+P and types `sidebar`, captures
+`sidebar-palette-search` styled cells/PNG/VT, and records the actual visible
+`Show sidebar`, `Hide sidebar`, `Toggle sidebar`, or absence in each side's
+`sidebar-palette-checks.json`. If exactly one action is visible it sends Return,
+requires the sidebar state to invert, and captures `sidebar-palette-after`.
+An absent action remains `ACTION_ABSENT`, without inventing a label or
+pressing Return; unequal labels are reported as observations, not parity.
+`capture.lock.json` records side-specific outcomes and ordinary grid/PNG
+comparisons independently. An existing output path is never overwritten.
+
 `--startup-error true` with only `--oc` captures a real malformed-config native
 preflight error. For supported child routes and real Location query failures,
 `OC_V03_CAPTURE_OUTPUT=/absolute/fresh-attempt-prefix cargo test --locked -p oc

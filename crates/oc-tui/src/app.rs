@@ -819,6 +819,20 @@ impl TuiState {
         let options = match &self.panel {
             TuiPanel::Commands => {
                 let mut options = Vec::new();
+                // Use the last rendered terminal width and the same rail allocation
+                // and auto breakpoint as shell::shell_regions/session_main.
+                let sidebar_visible = !self.home
+                    && self.parent_id.is_none()
+                    && !self.chrome.sidebar_hidden
+                    && self.viewport.get().is_some_and(|view| {
+                        let session = crate::layout::configured_shell_regions(
+                            Rect::new(0, 0, view.terminal_width, view.height),
+                            self.chrome.devtools_visible(),
+                            self.chrome.vertical_tabs_width,
+                        )
+                        .session;
+                        crate::layout::sidebar_auto(session.width)
+                    });
                 if self.select.query.is_empty() {
                     options.extend(
                         crate::commands::REGISTRY
@@ -853,6 +867,12 @@ impl TuiState {
                                 c.id.into(),
                                 if c.id == "session.toggle.thinking" && self.thinking_expanded {
                                     "Collapse thinking".into()
+                                } else if c.id == "session.sidebar.toggle" {
+                                    if sidebar_visible {
+                                        "Hide sidebar".into()
+                                    } else {
+                                        "Show sidebar".into()
+                                    }
                                 } else {
                                     c.title.into()
                                 },
@@ -3883,6 +3903,94 @@ mod tests {
         std::mem::forget(guard);
         app.create_session(sid(name)).await.expect("create");
         TuiState::new(app, sid(name))
+    }
+
+    #[tokio::test]
+    async fn sidebar_palette_title_tracks_rendered_visibility_and_runs_same_action() {
+        use crate::commands::CommandAction;
+        use ratatui::{Terminal, backend::TestBackend};
+
+        let mut state = fresh_state("sidebar-palette").await;
+        let mut terminal = Terminal::new(TestBackend::new(160, 40)).unwrap();
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        state.handle_key(KeyAction::Commands).await;
+        state.handle_paste("sidebar");
+        let options = state.modal_options();
+        assert_eq!(options.len(), 1);
+        assert_eq!(options[0].value, "session.sidebar.toggle");
+        assert_eq!(options[0].title, "Hide sidebar");
+        assert_eq!(options[0].footer, "ctrl+x b");
+        assert_eq!(
+            state.command_unavailable(&CommandAction::ToggleSidebar),
+            None
+        );
+        assert!(state.handle_panel_key(KeyAction::Enter).consumed_input);
+        assert!(state.chrome.sidebar_hidden);
+        assert_eq!(state.panel(), &TuiPanel::None);
+
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        state.handle_key(KeyAction::Commands).await;
+        state.handle_paste("sidebar");
+        let options = state.modal_options();
+        assert_eq!(options.len(), 1);
+        assert_eq!(options[0].title, "Show sidebar");
+        assert_eq!(options[0].value, "session.sidebar.toggle");
+        assert!(state.handle_panel_key(KeyAction::Enter).consumed_input);
+        assert!(!state.chrome.sidebar_hidden);
+    }
+
+    #[tokio::test]
+    async fn sidebar_palette_uses_effective_width_home_and_child() {
+        use ratatui::{Terminal, backend::TestBackend};
+
+        let mut state = fresh_state("sidebar-breakpoint").await;
+        state.handle_key(KeyAction::Commands).await;
+        state.handle_paste("sidebar");
+        let title = |state: &TuiState| {
+            state
+                .modal_options()
+                .iter()
+                .find(|o| o.value == "session.sidebar.toggle")
+                .expect("sidebar palette option")
+                .title
+                .clone()
+        };
+        assert_eq!(title(&state), "Show sidebar", "no width observed yet");
+        for (width, rail, expected) in [
+            (120, 0, "Show sidebar"),
+            (121, 0, "Hide sidebar"),
+            (160, 40, "Show sidebar"),
+            (161, 40, "Hide sidebar"),
+        ] {
+            state.chrome.vertical_tabs_width = rail;
+            let mut terminal = Terminal::new(TestBackend::new(width, 40)).unwrap();
+            terminal
+                .draw(|frame| crate::shell::render(frame, &state))
+                .unwrap();
+            assert_eq!(
+                title(&state),
+                expected,
+                "terminal width {width}, rail {rail}"
+            );
+        }
+        state.parent_id = Some("parent".into());
+        state.chrome.vertical_tabs_width = 0;
+        let mut wide = Terminal::new(TestBackend::new(160, 40)).unwrap();
+        wide.draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        assert_eq!(title(&state), "Show sidebar");
+
+        let (app, _, _) = CoreApp::channel(4);
+        let mut home = TuiState::new_home(app);
+        wide.draw(|frame| crate::shell::render(frame, &home))
+            .unwrap();
+        home.handle_key(KeyAction::Commands).await;
+        home.handle_paste("sidebar");
+        assert_eq!(title(&home), "Show sidebar");
     }
 
     #[tokio::test]

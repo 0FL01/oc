@@ -41,6 +41,16 @@ if (args['rename-session'] !== undefined && !['true','false'].includes(args['ren
 const regenerateTitle = args['regenerate-title'] === 'true';
 if (args['regenerate-title'] !== undefined && !['true','false'].includes(args['regenerate-title']))
   throw Error('--regenerate-title must be true or false');
+const sidebarPalette = args['sidebar-palette'] === 'true';
+if (args['sidebar-palette'] !== undefined && !['true','false'].includes(args['sidebar-palette']))
+  throw Error('--sidebar-palette must be true or false');
+if (sidebarPalette && (args.geometry !== 'true' || args.sample !== 'tools' ||
+    !['hide','auto'].includes(args.sidebar) || Number(args.columns) !== 160 || Number(args.rows) !== 48 ||
+    !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
+    args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
+    args.tabs === 'vertical' || args['tab-click'] === 'true' || args['exploration-click'] === 'true' ||
+    args['rename-session'] === 'true'))
+  throw Error('--sidebar-palette true requires paired binaries, --geometry true --sample tools --sidebar hide|auto --columns 160 --rows 48, horizontal tabs and no other interaction/resize modes');
 if (regenerateTitle && !renameSession)
   throw Error('--regenerate-title true requires --rename-session true (paired Reader tools 120x40 profile)');
 if (renameSession && (tabClick || tabClose || tabCloseKey || tabRestart || explorationClick ||
@@ -283,7 +293,65 @@ try {
          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript'), 'completed transcript');
        if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');
        const completedStatus = await capture('session-wide-completed',done,'CAPTURED');
-        if(renameSession) {
+       if(sidebarPalette) {
+         const checks=[];
+         const expectedBefore=args.sidebar==='auto';
+         const observe=f=>{
+           const context=visibleMatches(f,'Context').filter(p=>p.x>=115 && p.y<20);
+           const rightBackground=f.cells[10].at(-1).bg;
+           // The Commands overlay dims the entire VT screen (#0a0a0a →
+           // #040404); the underlying right pane must still be identified.
+           const modal=f.text.includes('Commands');
+           const visible=context.length===1 && (modal ? rightBackground!=='#040404' : rightBackground==='#141414');
+           const hidden=context.length===0 && rightBackground===(modal?'#040404':'#0a0a0a');
+           const labels=Object.fromEntries(['Show sidebar','Hide sidebar','Toggle sidebar'].map(s=>
+             [s,visibleMatches(f,s).filter(p=>p.x>=50 && p.x<115 && p.y>=17 && p.y<40)]));
+           return {context,right_background:rightBackground,modal,visible,hidden,labels};
+         };
+         lock.sidebar_palette ??= {};
+         lock.sidebar_palette[origin]={status:'IN_PROGRESS',expected_initial:expectedBefore,checks};
+         const record=(stage,f,passed,extra={})=>{
+           checks.push({stage,passed,...observe(f),...extra});
+           fs.writeFileSync(path.join(dir,'sidebar-palette-checks.json'),JSON.stringify(checks,null,2)+'\n');
+           json('capture.lock.json',lock);
+           if(!passed) throw Error('Sidebar palette predicate failed: '+stage);
+         };
+         const state=(f,visible)=>visible?observe(f).visible:observe(f).hidden;
+         record('completed-session-sidebar',done,state(done,expectedBefore) && completedStatus==='CAPTURED');
+         send('\x10','sidebar_palette_ctrl_p');
+         const opened=await waitFor(f=>f.text.includes('Commands') && state(f,expectedBefore),'sidebar palette opened');
+         record('palette-opened',opened,true);
+         send('sidebar','sidebar_palette_search');
+         // Observe the actual filtered palette; neither the upstream title nor
+         // a native substitute is injected into the screen or fixture.
+         const searched=await waitFor(f=>f.text.includes('Commands') &&
+           visibleMatches(f,'sidebar').some(p=>p.y>10) && state(f,expectedBefore), 'sidebar search displayed');
+         if(await capture('sidebar-palette-search',searched,'CAPTURED_SIDEBAR_SEARCH')!=='CAPTURED_SIDEBAR_SEARCH')
+           throw Error('Unstable sidebar search');
+         const found=observe(searched).labels;
+         const painted=Object.entries(found).flatMap(([label,points])=>points.map(point=>({label,point})));
+         const actual=painted.map(p=>p.label);
+         const expectedLabel=expectedBefore?'Hide sidebar':'Show sidebar';
+         // Absence is an observed result, not a fabricated expected label.
+         record('search-result',searched,true,{actual_labels:actual,expected_label:expectedLabel,
+           expected_label_present:actual.includes(expectedLabel),action_absent:actual.length===0});
+         if(painted.length===1) {
+           send('\r','sidebar_palette_select_return');
+           const changed=await waitFor(f=>!f.text.includes('Commands') && state(f,!expectedBefore),
+             'selected sidebar command changed visible state',12000);
+           record('selected-action-effect',changed,true,{selected_label:actual[0],after_visible:!expectedBefore});
+           if(await capture('sidebar-palette-after',changed,'CAPTURED_SIDEBAR_EFFECT')!=='CAPTURED_SIDEBAR_EFFECT')
+             throw Error('Unstable sidebar action effect');
+           lock.sidebar_palette[origin].status='ACTION_EFFECT_CONFIRMED';
+         } else {
+           lock.sidebar_palette[origin].status=painted.length===0?'ACTION_ABSENT':'AMBIGUOUS_RESULTS';
+           if(painted.length>1) result=1;
+         }
+         json('capture.lock.json',lock);
+         lock.attempts.push({origin,status:'SIDEBAR_PALETTE_'+lock.sidebar_palette[origin].status,
+           initial_visible:expectedBefore,actual_labels:actual,expected_label:expectedLabel});
+       }
+         if(renameSession) {
           const checks=[];
           const checkFile=path.join(dir,'rename-checks.json');
           const counts=()=>({transcript:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length,
@@ -916,7 +984,8 @@ try {
       if(tabClose && lock.tab_close_interactions?.[origin]) lock.tab_close_interactions[origin].status='FAILED';
       if(tabCloseKey && lock.tab_close_key_interactions?.[origin]) lock.tab_close_key_interactions[origin].status='FAILED';
        if(tabRestart && lock.tab_restart_interactions?.[origin]) lock.tab_restart_interactions[origin].status='FAILED';
-       if(renameSession && lock.rename_interactions?.[origin]) lock.rename_interactions[origin].status='FAILED';
+        if(renameSession && lock.rename_interactions?.[origin]) lock.rename_interactions[origin].status='FAILED';
+        if(sidebarPalette && lock.sidebar_palette?.[origin]) lock.sidebar_palette[origin].status='FAILED';
       await capture('failure-diagnostic',await frame(),'FAILED_STATE');
     } finally {
       if(!child.stdin.destroyed) child.stdin.write(JSON.stringify({kind:'stop'})+'\n');
