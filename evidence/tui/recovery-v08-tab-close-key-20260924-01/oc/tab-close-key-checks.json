@@ -1,0 +1,107 @@
+{
+  "baseline": {
+    "provider_requests": 3,
+    "provider_completed": 3,
+    "transcript_requests": 2,
+    "title_requests": 1,
+    "invalid": 0
+  },
+  "checks": [
+    {
+      "stage": "before-keyboard-close",
+      "predicate": "old tab and synthetic Home selected, old transcript absent, provider counts unchanged",
+      "passed": true,
+      "add": [],
+      "old": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "new_title": [
+        {
+          "x": 33,
+          "y": 0
+        }
+      ],
+      "old_content": false,
+      "home_prompt": true,
+      "header": "   Какие инструменты доступны ас + New session",
+      "provider_counts": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "transcript_requests": 2,
+        "title_requests": 1,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "keyboard-close-input",
+      "leader_base64": "GA==",
+      "key_base64": "dw==",
+      "provider_counts": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "transcript_requests": 2,
+        "title_requests": 1,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "keyboard-closed",
+      "predicate": "old transcript restored, synthetic Home gone, provider counts unchanged",
+      "passed": true,
+      "add": [
+        {
+          "x": 32,
+          "y": 0
+        }
+      ],
+      "old": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "new_title": [],
+      "old_content": true,
+      "home_prompt": false,
+      "header": "   Какие инструменты доступны ас +",
+      "provider_counts": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "transcript_requests": 2,
+        "title_requests": 1,
+        "invalid": 0
+      }
+    },
+    {
+      "stage": "keyboard-close-capture-verified",
+      "predicate": "old transcript and synthetic removal persist, provider counts unchanged",
+      "passed": true,
+      "add": [
+        {
+          "x": 32,
+          "y": 0
+        }
+      ],
+      "old": [
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "new_title": [],
+      "old_content": true,
+      "home_prompt": false,
+      "header": "   Какие инструменты доступны ас +",
+      "provider_counts": {
+        "provider_requests": 3,
+        "provider_completed": 3,
+        "transcript_requests": 2,
+        "title_requests": 1,
+        "invalid": 0
+      }
+    }
+  ]
+}

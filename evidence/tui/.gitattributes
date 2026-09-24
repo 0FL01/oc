@@ -31,3 +31,7 @@ recovery-v03/vis05-reflow-geometry-*/*/*.txt whitespace=-blank-at-eol,-blank-at-
 recovery-v03/vis05-reflow-geometry-*/*/*.vt binary
 recovery-v04/dialogs-current-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v04/dialogs-current-*/*/*.vt binary
+recovery-v04/dialogs-close-key-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+recovery-v04/dialogs-close-key-*/*/*.vt binary
+recovery-v08-tab-close-key-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+recovery-v08-tab-close-key-*/*/*.vt binary
