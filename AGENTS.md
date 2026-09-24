@@ -30,4 +30,4 @@
 
 # Donor:
 
-`https://github.com/anomalyco/opencode/tree/v2.0.12`
+`./opencode` — upstream `https://github.com/anomalyco/opencode/tree/v2.0.12`, pinned at `2670273ff17da96f85c5826ced57aa1b368754fa`.
