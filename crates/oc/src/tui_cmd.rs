@@ -48,6 +48,8 @@ struct FrameMetrics {
     count: u64,
     sum_ns: u128,
     max_ns: u128,
+    worker_event_queue_peak: usize,
+    worker_event_queue_lagged: u64,
 }
 
 /// Max key events drained per frame (paste bursts stay fast; a flooding
@@ -563,13 +565,23 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
         if *state.status() == TuiStatus::Quit {
             break;
         }
-        // Worker events, non-blocking drain.
-        while let Ok(event) = rx.try_recv() {
+        // Worker events, non-blocking drain. Observe occupancy on either side
+        // of the existing drain; sampling does not consume an event.
+        if let Some(metrics) = frame_metrics.as_mut() {
+            metrics.worker_event_queue_peak = metrics.worker_event_queue_peak.max(rx.len());
+        }
+        while let Ok(event) = try_worker_event(&mut rx, frame_metrics.as_mut()) {
             poll_and_sync(app, &mut state, &mut loop_state).await;
             if let Some(current) = state.attached_session().cloned() {
                 handle_worker_event(app, &mut state, &mut loop_state, &current, event).await?;
             }
             loop_state.sync_tabs(&mut state);
+            if let Some(metrics) = frame_metrics.as_mut() {
+                metrics.worker_event_queue_peak = metrics.worker_event_queue_peak.max(rx.len());
+            }
+        }
+        if let Some(metrics) = frame_metrics.as_mut() {
+            metrics.worker_event_queue_peak = metrics.worker_event_queue_peak.max(rx.len());
         }
         // Arm the debounce for the final caret/edit after the key burst.
         sync_mention(app, &mut state, &mut loop_state).await;
@@ -600,6 +612,24 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
         let _ = job.await;
     }
     Ok(0)
+}
+
+/// A lagged receiver stops this frame's drain, as before; record the number
+/// of overwritten events (not the time spent waiting) when metrics are on.
+fn try_worker_event(
+    rx: &mut tokio::sync::broadcast::Receiver<CoreEvent>,
+    metrics: Option<&mut FrameMetrics>,
+) -> Result<CoreEvent, tokio::sync::broadcast::error::TryRecvError> {
+    match rx.try_recv() {
+        Err(tokio::sync::broadcast::error::TryRecvError::Lagged(skipped)) => {
+            if let Some(metrics) = metrics {
+                metrics.worker_event_queue_lagged =
+                    metrics.worker_event_queue_lagged.saturating_add(skipped);
+            }
+            Err(tokio::sync::broadcast::error::TryRecvError::Lagged(skipped))
+        }
+        result => result,
+    }
 }
 
 /// Never await the owner on a key. The quiet period avoids owner-side blocking
@@ -1874,6 +1904,8 @@ fn write_metrics(state: &TuiState, deck: &LoopState, frames: Option<&FrameMetric
         "frame_count": frames.map_or(0, |frames| frames.count),
         "frame_sum_ns": frames.map_or(0, |frames| frames.sum_ns),
         "frame_max_ns": frames.map_or(0, |frames| frames.max_ns),
+        "worker_event_queue_peak": frames.map_or(0, |frames| frames.worker_event_queue_peak),
+        "worker_event_queue_lagged": frames.map_or(0, |frames| frames.worker_event_queue_lagged),
     });
     let _ = std::fs::write(path, metrics.to_string());
 }
@@ -1886,6 +1918,35 @@ mod tests {
     use oc_core::core_app::WorkerTurnId;
     use oc_core::queries::{AutoAcceptState, HistoryMessage, HistoryPage, ToolOpPage, ToolOpView};
     use oc_core::session::Role;
+
+    #[test]
+    fn worker_event_metrics_count_overwritten_broadcast_events_and_stop_drain() {
+        let (sender, mut rx) = tokio::sync::broadcast::channel(2);
+        let session = SessionId::new("s-lag".to_string()).expect("session");
+        for i in 0..5 {
+            sender
+                .send(CoreEvent::TextDelta {
+                    session: session.clone(),
+                    turn: WorkerTurnId("t-lag".to_string()),
+                    delta: i.to_string(),
+                })
+                .expect("event sent");
+        }
+        let mut metrics = FrameMetrics::default();
+        metrics.worker_event_queue_peak = metrics.worker_event_queue_peak.max(rx.len());
+        assert_eq!(metrics.worker_event_queue_peak, 5);
+        assert!(matches!(
+            try_worker_event(&mut rx, Some(&mut metrics)),
+            Err(tokio::sync::broadcast::error::TryRecvError::Lagged(3))
+        ));
+        assert_eq!(metrics.worker_event_queue_lagged, 3);
+        assert_eq!(rx.len(), 2, "remaining events wait for the next drain");
+        assert!(matches!(
+            try_worker_event(&mut rx, Some(&mut metrics)),
+            Ok(CoreEvent::TextDelta { delta, .. }) if delta == "3"
+        ));
+        assert_eq!(metrics.worker_event_queue_lagged, 3);
+    }
 
     #[tokio::test]
     async fn vis26_key_burst_only_queries_latest_and_route_swap_cancels_old_view() {

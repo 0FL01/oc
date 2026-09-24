@@ -2860,9 +2860,15 @@ fn s07_pty_equal_view_archive_resource_samples() {
         let frames = metrics["frame_count"].as_u64().expect("frames");
         let sum = metrics["frame_sum_ns"].as_u64().expect("draw sum");
         let max = metrics["frame_max_ns"].as_u64().expect("draw max");
+        let queue_peak = metrics["worker_event_queue_peak"]
+            .as_u64()
+            .expect("worker event queue peak");
+        let queue_lagged = metrics["worker_event_queue_lagged"]
+            .as_u64()
+            .expect("overwritten worker events");
         assert!(frames > 0 && sum >= max && max > 0);
         println!(
-            "S07 {label}: archive={} rss_kb={} pss_kb={} hwm_kb={} cpu_ticks={} child_max={} retained_bytes={} window_rows={} frames={} draw_sum_ns={} draw_max_ns={} elapsed_ms={}",
+            "S07 {label}: archive={} rss_kb={} pss_kb={} hwm_kb={} cpu_ticks={} child_max={} retained_bytes={} window_rows={} frames={} draw_sum_ns={} draw_max_ns={} worker_event_queue_peak={} worker_event_queue_lagged={} elapsed_ms={}",
             run.archive,
             run.peak_rss_kb,
             run.peak_pss_kb,
@@ -2874,6 +2880,8 @@ fn s07_pty_equal_view_archive_resource_samples() {
             frames,
             sum,
             max,
+            queue_peak,
+            queue_lagged,
             run.elapsed.as_millis()
         );
     }
