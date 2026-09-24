@@ -1,0 +1,344 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--tab-click",
+      "true",
+      "--tab-restart",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "243487aa69a6461530ad46fe75a56540ef7b2ae0\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "b859a1ca00cfb32aecf061c068d2806f82dd3c95\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/messages.rs b/crates/oc-tui/src/messages.rs\nindex fe0da96..5a470da 100644\n--- a/crates/oc-tui/src/messages.rs\n+++ b/crates/oc-tui/src/messages.rs\n@@ -583,7 +583,7 @@ fn visit_row_blocks(\n                     for wrapped in styled::wrap_line_limited(&line, inner, MAX_MARKDOWN_ROWS) {\n                         let mut spans = vec![\n                             Span::styled(\"┃\", border),\n-                            Span::styled(\" \".repeat(USER_PADDING), body),\n+                            Span::styled(\" \".repeat(USER_PADDING), user_padding(bg)),\n                         ];\n                         spans.extend(wrapped.spans().iter().cloned());\n                         lines.push(user_row(&spans, bg, width as usize));\n@@ -597,7 +597,7 @@ fn visit_row_blocks(\n                         Span::styled(\"┃\", border),\n                         Span::styled(\n                             \" \".repeat(USER_PADDING),\n-                            Style::default().fg(theme.text()).bg(bg),\n+                            user_padding(bg),\n                         ),\n                     ],\n                     bg,\n@@ -613,7 +613,7 @@ fn visit_row_blocks(\n                     Span::styled(\"┃\", border),\n                     Span::styled(\n                         \" \".repeat(USER_PADDING),\n-                        Style::default().fg(theme.text()).bg(bg),\n+                        user_padding(bg),\n                     ),\n                 ];\n                 spans.extend(chips);\n@@ -1609,7 +1609,7 @@ fn user_block(\n             for wrapped in styled::wrap_line(&line, inner.max(1)) {\n                 let mut spans = vec![\n                     Span::styled(\"┃\", border),\n-                    Span::styled(\" \".repeat(USER_PADDING), body),\n+                    Span::styled(\" \".repeat(USER_PADDING), user_padding(bg)),\n                 ];\n                 spans.extend(wrapped.spans().iter().cloned());\n                 out.push(user_row(&spans, bg, width));\n@@ -1622,7 +1622,7 @@ fn user_block(\n         for chips in chip_rows(&row.chips, theme, inner) {\n             let mut spans = vec![\n                 Span::styled(\"┃\", border),\n-                Span::styled(\" \".repeat(USER_PADDING), body),\n+                Span::styled(\" \".repeat(USER_PADDING), user_padding(bg)),\n             ];\n             spans.extend(chips);\n             out.push(user_row(&spans, bg, width));\n@@ -1661,6 +1661,12 @@ fn user_row(spans: &[Span], bg: Color, width: usize) -> Line {\n     Line::new(spans).with_style(Style::default().bg(bg))\n }\n \n+/// The upstream user box owns the leading padding; the text child alone uses\n+/// `theme.text.base` (`routes/session/index.tsx:2339-2345`).\n+fn user_padding(bg: Color) -> Style {\n+    Style::default().fg(Color::Rgb(255, 255, 255)).bg(bg)\n+}\n+\n /// One chip: ` skill ` on `hue.accent[light ? 300 : 200]` with\n /// `background.raised.base` foreground and bold, then ` name ` on\n /// `decrease(background.raised.base)` in `text.muted`\ndiff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs\nindex 22d4df8..173056c 100644\n--- a/crates/oc-tui/src/shell.rs\n+++ b/crates/oc-tui/src/shell.rs\n@@ -959,9 +959,11 @@ fn render_prompt(\n                                 crate::styled::Span::styled(\n                                     text,\n                                     if selected {\n-                                        Style::default().add_modifier(Modifier::REVERSED)\n-                                    } else {\n                                         Style::default()\n+                                            .fg(theme.text())\n+                                            .add_modifier(Modifier::REVERSED)\n+                                    } else {\n+                                        Style::default().fg(theme.text())\n                                     },\n                                 )\n                             })\n@@ -978,7 +980,7 @@ fn render_prompt(\n                 Paragraph::new(\n                     crate::styled::Lines::from(input_lines[start..].to_vec()).into_text(),\n                 )\n-                .style(Style::default().fg(theme.text()).bg(prompt_bg)),\n+                .style(Style::default().bg(prompt_bg)),\n                 Rect {\n                     height: body.height.saturating_sub(3),\n                     ..row(1)\n@@ -1615,6 +1617,64 @@ mod tests {\n         }\n     }\n \n+    #[tokio::test]\n+    async fn restored_session_user_padding_and_empty_prompt_keep_canvas_foreground() {\n+        let mut state = golden_state().await;\n+        state.chrome.devtools = Some(false);\n+        state.chrome.sidebar_hidden = true;\n+        state.set_tab_strip(\n+            vec![\n+                TabPresentation {\n+                    title: Some(\"Old\".into()),\n+                    home: false,\n+                    busy: false,\n+                },\n+                TabPresentation {\n+                    title: Some(\"Second\".into()),\n+                    home: false,\n+                    busy: false,\n+                },\n+            ],\n+            1,\n+            true,\n+        );\n+        let theme = Theme::dark();\n+        let white = Color::Rgb(255, 255, 255);\n+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();\n+        terminal.draw(|frame| render(frame, &state)).unwrap();\n+        let buffer = terminal.backend().buffer();\n+        for x in 5..=115 {\n+            let cell = &buffer[(x, 34)];\n+            assert_eq!(cell.symbol(), \" \", \"prompt at x={x}\");\n+            assert_eq!(cell.bg, theme.decrease(theme.background_panel()), \"x={x}\");\n+            assert_eq!(cell.fg, white, \"prompt at x={x}\");\n+        }\n+        let prompt_border = &buffer[(2, 34)];\n+        assert_eq!(prompt_border.symbol(), \"┃\");\n+        assert_ne!(prompt_border.fg, white);\n+        for x in 3..=4 {\n+            let cell = &buffer[(x, 3)];\n+            assert_eq!(cell.symbol(), \" \", \"user padding at x={x}\");\n+            assert_eq!(cell.bg, theme.user_message_background(), \"x={x}\");\n+            assert_eq!(cell.fg, white, \"user padding at x={x}\");\n+        }\n+        let user_text = &buffer[(5, 3)];\n+        assert_eq!(user_text.symbol(), \"h\");\n+        assert_eq!(user_text.fg, theme.text());\n+        assert_eq!(user_text.bg, theme.user_message_background());\n+        let user_border = &buffer[(2, 3)];\n+        assert_eq!(user_border.symbol(), \"┃\");\n+        assert_ne!(user_border.fg, white);\n+\n+        state.handle_key(KeyAction::Char('d')).await;\n+        terminal.draw(|frame| render(frame, &state)).unwrap();\n+        let buffer = terminal.backend().buffer();\n+        assert_eq!(buffer[(5, 34)].symbol(), \"d\");\n+        assert_eq!(buffer[(5, 34)].fg, theme.text());\n+        assert_eq!(buffer[(5, 34)].bg, theme.decrease(theme.background_panel()));\n+        assert_eq!(buffer[(6, 34)].fg, white);\n+    }\n+\n     #[tokio::test]\n     async fn selected_session_tab_title_is_bold() {\n         let state = golden_state().await;\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)\n   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.06s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"9a99be5f98cd7f5e353d74348a80821ed16eade57337908a14a9504ae668234e\", \"actual_sha256\": \"0d6037309c489ccbd919e6bd46dc5bb48d1bbcd55c076b2b1acb8e2edde3cb15\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"243487aa69a6461530ad46fe75a56540ef7b2ae0\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"dc71528efc233e36c208bc9cebf064d6d3109b62d3d9392ed8f26d999b503443\", \"actual_sha256\": \"a41eacaf1599266a744b33557896599ad1cac95f9c9746513e1ff2ca0f11af76\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 298, \"changed_fraction_diagnostic_only\": 0.00046055885262116715, \"difference_bbox_inclusive\": [943, 611, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"02a93028adc89df00c595fc3e5062b8905693bf61690aa071d87169a01fed00c\", \"actual_sha256\": \"e6bfa2512ba56319aa9a9c09f6e870bae0e1cfd8e997e23ef2e3849d668dbe2a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"243487aa69a6461530ad46fe75a56540ef7b2ae0\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"d3d21e29d14a1eb087d2313cf158f016215dbadeba25fbc3d2c4e16d1b02eb61\", \"actual_sha256\": \"6f769326d5b21b13160f056e4f173f706b03402276e3fad7a4ae191394e1b21a\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 131, \"changed_fraction_diagnostic_only\": 0.00020246043521266073, \"difference_bbox_inclusive\": [320, 163, 335, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/tab-added.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/tab-added.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/tab-added.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-added\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"23d0180586fdfd00f148c7307bf66929699ffba2a390525aada33b427dd7fda1\", \"actual_sha256\": \"57a8c89e8cf47dc7170641a266cab6d057859bb095d2dd982a09787f383cddd9\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"243487aa69a6461530ad46fe75a56540ef7b2ae0\", \"cells_checked\": 4800, \"different_cells\": 7, \"cursor_differs\": false, \"difference_bbox_inclusive\": [62, 0, 117, 38], \"samples\": [{\"x\": 62, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/tab-added.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/tab-added.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/tab-added.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"9b7299aa1a0edb03f3d21445586bf7433d1786bc078bccf0ea42c5d8ca14a1da\", \"actual_sha256\": \"75d7c938667876fd8c9bd8e177e0d350219cc599c0f93d04161e177fcf5e87b4\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 337, \"changed_fraction_diagnostic_only\": 0.0005208333333333333, \"difference_bbox_inclusive\": [522, 5, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/tab-second-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/tab-second-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/tab-second-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-second-completed\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"ccb6c4b52296a4333d5449a01a890de517f490416910d6977e5e4d494b41fd40\", \"actual_sha256\": \"4a56b7ad376d641afc5cb9103c3a552a4d23c3cd90427687df4af622822d7f8a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"243487aa69a6461530ad46fe75a56540ef7b2ae0\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 0, 62, 10], \"samples\": [{\"x\": 62, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/tab-second-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/tab-second-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/tab-second-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"21de6e4e927c1eda96fe491d765efdfc36e039820369441c985f08802c1e05b2\", \"actual_sha256\": \"f1b6038850bd4d970a81b05defdc229d4a5d284617434711274d1b65c38bbd07\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 102, \"changed_fraction_diagnostic_only\": 0.00015764094955489615, \"difference_bbox_inclusive\": [320, 5, 529, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/tab-prequit-old.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/tab-prequit-old.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/tab-prequit-old.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-prequit-old\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"bbf5f3f177174d34c8523d72859dc19b7f5f6f06687f9189c8f60d969c50bbfc\", \"actual_sha256\": \"854559fb1ec7072466bcf6c6c44a1e90960aaacc1c56dfb78a6cc23c637cf253\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"243487aa69a6461530ad46fe75a56540ef7b2ae0\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/tab-prequit-old.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/tab-prequit-old.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/tab-prequit-old.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"996b0137af200715f12bd6bb130843008acf970c8f3c78adef70c39d70de66fe\", \"actual_sha256\": \"8204aa7d1ff74f88d36329efe30ecfdfe98e7342ea821337ddb0f5a8e3ee7b9c\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 131, \"changed_fraction_diagnostic_only\": 0.00020246043521266073, \"difference_bbox_inclusive\": [320, 163, 335, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/tab-restored-entry.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/tab-restored-entry.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/tab-restored-entry.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-restored-entry\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"558ce25e254943f78b2a7af5b5c4d2f6467ebcdcf416db500e51638885c58378\", \"actual_sha256\": \"39a891449185d1f07b266eb7674c227d33de9bf66dcf0b27471141e1fb408a2a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"243487aa69a6461530ad46fe75a56540ef7b2ae0\", \"cells_checked\": 4800, \"different_cells\": 45, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 22, 117, 38], \"samples\": [{\"x\": 41, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 22, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/tab-restored-entry.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/tab-restored-entry.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/tab-restored-entry.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"6d1ef4705f08d0bab573c4d54ea7fcacd86f7039fb2d3263d57d920d108ee9da\", \"actual_sha256\": \"0f3519b8153041bb0e73aa635065d5ed925e5275ec5564986dce1a35745b5f30\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2037, \"changed_fraction_diagnostic_only\": 0.0031481824925816025, \"difference_bbox_inclusive\": [345, 354, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/tab-restored-old.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/tab-restored-old.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/tab-restored-old.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-restored-old\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"d4058876d8c99da8e2559b56433c1afe03a5d5a6b1e556d82beb7ed0d2270de1\", \"actual_sha256\": \"0806ee056232910d45f8b58f896e63284592ad3a73580341195d5cd7352cdd31\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"243487aa69a6461530ad46fe75a56540ef7b2ae0\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/tab-restored-old.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/tab-restored-old.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/tab-restored-old.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"996b0137af200715f12bd6bb130843008acf970c8f3c78adef70c39d70de66fe\", \"actual_sha256\": \"8204aa7d1ff74f88d36329efe30ecfdfe98e7342ea821337ddb0f5a8e3ee7b9c\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 131, \"changed_fraction_diagnostic_only\": 0.00020246043521266073, \"difference_bbox_inclusive\": [320, 163, 335, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/tab-restored-second.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/tab-restored-second.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/tab-restored-second.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-restored-second\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"c0a8b7728c5ae7b0d1c9ec33d4e12712764bda9829c3b2461aeeecd21f728c49\", \"actual_sha256\": \"b76f33d75f43edf343cdc389ace069c0cbe255807ab210f7fda712b82ee41b56\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"243487aa69a6461530ad46fe75a56540ef7b2ae0\", \"cells_checked\": 4800, \"different_cells\": 1, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 38, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/upstream/tab-restored-second.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/oc/tab-restored-second.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-blank-fg-01/tab-restored-second.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"21de6e4e927c1eda96fe491d765efdfc36e039820369441c985f08802c1e05b2\", \"actual_sha256\": \"cee49be2bc113ea6176917c0cb77a17d969dd3fddb532661dd3a54db3df2a8f1\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 66, \"changed_fraction_diagnostic_only\": 0.00010200296735905045, \"difference_bbox_inclusive\": [320, 163, 327, 172]}\n",
+    "stderr": ""
+  }
+]
