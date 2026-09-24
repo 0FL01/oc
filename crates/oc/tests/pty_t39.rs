@@ -2702,6 +2702,21 @@ fn aud30_pty_paste_resize_error_recovery() {
     // A session switch during a stream is explicitly refused, never silent.
     pty.send(b"/sessions\r");
     wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
+    // The refused slash suggestion remains visible while its draft is editable;
+    // dismiss that overlay before checking that no session dialog opened.
+    pty.send(b"\x1b");
+    let start = Instant::now();
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|r| r.contains("/sessions") && r.contains("Switch session"))
+    {
+        assert!(
+            start.elapsed() < DEADLINE,
+            "slash overlay was not dismissed"
+        );
+        std::thread::sleep(POLL);
+    }
     assert!(
         !render_screen(&pty.snapshot())
             .rows()

@@ -589,6 +589,7 @@ fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
         area.width,
     );
     render_footer(frame, state, theme, regions.footer, area.width);
+    render_slash(frame, state, theme, regions.prompt);
 }
 
 fn prompt_lines(state: &TuiState, width: u16) -> Vec<crate::styled::Line> {
@@ -769,6 +770,7 @@ fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rec
         u16::from(underline.bottom() < area.bottom()),
     );
     render_footer(frame, state, theme, footer, area.width);
+    render_slash(frame, state, theme, body);
     if area.height >= 2 {
         let version = env!("CARGO_PKG_VERSION");
         let row_width = area.width.saturating_sub(2);
@@ -934,6 +936,67 @@ fn status_line(state: &TuiState, theme: &Theme) -> Option<Line<'static>> {
             Style::default().fg(theme.action_secondary()),
         )
     })
+}
+
+/// `autocomplete.tsx:822-825,851-952`: up to ten rows above the prompt,
+/// split side borders, raised surface and the focused primary-action row.
+fn render_slash(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, body: Rect) {
+    let Some(options) = state.slash_options() else {
+        return;
+    };
+    let height = (options.len().clamp(1, 10) as u16).min(body.y.saturating_sub(frame.area().y));
+    let area = Rect::new(body.x, body.y.saturating_sub(height), body.width, height);
+    if area.width < 3 || area.height == 0 {
+        return;
+    }
+    let bg = theme.background_raised_high();
+    frame.render_widget(Block::default().style(Style::default().bg(bg)), area);
+    frame.render_widget(
+        Block::default()
+            .borders(Borders::LEFT | Borders::RIGHT)
+            .border_set(border::Set {
+                vertical_left: "┃",
+                vertical_right: "┃",
+                ..border::PLAIN
+            })
+            .border_style(Style::default().fg(theme.border())),
+        area,
+    );
+    let selected = state.slash_selected(options.len());
+    let offset = selected.saturating_sub(area.height as usize - 1);
+    for (row, option) in options
+        .iter()
+        .skip(offset)
+        .take(area.height as usize)
+        .enumerate()
+    {
+        let focused = row + offset == selected;
+        let style = if focused {
+            Style::default()
+                .fg(theme
+                    .color("text.action.primary.$focused")
+                    .unwrap_or(theme.text()))
+                .bg(theme
+                    .color("background.action.primary.$focused")
+                    .unwrap_or(bg))
+        } else {
+            Style::default().fg(theme.text()).bg(bg)
+        };
+        let rect = Rect::new(area.x + 1, area.y + row as u16, area.width - 2, 1);
+        frame.render_widget(Block::default().style(style), rect);
+        let text = format!(" /{}  {}", option.name, option.description);
+        frame.render_widget(
+            Paragraph::new(clip_placeholder(&text, rect.width as usize)).style(style),
+            rect,
+        );
+    }
+    if options.is_empty() {
+        frame.render_widget(
+            Paragraph::new(" No matching commands")
+                .style(Style::default().fg(theme.text_muted()).bg(bg)),
+            Rect::new(area.x + 1, area.y, area.width - 2, 1),
+        );
+    }
 }
 
 /// Prompt box: left `┃` border, interior on `decrease(background.raised.base)`,
@@ -1529,6 +1592,75 @@ mod tests {
             msg(2, Role::Assistant, "hi there"),
         ]));
         state
+    }
+
+    #[tokio::test]
+    async fn vis25_inline_rows_on_home_and_session_and_after_tab() {
+        for home in [false, true] {
+            let mut state = if home {
+                let (app, guard) = CoreApp::spawn(MockProvider::echo());
+                std::mem::forget(guard);
+                let mut state = TuiState::new_home(app);
+                state.apply_catalog(catalog());
+                state
+            } else {
+                golden_state().await
+            };
+            let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+            state.handle_paste("/side");
+            terminal.draw(|frame| render(frame, &state)).unwrap();
+            let rows = screen(&state, 120, 40);
+            let (y, row) = rows
+                .iter()
+                .enumerate()
+                .find(|(_, row)| row.contains("/sidebar"))
+                .unwrap();
+            assert!(row.contains("Toggle sidebar"));
+            let x = UnicodeWidthStr::width(&row[..row.find("/sidebar").unwrap()]) as u16;
+            // The upstream anchor is the entire prompt box, including its
+            // left edge (`prompt/index.tsx:1649`, `autocomplete.tsx:851-860`).
+            let (anchor_x, anchor_width) = if home {
+                let width = (120 - 2 * layout::session_padding(120)).min(75);
+                ((120 - width).div_ceil(2), width)
+            } else {
+                let shell = shell_regions(&state, Rect::new(0, 0, 120, 40));
+                let main = session_main(&state, shell.session);
+                let body = session_regions(&state, main, 40).prompt;
+                (body.x, body.width)
+            };
+            assert_eq!(
+                x,
+                anchor_x + 2,
+                "row text starts after the left border and padding"
+            );
+            assert_eq!(
+                terminal.backend().buffer()[(anchor_x, y as u16)].symbol(),
+                "┃"
+            );
+            assert_eq!(
+                terminal.backend().buffer()[(anchor_x + anchor_width - 1, y as u16)].symbol(),
+                "┃"
+            );
+            let focused = Theme::dark()
+                .color("background.action.primary.$focused")
+                .unwrap();
+            assert_eq!(terminal.backend().buffer()[(x, y as u16)].bg, focused);
+            state.handle_key(KeyAction::Tab).await;
+            assert_eq!(state.input(), "/sidebar ");
+            let rows = screen(&state, 120, 40);
+            assert_eq!(
+                rows.iter().filter(|row| row.contains("/sidebar")).count(),
+                1,
+                "completion remains only in the draft"
+            );
+            state.handle_key(KeyAction::SelectHome).await;
+            state.handle_paste("/zzzznotacommand");
+            assert!(
+                screen(&state, 120, 40)
+                    .iter()
+                    .any(|row| row.contains("No matching commands"))
+            );
+        }
     }
 
     #[tokio::test]

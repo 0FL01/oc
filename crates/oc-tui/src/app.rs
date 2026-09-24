@@ -382,6 +382,8 @@ pub struct TuiState {
     request_id: u64,
     generation: u64,
     input_revision: u64,
+    slash_selected: usize,
+    slash_dismissed: Option<u64>,
     /// Model picker (present while the Model panel lives).
     pub(crate) picker: Option<ModelPicker>,
     catalog_loaded: bool,
@@ -488,6 +490,8 @@ impl TuiState {
             request_id: 0,
             generation: 0,
             input_revision: 0,
+            slash_selected: 0,
+            slash_dismissed: None,
             picker: None,
             catalog_loaded: false,
             agents: Vec::new(),
@@ -710,6 +714,8 @@ impl TuiState {
     /// open must reload from the new generation instead of showing it.
     pub fn reset_workspace(&mut self) {
         self.close_panel();
+        self.slash_selected = 0;
+        self.slash_dismissed = None;
         self.tabs.clear();
         self.active_tab = 0;
         self.can_add_tab = false;
@@ -746,6 +752,8 @@ impl TuiState {
 
     pub fn set_session(&mut self, session: SessionId) {
         self.close_panel();
+        self.slash_selected = 0;
+        self.slash_dismissed = None;
         self.exploration_expanded.clear();
         self.cards.clear();
         self.card_ops.clear();
@@ -1078,6 +1086,73 @@ impl TuiState {
     /// Prompt layout and the insertion caret share the same grapheme/cell model.
     pub fn prompt_layout(&self, width: usize) -> (Vec<crate::editor::PromptRow>, (usize, usize)) {
         self.editor.layout(&self.input, width)
+    }
+
+    /// Only the focused prompt, not a dialog or a dismissed revision, owns the overlay.
+    pub(crate) fn slash_options(&self) -> Option<Vec<crate::autocomplete::SlashOption>> {
+        if self.panel != TuiPanel::None || self.slash_dismissed == Some(self.input_revision) {
+            return None;
+        }
+        let filter = crate::autocomplete::query(&self.input, self.editor.cursor)?;
+        Some(crate::autocomplete::options(filter, &self.commands))
+    }
+
+    /// Keep selection and activation aligned when caret movement or a catalog
+    /// refresh shrinks the filtered list without an intervening text edit.
+    pub(crate) fn slash_selected(&self, count: usize) -> usize {
+        self.slash_selected.min(count.saturating_sub(1))
+    }
+
+    fn replace_slash(&mut self, name: &str, trailing_space: bool) {
+        let cursor = self.editor.cursor;
+        self.editor.move_to(0, false);
+        self.editor.move_to(cursor, true);
+        let replacement = format!("/{name}{}", if trailing_space { " " } else { "" });
+        if self
+            .editor
+            .replace(&mut self.input, &replacement, MAX_INPUT_BYTES)
+            > 0
+        {
+            self.input_revision += 1;
+        }
+        self.slash_selected = 0;
+        self.slash_dismissed = Some(self.input_revision);
+    }
+
+    async fn select_slash(&mut self, enter: bool) -> KeyOutcome {
+        let Some(options) = self.slash_options() else {
+            return KeyOutcome::default();
+        };
+        let selected = self.slash_selected(options.len());
+        let Some(option) = options.into_iter().nth(selected) else {
+            return KeyOutcome::default();
+        };
+        if !enter || option.arguments || option.action.is_none() {
+            self.replace_slash(&option.name, true);
+            return KeyOutcome::default();
+        }
+        let action = option.action.expect("argument-free built-in");
+        if matches!(action, CommandAction::NewSession | CommandAction::CloseTab) {
+            // The binary clears these drafts only after its owner accepts the
+            // intent. An optimistic removal would lose `/new` on refusal.
+            if self.input != format!("/{}", option.name) {
+                self.replace_slash(&option.name, false);
+            }
+            return self.handle_enter().await;
+        }
+        // The existing owner path checks availability and returns actual intents;
+        // a refused command leaves the editable slash text untouched.
+        let result = self.run_command(action);
+        if result.note.is_none() {
+            let cursor = self.editor.cursor;
+            self.editor.move_to(0, false);
+            self.editor.move_to(cursor, true);
+            if self.editor.delete(&mut self.input, true, false) {
+                self.input_revision += 1;
+            }
+            self.slash_selected = 0;
+        }
+        result
     }
 
     /// Active turn, if any.
@@ -1813,6 +1888,7 @@ impl TuiState {
         let dropped = text.len().saturating_sub(paste.inserted);
         if paste.inserted > 0 {
             self.input_revision += 1;
+            self.slash_selected = 0;
         }
         let mut notes = Vec::new();
         if exceeded || clean.len() > paste.inserted + paste.trimmed {
@@ -2153,6 +2229,32 @@ impl TuiState {
         if self.panel != TuiPanel::None {
             return self.handle_panel_key(action);
         }
+        if let Some(options) = self.slash_options() {
+            match action {
+                KeyAction::Up | KeyAction::Commands => {
+                    if !options.is_empty() {
+                        self.slash_selected = (self.slash_selected(options.len()) + options.len()
+                            - 1)
+                            % options.len();
+                    }
+                    return KeyOutcome::default();
+                }
+                KeyAction::Down => {
+                    if !options.is_empty() {
+                        self.slash_selected =
+                            (self.slash_selected(options.len()) + 1) % options.len();
+                    }
+                    return KeyOutcome::default();
+                }
+                KeyAction::Tab => return self.select_slash(false).await,
+                KeyAction::Enter => return self.select_slash(true).await,
+                KeyAction::Cancel => {
+                    self.slash_dismissed = Some(self.input_revision);
+                    return KeyOutcome::default();
+                }
+                _ => {}
+            }
+        }
         if matches!(
             action,
             KeyAction::Cancel
@@ -2245,6 +2347,7 @@ impl TuiState {
                     > 0
                 {
                     self.input_revision += 1;
+                    self.slash_selected = 0;
                     KeyOutcome::default()
                 } else {
                     KeyOutcome {
@@ -2258,6 +2361,7 @@ impl TuiState {
             KeyAction::Backspace => {
                 if self.editor.delete(&mut self.input, true, false) {
                     self.input_revision += 1;
+                    self.slash_selected = 0;
                 }
                 KeyOutcome::default()
             }
@@ -2275,18 +2379,21 @@ impl TuiState {
                     action != KeyAction::Delete,
                 ) {
                     self.input_revision += 1;
+                    self.slash_selected = 0;
                 }
                 KeyOutcome::default()
             }
             KeyAction::Newline => {
                 if self.editor.replace(&mut self.input, "\n", MAX_INPUT_BYTES) > 0 {
                     self.input_revision += 1;
+                    self.slash_selected = 0;
                 }
                 KeyOutcome::default()
             }
             KeyAction::Undo | KeyAction::Redo => {
                 if self.editor.undo(&mut self.input, action == KeyAction::Redo) {
                     self.input_revision += 1;
+                    self.slash_selected = 0;
                 }
                 KeyOutcome::default()
             }
@@ -2346,6 +2453,7 @@ impl TuiState {
                 }
             }
             KeyAction::Enter => self.handle_enter().await,
+            KeyAction::Tab => KeyOutcome::default(),
         }
     }
 
@@ -3906,6 +4014,214 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn vis25_slash_focus_navigation_completion_and_real_actions() {
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+        let mut state = fresh_state("slash-focus").await;
+        let mut catalog = snapshot();
+        catalog.commands = vec!["project-check".into()];
+        state.apply_catalog(catalog);
+        state.handle_paste("/side");
+        assert_eq!(state.slash_options().unwrap()[0].name, "sidebar");
+        assert_eq!(state.handle_key(KeyAction::Enter).await.note, None);
+        assert!(
+            state.chrome.sidebar_hidden,
+            "selected built-in ran its real action"
+        );
+        assert_eq!(state.input(), "");
+
+        state.handle_paste("/ne");
+        assert_eq!(state.slash_options().unwrap()[0].name, "new");
+        assert_eq!(
+            state.handle_key(KeyAction::Enter).await.intent,
+            Some(PanelIntent::NewSession)
+        );
+        assert_eq!(
+            state.input(),
+            "/new",
+            "owner refusal must retain the selected command"
+        );
+        state.editor.clear();
+        state.input.clear();
+
+        state.handle_paste("/project");
+        assert_eq!(state.slash_options().unwrap()[0].name, "project-check");
+        state.handle_key(KeyAction::Enter).await;
+        assert_eq!(state.input(), "/project-check ");
+        assert!(state.slash_options().is_none());
+        assert!(state.is_workspace_command(state.input()));
+        assert_eq!(state.editor.cursor, state.input().len());
+
+        state.editor.clear();
+        state.input.clear();
+        state.handle_paste("/ren");
+        state.handle_key(KeyAction::Tab).await;
+        assert_eq!(state.input(), "/rename ");
+        state.handle_paste("title");
+        assert!(state.slash_options().is_none());
+        assert_eq!(
+            state.handle_key(KeyAction::Enter).await.intent,
+            Some(PanelIntent::RenameSessionDirect {
+                title: "title".into()
+            })
+        );
+
+        state.editor.clear();
+        state.input.clear();
+        state.handle_paste("/");
+        let options = state.slash_options().unwrap();
+        assert!(options.len() > 1);
+        assert_eq!(state.slash_selected, 0);
+        state.handle_key(KeyAction::Down).await;
+        assert_eq!(state.slash_selected, 1);
+        let prev = crate::events::map_key(KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL))
+            .unwrap();
+        state.handle_key(prev).await;
+        assert_eq!(state.slash_selected, 0);
+        let next = crate::events::map_key(KeyEvent::new(KeyCode::Char('n'), KeyModifiers::CONTROL))
+            .unwrap();
+        state.handle_key(next).await;
+        assert_eq!(state.slash_selected, 1);
+        state.handle_key(KeyAction::Up).await;
+        assert_eq!(state.slash_selected, 0);
+        state.handle_key(KeyAction::Cancel).await;
+        assert_eq!(state.input(), "/");
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        assert!(state.slash_options().is_none());
+        state.handle_key(KeyAction::Char('x')).await;
+        assert!(
+            state.slash_options().is_some(),
+            "editing reopens the overlay"
+        );
+        state.handle_key(KeyAction::Char(' ')).await;
+        assert!(state.slash_options().is_none());
+        state.handle_key(KeyAction::Backspace).await;
+        assert!(state.slash_options().is_some());
+        state.reset_workspace();
+        assert!(state.commands.is_empty(), "old Location commands are gone");
+    }
+
+    #[tokio::test]
+    async fn vis25_home_no_match_and_history_keep_editor_ownership() {
+        let (app, guard) = CoreApp::spawn(MockProvider::echo());
+        std::mem::forget(guard);
+        let mut state = TuiState::new_home(app);
+        state.handle_paste("/zzzznotacommand");
+        assert!(state.slash_options().unwrap().is_empty());
+        assert_eq!(
+            state.handle_key(KeyAction::Enter).await,
+            KeyOutcome::default()
+        );
+        assert_eq!(
+            state.input(),
+            "/zzzznotacommand",
+            "no-match Enter selects nothing"
+        );
+        assert_eq!(state.panel(), &TuiPanel::None);
+        state.handle_key(KeyAction::Cancel).await;
+        assert_eq!(state.input(), "/zzzznotacommand");
+        state.editor.clear();
+        state.input.clear();
+        state.handle_paste("/sessions");
+        assert_eq!(
+            state.handle_key(KeyAction::Enter).await.intent,
+            Some(PanelIntent::LoadSessions)
+        );
+        assert_eq!(state.panel(), &TuiPanel::Sessions);
+        assert_eq!(state.input(), "");
+        state.handle_key(KeyAction::Cancel).await;
+        assert_eq!(state.panel(), &TuiPanel::None);
+        state.handle_paste("/cards");
+        assert_eq!(
+            state.handle_key(KeyAction::Enter).await.note.as_deref(),
+            Some("no session yet")
+        );
+        assert_eq!(
+            state.input(),
+            "/cards",
+            "unavailable action keeps the draft"
+        );
+        state.handle_key(KeyAction::SelectHome).await;
+        state.handle_paste("/location elsewhere");
+        assert!(state.slash_options().is_none());
+        assert_eq!(
+            state.handle_key(KeyAction::Enter).await.intent,
+            Some(PanelIntent::SwitchLocation {
+                path: "elsewhere".into()
+            })
+        );
+        assert_eq!(
+            state.input(),
+            "/location elsewhere",
+            "intent awaits owner ACK"
+        );
+    }
+
+    #[tokio::test]
+    async fn vis25_up_owns_selection_then_history_recovers_after_escape() {
+        let mut state = fresh_state("slash-history").await;
+        state.attach_page(&page(
+            vec![msg(1, Role::User, "older prompt")],
+            1,
+            false,
+            false,
+        ));
+        state.handle_paste("/");
+        state.handle_key(KeyAction::Up).await;
+        assert_eq!(state.input(), "/");
+        assert!(state.slash_selected > 0);
+        state.handle_key(KeyAction::Cancel).await;
+        state.handle_key(KeyAction::Up).await;
+        assert_eq!(state.input(), "older prompt");
+        state.handle_key(KeyAction::Down).await;
+        assert_eq!(state.input(), "/", "history returns to saved draft");
+    }
+
+    #[tokio::test]
+    async fn vis25_selection_matches_highlight_after_caret_motion_and_catalog_refresh() {
+        let mut state = fresh_state("slash-stale-selection").await;
+        state.handle_paste("/sidebar");
+        state.handle_key(KeyAction::Home).await;
+        state.handle_key(KeyAction::Right).await; // The caret is just after `/`.
+        state.handle_key(KeyAction::Up).await; // Last row in the unfiltered list.
+        let old = state.slash_selected;
+        state.handle_key(KeyAction::End).await;
+        assert!(old >= state.slash_options().unwrap().len());
+        assert_eq!(state.slash_options().unwrap().len(), 1);
+        assert_eq!(
+            state.slash_options().unwrap()[state.slash_selected(1)].name,
+            "sidebar"
+        );
+        assert_eq!(
+            state.handle_key(KeyAction::Enter).await,
+            KeyOutcome {
+                consumed_input: true,
+                ..KeyOutcome::default()
+            }
+        );
+        assert!(
+            state.chrome.sidebar_hidden,
+            "Enter activates the highlighted row"
+        );
+        assert_eq!(state.input(), "");
+
+        let mut catalog = snapshot();
+        catalog.commands = vec!["zzzz-project".into()];
+        state.apply_catalog(catalog);
+        state.handle_paste("/");
+        state.handle_key(KeyAction::Up).await;
+        assert_eq!(
+            state.slash_options().unwrap()[state.slash_selected].name,
+            "zzzz-project"
+        );
+        state.apply_catalog(snapshot()); // This generation no longer has that command.
+        let options = state.slash_options().unwrap();
+        assert!(state.slash_selected >= options.len());
+        let highlighted = options[state.slash_selected(options.len())].name.clone();
+        state.handle_key(KeyAction::Tab).await;
+        assert_eq!(state.input(), format!("/{highlighted} "));
+    }
+
+    #[tokio::test]
     async fn sidebar_palette_title_tracks_rendered_visibility_and_runs_same_action() {
         use crate::commands::CommandAction;
         use ratatui::{Terminal, backend::TestBackend};
@@ -4090,6 +4406,14 @@ mod tests {
         assert_eq!(state.session_title, None);
 
         type_text(&mut state, "/rename").await;
+        assert_eq!(state.handle_key(KeyAction::Enter).await.intent, None);
+        assert_eq!(
+            state.input(),
+            "/rename ",
+            "upstream slash.arguments completes first"
+        );
+        state.handle_key(KeyAction::Backspace).await;
+        state.handle_key(KeyAction::Cancel).await; // Dismiss to submit the owner-backed bare action.
         let bare = state.handle_key(KeyAction::Enter).await;
         assert_eq!(bare.intent, Some(PanelIntent::RegenerateTitle));
         assert_eq!(state.handle_key(KeyAction::Enter).await.intent, None);

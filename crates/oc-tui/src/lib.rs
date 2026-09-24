@@ -7,6 +7,7 @@
 //! intent application stay in the `oc` binary.
 
 pub mod app;
+mod autocomplete;
 pub mod commands;
 pub mod dcp_panel;
 pub mod dialog;

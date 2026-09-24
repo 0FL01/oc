@@ -1091,6 +1091,19 @@ fn wait_prompt_cleared(pty: &PtySession, slash_text: &str) {
     }
 }
 
+fn dismiss_slash_option(pty: &mut PtySession, name: &str) {
+    let start = Instant::now();
+    pty.send(b"\x1b");
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|row| row.contains(&format!("/{name}  ")))
+    {
+        assert!(start.elapsed() < DEADLINE, "slash option remained visible");
+        std::thread::sleep(POLL);
+    }
+}
+
 fn wait_dialog_closed(pty: &PtySession, title: &str) {
     let start = Instant::now();
     loop {
@@ -1211,7 +1224,12 @@ fn bare_rename_requests_real_title_without_creating_turn_and_restores_on_restart
     wait_prompt_cleared(&pty, "/rename");
     let counts = journal_counts(&fixture);
     let requests = fixture.requests.lock().unwrap().len();
-    pty.send(b"/rename\r");
+    // Enter on an argument-taking autocomplete item inserts a space; dismiss
+    // its overlay first to exercise the existing bare title-generation route.
+    pty.send(b"/rename");
+    wait_screen_row(&pty, "/rename", DEADLINE);
+    dismiss_slash_option(&mut pty, "rename");
+    pty.send(b"\r");
     wait_stored_title(&fixture, "bare-title", Some("Fixture session title"));
     wait_prompt_cleared(&pty, "/rename");
     let recorded = fixture.requests.lock().unwrap();
@@ -3006,7 +3024,11 @@ fn aud38_location_switch_is_one_lifecycle() {
     pty.wait_visible(READY, DEADLINE);
 
     // Usage hint for the new command.
-    pty.send(b"/location\r");
+    // Dismiss inline completion to exercise the bare command's usage hint.
+    pty.send(b"/location");
+    wait_screen_row(&pty, "/location", DEADLINE);
+    dismiss_slash_option(&mut pty, "location");
+    pty.send(b"\r");
     pty.wait_visible("usage: /location", DEADLINE);
 
     let off = submit(&mut pty, "alpha one");

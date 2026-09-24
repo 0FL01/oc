@@ -56,6 +56,8 @@ pub enum KeyAction {
     Backspace,
     /// Submit input buffer.
     Enter,
+    /// Complete the focused inline suggestion.
+    Tab,
     /// Cancel active turn.
     Cancel,
     /// Scroll viewport.
@@ -136,6 +138,7 @@ pub fn map_key(event: KeyEvent) -> Option<KeyAction> {
             Some(KeyAction::Newline)
         }
         (KeyCode::Enter, KeyModifiers::NONE) => Some(KeyAction::Enter),
+        (KeyCode::Tab, KeyModifiers::NONE) => Some(KeyAction::Tab),
         (KeyCode::Backspace, KeyModifiers::CONTROL | KeyModifiers::ALT) => {
             Some(KeyAction::WordBackspace)
         }
@@ -202,6 +205,7 @@ mod tests {
     #[test]
     fn maps_basics() {
         assert_eq!(map_key(key(KeyCode::Enter)), Some(KeyAction::Enter));
+        assert_eq!(map_key(key(KeyCode::Tab)), Some(KeyAction::Tab));
         assert_eq!(map_key(key(KeyCode::Esc)), Some(KeyAction::Cancel));
         assert_eq!(
             map_key(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL)),

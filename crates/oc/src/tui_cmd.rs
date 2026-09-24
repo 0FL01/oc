@@ -2032,6 +2032,8 @@ mod tests {
         };
         deck.sync_tabs(&mut state);
         state.handle_paste("/rename");
+        // Dismiss inline argument completion to submit the bare owner action.
+        state.handle_key(KeyAction::Cancel).await;
         let outcome = state.handle_key(KeyAction::Enter).await;
         assert_eq!(outcome.intent, Some(PanelIntent::RegenerateTitle));
         apply_outcome(&app, &mut state, &mut deck, outcome, false).await;
@@ -2148,6 +2150,7 @@ mod tests {
         };
         deck.sync_tabs(&mut state);
         state.handle_paste("/rename");
+        state.handle_key(KeyAction::Cancel).await;
         let outcome = state.handle_key(KeyAction::Enter).await;
         assert_eq!(outcome.intent, Some(PanelIntent::RegenerateTitle));
         apply_outcome(&app, &mut state, &mut deck, outcome, false).await;
