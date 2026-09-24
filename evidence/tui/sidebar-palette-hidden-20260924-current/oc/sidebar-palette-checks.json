@@ -1,0 +1,81 @@
+[
+  {
+    "stage": "completed-session-sidebar",
+    "passed": true,
+    "context": [],
+    "right_background": "#0a0a0a",
+    "modal": false,
+    "visible": false,
+    "hidden": true,
+    "labels": {
+      "Show sidebar": [],
+      "Hide sidebar": [],
+      "Toggle sidebar": []
+    }
+  },
+  {
+    "stage": "palette-opened",
+    "passed": true,
+    "context": [],
+    "right_background": "#040404",
+    "modal": true,
+    "visible": false,
+    "hidden": true,
+    "labels": {
+      "Show sidebar": [
+        {
+          "x": 54,
+          "y": 27
+        }
+      ],
+      "Hide sidebar": [],
+      "Toggle sidebar": []
+    }
+  },
+  {
+    "stage": "search-result",
+    "passed": true,
+    "context": [],
+    "right_background": "#040404",
+    "modal": true,
+    "visible": false,
+    "hidden": true,
+    "labels": {
+      "Show sidebar": [
+        {
+          "x": 54,
+          "y": 17
+        }
+      ],
+      "Hide sidebar": [],
+      "Toggle sidebar": []
+    },
+    "actual_labels": [
+      "Show sidebar"
+    ],
+    "expected_label": "Show sidebar",
+    "expected_label_present": true,
+    "action_absent": false
+  },
+  {
+    "stage": "selected-action-effect",
+    "passed": true,
+    "context": [
+      {
+        "x": 120,
+        "y": 5
+      }
+    ],
+    "right_background": "#141414",
+    "modal": false,
+    "visible": true,
+    "hidden": false,
+    "labels": {
+      "Show sidebar": [],
+      "Hide sidebar": [],
+      "Toggle sidebar": []
+    },
+    "selected_label": "Show sidebar",
+    "after_visible": true
+  }
+]

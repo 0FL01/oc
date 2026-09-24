@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-24T13:18:12+00:00
+State updated: 2026-09-24T13:57:57+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,19 +14,19 @@ Evidence target: evidence/T44/report.md
 
 ## Result
 
-Bare `/rename` now performs a real owner-mediated, tool-free title-agent Responses request for an attached root in the current Location. The owning session selection/model is validated before provider I/O, the title context is bounded and excludes tools/journal, the 10-second request can be cancelled independently of conversational turns, and a successful title/event commit checks the original title **and** title-event sequence, preventing A→B→A manual-rename races. Provider/selection/storage errors retain the old title and slash draft. Closing the initiating tab cancels only its title request after successful deck close; refusal to close leaves the job intact. No turn, fake usage, model ID allowlist, or user-supplied title is fabricated. Code/runner commit `8901e1d`. Evidence/report: `evidence/tui/recovery-v08-regenerate-report.md`; five immutable attempts, including `recovery-v08-regenerate-20260924-current/` built with the final code.
+Pinned original `session.sidebar.toggle` shows **Show sidebar** when absent and **Hide sidebar** when visible; native previously registered a static **Toggle sidebar**. Native Commands option now reflects actual painted sidebar visibility including the 120/121 breakpoint, vertical rail width, Home/child state and last observed frame. ID/shortcut and actual action remain unchanged (`93b7840`). New test-only real Ctrl+P `sidebar` search/Return paired runner and immutable attempts: `evidence/tui/sidebar-palette-report.md`, hidden and visible `-current` attempts plus earlier probe attempts.
 
 ## Checks
 
-Both pinned OpenCode v2.0.12 and Rust real PTYs report `REGENERATE_TITLE_CHECKS_PASS` and `provider_contract=true`: a manual rename is followed by exactly one additional completed title request per side (two transcript and two title requests total); the new title remains after natural quit and restart without another provider call. Prefilled and edited dialogs compare EQUAL in full styled grid, cursor and PNG; regenerated/restored session frames still DIFFERENT by two measured elapsed digits (2/4800 cells, 123/647040 pixels); Home differs in six real version glyphs. Full serialized locked workspace tests PASS 0 failures (235 TUI, 30 pty_t42, 37 bin, 193 adapter unit tests; opt-in live ignores); workspace fmt, all-target Clippy -D warnings, locked build, Node syntax, docs/progress and diff checks PASS. Focused SQL-trigger, ABA, provider-bound, title cancellation/closed-tab refusal and restart tests PASS.
+Both pinned v2.0.12 and native real PTYs use valid Reader/tools fake Responses and report `SIDEBAR_PALETTE_ACTION_EFFECT_CONFIRMED` for both initial states: label matches, Return toggles the painted sidebar. The selected action row matches. Whole search frames remain DIFFERENT 167/7680 styled cells: original has additional actual Settings/Sidebar and Settings/Layout rows not represented natively. After effect, one differing elapsed digit remains. Full serialized locked workspace tests PASS 0 failed (TUI 237, opt-in live ignored), fmt, workspace all-target Clippy -D warnings, locked build, Node syntax, docs/progress and diff checks PASS.
 
 ## Risks
 
-T44 remains ACTIVE, no full VIS01–24/V08–V09/S07 pixel parity PASS. Native generated-title policy currently uses its admitted configured title model or owning model and 10-second timeout, while pinned upstream can choose a small model and has different retry/timeout semantics; no claim of full title-generation policy parity. Independent Home examples, true native 0.1.0/version, real elapsed timing are not spoofed. Broad Commands/Models, errors/replay, VIS05 80×24 last-pixel PNG edge and remaining resource cases open. `.opencode/` untouched.
+T44 remains ACTIVE with full VIS01–24/V08–V09/S07 open. Settings results are not fabricated without owner-backed interactive behavior; no pixel parity is claimed for search/Home/session frames. Existing 80x24 screenshot edge and real elapsed/version/random examples are not masked. `.opencode/` untouched.
 
 ## Next
 
-Continue a source-backed, measurable Commands/Models or error/replay VIS slice with paired original/native captures, retaining unmatched original interactions and binary/build identity; revisit title-model retry policy using verified catalog metadata and keep real input/turn ownership guarantees. Do not mark T44 done from this single successful interaction or mask unpaired/dynamic differences.
+RECON actual pinned Settings Sidebar/Layout routes and native safe owner/config persistence, or choose next small source-backed error/replay/Models case with a functioning action. Continue mandatory paired VIS, scroll/resize, negative behavior and resource gates without replacing full-frame DIFFERENT by regional success.
 
 
 Ready (до 5): T45, T46, T47

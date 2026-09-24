@@ -1,0 +1,15 @@
+[
+  {
+    "stage": "completed-session-sidebar",
+    "passed": true,
+    "context": [],
+    "right_background": "#0a0a0a",
+    "visible": false,
+    "hidden": true,
+    "labels": {
+      "Show sidebar": [],
+      "Hide sidebar": [],
+      "Toggle sidebar": []
+    }
+  }
+]

@@ -39,3 +39,5 @@ recovery-v08-rename-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v08-rename-*/*/*.vt binary
 recovery-v08-regenerate-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v08-regenerate-*/*/*.vt binary
+sidebar-palette-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+sidebar-palette-*/*/*.vt binary

@@ -1,0 +1,230 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "auto",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "160",
+      "--rows",
+      "48",
+      "--sidebar-palette",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "0572d0f4dc75dbc690c2ac6b1276e510bea2d070\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "60cd442cfd71188a55b480f0bcd1f41caf6dce0a\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/app.rs b/crates/oc-tui/src/app.rs\nindex b97ae08..7e15ffc 100644\n--- a/crates/oc-tui/src/app.rs\n+++ b/crates/oc-tui/src/app.rs\n@@ -819,6 +819,20 @@ impl TuiState {\n         let options = match &self.panel {\n             TuiPanel::Commands => {\n                 let mut options = Vec::new();\n+                // Use the last rendered terminal width and the same rail allocation\n+                // and auto breakpoint as shell::shell_regions/session_main.\n+                let sidebar_visible = !self.home\n+                    && self.parent_id.is_none()\n+                    && !self.chrome.sidebar_hidden\n+                    && self.viewport.get().is_some_and(|view| {\n+                        let session = crate::layout::configured_shell_regions(\n+                            Rect::new(0, 0, view.terminal_width, view.height),\n+                            self.chrome.devtools_visible(),\n+                            self.chrome.vertical_tabs_width,\n+                        )\n+                        .session;\n+                        crate::layout::sidebar_auto(session.width)\n+                    });\n                 if self.select.query.is_empty() {\n                     options.extend(\n                         crate::commands::REGISTRY\n@@ -853,6 +867,12 @@ impl TuiState {\n                                 c.id.into(),\n                                 if c.id == \"session.toggle.thinking\" && self.thinking_expanded {\n                                     \"Collapse thinking\".into()\n+                                } else if c.id == \"session.sidebar.toggle\" {\n+                                    if sidebar_visible {\n+                                        \"Hide sidebar\".into()\n+                                    } else {\n+                                        \"Show sidebar\".into()\n+                                    }\n                                 } else {\n                                     c.title.into()\n                                 },\n@@ -3885,6 +3905,94 @@ mod tests {\n         TuiState::new(app, sid(name))\n     }\n \n+    #[tokio::test]\n+    async fn sidebar_palette_title_tracks_rendered_visibility_and_runs_same_action() {\n+        use crate::commands::CommandAction;\n+        use ratatui::{Terminal, backend::TestBackend};\n+\n+        let mut state = fresh_state(\"sidebar-palette\").await;\n+        let mut terminal = Terminal::new(TestBackend::new(160, 40)).unwrap();\n+        terminal\n+            .draw(|frame| crate::shell::render(frame, &state))\n+            .unwrap();\n+        state.handle_key(KeyAction::Commands).await;\n+        state.handle_paste(\"sidebar\");\n+        let options = state.modal_options();\n+        assert_eq!(options.len(), 1);\n+        assert_eq!(options[0].value, \"session.sidebar.toggle\");\n+        assert_eq!(options[0].title, \"Hide sidebar\");\n+        assert_eq!(options[0].footer, \"ctrl+x b\");\n+        assert_eq!(\n+            state.command_unavailable(&CommandAction::ToggleSidebar),\n+            None\n+        );\n+        assert!(state.handle_panel_key(KeyAction::Enter).consumed_input);\n+        assert!(state.chrome.sidebar_hidden);\n+        assert_eq!(state.panel(), &TuiPanel::None);\n+\n+        terminal\n+            .draw(|frame| crate::shell::render(frame, &state))\n+            .unwrap();\n+        state.handle_key(KeyAction::Commands).await;\n+        state.handle_paste(\"sidebar\");\n+        let options = state.modal_options();\n+        assert_eq!(options.len(), 1);\n+        assert_eq!(options[0].title, \"Show sidebar\");\n+        assert_eq!(options[0].value, \"session.sidebar.toggle\");\n+        assert!(state.handle_panel_key(KeyAction::Enter).consumed_input);\n+        assert!(!state.chrome.sidebar_hidden);\n+    }\n+\n+    #[tokio::test]\n+    async fn sidebar_palette_uses_effective_width_home_and_child() {\n+        use ratatui::{Terminal, backend::TestBackend};\n+\n+        let mut state = fresh_state(\"sidebar-breakpoint\").await;\n+        state.handle_key(KeyAction::Commands).await;\n+        state.handle_paste(\"sidebar\");\n+        let title = |state: &TuiState| {\n+            state\n+                .modal_options()\n+                .iter()\n+                .find(|o| o.value == \"session.sidebar.toggle\")\n+                .expect(\"sidebar palette option\")\n+                .title\n+                .clone()\n+        };\n+        assert_eq!(title(&state), \"Show sidebar\", \"no width observed yet\");\n+        for (width, rail, expected) in [\n+            (120, 0, \"Show sidebar\"),\n+            (121, 0, \"Hide sidebar\"),\n+            (160, 40, \"Show sidebar\"),\n+            (161, 40, \"Hide sidebar\"),\n+        ] {\n+            state.chrome.vertical_tabs_width = rail;\n+            let mut terminal = Terminal::new(TestBackend::new(width, 40)).unwrap();\n+            terminal\n+                .draw(|frame| crate::shell::render(frame, &state))\n+                .unwrap();\n+            assert_eq!(\n+                title(&state),\n+                expected,\n+                \"terminal width {width}, rail {rail}\"\n+            );\n+        }\n+        state.parent_id = Some(\"parent\".into());\n+        state.chrome.vertical_tabs_width = 0;\n+        let mut wide = Terminal::new(TestBackend::new(160, 40)).unwrap();\n+        wide.draw(|frame| crate::shell::render(frame, &state))\n+            .unwrap();\n+        assert_eq!(title(&state), \"Show sidebar\");\n+\n+        let (app, _, _) = CoreApp::channel(4);\n+        let mut home = TuiState::new_home(app);\n+        wide.draw(|frame| crate::shell::render(frame, &home))\n+            .unwrap();\n+        home.handle_key(KeyAction::Commands).await;\n+        home.handle_paste(\"sidebar\");\n+        assert_eq!(title(&home), \"Show sidebar\");\n+    }\n+\n     #[tokio::test]\n     async fn rename_shortcut_edits_graphemes_and_waits_for_owner_ack() {\n         use crate::commands::CommandAction;\ndiff --git a/scripts/tui_capture/README.md b/scripts/tui_capture/README.md\nindex b19e395..3e91bd4 100644\n--- a/scripts/tui_capture/README.md\n+++ b/scripts/tui_capture/README.md\n@@ -340,6 +340,21 @@ then show native diagnostics, while the packaged original defaults to hidden.\n Explicit `true`/`false` overrides the default in either application. These are\n honest effective-channel differences, not identical-state comparisons.\n \n+For the completed Reader/tools sidebar palette probe, run two **fresh** attempts\n+at 160×48 with `--geometry true --sample tools --columns 160 --rows 48\n+--sidebar-palette true --build-oc true` and both explicit binaries above: use\n+`--sidebar hide` for initially hidden and `--sidebar auto` for initially visible.\n+The runner asserts the initial state independently from painted `Context` and\n+the styled right-edge cell, sends real PTY Ctrl+P and types `sidebar`, captures\n+`sidebar-palette-search` styled cells/PNG/VT, and records the actual visible\n+`Show sidebar`, `Hide sidebar`, `Toggle sidebar`, or absence in each side's\n+`sidebar-palette-checks.json`. If exactly one action is visible it sends Return,\n+requires the sidebar state to invert, and captures `sidebar-palette-after`.\n+An absent action remains `ACTION_ABSENT`, without inventing a label or\n+pressing Return; unequal labels are reported as observations, not parity.\n+`capture.lock.json` records side-specific outcomes and ordinary grid/PNG\n+comparisons independently. An existing output path is never overwritten.\n+\n `--startup-error true` with only `--oc` captures a real malformed-config native\n preflight error. For supported child routes and real Location query failures,\n `OC_V03_CAPTURE_OUTPUT=/absolute/fresh-attempt-prefix cargo test --locked -p oc\ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex ffac39c..fab2736 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -41,6 +41,16 @@ if (args['rename-session'] !== undefined && !['true','false'].includes(args['ren\n const regenerateTitle = args['regenerate-title'] === 'true';\n if (args['regenerate-title'] !== undefined && !['true','false'].includes(args['regenerate-title']))\n   throw Error('--regenerate-title must be true or false');\n+const sidebarPalette = args['sidebar-palette'] === 'true';\n+if (args['sidebar-palette'] !== undefined && !['true','false'].includes(args['sidebar-palette']))\n+  throw Error('--sidebar-palette must be true or false');\n+if (sidebarPalette && (args.geometry !== 'true' || args.sample !== 'tools' ||\n+    !['hide','auto'].includes(args.sidebar) || Number(args.columns) !== 160 || Number(args.rows) !== 48 ||\n+    !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||\n+    args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||\n+    args.tabs === 'vertical' || args['tab-click'] === 'true' || args['exploration-click'] === 'true' ||\n+    args['rename-session'] === 'true'))\n+  throw Error('--sidebar-palette true requires paired binaries, --geometry true --sample tools --sidebar hide|auto --columns 160 --rows 48, horizontal tabs and no other interaction/resize modes');\n if (regenerateTitle && !renameSession)\n   throw Error('--regenerate-title true requires --rename-session true (paired Reader tools 120x40 profile)');\n if (renameSession && (tabClick || tabClose || tabCloseKey || tabRestart || explorationClick ||\n@@ -283,7 +293,65 @@ try {\n          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript'), 'completed transcript');\n        if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');\n        const completedStatus = await capture('session-wide-completed',done,'CAPTURED');\n-        if(renameSession) {\n+       if(sidebarPalette) {\n+         const checks=[];\n+         const expectedBefore=args.sidebar==='auto';\n+         const observe=f=>{\n+           const context=visibleMatches(f,'Context').filter(p=>p.x>=115 && p.y<20);\n+           const rightBackground=f.cells[10].at(-1).bg;\n+           // The Commands overlay dims the entire VT screen (#0a0a0a →\n+           // #040404); the underlying right pane must still be identified.\n+           const modal=f.text.includes('Commands');\n+           const visible=context.length===1 && (modal ? rightBackground!=='#040404' : rightBackground==='#141414');\n+           const hidden=context.length===0 && rightBackground===(modal?'#040404':'#0a0a0a');\n+           const labels=Object.fromEntries(['Show sidebar','Hide sidebar','Toggle sidebar'].map(s=>\n+             [s,visibleMatches(f,s).filter(p=>p.x>=50 && p.x<115 && p.y>=17 && p.y<40)]));\n+           return {context,right_background:rightBackground,modal,visible,hidden,labels};\n+         };\n+         lock.sidebar_palette ??= {};\n+         lock.sidebar_palette[origin]={status:'IN_PROGRESS',expected_initial:expectedBefore,checks};\n+         const record=(stage,f,passed,extra={})=>{\n+           checks.push({stage,passed,...observe(f),...extra});\n+           fs.writeFileSync(path.join(dir,'sidebar-palette-checks.json'),JSON.stringify(checks,null,2)+'\\n');\n+           json('capture.lock.json',lock);\n+           if(!passed) throw Error('Sidebar palette predicate failed: '+stage);\n+         };\n+         const state=(f,visible)=>visible?observe(f).visible:observe(f).hidden;\n+         record('completed-session-sidebar',done,state(done,expectedBefore) && completedStatus==='CAPTURED');\n+         send('\\x10','sidebar_palette_ctrl_p');\n+         const opened=await waitFor(f=>f.text.includes('Commands') && state(f,expectedBefore),'sidebar palette opened');\n+         record('palette-opened',opened,true);\n+         send('sidebar','sidebar_palette_search');\n+         // Observe the actual filtered palette; neither the upstream title nor\n+         // a native substitute is injected into the screen or fixture.\n+         const searched=await waitFor(f=>f.text.includes('Commands') &&\n+           visibleMatches(f,'sidebar').some(p=>p.y>10) && state(f,expectedBefore), 'sidebar search displayed');\n+         if(await capture('sidebar-palette-search',searched,'CAPTURED_SIDEBAR_SEARCH')!=='CAPTURED_SIDEBAR_SEARCH')\n+           throw Error('Unstable sidebar search');\n+         const found=observe(searched).labels;\n+         const painted=Object.entries(found).flatMap(([label,points])=>points.map(point=>({label,point})));\n+         const actual=painted.map(p=>p.label);\n+         const expectedLabel=expectedBefore?'Hide sidebar':'Show sidebar';\n+         // Absence is an observed result, not a fabricated expected label.\n+         record('search-result',searched,true,{actual_labels:actual,expected_label:expectedLabel,\n+           expected_label_present:actual.includes(expectedLabel),action_absent:actual.length===0});\n+         if(painted.length===1) {\n+           send('\\r','sidebar_palette_select_return');\n+           const changed=await waitFor(f=>!f.text.includes('Commands') && state(f,!expectedBefore),\n+             'selected sidebar command changed visible state',12000);\n+           record('selected-action-effect',changed,true,{selected_label:actual[0],after_visible:!expectedBefore});\n+           if(await capture('sidebar-palette-after',changed,'CAPTURED_SIDEBAR_EFFECT')!=='CAPTURED_SIDEBAR_EFFECT')\n+             throw Error('Unstable sidebar action effect');\n+           lock.sidebar_palette[origin].status='ACTION_EFFECT_CONFIRMED';\n+         } else {\n+           lock.sidebar_palette[origin].status=painted.length===0?'ACTION_ABSENT':'AMBIGUOUS_RESULTS';\n+           if(painted.length>1) result=1;\n+         }\n+         json('capture.lock.json',lock);\n+         lock.attempts.push({origin,status:'SIDEBAR_PALETTE_'+lock.sidebar_palette[origin].status,\n+           initial_visible:expectedBefore,actual_labels:actual,expected_label:expectedLabel});\n+       }\n+         if(renameSession) {\n           const checks=[];\n           const checkFile=path.join(dir,'rename-checks.json');\n           const counts=()=>({transcript:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length,\n@@ -916,7 +984,8 @@ try {\n       if(tabClose && lock.tab_close_interactions?.[origin]) lock.tab_close_interactions[origin].status='FAILED';\n       if(tabCloseKey && lock.tab_close_key_interactions?.[origin]) lock.tab_close_key_interactions[origin].status='FAILED';\n        if(tabRestart && lock.tab_restart_interactions?.[origin]) lock.tab_restart_interactions[origin].status='FAILED';\n-       if(renameSession && lock.rename_interactions?.[origin]) lock.rename_interactions[origin].status='FAILED';\n+        if(renameSession && lock.rename_interactions?.[origin]) lock.rename_interactions[origin].status='FAILED';\n+        if(sidebarPalette && lock.sidebar_palette?.[origin]) lock.sidebar_palette[origin].status='FAILED';\n       await capture('failure-diagnostic',await frame(),'FAILED_STATE');\n     } finally {\n       if(!child.stdin.destroyed) child.stdin.write(JSON.stringify({kind:'stop'})+'\\n');\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.19s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"50d156640d3a2bd27b172e65def22101e07bba6485084f80c11f3b8dbb49abea\", \"reference_sha256\": \"60897caad08d1c520c2929b02b3c1a5efebe8f2584b18dadd64b570cfb4fd11e\", \"actual_sha256\": \"ada524878e7a6989fe10aa2f43f8313735404c8a1b85a2ac67c5e945b355dea1\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0572d0f4dc75dbc690c2ac6b1276e510bea2d070\", \"cells_checked\": 7680, \"different_cells\": 46, \"cursor_differs\": false, \"difference_bbox_inclusive\": [61, 25, 157, 46], \"samples\": [{\"x\": 61, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 62, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 63, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 64, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 65, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 66, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 67, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 68, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 69, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 70, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 71, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 72, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 77, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 78, \"y\": 25, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 79, \"y\": 25, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 80, \"y\": 25, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"f67c516c12374b431e71450c09306b3346d944be098b8382247cd050eddccc53\", \"actual_sha256\": \"c4f5328e3e4697f9daa086cd21c7e6690450c9b51284ad79c53d9c12137a485a\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 1783, \"changed_fraction_diagnostic_only\": 0.0017209893130714108, \"difference_bbox_inclusive\": [513, 402, 1329, 748]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"50d156640d3a2bd27b172e65def22101e07bba6485084f80c11f3b8dbb49abea\", \"reference_sha256\": \"040c590a65fe313ae929acda49721738fa4314f3a06c37aed89ddeef02b46a0b\", \"actual_sha256\": \"18519c28d3ae0f4277b1a260c78d638a489d839b481a44574357dd5548a734dd\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0572d0f4dc75dbc690c2ac6b1276e510bea2d070\", \"cells_checked\": 7680, \"different_cells\": 1, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 38, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"0b45ac1eeabb4d24eadb78a1e4dca70efc7cbfa0dbfc992d76d29eab596aecee\", \"actual_sha256\": \"96af28f7f191c35c32e7a0e9dbb4e76109e8f4ed5029ba90eeb84332191afd04\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 62, \"changed_fraction_diagnostic_only\": 5.984371139115394e-05, \"difference_bbox_inclusive\": [320, 163, 327, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/upstream/sidebar-palette-search.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/oc/sidebar-palette-search.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/sidebar-palette-search.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"sidebar-palette-search\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"50d156640d3a2bd27b172e65def22101e07bba6485084f80c11f3b8dbb49abea\", \"reference_sha256\": \"4b2a753e2993f01c01234632d07dd7fabc51d82734e9045dcd090cd32984bd84\", \"actual_sha256\": \"b68895113f693628fbdb05c09cc0a92e7a2218ca5a9aaea77be6bad42c09ed36\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0572d0f4dc75dbc690c2ac6b1276e510bea2d070\", \"cells_checked\": 7680, \"different_cells\": 167, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 109, 21], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 56, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 57, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 58, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 59, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 60, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 88, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 89, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 90, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 91, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 92, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 93, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 94, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 95, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 96, \"y\": 18, \"different_fields\": [\"fg\"]}, {\"x\": 97, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 98, \"y\": 18, \"different_fields\": [\"fg\"]}, {\"x\": 99, \"y\": 18, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/upstream/sidebar-palette-search.png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/oc/sidebar-palette-search.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/sidebar-palette-search.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"a0cc6cc2b670368e96427eed57d00ffd721d8d1cdbb13eba7ee8c8a1e408789b\", \"actual_sha256\": \"0271f57bf0cf464e58fb61a3d3e89918d404591ecf24a554d2157bdc3ffd8dda\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 18062, \"changed_fraction_diagnostic_only\": 0.0174338244378552, \"difference_bbox_inclusive\": [321, 163, 926, 351]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/upstream/sidebar-palette-after.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/oc/sidebar-palette-after.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/sidebar-palette-after.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"sidebar-palette-after\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"50d156640d3a2bd27b172e65def22101e07bba6485084f80c11f3b8dbb49abea\", \"reference_sha256\": \"8124abb1aa56a1d8421e68c572a4e49ed6b521424b5519b61b0b8b425ea6c324\", \"actual_sha256\": \"16a29182f52303e2651e6da13dde704a753a66be19db77235898945b6d9d34de\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0572d0f4dc75dbc690c2ac6b1276e510bea2d070\", \"cells_checked\": 7680, \"different_cells\": 1, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 38, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/upstream/sidebar-palette-after.png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/oc/sidebar-palette-after.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-visible-20260924-current/sidebar-palette-after.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c7fd501992cdcb7ada200774ab9e03b1463cec2f6c310eba019432539fba4da5\", \"actual_sha256\": \"da9bf02e517abadafc26414ebd727068387670fb548d6e2866177d52b05c5e19\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 62, \"changed_fraction_diagnostic_only\": 5.984371139115394e-05, \"difference_bbox_inclusive\": [320, 163, 327, 172]}\n",
+    "stderr": ""
+  }
+]

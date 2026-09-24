@@ -1,0 +1,442 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-24T13:31:52.709Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "15a868db3763b758ce3d94b2c16523c470a71e3a349d90bad1e6afba1fc8f3e9",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "05a8b8b6b9da204e8005a9fd6d3627b1624cf1ca86d11fe7d7f141c1e8ac3b5d"
+  },
+  "fixture_sha256": "16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "0572d0f4dc75dbc690c2ac6b1276e510bea2d070",
+    "tree": "60cd442cfd71188a55b480f0bcd1f41caf6dce0a",
+    "dirty_diff_sha256": "34fc12187f8c30ba32669f69376387d2bc1143a59389d794f67e8b31784f0d2b",
+    "source_manifest_sha256": "37f63ef337f655046b309088500fe858537149a6a22f94ab4ecfb45c1bb8f6b8",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "079141e507aa0d73b767f5ce5a4aaa99abb313df5430366f51001db843292516",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "SIDEBAR_PALETTE_ACTION_EFFECT_CONFIRMED",
+      "initial_visible": true,
+      "actual_labels": [
+        "Hide sidebar"
+      ],
+      "expected_label": "Hide sidebar"
+    },
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "SIDEBAR_PALETTE_ACTION_EFFECT_CONFIRMED",
+      "initial_visible": true,
+      "actual_labels": [
+        "Toggle sidebar"
+      ],
+      "expected_label": "Hide sidebar"
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sidebar-palette-search",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sidebar-palette-search",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sidebar-palette-after",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sidebar-palette-after",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "50d156640d3a2bd27b172e65def22101e07bba6485084f80c11f3b8dbb49abea",
+      "cells_sha256": "a95f20952aaa85423c2c6163d1d22bf310afb9157bff950a8298a6430381ef78",
+      "png_sha256": "90534edb852aed1ec8403d6d0eb3e861341b0918a7ffcb7acf4d7fbc49ece52b",
+      "render_sha256": "49cb358a1b2ae38231a1b4d9c11ad826b6f1bef6ac9e04769a04818ae5e3d4ba",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "50d156640d3a2bd27b172e65def22101e07bba6485084f80c11f3b8dbb49abea",
+      "cells_sha256": "1eaff2d342c524ecd6b2266ac9275f44671648a622b8b901e2bfdfd08de00c94",
+      "png_sha256": "df22d4a6350d8a0fe37e77378b41acae66083dfc2bc371f7dde511d438294d5d",
+      "render_sha256": "e54faacec4607d489c86c82ed270285412a07de8ddad87d6b54b31796b7d6d71",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sidebar-palette-search",
+      "status": "CAPTURED_SIDEBAR_SEARCH",
+      "environment_id": "50d156640d3a2bd27b172e65def22101e07bba6485084f80c11f3b8dbb49abea",
+      "cells_sha256": "2cc8e1c8a47afc42b0dc7236eef3b2a2f5cfa393f073182780df407609cc2128",
+      "png_sha256": "e90815f75f8902c14f98605da317336a3e7f9b123b7a7f03abf3522526e47ab2",
+      "render_sha256": "9d466dc7272b8fea28f09d979b8753408e7026bb00d231c7761be783afbaa812",
+      "path": "upstream/sidebar-palette-search"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sidebar-palette-after",
+      "status": "CAPTURED_SIDEBAR_EFFECT",
+      "environment_id": "50d156640d3a2bd27b172e65def22101e07bba6485084f80c11f3b8dbb49abea",
+      "cells_sha256": "e9ac6a99264f390b9be6a08cc716ea57779838ec601c41e2e7f8b5eb3ccd8332",
+      "png_sha256": "16c798eb3d5fd3855486fd5ca82afaeb2649ad9d7165c0c2ffe374339a13a600",
+      "render_sha256": "01d17a84f41f890443ede3d8ee00a24cd83c2c3c16031314944122937f83be06",
+      "path": "upstream/sidebar-palette-after"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "50d156640d3a2bd27b172e65def22101e07bba6485084f80c11f3b8dbb49abea",
+      "cells_sha256": "fa1dc3f41917271b69b88d92321e8a1b42cb93520a843fb6eb819120c3ec87d6",
+      "png_sha256": "dcce57267c997f3059d8d9557e1e7099c572a9492368814549a44385d207d7a1",
+      "render_sha256": "6637c1e8f9b8f31d49b76ff64f3e3553c07051ec3875974019c51ef6b7474fa2",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "50d156640d3a2bd27b172e65def22101e07bba6485084f80c11f3b8dbb49abea",
+      "cells_sha256": "8cd3971f97284710b077606e21601a47056daaf3417c6c81d61fde9d448f31c0",
+      "png_sha256": "a2915a4f32fd4da0d9a265b9bba4412add8bf3f08771e8225708b3bc739c7e38",
+      "render_sha256": "c0948142a9dddd566cd29ad9e3395222856431028191542dfdc473116b189443",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sidebar-palette-search",
+      "status": "CAPTURED_SIDEBAR_SEARCH",
+      "environment_id": "50d156640d3a2bd27b172e65def22101e07bba6485084f80c11f3b8dbb49abea",
+      "cells_sha256": "f3444f6e4bb32f19e78582c3e5c2cf92547af75fb07b240c8ca2d1b2fc7594bc",
+      "png_sha256": "0ca09ab09ed68342090e63ec86f14bc2b05683dba6e5e6b318b46175f6865d5a",
+      "render_sha256": "6f66e85b95d5ed44466d423644711985c236ea4695c65641c32c09f013ee5e8e",
+      "path": "oc/sidebar-palette-search"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sidebar-palette-after",
+      "status": "CAPTURED_SIDEBAR_EFFECT",
+      "environment_id": "50d156640d3a2bd27b172e65def22101e07bba6485084f80c11f3b8dbb49abea",
+      "cells_sha256": "33c2cfb4237382ae6c81aff9c67083e694c08788b6b095d91b8fa33a8d0c4e53",
+      "png_sha256": "eff1adb86b3b22ba32db37d6e8b9a4fcbc1460ff9c8c66a23d1c882f58fbc9e3",
+      "render_sha256": "3c72cfb8e205d3e2b68d899679d6cb8d7045a7cbc73154ca7cd081b18f427f15",
+      "path": "oc/sidebar-palette-after"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 160,
+    "rows": 48,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "auto",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "sidebar_palette": {
+    "upstream": {
+      "status": "ACTION_EFFECT_CONFIRMED",
+      "expected_initial": true,
+      "checks": [
+        {
+          "stage": "completed-session-sidebar",
+          "passed": true,
+          "context": [
+            {
+              "x": 120,
+              "y": 5
+            }
+          ],
+          "right_background": "#141414",
+          "modal": false,
+          "visible": true,
+          "hidden": false,
+          "labels": {
+            "Show sidebar": [],
+            "Hide sidebar": [],
+            "Toggle sidebar": []
+          }
+        },
+        {
+          "stage": "palette-opened",
+          "passed": true,
+          "context": [
+            {
+              "x": 120,
+              "y": 5
+            }
+          ],
+          "right_background": "#080808",
+          "modal": true,
+          "visible": true,
+          "hidden": false,
+          "labels": {
+            "Show sidebar": [],
+            "Hide sidebar": [],
+            "Toggle sidebar": []
+          }
+        },
+        {
+          "stage": "search-result",
+          "passed": true,
+          "context": [
+            {
+              "x": 120,
+              "y": 5
+            }
+          ],
+          "right_background": "#080808",
+          "modal": true,
+          "visible": true,
+          "hidden": false,
+          "labels": {
+            "Show sidebar": [],
+            "Hide sidebar": [
+              {
+                "x": 54,
+                "y": 17
+              }
+            ],
+            "Toggle sidebar": []
+          },
+          "actual_labels": [
+            "Hide sidebar"
+          ],
+          "expected_label": "Hide sidebar",
+          "expected_label_present": true,
+          "action_absent": false
+        },
+        {
+          "stage": "selected-action-effect",
+          "passed": true,
+          "context": [],
+          "right_background": "#0a0a0a",
+          "modal": false,
+          "visible": false,
+          "hidden": true,
+          "labels": {
+            "Show sidebar": [],
+            "Hide sidebar": [],
+            "Toggle sidebar": []
+          },
+          "selected_label": "Hide sidebar",
+          "after_visible": false
+        }
+      ]
+    },
+    "oc": {
+      "status": "ACTION_EFFECT_CONFIRMED",
+      "expected_initial": true,
+      "checks": [
+        {
+          "stage": "completed-session-sidebar",
+          "passed": true,
+          "context": [
+            {
+              "x": 120,
+              "y": 5
+            }
+          ],
+          "right_background": "#141414",
+          "modal": false,
+          "visible": true,
+          "hidden": false,
+          "labels": {
+            "Show sidebar": [],
+            "Hide sidebar": [],
+            "Toggle sidebar": []
+          }
+        },
+        {
+          "stage": "palette-opened",
+          "passed": true,
+          "context": [
+            {
+              "x": 120,
+              "y": 5
+            }
+          ],
+          "right_background": "#080808",
+          "modal": true,
+          "visible": true,
+          "hidden": false,
+          "labels": {
+            "Show sidebar": [],
+            "Hide sidebar": [],
+            "Toggle sidebar": [
+              {
+                "x": 54,
+                "y": 27
+              }
+            ]
+          }
+        },
+        {
+          "stage": "search-result",
+          "passed": true,
+          "context": [
+            {
+              "x": 120,
+              "y": 5
+            }
+          ],
+          "right_background": "#080808",
+          "modal": true,
+          "visible": true,
+          "hidden": false,
+          "labels": {
+            "Show sidebar": [],
+            "Hide sidebar": [],
+            "Toggle sidebar": [
+              {
+                "x": 54,
+                "y": 17
+              }
+            ]
+          },
+          "actual_labels": [
+            "Toggle sidebar"
+          ],
+          "expected_label": "Hide sidebar",
+          "expected_label_present": false,
+          "action_absent": false
+        },
+        {
+          "stage": "selected-action-effect",
+          "passed": true,
+          "context": [],
+          "right_background": "#0a0a0a",
+          "modal": false,
+          "visible": false,
+          "hidden": true,
+          "labels": {
+            "Show sidebar": [],
+            "Hide sidebar": [],
+            "Toggle sidebar": []
+          },
+          "selected_label": "Toggle sidebar",
+          "after_visible": false
+        }
+      ]
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "auto",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-24T13:32:35.147Z",
+  "exit_code": 1
+}

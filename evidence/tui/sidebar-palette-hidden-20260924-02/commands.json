@@ -1,0 +1,228 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--columns",
+      "160",
+      "--rows",
+      "48",
+      "--sidebar-palette",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "0572d0f4dc75dbc690c2ac6b1276e510bea2d070\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "60cd442cfd71188a55b480f0bcd1f41caf6dce0a\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/scripts/tui_capture/README.md b/scripts/tui_capture/README.md\nindex b19e395..3e91bd4 100644\n--- a/scripts/tui_capture/README.md\n+++ b/scripts/tui_capture/README.md\n@@ -340,6 +340,21 @@ then show native diagnostics, while the packaged original defaults to hidden.\n Explicit `true`/`false` overrides the default in either application. These are\n honest effective-channel differences, not identical-state comparisons.\n \n+For the completed Reader/tools sidebar palette probe, run two **fresh** attempts\n+at 160×48 with `--geometry true --sample tools --columns 160 --rows 48\n+--sidebar-palette true --build-oc true` and both explicit binaries above: use\n+`--sidebar hide` for initially hidden and `--sidebar auto` for initially visible.\n+The runner asserts the initial state independently from painted `Context` and\n+the styled right-edge cell, sends real PTY Ctrl+P and types `sidebar`, captures\n+`sidebar-palette-search` styled cells/PNG/VT, and records the actual visible\n+`Show sidebar`, `Hide sidebar`, `Toggle sidebar`, or absence in each side's\n+`sidebar-palette-checks.json`. If exactly one action is visible it sends Return,\n+requires the sidebar state to invert, and captures `sidebar-palette-after`.\n+An absent action remains `ACTION_ABSENT`, without inventing a label or\n+pressing Return; unequal labels are reported as observations, not parity.\n+`capture.lock.json` records side-specific outcomes and ordinary grid/PNG\n+comparisons independently. An existing output path is never overwritten.\n+\n `--startup-error true` with only `--oc` captures a real malformed-config native\n preflight error. For supported child routes and real Location query failures,\n `OC_V03_CAPTURE_OUTPUT=/absolute/fresh-attempt-prefix cargo test --locked -p oc\ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex ffac39c..9e8e5dc 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -41,6 +41,16 @@ if (args['rename-session'] !== undefined && !['true','false'].includes(args['ren\n const regenerateTitle = args['regenerate-title'] === 'true';\n if (args['regenerate-title'] !== undefined && !['true','false'].includes(args['regenerate-title']))\n   throw Error('--regenerate-title must be true or false');\n+const sidebarPalette = args['sidebar-palette'] === 'true';\n+if (args['sidebar-palette'] !== undefined && !['true','false'].includes(args['sidebar-palette']))\n+  throw Error('--sidebar-palette must be true or false');\n+if (sidebarPalette && (args.geometry !== 'true' || args.sample !== 'tools' ||\n+    !['hide','auto'].includes(args.sidebar) || Number(args.columns) !== 160 || Number(args.rows) !== 48 ||\n+    !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||\n+    args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||\n+    args.tabs === 'vertical' || args['tab-click'] === 'true' || args['exploration-click'] === 'true' ||\n+    args['rename-session'] === 'true'))\n+  throw Error('--sidebar-palette true requires paired binaries, --geometry true --sample tools --sidebar hide|auto --columns 160 --rows 48, horizontal tabs and no other interaction/resize modes');\n if (regenerateTitle && !renameSession)\n   throw Error('--regenerate-title true requires --rename-session true (paired Reader tools 120x40 profile)');\n if (renameSession && (tabClick || tabClose || tabCloseKey || tabRestart || explorationClick ||\n@@ -283,7 +293,63 @@ try {\n          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript'), 'completed transcript');\n        if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');\n        const completedStatus = await capture('session-wide-completed',done,'CAPTURED');\n-        if(renameSession) {\n+       if(sidebarPalette) {\n+         const checks=[];\n+         const expectedBefore=args.sidebar==='auto';\n+         const observe=f=>{\n+           const context=visibleMatches(f,'Context').filter(p=>p.x>=115 && p.y<20);\n+           const rightBackground=f.cells[10].at(-1).bg;\n+           // The Commands overlay dims the entire VT screen (#0a0a0a →\n+           // #040404); the underlying right pane must still be identified.\n+           const modal=f.text.includes('Commands');\n+           const visible=context.length===1 && (modal ? rightBackground!=='#040404' : rightBackground==='#141414');\n+           const hidden=context.length===0 && rightBackground===(modal?'#040404':'#0a0a0a');\n+           const labels=Object.fromEntries(['Show sidebar','Hide sidebar','Toggle sidebar'].map(s=>[s,visibleMatches(f,s)]));\n+           return {context,right_background:rightBackground,modal,visible,hidden,labels};\n+         };\n+         lock.sidebar_palette ??= {};\n+         lock.sidebar_palette[origin]={status:'IN_PROGRESS',expected_initial:expectedBefore,checks};\n+         const record=(stage,f,passed,extra={})=>{\n+           checks.push({stage,passed,...observe(f),...extra});\n+           fs.writeFileSync(path.join(dir,'sidebar-palette-checks.json'),JSON.stringify(checks,null,2)+'\\n');\n+           json('capture.lock.json',lock);\n+           if(!passed) throw Error('Sidebar palette predicate failed: '+stage);\n+         };\n+         const state=(f,visible)=>visible?observe(f).visible:observe(f).hidden;\n+         record('completed-session-sidebar',done,state(done,expectedBefore) && completedStatus==='CAPTURED');\n+         send('\\x10','sidebar_palette_ctrl_p');\n+         const opened=await waitFor(f=>f.text.includes('Commands') && state(f,expectedBefore),'sidebar palette opened');\n+         record('palette-opened',opened,true);\n+         send('sidebar','sidebar_palette_search');\n+         // Observe the actual filtered palette; neither the upstream title nor\n+         // a native substitute is injected into the screen or fixture.\n+         const searched=await waitFor(f=>f.text.includes('Commands') &&\n+           visibleMatches(f,'sidebar').some(p=>p.y>10) && state(f,expectedBefore), 'sidebar search displayed');\n+         if(await capture('sidebar-palette-search',searched,'CAPTURED_SIDEBAR_SEARCH')!=='CAPTURED_SIDEBAR_SEARCH')\n+           throw Error('Unstable sidebar search');\n+         const found=observe(searched).labels;\n+         const actual=Object.entries(found).filter(([,points])=>points.length===1).map(([label])=>label);\n+         const expectedLabel=expectedBefore?'Hide sidebar':'Show sidebar';\n+         // Absence is an observed result, not a fabricated expected label.\n+         record('search-result',searched,true,{actual_labels:actual,expected_label:expectedLabel,\n+           expected_label_present:actual.includes(expectedLabel),action_absent:actual.length===0});\n+         if(actual.length===1) {\n+           send('\\r','sidebar_palette_select_return');\n+           const changed=await waitFor(f=>!f.text.includes('Commands') && state(f,!expectedBefore),\n+             'selected sidebar command changed visible state',12000);\n+           record('selected-action-effect',changed,true,{selected_label:actual[0],after_visible:!expectedBefore});\n+           if(await capture('sidebar-palette-after',changed,'CAPTURED_SIDEBAR_EFFECT')!=='CAPTURED_SIDEBAR_EFFECT')\n+             throw Error('Unstable sidebar action effect');\n+           lock.sidebar_palette[origin].status='ACTION_EFFECT_CONFIRMED';\n+         } else {\n+           lock.sidebar_palette[origin].status=actual.length===0?'ACTION_ABSENT':'AMBIGUOUS_RESULTS';\n+           if(actual.length>1) result=1;\n+         }\n+         json('capture.lock.json',lock);\n+         lock.attempts.push({origin,status:'SIDEBAR_PALETTE_'+lock.sidebar_palette[origin].status,\n+           initial_visible:expectedBefore,actual_labels:actual,expected_label:expectedLabel});\n+       }\n+         if(renameSession) {\n           const checks=[];\n           const checkFile=path.join(dir,'rename-checks.json');\n           const counts=()=>({transcript:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length,\n@@ -916,7 +982,8 @@ try {\n       if(tabClose && lock.tab_close_interactions?.[origin]) lock.tab_close_interactions[origin].status='FAILED';\n       if(tabCloseKey && lock.tab_close_key_interactions?.[origin]) lock.tab_close_key_interactions[origin].status='FAILED';\n        if(tabRestart && lock.tab_restart_interactions?.[origin]) lock.tab_restart_interactions[origin].status='FAILED';\n-       if(renameSession && lock.rename_interactions?.[origin]) lock.rename_interactions[origin].status='FAILED';\n+        if(renameSession && lock.rename_interactions?.[origin]) lock.rename_interactions[origin].status='FAILED';\n+        if(sidebarPalette && lock.sidebar_palette?.[origin]) lock.sidebar_palette[origin].status='FAILED';\n       await capture('failure-diagnostic',await frame(),'FAILED_STATE');\n     } finally {\n       if(!child.stdin.destroyed) child.stdin.write(JSON.stringify({kind:'stop'})+'\\n');\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.49s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"76c3bf1d865117bd2ec08625b5d737928bf1f9575bbe59ca08570a55aac21993\", \"reference_sha256\": \"2477ea2398e2b4ab26cae5487fd473af4df10a9b78e12870ba39f7fe81da25f3\", \"actual_sha256\": \"e0cc71df2856ed638f73d091761d36fe2000c62d917e33877a0f0ea2a0c608be\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0572d0f4dc75dbc690c2ac6b1276e510bea2d070\", \"cells_checked\": 7680, \"different_cells\": 50, \"cursor_differs\": false, \"difference_bbox_inclusive\": [43, 24, 157, 46], \"samples\": [{\"x\": 43, \"y\": 24, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 25, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 26, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 27, \"different_fields\": [\"fg\"]}, {\"x\": 46, \"y\": 27, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 27, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 27, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 27, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 27, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 27, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 52, \"y\": 27, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 27, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 27, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 27, \"different_fields\": [\"symbol\"]}, {\"x\": 56, \"y\": 27, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 27, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 27, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 27, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 27, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 27, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"cc1ccc6a5e20c8abc7d60ffde3bd4679b4f691de44a3619ca84d473f2e962d68\", \"actual_sha256\": \"360422a2d0f645b71ade187a44ac2676433257a921ad4ca57cf3e44cce2f614f\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 2537, \"changed_fraction_diagnostic_only\": 0.0024487660612799605, \"difference_bbox_inclusive\": [365, 384, 1329, 748]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"76c3bf1d865117bd2ec08625b5d737928bf1f9575bbe59ca08570a55aac21993\", \"reference_sha256\": \"cb98a5230c1af14ba34a552714177fde1fa781605830cad20c52f06812a60c95\", \"actual_sha256\": \"199786140db4febcd65a1cbc2d286c544b649dc0b279e1ad87b1481ae5d59098\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0572d0f4dc75dbc690c2ac6b1276e510bea2d070\", \"cells_checked\": 7680, \"different_cells\": 80, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 45, 45], \"samples\": [{\"x\": 5, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 6, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 7, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 8, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 9, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 10, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 11, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 12, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 13, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"b721a375262671c7c811acca868599dc228f6d693f1229ac4cda5498d50aa3ce\", \"actual_sha256\": \"caf204cb611121d93c6356ee0617033bad41de46aae12a087589775266add656\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 3894, \"changed_fraction_diagnostic_only\": 0.0037585711638250556, \"difference_bbox_inclusive\": [19, 162, 386, 728]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/upstream/sidebar-palette-search.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/oc/sidebar-palette-search.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/sidebar-palette-search.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"sidebar-palette-search\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"76c3bf1d865117bd2ec08625b5d737928bf1f9575bbe59ca08570a55aac21993\", \"reference_sha256\": \"1b94ad47451ebe48274a3f070a98214553f05c2f8a950851059facf5ce7020ba\", \"actual_sha256\": \"93c41e43979720e11dc9ea7b6ea310bb04b9837040f97700e5aa9fd1f8b23546\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0572d0f4dc75dbc690c2ac6b1276e510bea2d070\", \"cells_checked\": 7680, \"different_cells\": 257, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 109, 45], \"samples\": [{\"x\": 5, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 6, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 7, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 8, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 9, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 10, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 11, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 12, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 13, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 21, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/upstream/sidebar-palette-search.png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/oc/sidebar-palette-search.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/sidebar-palette-search.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"b2e49cbdf0d3b94f01c363a226182053d252d8fde6297538cd8a1bbb45433024\", \"actual_sha256\": \"40750b3e87f15034b69a22a3a603d4f76b859429a1e1d901459a726443c7973a\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 22674, \"changed_fraction_diagnostic_only\": 0.021885424388435878, \"difference_bbox_inclusive\": [19, 162, 926, 728]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/upstream/sidebar-palette-after.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/oc/sidebar-palette-after.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/sidebar-palette-after.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"sidebar-palette-after\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"76c3bf1d865117bd2ec08625b5d737928bf1f9575bbe59ca08570a55aac21993\", \"reference_sha256\": \"6003f6959ef65522a171c7e98e98ffc082ffa624a6e862325c12a4f03420ca04\", \"actual_sha256\": \"44af4e5956075e0430190a1a38a7cdde464e6ae0ad567404bd4033f9580266c8\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0572d0f4dc75dbc690c2ac6b1276e510bea2d070\", \"cells_checked\": 7680, \"different_cells\": 80, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 45, 45], \"samples\": [{\"x\": 5, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 6, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 7, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 8, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 9, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 10, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 11, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 12, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 13, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/upstream/sidebar-palette-after.png",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/oc/sidebar-palette-after.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/sidebar-palette-hidden-20260924-02/sidebar-palette-after.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"3be1cb24485a5eec17041f4f1269084293968a71963d83ecc40508f077997a44\", \"actual_sha256\": \"9a0c7912d5c5c3812479edffa54c226cb71cedc6580f28e2cbb2c99414fa3b64\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 3894, \"changed_fraction_diagnostic_only\": 0.0037585711638250556, \"difference_bbox_inclusive\": [19, 162, 386, 728]}\n",
+    "stderr": ""
+  }
+]
