@@ -741,11 +741,17 @@ fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rec
     );
     render_footer(frame, state, theme, footer, area.width);
     if area.height >= 2 {
+        let version = env!("CARGO_PKG_VERSION");
+        let row_width = area.width.saturating_sub(2);
+        let version_width = version.len() as u16;
         frame.render_widget(
-            Paragraph::new(env!("CARGO_PKG_VERSION"))
-                .alignment(Alignment::Right)
-                .style(Style::default().fg(theme.text_muted())),
-            Rect::new(area.x, area.bottom() - 2, area.width.saturating_sub(2), 1),
+            Paragraph::new(version).style(Style::default().fg(theme.text_muted())),
+            Rect::new(
+                area.x + row_width.saturating_sub(version_width),
+                area.bottom() - 2,
+                row_width.min(version_width),
+                1,
+            ),
         );
     }
 }
@@ -1481,6 +1487,65 @@ mod tests {
             Theme::dark().text()
         );
         assert_eq!(buffer[((start + 18) as u16, y as u16)].fg, white);
+    }
+
+    #[tokio::test]
+    async fn restored_home_version_colors_only_its_glyphs() {
+        let mut state = golden_state().await;
+        state.home = true;
+        state.chrome.devtools = Some(false);
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: Some("Restored".into()),
+                home: false,
+                busy: false,
+            }],
+            0,
+            true,
+        );
+        let theme = Theme::dark();
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        let version = env!("CARGO_PKG_VERSION");
+        let version_x = 118 - version.len() as u16;
+        for x in 0..version_x {
+            let cell = &buffer[(x, 38)];
+            assert_eq!(cell.symbol(), " ", "Home version padding at x={x}");
+            assert_eq!(cell.fg, Color::Rgb(255, 255, 255), "x={x}");
+            assert_eq!(cell.bg, theme.background(), "x={x}");
+        }
+        for (offset, glyph) in version.chars().enumerate() {
+            let cell = &buffer[(version_x + offset as u16, 38)];
+            assert_eq!(cell.symbol(), glyph.to_string());
+            assert_eq!(cell.fg, theme.text_muted());
+            assert_eq!(cell.bg, theme.background());
+        }
+        for x in 118..120 {
+            let cell = &buffer[(x, 38)];
+            assert_eq!(cell.symbol(), " ");
+            assert_eq!(cell.fg, Color::Rgb(255, 255, 255));
+            assert_eq!(cell.bg, theme.background());
+        }
+        let rows = screen(&state, 120, 40);
+        let (y, row) = rows
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.contains("x · a"))
+            .expect("Home prompt metadata");
+        let x = UnicodeWidthStr::width(&row[..row.find("x · a").unwrap()]) as u16;
+        for (offset, symbol, fg) in [
+            (0, "x", theme.categorical_agents()[0]),
+            (1, " ", Color::Rgb(255, 255, 255)),
+            (2, "·", theme.text_muted()),
+            (3, " ", Color::Rgb(255, 255, 255)),
+            (4, "a", theme.text()),
+        ] {
+            let cell = &buffer[(x + offset, y as u16)];
+            assert_eq!(cell.symbol(), symbol);
+            assert_eq!(cell.fg, fg);
+            assert_eq!(cell.bg, theme.decrease(theme.background_panel()));
+        }
     }
 
     #[tokio::test]

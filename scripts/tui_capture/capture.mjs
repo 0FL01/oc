@@ -25,6 +25,11 @@ const tabClose = args['tab-close'] === 'true';
 if (args['tab-close'] !== undefined && !['true','false'].includes(args['tab-close']))
   throw Error('--tab-close must be true or false');
 if (tabClose && !tabClick) throw Error('--tab-close true requires --tab-click true (paired Reader tools 120x40 profile)');
+const tabRestart = args['tab-restart'] === 'true';
+if (args['tab-restart'] !== undefined && !['true','false'].includes(args['tab-restart']))
+  throw Error('--tab-restart must be true or false');
+if (tabRestart && (!tabClick || tabClose || explorationClick))
+  throw Error('--tab-restart true requires --tab-click true without tab-close/exploration-click');
 if (explorationClick && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     Number(args.columns) !== 120 || Number(args.rows) !== 40 || args.matrix === 'true' || args['scroll-resize'] === 'true'))
   throw Error('--exploration-click true requires --geometry true --sample tools --sidebar hide --columns 120 --rows 40 without matrix/scroll-resize');
@@ -109,6 +114,9 @@ const tabObserve = f => {
     home_prompt:f.text.includes('Reader · MiMo-V2.6-Flash Free') && f.text.includes('Ask anything'),
     header:tabRow(f).trimEnd()};
 };
+const secondTitle = 'Second fixture session';
+const restartObserve = f => ({...tabObserve(f), second:visibleMatches(f,secondTitle.slice(0,6)).filter(p=>p.y===0),
+  second_content:f.text.includes('GEOMETRY-SECOND: tool read completed.')});
 try {
   browser = await chromium.launch({headless: true, env: cleanEnv});
   const profile = {frontend: '@xterm/xterm', frontend_version: require('@xterm/xterm/package.json').version,
@@ -134,7 +142,7 @@ try {
       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,
       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
       agent_profile: args['agent-profile'] === 'true',
-      seed_root: args['seed-root'], session: args.session};
+      seed_root: args['seed-root'], session: args.session, tab_restart: tabRestart};
     fs.writeFileSync(path.join(dir,'bridge-spec.json'), JSON.stringify(spec, null, 2));
     lock[origin] = {...lock[origin], executable_path: binary, executable_sha256: hash};
     const page = await browser.newPage({viewport: {width: 1800, height: 1100}, deviceScaleFactor: 1});
@@ -144,7 +152,8 @@ try {
     await page.addScriptTag({path: path.join(tools,'node_modules/@xterm/addon-unicode11/lib/addon-unicode11.js')});
     await page.addScriptTag({path: path.join(here,'frontend.js')});
     const child = spawn('/usr/bin/python3', [path.join(here,'bridge.py'), path.join(dir,'bridge-spec.json')], {env: cleanEnv, stdio: ['pipe','pipe','pipe']});
-    const logs = [], chunks = [], inputs = [];
+    const logs = [], chunks = [[],[]], inputs = [];
+    let generation=0, prequitBoundary;
     let writeQueue = Promise.resolve(), bridgeExit, bridgeError = '';
     const closed = new Promise(r => child.once('close',r));
     child.stderr.on('data', b => { bridgeError += b.toString(); });
@@ -160,8 +169,12 @@ try {
       const event = JSON.parse(line);
       if (event.kind === 'output') {
         const bytes=Buffer.from(event.data, 'base64');
-        chunks.push(bytes); fs.appendFileSync(path.join(dir,'raw.vt'),bytes);
-        writeQueue = writeQueue.then(() => page.evaluate(d => writeTerminal(d), event.data));
+        const n=event.generation || 0;
+        chunks[n].push(bytes);
+        // Keep a diagnostic VT prefix if the capture process is interrupted
+        // before the normal per-generation teardown writes its sealed copy.
+        fs.appendFileSync(path.join(dir,'raw.vt'),bytes);
+        if(n===generation) writeQueue = writeQueue.then(() => page.evaluate(d => writeTerminal(d), event.data));
       } else { logs.push(event); fs.writeFileSync(path.join(dir,'protocol.json'),JSON.stringify(logs,null,2)+'\n'); }
     });
     const frame = async () => {await writeQueue; return page.evaluate(() => readTerminal());};
@@ -196,7 +209,7 @@ try {
         status='UNSTABLE_CAPTURE'; result=1;
         lock.attempts.push({origin,scenario,status,reason:'VT grid changed during PNG capture'});
       }
-      fs.writeFileSync(name+'.vt', Buffer.concat(chunks));
+      fs.writeFileSync(name+'.vt', Buffer.concat(chunks[generation]));
       lock.captures.push({origin,scenario,status,environment_id:environment,
         cells_sha256:sha(fs.readFileSync(name+'.cells.json')),png_sha256:sha(fs.readFileSync(name+'.png')),
         path:path.relative(output,name)});
@@ -270,7 +283,95 @@ try {
          record('tab-added',added,'old tab + synthetic New session on Home, old transcript absent',addedPredicate(tabObserve(added)));
           if(await capture('tab-added',added,'CAPTURED_TAB_ADDED') !== 'CAPTURED_TAB_ADDED')
             throw Error('Unstable tab-added frame');
-          if(tabClose) {
+           if(tabRestart) {
+             const checks=[], file=path.join(dir,'tab-restart-checks.json');
+             const counts=()=>({transcripts:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length,
+               titles:logs.filter(e=>e.kind==='provider' && e.operation==='title').length,
+               invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});
+             lock.tab_restart_interactions ??= {};
+             lock.tab_restart_interactions[origin]={status:'IN_PROGRESS',checks};
+             const check=(stage,f,passed,extra={})=>{
+               checks.push({stage,passed,...restartObserve(f),counts:counts(),...extra});
+               fs.writeFileSync(file,JSON.stringify(checks,null,2)+'\n');
+               json('capture.lock.json',lock);
+               if(!passed) throw Error('Tab restart predicate failed: '+stage);
+             };
+             const pointClick=(stage,p)=>{
+               const down=`\x1b[<0;${p.x+1};${p.y+1}M`,up=`\x1b[<0;${p.x+1};${p.y+1}m`;
+               checks.push({stage:stage+'-click',point:p,down_base64:Buffer.from(down).toString('base64'),up_base64:Buffer.from(up).toString('base64')});
+               fs.writeFileSync(file,JSON.stringify(checks,null,2)+'\n');
+               send(down,stage+'_mouse_down');send(up,stage+'_mouse_up');
+             };
+             send('\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\x1b[201~','second_prompt_paste');
+             await sleep(200);send('\r','second_submit');
+             const secondReady=f=>{const c=restartObserve(f);return c.old.length===1 && c.second.length===1 && c.add.length===1 &&
+               c.old[0].x<c.second[0].x && c.second[0].x<c.add[0].x && c.second_content && !c.old_content &&
+                counts().transcripts===4 && counts().titles===2 && counts().invalid===0;};
+             const second=await waitFor(secondReady,'second real read transcript and two ordered tabs');
+             check('second-real-session',second,secondReady(second));
+             await capture('tab-second-completed',second,'CAPTURED_SECOND_REAL_SESSION');
+             pointClick('select-old',restartObserve(await frame()).old[0]);
+             const oldReady=f=>{const c=restartObserve(f);return c.old.length===1 && c.second.length===1 && c.add.length===1 &&
+               c.old[0].x<c.second[0].x && c.second[0].x<c.add[0].x && c.old_content && !c.second_content;};
+             const prequit=await waitFor(oldReady,'old selected with second real tab');
+             check('prequit-old-selected',prequit,oldReady(prequit));
+             await capture('tab-prequit-old',prequit,'CAPTURED_PREQUIT');
+             const baseline=counts();
+             check('two-completed-sessions',prequit,baseline.transcripts===4 && baseline.titles===2 &&
+               logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length===4 &&
+               logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length===2 && baseline.invalid===0,
+               {baseline});
+             // app.exit: ctrl+c,ctrl+d,<leader>q (pinned packages/tui/src/config/keybind.ts:48).
+             // Native app.exit also accepts Ctrl+D at an empty idle composer.
+             send('\x04','graceful_app_exit_ctrl_d');
+             const deadline=Date.now()+15000;
+             while(!logs.some(e=>e.kind==='exit' && e.generation===0) && Date.now()<deadline) await sleep(100);
+             const exit=logs.find(e=>e.kind==='exit' && e.generation===0);
+             check('graceful-exit',prequit,!!exit && exit.code===0 && exit.termination==='natural',
+               {exit,baseline,source:'pinned packages/tui/src/config/keybind.ts:48; native crates/oc-tui/src/events.rs'});
+             fs.writeFileSync(path.join(dir,'prequit.raw.vt'),Buffer.concat(chunks[0]));
+             fs.writeFileSync(path.join(dir,'prequit.protocol.json'),JSON.stringify(logs,null,2)+'\n');
+             fs.writeFileSync(path.join(dir,'prequit.inputs.json'),JSON.stringify(inputs,null,2)+'\n');
+             prequitBoundary={logs:logs.length,inputs:inputs.length};
+             generation=1;
+             await writeQueue;
+             await page.evaluate(()=>term.reset());
+             child.stdin.write(JSON.stringify({kind:'relaunch'})+'\n');
+             const noRequests=()=>JSON.stringify(counts())===JSON.stringify(baseline);
+             const restored=await waitFor(f=>{const c=restartObserve(f);return c.old.length===1 && c.second.length===1 &&
+               c.old[0].x<c.second[0].x && ((oldReady(f)) || (c.new_title.length===1 && c.home_prompt &&
+                 !c.old_content && !c.second_content)) && noRequests() &&
+               logs.some(e=>e.kind==='relaunch' && e.generation===1);},
+               'restored ordered real tabs and observed selection without provider requests');
+             const selectedOld=oldReady(restored);
+              // Standalone v2.0.12 starts at Home when no initial route is
+              // supplied (context/route.tsx), even with stored real tabs.
+              const selectedHome=!selectedOld && restartObserve(restored).new_title.length===1;
+              checks.push({stage:'restored-entry-selection',passed:selectedHome,observed:selectedOld?'old':'synthetic_home',
+               ...restartObserve(restored),baseline,counts:counts()});
+             fs.writeFileSync(file,JSON.stringify(checks,null,2)+'\n');
+             lock.tab_restart_interactions[origin].selection=selectedOld?'old':'synthetic_home';
+             json('capture.lock.json',lock);
+             await capture('tab-restored-entry',restored,'CAPTURED_RESTORED_ENTRY');
+             if(!selectedOld) pointClick('restored-select-old',restartObserve(await frame()).old[0]);
+             const restoredOld=selectedOld?restored:await waitFor(f=>oldReady(f) && noRequests(),
+               'old history restored by real click without provider requests');
+             check('restored-old-history',restoredOld,oldReady(restoredOld) && noRequests(),{baseline});
+             await capture('tab-restored-old',restoredOld,'CAPTURED_RESTORED_OLD');
+             pointClick('restored-select-second',restartObserve(await frame()).second[0]);
+             const other=await waitFor(f=>{const c=restartObserve(f);return c.second_content && !c.old_content &&
+               c.old.length===1 && c.second.length===1 && c.add.length===1 &&
+               c.old[0].x<c.second[0].x && c.second[0].x<c.add[0].x && JSON.stringify(counts())===JSON.stringify(baseline);},
+               'restored second history via real click, no provider requests');
+             check('restored-second-click',other,JSON.stringify(counts())===JSON.stringify(baseline),{baseline});
+             await capture('tab-restored-second',other,'CAPTURED_RESTORED_SECOND');
+             check('post-capture-no-requests',await frame(),noRequests(),{baseline});
+              lock.tab_restart_interactions[origin].status=selectedHome?'PASS':'DIFFERENT_SELECTION';
+              json('capture.lock.json',lock);
+              lock.attempts.push({origin,status:selectedHome?'TAB_RESTART_CHECKS_PASS':'TAB_RESTART_SELECTION_DIFFERENT',
+                selected_on_relaunch:selectedOld?'old':'synthetic_home',predicates:checks.filter(c=>c.passed).map(c=>c.stage),baseline,after:counts()});
+              if(!selectedHome) result=1;
+           } else if(tabClose) {
             const closeChecks = [];
             const counts = () => ({provider_requests:logs.filter(e=>e.kind==='provider').length,
               provider_completed:logs.filter(e=>e.kind==='provider_completed').length,
@@ -345,7 +446,7 @@ try {
             saveClose();
             lock.attempts.push({origin,status:'TAB_CLOSE_CHECKS_PASS',provider_counts:counts(),
               predicates:closeChecks.filter(c=>c.passed===true).map(c=>c.stage)});
-          } else {
+           } else {
             const beforeReturn=await frame();
             const returning=tabObserve(beforeReturn);
             record('before-return',beforeReturn,'retained old tab uniquely painted on Home',addedPredicate(returning));
@@ -514,12 +615,27 @@ try {
       result=1; lock.attempts.push({origin,status:'FAILED',reason:e.message});
       if(tabClick && lock.tab_interactions?.[origin]) lock.tab_interactions[origin].status='FAILED';
       if(tabClose && lock.tab_close_interactions?.[origin]) lock.tab_close_interactions[origin].status='FAILED';
+      if(tabRestart && lock.tab_restart_interactions?.[origin]) lock.tab_restart_interactions[origin].status='FAILED';
       await capture('failure-diagnostic',await frame(),'FAILED_STATE');
     } finally {
       if(!child.stdin.destroyed) child.stdin.write(JSON.stringify({kind:'stop'})+'\n');
       await closed;
       await writeQueue;
-      fs.writeFileSync(path.join(dir,'raw.vt'),Buffer.concat(chunks));
+      fs.writeFileSync(path.join(dir,'raw.vt'),Buffer.concat(chunks.flat()));
+      if(tabRestart && prequitBoundary) {
+        fs.writeFileSync(path.join(dir,'restored.raw.vt'),Buffer.concat(chunks[1]));
+        fs.writeFileSync(path.join(dir,'restored.protocol.json'),JSON.stringify(logs.slice(prequitBoundary.logs),null,2)+'\n');
+        fs.writeFileSync(path.join(dir,'restored.inputs.json'),JSON.stringify(inputs.slice(prequitBoundary.inputs),null,2)+'\n');
+        lock.generations ??= {};
+        lock.generations[origin]=['prequit','restored'].map((name,g)=>({generation:g,
+          root:isolated,project:path.join(isolated,'project'),home:path.join(isolated,origin,'home'),
+          executable_sha256:hash,bridge_spec_sha256:sha(fs.readFileSync(path.join(dir,'bridge-spec.json'))),
+          source_manifest_sha256:lock.oc.source_manifest_sha256,
+          raw_vt_sha256:sha(fs.readFileSync(path.join(dir,name+'.raw.vt'))),
+          protocol_sha256:sha(fs.readFileSync(path.join(dir,name+'.protocol.json'))),
+          inputs_sha256:sha(fs.readFileSync(path.join(dir,name+'.inputs.json')))}));
+        json('capture.lock.json',lock);
+      }
       fs.writeFileSync(path.join(dir,'protocol.json'),JSON.stringify(logs,null,2)+'\n');
       fs.writeFileSync(path.join(dir,'inputs.json'),JSON.stringify(inputs,null,2)+'\n');
       fs.writeFileSync(path.join(dir,'bridge.stderr.txt'),bridgeError);

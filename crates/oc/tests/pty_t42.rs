@@ -1004,6 +1004,18 @@ fn deck_record(fixture: &Fixture, project: &Path) -> Option<String> {
         .unwrap()
 }
 
+/// Read the preference while the TUI owns the data root, without attempting
+/// to acquire the application's exclusive Db lock.
+fn live_deck_record(fixture: &Fixture, project: &Path) -> String {
+    let conn = rusqlite::Connection::open(fixture.data_dir().join("oc.sqlite")).unwrap();
+    conn.query_row(
+        "SELECT value FROM prefs WHERE key = ?1",
+        [deck_key(project)],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
 fn session_selection_key(project: &Path, session: &str) -> String {
     format!(
         "tui.selection.session:{}",
@@ -1062,6 +1074,14 @@ fn immediate_ctrl_c_after_first_home_submit_restores_committed_root_on_restart()
     let requests = fixture.requests.lock().unwrap().len();
 
     let mut reopened = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&reopened, "Ask anything", DEADLINE);
+    assert!(
+        !render_screen(&reopened.snapshot())
+            .rows()
+            .join("\n")
+            .contains("quit first turn")
+    );
+    click(&mut reopened, 10, 1);
     wait_screen_row(&reopened, "quit first turn", DEADLINE);
     quit(&mut reopened);
     assert_eq!(metrics(&path)["session"], root);
@@ -1116,6 +1136,8 @@ fn corrupt_parked_selection_keeps_good_tabs_and_original_preference() {
 
     let mut restored = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
     wait_screen_row(&restored, "saved tabs partially unavailable", DEADLINE);
+    wait_screen_row(&restored, "Ask anything", DEADLINE);
+    click(&mut restored, 10, 1);
     wait_screen_row(&restored, "good retained prompt", DEADLINE);
     restored.send(b"/new\r");
     wait_screen_row(&restored, "tab deck could not be saved", DEADLINE);
@@ -1189,6 +1211,7 @@ fn explicit_child_is_standalone_read_only_and_preserves_saved_home() {
     drop(db);
     let mut home = PtySession::spawn(fixture.clone(), &project, &[], None);
     home.wait_visible(READY, DEADLINE);
+    click(&mut home, 10, 1);
     home.send(b"/new\r");
     wait_screen_row(&home, "New session", DEADLINE);
     quit(&mut home);
@@ -1320,7 +1343,36 @@ fn persisted_deck_restores_order_home_close_and_explicit_session_without_new_wor
     let requests = fixture.requests.lock().unwrap().len();
 
     let mut restart = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&restart, "Ask anything", DEADLINE);
+    assert!(
+        !render_screen(&restart.snapshot())
+            .rows()
+            .join("\n")
+            .contains("first deck prompt")
+    );
+    assert_eq!(live_deck_record(&fixture, &project), saved_raw);
+    assert_eq!(
+        journal_counts(&fixture),
+        counts,
+        "Home did not create a root"
+    );
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+    click(&mut restart, 45, 1);
+    wait_screen_row(&restart, "second deck prompt", DEADLINE);
+    assert!(
+        !render_screen(&restart.snapshot())
+            .rows()
+            .join("\n")
+            .contains("first deck prompt")
+    );
+    click(&mut restart, 10, 1);
     wait_screen_row(&restart, "first deck prompt", DEADLINE);
+    assert!(
+        !render_screen(&restart.snapshot())
+            .rows()
+            .join("\n")
+            .contains("second deck prompt")
+    );
     assert!(render_screen(&restart.snapshot()).rows()[0].contains("Fixture session title"));
     let bad = fixture.root.path().join("invalid-deck-location");
     std::fs::create_dir(&bad).unwrap();
@@ -1348,8 +1400,17 @@ fn persisted_deck_restores_order_home_close_and_explicit_session_without_new_wor
     assert_eq!(restored["active_tab"], 0);
     assert_eq!(journal_counts(&fixture), counts);
     assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    assert_eq!(
+        db.read_history("first-deck-root").unwrap()[0].1,
+        "first deck prompt"
+    );
+    assert_eq!(db.read_history(&second).unwrap()[0].1, "second deck prompt");
+    drop(db);
 
     let mut home = PtySession::spawn(fixture.clone(), &project, &[], None);
+    wait_screen_row(&home, "Ask anything", DEADLINE);
+    click(&mut home, 10, 1);
     wait_screen_row(&home, "first deck prompt", DEADLINE);
     home.send(b"/new\r");
     wait_screen_row(&home, "New session", DEADLINE);
@@ -1385,6 +1446,8 @@ fn persisted_deck_restores_order_home_close_and_explicit_session_without_new_wor
     assert_eq!(metrics(&path)["session"], second);
 
     let mut close = PtySession::spawn(fixture.clone(), &project, &[], None);
+    wait_screen_row(&close, "Ask anything", DEADLINE);
+    click(&mut close, 45, 1);
     wait_screen_row(&close, "second deck prompt", DEADLINE);
     close.send(b"\x1b[<35;63;1M");
     wait_screen_row(&close, "✕", DEADLINE);
@@ -1409,6 +1472,8 @@ fn persisted_deck_restores_order_home_close_and_explicit_session_without_new_wor
         "closed root remains durable"
     );
     let mut after_close = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&after_close, "Ask anything", DEADLINE);
+    click(&mut after_close, 10, 1);
     wait_screen_row(&after_close, "first deck prompt", DEADLINE);
     quit(&mut after_close);
     assert_eq!(
@@ -1442,6 +1507,120 @@ fn persisted_deck_restores_order_home_close_and_explicit_session_without_new_wor
 }
 
 #[test]
+fn full_sixteen_real_tabs_restart_keeps_selected_route_and_all_ids() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let path = fixture.root.path().join("full-deck-metrics.json");
+    let mut seed = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "capacity-00"],
+        None,
+    );
+    seed.wait_visible(READY, DEADLINE);
+    quit(&mut seed);
+    let ids: Vec<_> = (0..16).map(|i| format!("capacity-{i:02}")).collect();
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    for id in ids.iter().skip(1) {
+        db.create_session(id).unwrap();
+        db.set_pref(
+            &format!("{}{}", oc_adapters::runtime::SESSION_LOCATION_PREFIX, id),
+            &project.canonicalize().unwrap().to_string_lossy(),
+        )
+        .unwrap();
+    }
+    let full =
+        serde_json::json!({"version": 1, "sessions": ids, "active": "capacity-12"}).to_string();
+    db.set_pref(&deck_key(&project), &full).unwrap();
+    drop(db);
+    let counts = journal_counts(&fixture);
+    let requests = fixture.requests.lock().unwrap().len();
+    let mut restart = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&restart, "tab limit reached", DEADLINE);
+    assert!(render_screen(&restart.snapshot()).rows()[0].contains("Untitled session"));
+    quit(&mut restart);
+    let result = metrics(&path);
+    assert_eq!(result["session"], "capacity-12");
+    assert_eq!(result["active_tab"], 12);
+    assert_eq!(result["tab_count"], 16);
+    assert_eq!(result["tab_ids"], serde_json::json!(ids));
+    assert_eq!(
+        deck_record(&fixture, &project).as_deref(),
+        Some(full.as_str())
+    );
+    assert_eq!(journal_counts(&fixture), counts);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+}
+
+#[test]
+fn full_saved_deck_with_unreadable_parked_tab_opens_home_without_rewriting_preference() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let path = fixture.root.path().join("projected-full-deck-metrics.json");
+    let mut seed = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "capacity-00"],
+        None,
+    );
+    seed.wait_visible(READY, DEADLINE);
+    quit(&mut seed);
+    let ids: Vec<_> = (0..16).map(|i| format!("capacity-{i:02}")).collect();
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    for id in ids.iter().skip(1) {
+        db.create_session(id).unwrap();
+        db.set_pref(
+            &format!("{}{}", oc_adapters::runtime::SESSION_LOCATION_PREFIX, id),
+            &project.canonicalize().unwrap().to_string_lossy(),
+        )
+        .unwrap();
+    }
+    let full =
+        serde_json::json!({"version": 1, "sessions": ids, "active": "capacity-12"}).to_string();
+    db.set_pref(&deck_key(&project), &full).unwrap();
+    db.set_pref(&session_selection_key(&project, "capacity-07"), "not-json")
+        .unwrap();
+    drop(db);
+    let counts = journal_counts(&fixture);
+    let requests = fixture.requests.lock().unwrap().len();
+
+    let mut restart = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&restart, "saved tabs partially unavailable", DEADLINE);
+    wait_screen_row(&restart, "Ask anything", DEADLINE);
+    assert!(
+        !render_screen(&restart.snapshot())
+            .rows()
+            .join("\n")
+            .contains("tab limit reached")
+    );
+    assert_eq!(live_deck_record(&fixture, &project), full);
+    click(&mut restart, 10, 1);
+    wait_screen_row(&restart, "tab deck could not be saved", DEADLINE);
+    restart.send(b"/new\r");
+    wait_screen_row(&restart, "Ask anything", DEADLINE);
+    assert_eq!(live_deck_record(&fixture, &project), full);
+    quit(&mut restart);
+    let result = metrics(&path);
+    assert!(result["session"].is_null());
+    assert!(result["active_tab"].is_null());
+    assert_eq!(result["tab_count"], 15);
+    assert_eq!(
+        result["tab_ids"],
+        serde_json::json!(
+            ids.into_iter()
+                .filter(|id| id != "capacity-07")
+                .collect::<Vec<_>>()
+        )
+    );
+    assert_eq!(
+        deck_record(&fixture, &project).as_deref(),
+        Some(full.as_str())
+    );
+    assert_eq!(journal_counts(&fixture), counts);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+}
+
+#[test]
 fn concurrent_sqlite_deck_edit_cannot_be_overwritten_by_restored_tui() {
     let fixture = Fixture::new();
     let project = fixture.project_a();
@@ -1464,6 +1643,8 @@ fn concurrent_sqlite_deck_edit_cannot_be_overwritten_by_restored_tui() {
 
     let mut restored = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
     restored.wait_visible(READY, DEADLINE);
+    click(&mut restored, 10, 1);
+    wait_screen_row(&restored, READY, DEADLINE);
     // A second SQLite client edits exactly the preference the running TUI
     // loaded. The owner must reject the TUI's now-stale expected revision.
     let replacement = serde_json::json!({
@@ -1553,6 +1734,8 @@ fn deck_location_isolation_and_corrupt_preference_are_safe_on_restart() {
     let requests = fixture.requests.lock().unwrap().len();
 
     let mut beta_restart = PtySession::spawn(fixture.clone(), &beta, &[], Some(&path));
+    wait_screen_row(&beta_restart, "Ask anything", DEADLINE);
+    click(&mut beta_restart, 10, 1);
     wait_screen_row(&beta_restart, "beta location prompt", DEADLINE);
     assert!(
         !render_screen(&beta_restart.snapshot())
@@ -1569,6 +1752,8 @@ fn deck_location_isolation_and_corrupt_preference_are_safe_on_restart() {
     // A saved Home on B remains selected even when the switch originates
     // from A's real tab; B's parked tab must remain available in order.
     let mut roaming = PtySession::spawn(fixture.clone(), &beta, &[], None);
+    wait_screen_row(&roaming, "Ask anything", DEADLINE);
+    click(&mut roaming, 10, 1);
     wait_screen_row(&roaming, "beta location prompt", DEADLINE);
     roaming.send(b"/new\r");
     wait_screen_row(&roaming, "New session", DEADLINE);

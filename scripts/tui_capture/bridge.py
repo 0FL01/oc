@@ -41,6 +41,7 @@ elif spec.get('sample') == 'rows':
 catalog = json.loads((fixture / 'model-catalog.json').read_text())
 title = json.loads((fixture / 'scenarios.json').read_text())['base']['title']
 transcript_round = 0
+title_round = 0
 round_lock = threading.Lock()
 
 
@@ -49,7 +50,7 @@ class Provider(BaseHTTPRequestHandler):
         pass
 
     def do_POST(self):
-        global transcript_round
+        global transcript_round, title_round
         body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
         serialized = json.dumps(body, ensure_ascii=False)
         valid = self.path == '/v1/responses' and body.get('model') == 'fixture-model-1' and body.get('stream') is True
@@ -59,15 +60,21 @@ class Provider(BaseHTTPRequestHandler):
                     (not body.get('tools') and body.get('max_output_tokens') == 256 and
                       'title' in system.lower()))
         with round_lock:
-            round_number = transcript_round
-            if not is_title:
+            tool_results = [x for x in body.get('input', []) if x.get('type') == 'function_call_output']
+            round_number = 1 if tool_results else 0
+            turn_number = transcript_round - 1 if tool_results else transcript_round
+            if is_title:
+                title_round += 1
+                turn_number = title_round - 1
+            elif not tool_results:
                 transcript_round += 1
-        text = title if is_title else answer
+        second = spec.get('tab_restart') and turn_number > 0
+        text = (('Second fixture session' if second else title) if is_title else
+                ('GEOMETRY-SECOND: tool read completed.' if second else answer))
         valid = valid and (is_title or prompt in serialized)
         profile_prompt_present = profile_prompt is not None and profile_prompt in system
         if profile_id and not is_title:
             valid = valid and profile_prompt_present
-        tool_results = [x for x in body.get('input', []) if x.get('type') == 'function_call_output']
         if spec.get('sample') == 'tools' and not is_title:
             valid = valid and 'read' in [x.get('name') for x in body.get('tools', [])]
             if round_number:
@@ -248,48 +255,83 @@ def session():
     fcntl.ioctl(0, termios.TIOCSCTTY, 0)
 
 
-child = subprocess.Popen(argv, stdin=slave, stdout=slave, stderr=slave, cwd=project, env=env, preexec_fn=session)
-os.close(slave)
 pending = b''
+generation = 0
 try:
-    while child.poll() is None:
-        ready, _, _ = select.select([master, sys.stdin], [], [], .1)
-        if master in ready:
+    while True:
+        if generation:
+            master, slave = pty.openpty()
+            fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', spec['rows'], spec['columns'], 0, 0))
+        child = subprocess.Popen(argv, stdin=slave, stdout=slave,
+                                 stderr=slave, cwd=project, env=env, preexec_fn=session)
+        os.close(slave)
+        forced = False
+        try:
+            while child.poll() is None:
+                ready, _, _ = select.select([master, sys.stdin], [], [], .1)
+                if master in ready:
+                    try:
+                        data = os.read(master, 65536)
+                    except OSError:
+                        break
+                    if data:
+                        emit({'kind': 'output', 'generation': generation, 'data': base64.b64encode(data).decode()})
+                if sys.stdin in ready:
+                    data = os.read(sys.stdin.fileno(), 65536)
+                    if not data:
+                        forced = True
+                        break
+                    pending += data
+                    while b'\n' in pending:
+                        line, pending = pending.split(b'\n', 1)
+                        command = json.loads(line)
+                        if command['kind'] == 'input':
+                            os.write(master, base64.b64decode(command['data']))
+                        elif command['kind'] == 'resize':
+                            fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', command['rows'], command['columns'], 0, 0))
+                            os.killpg(child.pid, signal.SIGWINCH)
+                            emit({'kind': 'resize', 'columns': command['columns'], 'rows': command['rows']})
+                        elif command['kind'] == 'stop':
+                            forced = True
+                    if forced:
+                        break
+        finally:
+            # The PTY master can report EIO just before waitpid observes a
+            # normal app.exit. Give that exit a bounded chance to complete;
+            # otherwise a graceful quit is misclassified as forced teardown.
+            if not forced and child.poll() is None:
+                try:
+                    child.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    pass
+            if child.poll() is None:
+                forced = True
+                os.killpg(child.pid, signal.SIGTERM)
             try:
-                data = os.read(master, 65536)
-            except OSError:
-                break
-            if data:
-                emit({'kind': 'output', 'data': base64.b64encode(data).decode()})
-        if sys.stdin in ready:
-            data = os.read(sys.stdin.fileno(), 65536)
-            if not data:
-                break
-            pending += data
-            stop = False
-            while b'\n' in pending:
-                line, pending = pending.split(b'\n', 1)
-                command = json.loads(line)
-                if command['kind'] == 'input':
-                    os.write(master, base64.b64decode(command['data']))
-                elif command['kind'] == 'resize':
-                    fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', command['rows'], command['columns'], 0, 0))
-                    os.killpg(child.pid, signal.SIGWINCH)
-                    emit({'kind': 'resize', 'columns': command['columns'], 'rows': command['rows']})
-                elif command['kind'] == 'stop':
-                    stop = True
-            if stop:
-                break
+                child.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                forced = True
+                os.killpg(child.pid, signal.SIGKILL)
+                child.wait()
+            # Drain the exited PTY before telling the frontend the generation ended.
+            while select.select([master], [], [], 0)[0]:
+                try:
+                    data = os.read(master, 65536)
+                except OSError:
+                    break
+                if not data:
+                    break
+                emit({'kind': 'output', 'generation': generation, 'data': base64.b64encode(data).decode()})
+            os.close(master)
+            emit({'kind': 'exit', 'generation': generation, 'code': child.returncode,
+                  'termination': 'forced_stop' if forced else 'natural'})
+        if forced or not spec.get('tab_restart'):
+            break
+        # The same bridge/server/config/project and XDG roots survive the first exit.
+        command = json.loads(sys.stdin.readline())
+        if command.get('kind') != 'relaunch' or generation:
+            break
+        generation += 1
+        emit({'kind': 'relaunch', 'generation': generation, 'argv': argv, 'cwd': str(project)})
 finally:
-    try:
-        os.killpg(child.pid, signal.SIGTERM)
-    except ProcessLookupError:
-        pass
-    try:
-        child.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        os.killpg(child.pid, signal.SIGKILL)
-        child.wait()
-    os.close(master)
     server.shutdown()
-    emit({'kind': 'exit', 'code': child.returncode})

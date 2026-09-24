@@ -91,14 +91,22 @@ for session in [None, 'empty']:
     child, fd = launch(session)
     try:
         initial = drain(fd, .8)
-        # Bare launch restores the previously opened 'wrapped' real tab;
-        # an explicit empty session selects its own tab without losing the deck.
-        assert '█▀▀█' not in initial, initial
-        assert 'Context' in initial, initial
-        assert ('LAST-ANCHOR' in initial) == (session is None), initial
+        # A bare restart retains both real tabs but defaults to synthetic Home;
+        # --session explicitly selects the requested empty session instead.
+        if session is None:
+            assert '█▀▀█' in initial and 'New session' in initial, initial
+            assert 'Context' not in initial and 'LAST-ANCHOR' not in initial, initial
+            # The wrapped session is the second retained root; the first
+            # tab contains the separate ROW-* fixture.
+            os.write(fd, b'\x1b[<0;45;1M\x1b[<0;45;1m')
+            selected = drain(fd, .8)
+            assert 'LAST-ANCHOR' in selected and 'Context' in selected, selected
+        else:
+            assert '█▀▀█' not in initial and 'Context' in initial, initial
+            assert 'LAST-ANCHOR' not in initial, initial
     finally:
         stop(child, fd)
-print('bare retained tab and explicit empty session PASS')
+print('bare Home, restored history click and explicit empty session PASS')
 
 child, fd = launch('foreign')
 failed = drain(fd, .8)

@@ -196,6 +196,39 @@ to remain unchanged. Separate `tab-close-hovered-before` and
 are retained. This replaces the old-tab return click only for this opt-in;
 interaction success is not a whole-frame parity claim.
 
+For a paired **real two-session restart**, use the same Reader/tools 120×40
+command with `--tab-click true --tab-restart true` and a fresh output path
+(without `--tab-close` or `--exploration-click`). After the first real read,
+the runner clicks `+`, pastes/submits the fixture prompt on synthetic Home,
+and requires a second, independently titled real session and a second read
+tool round-trip. It clicks the old tab, captures `tab-prequit-old`, and sends
+Ctrl+D through the PTY. This is the pinned original `app.exit` binding
+(`packages/tui/src/config/keybind.ts:48`), also supported by native on an
+idle empty composer. The bridge records `exit` code and `termination:natural`;
+`stop` still forces teardown and cannot satisfy graceful-exit verification.
+Only after exit code 0 does the same bridge relaunch the **same executable**
+with the same HOME/XDG/project/config/server (no seeded root/import). Both
+PTY generations have separate raw VT, protocol and input files and hashes
+in `capture.lock.json` under `generations`; every frame has its own VT suffix,
+styled cells and PNG. The prequit and restored entry, old history and other
+history (via actual painted tab clicks) are compared separately for grid/PNG.
+Provider transcript and title counts must remain unchanged after relaunch
+and clicks. `tab-restart-checks.json` records tab order, history markers,
+observed selection and provider counts independently per side. In the pinned
+v2.0.12 executable, two real tabs persist but a bare startup selects a *new
+synthetic Home* rather than the old tab selected before exit. Native now follows
+that observed route while preserving its saved IDs; `TAB_RESTART_CHECKS_PASS`
+requires Home on both sides. Any other entry route is reported separately as
+`TAB_RESTART_SELECTION_DIFFERENT`; clicking old and second histories verifies
+their replay without provider requests. No selection mismatch is labelled PASS, and
+comparator exit 1 means differing cells/pixels rather than a fixture failure.
+The fixture asserts exactly four transcript requests/completions and two title
+requests/completions on each side before quit; a relaunch/click must add none.
+Independently randomized Home examples and real elapsed-time fields can differ
+even with the same selected route, so those frames remain diagnostic unless
+their underlying visible state happens to match. No masking or fixed-clock
+substitution is used to turn such a comparison into a parity claim.
+
 `--tabs vertical --columns 162` and `--columns 163` check both sides of the
 42-cell rail-adjusted auto-sidebar breakpoint using text **and styled blank
 backgrounds**. `--devtools unset` omits the explicit override; native debug builds

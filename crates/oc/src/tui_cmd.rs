@@ -621,6 +621,7 @@ async fn restore_views(
     active: Option<SessionId>,
     explicit: Option<&SessionId>,
     home: Option<TuiState>,
+    prefer_home_when_space: bool,
 ) -> Result<TuiState, StartupFailure> {
     let mut views = Vec::with_capacity(ids.len());
     for id in ids {
@@ -630,9 +631,13 @@ async fn restore_views(
             Err(_) => deck.save_disabled = true,
         }
     }
-    let active_index = active
-        .as_ref()
-        .and_then(|id| views.iter().position(|(candidate, _)| candidate == id));
+    let active_index = if prefer_home_when_space && views.len() < MAX_TABS {
+        None
+    } else {
+        active
+            .as_ref()
+            .and_then(|id| views.iter().position(|(candidate, _)| candidate == id))
+    };
     let mut state = if let Some(index) = active_index {
         deck.active_tab = Some(index);
         views.remove(index).1
@@ -744,7 +749,26 @@ async fn restore_initial(
         save_explicit = active.as_ref() != Some(id);
         active = Some(id.clone());
     }
-    let mut state = restore_views(app, &mut deck, ids, active, explicit.as_ref(), None).await?;
+    // With no explicit route the original TUI starts on Home even when the
+    // preference remembers a selected real tab. Keep that preference and all
+    // parked views intact; only a user route change writes a new selection.
+    // A full usable deck has no slot for synthetic Home, so retain its saved
+    // active route. Decide after loading: an unreadable parked tab frees a
+    // slot, but must never cause the hidden saved preference to be rewritten.
+    let prefer_home_when_space = explicit.is_none();
+    let mut state = restore_views(
+        app,
+        &mut deck,
+        ids,
+        active,
+        explicit.as_ref(),
+        None,
+        prefer_home_when_space,
+    )
+    .await?;
+    if prefer_home_when_space && deck.tabs.len() == MAX_TABS {
+        state.push_note("tab limit reached; Home unavailable until a tab is closed");
+    }
     if deck.save_disabled && explicit.as_ref().is_some_and(|id| !valid_tab_id(&id.0)) {
         state.push_note("legacy session id cannot be saved; review saved tabs");
     }
@@ -1223,6 +1247,7 @@ async fn adopt_location(
                 snapshot.active,
                 None,
                 Some(home),
+                false,
             )
             .await
             .expect("published Home is already available");
@@ -1656,16 +1681,33 @@ mod tests {
                     ack.send(Ok(catalog())).unwrap();
                 }
             }
+            let Some(InboxMsg::HomeSelection { action, ack }) = inbox.recv().await else {
+                panic!("bare route queries Home selection")
+            };
+            assert_eq!(action, SelectionAction::Current);
+            ack.send(Ok(catalog())).unwrap();
             assert!(inbox.try_recv().is_err(), "filtered route was written");
         });
         let (mut state, mut deck) = restore_initial(&app, None).await.unwrap();
         deck.sync_tabs(&mut state);
-        assert_eq!(state.session().0, "good");
+        assert!(
+            state.attached_session().is_none(),
+            "bare restart opens Home"
+        );
         assert_eq!(deck.tabs.len(), 2);
         assert_eq!(
             state.note(),
             Some("saved tabs partially unavailable; review saved tabs")
         );
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::ActivateTab { index: 0 },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.session().0, "good");
         apply_intent(
             &app,
             &mut state,
@@ -1983,6 +2025,54 @@ mod tests {
         assert!(state.attached_session().is_none());
         assert_eq!(deck.revision.as_deref(), Some("rev-home"));
         assert!(!deck.can_open_session(), "Home consumes the remaining slot");
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn bare_restart_with_full_real_deck_keeps_all_ids_and_selected_route() {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::TabDeck { ack }) = inbox.recv().await else {
+                panic!("read full deck")
+            };
+            ack.send(Ok(TabDeckSnapshot {
+                location: "/fixture".into(),
+                revision: Some("full".into()),
+                sessions: (0..MAX_TABS)
+                    .map(|i| SessionId::new(format!("tab-{i}")).unwrap())
+                    .collect(),
+                active: Some(SessionId::new("tab-12").unwrap()),
+            }))
+            .unwrap();
+            for i in 0..MAX_TABS {
+                let Some(InboxMsg::History { session, ack, .. }) = inbox.recv().await else {
+                    panic!("read full history")
+                };
+                assert_eq!(session.0, format!("tab-{i}"));
+                ack.send(Ok(Default::default())).unwrap();
+                let Some(InboxMsg::SessionSelection { session, ack, .. }) = inbox.recv().await
+                else {
+                    panic!("read full selection")
+                };
+                assert_eq!(session.0, format!("tab-{i}"));
+                ack.send(Ok(catalog())).unwrap();
+            }
+            assert!(
+                inbox.try_recv().is_err(),
+                "no Home or preference write at capacity"
+            );
+        });
+        let (mut state, mut deck) = restore_initial(&app, None).await.unwrap();
+        deck.sync_tabs(&mut state);
+        assert_eq!(state.session().0, "tab-12");
+        assert_eq!(deck.active_tab, Some(12));
+        assert_eq!(state.tab_presentation().0.len(), MAX_TABS);
+        assert_eq!(deck.snapshot(&state).sessions.len(), MAX_TABS);
+        assert!(!deck.can_open_session());
+        assert_eq!(
+            state.note(),
+            Some("tab limit reached; Home unavailable until a tab is closed")
+        );
         worker.await.unwrap();
     }
 
