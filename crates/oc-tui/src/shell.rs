@@ -636,34 +636,42 @@ fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
     ));
     match state.context_usage() {
         Some((tokens, limit)) => {
-            lines.push(Line::from(format!("{} tokens", thousands(tokens))));
-            lines.push(Line::from(limit.map_or_else(
-                || "Limit unknown".into(),
-                |l| {
-                    format!(
-                        "{}% used",
-                        (tokens as f64 / l as f64 * 100.0).round() as u64
-                    )
-                },
-            )));
+            lines.push(Line::styled(
+                format!("{} tokens", thousands(tokens)),
+                Style::default().fg(theme.text_muted()),
+            ));
+            lines.push(Line::styled(
+                limit.map_or_else(
+                    || "Limit unknown".into(),
+                    |l| {
+                        format!(
+                            "{}% used",
+                            (tokens as f64 / l as f64 * 100.0).round() as u64
+                        )
+                    },
+                ),
+                Style::default().fg(theme.text_muted()),
+            ));
         }
-        None => lines.push(Line::from("Usage unknown")),
+        None => lines.push(Line::styled(
+            "Usage unknown",
+            Style::default().fg(theme.text_muted()),
+        )),
     }
-    frame.render_widget(
-        Paragraph::new(lines).style(Style::default().fg(theme.text_muted())),
-        inner,
-    );
+    frame.render_widget(Paragraph::new(lines), inner);
     if inner.height > 0 {
         frame.render_widget(
-            Paragraph::new(compact_path(
-                state
-                    .chrome
-                    .location
-                    .as_deref()
-                    .unwrap_or("Location unknown"),
-                inner.width as usize,
-            ))
-            .style(Style::default().fg(theme.text_muted())),
+            Paragraph::new(Line::styled(
+                compact_path(
+                    state
+                        .chrome
+                        .location
+                        .as_deref()
+                        .unwrap_or("Location unknown"),
+                    inner.width as usize,
+                ),
+                Style::default().fg(theme.text_muted()),
+            )),
             Rect {
                 y: inner.bottom() - 1,
                 height: 1,
@@ -882,8 +890,9 @@ fn render_transcript(frame: &mut Frame<'_>, state: &TuiState, area: Rect, termin
     if area.height == 0 || area.width == 0 {
         return;
     }
-    let (lines, total) = state.visible_transcript(area.width, terminal_width, area.height);
-    state.observe_viewport(area.height, total);
+    let (lines, total, scroll) =
+        state.visible_transcript_at_viewport(area.width, terminal_width, area.height);
+    state.observe_transcript_viewport(area.width, terminal_width, area.height, total, scroll);
     let text = crate::styled::Lines::from(lines).into_text();
     frame.render_widget(Paragraph::new(text), area);
 }
@@ -1012,23 +1021,30 @@ fn render_prompt(
                 ));
             }
         }
-        if body.height > 3
-            && let Some(line) = metadata_line(state, theme, terminal_width)
-        {
+        if body.height > 3 {
             let metadata = row(body.height - 1);
-            let text_width = (line.width() as u16).min(metadata.width);
-            frame.render_widget(
-                Block::default()
-                    .style(Style::default().fg(Color::Rgb(255, 255, 255)).bg(prompt_bg)),
-                metadata,
-            );
-            frame.render_widget(
-                Paragraph::new(line).style(Style::default().bg(prompt_bg)),
-                Rect {
-                    width: text_width,
-                    ..metadata
-                },
-            );
+            let upstream_limit =
+                terminal_width.saturating_sub(if terminal_width < 44 { 9 } else { 13 });
+            if let Some(line) = metadata_line(
+                state,
+                theme,
+                metadata.width.min(upstream_limit),
+                terminal_width,
+            ) {
+                let text_width = (line.width() as u16).min(metadata.width);
+                frame.render_widget(
+                    Block::default()
+                        .style(Style::default().fg(Color::Rgb(255, 255, 255)).bg(prompt_bg)),
+                    metadata,
+                );
+                frame.render_widget(
+                    Paragraph::new(line).style(Style::default().bg(prompt_bg)),
+                    Rect {
+                        width: text_width,
+                        ..metadata
+                    },
+                );
+            }
         }
     }
     if underline.height > 0 && underline.width > 0 {
@@ -1058,20 +1074,86 @@ fn clip_placeholder(text: &str, width: usize) -> &str {
     &text[..end]
 }
 
-/// Prompt metadata row (`component/prompt/metadata.tsx:53-99`): `agent · model
-/// provider · variant`; below 44 columns the agent and provider are dropped.
-fn metadata_line(state: &TuiState, theme: &Theme, width: u16) -> Option<Line<'static>> {
-    let agent = layout::shows_agent_metadata(width)
+/// Prompt metadata candidates (`component/prompt/metadata.tsx:101-146`) fit
+/// the painted text rectangle; the 44-column breakpoint uses terminal width.
+fn metadata_line(
+    state: &TuiState,
+    theme: &Theme,
+    width: u16,
+    terminal_width: u16,
+) -> Option<Line<'static>> {
+    let agent = layout::shows_agent_metadata(terminal_width)
         .then(|| state.active_agent())
         .flatten();
     let model = state.active_model_label();
-    let provider = layout::shows_agent_metadata(width)
+    let provider = layout::shows_agent_metadata(terminal_width)
         .then(|| state.active_provider())
-        .flatten();
+        .flatten()
+        .unwrap_or_default();
     let variant = model.as_ref().and_then(|(_, variant)| variant.clone());
     if agent.is_none() && model.is_none() {
         return None;
     }
+    let auto = layout::shows_agent_metadata(terminal_width)
+        && state.auto_accept == oc_core::queries::AutoAcceptState::Enabled;
+    let mut model_label = model
+        .as_ref()
+        .map_or("", |(name, _)| name.as_str())
+        .to_string();
+    let short_provider = provider.rsplit(" / ").next().unwrap_or(provider);
+    let fits = |auto, provider: &str| {
+        let mut parts = Vec::new();
+        if let Some(agent) = agent.filter(|agent| !agent.is_empty()) {
+            parts.push(agent);
+        }
+        if auto {
+            parts.push("auto");
+        }
+        if !model_label.is_empty() {
+            if agent.is_some() {
+                parts.push("·");
+            }
+            parts.push(model_label.as_str());
+        }
+        if !provider.is_empty() {
+            parts.push(provider);
+        }
+        if let Some(variant) = variant.as_deref().filter(|variant| !variant.is_empty()) {
+            parts.extend(["·", variant]);
+        }
+        UnicodeWidthStr::width(parts.join(" ").as_str()) <= width as usize
+    };
+    let (show_auto, provider) = [
+        (auto, provider),
+        (false, provider),
+        (false, short_provider),
+        (false, ""),
+    ]
+    .into_iter()
+    .find(|(auto, provider)| fits(*auto, provider))
+    .unwrap_or_else(|| {
+        // `Locale.truncateWidth`, including the upstream minimum of nine
+        // cells and trimming whitespace just before the ellipsis.
+        let prefix = agent.map_or(0, |agent| UnicodeWidthStr::width(agent) + 3);
+        let suffix = variant
+            .as_ref()
+            .map_or(0, |variant| UnicodeWidthStr::width(variant.as_str()) + 3);
+        let available = (width as usize).saturating_sub(prefix + suffix).max(9);
+        if UnicodeWidthStr::width(model_label.as_str()) > available {
+            let mut used = 0;
+            let mut end = 0;
+            for (offset, grapheme) in model_label.grapheme_indices(true) {
+                let cells = UnicodeWidthStr::width(grapheme);
+                if used + cells > available - 1 {
+                    break;
+                }
+                used += cells;
+                end = offset + grapheme.len();
+            }
+            model_label = format!("{}…", model_label[..end].trim_end());
+        }
+        (false, "")
+    });
     let muted = Style::default().fg(theme.text_muted());
     let text = Style::default().fg(theme.text());
     let gap = Style::default().fg(Color::Rgb(255, 255, 255));
@@ -1082,23 +1164,21 @@ fn metadata_line(state: &TuiState, theme: &Theme, width: u16) -> Option<Line<'st
             Style::default().fg(state.agent_color(Some(agent))),
         ));
     }
-    if layout::shows_agent_metadata(width)
-        && state.auto_accept == oc_core::queries::AutoAcceptState::Enabled
-    {
+    if show_auto {
         if !spans.is_empty() {
             spans.push(Span::styled(" ", gap));
         }
         spans.push(Span::styled("auto", muted));
     }
-    if let Some((id, _)) = &model {
-        if !spans.is_empty() {
+    if model.is_some() {
+        if agent.is_some() {
             spans.push(Span::styled(" ", gap));
             spans.push(Span::styled("·", muted));
             spans.push(Span::styled(" ", gap));
         }
-        spans.push(Span::styled(id.clone(), text));
+        spans.push(Span::styled(model_label, text));
     }
-    if let Some(provider) = provider {
+    if !provider.is_empty() {
         spans.push(Span::styled(" ", gap));
         spans.push(Span::styled(provider.to_string(), muted));
     }
@@ -2173,6 +2253,66 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn scrolled_resize_keeps_top_row_and_draft_while_bottom_stays_pinned() {
+        let mut state = golden_state().await;
+        state.chrome.devtools = Some(false);
+        let text = (0..90).map(|i| format!("ROW-{i:03}\n")).collect::<String>();
+        state.attach_page(&page(vec![msg(1, Role::Assistant, &text)]));
+        for key in "draft".chars() {
+            state.handle_key(KeyAction::Char(key)).await;
+        }
+        state.handle_key(KeyAction::Left).await;
+        let draft = state.input().to_string();
+        let caret = state.prompt_layout(60).1;
+        let first_row = |frame: &[String]| {
+            frame.iter().find_map(|line| {
+                line.split("ROW-")
+                    .nth(1)
+                    .and_then(|tail| tail.get(..3))
+                    .and_then(|number| number.parse::<usize>().ok())
+            })
+        };
+
+        let pinned = screen(&state, 160, 48);
+        assert!(pinned.join("\n").contains("ROW-089"));
+        let smaller_pinned = screen(&state, 80, 24);
+        assert!(smaller_pinned.join("\n").contains("ROW-089"));
+        assert_eq!(state.scroll(), 0);
+
+        let _ = screen(&state, 160, 48);
+        while first_row(&screen(&state, 160, 48)) != Some(41) {
+            assert!(state.scroll() < 90, "expected to reach ROW-041");
+            state.scroll_transcript(true);
+        }
+        let wide = screen(&state, 160, 48);
+        assert_eq!(first_row(&wide), Some(41));
+        let narrow = screen(&state, 80, 24);
+        assert_eq!(
+            first_row(&narrow),
+            Some(41),
+            "shrink must not jump to the bottom"
+        );
+        assert!(narrow.join("\n").contains("ROW-055"), "{narrow:?}");
+        assert!(narrow.join("\n").contains("draft"));
+        state.scroll_transcript(false);
+        assert_eq!(first_row(&screen(&state, 80, 24)), Some(42));
+        state.scroll_transcript(true);
+        assert_eq!(first_row(&screen(&state, 80, 24)), Some(41));
+        let restored = screen(&state, 160, 48);
+        assert_eq!(first_row(&restored), Some(41));
+        assert!(restored.join("\n").contains("ROW-079"), "{restored:?}");
+        assert_eq!(state.input(), draft);
+        assert_eq!(state.prompt_layout(60).1, caret);
+
+        while first_row(&screen(&state, 160, 48)) != Some(0) {
+            assert!(state.scroll() < 95, "expected to reach the top edge");
+            state.scroll_transcript(true);
+        }
+        assert_eq!(first_row(&screen(&state, 80, 24)), Some(0));
+        assert_eq!(first_row(&screen(&state, 160, 48)), Some(0));
+    }
+
+    #[tokio::test]
     async fn v03_paste_keeps_full_draft_behind_compact_prompt() {
         let mut state = golden_state().await;
         state.handle_paste("draft-one\ndraft-two\ndraft-three");
@@ -2354,6 +2494,84 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn sidebar_padding_keeps_canvas_foreground_while_labels_are_styled() {
+        let mut state = golden_state().await;
+        state.chrome.devtools = Some(false);
+        state.chrome.location = Some("/workspace/real-project".into());
+        state.session_title = Some("Actual title".into());
+        state.begin_compress_turn(oc_core::core_app::WorkerTurnId("usage".into()));
+        state.close_panel();
+        state.apply_usage(
+            &oc_core::core_app::WorkerTurnId("usage".into()),
+            300,
+            20,
+            100,
+        );
+        let theme = Theme::dark();
+        let white = Color::Rgb(255, 255, 255);
+        let mut terminal = Terminal::new(TestBackend::new(160, 48)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        let sidebar = shell_regions(&state, Rect::new(0, 0, 160, 48)).session;
+        let sidebar = Rect::new(
+            sidebar.right() - layout::SESSION_SIDEBAR_WIDTH,
+            sidebar.y,
+            layout::SESSION_SIDEBAR_WIDTH,
+            sidebar.height,
+        );
+        let labels = [
+            ("Actual title", theme.text(), true),
+            ("Context", theme.text(), true),
+            ("320 tokens", theme.text_muted(), false),
+            ("32% used", theme.text_muted(), false),
+            ("/workspace/real-project", theme.text_muted(), false),
+        ];
+        let mut muted_spaces = Vec::new();
+        for (label, foreground, bold) in labels {
+            let cells = (sidebar.y..sidebar.bottom()).flat_map(|y| {
+                (sidebar.x..sidebar.right()).filter_map(move |x| {
+                    (x + label.len() as u16 <= sidebar.right()
+                        && buffer[(x, y)].symbol() == &label[..1])
+                        .then_some((x, y))
+                })
+            });
+            let (x, y) = cells
+                .into_iter()
+                .find(|&(x, y)| {
+                    label
+                        .chars()
+                        .enumerate()
+                        .all(|(index, ch)| buffer[(x + index as u16, y)].symbol() == ch.to_string())
+                })
+                .unwrap_or_else(|| panic!("missing sidebar label {label}"));
+            for (index, glyph) in label.chars().enumerate() {
+                let x = x + index as u16;
+                let cell = &buffer[(x, y)];
+                if glyph == ' ' && foreground == theme.text_muted() {
+                    muted_spaces.push((x, y));
+                    continue;
+                }
+                assert_eq!(cell.fg, foreground, "{label} foreground at ({x},{y})");
+                assert_eq!(cell.modifier.contains(Modifier::BOLD), bold, "{label} bold");
+            }
+        }
+        let mut blanks = 0;
+        for y in sidebar.y..sidebar.bottom() {
+            for x in sidebar.x..sidebar.right() {
+                let cell = &buffer[(x, y)];
+                if cell.symbol() == " "
+                    && cell.bg == theme.background_panel()
+                    && !muted_spaces.contains(&(x, y))
+                {
+                    assert_eq!(cell.fg, white, "sidebar blank at ({x},{y})");
+                    blanks += 1;
+                }
+            }
+        }
+        assert!(blanks > 1609, "expected the predominantly empty sidebar");
+    }
+
     /// The buffer rows with trailing spaces removed, so snapshots stay small
     /// enough to review while leading padding is still asserted.
     fn screen(state: &TuiState, width: u16, height: u16) -> Vec<String> {
@@ -2380,7 +2598,7 @@ mod tests {
             snapshot.auto_accept = mode;
             snapshot.agents[0].color_index = 3;
             state.apply_catalog(snapshot);
-            let line = super::metadata_line(&state, crate::theme::Theme::dark(), 120).unwrap();
+            let line = super::metadata_line(&state, crate::theme::Theme::dark(), 111, 120).unwrap();
             assert_eq!(line.to_string().contains("auto"), visible);
             assert_eq!(
                 line.spans[0].style.fg,
@@ -2398,7 +2616,7 @@ mod tests {
         snapshot.variant = None;
         state.apply_catalog(snapshot);
         for width in [44, 80, 120, 160] {
-            let metadata = metadata_line(&state, Theme::dark(), width).unwrap();
+            let metadata = metadata_line(&state, Theme::dark(), width, width).unwrap();
             assert_eq!(metadata.to_string(), "x · a ludka2");
         }
         assert!(
@@ -2410,6 +2628,92 @@ mod tests {
                 .unwrap()
                 .variant
                 .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn prompt_metadata_fits_the_painted_row_at_43_44_and_120() {
+        let mut state = golden_state().await;
+        let mut snapshot = catalog();
+        snapshot.models[0].display_name = "MiMo-V2.6-Flash".into();
+        snapshot.models[0].provider_name = "OpenCode".into();
+        snapshot.variant = Some("Free".into());
+        snapshot.models[0].variants = vec![VariantEntry {
+            name: "Free".into(),
+            disabled: false,
+            reasoning_effort: None,
+        }];
+        snapshot.agents[0].id = "Reader".into();
+        snapshot.agent_id = Some("Reader".into());
+        state.apply_catalog(snapshot);
+        state.chrome.devtools = Some(false);
+        for (width, expected) in [
+            (43, "MiMo-V2.6-Flash · Free"),
+            (44, "Reader · MiMo-V2.6-Flash · Free"),
+            (120, "Reader · MiMo-V2.6-Flash OpenCode · Free"),
+        ] {
+            let rows = screen(&state, width, 48);
+            let row = rows.iter().find(|row| row.contains("MiMo-")).unwrap();
+            assert!(row.contains(expected), "{width}: {row}");
+            assert!(!row.contains("OpenC") || width == 120, "{width}: {row}");
+        }
+        let mut terminal = Terminal::new(TestBackend::new(44, 48)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(5, 44)].fg, state.agent_color(Some("Reader")));
+        assert_eq!(buffer[(14, 44)].fg, Theme::dark().text());
+        assert_eq!(buffer[(33, 44)].fg, Theme::dark().warning());
+        assert_eq!(buffer[(39, 44)].fg, Color::Rgb(255, 255, 255));
+        assert_eq!(buffer[(39, 44)].symbol(), " ");
+    }
+
+    #[tokio::test]
+    async fn prompt_metadata_candidates_and_grapheme_fallback() {
+        let mut state = golden_state().await;
+        let mut snapshot = catalog();
+        snapshot.models[0].display_name = "模型 Very Long Model Name".into();
+        snapshot.models[0].provider_name = "Organization / Short".into();
+        snapshot.variant = None;
+        snapshot.auto_accept = oc_core::queries::AutoAcceptState::Enabled;
+        state.apply_catalog(snapshot);
+        let theme = Theme::dark();
+        let metadata = |width| {
+            metadata_line(&state, theme, width, 120)
+                .unwrap()
+                .to_string()
+        };
+        assert_eq!(
+            metadata(60),
+            "x auto · 模型 Very Long Model Name Organization / Short"
+        );
+        assert_eq!(
+            metadata(50),
+            "x · 模型 Very Long Model Name Organization / Short"
+        );
+        assert_eq!(metadata(39), "x · 模型 Very Long Model Name Short");
+        assert_eq!(metadata(32), "x · 模型 Very Long Model Name");
+        assert_eq!(metadata(13), "x · 模型 Ver…");
+        assert_eq!(UnicodeWidthStr::width(metadata(13).as_str()), 13);
+    }
+
+    #[tokio::test]
+    async fn prompt_metadata_uses_upstream_budget_not_only_painted_width() {
+        let mut state = golden_state().await;
+        let mut snapshot = catalog();
+        snapshot.agents[0].id = "x".into();
+        snapshot.agent_id = Some("x".into());
+        snapshot.models[0].display_name = "a".into();
+        snapshot.models[0].provider_name = "P".repeat(26);
+        snapshot.variant = None;
+        state.apply_catalog(snapshot);
+        let row = screen(&state, 44, 48)
+            .into_iter()
+            .find(|line| line.contains("x · a"))
+            .expect("metadata row");
+        assert!(row.contains("x · a"));
+        assert!(
+            !row.contains('P'),
+            "provider must be omitted at 44 columns: {row}"
         );
     }
 

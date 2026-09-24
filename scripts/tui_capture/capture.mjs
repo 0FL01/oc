@@ -546,29 +546,22 @@ try {
         };
         send('scroll-draft','single_line_draft');
         await check('scroll-pinned-draft',f=>f.text.includes('scroll-draft') && f.text.includes('ROW-089'));
-        send((origin==='oc' ? '\x1b[A' : '\x1b\x19').repeat(12),'scroll_away_12_lines');
+        // Up/Down are editor/history keys in the native prompt; wheel input
+        // targets the transcript without replacing the draft with a recalled
+        // user message. The original retains its documented scroll binding.
+        send((origin==='oc' ? '\x1b[<64;10;15M' : '\x1b\x19').repeat(12),'scroll_away_12_lines');
         const away = await check('scroll-away',f=>f.text.includes('scroll-draft') && markers(f).length>0 && !f.text.includes('ROW-089'));
         for(const [columns,rows,name] of [[80,24,'scroll-shrink'],[160,48,'scroll-grow']]) {
           profile.columns=columns; profile.rows=rows;
           await page.evaluate(({columns,rows})=>term.resize(columns,rows),{columns,rows});
           child.stdin.write(JSON.stringify({kind:'resize',columns,rows})+'\n');
           const c = await check(name,f=>f.columns===columns && f.rows===rows && f.text.includes('scroll-draft') && !f.text.includes('ROW-089'));
-          if(origin==='oc' && c.markers.at(-1)!==away.markers.at(-1)) throw Error('native scroll offset lost during resize');
+          if(c.markers[0]!==away.markers[0]) throw Error('scroll top row lost during resize: '+name);
         }
-        send(origin==='oc' ? '\x1b[B' : '\x1b\x05','scroll_down_one');
+        send(origin==='oc' ? '\x1b[<65;10;15M' : '\x1b\x05','scroll_down_one');
         const down = await check('scroll-down-one',f=>markers(f).at(-1)===away.markers.at(-1)+1);
-        send((origin==='oc' ? '\x1b[B' : '\x1b\x05').repeat(100),'scroll_repin');
+        send((origin==='oc' ? '\x1b[<65;10;15M' : '\x1b\x05').repeat(100),'scroll_repin');
         await check('scroll-repinned',f=>f.text.includes('ROW-089') && f.text.includes('scroll-draft'));
-        if(origin==='oc') {
-          send('\x1b[A'.repeat(150),'scroll_to_top');
-          await check('scroll-top',f=>f.text.includes('ROW-000') && !f.text.includes('ROW-089'));
-          profile.rows=80;
-          await page.evaluate(()=>term.resize(160,80));
-          child.stdin.write(JSON.stringify({kind:'resize',columns:160,rows:80})+'\n');
-          const top = await check('scroll-top-grow',f=>f.rows===80 && f.text.includes('ROW-000') && !f.text.includes('ROW-089'));
-          send('\x1b[B','scroll_down_after_clamp');
-          await check('scroll-clamped-down',f=>markers(f).at(-1)===top.markers.at(-1)+1);
-        }
         lock.attempts.push({origin,status:'SCROLL_RESIZE_CHECKS_PASS',one_line_down:down.markers.at(-1)});
       }
       if(args.matrix === 'true') {
@@ -581,16 +574,58 @@ try {
           const name = 'resize-'+columns+'x'+rows+'-'+checks.length;
           await capture(name, f, 'CAPTURED');
           const count = (f.text.match(/ROW-\d+/g)||[]).length;
+          const draftRow = f.cells.findIndex(row=>row.map(c=>c.symbol).join('').includes('scroll-draft'));
+          const draftText = draftRow < 0 ? '' : f.cells[draftRow].map(c=>c.symbol).join('');
+          const draftX = draftText.indexOf('scroll-draft');
+          const draftCursor = f.cursor.visible && f.cursor.x===draftX+12 && f.cursor.y===draftRow;
           checks.push({scenario:name, columns, rows, visible_row_markers:count,
-            viewport_check:args.sample==='rows' && rows>=40 ? (count>20?'PASS':'FAIL') : 'NOT_APPLICABLE',
-            sidebar_present:f.text.includes('Context')});
+             viewport_check:args.sample==='rows' && rows>=40 ? (count>20?'PASS':'FAIL') : 'NOT_APPLICABLE',
+            ...(args['scroll-resize']==='true' ? {draft_row:draftRow,cursor_at_draft_end:draftCursor} : {}),
+             sidebar_present:f.text.includes('Context')});
           fs.writeFileSync(path.join(dir,'geometry-checks.json'),JSON.stringify(checks,null,2)+'\n');
+          if(args['scroll-resize']==='true' && !draftCursor) throw Error('draft/cursor lost in matrix: '+name);
         }
+        fs.writeFileSync(path.join(dir,'geometry-checks.json'),JSON.stringify(checks,null,2)+'\n');
+        if(checks.some(c=>c.viewport_check==='FAIL')) result=1;
+      }
+      // This native-only clamp test changes transcript position. Run it after
+      // the paired matrix, never before: both sides must enter paired captures
+      // with the same repinned viewport.
+      if(args['scroll-resize'] === 'true' && origin==='oc') {
+        const markers = f => [...f.text.matchAll(/ROW-(\d+)/g)].map(m=>Number(m[1]));
+        const draftBefore = await frame();
+        const draftAtStart = draftBefore.cells.findIndex(line=>line.map(c=>c.symbol).join('').includes('scroll-draft'));
+        if(draftAtStart<0 || !draftBefore.cursor.visible || draftBefore.cursor.y!==draftAtStart)
+          throw Error('draft/cursor lost before native clamp');
+        const clampChecks = [];
+        const check = async (name, predicate) => {
+          const f = await waitFor(predicate,name);
+          const row = f.cells.findIndex(line=>line.map(c=>c.symbol).join('').includes('scroll-draft'));
+          if(!f.cursor.visible || f.cursor.x!==draftBefore.cursor.x || f.cursor.y!==row)
+            throw Error('draft/cursor lost: '+name);
+          clampChecks.push({scenario:name,columns:f.columns,rows:f.rows,markers:markers(f),cursor:f.cursor,draft_row:row});
+          fs.writeFileSync(path.join(dir,'scroll-clamp-checks.json'),JSON.stringify(clampChecks,null,2)+'\n');
+          return f;
+        };
+        send('\x1b[<64;10;15M'.repeat(150),'scroll_to_top');
+        await check('scroll-top',f=>f.text.includes('ROW-000') && !f.text.includes('ROW-089'));
+        profile.columns=160; profile.rows=80;
+        await page.evaluate(()=>term.resize(160,80));
+        child.stdin.write(JSON.stringify({kind:'resize',columns:160,rows:80})+'\n');
+        const top = await check('scroll-top-grow',f=>f.rows===80 && f.text.includes('ROW-000') && !f.text.includes('ROW-089'));
+        send('\x1b[<65;10;15M','scroll_down_after_clamp');
+        await check('scroll-clamped-down',f=>markers(f).at(-1)===markers(top).at(-1)+1);
+        send('\x1b[<65;10;15M'.repeat(150),'scroll_repin_after_clamp');
+        await check('scroll-repinned-after-clamp',f=>f.text.includes('ROW-089'));
+        profile.rows=48;
+        await page.evaluate(()=>term.resize(160,48));
+        child.stdin.write(JSON.stringify({kind:'resize',columns:160,rows:48})+'\n');
+        await waitFor(f=>f.columns===160 && f.rows===48 && f.text.includes('ROW-089'),'restore matrix geometry');
+      }
+      if(args.matrix === 'true') {
         send('\x1b[200~draft-one\ndraft-two\ndraft-three\x1b[201~','multiline_draft');
         const draft = await waitFor(f=>f.text.includes('draft-three') || f.text.includes('[Pasted ~3 lines]'),'multiline draft or upstream paste chip');
         await capture('multiline-draft', draft, draft.text.includes('[Pasted ~3 lines]') ? 'CAPTURED_PASTE_CHIP' : 'CAPTURED_MULTILINE_TEXT');
-        fs.writeFileSync(path.join(dir,'geometry-checks.json'),JSON.stringify(checks,null,2)+'\n');
-        if(checks.some(c=>c.viewport_check==='FAIL')) result=1;
       }
       if(args.geometry !== 'true') {
       send('\x10','CTRL_P');

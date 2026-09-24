@@ -137,8 +137,11 @@ completed-footer predicates use the V02 model display name.
 draft/cursor, scroll-away, 80×24 shrink, 160×48 grow, one-row Down and bottom
 re-pin in each executable. `scroll-checks.json` records actual row markers and
 cursor-at-draft-end assertions. Original uses its supported Ctrl+Alt+Y/E scroll
-bindings; native uses its existing Up/Down. This does not qualify keymap parity.
-Native additionally checks a top-offset clamp after growing to 160×80.
+bindings; native uses actual SGR wheel events over the transcript, since Up/Down
+navigate the focused editor/history and would overwrite the draft. This does
+not qualify keymap parity.
+Both sides check that the first visible marker survives shrink/grow. Native
+additionally checks a top-offset clamp after growing to 160×80.
 
 For the completed real-read exploration group, run a **fresh** output directory:
 

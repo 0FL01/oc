@@ -294,6 +294,16 @@ pub(crate) const HOME_EXAMPLES: [&str; 3] = [
     "Fix broken tests",
 ];
 
+#[derive(Clone, Copy)]
+struct TranscriptViewport {
+    width: u16,
+    terminal_width: u16,
+    height: u16,
+    total: usize,
+    requested_scroll: usize,
+    displayed_scroll: usize,
+}
+
 /// Bounded chat state on the shared handle, optionally attached to a session.
 pub struct TuiState {
     pub chrome: oc_core::queries::TuiChrome,
@@ -302,7 +312,7 @@ pub struct TuiState {
     pub home: bool,
     /// Sampled once per UI instance; never changes during a redraw.
     pub(crate) home_example: &'static str,
-    viewport_max_scroll: std::cell::Cell<Option<usize>>,
+    viewport: std::cell::Cell<Option<TranscriptViewport>>,
     /// Current session's durable human title, refreshed with history.
     pub session_title: Option<String>,
     /// Session autoaccept capability supplied by the application.
@@ -415,7 +425,7 @@ impl TuiState {
             parent_id: None,
             home,
             home_example: HOME_EXAMPLES[index],
-            viewport_max_scroll: std::cell::Cell::new(None),
+            viewport: std::cell::Cell::new(None),
             session_title: None,
             auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
             app,
@@ -699,7 +709,7 @@ impl TuiState {
         self.card_scroll = 0;
         self.card_seen.set(0);
         self.detail_area.set(ratatui::layout::Rect::default());
-        self.viewport_max_scroll.set(None);
+        self.viewport.set(None);
         self.parent_id = None;
         self.home = false;
         self.session_title = None;
@@ -992,7 +1002,13 @@ impl TuiState {
 
     /// Effective offset in the last drawn viewport; requested offset survives resize.
     pub fn display_scroll(&self) -> usize {
-        self.scroll.min(self.max_scroll())
+        self.viewport
+            .get()
+            .filter(|view| view.requested_scroll == self.scroll)
+            .map_or_else(
+                || self.scroll.min(self.max_scroll()),
+                |view| view.displayed_scroll,
+            )
     }
 
     /// True while a submission awaits acceptance or a turn streams.
@@ -1009,7 +1025,7 @@ impl TuiState {
     pub fn attach_page(&mut self, page: &HistoryPage) {
         self.exploration_down = None;
         self.exploration_expanded.clear();
-        self.viewport_max_scroll.set(None);
+        self.viewport.set(None);
         self.parent_id = page.parent_id.clone();
         self.session_title = page.title.clone();
         self.window.reset(page);
@@ -1018,13 +1034,13 @@ impl TuiState {
 
     /// Add an older page at the front of the window.
     pub fn prepend_page(&mut self, page: &HistoryPage) {
-        self.viewport_max_scroll.set(None);
+        self.viewport.set(None);
         self.window.prepend_older(page);
     }
 
     /// Add a newer page at the back of the window.
     pub fn append_page(&mut self, page: &HistoryPage) {
-        self.viewport_max_scroll.set(None);
+        self.viewport.set(None);
         self.window.append_newer(page);
     }
 
@@ -1115,13 +1131,14 @@ impl TuiState {
                     {
                         let rect = crate::shell::transcript_area(self, area);
                         let height = rect.height as usize;
-                        let (_, before) =
-                            self.visible_transcript(rect.width, area.width, rect.height);
+                        let (_, before, displayed) = self.visible_transcript_at_viewport(
+                            rect.width,
+                            area.width,
+                            rect.height,
+                        );
                         // Keep the clicked header at its painted row by anchoring
                         // the first visible row, rather than the bottom offset.
-                        let first = before
-                            .saturating_sub(height)
-                            .saturating_sub(self.scroll.min(before.saturating_sub(height)));
+                        let first = before.saturating_sub(height).saturating_sub(displayed);
                         let rows = self.transcript_rows();
                         self.exploration_expanded.retain(|id| {
                             rows.iter()
@@ -1133,7 +1150,13 @@ impl TuiState {
                         let (_, after) =
                             self.visible_transcript(rect.width, area.width, rect.height);
                         self.scroll = after.saturating_sub(height).saturating_sub(first);
-                        self.observe_viewport(rect.height, after);
+                        self.observe_transcript_viewport(
+                            rect.width,
+                            area.width,
+                            rect.height,
+                            after,
+                            self.scroll,
+                        );
                     }
                 }
                 MouseEventKind::Drag(_)
@@ -1322,7 +1345,11 @@ impl TuiState {
             &rows,
             Theme::dark(),
             (rect.width, area.width),
-            (rect.height as usize, self.scroll, live_row),
+            (
+                rect.height as usize,
+                self.scroll_for_current_view(),
+                live_row,
+            ),
             |agent| self.agent_color(agent),
             &self.markdown_cache,
             (
@@ -1447,18 +1474,58 @@ impl TuiState {
         terminal_width: u16,
         height: u16,
     ) -> (Vec<Line>, usize) {
+        let (lines, total, _) = self.visible_transcript_at_viewport(width, terminal_width, height);
+        (lines, total)
+    }
+
+    /// Resolve a resize against the last painted top row without changing
+    /// the input-owned scroll request or materializing the whole transcript.
+    pub(crate) fn visible_transcript_at_viewport(
+        &self,
+        width: u16,
+        terminal_width: u16,
+        height: u16,
+    ) -> (Vec<Line>, usize, usize) {
         let rows = self.transcript_rows();
         let live_row = (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| {
             rows.len() - 1 - usize::from(self.active_turn.is_some() && self.live_preview_truncated)
         });
-        crate::messages::visible_transcript_expanded(
-            &rows,
-            Theme::dark(),
-            (width, terminal_width),
-            (height as usize, self.scroll, live_row),
-            |agent| self.agent_color(agent),
-            &self.markdown_cache,
-            &|op| self.exploration_expanded.contains(op),
+        let render = |height, scroll| {
+            crate::messages::visible_transcript_expanded(
+                &rows,
+                Theme::dark(),
+                (width, terminal_width),
+                (height, scroll, live_row),
+                |agent| self.agent_color(agent),
+                &self.markdown_cache,
+                &|op| self.exploration_expanded.contains(op),
+            )
+        };
+        let previous = self.viewport.get();
+        let resized = previous.is_some_and(|view| {
+            (view.width, view.terminal_width, view.height) != (width, terminal_width, height)
+        });
+        let scroll = if self.scroll == 0 {
+            0
+        } else if resized && previous.is_some_and(|view| view.requested_scroll == self.scroll) {
+            let view = previous.expect("resized viewport");
+            // Count-only indexing is needed on resize, not on every draw.
+            let (_, total) = render(0, 0);
+            let top = view
+                .total
+                .saturating_sub(view.height as usize)
+                .saturating_sub(view.displayed_scroll);
+            total.saturating_sub(height as usize).saturating_sub(top)
+        } else if previous.is_some_and(|view| view.requested_scroll == self.scroll) {
+            self.display_scroll()
+        } else {
+            self.scroll
+        };
+        let (lines, total) = render(height as usize, scroll);
+        (
+            lines,
+            total,
+            scroll.min(total.saturating_sub(height as usize)),
         )
     }
 
@@ -2062,7 +2129,7 @@ impl TuiState {
         }
         if up {
             let max_scroll = self.max_scroll();
-            self.scroll = self.scroll.min(max_scroll);
+            self.scroll = self.display_scroll();
             if self.scroll < max_scroll {
                 self.scroll += 1;
             }
@@ -2975,15 +3042,45 @@ impl TuiState {
     }
 
     fn max_scroll(&self) -> usize {
-        self.viewport_max_scroll
+        self.viewport.get().map_or_else(
+            || self.line_count().saturating_sub(VIEWPORT_LINES),
+            |view| view.total.saturating_sub(view.height as usize),
+        )
+    }
+
+    fn scroll_for_current_view(&self) -> usize {
+        if self
+            .viewport
             .get()
-            .unwrap_or_else(|| self.line_count().saturating_sub(VIEWPORT_LINES))
+            .is_some_and(|view| view.requested_scroll == self.scroll)
+        {
+            self.display_scroll()
+        } else {
+            self.scroll
+        }
     }
 
     /// Actual rendered geometry for input-driven row scrolling.
     pub fn observe_viewport(&self, height: u16, rendered_rows: usize) {
-        self.viewport_max_scroll
-            .set(Some(rendered_rows.saturating_sub(height as usize)));
+        self.observe_transcript_viewport(0, 0, height, rendered_rows, self.scroll);
+    }
+
+    pub(crate) fn observe_transcript_viewport(
+        &self,
+        width: u16,
+        terminal_width: u16,
+        height: u16,
+        total: usize,
+        displayed_scroll: usize,
+    ) {
+        self.viewport.set(Some(TranscriptViewport {
+            width,
+            terminal_width,
+            height,
+            total,
+            requested_scroll: self.scroll,
+            displayed_scroll: displayed_scroll.min(total.saturating_sub(height as usize)),
+        }));
     }
 
     /// Latest measured context, never DCP's estimate or a renderer constant.
