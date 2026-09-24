@@ -196,17 +196,34 @@ try {
     const capture = async (scenario, f, status) => {
       const name = path.join(dir,scenario);
       if (fs.existsSync(name+'.cells.json')) throw Error('Refusing to overwrite scenario: '+name);
+      // Repaint the same VT buffer on both sides to distinguish a stale xterm
+      // DOM row left behind by resize from a real application cell mismatch.
+      // This never changes the buffer, input sequence, or comparator regions.
+      const refreshed = args['refresh-before-capture'] === 'true';
+      if (refreshed) await page.evaluate(() => term.refresh(0,term.rows-1));
+      // The grid can settle before Chromium paints resized canvas/text layers.
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const paintWaitFrames = 2;
+      const before = await page.evaluate(() => readCaptureGeometry());
       const rect = await page.locator('.xterm-screen').boundingBox();
-      profile.pixel_width = Math.ceil(rect.width); profile.pixel_height = Math.ceil(rect.height);
-      profile.measured_cell_width = rect.width/profile.columns;
-      profile.measured_cell_height = rect.height/profile.rows;
+      if (!rect) throw Error('Missing .xterm-screen screenshot bounds');
+      const clip = {x:rect.x,y:rect.y,width:Math.ceil(rect.width),height:Math.ceil(rect.height)};
+      // Profile records requested shared inputs only. Measured CSS/PNG facts are
+      // per-side observations and must not alter the paired environment ID.
       const environment = sha(canonical(profile));
       const {text, ...grid} = f;
       fs.writeFileSync(name+'.cells.json', JSON.stringify({schema_version:1, origin, scenario,
         fixture_sha256:fixtureSha, environment_id:environment,
         producer_commit: origin==='upstream' ? lock.sources.upstream_commit : commit, ...grid}));
       fs.writeFileSync(name+'.txt', text+'\n');
-      await page.screenshot({path:name+'.png', clip:{x:rect.x,y:rect.y,width:profile.pixel_width,height:profile.pixel_height}});
+      const png = await page.screenshot({path:name+'.png', clip});
+      const after = await page.evaluate(() => readCaptureGeometry());
+      const render = {schema_version:1, origin, scenario, environment_id:environment,
+        terminal_refresh_from_buffer:refreshed,
+        paint_wait_request_animation_frames:paintWaitFrames, before, after,
+        layout_changed_during_screenshot:canonical(before)!==canonical(after),
+        screenshot: {clip, png_width:png.readUInt32BE(16), png_height:png.readUInt32BE(20)}};
+      fs.writeFileSync(name+'.render.json',JSON.stringify(render,null,2)+'\n');
       if(sha(JSON.stringify(await frame())) !== sha(JSON.stringify(f))) {
         status='UNSTABLE_CAPTURE'; result=1;
         lock.attempts.push({origin,scenario,status,reason:'VT grid changed during PNG capture'});
@@ -214,6 +231,7 @@ try {
       fs.writeFileSync(name+'.vt', Buffer.concat(chunks[generation]));
       lock.captures.push({origin,scenario,status,environment_id:environment,
         cells_sha256:sha(fs.readFileSync(name+'.cells.json')),png_sha256:sha(fs.readFileSync(name+'.png')),
+        render_sha256:sha(fs.readFileSync(name+'.render.json')),
         path:path.relative(output,name)});
       lock.profile=profile; json('capture.lock.json',lock);
       return status;

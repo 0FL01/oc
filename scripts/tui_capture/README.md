@@ -15,6 +15,7 @@ Use the approved external directory (no `npm install` in this workspace):
 npm install --prefix /home/opencode/.cache/opencode-tmp/opencode/t44-reference --save-exact @xterm/xterm@6.0.0 @xterm/addon-unicode11@0.9.0 playwright@1.58.2
 PLAYWRIGHT_BROWSERS_PATH=/home/opencode/.cache/opencode-tmp/opencode/t44-reference/browsers /home/opencode/.cache/opencode-tmp/opencode/t44-reference/node_modules/.bin/playwright install chromium
 node scripts/tui_capture/check_frontend.mjs
+node scripts/tui_capture/check_capture_geometry.mjs
 ```
 
 Python 3 stdlib, Pillow (PNG comparator), fontconfig and DejaVu Sans Mono must be
@@ -67,6 +68,29 @@ exit `2` denotes a runner blocker. Neither is parity success.
   continuations, and cursor. `.txt` is review convenience only. `.vt` contains
   the actual bytes up to capture, `raw.vt` the full run. `protocol.json`,
   `inputs.json`, `commands.json`, and `capture.lock.json` preserve provenance.
+* Each frame also has `.render.json`: float `.xterm-screen` bounds, viewport/DPR,
+  measured cell sizes, independent terminal/viewport/text/row/cursor/selection
+  layer CSS backgrounds and layout boxes, and any screen canvas CSS/intrinsic
+  sizes. It records the exact screenshot clip and actual PNG dimensions, plus
+  before/after layout readings. Two `requestAnimationFrame` callbacks precede
+  each capture (including resize captures) and are recorded per frame. A changed
+  layout is flagged, not masked or cropped away. The render file hash is locked
+  with the cell and PNG hashes. No DOM text, canvas pixels or URLs are read by
+  this geometry probe. The common environment ID hashes only the configured
+  profile (including requested columns/rows), never measured per-side geometry;
+  equal-size frames on both sides therefore retain the same environment ID even
+  if their painted screen bounds differ.
+* Optional `--refresh-before-capture true` calls xterm's full-row repaint from
+  its existing VT buffer on **both** sides before every screenshot and records
+  that action in `.render.json`. It does not alter the PTY or mask/crop pixels.
+  Use it to diagnose stale DOM rows after resize; preserve the unrefreshed
+  attempt alongside it rather than treating a repaint as an application fix.
+  For DOM-rendered xterm, `.render.json` also records only the final two
+  `.xterm-rows` children (row index, position, foreground/background and bounds)
+  and up to four trailing element children per row (index, computed width,
+  position, colors and bounds). It includes counts but never child text or
+  arbitrary attributes; compare the last span's right edge with the screen's
+  right edge when a styled final-column cell differs in PNG only.
 
 For a diagnostic pair with the **same configured primary profile**, add
 `--agent-profile true`. Both isolated configs then select `Reader`,

@@ -196,10 +196,15 @@ pub fn wrap_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
     wrap_line_with_space_mode(line, width, limit, false)
 }
 
-/// Code-fence wrap keeps source separator spaces on the row before a long
-/// word, so their original style is painted without inventing blank cells.
-pub fn wrap_code_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
+/// Preserve a source separator at a word-wrap boundary when it fits on the
+/// preceding row, so its original style is painted without inventing cells.
+pub fn wrap_source_space_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
     wrap_line_with_space_mode(line, width, limit, true)
+}
+
+/// Code fences use the same source-space wrap as Markdown text.
+pub fn wrap_code_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
+    wrap_source_space_line_limited(line, width, limit)
 }
 
 fn wrap_line_with_space_mode(
@@ -418,6 +423,52 @@ mod tests {
             "ROW-014",
             "default prose wrap still drops break spaces"
         );
+    }
+
+    #[test]
+    fn source_space_wrap_only_paints_real_fitting_spaces_and_stays_bounded() {
+        use ratatui::style::Color;
+
+        let source = Style::default().fg(Color::Rgb(238, 238, 238));
+        let line = Line::new(vec![Span::styled("中🧑‍💻 ", source), Span::plain("back")]);
+        let rows = wrap_source_space_line_limited(&line, 6, 2);
+        assert_eq!(
+            rows.iter().map(Line::plain_text).collect::<Vec<_>>(),
+            ["中🧑‍💻 ", "back"]
+        );
+        assert_eq!(rows[0].spans()[0].style(), source);
+        assert!(
+            rows.iter()
+                .all(|row| row.spans().iter().map(span_width).sum::<usize>() <= 6)
+        );
+        let no_room = wrap_source_space_line_limited(&Line::styled("abc back", source), 3, 3);
+        assert_eq!(
+            no_room.iter().map(Line::plain_text).collect::<Vec<_>>(),
+            ["abc", "bac", "k"]
+        );
+
+        // Exact fit, explicit source end and newline boundaries cannot add a
+        // painted cell or an extra row. Only a wrap before the next word does.
+        for (text, width) in [("abc def", 7), ("abc ", 4), ("abc", 4)] {
+            let rows = wrap_source_space_line_limited(&Line::styled(text, source), width, 2);
+            assert_eq!(rows.len(), 1);
+            assert_eq!(rows[0].plain_text(), text);
+        }
+        let lines = [Line::styled("abc", source), Line::styled("back", source)];
+        assert_eq!(
+            lines
+                .iter()
+                .flat_map(|line| wrap_source_space_line_limited(line, 4, 2))
+                .map(|line| line.plain_text())
+                .collect::<Vec<_>>(),
+            ["abc", "back"]
+        );
+
+        let long = Line::styled(format!("abc {}", "x".repeat(20_000)), source);
+        let rows = wrap_source_space_line_limited(&long, 4, 2);
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].plain_text(), "abc ");
+        assert_eq!(rows[1].plain_text(), "xxxx");
     }
 
     #[test]

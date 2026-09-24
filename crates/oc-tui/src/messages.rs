@@ -921,7 +921,7 @@ fn table_source(line: &str) -> (&str, usize) {
 
 fn table_column_widths(rows: &[Vec<String>], available: usize) -> Vec<usize> {
     let count = rows.iter().map(Vec::len).max().unwrap_or(0);
-    let mut widths: Vec<_> = (0..count)
+    let widths: Vec<_> = (0..count)
         .map(|i| {
             rows.iter()
                 .filter_map(|r| r.get(i))
@@ -931,22 +931,39 @@ fn table_column_widths(rows: &[Vec<String>], available: usize) -> Vec<usize> {
                 .max(1)
         })
         .collect();
-    let usable = available.saturating_sub(count * 3 + 1).max(count);
-    if widths.iter().sum::<usize>() > usable {
-        let natural = widths.clone();
-        widths.fill(1);
-        for _ in 0..usable.saturating_sub(count).min(available) {
-            let col = (0..count)
-                .filter(|&i| widths[i] < natural[i])
-                .min_by_key(|&i| widths[i])
-                .unwrap_or(count - 1);
-            widths[col] += 1;
-        }
+    fit_table_widths(widths, available)
+}
+
+/// TextPart selects OpenTUI's grid/full table with one cell of padding on
+/// either side. Its TextTable expands spare space equally across columns
+/// (`@opentui/core@0.5.10 renderables/TextTable.ts:expandColumnWidths`). Work
+/// in content cells, excluding borders and two padding cells per column.
+fn fit_table_widths(mut widths: Vec<usize>, available: usize) -> Vec<usize> {
+    let count = widths.len();
+    if count == 0 || available == usize::MAX {
+        return widths;
     }
-    if count == 2 && available >= 24 && available != usize::MAX {
-        let label_extra = (available.saturating_sub(74).saturating_add(7) / 8).min(5);
-        widths[0] = (widths[0] + label_extra).min(usable.saturating_sub(1));
-        widths[1] = usable - widths[0];
+    let usable = available.saturating_sub(count * 3 + 1).max(count);
+    let natural = widths.iter().sum::<usize>();
+    if natural <= usable {
+        let extra = usable - natural;
+        for (i, width) in widths.iter_mut().enumerate() {
+            *width += extra / count + usize::from(i < extra % count);
+        }
+        return widths;
+    }
+
+    // Keep the existing narrow-table policy: shorter columns reach their
+    // intrinsic width before a long cell consumes the rest. The proportional
+    // OpenTUI shrinker would change long-cell paging and label visibility.
+    let intrinsic = widths.clone();
+    widths.fill(1);
+    for _ in 0..usable.saturating_sub(count).min(available) {
+        let col = (0..count)
+            .filter(|&i| widths[i] < intrinsic[i])
+            .min_by_key(|&i| widths[i])
+            .unwrap_or(count - 1);
+        widths[col] += 1;
     }
     widths
 }
@@ -1988,7 +2005,7 @@ fn safe_text(text: &str) -> String {
 }
 
 fn wrap_markdown_line(line: Line, width: usize, limit: usize, list_item: bool) -> Vec<Line> {
-    let wrapped = styled::wrap_line_limited(&line, width, limit);
+    let wrapped = styled::wrap_source_space_line_limited(&line, width, limit);
     if !list_item || wrapped.len() <= 1 {
         return wrapped;
     }
@@ -1997,7 +2014,7 @@ fn wrap_markdown_line(line: Line, width: usize, limit: usize, list_item: bool) -
         if index == 0 {
             rows.push(line);
         } else {
-            for continuation in styled::wrap_line_limited(
+            for continuation in styled::wrap_source_space_line_limited(
                 &line,
                 width.saturating_sub(2),
                 limit.saturating_sub(rows.len()),
@@ -2292,7 +2309,7 @@ fn render_table(
         theme.border()
     });
     let padding = Style::default().fg(theme.hue("neutral", 100).unwrap_or_else(|| theme.text()));
-    let mut widths = (0..count)
+    let widths = (0..count)
         .map(|column| {
             rows.iter()
                 .filter_map(|row| row.get(column))
@@ -2303,34 +2320,7 @@ fn render_table(
         })
         .collect::<Vec<_>>();
     let usable = available.saturating_sub(count * 3 + 1).max(count);
-    if widths.iter().sum::<usize>() > usable {
-        widths.fill(1);
-        let extra = usable.saturating_sub(count);
-        // Give the shorter label column room before assigning the remaining
-        // cells to the long description; never allocate beyond the viewport.
-        for _ in 0..extra.min(available) {
-            let col = (0..count)
-                .filter(|&i| {
-                    widths[i]
-                        < rows
-                            .iter()
-                            .filter_map(|row| row.get(i))
-                            .map(|cell| cell.spans().iter().map(styled::span_width).sum())
-                            .max()
-                            .unwrap_or(1)
-                })
-                .min_by_key(|&i| widths[i])
-                .unwrap_or(count - 1);
-            widths[col] += 1;
-        }
-    }
-    if count == 2 && available >= 24 && available != usize::MAX {
-        // Captured upstream at 120x40: label column reserves five cells past
-        // its longest word; the description column fills the content box.
-        let label_extra = (available.saturating_sub(74).saturating_add(7) / 8).min(5);
-        widths[0] = (widths[0] + label_extra).min(usable.saturating_sub(1));
-        widths[1] = usable - widths[0];
-    }
+    let mut widths = fit_table_widths(widths, available);
     if let Some(columns) = columns.filter(|c| c.len() == count && c.iter().sum::<usize>() <= usable)
     {
         widths.copy_from_slice(columns);
@@ -3324,7 +3314,7 @@ mod tests {
         let wide = markdown_at_width(table, theme, 114);
         assert!(
             wide.iter()
-                .any(|r| r.plain_text().contains("│ Инструмент      │"))
+                .any(|r| r.plain_text().contains("│ Инструмент       │"))
         );
         let wide = markdown_at_width(table, theme, 112);
         assert!(
@@ -3345,6 +3335,58 @@ mod tests {
             rows.iter()
                 .all(|r| r.spans().iter().map(styled::span_width).sum::<usize>() <= 24)
         );
+    }
+
+    #[test]
+    fn table_grid_columns_follow_pinned_full_width_sizing() {
+        // opencode v2.0.12 TextPart uses OpenTUI 0.5.10's grid/full table
+        // (message-parts.tsx:160-170). In the paired 160x48 Reader capture,
+        // the fixture grid's left and right edges agree, but the native
+        // divider is one cell too far right (x23 instead of x22).
+        let fixture = include_str!("../../../tui-recovery/fixtures/transcript.md");
+        let table = &fixture
+            [fixture.find("| Инструмент").unwrap()..fixture.find("Через Code Mode").unwrap()];
+        let theme = Theme::dark();
+        for (available, first_column) in [(74, 10), (110, 14), (114, 16)] {
+            let rows = markdown_at_width(table, theme, available);
+            let border = rows.first().unwrap().plain_text();
+            let divider = border.chars().position(|ch| ch == '┬').unwrap();
+            assert_eq!(divider, first_column + 3, "available={available}: {border}");
+            assert_eq!(UnicodeWidthStr::width(border.as_str()), available);
+        }
+    }
+
+    #[test]
+    fn unicode_table_widths_agree_between_full_and_indexed_pages() {
+        let text = "| 名称 | 説明 |\n| --- | --- |\n| 中文🧑‍💻 | 長い説明 with several words |\n| café | 東京に行く とても長い説明 with many more words to wrap |\n";
+        let short = "| 中文🧑‍💻 | 東京 |\n| --- | --- |\n| 中文🧑‍💻 | 東京 |";
+        let theme = Theme::dark();
+        // Natural content widths are 6 and 4 cells. Grid borders and padding
+        // cost seven cells; the remaining spare width is divided evenly.
+        for (width, divider) in [(80, 42), (120, 62), (160, 82)] {
+            let border = markdown_block(short, theme, width)[0].plain_text();
+            assert_eq!(border.chars().position(|ch| ch == '┬'), Some(divider));
+            assert_eq!(UnicodeWidthStr::width(border.as_str()), width as usize);
+            let full = markdown_block(text, theme, width);
+            let page = index_source(text, width)
+                .into_iter()
+                .find_map(|page| page.table_widths)
+                .unwrap();
+            let indexed = markdown_block_with_widths(text, theme, width, Some(&page));
+            let grid = full.iter().map(Line::plain_text).collect::<Vec<_>>();
+            assert_eq!(
+                full.first().unwrap().plain_text(),
+                indexed.first().unwrap().plain_text()
+            );
+            assert!(grid.iter().any(|line| line.contains("中文🧑‍💻")));
+            assert!(grid.iter().any(|line| line.contains("東京に行く")));
+            assert!(full.iter().all(|line| {
+                line.spans().iter().map(styled::span_width).sum::<usize>() <= width as usize
+            }));
+            assert!(indexed.iter().all(|line| {
+                line.spans().iter().map(styled::span_width).sum::<usize>() <= width as usize
+            }));
+        }
     }
 
     #[test]
@@ -4566,6 +4608,60 @@ mod tests {
             lines[0].spans()[0].style().fg,
             Some(theme.markdown(MarkdownToken::Text))
         );
+    }
+
+    #[test]
+    fn fixture_prose_wrap_paints_source_separator_in_full_and_indexed_rows() {
+        let fixture = include_str!("../../../tui-recovery/fixtures/transcript.md");
+        let source = fixture.lines().last().expect("browser list item");
+        assert!(source.contains("`navigate`, `back`"));
+        let theme = Theme::dark();
+        let row = assistant(source);
+        let width = 114;
+        let full = transcript(std::slice::from_ref(&row), theme, width, width, |_| {
+            theme.text()
+        });
+        let cache = RefCell::new(MarkdownCache::default());
+        let (indexed, total) = visible_transcript(
+            std::slice::from_ref(&row),
+            theme,
+            width,
+            width,
+            (8, 0, None),
+            |_| theme.text(),
+            &cache,
+        );
+        let paint = |lines: Vec<Line>| {
+            let mut terminal = Terminal::new(TestBackend::new(width, 8)).unwrap();
+            terminal
+                .draw(|frame| {
+                    frame.render_widget(
+                        Block::default().style(Style::default().fg(theme.text())),
+                        frame.area(),
+                    );
+                    frame.render_widget(
+                        Paragraph::new(styled::Lines::from(lines).into_text()),
+                        frame.area(),
+                    );
+                })
+                .unwrap();
+            terminal.backend().buffer().clone()
+        };
+        let full_text = full.iter().map(Line::plain_text).collect::<Vec<_>>();
+        let indexed_text = indexed.iter().map(Line::plain_text).collect::<Vec<_>>();
+        assert_eq!(indexed_text[1..], full_text, "indexed leading blank");
+        assert_eq!(total, indexed.len());
+        let y = full_text
+            .iter()
+            .position(|line| line.ends_with("navigate, "))
+            .unwrap_or_else(|| panic!("source delimiter at wrap: {full_text:?}"));
+        let x = UnicodeWidthStr::width(full_text[y].as_str()) as u16 - 1;
+        assert!(x < width);
+        for (buffer, y) in [(paint(full), y as u16), (paint(indexed), y as u16 + 1)] {
+            assert_eq!(buffer[(x, y)].symbol(), " ");
+            assert_eq!(buffer[(x, y)].fg, theme.markdown(MarkdownToken::Text));
+            assert_eq!(buffer[(x + 1, y)].fg, theme.text());
+        }
     }
 
     #[test]
