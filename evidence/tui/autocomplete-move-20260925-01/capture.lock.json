@@ -1,0 +1,3900 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-24T21:05:16.818Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "91c45ea8b64142b9814307c75fc4eaa45e24f6d953e3ca76a163b576cb0f6753",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "05a8b8b6b9da204e8005a9fd6d3627b1624cf1ca86d11fe7d7f141c1e8ac3b5d"
+  },
+  "fixture_sha256": "16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "d354e84ccf5f91ed3c821b9164d39e6fdc33e939",
+    "tree": "e6f0cb2904fc49672d4b2199b536d831dce1c730",
+    "dirty_diff_sha256": "4c775eb9bb5811d3dda9e48a574e1eac3a91f226d7afce6171d3830a36cdc8f7",
+    "source_manifest_sha256": "050eea5e5b858ae1c4a88c9053b32b9a586120ab9ae68980c555808c1fd910dc",
+    "build_provenance": "Existing binary; build/source association not attested by this run",
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "b653ec5dc5502312114de944fe7cf97b6ce188326182224b3eddfebcc85c4eeb",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "AUTOCOMPLETE_KEYS_CHECKS_PASS",
+      "predicates": [
+        {
+          "route": "home",
+          "stage": "before-enter",
+          "draft_visible": true,
+          "reload_option_visible": true,
+          "prior_reload_notice_absent": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "after-enter",
+          "reload_success_visible": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "reload-notice-expired",
+          "reload_notice_absent": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "before-esc",
+          "draft_visible": true,
+          "menu_visible": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "movement-initial",
+          "multiple_options": true,
+          "unique_styled_selection": true,
+          "distinct_unselected_background": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "movement-up",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "movement-ctrl-p",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "movement-down",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "movement-ctrl-n",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "after-esc",
+          "draft_retained": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "before-enter",
+          "draft_visible": true,
+          "reload_option_visible": true,
+          "prior_reload_notice_absent": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "after-enter",
+          "reload_success_visible": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "reload-notice-expired",
+          "reload_notice_absent": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "before-esc",
+          "draft_visible": true,
+          "menu_visible": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "movement-initial",
+          "multiple_options": true,
+          "unique_styled_selection": true,
+          "distinct_unselected_background": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "movement-up",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "movement-ctrl-p",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "movement-down",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "movement-ctrl-n",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "after-esc",
+          "draft_retained": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        }
+      ]
+    },
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "AUTOCOMPLETE_KEYS_CHECKS_PASS",
+      "predicates": [
+        {
+          "route": "home",
+          "stage": "before-enter",
+          "draft_visible": true,
+          "reload_option_visible": true,
+          "prior_reload_notice_absent": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "after-enter",
+          "reload_success_visible": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "reload-notice-expired",
+          "reload_notice_absent": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "before-esc",
+          "draft_visible": true,
+          "menu_visible": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "movement-initial",
+          "multiple_options": true,
+          "unique_styled_selection": true,
+          "distinct_unselected_background": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "movement-up",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "movement-ctrl-p",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "movement-down",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "movement-ctrl-n",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "after-esc",
+          "draft_retained": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "before-enter",
+          "draft_visible": true,
+          "reload_option_visible": true,
+          "prior_reload_notice_absent": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "after-enter",
+          "reload_success_visible": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "reload-notice-expired",
+          "reload_notice_absent": true,
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "before-esc",
+          "draft_visible": true,
+          "menu_visible": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "movement-initial",
+          "multiple_options": true,
+          "unique_styled_selection": true,
+          "distinct_unselected_background": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "movement-up",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "movement-ctrl-p",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "movement-down",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "movement-ctrl-n",
+          "selected_index": true,
+          "selected_option": true,
+          "draft_unchanged": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "after-esc",
+          "draft_retained": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "menu_hidden": true,
+          "no_provider_request": true
+        }
+      ]
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-before-enter",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-before-enter",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-after-enter",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-after-enter",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-before-esc",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-before-esc",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-movement-up",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-movement-up",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-movement-ctrl-p",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-movement-ctrl-p",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-movement-down",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-movement-down",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-movement-ctrl-n",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-movement-ctrl-n",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-after-esc",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-home-after-esc",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-before-enter",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-before-enter",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-after-enter",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-after-enter",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-before-esc",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-before-esc",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-movement-up",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-movement-up",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-movement-ctrl-p",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-movement-ctrl-p",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-movement-down",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-movement-down",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-movement-ctrl-n",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-movement-ctrl-n",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-after-esc",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-keys-session-after-esc",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "a91e69c0aa32c9e111b78c0fe237e5e5897bd3f3374cce00293dfd0d1889fa9d",
+      "png_sha256": "37f68536c6d85c6c413795129befd51f753da484f94f0a743a9c33621ee501eb",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-home-before-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "beb756602a8dfada3fb408a46feae53f6686e8f6159a96d1c97dc44b35a5b6f4",
+      "png_sha256": "6ba96edd3032da011bbdf9ca5c1186cfe57c92a53d25014d88f000e262ce6f52",
+      "render_sha256": "5ed81bc3b153b84977e7d7f2c105ecc665712079b38e8ae04aaaf639194e208b",
+      "path": "upstream/autocomplete-keys-home-before-enter"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-home-after-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "47c62cabf53ec2995ae2210419836d7ab9ef3a50d996e4a1fb0080024dcdf314",
+      "png_sha256": "589574a66910f5a3d1d92b84ee27d406ccad0dcc4568511dad74db14321d6d37",
+      "render_sha256": "f3ce68fbf16edb44a0b76d6790a13e9de9fa79e2070060decae61d2d6d64d24d",
+      "path": "upstream/autocomplete-keys-home-after-enter"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-home-before-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "7e323e4441b9a2cc4df843c67df294b76f6fb48f0a4e96113ca78e7e4aa7af02",
+      "png_sha256": "9564634088553185320b503e11ac203dc351ff2daa71da8fbbe4090bdfb4439c",
+      "render_sha256": "19875e42739ca24f8ab5a2ce3d0df47106fc7b81a259af8c4eec67e19980b04e",
+      "path": "upstream/autocomplete-keys-home-before-esc"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-home-movement-up",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "18525dfd55734459a1bc228751e88cfe9cc83f308d56d62d866fbb9f679b6f6a",
+      "png_sha256": "6ec99e97199f6824561edbdf23056e92f89b444a125448fdb05c39dbf1034114",
+      "render_sha256": "eb05926b582f091817bca49e11c21705096296b5b3a5501a85c1f8e45f06380f",
+      "path": "upstream/autocomplete-keys-home-movement-up"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-home-movement-ctrl-p",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c6cf9c6f4760594ee794a4f5792d74a0eb145692924158d5b87846ffa718b7fa",
+      "png_sha256": "1d493258353c26ab7d2f0b3436af116820dd4f6278c6f054622b929689ab51dd",
+      "render_sha256": "8f4db1a4a085cbe5db1bee65e963477a229ecc070f3b21ec684ccbba2dbfc6d8",
+      "path": "upstream/autocomplete-keys-home-movement-ctrl-p"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-home-movement-down",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "6c2f96f3a8cfa80d5352a25f603942fb23ba43b2fdedf84de70c13fd2b19d91a",
+      "png_sha256": "6ec99e97199f6824561edbdf23056e92f89b444a125448fdb05c39dbf1034114",
+      "render_sha256": "92235fbde9ee1352d25596ef0d8a8db338f57b9805b4ba409c34c402af3367cf",
+      "path": "upstream/autocomplete-keys-home-movement-down"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-home-movement-ctrl-n",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "5c036bc11c38491598d460491713ad32ed5f95d147cd1a94d1a9e78a0e6bbb43",
+      "png_sha256": "9564634088553185320b503e11ac203dc351ff2daa71da8fbbe4090bdfb4439c",
+      "render_sha256": "041633eb156cf9a5dd545e77aefe060e89ff5910e9f6b4af6febacec680becbb",
+      "path": "upstream/autocomplete-keys-home-movement-ctrl-n"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-home-after-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "19d7b9fa2808cf49ae8bd05f6602f94990b8332d3ea5b08368234c50f487019d",
+      "png_sha256": "b787a7547c2ffbf41e9804c7ff23bda6115da2707aa2331f48c345db816c826a",
+      "render_sha256": "0bc0c935335e33965d727084d8310022ea7719baa9afd067367625d2510825c4",
+      "path": "upstream/autocomplete-keys-home-after-esc"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d9637baf35305ac4d53dcf72988615db6b7ce71377f0dd96cdfec1b5491c1e07",
+      "png_sha256": "4ab186c20e27792f62a515eed97c150d99d3ea5df01d84cbfd1165363b6e1239",
+      "render_sha256": "174157f35ee532033fd15633ace6adb59f7dfca286e52282f242f130e2737d02",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-session-before-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "53f1a131edadf9a809d395eacbc3d4bf5aba2d793e87614c30de075b1bc1a70d",
+      "png_sha256": "a6df4b619274f26130e6d7a609013daf3774d0a64b0194f9b4f15608430ace82",
+      "render_sha256": "f9700c800c77a2a67c76d269dba757b0bc47be0fc19644a597b28fd584f24407",
+      "path": "upstream/autocomplete-keys-session-before-enter"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-session-after-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "faffecea68f9d150356c87c64633dc85dcf7771b98410cff38740be1e810c463",
+      "png_sha256": "bbd36b95032aafdd41bc449e750c592bb1baea1a6e78fc90c7d77435d2ef2bd1",
+      "render_sha256": "1ffe5d45c39ddbfeb4df66cc005d84883a8c181b46bd186638f9d39acf65fa06",
+      "path": "upstream/autocomplete-keys-session-after-enter"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-session-before-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d480155319f4dfd98c39942fa134b23033addc2b47084d9badfc4510bfba4e58",
+      "png_sha256": "2c3f7106048d932e19dce669cda611f82f46af1422869b504c70736e54654f57",
+      "render_sha256": "1d4fbce518cc59dadc818ad843139bb85c07aaa12eccac7c38f655c8398109f1",
+      "path": "upstream/autocomplete-keys-session-before-esc"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-session-movement-up",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c60bd3668a263f4763c67b0f737f09a7f13a7a30699e01e6b0b26c5a73df8781",
+      "png_sha256": "a7629b8d7bd74ec51c9e96fbb6809c99af51c9d644ac5e6301b116884d458c7c",
+      "render_sha256": "f5627396c2a108b25f2ad178745b0665870529a8305009f967eec321c4e6554f",
+      "path": "upstream/autocomplete-keys-session-movement-up"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-session-movement-ctrl-p",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "aee83fae9622f220b9a81a2020187b5e68fffdb872f424ba71a67093d5e97442",
+      "png_sha256": "5b750e122c7194d7e59fd55f69a11bc0fd6fa6330aad5bddda20790ab1dee280",
+      "render_sha256": "83368029148da078a9faa8b9e5793a3bd9fbb547a731c4e4569a2351d34591a0",
+      "path": "upstream/autocomplete-keys-session-movement-ctrl-p"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-session-movement-down",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "9d727ce59fabba889742e9af5202fe8e57977011de116c9da0b7c61e681b8ded",
+      "png_sha256": "a7629b8d7bd74ec51c9e96fbb6809c99af51c9d644ac5e6301b116884d458c7c",
+      "render_sha256": "95ef668bb8ea9f52a9bfb28522c94939e8d5de2ea203413972aa8dcecdd810b1",
+      "path": "upstream/autocomplete-keys-session-movement-down"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-session-movement-ctrl-n",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c3b7d79896114e9099c83e701ba6b2ea68b0e126d3f32653fb7a8fefca14a3bd",
+      "png_sha256": "2c3f7106048d932e19dce669cda611f82f46af1422869b504c70736e54654f57",
+      "render_sha256": "d49977ba003f118613a5a39d6054206e276de91cab455eace36637ed0b2d0aad",
+      "path": "upstream/autocomplete-keys-session-movement-ctrl-n"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-keys-session-after-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "7a28f9a1436113bcdd185f505867fe2fd4160c56c9c4f45f3e9d05699e763b46",
+      "png_sha256": "75ccc97ddf2ab6ef1a535af6b37c51aa3385d99c82f4bca3566fa999db7ef748",
+      "render_sha256": "1ca1067939f256135bdebd09c4c8d0e9ce880c921aa91177752b517de38683a9",
+      "path": "upstream/autocomplete-keys-session-after-esc"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c4b90eebbb95874bcf132c89c099edbea310115761bb4026656a0b9ddf224811",
+      "png_sha256": "b91933fdac1f263cc2dcdffa096f8686d3d91f5904f410af47f627b5b9763fc4",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-home-before-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e0e330312cc766ecde652d617f51b657d5ae78d0ba510e9fee9d3190dfea40d5",
+      "png_sha256": "aa8bc6b93b4d7b1a78820577452130d7189632838014efbe8e775a972c2c04c4",
+      "render_sha256": "5a74ff0e58376c97151e3faa22be3a5d6f5a0163deabfe6bede529ec249f3630",
+      "path": "oc/autocomplete-keys-home-before-enter"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-home-after-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f77f8d755e68ee3c35b46f6698800962dde75cc51c087c4fb4ea0f81a560e060",
+      "png_sha256": "8bdfa15255d0a4e3543ddca38137a325aca55bf32fe54bba09bc56a4ff82abf1",
+      "render_sha256": "ae1045e78f51be350c59a38b59424281e8e8b214e2b832d8f58a9113c20eabff",
+      "path": "oc/autocomplete-keys-home-after-enter"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-home-before-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c77a0b50c034ecf527b7e5aa2d5aa48c6b410f9e6d075b6686a2f6da66464ff4",
+      "png_sha256": "feee89692d283859cfa1a25cf82cdbbc7b22ebba20899daf72f532556437639f",
+      "render_sha256": "b8fe201b6b03242e7d2df604735c158ac9dfac8c3fb450d7431dc3937d0c3d6d",
+      "path": "oc/autocomplete-keys-home-before-esc"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-home-movement-up",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "92d98b00a84f80baae1722e76eaa6330ae96679feb6356f451419bea7be35a72",
+      "png_sha256": "0caf78a95cfa96a021f26cbffc30de94eca769db7a5594195c19b3dd55074c91",
+      "render_sha256": "fd1a6fdb1efc3795f246727514a827fe64cd54ff260b3368a799ec932838cf17",
+      "path": "oc/autocomplete-keys-home-movement-up"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-home-movement-ctrl-p",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f5b808cdce39cb1437c5874115f5f336ae826970d230dee94c23a5a7c2159edf",
+      "png_sha256": "629f7c3b977f679fbbe6821d01b2f82e8af7cafc37fb82de3eb1361080e4b5a2",
+      "render_sha256": "b4777e123432e7d788ddf860d71f428b954a27f852ed3f53eb272e381972cc18",
+      "path": "oc/autocomplete-keys-home-movement-ctrl-p"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-home-movement-down",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "4e0bf8fcc051525a81dd5f60eb7db42ef358944ad14d5f3cd3d20eb5115f2385",
+      "png_sha256": "0caf78a95cfa96a021f26cbffc30de94eca769db7a5594195c19b3dd55074c91",
+      "render_sha256": "98a29feb9713d68802ba0d3118ff69554a08287bd40ab3448e1b317180e5b5bd",
+      "path": "oc/autocomplete-keys-home-movement-down"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-home-movement-ctrl-n",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "48ac4cafebcd98726bef93247cce0044a8fbac707941856903be3ca7c5f820d4",
+      "png_sha256": "feee89692d283859cfa1a25cf82cdbbc7b22ebba20899daf72f532556437639f",
+      "render_sha256": "1a2dfb74076ed62a9c08db0c9b2850e127606438b6b3e95599fe57114dad36ea",
+      "path": "oc/autocomplete-keys-home-movement-ctrl-n"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-home-after-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "dcf35ef093d47e4f6595ce9a2893ddca6c2aeff571b31f90152a725db7ac29c4",
+      "png_sha256": "8b0bf48bc292fbcd9dbf57b92784af6d77bf655168431f96f78757e1125fe19d",
+      "render_sha256": "f347f071a084fcbfa8e17062723b12868f338a7869fbe38cb28545e48bdd79a0",
+      "path": "oc/autocomplete-keys-home-after-esc"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "401ce0be5aae44309b8cfc8241a4a808e7ae8a3836359b4267de0f5f95a018f4",
+      "png_sha256": "af86dadabdf5a477d38d005b80a6d830dbaebc8dd495b032fb61b2d2c10b82ed",
+      "render_sha256": "46773fc00448873e0035f8ccdfb36305df35244ad4c4f8e35e3ca74a59b3dd6e",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-session-before-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "bfe3cf07b72447a25fb7f68d026d49a5536bd793aa4aa68d270b8ad2efc770ca",
+      "png_sha256": "d7ca4c062a817ff3295032f5ceb753adb33fdfcff47f460c6f071b419aa9c3a0",
+      "render_sha256": "b6b8f8deeffc02f74f55c3ae8e9f4ce57e3ad70f1e4df41fc11a051b03b40ba2",
+      "path": "oc/autocomplete-keys-session-before-enter"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-session-after-enter",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "02ee3a93ec5d86e3a0924951153bcdc7a68d96b3e3251d0bbb5a91ccc5fe5efc",
+      "png_sha256": "3688510a73e96a4feea099173306c4fe0598fccb78dd246a90a2d71bc6ae4a57",
+      "render_sha256": "02485858823d0e08d5e80a232335038d6e8aca692c46083da1a935d16f9d4272",
+      "path": "oc/autocomplete-keys-session-after-enter"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-session-before-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "43b9763442dad9b80675b26d908bb0a56dc0e51160f5c9573d99f528f6a5ba3a",
+      "png_sha256": "971e3a5a05fd0f0ec1fd13327e0c0c9e2410915dbc3eb0b9b83a2c7d26e4c1ed",
+      "render_sha256": "3dd0f152e38c589561ea4d373845d682b8125e689d9aa5665dd9846f1276b89e",
+      "path": "oc/autocomplete-keys-session-before-esc"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-session-movement-up",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "599d19888044f9e44816448960439f0da10704c853693448a8bf0ebe9dec421c",
+      "png_sha256": "f9565a6e8ca751eaf09167f64b115d637eaed65b273ef5590c6d8d920ff68b76",
+      "render_sha256": "67577234b082ff2ef0e0f3f604681e38f84a476075d2e85927415928ee506cfc",
+      "path": "oc/autocomplete-keys-session-movement-up"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-session-movement-ctrl-p",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ca795f8ad10be34d909367883c309b59ace93f4ef12c0792f42bfd97f0601054",
+      "png_sha256": "aef5e8b2f810d31b52ce4091eb0889d4f68ce45a4b17c386ad77cc671a2dab02",
+      "render_sha256": "9057358f521841c3224231ad456f01110e980da2a11c52a1407ff63ab2ab41d9",
+      "path": "oc/autocomplete-keys-session-movement-ctrl-p"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-session-movement-down",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "02b3eaf3cfa677100c32dc2e8e19b1007589246788ff8f090a75ff1640d8e3cf",
+      "png_sha256": "f9565a6e8ca751eaf09167f64b115d637eaed65b273ef5590c6d8d920ff68b76",
+      "render_sha256": "b53019677798c7f1e69546704b4092df331bbc648e72efb90d910fae0a260534",
+      "path": "oc/autocomplete-keys-session-movement-down"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-session-movement-ctrl-n",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3a28ecdd91bdeb2073ec52a347659d53221e79a6688734307be857e6f94f9ff9",
+      "png_sha256": "971e3a5a05fd0f0ec1fd13327e0c0c9e2410915dbc3eb0b9b83a2c7d26e4c1ed",
+      "render_sha256": "a4c2b1f07e5c1bed7beddb1194143c6ba7774c034aac0c77dbfdb6138cd5dc3c",
+      "path": "oc/autocomplete-keys-session-movement-ctrl-n"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-keys-session-after-esc",
+      "status": "CAPTURED_AUTOCOMPLETE_KEYS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "10755baf863690ad5f6c2964ef3c36759f14d821a7b2c2c20e71efa7284742d2",
+      "png_sha256": "35d4df5926e4a540014f4845ebd3d0821f8daa4ee9d3be7b63cec29882171f64",
+      "render_sha256": "ab7074e72212bb84668b2c9b2b3dc0418dc0292e7e6fbffde62ef89223489615",
+      "path": "oc/autocomplete-keys-session-after-esc"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "autocomplete_keys": {
+    "upstream": {
+      "status": "PASS",
+      "checks": [
+        {
+          "route": "home",
+          "stage": "before-enter",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/reload",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 19,
+                "text": "                       ┃ /reload      Reload configuration                                       ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 33,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "reload_option_visible": true,
+            "prior_reload_notice_absent": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "8f907d02e1364197ba4f85b8acf8ba9195fd8cb7303bb00b6ee3d8fa9ba2beac"
+        },
+        {
+          "route": "home",
+          "stage": "after-enter",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "Ask anything… \"What is the tech stack of this project?\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": true,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_success_visible": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "ab33070ff17c03f97dfd9797c0108411bbea2ce2267d760ef1e5c492a2c7e7cd"
+        },
+        {
+          "route": "home",
+          "stage": "reload-notice-expired",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "Ask anything… \"What is the tech stack of this project?\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_notice_absent": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "ba0c3ef915ba4981549154bcd514aedb5afc3796afafc03e06b69b392211e04d"
+        },
+        {
+          "route": "home",
+          "stage": "before-esc",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload      Reload configuration                                       ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "menu_visible": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "aa938f9e3b03fd4f1bd8a96184dfa7414dc4caa555d4f55ade1d528aee989c8f"
+        },
+        {
+          "route": "home",
+          "stage": "movement-initial",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload      Reload configuration                                       ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "multiple_options": true,
+            "unique_styled_selection": true,
+            "distinct_unselected_background": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 17,
+                "label": "/reload",
+                "x": 25,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              },
+              {
+                "y": 18,
+                "label": "/review",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 19,
+                "label": "/btw",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              }
+            ],
+            "selected_index": 0,
+            "selected_option": {
+              "y": 17,
+              "label": "/reload",
+              "x": 25,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "grid_sha256": "aa938f9e3b03fd4f1bd8a96184dfa7414dc4caa555d4f55ade1d528aee989c8f"
+        },
+        {
+          "route": "home",
+          "stage": "movement-up",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload      Reload configuration                                       ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 17,
+                "label": "/reload",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 18,
+                "label": "/review",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 19,
+                "label": "/btw",
+                "x": 25,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              }
+            ],
+            "selected_index": 2,
+            "selected_option": {
+              "y": 19,
+              "label": "/btw",
+              "x": 25,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 2,
+          "grid_sha256": "d2037ebb227ac2f4c9f6f339bf397b4dc9fd0231a66f68aa93a93e0b9f012061"
+        },
+        {
+          "route": "home",
+          "stage": "movement-ctrl-p",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload      Reload configuration                                       ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 17,
+                "label": "/reload",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 18,
+                "label": "/review",
+                "x": 25,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              },
+              {
+                "y": 19,
+                "label": "/btw",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              }
+            ],
+            "selected_index": 1,
+            "selected_option": {
+              "y": 18,
+              "label": "/review",
+              "x": 25,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 1,
+          "grid_sha256": "ded8612ea50d734e9b4e3b6f9a403a77e690569a35448ec95acc28c1b7ffab0f"
+        },
+        {
+          "route": "home",
+          "stage": "movement-down",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload      Reload configuration                                       ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 17,
+                "label": "/reload",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 18,
+                "label": "/review",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 19,
+                "label": "/btw",
+                "x": 25,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              }
+            ],
+            "selected_index": 2,
+            "selected_option": {
+              "y": 19,
+              "label": "/btw",
+              "x": 25,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 2,
+          "grid_sha256": "d2037ebb227ac2f4c9f6f339bf397b4dc9fd0231a66f68aa93a93e0b9f012061"
+        },
+        {
+          "route": "home",
+          "stage": "movement-ctrl-n",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload      Reload configuration                                       ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 17,
+                "label": "/reload",
+                "x": 25,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              },
+              {
+                "y": 18,
+                "label": "/review",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 19,
+                "label": "/btw",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              }
+            ],
+            "selected_index": 0,
+            "selected_option": {
+              "y": 17,
+              "label": "/reload",
+              "x": 25,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 0,
+          "grid_sha256": "aa938f9e3b03fd4f1bd8a96184dfa7414dc4caa555d4f55ade1d528aee989c8f"
+        },
+        {
+          "route": "home",
+          "stage": "after-esc",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_retained": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "dd03d482febe5f346c56c5e00b39b82bcaec317f419ae5b4ddb8a7d15586e80e"
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "Ask anything… \"What is the tech stack of this project?\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "ba0c3ef915ba4981549154bcd514aedb5afc3796afafc03e06b69b392211e04d"
+        },
+        {
+          "route": "session",
+          "stage": "before-enter",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/reload",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 32,
+                "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 12,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "reload_option_visible": true,
+            "prior_reload_notice_absent": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "3d41024ec2ec5814721bd326439f622ff4a2c3b088d8eda352f3a43b6f24c9cf"
+        },
+        {
+          "route": "session",
+          "stage": "after-enter",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_success_visible": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "814af53750d87c1db7785710d32933851ac218ed3a70b7f769a30b39573b167b"
+        },
+        {
+          "route": "session",
+          "stage": "reload-notice-expired",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_notice_absent": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "843a30842b617604f1ee6c1b08233decb781f9efa9578c5fbe1da4a55b3a5e8b"
+        },
+        {
+          "route": "session",
+          "stage": "before-esc",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              },
+              {
+                "y": 27,
+                "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+              },
+              {
+                "y": 28,
+                "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+              },
+              {
+                "y": 29,
+                "text": "  ┃ /share       Share session                                                                                       ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /fork        Fork session                                                                                        ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /export      Export session transcript                                                                           ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "menu_visible": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "38568fa213adb168821d840c937f24340608c9ec44bc317eadb897a6b6d87ca4"
+        },
+        {
+          "route": "session",
+          "stage": "movement-initial",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              },
+              {
+                "y": 27,
+                "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+              },
+              {
+                "y": 28,
+                "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+              },
+              {
+                "y": 29,
+                "text": "  ┃ /share       Share session                                                                                       ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /fork        Fork session                                                                                        ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /export      Export session transcript                                                                           ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "multiple_options": true,
+            "unique_styled_selection": true,
+            "distinct_unselected_background": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 26,
+                "label": "/rename",
+                "x": 4,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              },
+              {
+                "y": 27,
+                "label": "/reload",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 28,
+                "label": "/review",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 29,
+                "label": "/share",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 30,
+                "label": "/fork",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 31,
+                "label": "/export",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 32,
+                "label": "/btw",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              }
+            ],
+            "selected_index": 0,
+            "selected_option": {
+              "y": 26,
+              "label": "/rename",
+              "x": 4,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "grid_sha256": "38568fa213adb168821d840c937f24340608c9ec44bc317eadb897a6b6d87ca4"
+        },
+        {
+          "route": "session",
+          "stage": "movement-up",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              },
+              {
+                "y": 27,
+                "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+              },
+              {
+                "y": 28,
+                "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+              },
+              {
+                "y": 29,
+                "text": "  ┃ /share       Share session                                                                                       ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /fork        Fork session                                                                                        ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /export      Export session transcript                                                                           ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 26,
+                "label": "/rename",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 27,
+                "label": "/reload",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 28,
+                "label": "/review",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 29,
+                "label": "/share",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 30,
+                "label": "/fork",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 31,
+                "label": "/export",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 32,
+                "label": "/btw",
+                "x": 4,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              }
+            ],
+            "selected_index": 6,
+            "selected_option": {
+              "y": 32,
+              "label": "/btw",
+              "x": 4,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 6,
+          "grid_sha256": "aee34d7ae027dc070e86a47976a8f2fb25fa3a8d889281853573baa420b1bf94"
+        },
+        {
+          "route": "session",
+          "stage": "movement-ctrl-p",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              },
+              {
+                "y": 27,
+                "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+              },
+              {
+                "y": 28,
+                "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+              },
+              {
+                "y": 29,
+                "text": "  ┃ /share       Share session                                                                                       ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /fork        Fork session                                                                                        ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /export      Export session transcript                                                                           ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 26,
+                "label": "/rename",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 27,
+                "label": "/reload",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 28,
+                "label": "/review",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 29,
+                "label": "/share",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 30,
+                "label": "/fork",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 31,
+                "label": "/export",
+                "x": 4,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              },
+              {
+                "y": 32,
+                "label": "/btw",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              }
+            ],
+            "selected_index": 5,
+            "selected_option": {
+              "y": 31,
+              "label": "/export",
+              "x": 4,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 5,
+          "grid_sha256": "c37cf0aa83ad5479281345ed20b2ed79b33421bc8f98a015fc201a454d719222"
+        },
+        {
+          "route": "session",
+          "stage": "movement-down",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              },
+              {
+                "y": 27,
+                "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+              },
+              {
+                "y": 28,
+                "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+              },
+              {
+                "y": 29,
+                "text": "  ┃ /share       Share session                                                                                       ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /fork        Fork session                                                                                        ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /export      Export session transcript                                                                           ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 26,
+                "label": "/rename",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 27,
+                "label": "/reload",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 28,
+                "label": "/review",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 29,
+                "label": "/share",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 30,
+                "label": "/fork",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 31,
+                "label": "/export",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 32,
+                "label": "/btw",
+                "x": 4,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              }
+            ],
+            "selected_index": 6,
+            "selected_option": {
+              "y": 32,
+              "label": "/btw",
+              "x": 4,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 6,
+          "grid_sha256": "aee34d7ae027dc070e86a47976a8f2fb25fa3a8d889281853573baa420b1bf94"
+        },
+        {
+          "route": "session",
+          "stage": "movement-ctrl-n",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              },
+              {
+                "y": 27,
+                "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+              },
+              {
+                "y": 28,
+                "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+              },
+              {
+                "y": 29,
+                "text": "  ┃ /share       Share session                                                                                       ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /fork        Fork session                                                                                        ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /export      Export session transcript                                                                           ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 26,
+                "label": "/rename",
+                "x": 4,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              },
+              {
+                "y": 27,
+                "label": "/reload",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 28,
+                "label": "/review",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 29,
+                "label": "/share",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 30,
+                "label": "/fork",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 31,
+                "label": "/export",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 32,
+                "label": "/btw",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              }
+            ],
+            "selected_index": 0,
+            "selected_option": {
+              "y": 26,
+              "label": "/rename",
+              "x": 4,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 0,
+          "grid_sha256": "38568fa213adb168821d840c937f24340608c9ec44bc317eadb897a6b6d87ca4"
+        },
+        {
+          "route": "session",
+          "stage": "after-esc",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_retained": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "f6917554c49ccaf6100bb5104038e9118558450cf463904873679fde06e747de"
+        },
+        {
+          "route": "session",
+          "stage": "cleared",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "843a30842b617604f1ee6c1b08233decb781f9efa9578c5fbe1da4a55b3a5e8b"
+        }
+      ]
+    },
+    "oc": {
+      "status": "PASS",
+      "checks": [
+        {
+          "route": "home",
+          "stage": "before-enter",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/reload",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 19,
+                "text": "                       ┃ /reload          Reload configuration                                   ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 33,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "reload_option_visible": true,
+            "prior_reload_notice_absent": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "f179bcd35f6151322edbdf0a487e02612eec24c0bd40a83f18d46a1cb59f1dd3"
+        },
+        {
+          "route": "home",
+          "stage": "after-enter",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": true,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_success_visible": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "e5902d5e9e9077bdf0b636b3ec1945f3b10765068f7a71addf4ab8795256f4e5"
+        },
+        {
+          "route": "home",
+          "stage": "reload-notice-expired",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_notice_absent": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "dc5196451f5570360d7c46b0d263142cac2a00069ca481d272b6eeb19fc07569"
+        },
+        {
+          "route": "home",
+          "stage": "before-esc",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload          Reload configuration                                   ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review          review changes [commit|branch|pr], defaults to uncommit┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "menu_visible": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "cf09b03b7a1b51207d55b08338df2e77dfc76bbc4b88a62852a9649434c234e1"
+        },
+        {
+          "route": "home",
+          "stage": "movement-initial",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload          Reload configuration                                   ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review          review changes [commit|branch|pr], defaults to uncommit┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "multiple_options": true,
+            "unique_styled_selection": true,
+            "distinct_unselected_background": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 17,
+                "label": "/reload",
+                "x": 25,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              },
+              {
+                "y": 18,
+                "label": "/review",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 19,
+                "label": "/dcp-compress",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              }
+            ],
+            "selected_index": 0,
+            "selected_option": {
+              "y": 17,
+              "label": "/reload",
+              "x": 25,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "grid_sha256": "cf09b03b7a1b51207d55b08338df2e77dfc76bbc4b88a62852a9649434c234e1"
+        },
+        {
+          "route": "home",
+          "stage": "movement-up",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload          Reload configuration                                   ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review          review changes [commit|branch|pr], defaults to uncommit┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 17,
+                "label": "/reload",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 18,
+                "label": "/review",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 19,
+                "label": "/dcp-compress",
+                "x": 25,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              }
+            ],
+            "selected_index": 2,
+            "selected_option": {
+              "y": 19,
+              "label": "/dcp-compress",
+              "x": 25,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 2,
+          "grid_sha256": "8cd5ed0269619d6e2913e24a8d7da3730d23ba4b7f4f4c646392da88670ac68c"
+        },
+        {
+          "route": "home",
+          "stage": "movement-ctrl-p",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload          Reload configuration                                   ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review          review changes [commit|branch|pr], defaults to uncommit┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 17,
+                "label": "/reload",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 18,
+                "label": "/review",
+                "x": 25,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              },
+              {
+                "y": 19,
+                "label": "/dcp-compress",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              }
+            ],
+            "selected_index": 1,
+            "selected_option": {
+              "y": 18,
+              "label": "/review",
+              "x": 25,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 1,
+          "grid_sha256": "c7592532aff35160045e724f2087445f522dec921ec9c766cb156bd788aab3ba"
+        },
+        {
+          "route": "home",
+          "stage": "movement-down",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload          Reload configuration                                   ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review          review changes [commit|branch|pr], defaults to uncommit┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 17,
+                "label": "/reload",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 18,
+                "label": "/review",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 19,
+                "label": "/dcp-compress",
+                "x": 25,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              }
+            ],
+            "selected_index": 2,
+            "selected_option": {
+              "y": 19,
+              "label": "/dcp-compress",
+              "x": 25,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 2,
+          "grid_sha256": "8cd5ed0269619d6e2913e24a8d7da3730d23ba4b7f4f4c646392da88670ac68c"
+        },
+        {
+          "route": "home",
+          "stage": "movement-ctrl-n",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload          Reload configuration                                   ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review          review changes [commit|branch|pr], defaults to uncommit┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 17,
+                "label": "/reload",
+                "x": 25,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              },
+              {
+                "y": 18,
+                "label": "/review",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 19,
+                "label": "/dcp-compress",
+                "x": 25,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              }
+            ],
+            "selected_index": 0,
+            "selected_option": {
+              "y": 17,
+              "label": "/reload",
+              "x": 25,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 0,
+          "grid_sha256": "cf09b03b7a1b51207d55b08338df2e77dfc76bbc4b88a62852a9649434c234e1"
+        },
+        {
+          "route": "home",
+          "stage": "after-esc",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_retained": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "93501ba6bde95af05a36a2389af31c3ac3ede15a5a7eda20289591b215d78c68"
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "baseline": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "dc5196451f5570360d7c46b0d263142cac2a00069ca481d272b6eeb19fc07569"
+        },
+        {
+          "route": "session",
+          "stage": "before-enter",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/reload",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 32,
+                "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 12,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "reload_option_visible": true,
+            "prior_reload_notice_absent": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "60a7136aa0b7e9f7b101750dc9dd62cbbd1d970401db432cbb8a445c5adab31e"
+        },
+        {
+          "route": "session",
+          "stage": "after-enter",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_success_visible": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "7f1926f0afe467aa34f474a23bf9734f0abad2035eab06f02603d3430bd88974"
+        },
+        {
+          "route": "session",
+          "stage": "reload-notice-expired",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "reload_notice_absent": true,
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "1222f4b9201f17dc66b6e246609848b48a6bf439709bc730573128ea548ef5d7"
+        },
+        {
+          "route": "session",
+          "stage": "before-esc",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_visible": true,
+            "menu_visible": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "0d6f8246ab4603aed6c3602ee5d65099c3c1bfbc0afe4ec9b6d981b91eb44a0e"
+        },
+        {
+          "route": "session",
+          "stage": "movement-initial",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "multiple_options": true,
+            "unique_styled_selection": true,
+            "distinct_unselected_background": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 29,
+                "label": "/rename",
+                "x": 4,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              },
+              {
+                "y": 30,
+                "label": "/reload",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 31,
+                "label": "/review",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 32,
+                "label": "/dcp-compress",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              }
+            ],
+            "selected_index": 0,
+            "selected_option": {
+              "y": 29,
+              "label": "/rename",
+              "x": 4,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "grid_sha256": "0d6f8246ab4603aed6c3602ee5d65099c3c1bfbc0afe4ec9b6d981b91eb44a0e"
+        },
+        {
+          "route": "session",
+          "stage": "movement-up",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 29,
+                "label": "/rename",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 30,
+                "label": "/reload",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 31,
+                "label": "/review",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 32,
+                "label": "/dcp-compress",
+                "x": 4,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              }
+            ],
+            "selected_index": 3,
+            "selected_option": {
+              "y": 32,
+              "label": "/dcp-compress",
+              "x": 4,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 3,
+          "grid_sha256": "2ae8db2bb8ae34b41473ce228b998cdf0b6bc58054a3b69efa897a9691e062fd"
+        },
+        {
+          "route": "session",
+          "stage": "movement-ctrl-p",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 29,
+                "label": "/rename",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 30,
+                "label": "/reload",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 31,
+                "label": "/review",
+                "x": 4,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              },
+              {
+                "y": 32,
+                "label": "/dcp-compress",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              }
+            ],
+            "selected_index": 2,
+            "selected_option": {
+              "y": 31,
+              "label": "/review",
+              "x": 4,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 2,
+          "grid_sha256": "2409603783288153dc7c3e50da666f09453582dfb10becab92f2e11b0f84ea12"
+        },
+        {
+          "route": "session",
+          "stage": "movement-down",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 29,
+                "label": "/rename",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 30,
+                "label": "/reload",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 31,
+                "label": "/review",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 32,
+                "label": "/dcp-compress",
+                "x": 4,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              }
+            ],
+            "selected_index": 3,
+            "selected_option": {
+              "y": 32,
+              "label": "/dcp-compress",
+              "x": 4,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 3,
+          "grid_sha256": "2ae8db2bb8ae34b41473ce228b998cdf0b6bc58054a3b69efa897a9691e062fd"
+        },
+        {
+          "route": "session",
+          "stage": "movement-ctrl-n",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "selected_index": true,
+            "selected_option": true,
+            "draft_unchanged": true,
+            "no_provider_request": true
+          },
+          "selection": {
+            "options": [
+              {
+                "y": 29,
+                "label": "/rename",
+                "x": 4,
+                "fg": "#0a0a0a",
+                "bg": "#fab283"
+              },
+              {
+                "y": 30,
+                "label": "/reload",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 31,
+                "label": "/review",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              },
+              {
+                "y": 32,
+                "label": "/dcp-compress",
+                "x": 4,
+                "fg": "#eeeeee",
+                "bg": "#1e1e1e"
+              }
+            ],
+            "selected_index": 0,
+            "selected_option": {
+              "y": 29,
+              "label": "/rename",
+              "x": 4,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          },
+          "expected_index": 0,
+          "grid_sha256": "0d6f8246ab4603aed6c3602ee5d65099c3c1bfbc0afe4ec9b6d981b91eb44a0e"
+        },
+        {
+          "route": "session",
+          "stage": "after-esc",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_retained": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "5e70e58c9e59895597062e443a498889cb01f7fab5b23f44e68dd7663009caf0"
+        },
+        {
+          "route": "session",
+          "stage": "cleared",
+          "baseline": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "menu_hidden": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "1222f4b9201f17dc66b6e246609848b48a6bf439709bc730573128ea548ef5d7"
+        }
+      ]
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-24T21:07:35.155Z",
+  "exit_code": 1
+}

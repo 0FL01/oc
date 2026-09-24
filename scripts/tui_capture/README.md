@@ -422,6 +422,26 @@ session, capture before/after Enter, check the inserted `/rename ` by its
 cursor position and no new provider request, and clear that draft. The optional
 flag requires `--autocomplete-keys true`.
 
+For the paired selection-movement probe, add `--autocomplete-keys-move true`
+to that command (also works alongside `--autocomplete-keys-rename true`) and
+choose another fresh output directory. After typing `/ren` on **each** route,
+`before-esc` is the captured initial selection; the runner requires more than
+one painted option and a distinct styled highlight on the first row. It sends
+Up, Ctrl+P, Down, Ctrl+N individually through each real PTY (`ESC [ A`, `0x10`,
+`ESC [ B`, `0x0e`; pinned `packages/tui/src/config/keybind.ts:270-271`).
+`movement-up`, `movement-ctrl-p`, `movement-down`, `movement-ctrl-n` each save
+full styled cells/PNG/VT. The runner samples the actual slash-label cell's
+background on every option row, identifies the highlighted option by the
+initial focused background, and asserts wrap from first to last and last to
+first, as well as each intermediate move. It requires unchanged `/ren` draft,
+option inventory and provider request/completion counts. `autocomplete-keys-checks.json`
+records per-side labels, sampled foreground/background, selected option/index,
+expected index and predicates; `capture.lock.json` records outcomes. The
+ordinary comparator checks **all** paired movement frames in grid and PNG modes,
+without masking differences. Escape and optional rename still run afterward.
+Styled selection can pass on both sides while whole-frame VIS25 parity remains
+DIFFERENT; a missing or ambiguous highlight fails the interaction.
+
 Each `autocomplete-keys-{home,session}-{before-enter,after-enter,before-esc,after-esc}`
 frame (plus optional rename frames) retains its full styled grid, PNG, VT and
 ordinary whole-frame grid/PNG comparison. `autocomplete-keys-checks.json` and

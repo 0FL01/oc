@@ -1,0 +1,192 @@
+[
+  {
+    "at_ms": 1790283918517,
+    "kind": "terminal_reply",
+    "base64": "G10xMDtyZ2I6ZWVlZS9lZWVlL2VlZWUbXA=="
+  },
+  {
+    "at_ms": 1790283918519,
+    "kind": "terminal_reply",
+    "base64": "G10xMTtyZ2I6MGEwYS8wYTBhLzBhMGEbXA=="
+  },
+  {
+    "at_ms": 1790283918524,
+    "kind": "terminal_reply",
+    "base64": "G1sxOzFS"
+  },
+  {
+    "at_ms": 1790283918526,
+    "kind": "terminal_reply",
+    "base64": "G1s/MTAxNjsyJHk="
+  },
+  {
+    "at_ms": 1790283918526,
+    "kind": "terminal_reply",
+    "base64": "G1s/MjAyNzswJHk="
+  },
+  {
+    "at_ms": 1790283918527,
+    "kind": "terminal_reply",
+    "base64": "G1s/MjAzMTswJHk="
+  },
+  {
+    "at_ms": 1790283918528,
+    "kind": "terminal_reply",
+    "base64": "G1s/MTAwNDsyJHk="
+  },
+  {
+    "at_ms": 1790283918529,
+    "kind": "terminal_reply",
+    "base64": "G1s/MjAwNDsyJHk="
+  },
+  {
+    "at_ms": 1790283918529,
+    "kind": "terminal_reply",
+    "base64": "G1s/MjAyNjsyJHk="
+  },
+  {
+    "at_ms": 1790283918530,
+    "kind": "terminal_reply",
+    "base64": "G1s/MTsyYw=="
+  },
+  {
+    "at_ms": 1790283918530,
+    "kind": "terminal_reply",
+    "base64": "G1sxOzFS"
+  },
+  {
+    "at_ms": 1790283918531,
+    "kind": "terminal_reply",
+    "base64": "G1sxOzFS"
+  },
+  {
+    "at_ms": 1790283918601,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790283918609,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790283918613,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790283918621,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790283918630,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790283918639,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790283921685,
+    "kind": "autocomplete_keys_home_reload_type",
+    "base64": "L3JlbG9hZA=="
+  },
+  {
+    "at_ms": 1790283924535,
+    "kind": "autocomplete_keys_home_reload_enter",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790283931808,
+    "kind": "autocomplete_keys_home_ren_type",
+    "base64": "L3Jlbg=="
+  },
+  {
+    "at_ms": 1790283934548,
+    "kind": "autocomplete_keys_home_movement_up",
+    "base64": "G1tB"
+  },
+  {
+    "at_ms": 1790283937294,
+    "kind": "autocomplete_keys_home_movement_ctrl-p",
+    "base64": "EA=="
+  },
+  {
+    "at_ms": 1790283940033,
+    "kind": "autocomplete_keys_home_movement_down",
+    "base64": "G1tC"
+  },
+  {
+    "at_ms": 1790283942784,
+    "kind": "autocomplete_keys_home_movement_ctrl-n",
+    "base64": "Dg=="
+  },
+  {
+    "at_ms": 1790283945512,
+    "kind": "autocomplete_keys_home_ren_escape",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1790283948253,
+    "kind": "autocomplete_keys_home_ren_clear",
+    "base64": "f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f38="
+  },
+  {
+    "at_ms": 1790283950634,
+    "kind": "prompt_paste",
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "at_ms": 1790283950836,
+    "kind": "submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790283954098,
+    "kind": "autocomplete_keys_session_reload_type",
+    "base64": "L3JlbG9hZA=="
+  },
+  {
+    "at_ms": 1790283956929,
+    "kind": "autocomplete_keys_session_reload_enter",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790283964424,
+    "kind": "autocomplete_keys_session_ren_type",
+    "base64": "L3Jlbg=="
+  },
+  {
+    "at_ms": 1790283967264,
+    "kind": "autocomplete_keys_session_movement_up",
+    "base64": "G1tB"
+  },
+  {
+    "at_ms": 1790283970099,
+    "kind": "autocomplete_keys_session_movement_ctrl-p",
+    "base64": "EA=="
+  },
+  {
+    "at_ms": 1790283972787,
+    "kind": "autocomplete_keys_session_movement_down",
+    "base64": "G1tC"
+  },
+  {
+    "at_ms": 1790283975589,
+    "kind": "autocomplete_keys_session_movement_ctrl-n",
+    "base64": "Dg=="
+  },
+  {
+    "at_ms": 1790283978354,
+    "kind": "autocomplete_keys_session_ren_escape",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1790283981100,
+    "kind": "autocomplete_keys_session_ren_clear",
+    "base64": "f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f38="
+  }
+]

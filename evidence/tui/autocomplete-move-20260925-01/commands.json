@@ -1,0 +1,612 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--autocomplete-keys",
+      "true",
+      "--autocomplete-keys-move",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "d354e84ccf5f91ed3c821b9164d39e6fdc33e939\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "e6f0cb2904fc49672d4b2199b536d831dce1c730\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/scripts/tui_capture/README.md b/scripts/tui_capture/README.md\nindex 8a5cc1b..df9e73f 100644\n--- a/scripts/tui_capture/README.md\n+++ b/scripts/tui_capture/README.md\n@@ -422,6 +422,26 @@ session, capture before/after Enter, check the inserted `/rename ` by its\n cursor position and no new provider request, and clear that draft. The optional\n flag requires `--autocomplete-keys true`.\n \n+For the paired selection-movement probe, add `--autocomplete-keys-move true`\n+to that command (also works alongside `--autocomplete-keys-rename true`) and\n+choose another fresh output directory. After typing `/ren` on **each** route,\n+`before-esc` is the captured initial selection; the runner requires more than\n+one painted option and a distinct styled highlight on the first row. It sends\n+Up, Ctrl+P, Down, Ctrl+N individually through each real PTY (`ESC [ A`, `0x10`,\n+`ESC [ B`, `0x0e`; pinned `packages/tui/src/config/keybind.ts:270-271`).\n+`movement-up`, `movement-ctrl-p`, `movement-down`, `movement-ctrl-n` each save\n+full styled cells/PNG/VT. The runner samples the actual slash-label cell's\n+background on every option row, identifies the highlighted option by the\n+initial focused background, and asserts wrap from first to last and last to\n+first, as well as each intermediate move. It requires unchanged `/ren` draft,\n+option inventory and provider request/completion counts. `autocomplete-keys-checks.json`\n+records per-side labels, sampled foreground/background, selected option/index,\n+expected index and predicates; `capture.lock.json` records outcomes. The\n+ordinary comparator checks **all** paired movement frames in grid and PNG modes,\n+without masking differences. Escape and optional rename still run afterward.\n+Styled selection can pass on both sides while whole-frame VIS25 parity remains\n+DIFFERENT; a missing or ambiguous highlight fails the interaction.\n+\n Each `autocomplete-keys-{home,session}-{before-enter,after-enter,before-esc,after-esc}`\n frame (plus optional rename frames) retains its full styled grid, PNG, VT and\n ordinary whole-frame grid/PNG comparison. `autocomplete-keys-checks.json` and\ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex d43164d..f2af85a 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -55,6 +55,11 @@ if (args['autocomplete-keys-rename'] !== undefined && !['true','false'].includes\n   throw Error('--autocomplete-keys-rename must be true or false');\n if (autocompleteKeysRename && !autocompleteKeys)\n   throw Error('--autocomplete-keys-rename true requires --autocomplete-keys true');\n+const autocompleteKeysMove = args['autocomplete-keys-move'] === 'true';\n+if (args['autocomplete-keys-move'] !== undefined && !['true','false'].includes(args['autocomplete-keys-move']))\n+  throw Error('--autocomplete-keys-move must be true or false');\n+if (autocompleteKeysMove && !autocompleteKeys)\n+  throw Error('--autocomplete-keys-move true requires --autocomplete-keys true');\n const mention = args.mention === 'true';\n if (args.mention !== undefined && !['true','false'].includes(args.mention))\n   throw Error('--mention must be true or false');\n@@ -324,19 +329,31 @@ try {\n           rename_options:menu.filter(r=>r.text.includes('/rename')),\n           reload_notice:f.text.includes('Configuration reloaded'),\n           cursor:f.cursor,provider_counts:providerCounts()};\n-      };\n+       };\n        const autocompleteKeysChecks=[];\n        const probeAutocompleteKeys=async route=>{\n          const baseline=providerCounts();\n+         // Selection is a styled row, not a label or menu-order guess. Sample\n+         // the slash cell's background on each actual painted option row.\n+         const selection=(f,focusedBg)=>{\n+           const options=autocompleteObserve(f).menu.map(({y,text})=>{\n+             const label=/\\/\\S+/.exec(text.slice(text.indexOf('┃')+1))?.[0];\n+             const x=label===undefined?-1:text.indexOf(label);\n+             return {y,label,x,fg:f.cells[y]?.[x]?.fg,bg:f.cells[y]?.[x]?.bg};\n+           });\n+           const selected=options.filter(row=>row.bg===focusedBg);\n+           return {options,selected_index:selected.length===1?options.indexOf(selected[0]):null,\n+             selected_option:selected.length===1?selected[0]:null};\n+         };\n          const save=()=>{\n            fs.writeFileSync(path.join(dir,'autocomplete-keys-checks.json'),JSON.stringify({checks:autocompleteKeysChecks},null,2)+'\\n');\n            json('capture.lock.json',lock);\n          };\n          const empty=o=>o.cursor.x===o.draft_x && (o.draft==='' || o.draft?.startsWith('Ask anything…'));\n          const noRequests=()=>canonical(providerCounts())===canonical(baseline);\n-         const check=(stage,f,predicates)=>{\n+         const check=(stage,f,predicates,details={})=>{\n            autocompleteKeysChecks.push({route,stage,baseline,observed:autocompleteObserve(f),predicates,\n-             grid_sha256:sha(JSON.stringify(f))});\n+             ...details,grid_sha256:sha(JSON.stringify(f))});\n            save();\n            if(Object.values(predicates).some(value=>value!==true))\n              throw Error('Autocomplete keyboard predicate failed: '+route+' '+stage);\n@@ -384,10 +401,43 @@ try {\n          const beforeEsc=await awaitState('before-esc',f=>{const o=autocompleteObserve(f);\n            return o.draft==='/ren' && o.menu.length>0 && noRequests();});\n          const ren=autocompleteObserve(beforeEsc);\n-         check('before-esc',beforeEsc,{draft_visible:ren.draft==='/ren',\n-           menu_visible:ren.menu.length>0,no_provider_request:noRequests()});\n-         await shot('before-esc',beforeEsc);\n-         send('\\x1b',`autocomplete_keys_${route}_ren_escape`);\n+          check('before-esc',beforeEsc,{draft_visible:ren.draft==='/ren',\n+            menu_visible:ren.menu.length>0,no_provider_request:noRequests()});\n+          await shot('before-esc',beforeEsc);\n+          if(autocompleteKeysMove) {\n+            const focusedBg=selection(beforeEsc).options[0]?.bg;\n+            const initial=selection(beforeEsc,focusedBg);\n+            check('movement-initial',beforeEsc,{multiple_options:initial.options.length>1,\n+              unique_styled_selection:initial.selected_index===0,\n+              distinct_unselected_background:initial.options.slice(1).every(o=>o.bg!==focusedBg),\n+              draft_unchanged:ren.draft==='/ren',no_provider_request:noRequests()},\n+            {selection:initial});\n+            // Pinned keybind.ts:270-271; autocomplete.tsx:584-587 wraps.\n+            // before-esc is the initial movement frame, already captured above.\n+            const steps=[['up','\\x1b[A',initial.options.length-1],\n+              ['ctrl-p','\\x10',initial.options.length-2],\n+              ['down','\\x1b[B',initial.options.length-1],['ctrl-n','\\x0e',0]];\n+            let previous=initial.selected_index;\n+            const labels=initial.options.map(o=>o.label);\n+            for(const [name,key,expected] of steps) {\n+              send(key,`autocomplete_keys_${route}_movement_${name}`);\n+              const stage=`movement-${name}`;\n+              const moved=await awaitState(stage,f=>{\n+                const o=autocompleteObserve(f), s=selection(f,focusedBg);\n+                return o.draft==='/ren' && noRequests() &&\n+                  canonical(s.options.map(row=>row.label))===canonical(labels) &&\n+                  s.selected_index!==null && s.selected_index!==previous;\n+              });\n+              const s=selection(moved,focusedBg);\n+              await shot(stage,moved);\n+              check(stage,moved,{selected_index:s.selected_index===expected,\n+                selected_option:s.selected_option?.label===labels[expected],\n+                draft_unchanged:autocompleteObserve(moved).draft==='/ren',\n+                no_provider_request:noRequests()},{selection:s,expected_index:expected});\n+              previous=s.selected_index;\n+            }\n+          }\n+          send('\\x1b',`autocomplete_keys_${route}_ren_escape`);\n          const afterEsc=await awaitState('after-esc',f=>{const o=autocompleteObserve(f);\n            return o.draft==='/ren' && o.menu.length===0 && noRequests();});\n          const escaped=autocompleteObserve(afterEsc);\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/assets/upstream/PROVENANCE.md\u0000crates/oc-adapters/assets/upstream/v2/review.txt\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"a91e69c0aa32c9e111b78c0fe237e5e5897bd3f3374cce00293dfd0d1889fa9d\", \"actual_sha256\": \"c4b90eebbb95874bcf132c89c099edbea310115761bb4026656a0b9ddf224811\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 45, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 21, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"37f68536c6d85c6c413795129befd51f753da484f94f0a743a9c33621ee501eb\", \"actual_sha256\": \"b91933fdac1f263cc2dcdffa096f8686d3d91f5904f410af47f627b5b9763fc4\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2037, \"changed_fraction_diagnostic_only\": 0.0031481824925816025, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-before-enter.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-before-enter.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-before-enter.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-home-before-enter\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"beb756602a8dfada3fb408a46feae53f6686e8f6159a96d1c97dc44b35a5b6f4\", \"actual_sha256\": \"e0e330312cc766ecde652d617f51b657d5ae78d0ba510e9fee9d3190dfea40d5\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 68, \"cursor_differs\": false, \"difference_bbox_inclusive\": [23, 19, 117, 38], \"samples\": [{\"x\": 23, \"y\": 19, \"different_fields\": [\"bg\"]}, {\"x\": 24, \"y\": 19, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 19, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 19, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-before-enter.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-before-enter.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-before-enter.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"6ba96edd3032da011bbdf9ca5c1186cfe57c92a53d25014d88f000e262ce6f52\", \"actual_sha256\": \"aa8bc6b93b4d7b1a78820577452130d7189632838014efbe8e775a972c2c04c4\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1663, \"changed_fraction_diagnostic_only\": 0.002570165677546983, \"difference_bbox_inclusive\": [194, 304, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-after-enter.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-after-enter.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-after-enter.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-home-after-enter\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"47c62cabf53ec2995ae2210419836d7ab9ef3a50d996e4a1fb0080024dcdf314\", \"actual_sha256\": \"f77f8d755e68ee3c35b46f6698800962dde75cc51c087c4fb4ea0f81a560e060\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 45, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 21, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-after-enter.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-after-enter.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-after-enter.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"589574a66910f5a3d1d92b84ee27d406ccad0dcc4568511dad74db14321d6d37\", \"actual_sha256\": \"8bdfa15255d0a4e3543ddca38137a325aca55bf32fe54bba09bc56a4ff82abf1\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2037, \"changed_fraction_diagnostic_only\": 0.0031481824925816025, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-before-esc.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-before-esc.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-before-esc.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-home-before-esc\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"7e323e4441b9a2cc4df843c67df294b76f6fb48f0a4e96113ca78e7e4aa7af02\", \"actual_sha256\": \"c77a0b50c034ecf527b7e5aa2d5aa48c6b410f9e6d075b6686a2f6da66464ff4\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 203, \"cursor_differs\": false, \"difference_bbox_inclusive\": [23, 17, 117, 38], \"samples\": [{\"x\": 23, \"y\": 17, \"different_fields\": [\"bg\"]}, {\"x\": 24, \"y\": 17, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 17, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-before-esc.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-before-esc.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-before-esc.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"9564634088553185320b503e11ac203dc351ff2daa71da8fbbe4090bdfb4439c\", \"actual_sha256\": \"feee89692d283859cfa1a25cf82cdbbc7b22ebba20899daf72f532556437639f\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 7845, \"changed_fraction_diagnostic_only\": 0.012124443620178041, \"difference_bbox_inclusive\": [194, 272, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-movement-up.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-movement-up.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-movement-up.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-home-movement-up\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"18525dfd55734459a1bc228751e88cfe9cc83f308d56d62d866fbb9f679b6f6a\", \"actual_sha256\": \"92d98b00a84f80baae1722e76eaa6330ae96679feb6356f451419bea7be35a72\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 199, \"cursor_differs\": false, \"difference_bbox_inclusive\": [23, 17, 117, 38], \"samples\": [{\"x\": 23, \"y\": 17, \"different_fields\": [\"bg\"]}, {\"x\": 24, \"y\": 17, \"different_fields\": [\"fg\"]}, {\"x\": 37, \"y\": 17, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 39, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 40, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 41, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 17, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-movement-up.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-movement-up.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-movement-up.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"6ec99e97199f6824561edbdf23056e92f89b444a125448fdb05c39dbf1034114\", \"actual_sha256\": \"0caf78a95cfa96a021f26cbffc30de94eca769db7a5594195c19b3dd55074c91\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 7857, \"changed_fraction_diagnostic_only\": 0.012142989614243323, \"difference_bbox_inclusive\": [194, 272, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-movement-ctrl-p.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-movement-ctrl-p.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-movement-ctrl-p.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-home-movement-ctrl-p\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"c6cf9c6f4760594ee794a4f5792d74a0eb145692924158d5b87846ffa718b7fa\", \"actual_sha256\": \"f5b808cdce39cb1437c5874115f5f336ae826970d230dee94c23a5a7c2159edf\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 203, \"cursor_differs\": false, \"difference_bbox_inclusive\": [23, 17, 117, 38], \"samples\": [{\"x\": 23, \"y\": 17, \"different_fields\": [\"bg\"]}, {\"x\": 24, \"y\": 17, \"different_fields\": [\"fg\"]}, {\"x\": 37, \"y\": 17, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 39, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 40, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 41, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 17, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-movement-ctrl-p.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-movement-ctrl-p.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-movement-ctrl-p.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"1d493258353c26ab7d2f0b3436af116820dd4f6278c6f054622b929689ab51dd\", \"actual_sha256\": \"629f7c3b977f679fbbe6821d01b2f82e8af7cafc37fb82de3eb1361080e4b5a2\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 7851, \"changed_fraction_diagnostic_only\": 0.012133716617210683, \"difference_bbox_inclusive\": [194, 272, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-movement-down.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-movement-down.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-movement-down.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-home-movement-down\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"6c2f96f3a8cfa80d5352a25f603942fb23ba43b2fdedf84de70c13fd2b19d91a\", \"actual_sha256\": \"4e0bf8fcc051525a81dd5f60eb7db42ef358944ad14d5f3cd3d20eb5115f2385\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 199, \"cursor_differs\": false, \"difference_bbox_inclusive\": [23, 17, 117, 38], \"samples\": [{\"x\": 23, \"y\": 17, \"different_fields\": [\"bg\"]}, {\"x\": 24, \"y\": 17, \"different_fields\": [\"fg\"]}, {\"x\": 37, \"y\": 17, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 39, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 40, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 41, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 17, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-movement-down.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-movement-down.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-movement-down.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"6ec99e97199f6824561edbdf23056e92f89b444a125448fdb05c39dbf1034114\", \"actual_sha256\": \"0caf78a95cfa96a021f26cbffc30de94eca769db7a5594195c19b3dd55074c91\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 7857, \"changed_fraction_diagnostic_only\": 0.012142989614243323, \"difference_bbox_inclusive\": [194, 272, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-movement-ctrl-n.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-movement-ctrl-n.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-movement-ctrl-n.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-home-movement-ctrl-n\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"5c036bc11c38491598d460491713ad32ed5f95d147cd1a94d1a9e78a0e6bbb43\", \"actual_sha256\": \"48ac4cafebcd98726bef93247cce0044a8fbac707941856903be3ca7c5f820d4\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 203, \"cursor_differs\": false, \"difference_bbox_inclusive\": [23, 17, 117, 38], \"samples\": [{\"x\": 23, \"y\": 17, \"different_fields\": [\"bg\"]}, {\"x\": 24, \"y\": 17, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 17, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-movement-ctrl-n.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-movement-ctrl-n.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-movement-ctrl-n.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"9564634088553185320b503e11ac203dc351ff2daa71da8fbbe4090bdfb4439c\", \"actual_sha256\": \"feee89692d283859cfa1a25cf82cdbbc7b22ebba20899daf72f532556437639f\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 7845, \"changed_fraction_diagnostic_only\": 0.012124443620178041, \"difference_bbox_inclusive\": [194, 272, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-after-esc.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-after-esc.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-after-esc.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-home-after-esc\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"19d7b9fa2808cf49ae8bd05f6602f94990b8332d3ea5b08368234c50f487019d\", \"actual_sha256\": \"dcf35ef093d47e4f6595ce9a2893ddca6c2aeff571b31f90152a725db7ac29c4\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-home-after-esc.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-home-after-esc.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-home-after-esc.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"b787a7547c2ffbf41e9804c7ff23bda6115da2707aa2331f48c345db816c826a\", \"actual_sha256\": \"8b0bf48bc292fbcd9dbf57b92784af6d77bf655168431f96f78757e1125fe19d\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 298, \"changed_fraction_diagnostic_only\": 0.00046055885262116715, \"difference_bbox_inclusive\": [943, 611, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"d9637baf35305ac4d53dcf72988615db6b7ce71377f0dd96cdfec1b5491c1e07\", \"actual_sha256\": \"401ce0be5aae44309b8cfc8241a4a808e7ae8a3836359b4267de0f5f95a018f4\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"4ab186c20e27792f62a515eed97c150d99d3ea5df01d84cbfd1165363b6e1239\", \"actual_sha256\": \"af86dadabdf5a477d38d005b80a6d830dbaebc8dd495b032fb61b2d2c10b82ed\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 123, \"changed_fraction_diagnostic_only\": 0.00019009643916913945, \"difference_bbox_inclusive\": [320, 163, 335, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-before-enter.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-before-enter.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-before-enter.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-session-before-enter\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"53f1a131edadf9a809d395eacbc3d4bf5aba2d793e87614c30de075b1bc1a70d\", \"actual_sha256\": \"bfe3cf07b72447a25fb7f68d026d49a5536bd793aa4aa68d270b8ad2efc770ca\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 105, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 32], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 32, \"different_fields\": [\"bg\"]}, {\"x\": 3, \"y\": 32, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 32, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 32, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 32, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 32, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 32, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 32, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 32, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 32, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 32, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 32, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 32, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 32, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 32, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 32, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 32, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 32, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-before-enter.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-before-enter.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-before-enter.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"a6df4b619274f26130e6d7a609013daf3774d0a64b0194f9b4f15608430ace82\", \"actual_sha256\": \"d7ca4c062a817ff3295032f5ceb753adb33fdfcff47f460c6f071b419aa9c3a0\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1424, \"changed_fraction_diagnostic_only\": 0.0022007912957467853, \"difference_bbox_inclusive\": [17, 163, 992, 527]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-after-enter.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-after-enter.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-after-enter.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-session-after-enter\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"faffecea68f9d150356c87c64633dc85dcf7771b98410cff38740be1e810c463\", \"actual_sha256\": \"02ee3a93ec5d86e3a0924951153bcdc7a68d96b3e3251d0bbb5a91ccc5fe5efc\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-after-enter.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-after-enter.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-after-enter.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"bbd36b95032aafdd41bc449e750c592bb1baea1a6e78fc90c7d77435d2ef2bd1\", \"actual_sha256\": \"3688510a73e96a4feea099173306c4fe0598fccb78dd246a90a2d71bc6ae4a57\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 123, \"changed_fraction_diagnostic_only\": 0.00019009643916913945, \"difference_bbox_inclusive\": [320, 163, 335, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-before-esc.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-before-esc.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-before-esc.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-session-before-esc\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"d480155319f4dfd98c39942fa134b23033addc2b47084d9badfc4510bfba4e58\", \"actual_sha256\": \"43b9763442dad9b80675b26d908bb0a56dc0e51160f5c9573d99f528f6a5ba3a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 796, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 32], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 3, \"y\": 26, \"different_fields\": [\"bg\"]}, {\"x\": 4, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 5, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 6, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 7, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 8, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 9, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 10, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 11, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 12, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 13, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 14, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 15, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 16, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 17, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 18, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 19, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-before-esc.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-before-esc.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-before-esc.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"2c3f7106048d932e19dce669cda611f82f46af1422869b504c70736e54654f57\", \"actual_sha256\": \"971e3a5a05fd0f0ec1fd13327e0c0c9e2410915dbc3eb0b9b83a2c7d26e4c1ed\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 69888, \"changed_fraction_diagnostic_only\": 0.10801186943620178, \"difference_bbox_inclusive\": [17, 163, 992, 527]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-movement-up.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-movement-up.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-movement-up.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-session-movement-up\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"c60bd3668a263f4763c67b0f737f09a7f13a7a30699e01e6b0b26c5a73df8781\", \"actual_sha256\": \"599d19888044f9e44816448960439f0da10704c853693448a8bf0ebe9dec421c\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 783, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 32], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 3, \"y\": 26, \"different_fields\": [\"bg\"]}, {\"x\": 4, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 5, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 6, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 7, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 8, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 9, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 10, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 11, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 12, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 13, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 14, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 15, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 16, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 17, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 18, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 19, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-movement-up.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-movement-up.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-movement-up.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"a7629b8d7bd74ec51c9e96fbb6809c99af51c9d644ac5e6301b116884d458c7c\", \"actual_sha256\": \"f9565a6e8ca751eaf09167f64b115d637eaed65b273ef5590c6d8d920ff68b76\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 55800, \"changed_fraction_diagnostic_only\": 0.08623887240356083, \"difference_bbox_inclusive\": [17, 163, 992, 527]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-movement-ctrl-p.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-movement-ctrl-p.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-movement-ctrl-p.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-session-movement-ctrl-p\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"aee83fae9622f220b9a81a2020187b5e68fffdb872f424ba71a67093d5e97442\", \"actual_sha256\": \"ca795f8ad10be34d909367883c309b59ace93f4ef12c0792f42bfd97f0601054\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 789, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 32], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 3, \"y\": 26, \"different_fields\": [\"bg\"]}, {\"x\": 4, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 5, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 6, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 7, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 8, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 9, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 10, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 11, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 12, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 13, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 14, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 15, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 16, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 17, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 18, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 19, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-movement-ctrl-p.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-movement-ctrl-p.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-movement-ctrl-p.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"5b750e122c7194d7e59fd55f69a11bc0fd6fa6330aad5bddda20790ab1dee280\", \"actual_sha256\": \"aef5e8b2f810d31b52ce4091eb0889d4f68ce45a4b17c386ad77cc671a2dab02\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 55775, \"changed_fraction_diagnostic_only\": 0.08620023491592482, \"difference_bbox_inclusive\": [17, 163, 992, 527]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-movement-down.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-movement-down.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-movement-down.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-session-movement-down\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"9d727ce59fabba889742e9af5202fe8e57977011de116c9da0b7c61e681b8ded\", \"actual_sha256\": \"02b3eaf3cfa677100c32dc2e8e19b1007589246788ff8f090a75ff1640d8e3cf\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 783, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 32], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 3, \"y\": 26, \"different_fields\": [\"bg\"]}, {\"x\": 4, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 5, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 6, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 7, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 8, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 9, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 10, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 11, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 12, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 13, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 14, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 15, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 16, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 17, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 18, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 19, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-movement-down.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-movement-down.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-movement-down.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"a7629b8d7bd74ec51c9e96fbb6809c99af51c9d644ac5e6301b116884d458c7c\", \"actual_sha256\": \"f9565a6e8ca751eaf09167f64b115d637eaed65b273ef5590c6d8d920ff68b76\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 55800, \"changed_fraction_diagnostic_only\": 0.08623887240356083, \"difference_bbox_inclusive\": [17, 163, 992, 527]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-movement-ctrl-n.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-movement-ctrl-n.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-movement-ctrl-n.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-session-movement-ctrl-n\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"c3b7d79896114e9099c83e701ba6b2ea68b0e126d3f32653fb7a8fefca14a3bd\", \"actual_sha256\": \"3a28ecdd91bdeb2073ec52a347659d53221e79a6688734307be857e6f94f9ff9\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 796, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 32], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 3, \"y\": 26, \"different_fields\": [\"bg\"]}, {\"x\": 4, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 5, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 6, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 7, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 8, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 9, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 10, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 11, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 12, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 13, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 14, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 15, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 16, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 17, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 18, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 19, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-movement-ctrl-n.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-movement-ctrl-n.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-movement-ctrl-n.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"2c3f7106048d932e19dce669cda611f82f46af1422869b504c70736e54654f57\", \"actual_sha256\": \"971e3a5a05fd0f0ec1fd13327e0c0c9e2410915dbc3eb0b9b83a2c7d26e4c1ed\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 69888, \"changed_fraction_diagnostic_only\": 0.10801186943620178, \"difference_bbox_inclusive\": [17, 163, 992, 527]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-after-esc.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-after-esc.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-after-esc.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-keys-session-after-esc\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"7a28f9a1436113bcdd185f505867fe2fd4160c56c9c4f45f3e9d05699e763b46\", \"actual_sha256\": \"10755baf863690ad5f6c2964ef3c36759f14d821a7b2c2c20e71efa7284742d2\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"d354e84ccf5f91ed3c821b9164d39e6fdc33e939\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/upstream/autocomplete-keys-session-after-esc.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/oc/autocomplete-keys-session-after-esc.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-move-20260925-01/autocomplete-keys-session-after-esc.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"75ccc97ddf2ab6ef1a535af6b37c51aa3385d99c82f4bca3566fa999db7ef748\", \"actual_sha256\": \"35d4df5926e4a540014f4845ebd3d0821f8daa4ee9d3be7b63cec29882171f64\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 123, \"changed_fraction_diagnostic_only\": 0.00019009643916913945, \"difference_bbox_inclusive\": [320, 163, 335, 172]}\n",
+    "stderr": ""
+  }
+]

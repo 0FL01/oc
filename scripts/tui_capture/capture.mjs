@@ -55,6 +55,11 @@ if (args['autocomplete-keys-rename'] !== undefined && !['true','false'].includes
   throw Error('--autocomplete-keys-rename must be true or false');
 if (autocompleteKeysRename && !autocompleteKeys)
   throw Error('--autocomplete-keys-rename true requires --autocomplete-keys true');
+const autocompleteKeysMove = args['autocomplete-keys-move'] === 'true';
+if (args['autocomplete-keys-move'] !== undefined && !['true','false'].includes(args['autocomplete-keys-move']))
+  throw Error('--autocomplete-keys-move must be true or false');
+if (autocompleteKeysMove && !autocompleteKeys)
+  throw Error('--autocomplete-keys-move true requires --autocomplete-keys true');
 const mention = args.mention === 'true';
 if (args.mention !== undefined && !['true','false'].includes(args.mention))
   throw Error('--mention must be true or false');
@@ -328,15 +333,27 @@ try {
        const autocompleteKeysChecks=[];
        const probeAutocompleteKeys=async route=>{
          const baseline=providerCounts();
+         // Selection is a styled row, not a label or menu-order guess. Sample
+         // the slash cell's background on each actual painted option row.
+         const selection=(f,focusedBg)=>{
+           const options=autocompleteObserve(f).menu.map(({y,text})=>{
+             const label=/\/\S+/.exec(text.slice(text.indexOf('┃')+1))?.[0];
+             const x=label===undefined?-1:text.indexOf(label);
+             return {y,label,x,fg:f.cells[y]?.[x]?.fg,bg:f.cells[y]?.[x]?.bg};
+           });
+           const selected=options.filter(row=>row.bg===focusedBg);
+           return {options,selected_index:selected.length===1?options.indexOf(selected[0]):null,
+             selected_option:selected.length===1?selected[0]:null};
+         };
          const save=()=>{
            fs.writeFileSync(path.join(dir,'autocomplete-keys-checks.json'),JSON.stringify({checks:autocompleteKeysChecks},null,2)+'\n');
            json('capture.lock.json',lock);
          };
          const empty=o=>o.cursor.x===o.draft_x && (o.draft==='' || o.draft?.startsWith('Ask anything…'));
          const noRequests=()=>canonical(providerCounts())===canonical(baseline);
-         const check=(stage,f,predicates)=>{
+         const check=(stage,f,predicates,details={})=>{
            autocompleteKeysChecks.push({route,stage,baseline,observed:autocompleteObserve(f),predicates,
-             grid_sha256:sha(JSON.stringify(f))});
+             ...details,grid_sha256:sha(JSON.stringify(f))});
            save();
            if(Object.values(predicates).some(value=>value!==true))
              throw Error('Autocomplete keyboard predicate failed: '+route+' '+stage);
@@ -387,6 +404,39 @@ try {
          check('before-esc',beforeEsc,{draft_visible:ren.draft==='/ren',
            menu_visible:ren.menu.length>0,no_provider_request:noRequests()});
          await shot('before-esc',beforeEsc);
+         if(autocompleteKeysMove) {
+           const focusedBg=selection(beforeEsc).options[0]?.bg;
+           const initial=selection(beforeEsc,focusedBg);
+           check('movement-initial',beforeEsc,{multiple_options:initial.options.length>1,
+             unique_styled_selection:initial.selected_index===0,
+             distinct_unselected_background:initial.options.slice(1).every(o=>o.bg!==focusedBg),
+             draft_unchanged:ren.draft==='/ren',no_provider_request:noRequests()},
+           {selection:initial});
+           // Pinned keybind.ts:270-271; autocomplete.tsx:584-587 wraps.
+           // before-esc is the initial movement frame, already captured above.
+           const steps=[['up','\x1b[A',initial.options.length-1],
+             ['ctrl-p','\x10',initial.options.length-2],
+             ['down','\x1b[B',initial.options.length-1],['ctrl-n','\x0e',0]];
+           let previous=initial.selected_index;
+           const labels=initial.options.map(o=>o.label);
+           for(const [name,key,expected] of steps) {
+             send(key,`autocomplete_keys_${route}_movement_${name}`);
+             const stage=`movement-${name}`;
+             const moved=await awaitState(stage,f=>{
+               const o=autocompleteObserve(f), s=selection(f,focusedBg);
+               return o.draft==='/ren' && noRequests() &&
+                 canonical(s.options.map(row=>row.label))===canonical(labels) &&
+                 s.selected_index!==null && s.selected_index!==previous;
+             });
+             const s=selection(moved,focusedBg);
+             await shot(stage,moved);
+             check(stage,moved,{selected_index:s.selected_index===expected,
+               selected_option:s.selected_option?.label===labels[expected],
+               draft_unchanged:autocompleteObserve(moved).draft==='/ren',
+               no_provider_request:noRequests()},{selection:s,expected_index:expected});
+             previous=s.selected_index;
+           }
+         }
          send('\x1b',`autocomplete_keys_${route}_ren_escape`);
          const afterEsc=await awaitState('after-esc',f=>{const o=autocompleteObserve(f);
            return o.draft==='/ren' && o.menu.length===0 && noRequests();});

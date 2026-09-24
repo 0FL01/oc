@@ -1,0 +1,1518 @@
+{
+  "checks": [
+    {
+      "route": "home",
+      "stage": "before-enter",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/reload",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 19,
+            "text": "                       ┃ /reload      Reload configuration                                       ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 33,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "reload_option_visible": true,
+        "prior_reload_notice_absent": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "8f907d02e1364197ba4f85b8acf8ba9195fd8cb7303bb00b6ee3d8fa9ba2beac"
+    },
+    {
+      "route": "home",
+      "stage": "after-enter",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "Ask anything… \"What is the tech stack of this project?\"",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": true,
+        "cursor": {
+          "x": 26,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_success_visible": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "ab33070ff17c03f97dfd9797c0108411bbea2ce2267d760ef1e5c492a2c7e7cd"
+    },
+    {
+      "route": "home",
+      "stage": "reload-notice-expired",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "Ask anything… \"What is the tech stack of this project?\"",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 26,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_notice_absent": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "ba0c3ef915ba4981549154bcd514aedb5afc3796afafc03e06b69b392211e04d"
+    },
+    {
+      "route": "home",
+      "stage": "before-esc",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 17,
+            "text": "                       ┃ /reload      Reload configuration                                       ┃"
+          },
+          {
+            "y": 18,
+            "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+          },
+          {
+            "y": 19,
+            "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "menu_visible": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "aa938f9e3b03fd4f1bd8a96184dfa7414dc4caa555d4f55ade1d528aee989c8f"
+    },
+    {
+      "route": "home",
+      "stage": "movement-initial",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 17,
+            "text": "                       ┃ /reload      Reload configuration                                       ┃"
+          },
+          {
+            "y": 18,
+            "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+          },
+          {
+            "y": 19,
+            "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "multiple_options": true,
+        "unique_styled_selection": true,
+        "distinct_unselected_background": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 17,
+            "label": "/reload",
+            "x": 25,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          },
+          {
+            "y": 18,
+            "label": "/review",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 19,
+            "label": "/btw",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          }
+        ],
+        "selected_index": 0,
+        "selected_option": {
+          "y": 17,
+          "label": "/reload",
+          "x": 25,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "grid_sha256": "aa938f9e3b03fd4f1bd8a96184dfa7414dc4caa555d4f55ade1d528aee989c8f"
+    },
+    {
+      "route": "home",
+      "stage": "movement-up",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 17,
+            "text": "                       ┃ /reload      Reload configuration                                       ┃"
+          },
+          {
+            "y": 18,
+            "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+          },
+          {
+            "y": 19,
+            "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 17,
+            "label": "/reload",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 18,
+            "label": "/review",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 19,
+            "label": "/btw",
+            "x": 25,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          }
+        ],
+        "selected_index": 2,
+        "selected_option": {
+          "y": 19,
+          "label": "/btw",
+          "x": 25,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 2,
+      "grid_sha256": "d2037ebb227ac2f4c9f6f339bf397b4dc9fd0231a66f68aa93a93e0b9f012061"
+    },
+    {
+      "route": "home",
+      "stage": "movement-ctrl-p",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 17,
+            "text": "                       ┃ /reload      Reload configuration                                       ┃"
+          },
+          {
+            "y": 18,
+            "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+          },
+          {
+            "y": 19,
+            "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 17,
+            "label": "/reload",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 18,
+            "label": "/review",
+            "x": 25,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          },
+          {
+            "y": 19,
+            "label": "/btw",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          }
+        ],
+        "selected_index": 1,
+        "selected_option": {
+          "y": 18,
+          "label": "/review",
+          "x": 25,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 1,
+      "grid_sha256": "ded8612ea50d734e9b4e3b6f9a403a77e690569a35448ec95acc28c1b7ffab0f"
+    },
+    {
+      "route": "home",
+      "stage": "movement-down",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 17,
+            "text": "                       ┃ /reload      Reload configuration                                       ┃"
+          },
+          {
+            "y": 18,
+            "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+          },
+          {
+            "y": 19,
+            "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 17,
+            "label": "/reload",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 18,
+            "label": "/review",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 19,
+            "label": "/btw",
+            "x": 25,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          }
+        ],
+        "selected_index": 2,
+        "selected_option": {
+          "y": 19,
+          "label": "/btw",
+          "x": 25,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 2,
+      "grid_sha256": "d2037ebb227ac2f4c9f6f339bf397b4dc9fd0231a66f68aa93a93e0b9f012061"
+    },
+    {
+      "route": "home",
+      "stage": "movement-ctrl-n",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 17,
+            "text": "                       ┃ /reload      Reload configuration                                       ┃"
+          },
+          {
+            "y": 18,
+            "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+          },
+          {
+            "y": 19,
+            "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 17,
+            "label": "/reload",
+            "x": 25,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          },
+          {
+            "y": 18,
+            "label": "/review",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 19,
+            "label": "/btw",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          }
+        ],
+        "selected_index": 0,
+        "selected_option": {
+          "y": 17,
+          "label": "/reload",
+          "x": 25,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 0,
+      "grid_sha256": "aa938f9e3b03fd4f1bd8a96184dfa7414dc4caa555d4f55ade1d528aee989c8f"
+    },
+    {
+      "route": "home",
+      "stage": "after-esc",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_retained": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "dd03d482febe5f346c56c5e00b39b82bcaec317f419ae5b4ddb8a7d15586e80e"
+    },
+    {
+      "route": "home",
+      "stage": "cleared",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "Ask anything… \"What is the tech stack of this project?\"",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 26,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "ba0c3ef915ba4981549154bcd514aedb5afc3796afafc03e06b69b392211e04d"
+    },
+    {
+      "route": "session",
+      "stage": "before-enter",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/reload",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 32,
+            "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 12,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "reload_option_visible": true,
+        "prior_reload_notice_absent": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "3d41024ec2ec5814721bd326439f622ff4a2c3b088d8eda352f3a43b6f24c9cf"
+    },
+    {
+      "route": "session",
+      "stage": "after-enter",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": true,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_success_visible": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "814af53750d87c1db7785710d32933851ac218ed3a70b7f769a30b39573b167b"
+    },
+    {
+      "route": "session",
+      "stage": "reload-notice-expired",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_notice_absent": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "843a30842b617604f1ee6c1b08233decb781f9efa9578c5fbe1da4a55b3a5e8b"
+    },
+    {
+      "route": "session",
+      "stage": "before-esc",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 26,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          },
+          {
+            "y": 27,
+            "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+          },
+          {
+            "y": 28,
+            "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+          },
+          {
+            "y": 29,
+            "text": "  ┃ /share       Share session                                                                                       ┃"
+          },
+          {
+            "y": 30,
+            "text": "  ┃ /fork        Fork session                                                                                        ┃"
+          },
+          {
+            "y": 31,
+            "text": "  ┃ /export      Export session transcript                                                                           ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 26,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "menu_visible": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "38568fa213adb168821d840c937f24340608c9ec44bc317eadb897a6b6d87ca4"
+    },
+    {
+      "route": "session",
+      "stage": "movement-initial",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 26,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          },
+          {
+            "y": 27,
+            "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+          },
+          {
+            "y": 28,
+            "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+          },
+          {
+            "y": 29,
+            "text": "  ┃ /share       Share session                                                                                       ┃"
+          },
+          {
+            "y": 30,
+            "text": "  ┃ /fork        Fork session                                                                                        ┃"
+          },
+          {
+            "y": 31,
+            "text": "  ┃ /export      Export session transcript                                                                           ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 26,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "multiple_options": true,
+        "unique_styled_selection": true,
+        "distinct_unselected_background": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 26,
+            "label": "/rename",
+            "x": 4,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          },
+          {
+            "y": 27,
+            "label": "/reload",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 28,
+            "label": "/review",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 29,
+            "label": "/share",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 30,
+            "label": "/fork",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 31,
+            "label": "/export",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 32,
+            "label": "/btw",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          }
+        ],
+        "selected_index": 0,
+        "selected_option": {
+          "y": 26,
+          "label": "/rename",
+          "x": 4,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "grid_sha256": "38568fa213adb168821d840c937f24340608c9ec44bc317eadb897a6b6d87ca4"
+    },
+    {
+      "route": "session",
+      "stage": "movement-up",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 26,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          },
+          {
+            "y": 27,
+            "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+          },
+          {
+            "y": 28,
+            "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+          },
+          {
+            "y": 29,
+            "text": "  ┃ /share       Share session                                                                                       ┃"
+          },
+          {
+            "y": 30,
+            "text": "  ┃ /fork        Fork session                                                                                        ┃"
+          },
+          {
+            "y": 31,
+            "text": "  ┃ /export      Export session transcript                                                                           ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 26,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 26,
+            "label": "/rename",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 27,
+            "label": "/reload",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 28,
+            "label": "/review",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 29,
+            "label": "/share",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 30,
+            "label": "/fork",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 31,
+            "label": "/export",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 32,
+            "label": "/btw",
+            "x": 4,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          }
+        ],
+        "selected_index": 6,
+        "selected_option": {
+          "y": 32,
+          "label": "/btw",
+          "x": 4,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 6,
+      "grid_sha256": "aee34d7ae027dc070e86a47976a8f2fb25fa3a8d889281853573baa420b1bf94"
+    },
+    {
+      "route": "session",
+      "stage": "movement-ctrl-p",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 26,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          },
+          {
+            "y": 27,
+            "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+          },
+          {
+            "y": 28,
+            "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+          },
+          {
+            "y": 29,
+            "text": "  ┃ /share       Share session                                                                                       ┃"
+          },
+          {
+            "y": 30,
+            "text": "  ┃ /fork        Fork session                                                                                        ┃"
+          },
+          {
+            "y": 31,
+            "text": "  ┃ /export      Export session transcript                                                                           ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 26,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 26,
+            "label": "/rename",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 27,
+            "label": "/reload",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 28,
+            "label": "/review",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 29,
+            "label": "/share",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 30,
+            "label": "/fork",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 31,
+            "label": "/export",
+            "x": 4,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          },
+          {
+            "y": 32,
+            "label": "/btw",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          }
+        ],
+        "selected_index": 5,
+        "selected_option": {
+          "y": 31,
+          "label": "/export",
+          "x": 4,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 5,
+      "grid_sha256": "c37cf0aa83ad5479281345ed20b2ed79b33421bc8f98a015fc201a454d719222"
+    },
+    {
+      "route": "session",
+      "stage": "movement-down",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 26,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          },
+          {
+            "y": 27,
+            "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+          },
+          {
+            "y": 28,
+            "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+          },
+          {
+            "y": 29,
+            "text": "  ┃ /share       Share session                                                                                       ┃"
+          },
+          {
+            "y": 30,
+            "text": "  ┃ /fork        Fork session                                                                                        ┃"
+          },
+          {
+            "y": 31,
+            "text": "  ┃ /export      Export session transcript                                                                           ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 26,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 26,
+            "label": "/rename",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 27,
+            "label": "/reload",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 28,
+            "label": "/review",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 29,
+            "label": "/share",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 30,
+            "label": "/fork",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 31,
+            "label": "/export",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 32,
+            "label": "/btw",
+            "x": 4,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          }
+        ],
+        "selected_index": 6,
+        "selected_option": {
+          "y": 32,
+          "label": "/btw",
+          "x": 4,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 6,
+      "grid_sha256": "aee34d7ae027dc070e86a47976a8f2fb25fa3a8d889281853573baa420b1bf94"
+    },
+    {
+      "route": "session",
+      "stage": "movement-ctrl-n",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 26,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          },
+          {
+            "y": 27,
+            "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+          },
+          {
+            "y": 28,
+            "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+          },
+          {
+            "y": 29,
+            "text": "  ┃ /share       Share session                                                                                       ┃"
+          },
+          {
+            "y": 30,
+            "text": "  ┃ /fork        Fork session                                                                                        ┃"
+          },
+          {
+            "y": 31,
+            "text": "  ┃ /export      Export session transcript                                                                           ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 26,
+            "text": "  ┃ /rename      Rename session                                                                                      ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 26,
+            "label": "/rename",
+            "x": 4,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          },
+          {
+            "y": 27,
+            "label": "/reload",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 28,
+            "label": "/review",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 29,
+            "label": "/share",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 30,
+            "label": "/fork",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 31,
+            "label": "/export",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 32,
+            "label": "/btw",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          }
+        ],
+        "selected_index": 0,
+        "selected_option": {
+          "y": 26,
+          "label": "/rename",
+          "x": 4,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 0,
+      "grid_sha256": "38568fa213adb168821d840c937f24340608c9ec44bc317eadb897a6b6d87ca4"
+    },
+    {
+      "route": "session",
+      "stage": "after-esc",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_retained": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "f6917554c49ccaf6100bb5104038e9118558450cf463904873679fde06e747de"
+    },
+    {
+      "route": "session",
+      "stage": "cleared",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "843a30842b617604f1ee6c1b08233decb781f9efa9578c5fbe1da4a55b3a5e8b"
+    }
+  ]
+}

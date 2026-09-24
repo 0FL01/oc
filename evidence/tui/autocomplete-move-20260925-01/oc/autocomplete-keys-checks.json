@@ -1,0 +1,1341 @@
+{
+  "checks": [
+    {
+      "route": "home",
+      "stage": "before-enter",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/reload",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 19,
+            "text": "                       ┃ /reload          Reload configuration                                   ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 33,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "reload_option_visible": true,
+        "prior_reload_notice_absent": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "f179bcd35f6151322edbdf0a487e02612eec24c0bd40a83f18d46a1cb59f1dd3"
+    },
+    {
+      "route": "home",
+      "stage": "after-enter",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": true,
+        "cursor": {
+          "x": 26,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_success_visible": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "e5902d5e9e9077bdf0b636b3ec1945f3b10765068f7a71addf4ab8795256f4e5"
+    },
+    {
+      "route": "home",
+      "stage": "reload-notice-expired",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 26,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_notice_absent": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "dc5196451f5570360d7c46b0d263142cac2a00069ca481d272b6eeb19fc07569"
+    },
+    {
+      "route": "home",
+      "stage": "before-esc",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 17,
+            "text": "                       ┃ /reload          Reload configuration                                   ┃"
+          },
+          {
+            "y": 18,
+            "text": "                       ┃ /review          review changes [commit|branch|pr], defaults to uncommit┃"
+          },
+          {
+            "y": 19,
+            "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "menu_visible": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "cf09b03b7a1b51207d55b08338df2e77dfc76bbc4b88a62852a9649434c234e1"
+    },
+    {
+      "route": "home",
+      "stage": "movement-initial",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 17,
+            "text": "                       ┃ /reload          Reload configuration                                   ┃"
+          },
+          {
+            "y": 18,
+            "text": "                       ┃ /review          review changes [commit|branch|pr], defaults to uncommit┃"
+          },
+          {
+            "y": 19,
+            "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "multiple_options": true,
+        "unique_styled_selection": true,
+        "distinct_unselected_background": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 17,
+            "label": "/reload",
+            "x": 25,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          },
+          {
+            "y": 18,
+            "label": "/review",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 19,
+            "label": "/dcp-compress",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          }
+        ],
+        "selected_index": 0,
+        "selected_option": {
+          "y": 17,
+          "label": "/reload",
+          "x": 25,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "grid_sha256": "cf09b03b7a1b51207d55b08338df2e77dfc76bbc4b88a62852a9649434c234e1"
+    },
+    {
+      "route": "home",
+      "stage": "movement-up",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 17,
+            "text": "                       ┃ /reload          Reload configuration                                   ┃"
+          },
+          {
+            "y": 18,
+            "text": "                       ┃ /review          review changes [commit|branch|pr], defaults to uncommit┃"
+          },
+          {
+            "y": 19,
+            "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 17,
+            "label": "/reload",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 18,
+            "label": "/review",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 19,
+            "label": "/dcp-compress",
+            "x": 25,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          }
+        ],
+        "selected_index": 2,
+        "selected_option": {
+          "y": 19,
+          "label": "/dcp-compress",
+          "x": 25,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 2,
+      "grid_sha256": "8cd5ed0269619d6e2913e24a8d7da3730d23ba4b7f4f4c646392da88670ac68c"
+    },
+    {
+      "route": "home",
+      "stage": "movement-ctrl-p",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 17,
+            "text": "                       ┃ /reload          Reload configuration                                   ┃"
+          },
+          {
+            "y": 18,
+            "text": "                       ┃ /review          review changes [commit|branch|pr], defaults to uncommit┃"
+          },
+          {
+            "y": 19,
+            "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 17,
+            "label": "/reload",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 18,
+            "label": "/review",
+            "x": 25,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          },
+          {
+            "y": 19,
+            "label": "/dcp-compress",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          }
+        ],
+        "selected_index": 1,
+        "selected_option": {
+          "y": 18,
+          "label": "/review",
+          "x": 25,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 1,
+      "grid_sha256": "c7592532aff35160045e724f2087445f522dec921ec9c766cb156bd788aab3ba"
+    },
+    {
+      "route": "home",
+      "stage": "movement-down",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 17,
+            "text": "                       ┃ /reload          Reload configuration                                   ┃"
+          },
+          {
+            "y": 18,
+            "text": "                       ┃ /review          review changes [commit|branch|pr], defaults to uncommit┃"
+          },
+          {
+            "y": 19,
+            "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 17,
+            "label": "/reload",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 18,
+            "label": "/review",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 19,
+            "label": "/dcp-compress",
+            "x": 25,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          }
+        ],
+        "selected_index": 2,
+        "selected_option": {
+          "y": 19,
+          "label": "/dcp-compress",
+          "x": 25,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 2,
+      "grid_sha256": "8cd5ed0269619d6e2913e24a8d7da3730d23ba4b7f4f4c646392da88670ac68c"
+    },
+    {
+      "route": "home",
+      "stage": "movement-ctrl-n",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [
+          {
+            "y": 17,
+            "text": "                       ┃ /reload          Reload configuration                                   ┃"
+          },
+          {
+            "y": 18,
+            "text": "                       ┃ /review          review changes [commit|branch|pr], defaults to uncommit┃"
+          },
+          {
+            "y": 19,
+            "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 17,
+            "label": "/reload",
+            "x": 25,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          },
+          {
+            "y": 18,
+            "label": "/review",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 19,
+            "label": "/dcp-compress",
+            "x": 25,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          }
+        ],
+        "selected_index": 0,
+        "selected_option": {
+          "y": 17,
+          "label": "/reload",
+          "x": 25,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 0,
+      "grid_sha256": "cf09b03b7a1b51207d55b08338df2e77dfc76bbc4b88a62852a9649434c234e1"
+    },
+    {
+      "route": "home",
+      "stage": "after-esc",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_retained": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "93501ba6bde95af05a36a2389af31c3ac3ede15a5a7eda20289591b215d78c68"
+    },
+    {
+      "route": "home",
+      "stage": "cleared",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+        "draft_x": 26,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 26,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "dc5196451f5570360d7c46b0d263142cac2a00069ca481d272b6eeb19fc07569"
+    },
+    {
+      "route": "session",
+      "stage": "before-enter",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/reload",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 32,
+            "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+          }
+        ],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 12,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "reload_option_visible": true,
+        "prior_reload_notice_absent": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "60a7136aa0b7e9f7b101750dc9dd62cbbd1d970401db432cbb8a445c5adab31e"
+    },
+    {
+      "route": "session",
+      "stage": "after-enter",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": true,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_success_visible": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "7f1926f0afe467aa34f474a23bf9734f0abad2035eab06f02603d3430bd88974"
+    },
+    {
+      "route": "session",
+      "stage": "reload-notice-expired",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "reload_notice_absent": true,
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "1222f4b9201f17dc66b6e246609848b48a6bf439709bc730573128ea548ef5d7"
+    },
+    {
+      "route": "session",
+      "stage": "before-esc",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 29,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          },
+          {
+            "y": 30,
+            "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+          },
+          {
+            "y": 31,
+            "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 29,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_visible": true,
+        "menu_visible": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "0d6f8246ab4603aed6c3602ee5d65099c3c1bfbc0afe4ec9b6d981b91eb44a0e"
+    },
+    {
+      "route": "session",
+      "stage": "movement-initial",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 29,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          },
+          {
+            "y": 30,
+            "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+          },
+          {
+            "y": 31,
+            "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 29,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "multiple_options": true,
+        "unique_styled_selection": true,
+        "distinct_unselected_background": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 29,
+            "label": "/rename",
+            "x": 4,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          },
+          {
+            "y": 30,
+            "label": "/reload",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 31,
+            "label": "/review",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 32,
+            "label": "/dcp-compress",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          }
+        ],
+        "selected_index": 0,
+        "selected_option": {
+          "y": 29,
+          "label": "/rename",
+          "x": 4,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "grid_sha256": "0d6f8246ab4603aed6c3602ee5d65099c3c1bfbc0afe4ec9b6d981b91eb44a0e"
+    },
+    {
+      "route": "session",
+      "stage": "movement-up",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 29,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          },
+          {
+            "y": 30,
+            "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+          },
+          {
+            "y": 31,
+            "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 29,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 29,
+            "label": "/rename",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 30,
+            "label": "/reload",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 31,
+            "label": "/review",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 32,
+            "label": "/dcp-compress",
+            "x": 4,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          }
+        ],
+        "selected_index": 3,
+        "selected_option": {
+          "y": 32,
+          "label": "/dcp-compress",
+          "x": 4,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 3,
+      "grid_sha256": "2ae8db2bb8ae34b41473ce228b998cdf0b6bc58054a3b69efa897a9691e062fd"
+    },
+    {
+      "route": "session",
+      "stage": "movement-ctrl-p",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 29,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          },
+          {
+            "y": 30,
+            "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+          },
+          {
+            "y": 31,
+            "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 29,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 29,
+            "label": "/rename",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 30,
+            "label": "/reload",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 31,
+            "label": "/review",
+            "x": 4,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          },
+          {
+            "y": 32,
+            "label": "/dcp-compress",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          }
+        ],
+        "selected_index": 2,
+        "selected_option": {
+          "y": 31,
+          "label": "/review",
+          "x": 4,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 2,
+      "grid_sha256": "2409603783288153dc7c3e50da666f09453582dfb10becab92f2e11b0f84ea12"
+    },
+    {
+      "route": "session",
+      "stage": "movement-down",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 29,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          },
+          {
+            "y": 30,
+            "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+          },
+          {
+            "y": 31,
+            "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 29,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 29,
+            "label": "/rename",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 30,
+            "label": "/reload",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 31,
+            "label": "/review",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 32,
+            "label": "/dcp-compress",
+            "x": 4,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          }
+        ],
+        "selected_index": 3,
+        "selected_option": {
+          "y": 32,
+          "label": "/dcp-compress",
+          "x": 4,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 3,
+      "grid_sha256": "2ae8db2bb8ae34b41473ce228b998cdf0b6bc58054a3b69efa897a9691e062fd"
+    },
+    {
+      "route": "session",
+      "stage": "movement-ctrl-n",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [
+          {
+            "y": 29,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          },
+          {
+            "y": 30,
+            "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+          },
+          {
+            "y": 31,
+            "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+          },
+          {
+            "y": 32,
+            "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+          }
+        ],
+        "rename_options": [
+          {
+            "y": 29,
+            "text": "  ┃ /rename          Rename session                                                                                  ┃"
+          }
+        ],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "selected_index": true,
+        "selected_option": true,
+        "draft_unchanged": true,
+        "no_provider_request": true
+      },
+      "selection": {
+        "options": [
+          {
+            "y": 29,
+            "label": "/rename",
+            "x": 4,
+            "fg": "#0a0a0a",
+            "bg": "#fab283"
+          },
+          {
+            "y": 30,
+            "label": "/reload",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 31,
+            "label": "/review",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          },
+          {
+            "y": 32,
+            "label": "/dcp-compress",
+            "x": 4,
+            "fg": "#eeeeee",
+            "bg": "#1e1e1e"
+          }
+        ],
+        "selected_index": 0,
+        "selected_option": {
+          "y": 29,
+          "label": "/rename",
+          "x": 4,
+          "fg": "#0a0a0a",
+          "bg": "#fab283"
+        }
+      },
+      "expected_index": 0,
+      "grid_sha256": "0d6f8246ab4603aed6c3602ee5d65099c3c1bfbc0afe4ec9b6d981b91eb44a0e"
+    },
+    {
+      "route": "session",
+      "stage": "after-esc",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "/ren",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 9,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_retained": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "5e70e58c9e59895597062e443a498889cb01f7fab5b23f44e68dd7663009caf0"
+    },
+    {
+      "route": "session",
+      "stage": "cleared",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "draft": "",
+        "draft_x": 5,
+        "menu": [],
+        "rename_options": [],
+        "reload_notice": false,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "draft_cleared": true,
+        "menu_hidden": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "1222f4b9201f17dc66b6e246609848b48a6bf439709bc730573128ea548ef5d7"
+    }
+  ]
+}
