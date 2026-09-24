@@ -1,0 +1,108 @@
+[
+  {
+    "stage": "completed-before-add",
+    "predicate": "unique painted row-0 + after original tab, completed old transcript, no Home",
+    "passed": true,
+    "add": [
+      {
+        "x": 32,
+        "y": 0
+      }
+    ],
+    "old": [
+      {
+        "x": 3,
+        "y": 0
+      }
+    ],
+    "new_title": [],
+    "old_content": true,
+    "home_prompt": false,
+    "header": "   Какие инструменты доступны ас +"
+  },
+  {
+    "stage": "add-click",
+    "point": {
+      "x": 33,
+      "y": 0
+    },
+    "pty_column": 34,
+    "pty_row": 1,
+    "down_base64": "G1s8MDszNDsxTQ==",
+    "up_base64": "G1s8MDszNDsxbQ=="
+  },
+  {
+    "stage": "tab-added",
+    "predicate": "old tab + synthetic New session on Home, old transcript absent",
+    "passed": true,
+    "add": [],
+    "old": [
+      {
+        "x": 3,
+        "y": 0
+      }
+    ],
+    "new_title": [
+      {
+        "x": 33,
+        "y": 0
+      }
+    ],
+    "old_content": false,
+    "home_prompt": true,
+    "header": "   Какие инструменты доступны ас + New session                ✕"
+  },
+  {
+    "stage": "before-return",
+    "predicate": "retained old tab uniquely painted on Home",
+    "passed": true,
+    "add": [],
+    "old": [
+      {
+        "x": 3,
+        "y": 0
+      }
+    ],
+    "new_title": [
+      {
+        "x": 33,
+        "y": 0
+      }
+    ],
+    "old_content": false,
+    "home_prompt": true,
+    "header": "   Какие инструменты доступны ас + New session                ✕"
+  },
+  {
+    "stage": "return-click",
+    "point": {
+      "x": 3,
+      "y": 0
+    },
+    "pty_column": 4,
+    "pty_row": 1,
+    "down_base64": "G1s8MDs0OzFN",
+    "up_base64": "G1s8MDs0OzFt"
+  },
+  {
+    "stage": "tab-returned",
+    "predicate": "old transcript restored with original tab selected",
+    "passed": true,
+    "add": [
+      {
+        "x": 32,
+        "y": 0
+      }
+    ],
+    "old": [
+      {
+        "x": 3,
+        "y": 0
+      }
+    ],
+    "new_title": [],
+    "old_content": true,
+    "home_prompt": false,
+    "header": "   Какие инструменты доступны ✕  +"
+  }
+]
