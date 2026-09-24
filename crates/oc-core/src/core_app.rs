@@ -306,6 +306,16 @@ pub enum InboxMsg {
         title: String,
         ack: oneshot::Sender<Result<(), CoreError>>,
     },
+    /// Regenerate a bound root's title with its configured title agent.
+    RegenerateTitle {
+        session: SessionId,
+        ack: oneshot::Sender<Result<String, CoreError>>,
+    },
+    /// Cancel only a title request, never the owning conversational turn.
+    CancelTitle {
+        session: SessionId,
+        ack: oneshot::Sender<Result<(), CoreError>>,
+    },
     /// Accept input and start a turn.
     Submit {
         /// Owning session.
@@ -590,6 +600,26 @@ impl CoreApp {
                 title,
                 ack,
             })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Recompute a root title. The returned title is durable; no turn is added.
+    pub async fn regenerate_title(&self, session: SessionId) -> Result<String, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::RegenerateTitle { session, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Cancel the current title request for this session without cancelling a turn.
+    pub async fn cancel_title(&self, session: SessionId) -> Result<(), CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::CancelTitle { session, ack })
             .await
             .map_err(|_| CoreError::Shutdown)?;
         result.await.map_err(|_| CoreError::Shutdown)?
@@ -1288,6 +1318,12 @@ fn scripted_unsupported(message: InboxMsg) {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::RenameSession { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::RegenerateTitle { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::CancelTitle { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::SelectModel { ack, .. } => {

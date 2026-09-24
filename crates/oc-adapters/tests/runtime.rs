@@ -4290,6 +4290,242 @@ async fn provider_context_usage_survives_missing_round_usage_and_restart() {
 /// (project-local config, no process env mutation) broadcasts the new
 /// `ReasoningDelta` and `TurnUsage` events next to `TurnFinished`.
 #[tokio::test]
+async fn bare_title_regeneration_uses_title_agent_and_preserves_concurrent_manual_rename() {
+    use oc_adapters::application;
+    use oc_core::domain::SessionId;
+    use oc_core::session::CoreError;
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    let (url, hits, requests) = Fake::start_recording(
+        vec![
+            sse_delta("late title") + &sse_completed(),
+            sse_delta("Fresh title") + &sse_completed(),
+        ],
+        Duration::from_millis(800),
+    );
+    let config = serde_json::json!({
+        "model": "fixture/main",
+        "provider": {"fixture": {"npm": "@ai-sdk/openai", "options": {"baseURL": url, "apiKey": "dummy"},
+            "models": {"main": {}, "title-model": {}}}},
+        "agent": {"title": {"mode": "subagent", "model": "fixture/title-model", "prompt": "TITLE_AGENT_ONLY"}}
+    });
+    std::fs::write(project.path().join("opencode.json"), config.to_string()).unwrap();
+    let env = BTreeMap::from([
+        ("HOME".into(), home.path().to_string_lossy().into_owned()),
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+    ]);
+    let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env)
+        .await
+        .unwrap();
+    let session = SessionId::new("title-root").unwrap();
+    app.create_session(session.clone()).await.unwrap();
+    let mut events = app.subscribe();
+    let conn = rusqlite::Connection::open(data.path().join("oc.sqlite")).unwrap();
+    assert!(
+        app.regenerate_title(session.clone()).await.is_err(),
+        "empty history rejected"
+    );
+    conn.execute("INSERT INTO sessions(id,created_at,parent_id,title) VALUES ('child','test','title-root','child')", []).unwrap();
+    conn.execute("INSERT INTO messages(id,session_id,seq,role,text) VALUES ('first','title-root',1,'user',?1)",
+        [&format!("FIRST_SENTINEL {}", "x".repeat(20000))]).unwrap();
+    conn.execute("INSERT INTO messages(id,session_id,seq,role,text) VALUES ('recent','title-root',2,'assistant','RECENT_SENTINEL')", []).unwrap();
+    assert_eq!(
+        app.regenerate_title(SessionId::new("child").unwrap()).await,
+        Err(CoreError::SessionNotFound)
+    );
+    assert_eq!(
+        *hits.lock().unwrap(),
+        0,
+        "invalid requests cannot reach the provider"
+    );
+    let owner = app.clone();
+    let target = session.clone();
+    let first = tokio::spawn(async move { owner.regenerate_title(target).await });
+    tokio::time::timeout(Duration::from_secs(3), async {
+        while requests.lock().unwrap().is_empty() {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .unwrap();
+    assert!(
+        tokio::time::timeout(
+            Duration::from_millis(200),
+            app.history_page(session.clone(), None, None, 4)
+        )
+        .await
+        .unwrap()
+        .is_ok(),
+        "snapshots must not block on provider"
+    );
+    assert_eq!(
+        app.regenerate_title(session.clone()).await,
+        Err(CoreError::TurnBusy)
+    );
+    app.rename_session(session.clone(), "manual wins".into())
+        .await
+        .unwrap();
+    assert!(first.await.unwrap().is_err());
+    assert_eq!(
+        conn.query_row(
+            "SELECT title FROM sessions WHERE id='title-root'",
+            [],
+            |r| r.get::<_, String>(0)
+        )
+        .unwrap(),
+        "manual wins"
+    );
+    let result = app.regenerate_title(session.clone()).await.unwrap();
+    assert_eq!(result, "Fresh title");
+    assert_eq!(
+        app.history_page(session.clone(), None, None, 5)
+            .await
+            .unwrap()
+            .title
+            .as_deref(),
+        Some("Fresh title")
+    );
+    let captured = requests.lock().unwrap().clone();
+    assert_eq!(captured.len(), 2);
+    for request in captured.iter() {
+        assert_eq!(request["model"], "title-model");
+        assert!(
+            request.get("tools").is_none()
+                || request["tools"].as_array().is_some_and(Vec::is_empty)
+        );
+        let encoded = request["input"].to_string();
+        assert!(encoded.contains("TITLE_AGENT_ONLY"));
+        assert!(encoded.contains("FIRST_SENTINEL"));
+        assert!(encoded.len() < 13000, "bounded title input");
+    }
+    assert!(captured[1]["input"].to_string().contains("RECENT_SENTINEL"));
+    assert_eq!(
+        captured[1]["input"]
+            .to_string()
+            .matches("FIRST_SENTINEL")
+            .count(),
+        1,
+        "original request is not repeated in recent history"
+    );
+    assert_eq!(*hits.lock().unwrap(), 2);
+    let turns: i64 = conn
+        .query_row("SELECT count(*) FROM turns", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(turns, 0, "regeneration is not a billed conversational turn");
+    assert!(
+        matches!(
+            events.try_recv(),
+            Err(tokio::sync::broadcast::error::TryRecvError::Empty)
+        ),
+        "title requests must not emit turn or usage events"
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn bare_title_cancel_does_not_persist_or_emit_turn() {
+    use oc_adapters::application;
+    use oc_core::domain::SessionId;
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    let url = Fake::start_stalled(
+        vec![sse_delta("too late") + &sse_completed()],
+        Duration::from_secs(2),
+    );
+    std::fs::write(
+        project.path().join("opencode.json"),
+        serde_json::json!({
+            "model": "fixture/main", "provider": {"fixture": {"npm": "@ai-sdk/openai",
+            "options": {"baseURL": url, "apiKey": "dummy"}, "models": {"main": {}}}}
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let env = BTreeMap::from([
+        ("HOME".into(), home.path().to_string_lossy().into_owned()),
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+    ]);
+    let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env)
+        .await
+        .unwrap();
+    let id = SessionId::new("cancel-title").unwrap();
+    app.create_session(id.clone()).await.unwrap();
+    let conn = rusqlite::Connection::open(data.path().join("oc.sqlite")).unwrap();
+    conn.execute("INSERT INTO messages(id,session_id,seq,role,text) VALUES ('first','cancel-title',1,'user','please title')", []).unwrap();
+    let owner = app.clone();
+    let target = id.clone();
+    let pending = tokio::spawn(async move { owner.regenerate_title(target).await });
+    tokio::time::sleep(Duration::from_millis(150)).await;
+    app.cancel_title(id.clone()).await.unwrap();
+    assert!(
+        tokio::time::timeout(Duration::from_secs(3), pending)
+            .await
+            .unwrap()
+            .unwrap()
+            .is_err()
+    );
+    assert_eq!(
+        app.history_page(id, None, None, 4).await.unwrap().title,
+        None
+    );
+    assert_eq!(
+        conn.query_row("SELECT count(*) FROM turns", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn bare_title_invalid_configured_model_is_rejected_before_provider_io() {
+    use oc_adapters::application;
+    use oc_core::domain::SessionId;
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    let (url, hits) = Fake::start(
+        vec![sse_delta("must not arrive") + &sse_completed()],
+        Duration::ZERO,
+    );
+    std::fs::write(
+        project.path().join("opencode.json"),
+        serde_json::json!({
+            "model": "fixture/main", "provider": {"fixture": {"npm": "@ai-sdk/openai",
+            "options": {"baseURL": url, "apiKey": "dummy"}, "models": {"main": {}}}},
+            "agent": {"title": {"mode": "subagent", "model": "fixture/retired", "prompt": "title"}}
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let env = BTreeMap::from([
+        ("HOME".into(), home.path().to_string_lossy().into_owned()),
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+    ]);
+    let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env)
+        .await
+        .unwrap();
+    let session = SessionId::new("invalid-title-model").unwrap();
+    app.create_session(session.clone()).await.unwrap();
+    let conn = rusqlite::Connection::open(data.path().join("oc.sqlite")).unwrap();
+    conn.execute("INSERT INTO messages(id,session_id,seq,role,text) VALUES ('first','invalid-title-model',1,'user','request')", []).unwrap();
+    assert!(app.regenerate_title(session.clone()).await.is_err());
+    assert_eq!(*hits.lock().unwrap(), 0);
+    assert_eq!(
+        app.history_page(session, None, None, 2)
+            .await
+            .unwrap()
+            .title,
+        None
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
 async fn dto_application_events_surface_reasoning_and_usage() {
     use oc_adapters::application;
     use oc_core::core_app::CoreEvent;

@@ -48,6 +48,14 @@ async fn rename_is_durable_visible_and_rejects_invalid_foreign_or_child() {
         app.rename_session(id("child"), "No".into()).await,
         Err(CoreError::SessionNotFound)
     );
+    assert_eq!(
+        app.regenerate_title(id("child")).await,
+        Err(CoreError::SessionNotFound)
+    );
+    assert_eq!(
+        app.regenerate_title(id("missing")).await,
+        Err(CoreError::SessionNotFound)
+    );
     for bad in [
         " ",
         "a\nb",
@@ -80,6 +88,10 @@ async fn rename_is_durable_visible_and_rejects_invalid_foreign_or_child() {
     .unwrap();
     assert_eq!(
         app.rename_session(id("ghost"), "No".into()).await,
+        Err(CoreError::SessionNotFound)
+    );
+    assert_eq!(
+        app.regenerate_title(id("ghost")).await,
         Err(CoreError::SessionNotFound)
     );
     app.rename_session(id("root"), format!("  {}  ", "é".repeat(128)))
@@ -129,6 +141,10 @@ async fn rename_is_durable_visible_and_rejects_invalid_foreign_or_child() {
     app.create_session(id("foreign")).await.unwrap();
     assert_eq!(
         app.rename_session(id("root"), "Wrong place".into()).await,
+        Err(CoreError::SessionNotFound)
+    );
+    assert_eq!(
+        app.regenerate_title(id("root")).await,
         Err(CoreError::SessionNotFound)
     );
     app.switch_location_home(a.path().display().to_string())

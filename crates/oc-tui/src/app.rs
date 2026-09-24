@@ -116,6 +116,8 @@ pub enum PanelIntent {
     RenameSession { title: String },
     /// Apply a slash-supplied title without opening the editor; ACK clears the slash draft.
     RenameSessionDirect { title: String },
+    /// Bare slash command: ask the owner to generate a fresh title.
+    RegenerateTitle,
     /// Select a model, restoring the owner's remembered variant preference.
     SelectModel {
         /// Exact model id.
@@ -349,6 +351,7 @@ pub struct TuiState {
     rename_editor: crate::editor::Editor,
     rename_pending: Option<String>,
     rename_direct_pending: Option<(String, u64)>,
+    regenerate_pending: Option<u64>,
     window: HistoryWindow,
     markdown_cache: std::cell::RefCell<crate::messages::MarkdownCache>,
     live_text: String,
@@ -462,6 +465,7 @@ impl TuiState {
             rename_editor: Default::default(),
             rename_pending: None,
             rename_direct_pending: None,
+            regenerate_pending: None,
             window: HistoryWindow::new(),
             markdown_cache: std::cell::RefCell::new(Default::default()),
             live_text: String::new(),
@@ -1890,6 +1894,28 @@ impl TuiState {
         }
     }
 
+    /// Resolve only the matching slash request, preserving edits typed while
+    /// the provider was running. A completion on another tab is not applied.
+    pub fn regenerated_title(&mut self, result: Result<String, String>) {
+        let Some(revision) = self.regenerate_pending.take() else {
+            return;
+        };
+        match result {
+            Ok(title) => {
+                self.session_title = Some(title.clone());
+                if let Some(tab) = self.tabs.get_mut(self.active_tab) {
+                    tab.title = Some(title);
+                }
+                if self.input_revision == revision {
+                    self.accept_intent();
+                    self.input_revision += 1;
+                }
+                self.note = None;
+            }
+            Err(message) => self.apply_intent_error(message),
+        }
+    }
+
     fn paste_rename(&mut self, text: &str) -> KeyOutcome {
         use unicode_segmentation::UnicodeSegmentation as _;
         if self.rename_pending.is_some() {
@@ -2354,15 +2380,6 @@ impl TuiState {
             return KeyOutcome::default();
         }
         if self.pending.is_some() {
-            if matches!(
-                dispatch(self.input.trim()),
-                Some(CommandAction::RenameSession { title: None })
-            ) {
-                return KeyOutcome {
-                    note: Some("/rename without a title is unavailable (title generation is not implemented)".into()),
-                    ..KeyOutcome::default()
-                };
-            }
             if let Some(action) = dispatch(self.input.trim())
                 && let Some(reason) = self.command_unavailable(&action)
             {
@@ -2385,8 +2402,21 @@ impl TuiState {
             // templates; the built-in table only routes known commands.
             if !matches!(action, CommandAction::Help(None)) || !self.is_workspace_command(&text) {
                 if matches!(action, CommandAction::RenameSession { title: None }) {
+                    if let Some(reason) = self.command_unavailable(&action) {
+                        return KeyOutcome {
+                            note: Some(reason.into()),
+                            ..KeyOutcome::default()
+                        };
+                    }
+                    if self.regenerate_pending.is_some() {
+                        return KeyOutcome {
+                            note: Some("title generation pending".into()),
+                            ..KeyOutcome::default()
+                        };
+                    }
+                    self.regenerate_pending = Some(self.input_revision);
                     return KeyOutcome {
-                        note: Some("/rename without a title is unavailable (title generation is not implemented)".into()),
+                        intent: Some(PanelIntent::RegenerateTitle),
                         ..KeyOutcome::default()
                     };
                 }
@@ -2553,6 +2583,14 @@ impl TuiState {
             // A refused owner action must leave the dialog and draft intact.
             return KeyOutcome {
                 intent: Some(PanelIntent::CloseTab { index }),
+                ..KeyOutcome::default()
+            };
+        }
+        if self.regenerate_pending.is_some()
+            && matches!(action, CommandAction::RenameSession { title: None })
+        {
+            return KeyOutcome {
+                note: Some("title generation pending".into()),
                 ..KeyOutcome::default()
             };
         }
@@ -3945,13 +3983,20 @@ mod tests {
 
         type_text(&mut state, "/rename").await;
         let bare = state.handle_key(KeyAction::Enter).await;
-        assert_eq!(bare.intent, None);
-        assert_eq!(
-            bare.note.as_deref(),
-            Some("/rename without a title is unavailable (title generation is not implemented)")
-        );
+        assert_eq!(bare.intent, Some(PanelIntent::RegenerateTitle));
+        assert_eq!(state.handle_key(KeyAction::Enter).await.intent, None);
         assert_eq!(state.panel(), &TuiPanel::None);
         assert_eq!(state.input(), "/rename");
+        state.regenerated_title(Err("provider unavailable".into()));
+        assert_eq!(state.input(), "/rename");
+        assert_eq!(state.note(), Some("provider unavailable"));
+        assert_eq!(
+            state.handle_key(KeyAction::Enter).await.intent,
+            Some(PanelIntent::RegenerateTitle)
+        );
+        state.regenerated_title(Ok("New generated title".into()));
+        assert_eq!(state.input(), "");
+        assert_eq!(state.session_title.as_deref(), Some("New generated title"));
 
         state.parent_id = Some("parent".into());
         assert_eq!(

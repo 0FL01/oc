@@ -123,6 +123,11 @@ async fn run_stages(data_dir: &Path, session_opt: Option<String>) -> Result<u8, 
 /// Loop-local application state that is not part of the view-model.
 #[derive(Default)]
 struct LoopState {
+    /// Provider work is awaited separately from the synchronous terminal loop.
+    title_job: Option<(
+        SessionId,
+        tokio::task::JoinHandle<Result<String, CoreError>>,
+    )>,
     /// Turn started by a manual `/dcp-compress` request.
     /// Cursor for paging older tool cards.
     cards_before: Option<i64>,
@@ -450,6 +455,27 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
 
     loop {
         poll_and_sync(app, &mut state, &mut loop_state).await;
+        if loop_state
+            .title_job
+            .as_ref()
+            .is_some_and(|(_, job)| job.is_finished())
+        {
+            let (session, job) = loop_state.title_job.take().expect("finished title job");
+            let result = job.await.unwrap_or(Err(CoreError::Shutdown)).map_err(|_| {
+                "title generation unavailable or title changed; retry /rename".to_string()
+            });
+            if state.attached_session() == Some(&session) {
+                state.regenerated_title(result);
+            } else if let Some(view) = loop_state
+                .tabs
+                .iter_mut()
+                .flatten()
+                .find(|view| view.attached_session() == Some(&session))
+            {
+                view.regenerated_title(result);
+            }
+            loop_state.sync_tabs(&mut state);
+        }
         let draw_start = frame_metrics.as_ref().map(|_| Instant::now());
         terminal
             .draw(|frame| render_frame(frame, &state))
@@ -502,6 +528,10 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
         } else if *state.panel() != TuiPanel::Dcp {
             loop_state.dcp_seen = false;
         }
+    }
+    if let Some((session, job)) = loop_state.title_job.take() {
+        let _ = app.cancel_title(session).await;
+        let _ = job.await;
     }
     reconcile_exit(app, &mut state, &mut loop_state).await?;
     write_metrics(&state, &loop_state, frame_metrics.as_ref());
@@ -830,6 +860,15 @@ async fn handle_event(
 ) -> Result<(), String> {
     match map_event(cev) {
         Some(UiEvent::Key(action)) => {
+            if action == KeyAction::Cancel
+                && *state.panel() == TuiPanel::None
+                && state.input().trim() == "/rename"
+                && let Some((session, _)) = &loop_state.title_job
+                && state.attached_session() == Some(session)
+            {
+                let _ = app.cancel_title(session.clone()).await;
+                return Ok(());
+            }
             if loop_state.read_only
                 && *state.panel() == TuiPanel::None
                 && action == KeyAction::Enter
@@ -1076,7 +1115,22 @@ async fn apply_intent_with_origin(
             loop_state.save_if_changed(app, state, &before).await;
         }
         PanelIntent::CloseTab { index } => {
+            let closed = if loop_state.active_tab == Some(index) {
+                state.attached_session().cloned()
+            } else {
+                loop_state
+                    .tabs
+                    .get(index)
+                    .and_then(Option::as_ref)
+                    .and_then(TuiState::attached_session)
+                    .cloned()
+            };
             loop_state.close_tab(app, state, index).await?;
+            if let Some((owner, _)) = &loop_state.title_job
+                && closed.as_ref() == Some(owner)
+            {
+                let _ = app.cancel_title(owner.clone()).await;
+            }
         }
         intent @ (PanelIntent::RenameSession { .. } | PanelIntent::RenameSessionDirect { .. }) => {
             let direct = matches!(intent, PanelIntent::RenameSessionDirect { .. });
@@ -1132,6 +1186,30 @@ async fn apply_intent_with_origin(
                         state.rename_session_rejected(message.into());
                     }
                 }
+            }
+        }
+        PanelIntent::RegenerateTitle => {
+            let session = state
+                .attached_session()
+                .filter(|_| {
+                    !state.home
+                        && !loop_state.read_only
+                        && loop_state.active_tab.is_some_and(|index| {
+                            index < loop_state.tabs.len() && loop_state.tabs[index].is_none()
+                        })
+                })
+                .cloned();
+            match session {
+                Some(session) if !state.is_busy() && loop_state.title_job.is_none() => {
+                    let owner = app.clone();
+                    let target = session.clone();
+                    loop_state.title_job = Some((
+                        session,
+                        tokio::spawn(async move { owner.regenerate_title(target).await }),
+                    ));
+                }
+                _ => state
+                    .regenerated_title(Err("title generation unavailable for this session".into())),
             }
         }
         PanelIntent::SelectAgent { id } => {
@@ -1939,6 +2017,209 @@ mod tests {
         deck.tab_cards_before.push(None);
         deck.cards_before = None;
         deck.sync_tabs(state);
+    }
+
+    #[tokio::test]
+    async fn closing_tab_with_pending_title_cancels_only_title_and_survivor_can_submit() {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let title = SessionId::new("title-tab").unwrap();
+        let survivor = SessionId::new("survivor").unwrap();
+        let mut state = TuiState::new(app.clone(), title.clone());
+        let mut deck = LoopState {
+            location: Some("/fixture".into()),
+            revision: Some("old".into()),
+            ..Default::default()
+        };
+        deck.sync_tabs(&mut state);
+        state.handle_paste("/rename");
+        let outcome = state.handle_key(KeyAction::Enter).await;
+        assert_eq!(outcome.intent, Some(PanelIntent::RegenerateTitle));
+        apply_outcome(&app, &mut state, &mut deck, outcome, false).await;
+        let Some(InboxMsg::RegenerateTitle {
+            session,
+            ack: title_ack,
+        }) = tokio::time::timeout(Duration::from_secs(1), inbox.recv())
+            .await
+            .unwrap()
+        else {
+            panic!("title work must start before close")
+        };
+        assert_eq!(session, title);
+        append_tab(&app, &mut deck, &mut state, "survivor");
+        deck.activate(&mut state, 0).unwrap();
+        assert_eq!(state.input(), "/rename");
+
+        let worker = tokio::spawn(async move {
+            for (expected, active, revision) in [
+                (vec!["title-tab", "survivor"], Some("title-tab"), "old"),
+                (vec!["survivor"], Some("survivor"), "preflight"),
+            ] {
+                let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+                    panic!("close must save before cancelling title")
+                };
+                assert_eq!(
+                    deck.sessions
+                        .iter()
+                        .map(|id| id.0.as_str())
+                        .collect::<Vec<_>>(),
+                    expected
+                );
+                assert_eq!(deck.active.as_ref().map(|id| id.0.as_str()), active);
+                assert_eq!(deck.revision.as_deref(), Some(revision));
+                ack.send(Ok(TabDeckSnapshot {
+                    revision: Some(
+                        if revision == "old" {
+                            "preflight"
+                        } else {
+                            "closed"
+                        }
+                        .into(),
+                    ),
+                    ..deck
+                }))
+                .unwrap();
+            }
+            let Some(InboxMsg::CancelTitle { session, ack }) = inbox.recv().await else {
+                panic!("successful close must cancel title, not a turn")
+            };
+            assert_eq!(session.0, "title-tab");
+            title_ack
+                .send(Err(CoreError::Application("cancelled title".into())))
+                .unwrap();
+            ack.send(Ok(())).unwrap();
+            let Some(InboxMsg::Submit {
+                session, text, ack, ..
+            }) = inbox.recv().await
+            else {
+                panic!("surviving tab must be able to submit after title cancellation")
+            };
+            assert_eq!(session.0, "survivor");
+            assert_eq!(text, "survivor prompt");
+            ack.send(Ok(WorkerTurnId("survivor-turn".into()))).unwrap();
+            assert!(
+                inbox.try_recv().is_err(),
+                "no conversational turn cancellation"
+            );
+        });
+        tokio::time::timeout(
+            Duration::from_secs(1),
+            apply_intent(
+                &app,
+                &mut state,
+                &mut deck,
+                PanelIntent::CloseTab { index: 0 },
+            ),
+        )
+        .await
+        .expect("close stalled on title provider")
+        .unwrap();
+        assert_eq!(state.attached_session(), Some(&survivor));
+        assert_eq!(deck.snapshot(&state).sessions, vec![survivor.clone()]);
+        let (_, job) = deck
+            .title_job
+            .take()
+            .expect("title job tracked until drained");
+        assert!(
+            tokio::time::timeout(Duration::from_secs(1), job)
+                .await
+                .expect("title cancellation did not finish")
+                .unwrap()
+                .is_err()
+        );
+        state.handle_paste("survivor prompt");
+        state.handle_key(KeyAction::Enter).await;
+        tokio::time::timeout(Duration::from_secs(1), worker)
+            .await
+            .expect("survivor submission blocked")
+            .unwrap();
+        state.poll_submission();
+        assert_eq!(state.attached_session(), Some(&survivor));
+    }
+
+    #[tokio::test]
+    async fn refused_close_leaves_pending_title_uncancelled_and_tab_intact() {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let title = SessionId::new("title-tab").unwrap();
+        let mut state = TuiState::new(app.clone(), title.clone());
+        let mut deck = LoopState {
+            location: Some("/fixture".into()),
+            revision: Some("old".into()),
+            ..Default::default()
+        };
+        deck.sync_tabs(&mut state);
+        state.handle_paste("/rename");
+        let outcome = state.handle_key(KeyAction::Enter).await;
+        assert_eq!(outcome.intent, Some(PanelIntent::RegenerateTitle));
+        apply_outcome(&app, &mut state, &mut deck, outcome, false).await;
+        let Some(InboxMsg::RegenerateTitle {
+            session,
+            ack: title_ack,
+        }) = tokio::time::timeout(Duration::from_secs(1), inbox.recv())
+            .await
+            .unwrap()
+        else {
+            panic!("title job must reach owner")
+        };
+        assert_eq!(session, title);
+        append_tab(&app, &mut deck, &mut state, "survivor");
+        deck.activate(&mut state, 0).unwrap();
+        let (release_title, resume_title) = tokio::sync::oneshot::channel();
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+                panic!("full deck preflight")
+            };
+            assert_eq!(deck.sessions.len(), 2);
+            ack.send(Ok(TabDeckSnapshot {
+                revision: Some("preflight".into()),
+                ..deck
+            }))
+            .unwrap();
+            let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+                panic!("candidate save")
+            };
+            assert_eq!(deck.sessions, vec![SessionId::new("survivor").unwrap()]);
+            ack.send(Err(CoreError::TabDeckConflict)).unwrap();
+            resume_title.await.unwrap();
+            assert!(inbox.try_recv().is_err(), "refusal cannot cancel title");
+            title_ack.send(Ok("Still generating".into())).unwrap();
+            assert!(
+                inbox.try_recv().is_err(),
+                "title completion adds no turn or cancellation"
+            );
+        });
+        assert_eq!(
+            tokio::time::timeout(
+                Duration::from_secs(1),
+                apply_intent(
+                    &app,
+                    &mut state,
+                    &mut deck,
+                    PanelIntent::CloseTab { index: 0 }
+                )
+            )
+            .await
+            .expect("refused close stalled on title provider"),
+            Err("tab close refused; saved tabs unavailable".into())
+        );
+        assert_eq!(state.attached_session(), Some(&title));
+        assert_eq!(deck.snapshot(&state).sessions.len(), 2);
+        assert!(
+            deck.title_job
+                .as_ref()
+                .is_some_and(|(_, job)| !job.is_finished()),
+            "refused close must leave title work running"
+        );
+        release_title.send(()).unwrap();
+        worker.await.unwrap();
+        let (_, job) = deck.title_job.take().unwrap();
+        let result = tokio::time::timeout(Duration::from_secs(1), job)
+            .await
+            .expect("title stopped after refused close")
+            .unwrap()
+            .unwrap();
+        state.regenerated_title(Ok(result));
+        assert_eq!(state.session_title.as_deref(), Some("Still generating"));
+        assert_eq!(state.input(), "");
     }
 
     #[tokio::test]

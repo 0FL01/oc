@@ -72,7 +72,8 @@ class Provider(BaseHTTPRequestHandler):
             elif not tool_results:
                 transcript_round += 1
         second = spec.get('tab_restart') and turn_number > 0
-        text = (('Second fixture session' if second else title) if is_title else
+        text = (('Regenerated fixture title' if spec.get('regenerate_title') and title_round == 2 else
+                 'Second fixture session' if second else title) if is_title else
                 ('GEOMETRY-SECOND: tool read completed.' if second else answer))
         valid = valid and (is_title or prompt in serialized)
         profile_prompt_present = profile_prompt is not None and profile_prompt in system

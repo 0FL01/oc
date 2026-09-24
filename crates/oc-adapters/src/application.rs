@@ -986,6 +986,12 @@ fn query(
             })();
             let _ = ack.send(result);
         }
+        InboxMsg::RegenerateTitle { ack, .. } => {
+            let _ = ack.send(Err(CoreError::TurnBusy));
+        }
+        InboxMsg::CancelTitle { ack, .. } => {
+            let _ = ack.send(Err(CoreError::TurnBusy));
+        }
         InboxMsg::List { ack } => {
             let _ = ack.send(
                 db.list_sessions()
@@ -1387,6 +1393,168 @@ async fn worker(
         };
         match message {
             InboxMsg::Shutdown => return Ok(WorkerOutcome::Stop),
+            InboxMsg::RegenerateTitle { session, ack } => {
+                let prepared = (|| -> Result<_, CoreError> {
+                    runtime
+                        .open_session(&session.0)
+                        .map_err(|_| CoreError::SessionNotFound)?;
+                    let meta = db
+                        .session_meta(&session.0)
+                        .map_err(|_| CoreError::SessionNotFound)?;
+                    if meta.parent_id.is_some() {
+                        return Err(CoreError::SessionNotFound);
+                    }
+                    let (expected_title, expected_event) = db
+                        .root_title_stamp(&session.0)
+                        .map_err(app_error)?
+                        .ok_or(CoreError::SessionNotFound)?;
+                    let text = db
+                        .title_context(&session.0, expected_title.is_some())
+                        .map_err(app_error)?
+                        .ok_or_else(|| app_error("no user request to title"))?;
+                    let selected = selection::for_turn(db, composition, effective, &session.0)?;
+                    // A retired primary selection is not permission to call an
+                    // unrelated fallback model, even if the title agent pins one.
+                    crate::models::select_model(&composition.catalog, &selected.model_id)
+                        .and_then(|base| {
+                            crate::models::select_variant(&base, selected.variant.as_deref())
+                        })
+                        .map_err(|_| app_error("selected model/variant unavailable"))?;
+                    let agent = composition.agents.get("title");
+                    let (id, variant) = if let Some(raw) = agent.and_then(|a| a.model.as_deref()) {
+                        let resolved =
+                            crate::runtime::resolve_subagent_model(&composition.catalog, raw)
+                                .map_err(|_| app_error("title agent model unavailable"))?;
+                        (
+                            resolved.id,
+                            agent.and_then(|a| a.variant.clone()).or(resolved.variant),
+                        )
+                    } else {
+                        (
+                            selected.model_id,
+                            agent.and_then(|a| a.variant.clone()).or(selected.variant),
+                        )
+                    };
+                    let selection = crate::models::select_model(&composition.catalog, &id)
+                        .and_then(|base| crate::models::select_variant(&base, variant.as_deref()))
+                        .map_err(|_| app_error("title agent model/variant unavailable"))?;
+                    let fallback = composition
+                        .generation
+                        .providers
+                        .get(&composition.catalog.provider)
+                        .map(|p| p.options.native_fallback_limits)
+                        .unwrap_or_default();
+                    let budget = crate::models::budget(&selection, 256, fallback);
+                    let input = vec![
+                        crate::provider::InputItem::message(crate::provider::InputRole::Developer,
+                            agent.map(|a| a.body.as_str()).unwrap_or("Generate a short session title from the user's request. Output only the title, in at most 100 characters.")),
+                        crate::provider::InputItem::message(crate::provider::InputRole::User, &text),
+                    ];
+                    let tools: [crate::provider::ToolDef; 0] = [];
+                    let tokens = crate::runtime::estimate_tokens(
+                        &serde_json::to_string(&(&input, &tools)).map_err(app_error)?,
+                    );
+                    crate::models::admit_budget(&selection, tokens, &budget)
+                        .map_err(|_| app_error("title request exceeds model budget"))?;
+                    Ok((
+                        expected_title,
+                        expected_event,
+                        selection,
+                        input,
+                        budget.output,
+                    ))
+                })();
+                let (expected, expected_event, selection, input, output) = match prepared {
+                    Ok(prepared) => prepared,
+                    Err(error) => {
+                        let _ = ack.send(Err(error));
+                        continue;
+                    }
+                };
+                let cancel = AtomicBool::new(false);
+                let operation = async {
+                    let generation = tokio::time::timeout(
+                        std::time::Duration::from_secs(10),
+                        crate::provider::stream_input_observed(
+                            &composition.provider,
+                            &selection.id,
+                            selection.variant.as_ref(),
+                            &input,
+                            &[],
+                            output,
+                            &cancel,
+                            &mut |_| {},
+                        ),
+                    )
+                    .await
+                    .map_err(|_| app_error("title request timed out"))?
+                    .map_err(|_| app_error("title request failed"))?;
+                    if cancel.load(Ordering::Relaxed) {
+                        return Err(app_error("title request cancelled"));
+                    }
+                    let canonical = generation
+                        .output
+                        .iter()
+                        .filter(|item| item["type"] == "message" && item["role"] == "assistant")
+                        .filter_map(|item| item.get("content").and_then(|v| v.as_array()))
+                        .flatten()
+                        .filter(|part| part["type"] == "output_text")
+                        .filter_map(|part| part["text"].as_str())
+                        .collect::<Vec<_>>()
+                        .join("");
+                    let text = if generation.text.is_empty() {
+                        &canonical
+                    } else {
+                        &generation.text
+                    };
+                    let title: String = text
+                        .lines()
+                        .find(|line| !line.trim().is_empty())
+                        .unwrap_or_default()
+                        .trim()
+                        .trim_matches('"')
+                        .chars()
+                        .filter(|c| !c.is_control())
+                        .take(100)
+                        .collect();
+                    let title = normalized_session_title(&title)
+                        .ok_or_else(|| app_error("title agent returned an invalid title"))?;
+                    if !db
+                        .compare_and_set_root_title(
+                            &session.0,
+                            expected.as_deref(),
+                            expected_event,
+                            title,
+                        )
+                        .map_err(|_| app_error("title storage unavailable"))?
+                    {
+                        return Err(app_error("session title changed during generation"));
+                    }
+                    Ok(title.to_string())
+                };
+                tokio::pin!(operation);
+                let mut shutdown = false;
+                let result = loop {
+                    tokio::select! {
+                        result = &mut operation => break result,
+                        command = inbox.recv(), if !shutdown => match command {
+                            None | Some(InboxMsg::Shutdown) => {
+                                shutdown = true;
+                                cancel.store(true, Ordering::Relaxed);
+                            }
+                            Some(InboxMsg::CancelTitle { session: target, ack }) if target == session => {
+                                cancel.store(true, Ordering::Relaxed);
+                                let _ = ack.send(Ok(()));
+                            }
+                            Some(command) => query(db, runtime, composition, effective, registry, sessions, home_choices, command),
+                        },
+                    }
+                };
+                let _ = ack.send(result);
+                if shutdown {
+                    return Ok(WorkerOutcome::Stop);
+                }
+            }
             InboxMsg::SwitchLocation { path, ack } => {
                 return Ok(WorkerOutcome::Switch {
                     path,

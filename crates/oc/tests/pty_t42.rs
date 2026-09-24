@@ -1193,6 +1193,59 @@ fn direct_rename_trims_unicode_and_persists_without_second_enter_or_overwriting_
 }
 
 #[test]
+fn bare_rename_requests_real_title_without_creating_turn_and_restores_on_restart() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "bare-title"],
+        None,
+    );
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "first request for a title");
+    wait_stored_title(&fixture, "bare-title", Some("Fixture session title"));
+    wait_idle(&pty);
+    pty.send(b"/rename Manual title\r");
+    wait_stored_title(&fixture, "bare-title", Some("Manual title"));
+    wait_prompt_cleared(&pty, "/rename");
+    let counts = journal_counts(&fixture);
+    let requests = fixture.requests.lock().unwrap().len();
+    pty.send(b"/rename\r");
+    wait_stored_title(&fixture, "bare-title", Some("Fixture session title"));
+    wait_prompt_cleared(&pty, "/rename");
+    let recorded = fixture.requests.lock().unwrap();
+    assert_eq!(recorded.len(), requests + 1, "one new real title request");
+    let request = &recorded[requests];
+    assert!(title::is_title(request));
+    let prompt = request["input"][1].to_string();
+    assert!(
+        prompt.contains("first request for a title"),
+        "bounded original request retained"
+    );
+    drop(recorded);
+    let after = journal_counts(&fixture);
+    assert_eq!(
+        (after.0, after.2, after.3, after.4),
+        (counts.0, counts.2, counts.3, counts.4)
+    );
+    assert_eq!(
+        after.1,
+        counts.1 + 1,
+        "one durable title event, no new turn"
+    );
+    quit(&mut pty);
+    let mut restart = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "bare-title"],
+        None,
+    );
+    wait_screen_row(&restart, "Fixture session title", DEADLINE);
+    quit(&mut restart);
+}
+
+#[test]
 fn direct_rename_invalid_titles_keep_slash_draft_and_existing_title() {
     let fixture = Fixture::new();
     let project = fixture.project_a();

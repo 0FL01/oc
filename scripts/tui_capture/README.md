@@ -312,6 +312,27 @@ PNGs, VT and ordinary unmasked grid/PNG comparator reports are preserved for
 `rename-prefilled`, `rename-edited`, `rename-after`, `rename-restored-home` and
 `rename-restored-session`; an interaction PASS does not mean frame equality.
 
+To qualify genuine bare `/rename` title regeneration, add
+`--regenerate-title true` to the paired rename command above with a **new**
+output directory. This opt-in keeps the completed explicit rename and its
+captures, then types `/rename` and Return through each real PTY. The fixture
+serves a distinct `Regenerated fixture title` only on the second title-provider
+request in this mode; ordinary samples and the two-session restart fixture
+keep their original title responses. The original shows slash autocomplete;
+the runner dismisses only that suggestion with Escape before submitting Return,
+as in the pinned upstream command test. `rename-checks.json` requires a unique
+painted regenerated title, disappearance of the manual and initial titles,
+exactly one additional completed title request with the expected response hash,
+no extra transcript requests and no invalid requests. The new
+`rename-regenerated` frame and `rename-regenerated-restored-home` /
+`rename-regenerated-restored-session` frames retain full unmasked styled grids,
+PNG, VT, per-generation protocol and input evidence. Restart must exit
+naturally, reuse the same isolated root and provider, and add **no** requests;
+the restored tab click must reveal the durable transcript and regenerated
+title. A failed predicate retains its diagnostic frame and failed status.
+Full-grid and PNG comparisons remain separate: genuine elapsed-time digits,
+versions and randomized Home examples cannot establish parity.
+
 `--tabs vertical --columns 162` and `--columns 163` check both sides of the
 42-cell rail-adjusted auto-sidebar breakpoint using text **and styled blank
 backgrounds**. `--devtools unset` omits the explicit override; native debug builds

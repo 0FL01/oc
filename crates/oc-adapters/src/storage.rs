@@ -1610,6 +1610,100 @@ impl Db {
         Ok(())
     }
 
+    /// Snapshot title and last title-event sequence in one SQLite read. The
+    /// event fence also detects A -> B -> A renames during provider work.
+    pub(crate) fn root_title_stamp(
+        &self,
+        session: &str,
+    ) -> Result<Option<(Option<String>, i64)>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        conn.query_row(
+            "SELECT title, COALESCE((SELECT MAX(seq) FROM events WHERE session_id = sessions.id AND kind = 'session_updated'), 0) FROM sessions WHERE id = ?1 AND parent_id IS NULL",
+            params![session],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()
+        .map_err(Into::into)
+    }
+
+    /// Regeneration replaces only the title and event sequence observed
+    /// before provider work. The event and update share a transaction.
+    pub(crate) fn compare_and_set_root_title(
+        &self,
+        session: &str,
+        expected: Option<&str>,
+        expected_event: i64,
+        title: &str,
+    ) -> Result<bool, StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        if expected == Some(title) {
+            let unchanged = tx
+                .query_row(
+                    "SELECT 1 FROM sessions WHERE id = ?1 AND parent_id IS NULL AND title IS ?2 AND COALESCE((SELECT MAX(seq) FROM events WHERE session_id = sessions.id AND kind = 'session_updated'), 0) = ?3",
+                    params![session, expected, expected_event],
+                    |_| Ok(()),
+                )
+                .optional()?
+                .is_some();
+            return Ok(unchanged);
+        }
+        let affected = tx.execute(
+            "UPDATE sessions SET title = ?4 WHERE id = ?1 AND parent_id IS NULL AND title IS ?2 AND title IS NOT ?4 AND COALESCE((SELECT MAX(seq) FROM events WHERE session_id = sessions.id AND kind = 'session_updated'), 0) = ?3",
+            params![session, expected, expected_event, title],
+        )?;
+        if affected == 0 {
+            return Ok(false);
+        }
+        tx.execute(
+            "INSERT INTO events(session_id, kind, payload) VALUES (?1, 'session_updated', ?2)",
+            params![session, serde_json::json!({"title": title}).to_string()],
+        )?;
+        tx.commit()?;
+        Ok(true)
+    }
+
+    /// Bound the first request and recent public conversation before making a
+    /// provider request. No journal, tool output or full transcript is loaded.
+    pub(crate) fn title_context(
+        &self,
+        session: &str,
+        has_title: bool,
+    ) -> Result<Option<String>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let first: Option<(i64, String)> = conn.query_row(
+            "SELECT seq, substr(text, 1, 2048) FROM messages WHERE session_id=?1 AND role='user' ORDER BY seq ASC LIMIT 1",
+            params![session], |row| Ok((row.get(0)?, row.get(1)?)),
+        ).optional()?;
+        let Some((first_seq, first)) = first else {
+            return Ok(None);
+        };
+        if !has_title {
+            return Ok(Some(first));
+        }
+        let original = format!("Original request:\n{first}");
+        let mut stmt = conn.prepare_cached(
+            "SELECT role, substr(text, 1, 2048) FROM messages WHERE session_id=?1 AND seq != ?2 AND role IN ('user','assistant') ORDER BY seq DESC LIMIT 12"
+        )?;
+        let rows = stmt.query_map(params![session, first_seq], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        let recent = rows.collect::<Result<Vec<_>, _>>()?;
+        let recent = recent
+            .into_iter()
+            .rev()
+            .map(|(role, text)| format!("{role}: {text}"))
+            .collect::<Vec<_>>()
+            .join("\n\n");
+        if recent.is_empty() {
+            return Ok(Some(original));
+        }
+        let mut context = format!("{original}\n\nRecent conversation:\n");
+        let start = recent.floor_char_boundary(recent.len().saturating_sub(8192));
+        context.push_str(&recent[start..]);
+        Ok(Some(context))
+    }
+
     /// Set a generated title once; explicit/child titles always win.
     pub(crate) fn set_generated_title(
         &self,
@@ -2720,6 +2814,83 @@ mod tests {
         assert_eq!(
             db.session_meta("root").unwrap().title.as_deref(),
             Some("manual")
+        );
+    }
+
+    #[test]
+    fn regenerated_title_cas_preserves_manual_edit_and_event_atomicity() {
+        let tmp = tmp_root("regenerated-title");
+        let db = Db::open(tmp.path()).unwrap();
+        db.create_session("root").unwrap();
+        db.create_child_session("root", "child", None, None, Some("child"))
+            .unwrap();
+        db.rename_root_session("root", "original").unwrap();
+        let original_event = db.root_title_stamp("root").unwrap().unwrap().1;
+        assert!(
+            !db.compare_and_set_root_title("child", Some("child"), original_event, "bad")
+                .unwrap()
+        );
+        assert!(
+            !db.compare_and_set_root_title("root", None, original_event, "bad")
+                .unwrap()
+        );
+        db.rename_root_session("root", "manual during request")
+            .unwrap();
+        assert!(
+            !db.compare_and_set_root_title("root", Some("original"), original_event, "late")
+                .unwrap()
+        );
+        // The title text can return to its original value without restoring
+        // the generation's authority to overwrite an intervening manual edit.
+        db.rename_root_session("root", "original").unwrap();
+        assert!(
+            !db.compare_and_set_root_title("root", Some("original"), original_event, "late")
+                .unwrap()
+        );
+        db.rename_root_session("root", "manual during request")
+            .unwrap();
+        let fresh_event = db.root_title_stamp("root").unwrap().unwrap().1;
+        assert!(
+            db.compare_and_set_root_title(
+                "root",
+                Some("manual during request"),
+                fresh_event,
+                "new"
+            )
+            .unwrap()
+        );
+        let new_event = db.root_title_stamp("root").unwrap().unwrap().1;
+        assert!(
+            db.compare_and_set_root_title("root", Some("new"), new_event, "new")
+                .unwrap()
+        );
+        assert!(
+            !db.compare_and_set_root_title(
+                "root",
+                Some("manual during request"),
+                fresh_event,
+                "duplicate"
+            )
+            .unwrap()
+        );
+        let conn = db.conn.lock().unwrap();
+        let count: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM events WHERE session_id='root' AND kind='session_updated'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 5);
+        conn.execute_batch("CREATE TRIGGER refuse_title_event BEFORE INSERT ON events WHEN NEW.kind='session_updated' BEGIN SELECT RAISE(ABORT, 'test refusal'); END;").unwrap();
+        drop(conn);
+        assert!(
+            db.compare_and_set_root_title("root", Some("new"), new_event, "rolled back")
+                .is_err()
+        );
+        assert_eq!(
+            db.session_meta("root").unwrap().title.as_deref(),
+            Some("new")
         );
     }
 

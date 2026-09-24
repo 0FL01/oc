@@ -38,6 +38,11 @@ if (tabRestart && (!tabClick || tabClose || tabCloseKey || explorationClick))
 const renameSession = args['rename-session'] === 'true';
 if (args['rename-session'] !== undefined && !['true','false'].includes(args['rename-session']))
   throw Error('--rename-session must be true or false');
+const regenerateTitle = args['regenerate-title'] === 'true';
+if (args['regenerate-title'] !== undefined && !['true','false'].includes(args['regenerate-title']))
+  throw Error('--regenerate-title must be true or false');
+if (regenerateTitle && !renameSession)
+  throw Error('--regenerate-title true requires --rename-session true (paired Reader tools 120x40 profile)');
 if (renameSession && (tabClick || tabClose || tabCloseKey || tabRestart || explorationClick ||
     args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
@@ -132,6 +137,7 @@ const tabObserve = f => {
 };
 const secondTitle = 'Second fixture session';
 const renamedTitle = 'Paired renamed session';
+const regeneratedTitle = 'Regenerated fixture title';
 const restartObserve = f => ({...tabObserve(f), second:visibleMatches(f,secondTitle.slice(0,6)).filter(p=>p.y===0),
   second_content:f.text.includes('GEOMETRY-SECOND: tool read completed.')});
 try {
@@ -159,7 +165,8 @@ try {
       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,
       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
       agent_profile: args['agent-profile'] === 'true',
-       seed_root: args['seed-root'], session: args.session, tab_restart: tabRestart || renameSession};
+       seed_root: args['seed-root'], session: args.session, tab_restart: tabRestart || renameSession,
+       regenerate_title: regenerateTitle};
     fs.writeFileSync(path.join(dir,'bridge-spec.json'), JSON.stringify(spec, null, 2));
     lock[origin] = {...lock[origin], executable_path: binary, executable_sha256: hash};
     const page = await browser.newPage({viewport: {width: 1800, height: 1100}, deviceScaleFactor: 1});
@@ -284,14 +291,15 @@ try {
             completed_transcript:logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length,
             completed_title:logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length,
             invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});
-          const baseline=counts();
-          const noRequests=()=>canonical(counts())===canonical(baseline);
+           const baseline=counts();
+           let expected=baseline;
+           const noRequests=()=>canonical(counts())===canonical(expected);
           // The original fixture title is truncated by the tab width, whereas
           // the replacement fits: require its entire painted title on row 0.
-          const namedTab=(f,name)=>visibleMatches(f,name===renamedTitle ? name : [...name].slice(0,6).join(''))
-            .filter(p=>p.y===0);
-          const observed=f=>({header:tabRow(f).trimEnd(),old_tabs:namedTab(f,tabTitle),
-            renamed_tabs:namedTab(f,renamedTitle),dialog:f.text.includes('Rename session'),
+           const namedTab=(f,name)=>visibleMatches(f,[renamedTitle,regeneratedTitle].includes(name) ? name : [...name].slice(0,6).join(''))
+             .filter(p=>p.y===0);
+           const observed=f=>({header:tabRow(f).trimEnd(),old_tabs:namedTab(f,tabTitle),
+             renamed_tabs:namedTab(f,renamedTitle),regenerated_tabs:namedTab(f,regeneratedTitle),dialog:f.text.includes('Rename session'),
             prefilled:visibleMatches(f,tabTitle).some(p=>p.y>0),
             renamed_value:visibleMatches(f,renamedTitle).some(p=>p.y>0),
             transcript:f.text.includes('GEOMETRY-SHORT: tool read completed.'),
@@ -341,13 +349,56 @@ try {
           const after=await awaitRename('renamed-in-session',renamed,'renamed tab/header with completed transcript, original title gone, no provider requests');
           if(await capture('rename-after',after,'CAPTURED_RENAMED')!=='CAPTURED_RENAMED')
             throw Error('Unstable rename-after frame');
-          const verified=await frame();
-          check('rename-capture-verified',verified,'renamed tab and transcript persist without provider requests',renamed(verified));
-          send('\x04','rename_graceful_exit_ctrl_d');
+           const verified=await frame();
+           let prequitFrame=verified;
+           check('rename-capture-verified',verified,'renamed tab and transcript persist without provider requests',renamed(verified));
+           if(regenerateTitle) {
+             check('before-regeneration',verified,'manual title unique, original and regenerated titles absent; one genuine completed title',
+               renamed(verified) && observed(verified).regenerated_tabs.length===0 &&
+               baseline.completed_title===1 && baseline.title===1);
+             send('/rename','regenerate_bare_slash_command');
+             // Upstream autocomplete contains the label "Rename session" while
+             // /rename is being typed; it is a suggestion, not the rename modal.
+             const commandDraft=f=>visibleMatches(f,'/rename').some(p=>p.y>=30) &&
+               namedTab(f,renamedTitle).length===1 && namedTab(f,tabTitle).length===0 &&
+               observed(f).transcript && noRequests();
+             const slashDraft=await awaitRename('regenerate-command-draft',commandDraft,
+               'bare /rename in composer with manual title still present, no new provider requests');
+             check('regenerate-command-before-submit',slashDraft,'manual tab and composer slash visible, exactly baseline requests',commandDraft(slashDraft));
+             // The pinned command editor accepts Enter as autocomplete while
+             // suggestions are visible. Escape closes only autocomplete and
+             // retains the slash draft (pinned app-lifecycle.test.tsx:552-555).
+             if(origin==='upstream') {
+               send('\x1b','regenerate_dismiss_suggestions_escape');
+               await awaitRename('regenerate-suggestions-dismissed',f=>commandDraft(f) && !f.text.includes('/review'),
+                 'bare /rename still in composer after dismissing upstream autocomplete');
+             }
+             send('\r','regenerate_submit_return');
+             const regenerated=f=>{const o=observed(f),c=counts();return !o.dialog && o.regenerated_tabs.length===1 &&
+               o.renamed_tabs.length===0 && o.old_tabs.length===0 && o.transcript && !o.home &&
+               c.transcript===baseline.transcript && c.completed_transcript===baseline.completed_transcript &&
+               c.title===baseline.title+1 && c.completed_title===baseline.completed_title+1 && c.invalid===0 &&
+               logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').at(-1)?.response_text_sha256===sha(regeneratedTitle);};
+             const generated=await awaitRename('regenerated-in-session',regenerated,
+               'distinct provider-completed title on unique painted tab, one additional title and zero transcript requests');
+             if(await capture('rename-regenerated',generated,'CAPTURED_REGENERATED')!=='CAPTURED_REGENERATED')
+               throw Error('Unstable rename-regenerated frame');
+             expected=counts();
+             const afterGeneration=await frame();
+             check('regeneration-capture-verified',afterGeneration,
+               'genuine regenerated title remains painted; provider counts stop at exactly two titles',
+               regenerated(afterGeneration) && noRequests(),{expected});
+             prequitFrame=afterGeneration;
+           }
+           const finalTitle=regenerateTitle ? regeneratedTitle : renamedTitle;
+           const current=f=>{const o=observed(f);return !o.dialog && namedTab(f,finalTitle).length===1 &&
+             o.old_tabs.length===0 && (regenerateTitle ? o.renamed_tabs.length===0 : o.regenerated_tabs.length===0) &&
+             o.transcript && !o.home && noRequests();};
+           send('\x04','rename_graceful_exit_ctrl_d');
           const deadline=Date.now()+15000;
           while(!logs.some(e=>e.kind==='exit' && e.generation===0) && Date.now()<deadline) await sleep(100);
           const exit=logs.find(e=>e.kind==='exit' && e.generation===0);
-          check('graceful-exit',after,'first process exited naturally with code 0; no provider requests',
+           check('graceful-exit',prequitFrame,'first process exited naturally with code 0; no provider requests',
             !!exit && exit.code===0 && exit.termination==='natural' && noRequests(),{exit});
           fs.writeFileSync(path.join(dir,'prequit.raw.vt'),Buffer.concat(chunks[0]));
           fs.writeFileSync(path.join(dir,'prequit.protocol.json'),JSON.stringify(logs,null,2)+'\n');
@@ -357,24 +408,27 @@ try {
           await writeQueue;
           await page.evaluate(()=>term.reset());
           child.stdin.write(JSON.stringify({kind:'relaunch'})+'\n');
-          const restoredHome=f=>{const o=observed(f);return o.home && o.renamed_tabs.length===1 &&
-            o.old_tabs.length===0 && !o.dialog && !o.transcript && noRequests() &&
-            logs.some(e=>e.kind==='relaunch' && e.generation===1);};
-          const home=await awaitRename('restored-home',restoredHome,'Home with persisted renamed tab, no transcript or provider requests');
-          if(await capture('rename-restored-home',home,'CAPTURED_RENAME_RESTORED_HOME')!=='CAPTURED_RENAME_RESTORED_HOME')
-            throw Error('Unstable rename-restored-home frame');
-          const target=namedTab(await frame(),renamedTitle);
-          check('restored-tab-target',await frame(),'one painted renamed tab on Home and no provider requests',target.length===1 && noRequests(),{target:target[0]});
+           const restoredHome=f=>{const o=observed(f);return o.home && namedTab(f,finalTitle).length===1 &&
+             o.old_tabs.length===0 && (regenerateTitle ? o.renamed_tabs.length===0 : o.regenerated_tabs.length===0) &&
+             !o.dialog && !o.transcript && noRequests() &&
+             logs.some(e=>e.kind==='relaunch' && e.generation===1);};
+           const home=await awaitRename('restored-home',restoredHome,'Home with persisted final title, no transcript or provider requests');
+           if(await capture(regenerateTitle?'rename-regenerated-restored-home':'rename-restored-home',home,'CAPTURED_RENAME_RESTORED_HOME')!=='CAPTURED_RENAME_RESTORED_HOME')
+             throw Error('Unstable rename-restored-home frame');
+           const target=namedTab(await frame(),finalTitle);
+           check('restored-tab-target',await frame(),'one painted final-title tab on Home and no provider requests',target.length===1 && noRequests(),{target:target[0]});
           const point=target[0],down=`\x1b[<0;${point.x+1};${point.y+1}M`,up=`\x1b[<0;${point.x+1};${point.y+1}m`;
           checks.push({stage:'restored-tab-click',point,down_base64:Buffer.from(down).toString('base64'),
             up_base64:Buffer.from(up).toString('base64')});save();
           send(down,'restored_renamed_tab_mouse_down');send(up,'restored_renamed_tab_mouse_up');
-          const replay=await awaitRename('restored-renamed-session',renamed,'renamed tab selected from Home, durable transcript visible, no provider requests');
-          if(await capture('rename-restored-session',replay,'CAPTURED_RENAME_RESTORED_SESSION')!=='CAPTURED_RENAME_RESTORED_SESSION')
-            throw Error('Unstable rename-restored-session frame');
-          check('post-capture-no-requests',await frame(),'provider counts unchanged after restored capture',noRequests());
-          lock.rename_interactions[origin].status='PASS';save();
-          lock.attempts.push({origin,status:'RENAME_CHECKS_PASS',baseline,after:counts(),
+           const replay=await awaitRename('restored-renamed-session',current,'final-title tab selected from Home, durable transcript visible, no provider requests');
+           if(await capture(regenerateTitle?'rename-regenerated-restored-session':'rename-restored-session',replay,'CAPTURED_RENAME_RESTORED_SESSION')!=='CAPTURED_RENAME_RESTORED_SESSION')
+             throw Error('Unstable rename-restored-session frame');
+           const afterReplay=await frame();
+           check('post-capture-no-requests',afterReplay,'final title and transcript persist after restart and click, no additional provider requests',
+             current(afterReplay) && noRequests(),{expected});
+           lock.rename_interactions[origin].status='PASS';save();
+           lock.attempts.push({origin,status:regenerateTitle?'REGENERATE_TITLE_CHECKS_PASS':'RENAME_CHECKS_PASS',baseline,after:counts(),
             predicates:checks.filter(c=>c.passed).map(c=>c.stage)});
         }
         if(tabClick) {
