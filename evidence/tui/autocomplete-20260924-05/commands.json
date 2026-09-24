@@ -1,0 +1,342 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--autocomplete",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "9e7ee6fdeeb6519a5d44e7747c2e6714a5aefbda\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "52226e44748135e24781987715866c5542b629c5\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/app.rs b/crates/oc-tui/src/app.rs\nindex b023ab3..82eac94 100644\n--- a/crates/oc-tui/src/app.rs\n+++ b/crates/oc-tui/src/app.rs\n@@ -83,6 +83,20 @@ pub enum TuiStatus {\n     Quit,\n }\n \n+/// Upstream toast feedback roles (`ui/toast.tsx:7-16`).\n+#[derive(Debug, Clone, Copy, PartialEq, Eq)]\n+pub enum NoteVariant {\n+    Info,\n+    Success,\n+    Warning,\n+    Error,\n+}\n+\n+struct ToastExpiry {\n+    remaining: Duration,\n+    started: Option<Instant>,\n+}\n+\n /// Open TUI panel (bounded view state; one at a time).\n #[derive(Debug, Clone, PartialEq, Eq)]\n pub enum TuiPanel {\n@@ -395,7 +409,9 @@ pub struct TuiState {\n     /// Provider usage reported for the active turn (never synthesized).\n     turn_usage: Option<TurnUsage>,\n     scroll: usize,\n-    note: Option<String>,\n+    note: Option<(String, NoteVariant)>,\n+    toast_expiry: Option<ToastExpiry>,\n+    toast_down: bool,\n     active_turn: Option<WorkerTurnId>,\n     pending: Option<PendingSubmission>,\n     compress_turn: Option<WorkerTurnId>,\n@@ -509,6 +525,8 @@ impl TuiState {\n             turn_usage: None,\n             scroll: 0,\n             note: None,\n+            toast_expiry: None,\n+            toast_down: false,\n             active_turn: None,\n             pending: None,\n             compress_turn: None,\n@@ -593,6 +611,8 @@ impl TuiState {\n     /// Clear the recorded SGR coordinate when a resize invalidates its frame.\n     pub fn clear_mouse_position(&mut self) {\n         self.last_mouse = None;\n+        self.toast_down = false;\n+        self.set_toast_hover(false, Instant::now());\n         self.hovered_tab.set(None);\n         self.close_hold = None;\n         self.tab_down = None;\n@@ -1055,6 +1075,7 @@ impl TuiState {\n         // A press belongs to the dialog where it began, not the replacement.\n         self.mouse_down = None;\n         self.select.reset();\n+        self.toast_down = false;\n         self.select.cursor = self\n             .modal_options()\n             .iter()\n@@ -1380,7 +1401,12 @@ impl TuiState {\n \n     /// Status note, if any (intent errors and hints; never chat history).\n     pub fn note(&self) -> Option<&str> {\n-        self.note.as_deref()\n+        self.note.as_ref().map(|(message, _)| message.as_str())\n+    }\n+\n+    /// Semantic color of the currently displayed note.\n+    pub fn note_variant(&self) -> Option<NoteVariant> {\n+        self.note.as_ref().map(|(_, variant)| *variant)\n     }\n \n     /// Newest page becomes the whole window; scroll pins to the newest row.\n@@ -1454,6 +1480,41 @@ impl TuiState {\n         {\n             self.close_hold = None;\n         }\n+        if self.panel == TuiPanel::None {\n+            let toast = crate::shell::toast_rect(self, area);\n+            let toast_hit =\n+                toast.is_some_and(|rect| rect.contains((event.column, event.row).into()));\n+            self.set_toast_hover(toast_hit, Instant::now());\n+            // Only the painted close cell is an activation target. The terminal\n+            // does not expose selection state, so text drags must remain inert.\n+            let close_hit = toast\n+                .is_some_and(|rect| event.column == rect.right() - 4 && event.row == rect.y + 1);\n+            match event.kind {\n+                MouseEventKind::Down(MouseButton::Left) => {\n+                    self.toast_down = close_hit && event.modifiers.is_empty();\n+                    if self.toast_down {\n+                        self.tab_down = None;\n+                        self.exploration_down = None;\n+                        return KeyOutcome::default();\n+                    }\n+                }\n+                MouseEventKind::Up(MouseButton::Left) => {\n+                    if std::mem::take(&mut self.toast_down)\n+                        && close_hit\n+                        && event.modifiers.is_empty()\n+                    {\n+                        self.note = None;\n+                        self.toast_expiry = None;\n+                        return KeyOutcome::default();\n+                    }\n+                }\n+                MouseEventKind::Drag(_) => self.toast_down = false,\n+                _ => {}\n+            }\n+        } else {\n+            self.toast_down = false;\n+            self.set_toast_hover(false, Instant::now());\n+        }\n         if self.panel == TuiPanel::None {\n             match event.kind {\n                 MouseEventKind::Moved => {\n@@ -2140,7 +2201,7 @@ impl TuiState {\n     /// Report that an intent could not be applied; the input is kept so the\n     /// user can retry or edit it.\n     pub fn apply_intent_error(&mut self, message: String) {\n-        self.note = Some(message);\n+        self.push_note(&message);\n     }\n \n     /// Current modal value, distinct from the prompt draft and its caret.\n@@ -2338,12 +2399,64 @@ impl TuiState {\n             compress,\n         });\n         self.status = TuiStatus::PendingSubmission;\n-        self.note = Some(\"submission pending; Esc to cancel\".into());\n+        self.push_note(\"submission pending; Esc to cancel\");\n     }\n \n-    /// Set the transient status note.\n+    /// Set a persistent legacy status note until replaced or cleared.\n     pub fn push_note(&mut self, note: &str) {\n-        self.note = Some(note.to_string());\n+        self.push_note_variant(note, NoteVariant::Warning);\n+    }\n+\n+    /// Set a typed feedback note without interpreting its free-form text.\n+    pub fn push_note_variant(&mut self, note: &str, variant: NoteVariant) {\n+        self.note = Some((note.to_string(), variant));\n+        self.toast_expiry = None;\n+        self.toast_down = false;\n+    }\n+\n+    /// Only owner-reported reload feedback has upstream toast timing; legacy\n+    /// warnings continue to persist until replaced or explicitly cleared.\n+    pub fn push_transient_note(&mut self, note: &str, variant: NoteVariant) {\n+        self.push_transient_note_at(note, variant, Instant::now());\n+    }\n+\n+    fn push_transient_note_at(&mut self, note: &str, variant: NoteVariant, now: Instant) {\n+        self.push_note_variant(note, variant);\n+        self.toast_expiry = Some(ToastExpiry {\n+            remaining: if variant == NoteVariant::Info {\n+                Duration::from_secs(30)\n+            } else {\n+                Duration::from_secs(5)\n+            },\n+            started: Some(now),\n+        });\n+    }\n+\n+    pub fn tick_toast(&mut self, now: Instant) {\n+        if self.toast_expiry.as_ref().is_some_and(|expiry| {\n+            expiry\n+                .started\n+                .is_some_and(|started| now.saturating_duration_since(started) >= expiry.remaining)\n+        }) {\n+            self.note = None;\n+            self.toast_expiry = None;\n+            self.toast_down = false;\n+        }\n+    }\n+\n+    fn set_toast_hover(&mut self, hovered: bool, now: Instant) {\n+        let Some(expiry) = &mut self.toast_expiry else {\n+            return;\n+        };\n+        if hovered {\n+            if let Some(started) = expiry.started.take() {\n+                expiry.remaining = expiry\n+                    .remaining\n+                    .saturating_sub(now.saturating_duration_since(started));\n+            }\n+        } else if expiry.started.is_none() {\n+            expiry.started = Some(now);\n+        }\n     }\n \n     /// Push one synthetic transcript row for a non-fatal warning, so a\n@@ -2947,7 +3060,7 @@ impl TuiState {\n                 if !exiting {\n                     self.status = TuiStatus::Idle;\n                 }\n-                self.note = Some(format!(\"submit: {error}\"));\n+                self.push_note(&format!(\"submit: {error}\"));\n             }\n         }\n     }\n@@ -4225,8 +4338,8 @@ pub enum PumpOutcome {\n mod tests {\n     use super::{\n         HOME_EXAMPLES, KeyOutcome, LIVE_PARTS_MAX, MAX_INPUT_BYTES, MAX_SESSION_TITLE_BYTES,\n-        PanelIntent, PumpOutcome, ScriptDriver, TabCloseHold, TabPresentation, TuiPanel, TuiState,\n-        TuiStatus, VIEWPORT_LINES,\n+        NoteVariant, PanelIntent, PumpOutcome, ScriptDriver, TabCloseHold, TabPresentation,\n+        TuiPanel, TuiState, TuiStatus, VIEWPORT_LINES,\n     };\n     use crate::events::KeyAction;\n     use crate::history::{WINDOW_BYTES, WINDOW_ROWS};\n@@ -4270,6 +4383,35 @@ mod tests {\n         TuiState::new(app, sid(name))\n     }\n \n+    #[tokio::test]\n+    async fn only_typed_reload_notes_expire_and_hover_preserves_remaining_time() {\n+        let mut state = fresh_state(\"toast-timer\").await;\n+        let start = Instant::now();\n+        state.push_note(\"legacy warning\");\n+        state.tick_toast(start + Duration::from_secs(60));\n+        assert_eq!(state.note(), Some(\"legacy warning\"));\n+\n+        state.push_transient_note_at(\"Reloading\", NoteVariant::Info, start);\n+        state.tick_toast(start + Duration::from_secs(29));\n+        assert_eq!(state.note(), Some(\"Reloading\"));\n+        state.set_toast_hover(true, start + Duration::from_secs(29));\n+        state.tick_toast(start + Duration::from_secs(90));\n+        assert_eq!(state.note(), Some(\"Reloading\"));\n+        state.set_toast_hover(false, start + Duration::from_secs(90));\n+        state.tick_toast(start + Duration::from_secs(91));\n+        assert_eq!(state.note(), None);\n+\n+        state.push_transient_note_at(\"Done\", NoteVariant::Success, start);\n+        state.tick_toast(start + Duration::from_secs(4));\n+        assert_eq!(state.note(), Some(\"Done\"));\n+        state.tick_toast(start + Duration::from_secs(5));\n+        assert_eq!(state.note(), None);\n+        state.push_transient_note_at(\"Failed\", NoteVariant::Error, start);\n+        state.push_note(\"other warning\");\n+        state.tick_toast(start + Duration::from_secs(60));\n+        assert_eq!(state.note(), Some(\"other warning\"));\n+    }\n+\n     fn file_result(\n         location: &str,\n         generation: u64,\ndiff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs\nindex 0ba9fb2..e2bc334 100644\n--- a/crates/oc-tui/src/shell.rs\n+++ b/crates/oc-tui/src/shell.rs\n@@ -21,7 +21,7 @@ use ratatui::{\n use unicode_segmentation::UnicodeSegmentation;\n use unicode_width::UnicodeWidthStr;\n \n-use crate::app::{TuiState, TuiStatus};\n+use crate::app::{NoteVariant, TuiState, TuiStatus};\n use crate::layout;\n use crate::theme::{Theme, tint};\n \n@@ -1481,33 +1481,67 @@ fn render_devtools(frame: &mut Frame<'_>, theme: &Theme, area: Rect) {\n }\n \n /// Upstream toast surface for transient notes (`ui/toast.tsx:48-90`):\n-/// absolute top-right, `maxWidth=min(60,width-6)`, side borders in the\n-/// variant color, raised-high interior with 2/2/1/1 padding.\n-fn render_toast(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {\n-    let Some(message) = state.note() else {\n-        return;\n-    };\n-    let width = TOAST_MAX_WIDTH.min(area.width.saturating_sub(6));\n-    if width < 7 || area.height < 4 {\n-        return;\n+/// absolute top-right, content-sized up to `min(60,width-6)`, side borders\n+/// in the variant color, raised-high interior with 2/2/1/1 padding.\n+/// The titleless row adds two cells before the muted close glyph (`:71-79`).\n+pub(crate) fn toast_rect(state: &TuiState, area: Rect) -> Option<Rect> {\n+    let message = state.note()?;\n+    let max_width = TOAST_MAX_WIDTH.min(area.width.saturating_sub(6));\n+    if max_width < 11 || area.height < 4 {\n+        return None;\n     }\n+    // Side borders + 2/2 padding + 2-cell gap + one close glyph.\n+    let max_text_width = max_width - 9;\n+    let lines = wrap_text(message, max_text_width as usize);\n+    let content_width = lines.iter().map(|line| text_width(line)).max().unwrap_or(0);\n+    // A wide grapheme can exceed a one-cell wrap budget on tiny terminals.\n+    let width = (content_width as u16).saturating_add(9).min(max_width);\n     let x = area\n         .x\n         .saturating_add(area.width.saturating_sub(TOAST_RIGHT_MARGIN + width));\n     let y = area.y.saturating_add(1);\n+    let height = (lines.len() as u16)\n+        .saturating_add(2)\n+        .min(area.height.saturating_sub(1));\n+    Some(Rect::new(x, y, width, height))\n+}\n+\n+fn render_toast(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {\n+    let Some(rect) = toast_rect(state, area) else {\n+        // At tiny widths there is no room for both text and close affordance.\n+        if let Some(message) = state.note()\n+            && area.width > 0\n+            && area.height > 0\n+        {\n+            frame.render_widget(\n+                Paragraph::new(clip_placeholder(message, area.width as usize))\n+                    .style(Style::default().fg(theme.warning()).bg(theme.background())),\n+                Rect::new(area.x, area.bottom() - 1, area.width, 1),\n+            );\n+        }\n+        return;\n+    };\n+    let message = state.note().expect(\"toast rect requires note\");\n+    let color = match state.note_variant().expect(\"toast rect requires variant\") {\n+        NoteVariant::Info => theme.info(),\n+        NoteVariant::Success => theme.success(),\n+        NoteVariant::Warning => theme.warning(),\n+        NoteVariant::Error => theme.error(),\n+    };\n     let block = Block::default()\n         .borders(Borders::LEFT | Borders::RIGHT)\n         .padding(Padding::new(2, 2, 1, 1))\n-        .border_style(Style::default().fg(theme.warning()));\n-    let text_width = width.saturating_sub(6);\n+        .border_set(border::Set {\n+            vertical_left: \"┃\",\n+            vertical_right: \"┃\",\n+            ..border::PLAIN\n+        })\n+        .border_style(Style::default().fg(color));\n+    let text_width = rect.width.saturating_sub(9);\n     let wrapped: Vec<Line<'static>> = wrap_text(message, text_width as usize)\n         .into_iter()\n         .map(Line::from)\n         .collect();\n-    let height = (wrapped.len() as u16)\n-        .saturating_add(2)\n-        .min(area.height.saturating_sub(1));\n-    let rect = Rect::new(x, y, width, height);\n     frame.render_widget(block, rect);\n     // Interior surface (inside the side borders, padding included), upstream\n     // `background.raised.high` (`ui/toast.tsx:64-70`).\n@@ -1529,6 +1563,10 @@ fn render_toast(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Re\n             rect.height.saturating_sub(2),\n         ),\n     );\n+    frame.render_widget(\n+        Paragraph::new(\"x\").style(Style::default().fg(theme.text_muted())),\n+        Rect::new(rect.right().saturating_sub(4), rect.y + 1, 1, 1),\n+    );\n }\n \n /// Greedy word wrap at `width` display cells, upstream toast `wrapMode=\"word\"`\n@@ -2930,6 +2968,7 @@ mod tests {\n             layout::SESSION_SIDEBAR_WIDTH,\n             sidebar.height,\n         );\n+        let toast = toast_rect(&state, Rect::new(0, 0, 160, 48));\n         let labels = [\n             (\"Actual title\", theme.text(), true),\n             (\"Context\", theme.text(), true),\n@@ -2973,6 +3012,11 @@ mod tests {\n                 if cell.symbol() == \" \"\n                     && cell.bg == theme.background_panel()\n                     && !muted_spaces.contains(&(x, y))\n+                    && !toast.is_some_and(|rect| rect.contains((x, y).into()))\n+                    // Ratatui fills the remainder of styled label rows with\n+                    // their text foreground; the label cells are checked above.\n+                    && !(sidebar.y + 1..=sidebar.y + 5).contains(&y)\n+                    && y != sidebar.bottom() - 2\n                 {\n                     assert_eq!(cell.fg, white, \"sidebar blank at ({x},{y})\");\n                     blanks += 1;\n@@ -3432,9 +3476,9 @@ mod tests {\n \n         // Toast: side border in the warning variant color, raised-high\n         // interior, note text on the first content row (padding 2/1).\n-        assert_eq!(buffer[(18, 1)].fg, theme.warning());\n-        assert_eq!(buffer[(21, 2)].bg, theme.background_raised_high());\n-        assert_eq!(buffer[(21, 2)].fg, theme.text());\n+        assert_eq!(buffer[(51, 1)].fg, theme.warning());\n+        assert_eq!(buffer[(54, 2)].bg, theme.background_raised_high());\n+        assert_eq!(buffer[(54, 2)].fg, theme.text());\n         // Footer: `esc interrupt` while streaming (`esc` base, word muted).\n         assert_eq!(buffer[(2, 21)].fg, theme.text());\n         assert_eq!(buffer[(6, 21)].fg, theme.text_muted());\n@@ -3467,6 +3511,108 @@ mod tests {\n         assert_eq!(wrap_text(\"🌍🌍\", 3), vec![\"🌍\", \"🌍\"]);\n     }\n \n+    #[tokio::test]\n+    async fn toast_content_width_semantic_border_and_close() {\n+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};\n+\n+        let mut state = golden_state().await;\n+        let area = Rect::new(0, 0, 121, 40);\n+        state.push_note_variant(\"Configuration reloaded\", NoteVariant::Success);\n+        let rect = toast_rect(&state, area).unwrap();\n+        assert_eq!(rect, Rect::new(88, 1, 31, 3));\n+        let backend = TestBackend::new(121, 40);\n+        let mut terminal = Terminal::new(backend).unwrap();\n+        terminal.draw(|frame| render(frame, &state)).unwrap();\n+        let buffer = terminal.backend().buffer();\n+        assert_eq!(buffer[(88, 2)].symbol(), \"┃\");\n+        assert_eq!(buffer[(88, 2)].fg, Theme::dark().success());\n+        assert_eq!(buffer[(115, 2)].symbol(), \"x\");\n+        assert_eq!(buffer[(115, 2)].fg, Theme::dark().text_muted());\n+\n+        let mouse = |kind, column, row| MouseEvent {\n+            kind,\n+            column,\n+            row,\n+            modifiers: KeyModifiers::NONE,\n+        };\n+        // A release alone cannot dismiss a note. A click inside can.\n+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), 115, 2), area);\n+        assert_eq!(state.note(), Some(\"Configuration reloaded\"));\n+        // Text selection and unrelated releases never activate the close cell.\n+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), 91, 2), area);\n+        state.handle_mouse(mouse(MouseEventKind::Drag(MouseButton::Left), 115, 2), area);\n+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), 115, 2), area);\n+        assert_eq!(state.note(), Some(\"Configuration reloaded\"));\n+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), 115, 2), area);\n+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), 91, 2), area);\n+        assert_eq!(state.note(), Some(\"Configuration reloaded\"));\n+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), 115, 2), area);\n+        state.handle_mouse(mouse(MouseEventKind::Drag(MouseButton::Left), 115, 2), area);\n+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), 115, 2), area);\n+        assert_eq!(state.note(), Some(\"Configuration reloaded\"));\n+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), 115, 2), area);\n+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), 115, 2), area);\n+        assert_eq!(state.note(), None);\n+\n+        for (variant, color) in [\n+            (NoteVariant::Info, Theme::dark().info()),\n+            (NoteVariant::Warning, Theme::dark().warning()),\n+            (NoteVariant::Error, Theme::dark().error()),\n+        ] {\n+            state.push_note_variant(\"generic note\", variant);\n+            let rect = toast_rect(&state, area).unwrap();\n+            let backend = TestBackend::new(121, 40);\n+            let mut terminal = Terminal::new(backend).unwrap();\n+            terminal.draw(|frame| render(frame, &state)).unwrap();\n+            assert_eq!(terminal.backend().buffer()[(rect.x, rect.y)].fg, color);\n+        }\n+        state.push_note(\"other status\");\n+        assert_eq!(state.note_variant(), Some(NoteVariant::Warning));\n+    }\n+\n+    #[tokio::test]\n+    async fn toast_wraps_long_note_inside_max_width() {\n+        let mut state = golden_state().await;\n+        let message = \"alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu\";\n+        state.push_note(message);\n+        let rect = toast_rect(&state, Rect::new(0, 0, 80, 24)).unwrap();\n+        assert_eq!(rect.width, 59);\n+        assert_eq!(rect.x, 19);\n+        assert!(rect.height > 3);\n+        let lines = wrap_text(message, (rect.width - 9) as usize);\n+        assert_eq!(lines.join(\" \"), message);\n+        let backend = TestBackend::new(80, 24);\n+        let mut terminal = Terminal::new(backend).unwrap();\n+        terminal.draw(|frame| render(frame, &state)).unwrap();\n+        let buffer = terminal.backend().buffer();\n+        for (row, line) in lines.iter().enumerate() {\n+            let painted: String = (rect.x + 3..rect.right() - 6)\n+                .map(|x| buffer[(x, rect.y + 1 + row as u16)].symbol())\n+                .collect();\n+            assert!(painted.starts_with(line), \"{painted:?} vs {line:?}\");\n+        }\n+        assert_eq!(buffer[(rect.right() - 4, rect.y + 1)].symbol(), \"x\");\n+        let narrow = toast_rect(&state, Rect::new(0, 0, 44, 24)).unwrap();\n+        assert_eq!(narrow.width, 36);\n+        assert_eq!(narrow.x, 6);\n+        state.push_note(\"🌍🌍\");\n+        assert_eq!(toast_rect(&state, Rect::new(0, 0, 16, 24)), None);\n+        let backend = TestBackend::new(16, 24);\n+        let mut terminal = Terminal::new(backend).unwrap();\n+        terminal.draw(|frame| render(frame, &state)).unwrap();\n+        assert_eq!(terminal.backend().buffer()[(0, 23)].symbol(), \"🌍\");\n+        assert_eq!(terminal.backend().buffer()[(2, 23)].symbol(), \"🌍\");\n+        let rect = toast_rect(&state, Rect::new(0, 0, 17, 24)).unwrap();\n+        assert_eq!(rect.width, 11);\n+        let backend = TestBackend::new(17, 24);\n+        let mut terminal = Terminal::new(backend).unwrap();\n+        terminal.draw(|frame| render(frame, &state)).unwrap();\n+        assert_eq!(\n+            terminal.backend().buffer()[(rect.x + 3, rect.y + 1)].symbol(),\n+            \"🌍\"\n+        );\n+    }\n+\n     #[tokio::test]\n     async fn prompt_box_glyphs_follow_the_padding_breakpoint() {\n         let mut state = golden_state().await;\ndiff --git a/crates/oc-tui/src/views.rs b/crates/oc-tui/src/views.rs\nindex 871e336..9402cd2 100644\n--- a/crates/oc-tui/src/views.rs\n+++ b/crates/oc-tui/src/views.rs\n@@ -511,10 +511,10 @@ mod tests {\n         let buffer = terminal.backend().buffer();\n \n         // Toast: warning side border, raised-high surface, text on the first\n-        // content row (70 wide: maxWidth = min(60, 64) = 60, right = 2).\n-        assert_eq!(buffer[(8, 1)].fg, theme.warning());\n-        assert_eq!(buffer[(11, 2)].bg, theme.background_raised_high());\n-        assert_eq!(buffer[(11, 2)].fg, theme.text());\n+        // content row (70 wide: 18 content cells + 9 chrome = 27, right = 2).\n+        assert_eq!(buffer[(41, 1)].fg, theme.warning());\n+        assert_eq!(buffer[(44, 2)].bg, theme.background_raised_high());\n+        assert_eq!(buffer[(44, 2)].fg, theme.text());\n         // Prompt footer: `esc` in base text, `interrupt` muted.\n         assert_eq!(buffer[(2, 22)].fg, theme.text());\n         assert_eq!(buffer[(6, 22)].fg, theme.text_muted());\ndiff --git a/crates/oc/src/tui_cmd.rs b/crates/oc/src/tui_cmd.rs\nindex 62c1c9a..0e47fe8 100644\n--- a/crates/oc/src/tui_cmd.rs\n+++ b/crates/oc/src/tui_cmd.rs\n@@ -23,8 +23,8 @@ use oc_core::queries::{\n use oc_core::queries::{SessionProbe, StartupNotice, TabDeckSnapshot};\n use oc_core::session::{CoreError, LocationSwitchFailure};\n use oc_tui::app::{\n-    KeyOutcome, MENTION_LIMIT, MentionRequest, PanelIntent, TabPresentation, TuiPanel, TuiState,\n-    TuiStatus,\n+    KeyOutcome, MENTION_LIMIT, MentionRequest, NoteVariant, PanelIntent, TabPresentation, TuiPanel,\n+    TuiState, TuiStatus,\n };\n use oc_tui::commands::{CommandAction, dispatch};\n use oc_tui::dcp_panel::DcpOutcome;\n@@ -474,6 +474,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin\n     let mut frame_metrics = std::env::var_os(METRICS_ENV).map(|_| FrameMetrics::default());\n \n     loop {\n+        state.tick_toast(Instant::now());\n         poll_and_sync(app, &mut state, &mut loop_state).await;\n         sync_mention(app, &mut state, &mut loop_state).await;\n         if loop_state.reload_job.is_some() {\n@@ -489,11 +490,16 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin\n                     Ok(snapshot) => {\n                         match finish_reload(app, &mut state, &mut loop_state, snapshot, draft).await\n                         {\n-                            Ok(()) => state.push_note(\"Configuration reloaded\"),\n-                            Err(message) => state.apply_intent_error(message),\n+                            Ok(()) => state.push_transient_note(\n+                                \"Configuration reloaded\",\n+                                NoteVariant::Success,\n+                            ),\n+                            Err(message) => state.push_transient_note(&message, NoteVariant::Error),\n                         }\n                     }\n-                    Err(error) => state.apply_intent_error(reload_error(error)),\n+                    Err(error) => {\n+                        state.push_transient_note(&reload_error(error), NoteVariant::Error)\n+                    }\n                 }\n                 loop_state.reload_painted = false;\n                 loop_state.sync_tabs(&mut state);\n@@ -1173,7 +1179,7 @@ async fn apply_intent_with_origin(\n                 return Err(\"turn active; configuration reload refused\".into());\n             }\n             let slash_draft = (state.input().trim() == \"/reload\").then(|| state.input().to_owned());\n-            state.push_note(\"Reloading configuration…\");\n+            state.push_transient_note(\"Reloading configuration…\", NoteVariant::Info);\n             loop_state.reload_draft = slash_draft;\n             let owner = app.clone();\n             loop_state.reload_job =\ndiff --git a/crates/oc/tests/support/startup.py b/crates/oc/tests/support/startup.py\nindex 653131c..2c99706 100644\n--- a/crates/oc/tests/support/startup.py\n+++ b/crates/oc/tests/support/startup.py\n@@ -8,6 +8,7 @@ import fcntl\n import json\n import os\n import pty\n+import re\n import select\n import socket\n import sqlite3\n@@ -17,6 +18,7 @@ import sys\n import tempfile\n import termios\n import time\n+import unicodedata\n from pathlib import Path\n \n binary = str(Path(sys.argv[1]).resolve())\n@@ -38,6 +40,63 @@ def drain(fd, seconds=.55):\n     return b''.join(chunks).decode('utf-8', errors='replace')\n \n \n+def visible_rows(stream, cols=120, rows=40):\n+    \"\"\"Reconstruct the final PTY grid across sparse Ratatui cursor repaints.\"\"\"\n+    grid = [[' '] * cols for _ in range(rows)]\n+    x = y = 0\n+    tokens = re.compile(r'\\x1b\\[[0-?]*[ -/]*[@-~]|\\x1b\\][^\\x07]*(?:\\x07|\\x1b\\\\)|.', re.S)\n+    for match in tokens.finditer(stream):\n+        char = match.group()\n+        if char.startswith('\\x1b['):\n+            code = char[-1]\n+            args = char[2:-1].lstrip('?').split(';')\n+            number = int(args[0]) if args[0].isdigit() else 1\n+            if code in 'Hf':\n+                x = (int(args[1]) if len(args) > 1 and args[1].isdigit() else 1) - 1\n+                y = number - 1\n+            elif code == 'G':\n+                x = number - 1\n+            elif code == 'A':\n+                y -= number\n+            elif code == 'B':\n+                y += number\n+            elif code == 'C':\n+                x += number\n+            elif code == 'D':\n+                x -= number\n+            elif code == 'J' and number in (1, 2):\n+                grid = [[' '] * cols for _ in range(rows)]\n+            elif code == 'K' and 0 <= y < rows:\n+                start, end = (0, x + 1) if number == 1 else (x, cols)\n+                grid[y][max(0, start):min(cols, end)] = [' '] * max(0, min(cols, end) - max(0, start))\n+        elif char.startswith('\\x1b'):\n+            continue\n+        elif char == '\\r':\n+            x = 0\n+        elif char == '\\n':\n+            y += 1\n+        elif char >= ' ' and 0 <= y < rows and 0 <= x < cols:\n+            width = 2 if unicodedata.east_asian_width(char) in 'WF' else 1\n+            if unicodedata.combining(char):\n+                continue\n+            grid[y][x] = char\n+            if width == 2 and x + 1 < cols:\n+                grid[y][x + 1] = ' '\n+            x += width\n+    return [''.join(row) for row in grid]\n+\n+\n+def assert_dcp_warning(stream, label):\n+    rows = visible_rows(stream)\n+    # At 120 columns the exact category and first clause are on the first\n+    # content row; the complete remainder occupies the adjacent content row.\n+    # Check both rows, not sparse escape-separated bytes or loose fragments.\n+    first = 'warning: DCP settings have unsupported entries;'\n+    second = 'review native dcp settings'\n+    assert any(first in row and second in rows[index + 1]\n+               for index, row in enumerate(rows[:-1])), (label, rows)\n+\n+\n with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:\n     root = Path(tmp)\n     home = root / 'home'\n@@ -194,7 +253,8 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:\n     ]:\n         child, master, slave, original = launch()\n         try:\n-            assert '█▀▀█' in drain(master)\n+            initial = drain(master)\n+            assert '█▀▀█' in initial\n             os.write(master, f'/location {destination}\\r'.encode())\n             screen = drain(master, .8)\n             assert reason in screen, (name, 'safe category missing', screen)\n@@ -203,18 +263,14 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:\n             # Refusal retains the draft and old Location: retry with a valid\n             # target in the same running application and observe publication.\n             os.write(master, b'\\x7f' * 512)\n-            drain(master, .2)\n+            erased = drain(master, .2)\n             other = root / 'valid-location'\n             other.mkdir(exist_ok=True)\n             (other / 'opencode.json').write_text(json.dumps({\n                 **fixture, 'dcp': {'LEAKME-SWITCH-WARNING': True}}))\n             os.write(master, f'/location {other}\\r'.encode())\n             result = drain(master, .8)\n-            # Ratatui repaints only changed cells: the Location path can be\n-            # split by cursor-control sequences even when the visible row is\n-            # correct. The target-only DCP warning proves publication without\n-            # relying on one contiguous substring in raw VT output.\n-            assert 'warning:' in result and 'DCP settings have unsupported' in result, (name, result)\n+            assert_dcp_warning(initial + screen + erased + result, name)\n             assert 'LEAKME-SWITCH-WARNING' not in result, (name, result)\n             # Sessionless Home may leave an unchanged model label on-screen\n             # without repainting its bytes. Open the actual target catalog to\n@@ -247,7 +303,10 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:\n     (config / 'cli.json').unlink()\n     fixture['dcp'] = {'DUMMY-STARTUP-SECRET': True}\n     config_file.write_text(json.dumps(fixture))\n-    check('warning', ['█▀▀█', 'warning: DCP settings have unsupported entries'],\n+    # Startup notices are emitted on stderr before entering the alternate\n+    # screen; unlike the switch toast, their exact bytes are contiguous.\n+    check('warning', ['█▀▀█',\n+                      'warning: DCP settings have unsupported entries; review native dcp settings'],\n           forbidden=('Native startup error',))\n     del fixture['dcp']\n     config_file.write_text(json.dumps(fixture))\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)\n   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.25s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"99050fa0c7f87bbfca9c69c6fde8e952b2103bb702ae36c8cb601d9900b5b542\", \"actual_sha256\": \"cc9528061eaadfbe47896051f85f18bf6a49f5b45226025d9c1db569145d41e0\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"9e7ee6fdeeb6519a5d44e7747c2e6714a5aefbda\", \"cells_checked\": 4800, \"different_cells\": 46, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 56, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"2d6425330622e493d0d3dd1a5cc749feace641fbf81a0a6dc5fb6d0ca3bdbd42\", \"actual_sha256\": \"7e82b5fc014616b3ac930a7101377411dd0389e144905a2ac80652bff9e76522\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1834, \"changed_fraction_diagnostic_only\": 0.00283444609297725, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/autocomplete-home-trigger.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/autocomplete-home-trigger.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/autocomplete-home-trigger.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-home-trigger\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"a7ffb2c324c296d1e92a60d1b10ad969639f656b89e9c73675e9e9a9bdf9014e\", \"actual_sha256\": \"1c6467790e39885ddb6eb5b21be0308579a3cf71df6b67b3381832ebcbe26e63\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"9e7ee6fdeeb6519a5d44e7747c2e6714a5aefbda\", \"cells_checked\": 4800, \"different_cells\": 709, \"cursor_differs\": false, \"difference_bbox_inclusive\": [23, 10, 117, 38], \"samples\": [{\"x\": 23, \"y\": 10, \"different_fields\": [\"bg\"]}, {\"x\": 24, \"y\": 10, \"different_fields\": [\"fg\"]}, {\"x\": 31, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 33, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 34, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 35, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 36, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 37, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/autocomplete-home-trigger.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/autocomplete-home-trigger.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/autocomplete-home-trigger.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"97db6c87ea34d903d03f4abee344c7acd437837d1d3e7f49f71ef06c168e0ebd\", \"actual_sha256\": \"d766684430642b276ead518a9212eb04bb7c3dcc6cc11049a0c306bf74fdc3f0\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 20862, \"changed_fraction_diagnostic_only\": 0.032242210682492584, \"difference_bbox_inclusive\": [194, 160, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/autocomplete-home-filtered.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/autocomplete-home-filtered.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/autocomplete-home-filtered.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-home-filtered\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"23d3c8c67a7c113881920ee115e0168c8f452410111171b7974cc2531f0829ed\", \"actual_sha256\": \"26bce4307d2dadd98c84dc24a6f1efff28b1b63bb73fe317e3e036067ad6a1e7\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"9e7ee6fdeeb6519a5d44e7747c2e6714a5aefbda\", \"cells_checked\": 4800, \"different_cells\": 230, \"cursor_differs\": false, \"difference_bbox_inclusive\": [23, 17, 117, 38], \"samples\": [{\"x\": 23, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 24, \"y\": 17, \"different_fields\": [\"bg\"]}, {\"x\": 25, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 26, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 27, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 28, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 29, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 30, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 31, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 32, \"y\": 17, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 33, \"y\": 17, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 34, \"y\": 17, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 35, \"y\": 17, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 36, \"y\": 17, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 37, \"y\": 17, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 38, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 39, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 40, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 41, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 42, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/autocomplete-home-filtered.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/autocomplete-home-filtered.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/autocomplete-home-filtered.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"fde2d90235cfb34be3c36e0dcf09868cccbee7960c6d9bd483ff0009254a4dda\", \"actual_sha256\": \"a2492d0ceb15f08c83d259c5a7ab6225492bbc7848f8a4187dffa79e19b1d685\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 23298, \"changed_fraction_diagnostic_only\": 0.03600704747774481, \"difference_bbox_inclusive\": [194, 272, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/autocomplete-home-after-tab.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/autocomplete-home-after-tab.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/autocomplete-home-after-tab.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-home-after-tab\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"33d2315556273af5788f26f9318f2727c5f515f0efc3455a8c4c710fe15c37df\", \"actual_sha256\": \"08a685cc604570065166faa58432e4cbf29f1fee93208fe20519dcac06303c28\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"9e7ee6fdeeb6519a5d44e7747c2e6714a5aefbda\", \"cells_checked\": 4800, \"different_cells\": 46, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 56, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/autocomplete-home-after-tab.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/autocomplete-home-after-tab.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/autocomplete-home-after-tab.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"3fdecd9548068a49a585265aea041cfb75ff56d80d3259385d61538e7013fd8e\", \"actual_sha256\": \"208f99200bbd690cee3f345a21d97a04d557b0a7f8ccf246e42cea386058e250\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1834, \"changed_fraction_diagnostic_only\": 0.00283444609297725, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"662efa5da1caef3e2962a126f936df4716dc56427008b3d631d00b42fa36e266\", \"actual_sha256\": \"ccf5f4b2cb614250cb31d655621393e02d83ae0cdf10c295c1cf906c4d9ade5d\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"9e7ee6fdeeb6519a5d44e7747c2e6714a5aefbda\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"fa5ed46edc598639f1b621fdb72468675835bbbce50f61951239cf09eec410a4\", \"actual_sha256\": \"eaa701c0c9ff7435f2d8a2950d7528844d76621038cfb593e8987df903ed1cf6\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 131, \"changed_fraction_diagnostic_only\": 0.00020246043521266073, \"difference_bbox_inclusive\": [320, 163, 336, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/autocomplete-session-trigger.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/autocomplete-session-trigger.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/autocomplete-session-trigger.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-session-trigger\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"4dc8c28f319a1f5d52afa3df82dbc8b78208327ba98ef64feaf7e3d7dc5c96b6\", \"actual_sha256\": \"54bb9cb2d19177723a022e1879b27031cb3eb33cf5fd23fca684581e75e153b7\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"9e7ee6fdeeb6519a5d44e7747c2e6714a5aefbda\", \"cells_checked\": 4800, \"different_cells\": 1109, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 32], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 23, \"different_fields\": [\"bg\"]}, {\"x\": 3, \"y\": 23, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 12, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 13, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 23, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/autocomplete-session-trigger.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/autocomplete-session-trigger.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/autocomplete-session-trigger.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"334eece13b705deffcd4f028e35abde12114293b021ca8193bb25cc721631479\", \"actual_sha256\": \"49087f9f046f543dc7d62b1edc103aa98002ca67f91d403e48a2bfbb4b0a215c\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 15162, \"changed_fraction_diagnostic_only\": 0.02343286350148368, \"difference_bbox_inclusive\": [17, 163, 992, 527]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/autocomplete-session-filtered.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/autocomplete-session-filtered.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/autocomplete-session-filtered.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-session-filtered\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"a5a9055c06093af0d8f1679b011519bf75c845cf24975ad29637dc7d0e9a29ea\", \"actual_sha256\": \"148d512c1c147f305fddf85a1922226d456a9381632bcbb6f4f8ec43d68ce418\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"9e7ee6fdeeb6519a5d44e7747c2e6714a5aefbda\", \"cells_checked\": 4800, \"different_cells\": 809, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 32], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 3, \"y\": 26, \"different_fields\": [\"bg\"]}, {\"x\": 4, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 5, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 6, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 7, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 8, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 9, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 10, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 11, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 12, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 13, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 14, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 15, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 16, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 17, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 18, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 19, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/autocomplete-session-filtered.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/autocomplete-session-filtered.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/autocomplete-session-filtered.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"fb76390f3534a8224e99be2ceb5b49e4335143a9bdffade1b9bce6c1c208b547\", \"actual_sha256\": \"cd7611b95e31e66158cdf4d83987666bd418038bf5a8c123c1adc84ec89e8efb\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 82934, \"changed_fraction_diagnostic_only\": 0.1281744559841741, \"difference_bbox_inclusive\": [17, 163, 992, 527]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/autocomplete-session-after-tab.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/autocomplete-session-after-tab.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/autocomplete-session-after-tab.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-session-after-tab\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"ad5fa176f6de6d918cc93b8a0d77eac3fb36dd4e2de7b960e4f32b78a446f5db\", \"actual_sha256\": \"406ef10e69549ebeba9b1fbc2a7929df3b56cace017a5f3bb30fc00f708a734f\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"9e7ee6fdeeb6519a5d44e7747c2e6714a5aefbda\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/upstream/autocomplete-session-after-tab.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/oc/autocomplete-session-after-tab.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-05/autocomplete-session-after-tab.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"089fc1df50bf69a52054dab5ebf83dea4a5bf2fd2a5f3ba5905117e40251a686\", \"actual_sha256\": \"54cdfdd0ddd88f6167b3b51a0b77fc7dfe55e55d5415d96b08408733d043f346\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 131, \"changed_fraction_diagnostic_only\": 0.00020246043521266073, \"difference_bbox_inclusive\": [320, 163, 336, 172]}\n",
+    "stderr": ""
+  }
+]

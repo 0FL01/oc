@@ -1,0 +1,47 @@
+[
+  {
+    "at_ms": 1790277359632,
+    "kind": "autocomplete_home_trigger",
+    "base64": "Lw=="
+  },
+  {
+    "at_ms": 1790277362463,
+    "kind": "autocomplete_home_filtered",
+    "base64": "cmVu"
+  },
+  {
+    "at_ms": 1790277365222,
+    "kind": "autocomplete_home_after-tab",
+    "base64": "CQ=="
+  },
+  {
+    "at_ms": 1790277368032,
+    "kind": "autocomplete_home_clear_draft",
+    "base64": "f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/fw=="
+  },
+  {
+    "at_ms": 1790277370209,
+    "kind": "prompt_paste",
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "at_ms": 1790277370410,
+    "kind": "submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790277373359,
+    "kind": "autocomplete_session_trigger",
+    "base64": "Lw=="
+  },
+  {
+    "at_ms": 1790277376196,
+    "kind": "autocomplete_session_filtered",
+    "base64": "cmVu"
+  },
+  {
+    "at_ms": 1790277378981,
+    "kind": "autocomplete_session_after-tab",
+    "base64": "CQ=="
+  }
+]

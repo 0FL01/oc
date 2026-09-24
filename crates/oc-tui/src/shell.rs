@@ -21,7 +21,7 @@ use ratatui::{
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
-use crate::app::{TuiState, TuiStatus};
+use crate::app::{NoteVariant, TuiState, TuiStatus};
 use crate::layout;
 use crate::theme::{Theme, tint};
 
@@ -1481,33 +1481,67 @@ fn render_devtools(frame: &mut Frame<'_>, theme: &Theme, area: Rect) {
 }
 
 /// Upstream toast surface for transient notes (`ui/toast.tsx:48-90`):
-/// absolute top-right, `maxWidth=min(60,width-6)`, side borders in the
-/// variant color, raised-high interior with 2/2/1/1 padding.
-fn render_toast(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {
-    let Some(message) = state.note() else {
-        return;
-    };
-    let width = TOAST_MAX_WIDTH.min(area.width.saturating_sub(6));
-    if width < 7 || area.height < 4 {
-        return;
+/// absolute top-right, content-sized up to `min(60,width-6)`, side borders
+/// in the variant color, raised-high interior with 2/2/1/1 padding.
+/// The titleless row adds two cells before the muted close glyph (`:71-79`).
+pub(crate) fn toast_rect(state: &TuiState, area: Rect) -> Option<Rect> {
+    let message = state.note()?;
+    let max_width = TOAST_MAX_WIDTH.min(area.width.saturating_sub(6));
+    if max_width < 11 || area.height < 4 {
+        return None;
     }
+    // Side borders + 2/2 padding + 2-cell gap + one close glyph.
+    let max_text_width = max_width - 9;
+    let lines = wrap_text(message, max_text_width as usize);
+    let content_width = lines.iter().map(|line| text_width(line)).max().unwrap_or(0);
+    // A wide grapheme can exceed a one-cell wrap budget on tiny terminals.
+    let width = (content_width as u16).saturating_add(9).min(max_width);
     let x = area
         .x
         .saturating_add(area.width.saturating_sub(TOAST_RIGHT_MARGIN + width));
     let y = area.y.saturating_add(1);
+    let height = (lines.len() as u16)
+        .saturating_add(2)
+        .min(area.height.saturating_sub(1));
+    Some(Rect::new(x, y, width, height))
+}
+
+fn render_toast(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {
+    let Some(rect) = toast_rect(state, area) else {
+        // At tiny widths there is no room for both text and close affordance.
+        if let Some(message) = state.note()
+            && area.width > 0
+            && area.height > 0
+        {
+            frame.render_widget(
+                Paragraph::new(clip_placeholder(message, area.width as usize))
+                    .style(Style::default().fg(theme.warning()).bg(theme.background())),
+                Rect::new(area.x, area.bottom() - 1, area.width, 1),
+            );
+        }
+        return;
+    };
+    let message = state.note().expect("toast rect requires note");
+    let color = match state.note_variant().expect("toast rect requires variant") {
+        NoteVariant::Info => theme.info(),
+        NoteVariant::Success => theme.success(),
+        NoteVariant::Warning => theme.warning(),
+        NoteVariant::Error => theme.error(),
+    };
     let block = Block::default()
         .borders(Borders::LEFT | Borders::RIGHT)
         .padding(Padding::new(2, 2, 1, 1))
-        .border_style(Style::default().fg(theme.warning()));
-    let text_width = width.saturating_sub(6);
+        .border_set(border::Set {
+            vertical_left: "┃",
+            vertical_right: "┃",
+            ..border::PLAIN
+        })
+        .border_style(Style::default().fg(color));
+    let text_width = rect.width.saturating_sub(9);
     let wrapped: Vec<Line<'static>> = wrap_text(message, text_width as usize)
         .into_iter()
         .map(Line::from)
         .collect();
-    let height = (wrapped.len() as u16)
-        .saturating_add(2)
-        .min(area.height.saturating_sub(1));
-    let rect = Rect::new(x, y, width, height);
     frame.render_widget(block, rect);
     // Interior surface (inside the side borders, padding included), upstream
     // `background.raised.high` (`ui/toast.tsx:64-70`).
@@ -1528,6 +1562,10 @@ fn render_toast(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Re
             text_width,
             rect.height.saturating_sub(2),
         ),
+    );
+    frame.render_widget(
+        Paragraph::new("x").style(Style::default().fg(theme.text_muted())),
+        Rect::new(rect.right().saturating_sub(4), rect.y + 1, 1, 1),
     );
 }
 
@@ -2930,6 +2968,7 @@ mod tests {
             layout::SESSION_SIDEBAR_WIDTH,
             sidebar.height,
         );
+        let toast = toast_rect(&state, Rect::new(0, 0, 160, 48));
         let labels = [
             ("Actual title", theme.text(), true),
             ("Context", theme.text(), true),
@@ -2973,6 +3012,11 @@ mod tests {
                 if cell.symbol() == " "
                     && cell.bg == theme.background_panel()
                     && !muted_spaces.contains(&(x, y))
+                    && !toast.is_some_and(|rect| rect.contains((x, y).into()))
+                    // Ratatui fills the remainder of styled label rows with
+                    // their text foreground; the label cells are checked above.
+                    && !(sidebar.y + 1..=sidebar.y + 5).contains(&y)
+                    && y != sidebar.bottom() - 2
                 {
                     assert_eq!(cell.fg, white, "sidebar blank at ({x},{y})");
                     blanks += 1;
@@ -3432,9 +3476,9 @@ mod tests {
 
         // Toast: side border in the warning variant color, raised-high
         // interior, note text on the first content row (padding 2/1).
-        assert_eq!(buffer[(18, 1)].fg, theme.warning());
-        assert_eq!(buffer[(21, 2)].bg, theme.background_raised_high());
-        assert_eq!(buffer[(21, 2)].fg, theme.text());
+        assert_eq!(buffer[(51, 1)].fg, theme.warning());
+        assert_eq!(buffer[(54, 2)].bg, theme.background_raised_high());
+        assert_eq!(buffer[(54, 2)].fg, theme.text());
         // Footer: `esc interrupt` while streaming (`esc` base, word muted).
         assert_eq!(buffer[(2, 21)].fg, theme.text());
         assert_eq!(buffer[(6, 21)].fg, theme.text_muted());
@@ -3465,6 +3509,108 @@ mod tests {
         // Cyrillic is one cell wide, emoji are two.
         assert_eq!(wrap_text("привет мир", 9), vec!["привет", "мир"]);
         assert_eq!(wrap_text("🌍🌍", 3), vec!["🌍", "🌍"]);
+    }
+
+    #[tokio::test]
+    async fn toast_content_width_semantic_border_and_close() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+
+        let mut state = golden_state().await;
+        let area = Rect::new(0, 0, 121, 40);
+        state.push_note_variant("Configuration reloaded", NoteVariant::Success);
+        let rect = toast_rect(&state, area).unwrap();
+        assert_eq!(rect, Rect::new(88, 1, 31, 3));
+        let backend = TestBackend::new(121, 40);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(88, 2)].symbol(), "┃");
+        assert_eq!(buffer[(88, 2)].fg, Theme::dark().success());
+        assert_eq!(buffer[(115, 2)].symbol(), "x");
+        assert_eq!(buffer[(115, 2)].fg, Theme::dark().text_muted());
+
+        let mouse = |kind, column, row| MouseEvent {
+            kind,
+            column,
+            row,
+            modifiers: KeyModifiers::NONE,
+        };
+        // A release alone cannot dismiss a note. A click inside can.
+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), 115, 2), area);
+        assert_eq!(state.note(), Some("Configuration reloaded"));
+        // Text selection and unrelated releases never activate the close cell.
+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), 91, 2), area);
+        state.handle_mouse(mouse(MouseEventKind::Drag(MouseButton::Left), 115, 2), area);
+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), 115, 2), area);
+        assert_eq!(state.note(), Some("Configuration reloaded"));
+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), 115, 2), area);
+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), 91, 2), area);
+        assert_eq!(state.note(), Some("Configuration reloaded"));
+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), 115, 2), area);
+        state.handle_mouse(mouse(MouseEventKind::Drag(MouseButton::Left), 115, 2), area);
+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), 115, 2), area);
+        assert_eq!(state.note(), Some("Configuration reloaded"));
+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), 115, 2), area);
+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), 115, 2), area);
+        assert_eq!(state.note(), None);
+
+        for (variant, color) in [
+            (NoteVariant::Info, Theme::dark().info()),
+            (NoteVariant::Warning, Theme::dark().warning()),
+            (NoteVariant::Error, Theme::dark().error()),
+        ] {
+            state.push_note_variant("generic note", variant);
+            let rect = toast_rect(&state, area).unwrap();
+            let backend = TestBackend::new(121, 40);
+            let mut terminal = Terminal::new(backend).unwrap();
+            terminal.draw(|frame| render(frame, &state)).unwrap();
+            assert_eq!(terminal.backend().buffer()[(rect.x, rect.y)].fg, color);
+        }
+        state.push_note("other status");
+        assert_eq!(state.note_variant(), Some(NoteVariant::Warning));
+    }
+
+    #[tokio::test]
+    async fn toast_wraps_long_note_inside_max_width() {
+        let mut state = golden_state().await;
+        let message = "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu";
+        state.push_note(message);
+        let rect = toast_rect(&state, Rect::new(0, 0, 80, 24)).unwrap();
+        assert_eq!(rect.width, 59);
+        assert_eq!(rect.x, 19);
+        assert!(rect.height > 3);
+        let lines = wrap_text(message, (rect.width - 9) as usize);
+        assert_eq!(lines.join(" "), message);
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        for (row, line) in lines.iter().enumerate() {
+            let painted: String = (rect.x + 3..rect.right() - 6)
+                .map(|x| buffer[(x, rect.y + 1 + row as u16)].symbol())
+                .collect();
+            assert!(painted.starts_with(line), "{painted:?} vs {line:?}");
+        }
+        assert_eq!(buffer[(rect.right() - 4, rect.y + 1)].symbol(), "x");
+        let narrow = toast_rect(&state, Rect::new(0, 0, 44, 24)).unwrap();
+        assert_eq!(narrow.width, 36);
+        assert_eq!(narrow.x, 6);
+        state.push_note("🌍🌍");
+        assert_eq!(toast_rect(&state, Rect::new(0, 0, 16, 24)), None);
+        let backend = TestBackend::new(16, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(0, 23)].symbol(), "🌍");
+        assert_eq!(terminal.backend().buffer()[(2, 23)].symbol(), "🌍");
+        let rect = toast_rect(&state, Rect::new(0, 0, 17, 24)).unwrap();
+        assert_eq!(rect.width, 11);
+        let backend = TestBackend::new(17, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        assert_eq!(
+            terminal.backend().buffer()[(rect.x + 3, rect.y + 1)].symbol(),
+            "🌍"
+        );
     }
 
     #[tokio::test]

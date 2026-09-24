@@ -23,8 +23,8 @@ use oc_core::queries::{
 use oc_core::queries::{SessionProbe, StartupNotice, TabDeckSnapshot};
 use oc_core::session::{CoreError, LocationSwitchFailure};
 use oc_tui::app::{
-    KeyOutcome, MENTION_LIMIT, MentionRequest, PanelIntent, TabPresentation, TuiPanel, TuiState,
-    TuiStatus,
+    KeyOutcome, MENTION_LIMIT, MentionRequest, NoteVariant, PanelIntent, TabPresentation, TuiPanel,
+    TuiState, TuiStatus,
 };
 use oc_tui::commands::{CommandAction, dispatch};
 use oc_tui::dcp_panel::DcpOutcome;
@@ -474,6 +474,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
     let mut frame_metrics = std::env::var_os(METRICS_ENV).map(|_| FrameMetrics::default());
 
     loop {
+        state.tick_toast(Instant::now());
         poll_and_sync(app, &mut state, &mut loop_state).await;
         sync_mention(app, &mut state, &mut loop_state).await;
         if loop_state.reload_job.is_some() {
@@ -489,11 +490,16 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
                     Ok(snapshot) => {
                         match finish_reload(app, &mut state, &mut loop_state, snapshot, draft).await
                         {
-                            Ok(()) => state.push_note("Configuration reloaded"),
-                            Err(message) => state.apply_intent_error(message),
+                            Ok(()) => state.push_transient_note(
+                                "Configuration reloaded",
+                                NoteVariant::Success,
+                            ),
+                            Err(message) => state.push_transient_note(&message, NoteVariant::Error),
                         }
                     }
-                    Err(error) => state.apply_intent_error(reload_error(error)),
+                    Err(error) => {
+                        state.push_transient_note(&reload_error(error), NoteVariant::Error)
+                    }
                 }
                 loop_state.reload_painted = false;
                 loop_state.sync_tabs(&mut state);
@@ -1173,7 +1179,7 @@ async fn apply_intent_with_origin(
                 return Err("turn active; configuration reload refused".into());
             }
             let slash_draft = (state.input().trim() == "/reload").then(|| state.input().to_owned());
-            state.push_note("Reloading configuration…");
+            state.push_transient_note("Reloading configuration…", NoteVariant::Info);
             loop_state.reload_draft = slash_draft;
             let owner = app.clone();
             loop_state.reload_job =

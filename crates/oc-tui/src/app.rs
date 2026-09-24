@@ -83,6 +83,20 @@ pub enum TuiStatus {
     Quit,
 }
 
+/// Upstream toast feedback roles (`ui/toast.tsx:7-16`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NoteVariant {
+    Info,
+    Success,
+    Warning,
+    Error,
+}
+
+struct ToastExpiry {
+    remaining: Duration,
+    started: Option<Instant>,
+}
+
 /// Open TUI panel (bounded view state; one at a time).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TuiPanel {
@@ -395,7 +409,9 @@ pub struct TuiState {
     /// Provider usage reported for the active turn (never synthesized).
     turn_usage: Option<TurnUsage>,
     scroll: usize,
-    note: Option<String>,
+    note: Option<(String, NoteVariant)>,
+    toast_expiry: Option<ToastExpiry>,
+    toast_down: bool,
     active_turn: Option<WorkerTurnId>,
     pending: Option<PendingSubmission>,
     compress_turn: Option<WorkerTurnId>,
@@ -509,6 +525,8 @@ impl TuiState {
             turn_usage: None,
             scroll: 0,
             note: None,
+            toast_expiry: None,
+            toast_down: false,
             active_turn: None,
             pending: None,
             compress_turn: None,
@@ -593,6 +611,8 @@ impl TuiState {
     /// Clear the recorded SGR coordinate when a resize invalidates its frame.
     pub fn clear_mouse_position(&mut self) {
         self.last_mouse = None;
+        self.toast_down = false;
+        self.set_toast_hover(false, Instant::now());
         self.hovered_tab.set(None);
         self.close_hold = None;
         self.tab_down = None;
@@ -1055,6 +1075,7 @@ impl TuiState {
         // A press belongs to the dialog where it began, not the replacement.
         self.mouse_down = None;
         self.select.reset();
+        self.toast_down = false;
         self.select.cursor = self
             .modal_options()
             .iter()
@@ -1380,7 +1401,12 @@ impl TuiState {
 
     /// Status note, if any (intent errors and hints; never chat history).
     pub fn note(&self) -> Option<&str> {
-        self.note.as_deref()
+        self.note.as_ref().map(|(message, _)| message.as_str())
+    }
+
+    /// Semantic color of the currently displayed note.
+    pub fn note_variant(&self) -> Option<NoteVariant> {
+        self.note.as_ref().map(|(_, variant)| *variant)
     }
 
     /// Newest page becomes the whole window; scroll pins to the newest row.
@@ -1453,6 +1479,41 @@ impl TuiState {
         }) || matches!(event.kind, MouseEventKind::Down(_))
         {
             self.close_hold = None;
+        }
+        if self.panel == TuiPanel::None {
+            let toast = crate::shell::toast_rect(self, area);
+            let toast_hit =
+                toast.is_some_and(|rect| rect.contains((event.column, event.row).into()));
+            self.set_toast_hover(toast_hit, Instant::now());
+            // Only the painted close cell is an activation target. The terminal
+            // does not expose selection state, so text drags must remain inert.
+            let close_hit = toast
+                .is_some_and(|rect| event.column == rect.right() - 4 && event.row == rect.y + 1);
+            match event.kind {
+                MouseEventKind::Down(MouseButton::Left) => {
+                    self.toast_down = close_hit && event.modifiers.is_empty();
+                    if self.toast_down {
+                        self.tab_down = None;
+                        self.exploration_down = None;
+                        return KeyOutcome::default();
+                    }
+                }
+                MouseEventKind::Up(MouseButton::Left) => {
+                    if std::mem::take(&mut self.toast_down)
+                        && close_hit
+                        && event.modifiers.is_empty()
+                    {
+                        self.note = None;
+                        self.toast_expiry = None;
+                        return KeyOutcome::default();
+                    }
+                }
+                MouseEventKind::Drag(_) => self.toast_down = false,
+                _ => {}
+            }
+        } else {
+            self.toast_down = false;
+            self.set_toast_hover(false, Instant::now());
         }
         if self.panel == TuiPanel::None {
             match event.kind {
@@ -2140,7 +2201,7 @@ impl TuiState {
     /// Report that an intent could not be applied; the input is kept so the
     /// user can retry or edit it.
     pub fn apply_intent_error(&mut self, message: String) {
-        self.note = Some(message);
+        self.push_note(&message);
     }
 
     /// Current modal value, distinct from the prompt draft and its caret.
@@ -2338,12 +2399,64 @@ impl TuiState {
             compress,
         });
         self.status = TuiStatus::PendingSubmission;
-        self.note = Some("submission pending; Esc to cancel".into());
+        self.push_note("submission pending; Esc to cancel");
     }
 
-    /// Set the transient status note.
+    /// Set a persistent legacy status note until replaced or cleared.
     pub fn push_note(&mut self, note: &str) {
-        self.note = Some(note.to_string());
+        self.push_note_variant(note, NoteVariant::Warning);
+    }
+
+    /// Set a typed feedback note without interpreting its free-form text.
+    pub fn push_note_variant(&mut self, note: &str, variant: NoteVariant) {
+        self.note = Some((note.to_string(), variant));
+        self.toast_expiry = None;
+        self.toast_down = false;
+    }
+
+    /// Only owner-reported reload feedback has upstream toast timing; legacy
+    /// warnings continue to persist until replaced or explicitly cleared.
+    pub fn push_transient_note(&mut self, note: &str, variant: NoteVariant) {
+        self.push_transient_note_at(note, variant, Instant::now());
+    }
+
+    fn push_transient_note_at(&mut self, note: &str, variant: NoteVariant, now: Instant) {
+        self.push_note_variant(note, variant);
+        self.toast_expiry = Some(ToastExpiry {
+            remaining: if variant == NoteVariant::Info {
+                Duration::from_secs(30)
+            } else {
+                Duration::from_secs(5)
+            },
+            started: Some(now),
+        });
+    }
+
+    pub fn tick_toast(&mut self, now: Instant) {
+        if self.toast_expiry.as_ref().is_some_and(|expiry| {
+            expiry
+                .started
+                .is_some_and(|started| now.saturating_duration_since(started) >= expiry.remaining)
+        }) {
+            self.note = None;
+            self.toast_expiry = None;
+            self.toast_down = false;
+        }
+    }
+
+    fn set_toast_hover(&mut self, hovered: bool, now: Instant) {
+        let Some(expiry) = &mut self.toast_expiry else {
+            return;
+        };
+        if hovered {
+            if let Some(started) = expiry.started.take() {
+                expiry.remaining = expiry
+                    .remaining
+                    .saturating_sub(now.saturating_duration_since(started));
+            }
+        } else if expiry.started.is_none() {
+            expiry.started = Some(now);
+        }
     }
 
     /// Push one synthetic transcript row for a non-fatal warning, so a
@@ -2947,7 +3060,7 @@ impl TuiState {
                 if !exiting {
                     self.status = TuiStatus::Idle;
                 }
-                self.note = Some(format!("submit: {error}"));
+                self.push_note(&format!("submit: {error}"));
             }
         }
     }
@@ -4225,8 +4338,8 @@ pub enum PumpOutcome {
 mod tests {
     use super::{
         HOME_EXAMPLES, KeyOutcome, LIVE_PARTS_MAX, MAX_INPUT_BYTES, MAX_SESSION_TITLE_BYTES,
-        PanelIntent, PumpOutcome, ScriptDriver, TabCloseHold, TabPresentation, TuiPanel, TuiState,
-        TuiStatus, VIEWPORT_LINES,
+        NoteVariant, PanelIntent, PumpOutcome, ScriptDriver, TabCloseHold, TabPresentation,
+        TuiPanel, TuiState, TuiStatus, VIEWPORT_LINES,
     };
     use crate::events::KeyAction;
     use crate::history::{WINDOW_BYTES, WINDOW_ROWS};
@@ -4268,6 +4381,35 @@ mod tests {
         std::mem::forget(guard);
         app.create_session(sid(name)).await.expect("create");
         TuiState::new(app, sid(name))
+    }
+
+    #[tokio::test]
+    async fn only_typed_reload_notes_expire_and_hover_preserves_remaining_time() {
+        let mut state = fresh_state("toast-timer").await;
+        let start = Instant::now();
+        state.push_note("legacy warning");
+        state.tick_toast(start + Duration::from_secs(60));
+        assert_eq!(state.note(), Some("legacy warning"));
+
+        state.push_transient_note_at("Reloading", NoteVariant::Info, start);
+        state.tick_toast(start + Duration::from_secs(29));
+        assert_eq!(state.note(), Some("Reloading"));
+        state.set_toast_hover(true, start + Duration::from_secs(29));
+        state.tick_toast(start + Duration::from_secs(90));
+        assert_eq!(state.note(), Some("Reloading"));
+        state.set_toast_hover(false, start + Duration::from_secs(90));
+        state.tick_toast(start + Duration::from_secs(91));
+        assert_eq!(state.note(), None);
+
+        state.push_transient_note_at("Done", NoteVariant::Success, start);
+        state.tick_toast(start + Duration::from_secs(4));
+        assert_eq!(state.note(), Some("Done"));
+        state.tick_toast(start + Duration::from_secs(5));
+        assert_eq!(state.note(), None);
+        state.push_transient_note_at("Failed", NoteVariant::Error, start);
+        state.push_note("other warning");
+        state.tick_toast(start + Duration::from_secs(60));
+        assert_eq!(state.note(), Some("other warning"));
     }
 
     fn file_result(

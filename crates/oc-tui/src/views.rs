@@ -511,10 +511,10 @@ mod tests {
         let buffer = terminal.backend().buffer();
 
         // Toast: warning side border, raised-high surface, text on the first
-        // content row (70 wide: maxWidth = min(60, 64) = 60, right = 2).
-        assert_eq!(buffer[(8, 1)].fg, theme.warning());
-        assert_eq!(buffer[(11, 2)].bg, theme.background_raised_high());
-        assert_eq!(buffer[(11, 2)].fg, theme.text());
+        // content row (70 wide: 18 content cells + 9 chrome = 27, right = 2).
+        assert_eq!(buffer[(41, 1)].fg, theme.warning());
+        assert_eq!(buffer[(44, 2)].bg, theme.background_raised_high());
+        assert_eq!(buffer[(44, 2)].fg, theme.text());
         // Prompt footer: `esc` in base text, `interrupt` muted.
         assert_eq!(buffer[(2, 22)].fg, theme.text());
         assert_eq!(buffer[(6, 22)].fg, theme.text_muted());

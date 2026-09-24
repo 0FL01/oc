@@ -8,6 +8,7 @@ import fcntl
 import json
 import os
 import pty
+import re
 import select
 import socket
 import sqlite3
@@ -17,6 +18,7 @@ import sys
 import tempfile
 import termios
 import time
+import unicodedata
 from pathlib import Path
 
 binary = str(Path(sys.argv[1]).resolve())
@@ -36,6 +38,63 @@ def drain(fd, seconds=.55):
                     break
                 raise
     return b''.join(chunks).decode('utf-8', errors='replace')
+
+
+def visible_rows(stream, cols=120, rows=40):
+    """Reconstruct the final PTY grid across sparse Ratatui cursor repaints."""
+    grid = [[' '] * cols for _ in range(rows)]
+    x = y = 0
+    tokens = re.compile(r'\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07]*(?:\x07|\x1b\\)|.', re.S)
+    for match in tokens.finditer(stream):
+        char = match.group()
+        if char.startswith('\x1b['):
+            code = char[-1]
+            args = char[2:-1].lstrip('?').split(';')
+            number = int(args[0]) if args[0].isdigit() else 1
+            if code in 'Hf':
+                x = (int(args[1]) if len(args) > 1 and args[1].isdigit() else 1) - 1
+                y = number - 1
+            elif code == 'G':
+                x = number - 1
+            elif code == 'A':
+                y -= number
+            elif code == 'B':
+                y += number
+            elif code == 'C':
+                x += number
+            elif code == 'D':
+                x -= number
+            elif code == 'J' and number in (1, 2):
+                grid = [[' '] * cols for _ in range(rows)]
+            elif code == 'K' and 0 <= y < rows:
+                start, end = (0, x + 1) if number == 1 else (x, cols)
+                grid[y][max(0, start):min(cols, end)] = [' '] * max(0, min(cols, end) - max(0, start))
+        elif char.startswith('\x1b'):
+            continue
+        elif char == '\r':
+            x = 0
+        elif char == '\n':
+            y += 1
+        elif char >= ' ' and 0 <= y < rows and 0 <= x < cols:
+            width = 2 if unicodedata.east_asian_width(char) in 'WF' else 1
+            if unicodedata.combining(char):
+                continue
+            grid[y][x] = char
+            if width == 2 and x + 1 < cols:
+                grid[y][x + 1] = ' '
+            x += width
+    return [''.join(row) for row in grid]
+
+
+def assert_dcp_warning(stream, label):
+    rows = visible_rows(stream)
+    # At 120 columns the exact category and first clause are on the first
+    # content row; the complete remainder occupies the adjacent content row.
+    # Check both rows, not sparse escape-separated bytes or loose fragments.
+    first = 'warning: DCP settings have unsupported entries;'
+    second = 'review native dcp settings'
+    assert any(first in row and second in rows[index + 1]
+               for index, row in enumerate(rows[:-1])), (label, rows)
 
 
 with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
@@ -194,7 +253,8 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
     ]:
         child, master, slave, original = launch()
         try:
-            assert '█▀▀█' in drain(master)
+            initial = drain(master)
+            assert '█▀▀█' in initial
             os.write(master, f'/location {destination}\r'.encode())
             screen = drain(master, .8)
             assert reason in screen, (name, 'safe category missing', screen)
@@ -203,18 +263,14 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
             # Refusal retains the draft and old Location: retry with a valid
             # target in the same running application and observe publication.
             os.write(master, b'\x7f' * 512)
-            drain(master, .2)
+            erased = drain(master, .2)
             other = root / 'valid-location'
             other.mkdir(exist_ok=True)
             (other / 'opencode.json').write_text(json.dumps({
                 **fixture, 'dcp': {'LEAKME-SWITCH-WARNING': True}}))
             os.write(master, f'/location {other}\r'.encode())
             result = drain(master, .8)
-            # Ratatui repaints only changed cells: the Location path can be
-            # split by cursor-control sequences even when the visible row is
-            # correct. The target-only DCP warning proves publication without
-            # relying on one contiguous substring in raw VT output.
-            assert 'warning:' in result and 'DCP settings have unsupported' in result, (name, result)
+            assert_dcp_warning(initial + screen + erased + result, name)
             assert 'LEAKME-SWITCH-WARNING' not in result, (name, result)
             # Sessionless Home may leave an unchanged model label on-screen
             # without repainting its bytes. Open the actual target catalog to
@@ -247,7 +303,10 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
     (config / 'cli.json').unlink()
     fixture['dcp'] = {'DUMMY-STARTUP-SECRET': True}
     config_file.write_text(json.dumps(fixture))
-    check('warning', ['█▀▀█', 'warning: DCP settings have unsupported entries'],
+    # Startup notices are emitted on stderr before entering the alternate
+    # screen; unlike the switch toast, their exact bytes are contiguous.
+    check('warning', ['█▀▀█',
+                      'warning: DCP settings have unsupported entries; review native dcp settings'],
           forbidden=('Native startup error',))
     del fixture['dcp']
     config_file.write_text(json.dumps(fixture))
