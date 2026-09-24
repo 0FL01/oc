@@ -4,6 +4,7 @@ use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
 pub const MAX_PASTE_CHIPS: usize = 1024;
+const MAX_FILE_MENTIONS: usize = 1024;
 
 pub struct PasteOutcome {
     pub inserted: usize,
@@ -23,6 +24,7 @@ struct Snapshot {
     cursor: usize,
     anchor: Option<usize>,
     chips: Vec<PasteChip>,
+    mentions: Vec<(usize, usize)>,
 }
 
 // Positions refer only to the single, real draft string. No pasted content is
@@ -42,6 +44,10 @@ pub struct Editor {
     redo: Vec<Snapshot>,
     history: Option<(Vec<String>, usize, Snapshot)>,
     chips: Vec<PasteChip>,
+    // Styled extmarks over the real draft, excluding the trailing separator.
+    mentions: Vec<(usize, usize)>,
+    // One accepted prompt in this editor instance; durable history is text-only.
+    recent_mention: Option<(String, Vec<(usize, usize)>)>,
 }
 
 impl Editor {
@@ -49,17 +55,36 @@ impl Editor {
         self.undo
             .iter()
             .chain(&self.redo)
-            .map(|s| s.text.len() + s.chips.len() * std::mem::size_of::<PasteChip>())
+            .map(|s| {
+                s.text.len()
+                    + s.chips.len() * std::mem::size_of::<PasteChip>()
+                    + s.mentions.len() * std::mem::size_of::<(usize, usize)>()
+            })
             .sum::<usize>()
             + self.chips.len() * std::mem::size_of::<PasteChip>()
+            + self.mentions.len() * std::mem::size_of::<(usize, usize)>()
+            + self.recent_mention.as_ref().map_or(0, |(text, marks)| {
+                text.len() + marks.len() * std::mem::size_of::<(usize, usize)>()
+            })
             + self.history.as_ref().map_or(0, |(items, _, draft)| {
                 draft.text.len()
                     + draft.chips.len() * std::mem::size_of::<PasteChip>()
+                    + draft.mentions.len() * std::mem::size_of::<(usize, usize)>()
                     + items.iter().map(String::len).sum::<usize>()
             })
     }
     pub fn clear(&mut self) {
         *self = Self::default();
+    }
+
+    pub fn clear_submitted_draft(&mut self) {
+        let recent = self.recent_mention.take();
+        self.clear();
+        self.recent_mention = recent;
+    }
+
+    pub fn forget_accepted_mentions(&mut self) {
+        self.recent_mention = None;
     }
 
     fn snapshot(&self, text: &str) -> Snapshot {
@@ -68,6 +93,7 @@ impl Editor {
             cursor: self.cursor,
             anchor: self.anchor,
             chips: self.chips.clone(),
+            mentions: self.mentions.clone(),
         }
     }
 
@@ -78,7 +104,11 @@ impl Editor {
             || self
                 .undo
                 .iter()
-                .map(|s| s.text.len() + s.chips.len() * std::mem::size_of::<PasteChip>())
+                .map(|s| {
+                    s.text.len()
+                        + s.chips.len() * std::mem::size_of::<PasteChip>()
+                        + s.mentions.len() * std::mem::size_of::<(usize, usize)>()
+                })
                 .sum::<usize>()
                 > 2 * 1024 * 1024
         {
@@ -152,6 +182,7 @@ impl Editor {
         let kept = content.len();
         self.save(text);
         self.adjust_chips(start, end, kept);
+        self.adjust_mentions(start, end, kept);
         text.replace_range(start..end, content);
         // A cap on visual markers bounds metadata and rendering even for many
         // individually tiny multiline pastes. Text is inserted regardless.
@@ -169,6 +200,7 @@ impl Editor {
         // A join can shift boundaries past the edit (notably regional-
         // indicator pairing). Never retain a range that splits a grapheme.
         self.revalidate_chips(text);
+        self.revalidate_mentions(text);
         self.cursor = following_boundary(text, start + kept);
         self.anchor = None;
         PasteOutcome {
@@ -211,6 +243,81 @@ impl Editor {
         }
     }
 
+    fn adjust_mentions(&mut self, start: usize, end: usize, inserted: usize) {
+        self.mentions.retain(|&(a, b)| b <= start || a >= end);
+        for (a, b) in &mut self.mentions {
+            // Inserting at the beginning shifts the whole extmark; inserting
+            // at its end leaves it in place. Interior edits invalidate it.
+            if *a >= end {
+                *a = *a - (end - start) + inserted;
+                *b = *b - (end - start) + inserted;
+            } else if start == end && *a < start && start < *b {
+                // A zero-width insertion still edits the marked text.
+                *a = usize::MAX;
+            }
+        }
+        self.mentions.retain(|&(a, _)| a != usize::MAX);
+    }
+
+    fn revalidate_mentions(&mut self, text: &str) {
+        if self.mentions.is_empty() {
+            return;
+        }
+        // Extmarks are sorted and nonoverlapping. Walk segmentation once,
+        // without allocating a boundary for every grapheme in a large draft.
+        let mut boundaries = text
+            .grapheme_indices(true)
+            .map(|(offset, _)| offset)
+            .chain(std::iter::once(text.len()))
+            .peekable();
+        self.mentions.retain(|&(start, end)| {
+            while boundaries.peek().is_some_and(|&at| at < start) {
+                boundaries.next();
+            }
+            let start_ok = boundaries.peek().is_some_and(|&at| at == start);
+            while boundaries.peek().is_some_and(|&at| at < end) {
+                boundaries.next();
+            }
+            start_ok
+                && boundaries.peek().is_some_and(|&at| at == end)
+                && text
+                    .get(start..end)
+                    .is_some_and(|part| part.starts_with('@'))
+        });
+    }
+
+    /// The selected file is still ordinary submitted text; only its extmark
+    /// receives `extmark.file` paint (`autocomplete.tsx:177-190`).
+    pub fn mark_file_mention(&mut self, start: usize, end: usize, text: &str) {
+        if self.mentions.len() < MAX_FILE_MENTIONS
+            && text
+                .get(start..end)
+                .is_some_and(|part| part.starts_with('@'))
+            && !self.mentions.iter().any(|&(a, b)| start < b && end > a)
+        {
+            self.mentions.push((start, end));
+            self.mentions.sort_unstable_by_key(|&(start, _)| start);
+            self.revalidate_mentions(text);
+        }
+    }
+
+    /// Capture only the markers inside the text submitted by the owner.
+    pub fn submitted_mentions(&self, draft: &str) -> Vec<(usize, usize)> {
+        let trimmed = draft.trim();
+        let start = trimmed.as_ptr() as usize - draft.as_ptr() as usize;
+        let end = start + trimmed.len();
+        self.mentions
+            .iter()
+            .filter(|&&(a, b)| a >= start && b <= end)
+            .map(|&(a, b)| (a - start, b - start))
+            .collect()
+    }
+
+    /// Retain only the latest accepted prompt for same-instance Up recall.
+    pub fn accepted_mentions(&mut self, text: &str, mentions: Vec<(usize, usize)>) {
+        self.recent_mention = (!mentions.is_empty()).then(|| (text.to_owned(), mentions));
+    }
+
     pub fn delete(&mut self, text: &mut String, backward: bool, word: bool) -> bool {
         let (start, end) = if let Some(range) = self.selection() {
             range
@@ -240,8 +347,10 @@ impl Editor {
         }
         self.save(text);
         self.adjust_chips(start, end, 0);
+        self.adjust_mentions(start, end, 0);
         text.replace_range(start..end, "");
         self.revalidate_chips(text);
+        self.revalidate_mentions(text);
         self.cursor = following_boundary(text, start);
         self.anchor = None;
         true
@@ -351,15 +460,25 @@ impl Editor {
 
     pub fn layout(&self, text: &str, width: usize) -> (Vec<PromptRow>, (usize, usize)) {
         if self.chips.is_empty() {
-            return layout(text, self.cursor, self.selected(), width);
+            return layout_with_mentions(text, self.cursor, self.selected(), width, &self.mentions);
         }
         let (visible, map) = self.project(text);
-        layout(
+        let mentions: Vec<_> = self
+            .mentions
+            .iter()
+            .filter(|&&(a, b)| {
+                // An extmark inside a collapsed paste chip is not visible.
+                !map.iter().any(|&(start, end, _, _)| a < end && b > start)
+            })
+            .map(|&(a, b)| (raw_to_visual(a, &map), raw_to_visual(b, &map)))
+            .collect();
+        layout_with_mentions(
             &visible,
             raw_to_visual(self.cursor, &map),
             self.selected()
                 .map(|(a, b)| (raw_to_visual(a, &map), raw_to_visual(b, &map))),
             width,
+            &mentions,
         )
     }
 
@@ -386,6 +505,7 @@ impl Editor {
         self.cursor = snapshot.cursor;
         self.anchor = snapshot.anchor;
         self.chips = snapshot.chips;
+        self.mentions = snapshot.mentions;
         if let Some((items, index, draft)) = self.history.as_mut() {
             if text == &draft.text && self.chips == draft.chips {
                 *index = items.len();
@@ -435,6 +555,16 @@ impl Editor {
         };
         self.chips = if *index == items.len() {
             draft.chips.clone()
+        } else {
+            Vec::new()
+        };
+        self.mentions = if *index == items.len() {
+            draft.mentions.clone()
+        } else if *index == items.len() - 1 {
+            self.recent_mention
+                .as_ref()
+                .filter(|(recent, _)| recent == text)
+                .map_or_else(Vec::new, |(_, marks)| marks.clone())
         } else {
             Vec::new()
         };
@@ -580,13 +710,24 @@ fn word_right(text: &str, pos: usize) -> usize {
 /// Byte spans are retained for styling a selected grapheme without splitting it.
 pub struct PromptRow {
     pub text: String,
-    pub spans: Vec<(String, bool)>,
+    pub spans: Vec<(String, bool, bool)>,
 }
+#[cfg(test)]
 pub fn layout(
     text: &str,
     cursor: usize,
     selection: Option<(usize, usize)>,
     width: usize,
+) -> (Vec<PromptRow>, (usize, usize)) {
+    layout_with_mentions(text, cursor, selection, width, &[])
+}
+
+fn layout_with_mentions(
+    text: &str,
+    cursor: usize,
+    selection: Option<(usize, usize)>,
+    width: usize,
+    mentions: &[(usize, usize)],
 ) -> (Vec<PromptRow>, (usize, usize)) {
     let width = width.max(1);
     let mut rows = vec![PromptRow {
@@ -619,14 +760,18 @@ pub fn layout(
             }
         }
         let selected = selection.is_some_and(|(start, end)| offset >= start && offset < end);
+        let mentioned = mentions
+            .get(mentions.partition_point(|&(_, end)| end <= offset))
+            .is_some_and(|&(start, _)| start <= offset);
         let row = rows.last_mut().expect("one row");
         row.text.push_str(grapheme);
-        if let Some((last, style)) = row.spans.last_mut()
-            && *style == selected
+        if let Some((last, was_selected, was_mentioned)) = row.spans.last_mut()
+            && *was_selected == selected
+            && *was_mentioned == mentioned
         {
             last.push_str(grapheme);
         } else {
-            row.spans.push((grapheme.to_string(), selected));
+            row.spans.push((grapheme.to_string(), selected, mentioned));
         }
         column += cells;
     }
@@ -646,7 +791,107 @@ pub fn layout(
 
 #[cfg(test)]
 mod tests {
-    use super::{Editor, layout};
+    use super::{Editor, MAX_FILE_MENTIONS, layout};
+
+    #[test]
+    fn large_draft_mention_validation_does_not_retain_grapheme_boundaries() {
+        let mut editor = Editor::default();
+        let mut text = format!("@a {}@b", "x".repeat(1024 * 1024 - 16));
+        let last = text.len() - 2;
+        editor.mark_file_mention(0, 2, &text);
+        editor.mark_file_mention(last, text.len(), &text);
+        editor.cursor = 2;
+        let limit = text.len() + 1;
+        assert_eq!(editor.replace(&mut text, "!", limit), 1);
+        assert_eq!(editor.mentions, vec![(0, 2), (last + 1, text.len())]);
+        assert!(editor.retained_bytes() <= 2 * text.len() + 4 * 16);
+        assert!(editor.delete(&mut text, true, false));
+        assert_eq!(editor.mentions, vec![(0, 2), (last, text.len())]);
+
+        let mut editor = Editor::default();
+        let mut text = "@🇦 🇧".to_string();
+        editor.mark_file_mention(0, "@🇦".len(), &text);
+        editor.move_to("@🇦".len(), false);
+        assert!(editor.delete(&mut text, false, false));
+        assert_eq!(text, "@🇦🇧");
+        assert!(editor.mentions.is_empty(), "RI join splits the marked end");
+
+        let mut editor = Editor::default();
+        let text = "@".repeat(MAX_FILE_MENTIONS + 1);
+        for i in 0..text.len() {
+            editor.mark_file_mention(i, i + 1, &text);
+        }
+        assert_eq!(editor.mentions.len(), MAX_FILE_MENTIONS);
+        assert!(editor.retained_bytes() <= MAX_FILE_MENTIONS * 16);
+    }
+
+    #[test]
+    fn accepted_mention_recall_is_latest_only_and_preserves_edited_draft() {
+        let mut editor = Editor::default();
+        let mut text = "  @file.rs  ".to_string();
+        editor.mark_file_mention(2, 10, &text);
+        let marks = editor.submitted_mentions(&text);
+        assert_eq!(marks, vec![(0, 8)]);
+        editor.accepted_mentions("@file.rs", marks);
+        text.clear();
+        editor.clear_submitted_draft();
+        editor.replace(&mut text, "@draft", 100);
+        editor.mark_file_mention(0, text.len(), &text);
+        assert!(editor.recall(&mut text, true, vec!["older".into(), "@file.rs".into()]));
+        assert_eq!(editor.mentions, vec![(0, 8)]);
+        assert!(editor.recall(&mut text, true, vec!["older".into(), "@file.rs".into()]));
+        assert!(editor.mentions.is_empty());
+        assert!(editor.recall(&mut text, false, vec!["older".into(), "@file.rs".into()]));
+        assert_eq!(editor.mentions, vec![(0, 8)]);
+        assert!(editor.recall(&mut text, false, vec!["older".into(), "@file.rs".into()]));
+        assert_eq!(text, "@draft");
+        assert_eq!(editor.mentions, vec![(0, 6)]);
+        editor.accepted_mentions("unmarked", Vec::new());
+        assert!(editor.recall(&mut text, true, vec!["@file.rs".into(), "unmarked".into()]));
+        assert!(editor.recall(&mut text, true, vec!["@file.rs".into(), "unmarked".into()]));
+        assert!(editor.mentions.is_empty());
+    }
+
+    #[test]
+    fn file_extmark_tracks_draft_edits_undo_redo_and_chip_projection() {
+        let mut editor = Editor::default();
+        let mut text = "@file.rs ".to_string();
+        editor.cursor = text.len();
+        editor.mark_file_mention(0, "@file.rs".len(), &text);
+        assert_eq!(
+            editor.layout(&text, 5).0[0].spans[0],
+            ("@file".into(), false, true)
+        );
+
+        editor.move_to(0, false);
+        editor.replace(&mut text, "go ", 200);
+        assert_eq!(text, "go @file.rs ");
+        assert_eq!(
+            editor.layout(&text, 80).0[0].spans[1],
+            ("@file.rs".into(), false, true)
+        );
+        editor.move_to("go @fi".len(), false);
+        editor.replace(&mut text, "x", 200);
+        assert!(editor.layout(&text, 80).0[0].spans.iter().all(|s| !s.2));
+        assert!(editor.undo(&mut text, false));
+        assert!(editor.layout(&text, 80).0[0].spans[1].2);
+        assert!(editor.undo(&mut text, false));
+        assert!(editor.layout(&text, 80).0[0].spans[0].2);
+        assert!(editor.undo(&mut text, true));
+        assert!(editor.layout(&text, 80).0[0].spans[1].2);
+
+        editor.move_to(text.len(), false);
+        editor.paste(&mut text, "a\nb\nc", 200);
+        assert!(editor.layout(&text, 80).0[0].spans[1].2);
+        editor.move_to(0, false);
+        editor.paste(&mut text, "x\ny\nz", 200);
+        let rows = editor.layout(&text, 80).0;
+        assert!(rows[0].spans.iter().any(|(_, _, mention)| *mention));
+        assert_eq!(
+            rows[0].text,
+            "[Pasted ~3 lines] go @file.rs [Pasted ~3 lines] "
+        );
+    }
 
     #[test]
     fn v05_grapheme_selection_undo_and_width() {

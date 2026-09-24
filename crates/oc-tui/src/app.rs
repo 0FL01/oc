@@ -306,6 +306,7 @@ struct PendingSubmission {
     session: SessionId,
     fresh: bool,
     draft: String,
+    mentions: Vec<(usize, usize)>,
     revision: u64,
     receipt: SubmissionReceipt,
     agent: Option<String>,
@@ -741,6 +742,7 @@ impl TuiState {
     /// open must reload from the new generation instead of showing it.
     pub fn reset_workspace(&mut self) {
         self.close_panel();
+        self.editor.forget_accepted_mentions();
         self.slash_selected = 0;
         self.slash_dismissed = None;
         self.clear_mentions();
@@ -1255,6 +1257,8 @@ impl TuiState {
             .replace(&mut self.input, &replacement, MAX_INPUT_BYTES)
             > 0
         {
+            self.editor
+                .mark_file_mention(start, start + 1 + path.len(), &self.input);
             self.input_revision += 1;
             self.mention_selected = 0;
             self.mention_result = None;
@@ -2291,6 +2295,7 @@ impl TuiState {
             session,
             fresh,
             draft: self.input.clone(),
+            mentions: self.editor.submitted_mentions(&self.input),
             revision: self.input_revision,
             receipt,
             agent,
@@ -2876,6 +2881,8 @@ impl TuiState {
                 self.live_agent_color_index = None;
                 if !pending.compress {
                     self.home = false;
+                    self.editor
+                        .accepted_mentions(pending.draft.trim(), pending.mentions);
                     self.window.push_synthetic(
                         "user",
                         pending.draft.trim(),
@@ -2897,7 +2904,7 @@ impl TuiState {
                 self.scroll = 0;
                 if self.input_revision == pending.revision && !pending.cancelling {
                     self.input.clear();
-                    self.editor.clear();
+                    self.editor.clear_submitted_draft();
                 }
                 self.dcp.clear_notice();
                 self.note = None;
@@ -6077,6 +6084,30 @@ mod tests {
         })
         .await
         .expect("submission completed");
+    }
+
+    #[tokio::test]
+    async fn accepted_text_only_mention_recalled_in_same_session() {
+        let (app, guard) = CoreApp::spawn(MockProvider::echo());
+        let session = sid("mention-recall");
+        app.create_session(session.clone()).await.unwrap();
+        let mut state = TuiState::new(app.clone(), session);
+        state.handle_paste("  @file.rs  ");
+        state.editor.mark_file_mention(2, 10, &state.input);
+        state.handle_key(KeyAction::Enter).await;
+        await_submission(&mut state).await;
+        assert!(state.input.is_empty());
+        assert_eq!(state.window.rows()[0].text, "@file.rs");
+        assert!(state.recall_history(true));
+        assert_eq!(state.input, "@file.rs");
+        assert_eq!(
+            state.editor.layout(&state.input, 80).0[0].spans[0],
+            ("@file.rs".into(), false, true)
+        );
+        state.set_session(sid("another-session"));
+        assert_eq!(state.editor.retained_bytes(), 0);
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
     }
 
     #[tokio::test]

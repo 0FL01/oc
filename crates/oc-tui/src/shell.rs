@@ -604,7 +604,7 @@ fn prompt_lines(state: &TuiState, width: u16) -> Vec<crate::styled::Line> {
             crate::styled::Line::new(
                 row.spans
                     .into_iter()
-                    .map(|(text, selected)| {
+                    .map(|(text, selected, _)| {
                         crate::styled::Span::styled(
                             text,
                             if selected {
@@ -1013,7 +1013,11 @@ fn render_mentions(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, body:
         return;
     }
     let bg = theme.background_raised_high();
-    frame.render_widget(Block::default().style(Style::default().bg(bg)), area);
+    // SplitBorder paints on the root surface, around the raised scrollbox.
+    frame.render_widget(
+        Block::default().style(Style::default().bg(theme.background())),
+        area,
+    );
     frame.render_widget(
         Block::default()
             .borders(Borders::LEFT | Borders::RIGHT)
@@ -1022,7 +1026,7 @@ fn render_mentions(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, body:
                 vertical_right: "┃",
                 ..border::PLAIN
             })
-            .border_style(Style::default().fg(theme.border())),
+            .border_style(Style::default().fg(theme.border()).bg(theme.background())),
         area,
     );
     let selected = state.mention_selected(options.paths.len());
@@ -1034,22 +1038,31 @@ fn render_mentions(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, body:
         .take(area.height as usize)
         .enumerate()
     {
-        let style = if row + offset == selected {
-            Style::default()
-                .fg(theme
+        let (fg, fill) = if row + offset == selected {
+            (
+                theme
                     .color("text.action.primary.$focused")
-                    .unwrap_or(theme.text()))
-                .bg(theme
+                    .unwrap_or(theme.text()),
+                theme
                     .color("background.action.primary.$focused")
-                    .unwrap_or(bg))
+                    .unwrap_or(bg),
+            )
         } else {
-            Style::default().fg(theme.text()).bg(bg)
+            (theme.text(), bg)
         };
         let rect = Rect::new(area.x + 1, area.y + row as u16, area.width - 2, 1);
-        frame.render_widget(Block::default().style(style), rect);
+        // OpenTUI box padding and flexGrow inherit the terminal's default
+        // foreground, while the text child alone gets the focused text color.
+        frame.render_widget(Block::default().style(Style::default().bg(fill)), rect);
+        let content = clip_placeholder(path, rect.width.saturating_sub(1) as usize);
         frame.render_widget(
-            Paragraph::new(clip_placeholder(&format!(" {path}"), rect.width as usize)).style(style),
-            rect,
+            Paragraph::new(content).style(Style::default().fg(fg).bg(fill)),
+            Rect::new(
+                rect.x + 1,
+                rect.y,
+                UnicodeWidthStr::width(content) as u16,
+                1,
+            ),
         );
     }
     if options.paths.is_empty() {
@@ -1110,13 +1123,19 @@ fn render_prompt(
                     crate::styled::Line::new(
                         row.spans
                             .into_iter()
-                            .map(|(text, selected)| {
+                            .map(|(text, selected, mentioned)| {
                                 crate::styled::Span::styled(
                                     text,
                                     if selected {
                                         Style::default()
                                             .fg(theme.text())
                                             .add_modifier(Modifier::REVERSED)
+                                    } else if mentioned {
+                                        // `generateSyntax`: extmark.file uses
+                                        // text.feedback.warning.base + bold.
+                                        Style::default()
+                                            .fg(theme.warning())
+                                            .add_modifier(Modifier::BOLD)
                                     } else {
                                         Style::default().fg(theme.text())
                                     },
@@ -1782,9 +1801,32 @@ mod tests {
                     .color("background.action.primary.$focused")
                     .unwrap()
             );
+            let buffer = terminal.backend().buffer();
+            assert_eq!(buffer[(x - 1, y as u16)].fg, Color::Rgb(255, 255, 255));
+            assert_eq!(buffer[(x - 1, y as u16)].bg, buffer[(x, y as u16)].bg);
+            assert_eq!(buffer[(prompt, y as u16)].bg, Theme::dark().background());
+            assert_eq!(buffer[(x + 12, y as u16)].fg, Color::Rgb(255, 255, 255));
             state.handle_key(KeyAction::Down).await;
             state.handle_key(KeyAction::Tab).await;
             assert_eq!(state.input(), "look @src/main.rs ");
+            terminal.draw(|frame| render(frame, &state)).unwrap();
+            let (draft_y, draft) = screen(&state, 120, 40)
+                .into_iter()
+                .enumerate()
+                .find(|(_, row)| row.contains("look @src/main.rs"))
+                .unwrap();
+            let at = UnicodeWidthStr::width(&draft[..draft.find('@').unwrap()]) as u16;
+            let buffer = terminal.backend().buffer();
+            let mention = &buffer[(at, draft_y as u16)];
+            assert_eq!(mention.fg, Theme::dark().warning());
+            assert!(mention.modifier.contains(Modifier::BOLD));
+            assert_eq!(buffer[(at + 11, draft_y as u16)].fg, mention.fg);
+            assert_eq!(buffer[(at - 1, draft_y as u16)].fg, Theme::dark().text());
+            assert!(
+                !buffer[(at + 12, draft_y as u16)]
+                    .modifier
+                    .contains(Modifier::BOLD)
+            );
             assert!(
                 !screen(&state, 120, 40)
                     .iter()

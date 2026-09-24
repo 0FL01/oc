@@ -1,0 +1,342 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--mention",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "5bdf398233f9c6229ab17b1910e939293181791f\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "f087e1b989060981ecbf5b9762de49a263af9527\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/app.rs b/crates/oc-tui/src/app.rs\nindex 3fdca3d..5065675 100644\n--- a/crates/oc-tui/src/app.rs\n+++ b/crates/oc-tui/src/app.rs\n@@ -306,6 +306,7 @@ struct PendingSubmission {\n     session: SessionId,\n     fresh: bool,\n     draft: String,\n+    mentions: Vec<(usize, usize)>,\n     revision: u64,\n     receipt: SubmissionReceipt,\n     agent: Option<String>,\n@@ -741,6 +742,7 @@ impl TuiState {\n     /// open must reload from the new generation instead of showing it.\n     pub fn reset_workspace(&mut self) {\n         self.close_panel();\n+        self.editor.forget_accepted_mentions();\n         self.slash_selected = 0;\n         self.slash_dismissed = None;\n         self.clear_mentions();\n@@ -1255,6 +1257,8 @@ impl TuiState {\n             .replace(&mut self.input, &replacement, MAX_INPUT_BYTES)\n             > 0\n         {\n+            self.editor\n+                .mark_file_mention(start, start + 1 + path.len(), &self.input);\n             self.input_revision += 1;\n             self.mention_selected = 0;\n             self.mention_result = None;\n@@ -2291,6 +2295,7 @@ impl TuiState {\n             session,\n             fresh,\n             draft: self.input.clone(),\n+            mentions: self.editor.submitted_mentions(&self.input),\n             revision: self.input_revision,\n             receipt,\n             agent,\n@@ -2876,6 +2881,8 @@ impl TuiState {\n                 self.live_agent_color_index = None;\n                 if !pending.compress {\n                     self.home = false;\n+                    self.editor\n+                        .accepted_mentions(pending.draft.trim(), pending.mentions);\n                     self.window.push_synthetic(\n                         \"user\",\n                         pending.draft.trim(),\n@@ -2897,7 +2904,7 @@ impl TuiState {\n                 self.scroll = 0;\n                 if self.input_revision == pending.revision && !pending.cancelling {\n                     self.input.clear();\n-                    self.editor.clear();\n+                    self.editor.clear_submitted_draft();\n                 }\n                 self.dcp.clear_notice();\n                 self.note = None;\n@@ -6079,6 +6086,30 @@ mod tests {\n         .expect(\"submission completed\");\n     }\n \n+    #[tokio::test]\n+    async fn accepted_text_only_mention_recalled_in_same_session() {\n+        let (app, guard) = CoreApp::spawn(MockProvider::echo());\n+        let session = sid(\"mention-recall\");\n+        app.create_session(session.clone()).await.unwrap();\n+        let mut state = TuiState::new(app.clone(), session);\n+        state.handle_paste(\"  @file.rs  \");\n+        state.editor.mark_file_mention(2, 10, &state.input);\n+        state.handle_key(KeyAction::Enter).await;\n+        await_submission(&mut state).await;\n+        assert!(state.input.is_empty());\n+        assert_eq!(state.window.rows()[0].text, \"@file.rs\");\n+        assert!(state.recall_history(true));\n+        assert_eq!(state.input, \"@file.rs\");\n+        assert_eq!(\n+            state.editor.layout(&state.input, 80).0[0].spans[0],\n+            (\"@file.rs\".into(), false, true)\n+        );\n+        state.set_session(sid(\"another-session\"));\n+        assert_eq!(state.editor.retained_bytes(), 0);\n+        app.shutdown().await.unwrap();\n+        guard.join().await.unwrap();\n+    }\n+\n     #[tokio::test]\n     async fn sessionless_home_keeps_bounded_editor_and_refuses_session_actions() {\n         let (app, mut inbox, _) = CoreApp::channel(4);\ndiff --git a/crates/oc-tui/src/editor.rs b/crates/oc-tui/src/editor.rs\nindex 086a3c5..79ab51e 100644\n--- a/crates/oc-tui/src/editor.rs\n+++ b/crates/oc-tui/src/editor.rs\n@@ -4,6 +4,7 @@ use unicode_segmentation::UnicodeSegmentation;\n use unicode_width::UnicodeWidthStr;\n \n pub const MAX_PASTE_CHIPS: usize = 1024;\n+const MAX_FILE_MENTIONS: usize = 1024;\n \n pub struct PasteOutcome {\n     pub inserted: usize,\n@@ -23,6 +24,7 @@ struct Snapshot {\n     cursor: usize,\n     anchor: Option<usize>,\n     chips: Vec<PasteChip>,\n+    mentions: Vec<(usize, usize)>,\n }\n \n // Positions refer only to the single, real draft string. No pasted content is\n@@ -42,6 +44,10 @@ pub struct Editor {\n     redo: Vec<Snapshot>,\n     history: Option<(Vec<String>, usize, Snapshot)>,\n     chips: Vec<PasteChip>,\n+    // Styled extmarks over the real draft, excluding the trailing separator.\n+    mentions: Vec<(usize, usize)>,\n+    // One accepted prompt in this editor instance; durable history is text-only.\n+    recent_mention: Option<(String, Vec<(usize, usize)>)>,\n }\n \n impl Editor {\n@@ -49,12 +55,21 @@ impl Editor {\n         self.undo\n             .iter()\n             .chain(&self.redo)\n-            .map(|s| s.text.len() + s.chips.len() * std::mem::size_of::<PasteChip>())\n+            .map(|s| {\n+                s.text.len()\n+                    + s.chips.len() * std::mem::size_of::<PasteChip>()\n+                    + s.mentions.len() * std::mem::size_of::<(usize, usize)>()\n+            })\n             .sum::<usize>()\n             + self.chips.len() * std::mem::size_of::<PasteChip>()\n+            + self.mentions.len() * std::mem::size_of::<(usize, usize)>()\n+            + self.recent_mention.as_ref().map_or(0, |(text, marks)| {\n+                text.len() + marks.len() * std::mem::size_of::<(usize, usize)>()\n+            })\n             + self.history.as_ref().map_or(0, |(items, _, draft)| {\n                 draft.text.len()\n                     + draft.chips.len() * std::mem::size_of::<PasteChip>()\n+                    + draft.mentions.len() * std::mem::size_of::<(usize, usize)>()\n                     + items.iter().map(String::len).sum::<usize>()\n             })\n     }\n@@ -62,12 +77,23 @@ impl Editor {\n         *self = Self::default();\n     }\n \n+    pub fn clear_submitted_draft(&mut self) {\n+        let recent = self.recent_mention.take();\n+        self.clear();\n+        self.recent_mention = recent;\n+    }\n+\n+    pub fn forget_accepted_mentions(&mut self) {\n+        self.recent_mention = None;\n+    }\n+\n     fn snapshot(&self, text: &str) -> Snapshot {\n         Snapshot {\n             text: text.into(),\n             cursor: self.cursor,\n             anchor: self.anchor,\n             chips: self.chips.clone(),\n+            mentions: self.mentions.clone(),\n         }\n     }\n \n@@ -78,7 +104,11 @@ impl Editor {\n             || self\n                 .undo\n                 .iter()\n-                .map(|s| s.text.len() + s.chips.len() * std::mem::size_of::<PasteChip>())\n+                .map(|s| {\n+                    s.text.len()\n+                        + s.chips.len() * std::mem::size_of::<PasteChip>()\n+                        + s.mentions.len() * std::mem::size_of::<(usize, usize)>()\n+                })\n                 .sum::<usize>()\n                 > 2 * 1024 * 1024\n         {\n@@ -152,6 +182,7 @@ impl Editor {\n         let kept = content.len();\n         self.save(text);\n         self.adjust_chips(start, end, kept);\n+        self.adjust_mentions(start, end, kept);\n         text.replace_range(start..end, content);\n         // A cap on visual markers bounds metadata and rendering even for many\n         // individually tiny multiline pastes. Text is inserted regardless.\n@@ -169,6 +200,7 @@ impl Editor {\n         // A join can shift boundaries past the edit (notably regional-\n         // indicator pairing). Never retain a range that splits a grapheme.\n         self.revalidate_chips(text);\n+        self.revalidate_mentions(text);\n         self.cursor = following_boundary(text, start + kept);\n         self.anchor = None;\n         PasteOutcome {\n@@ -211,6 +243,81 @@ impl Editor {\n         }\n     }\n \n+    fn adjust_mentions(&mut self, start: usize, end: usize, inserted: usize) {\n+        self.mentions.retain(|&(a, b)| b <= start || a >= end);\n+        for (a, b) in &mut self.mentions {\n+            // Inserting at the beginning shifts the whole extmark; inserting\n+            // at its end leaves it in place. Interior edits invalidate it.\n+            if *a >= end {\n+                *a = *a - (end - start) + inserted;\n+                *b = *b - (end - start) + inserted;\n+            } else if start == end && *a < start && start < *b {\n+                // A zero-width insertion still edits the marked text.\n+                *a = usize::MAX;\n+            }\n+        }\n+        self.mentions.retain(|&(a, _)| a != usize::MAX);\n+    }\n+\n+    fn revalidate_mentions(&mut self, text: &str) {\n+        if self.mentions.is_empty() {\n+            return;\n+        }\n+        // Extmarks are sorted and nonoverlapping. Walk segmentation once,\n+        // without allocating a boundary for every grapheme in a large draft.\n+        let mut boundaries = text\n+            .grapheme_indices(true)\n+            .map(|(offset, _)| offset)\n+            .chain(std::iter::once(text.len()))\n+            .peekable();\n+        self.mentions.retain(|&(start, end)| {\n+            while boundaries.peek().is_some_and(|&at| at < start) {\n+                boundaries.next();\n+            }\n+            let start_ok = boundaries.peek().is_some_and(|&at| at == start);\n+            while boundaries.peek().is_some_and(|&at| at < end) {\n+                boundaries.next();\n+            }\n+            start_ok\n+                && boundaries.peek().is_some_and(|&at| at == end)\n+                && text\n+                    .get(start..end)\n+                    .is_some_and(|part| part.starts_with('@'))\n+        });\n+    }\n+\n+    /// The selected file is still ordinary submitted text; only its extmark\n+    /// receives `extmark.file` paint (`autocomplete.tsx:177-190`).\n+    pub fn mark_file_mention(&mut self, start: usize, end: usize, text: &str) {\n+        if self.mentions.len() < MAX_FILE_MENTIONS\n+            && text\n+                .get(start..end)\n+                .is_some_and(|part| part.starts_with('@'))\n+            && !self.mentions.iter().any(|&(a, b)| start < b && end > a)\n+        {\n+            self.mentions.push((start, end));\n+            self.mentions.sort_unstable_by_key(|&(start, _)| start);\n+            self.revalidate_mentions(text);\n+        }\n+    }\n+\n+    /// Capture only the markers inside the text submitted by the owner.\n+    pub fn submitted_mentions(&self, draft: &str) -> Vec<(usize, usize)> {\n+        let trimmed = draft.trim();\n+        let start = trimmed.as_ptr() as usize - draft.as_ptr() as usize;\n+        let end = start + trimmed.len();\n+        self.mentions\n+            .iter()\n+            .filter(|&&(a, b)| a >= start && b <= end)\n+            .map(|&(a, b)| (a - start, b - start))\n+            .collect()\n+    }\n+\n+    /// Retain only the latest accepted prompt for same-instance Up recall.\n+    pub fn accepted_mentions(&mut self, text: &str, mentions: Vec<(usize, usize)>) {\n+        self.recent_mention = (!mentions.is_empty()).then(|| (text.to_owned(), mentions));\n+    }\n+\n     pub fn delete(&mut self, text: &mut String, backward: bool, word: bool) -> bool {\n         let (start, end) = if let Some(range) = self.selection() {\n             range\n@@ -240,8 +347,10 @@ impl Editor {\n         }\n         self.save(text);\n         self.adjust_chips(start, end, 0);\n+        self.adjust_mentions(start, end, 0);\n         text.replace_range(start..end, \"\");\n         self.revalidate_chips(text);\n+        self.revalidate_mentions(text);\n         self.cursor = following_boundary(text, start);\n         self.anchor = None;\n         true\n@@ -351,15 +460,25 @@ impl Editor {\n \n     pub fn layout(&self, text: &str, width: usize) -> (Vec<PromptRow>, (usize, usize)) {\n         if self.chips.is_empty() {\n-            return layout(text, self.cursor, self.selected(), width);\n+            return layout_with_mentions(text, self.cursor, self.selected(), width, &self.mentions);\n         }\n         let (visible, map) = self.project(text);\n-        layout(\n+        let mentions: Vec<_> = self\n+            .mentions\n+            .iter()\n+            .filter(|&&(a, b)| {\n+                // An extmark inside a collapsed paste chip is not visible.\n+                !map.iter().any(|&(start, end, _, _)| a < end && b > start)\n+            })\n+            .map(|&(a, b)| (raw_to_visual(a, &map), raw_to_visual(b, &map)))\n+            .collect();\n+        layout_with_mentions(\n             &visible,\n             raw_to_visual(self.cursor, &map),\n             self.selected()\n                 .map(|(a, b)| (raw_to_visual(a, &map), raw_to_visual(b, &map))),\n             width,\n+            &mentions,\n         )\n     }\n \n@@ -386,6 +505,7 @@ impl Editor {\n         self.cursor = snapshot.cursor;\n         self.anchor = snapshot.anchor;\n         self.chips = snapshot.chips;\n+        self.mentions = snapshot.mentions;\n         if let Some((items, index, draft)) = self.history.as_mut() {\n             if text == &draft.text && self.chips == draft.chips {\n                 *index = items.len();\n@@ -438,6 +558,16 @@ impl Editor {\n         } else {\n             Vec::new()\n         };\n+        self.mentions = if *index == items.len() {\n+            draft.mentions.clone()\n+        } else if *index == items.len() - 1 {\n+            self.recent_mention\n+                .as_ref()\n+                .filter(|(recent, _)| recent == text)\n+                .map_or_else(Vec::new, |(_, marks)| marks.clone())\n+        } else {\n+            Vec::new()\n+        };\n         self.cursor = if *index == items.len() {\n             draft.cursor\n         } else {\n@@ -580,13 +710,24 @@ fn word_right(text: &str, pos: usize) -> usize {\n /// Byte spans are retained for styling a selected grapheme without splitting it.\n pub struct PromptRow {\n     pub text: String,\n-    pub spans: Vec<(String, bool)>,\n+    pub spans: Vec<(String, bool, bool)>,\n }\n+#[cfg(test)]\n pub fn layout(\n     text: &str,\n     cursor: usize,\n     selection: Option<(usize, usize)>,\n     width: usize,\n+) -> (Vec<PromptRow>, (usize, usize)) {\n+    layout_with_mentions(text, cursor, selection, width, &[])\n+}\n+\n+fn layout_with_mentions(\n+    text: &str,\n+    cursor: usize,\n+    selection: Option<(usize, usize)>,\n+    width: usize,\n+    mentions: &[(usize, usize)],\n ) -> (Vec<PromptRow>, (usize, usize)) {\n     let width = width.max(1);\n     let mut rows = vec![PromptRow {\n@@ -619,14 +760,18 @@ pub fn layout(\n             }\n         }\n         let selected = selection.is_some_and(|(start, end)| offset >= start && offset < end);\n+        let mentioned = mentions\n+            .get(mentions.partition_point(|&(_, end)| end <= offset))\n+            .is_some_and(|&(start, _)| start <= offset);\n         let row = rows.last_mut().expect(\"one row\");\n         row.text.push_str(grapheme);\n-        if let Some((last, style)) = row.spans.last_mut()\n-            && *style == selected\n+        if let Some((last, was_selected, was_mentioned)) = row.spans.last_mut()\n+            && *was_selected == selected\n+            && *was_mentioned == mentioned\n         {\n             last.push_str(grapheme);\n         } else {\n-            row.spans.push((grapheme.to_string(), selected));\n+            row.spans.push((grapheme.to_string(), selected, mentioned));\n         }\n         column += cells;\n     }\n@@ -646,7 +791,107 @@ pub fn layout(\n \n #[cfg(test)]\n mod tests {\n-    use super::{Editor, layout};\n+    use super::{Editor, MAX_FILE_MENTIONS, layout};\n+\n+    #[test]\n+    fn large_draft_mention_validation_does_not_retain_grapheme_boundaries() {\n+        let mut editor = Editor::default();\n+        let mut text = format!(\"@a {}@b\", \"x\".repeat(1024 * 1024 - 16));\n+        let last = text.len() - 2;\n+        editor.mark_file_mention(0, 2, &text);\n+        editor.mark_file_mention(last, text.len(), &text);\n+        editor.cursor = 2;\n+        let limit = text.len() + 1;\n+        assert_eq!(editor.replace(&mut text, \"!\", limit), 1);\n+        assert_eq!(editor.mentions, vec![(0, 2), (last + 1, text.len())]);\n+        assert!(editor.retained_bytes() <= 2 * text.len() + 4 * 16);\n+        assert!(editor.delete(&mut text, true, false));\n+        assert_eq!(editor.mentions, vec![(0, 2), (last, text.len())]);\n+\n+        let mut editor = Editor::default();\n+        let mut text = \"@🇦 🇧\".to_string();\n+        editor.mark_file_mention(0, \"@🇦\".len(), &text);\n+        editor.move_to(\"@🇦\".len(), false);\n+        assert!(editor.delete(&mut text, false, false));\n+        assert_eq!(text, \"@🇦🇧\");\n+        assert!(editor.mentions.is_empty(), \"RI join splits the marked end\");\n+\n+        let mut editor = Editor::default();\n+        let text = \"@\".repeat(MAX_FILE_MENTIONS + 1);\n+        for i in 0..text.len() {\n+            editor.mark_file_mention(i, i + 1, &text);\n+        }\n+        assert_eq!(editor.mentions.len(), MAX_FILE_MENTIONS);\n+        assert!(editor.retained_bytes() <= MAX_FILE_MENTIONS * 16);\n+    }\n+\n+    #[test]\n+    fn accepted_mention_recall_is_latest_only_and_preserves_edited_draft() {\n+        let mut editor = Editor::default();\n+        let mut text = \"  @file.rs  \".to_string();\n+        editor.mark_file_mention(2, 10, &text);\n+        let marks = editor.submitted_mentions(&text);\n+        assert_eq!(marks, vec![(0, 8)]);\n+        editor.accepted_mentions(\"@file.rs\", marks);\n+        text.clear();\n+        editor.clear_submitted_draft();\n+        editor.replace(&mut text, \"@draft\", 100);\n+        editor.mark_file_mention(0, text.len(), &text);\n+        assert!(editor.recall(&mut text, true, vec![\"older\".into(), \"@file.rs\".into()]));\n+        assert_eq!(editor.mentions, vec![(0, 8)]);\n+        assert!(editor.recall(&mut text, true, vec![\"older\".into(), \"@file.rs\".into()]));\n+        assert!(editor.mentions.is_empty());\n+        assert!(editor.recall(&mut text, false, vec![\"older\".into(), \"@file.rs\".into()]));\n+        assert_eq!(editor.mentions, vec![(0, 8)]);\n+        assert!(editor.recall(&mut text, false, vec![\"older\".into(), \"@file.rs\".into()]));\n+        assert_eq!(text, \"@draft\");\n+        assert_eq!(editor.mentions, vec![(0, 6)]);\n+        editor.accepted_mentions(\"unmarked\", Vec::new());\n+        assert!(editor.recall(&mut text, true, vec![\"@file.rs\".into(), \"unmarked\".into()]));\n+        assert!(editor.recall(&mut text, true, vec![\"@file.rs\".into(), \"unmarked\".into()]));\n+        assert!(editor.mentions.is_empty());\n+    }\n+\n+    #[test]\n+    fn file_extmark_tracks_draft_edits_undo_redo_and_chip_projection() {\n+        let mut editor = Editor::default();\n+        let mut text = \"@file.rs \".to_string();\n+        editor.cursor = text.len();\n+        editor.mark_file_mention(0, \"@file.rs\".len(), &text);\n+        assert_eq!(\n+            editor.layout(&text, 5).0[0].spans[0],\n+            (\"@file\".into(), false, true)\n+        );\n+\n+        editor.move_to(0, false);\n+        editor.replace(&mut text, \"go \", 200);\n+        assert_eq!(text, \"go @file.rs \");\n+        assert_eq!(\n+            editor.layout(&text, 80).0[0].spans[1],\n+            (\"@file.rs\".into(), false, true)\n+        );\n+        editor.move_to(\"go @fi\".len(), false);\n+        editor.replace(&mut text, \"x\", 200);\n+        assert!(editor.layout(&text, 80).0[0].spans.iter().all(|s| !s.2));\n+        assert!(editor.undo(&mut text, false));\n+        assert!(editor.layout(&text, 80).0[0].spans[1].2);\n+        assert!(editor.undo(&mut text, false));\n+        assert!(editor.layout(&text, 80).0[0].spans[0].2);\n+        assert!(editor.undo(&mut text, true));\n+        assert!(editor.layout(&text, 80).0[0].spans[1].2);\n+\n+        editor.move_to(text.len(), false);\n+        editor.paste(&mut text, \"a\\nb\\nc\", 200);\n+        assert!(editor.layout(&text, 80).0[0].spans[1].2);\n+        editor.move_to(0, false);\n+        editor.paste(&mut text, \"x\\ny\\nz\", 200);\n+        let rows = editor.layout(&text, 80).0;\n+        assert!(rows[0].spans.iter().any(|(_, _, mention)| *mention));\n+        assert_eq!(\n+            rows[0].text,\n+            \"[Pasted ~3 lines] go @file.rs [Pasted ~3 lines] \"\n+        );\n+    }\n \n     #[test]\n     fn v05_grapheme_selection_undo_and_width() {\ndiff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs\nindex 42da18e..0ba9fb2 100644\n--- a/crates/oc-tui/src/shell.rs\n+++ b/crates/oc-tui/src/shell.rs\n@@ -604,7 +604,7 @@ fn prompt_lines(state: &TuiState, width: u16) -> Vec<crate::styled::Line> {\n             crate::styled::Line::new(\n                 row.spans\n                     .into_iter()\n-                    .map(|(text, selected)| {\n+                    .map(|(text, selected, _)| {\n                         crate::styled::Span::styled(\n                             text,\n                             if selected {\n@@ -1013,7 +1013,11 @@ fn render_mentions(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, body:\n         return;\n     }\n     let bg = theme.background_raised_high();\n-    frame.render_widget(Block::default().style(Style::default().bg(bg)), area);\n+    // SplitBorder paints on the root surface, around the raised scrollbox.\n+    frame.render_widget(\n+        Block::default().style(Style::default().bg(theme.background())),\n+        area,\n+    );\n     frame.render_widget(\n         Block::default()\n             .borders(Borders::LEFT | Borders::RIGHT)\n@@ -1022,7 +1026,7 @@ fn render_mentions(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, body:\n                 vertical_right: \"┃\",\n                 ..border::PLAIN\n             })\n-            .border_style(Style::default().fg(theme.border())),\n+            .border_style(Style::default().fg(theme.border()).bg(theme.background())),\n         area,\n     );\n     let selected = state.mention_selected(options.paths.len());\n@@ -1034,22 +1038,31 @@ fn render_mentions(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, body:\n         .take(area.height as usize)\n         .enumerate()\n     {\n-        let style = if row + offset == selected {\n-            Style::default()\n-                .fg(theme\n+        let (fg, fill) = if row + offset == selected {\n+            (\n+                theme\n                     .color(\"text.action.primary.$focused\")\n-                    .unwrap_or(theme.text()))\n-                .bg(theme\n+                    .unwrap_or(theme.text()),\n+                theme\n                     .color(\"background.action.primary.$focused\")\n-                    .unwrap_or(bg))\n+                    .unwrap_or(bg),\n+            )\n         } else {\n-            Style::default().fg(theme.text()).bg(bg)\n+            (theme.text(), bg)\n         };\n         let rect = Rect::new(area.x + 1, area.y + row as u16, area.width - 2, 1);\n-        frame.render_widget(Block::default().style(style), rect);\n+        // OpenTUI box padding and flexGrow inherit the terminal's default\n+        // foreground, while the text child alone gets the focused text color.\n+        frame.render_widget(Block::default().style(Style::default().bg(fill)), rect);\n+        let content = clip_placeholder(path, rect.width.saturating_sub(1) as usize);\n         frame.render_widget(\n-            Paragraph::new(clip_placeholder(&format!(\" {path}\"), rect.width as usize)).style(style),\n-            rect,\n+            Paragraph::new(content).style(Style::default().fg(fg).bg(fill)),\n+            Rect::new(\n+                rect.x + 1,\n+                rect.y,\n+                UnicodeWidthStr::width(content) as u16,\n+                1,\n+            ),\n         );\n     }\n     if options.paths.is_empty() {\n@@ -1110,13 +1123,19 @@ fn render_prompt(\n                     crate::styled::Line::new(\n                         row.spans\n                             .into_iter()\n-                            .map(|(text, selected)| {\n+                            .map(|(text, selected, mentioned)| {\n                                 crate::styled::Span::styled(\n                                     text,\n                                     if selected {\n                                         Style::default()\n                                             .fg(theme.text())\n                                             .add_modifier(Modifier::REVERSED)\n+                                    } else if mentioned {\n+                                        // `generateSyntax`: extmark.file uses\n+                                        // text.feedback.warning.base + bold.\n+                                        Style::default()\n+                                            .fg(theme.warning())\n+                                            .add_modifier(Modifier::BOLD)\n                                     } else {\n                                         Style::default().fg(theme.text())\n                                     },\n@@ -1782,9 +1801,32 @@ mod tests {\n                     .color(\"background.action.primary.$focused\")\n                     .unwrap()\n             );\n+            let buffer = terminal.backend().buffer();\n+            assert_eq!(buffer[(x - 1, y as u16)].fg, Color::Rgb(255, 255, 255));\n+            assert_eq!(buffer[(x - 1, y as u16)].bg, buffer[(x, y as u16)].bg);\n+            assert_eq!(buffer[(prompt, y as u16)].bg, Theme::dark().background());\n+            assert_eq!(buffer[(x + 12, y as u16)].fg, Color::Rgb(255, 255, 255));\n             state.handle_key(KeyAction::Down).await;\n             state.handle_key(KeyAction::Tab).await;\n             assert_eq!(state.input(), \"look @src/main.rs \");\n+            terminal.draw(|frame| render(frame, &state)).unwrap();\n+            let (draft_y, draft) = screen(&state, 120, 40)\n+                .into_iter()\n+                .enumerate()\n+                .find(|(_, row)| row.contains(\"look @src/main.rs\"))\n+                .unwrap();\n+            let at = UnicodeWidthStr::width(&draft[..draft.find('@').unwrap()]) as u16;\n+            let buffer = terminal.backend().buffer();\n+            let mention = &buffer[(at, draft_y as u16)];\n+            assert_eq!(mention.fg, Theme::dark().warning());\n+            assert!(mention.modifier.contains(Modifier::BOLD));\n+            assert_eq!(buffer[(at + 11, draft_y as u16)].fg, mention.fg);\n+            assert_eq!(buffer[(at - 1, draft_y as u16)].fg, Theme::dark().text());\n+            assert!(\n+                !buffer[(at + 12, draft_y as u16)]\n+                    .modifier\n+                    .contains(Modifier::BOLD)\n+            );\n             assert!(\n                 !screen(&state, 120, 40)\n                     .iter()\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.17s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"cf8942d2656c3d5d6dcb85becc20be8429454d67e99dbc353270be4b9703f111\", \"actual_sha256\": \"14fe489417c44b3408aa64e0c5c2da7a13e9f1015869f84cd47f9e1ebbc29bc4\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5bdf398233f9c6229ab17b1910e939293181791f\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"3ca0ad60e826405b9d7402fffa1a894780a5da27f0da0e5abec076529da938a3\", \"actual_sha256\": \"32417d41d5a8ebd8897ee838be5910ce67b711bf3a710872b0d7ef70fbcd8442\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 298, \"changed_fraction_diagnostic_only\": 0.00046055885262116715, \"difference_bbox_inclusive\": [943, 611, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/mention-home-trigger.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/mention-home-trigger.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/mention-home-trigger.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"mention-home-trigger\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"f29b256e2504cb5cd72c5b544636a92717887fedfe3b0e896f8ecb0e518468f7\", \"actual_sha256\": \"91a78e93f8ece1125b66cba18fe8c2a40a044c160fa2dda3826c636030418c7f\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5bdf398233f9c6229ab17b1910e939293181791f\", \"cells_checked\": 4800, \"different_cells\": 304, \"cursor_differs\": false, \"difference_bbox_inclusive\": [23, 16, 117, 38], \"samples\": [{\"x\": 23, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 24, \"y\": 16, \"different_fields\": [\"bg\"]}, {\"x\": 25, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 26, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 27, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 28, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 29, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 30, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 31, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 32, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 33, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 34, \"y\": 16, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 35, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 36, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 37, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 38, \"y\": 16, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 39, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 40, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 41, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 42, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/mention-home-trigger.png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/mention-home-trigger.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/mention-home-trigger.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"e8ac5e2ea652d47ace41d446792340b5e0ba3d31aed7550146cd9efcb37bd433\", \"actual_sha256\": \"3a4669055fc3a0c92053c2033066be4d978c3766f32c6371267dd749a1e6140a\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 39699, \"changed_fraction_diagnostic_only\": 0.061354784866468844, \"difference_bbox_inclusive\": [196, 256, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/mention-home-filtered.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/mention-home-filtered.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/mention-home-filtered.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"mention-home-filtered\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"d2baf085b6b2ea3ffa9c7a6024de14f691c78244e63eb7506f27a6a49e33e0de\", \"actual_sha256\": \"68106d3ceb0aec56d6fc54d33c5f5e2c80279bad7049760b219f9f5ba0b6e3d8\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5bdf398233f9c6229ab17b1910e939293181791f\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/mention-home-filtered.png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/mention-home-filtered.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/mention-home-filtered.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"dc0fdf760fdd61c5733b37172bb57b39f300706868bf6484068fa05c389c4fd4\", \"actual_sha256\": \"b08d94b519110aabaf754471abfdc1032c2a43d62666df9f95cc5f2176e1f502\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 298, \"changed_fraction_diagnostic_only\": 0.00046055885262116715, \"difference_bbox_inclusive\": [943, 611, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/mention-home-after-tab.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/mention-home-after-tab.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/mention-home-after-tab.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"mention-home-after-tab\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"5887ed14174c6bc7f12453c8e26e62123a7996bea96954f2a50a1292e3d1837d\", \"actual_sha256\": \"752d02317fb095c7b34974cdabe5e7c764b947c9ef8d913d3c40b6fa8b04a3da\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5bdf398233f9c6229ab17b1910e939293181791f\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/mention-home-after-tab.png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/mention-home-after-tab.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/mention-home-after-tab.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"945b2e310852922ee671f0223a4836796d854aff5c67f3513319937e5fadd1c0\", \"actual_sha256\": \"752d2fdc42e449e0f94f6da5318528652d14f74a74a26405731f45f822cd804a\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 298, \"changed_fraction_diagnostic_only\": 0.00046055885262116715, \"difference_bbox_inclusive\": [943, 611, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"86a243a6a74cbac10fda01228721af917e63b1b099a1dc9e5048e37cef23c624\", \"actual_sha256\": \"0d4ea97a15ea754ac51cca78b333942dfba02e7625fdfef977c53a152f91310d\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5bdf398233f9c6229ab17b1910e939293181791f\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"4f4cf093291759579a1637a5251073f03afdc7e91f680808b3762220f085ffda\", \"actual_sha256\": \"d7bd5d699620f9a935a2761ac468b962e1c6e5bb14b12a7b30235f6329a6c1ec\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 117, \"changed_fraction_diagnostic_only\": 0.00018082344213649851, \"difference_bbox_inclusive\": [320, 163, 335, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/mention-session-trigger.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/mention-session-trigger.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/mention-session-trigger.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"mention-session-trigger\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"fafeef89cb12688d74a5c7c93ff1cc5210a592fcaa68a76f7e74f538f01fbdfb\", \"actual_sha256\": \"c6c9f02d1ec0637a3e93673a328e93ae2b6a00837714f316f9bb9276d05e60b8\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5bdf398233f9c6229ab17b1910e939293181791f\", \"cells_checked\": 4800, \"different_cells\": 464, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 32], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 29, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 3, \"y\": 29, \"different_fields\": [\"bg\"]}, {\"x\": 4, \"y\": 29, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 5, \"y\": 29, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 6, \"y\": 29, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 7, \"y\": 29, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 8, \"y\": 29, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 9, \"y\": 29, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 10, \"y\": 29, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 11, \"y\": 29, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 12, \"y\": 29, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 13, \"y\": 29, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 14, \"y\": 29, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 15, \"y\": 29, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 16, \"y\": 29, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 17, \"y\": 29, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 18, \"y\": 29, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 19, \"y\": 29, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/mention-session-trigger.png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/mention-session-trigger.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/mention-session-trigger.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"009f7a7934574299448fdf327758ad334e0622ae6ca5f80fa7cab96ccb36435a\", \"actual_sha256\": \"a91dd89afad11108bd7bc8b9fedc2a30a7a570a3fb65248b62e4ecaa6a08e080\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 61416, \"changed_fraction_diagnostic_only\": 0.09491839762611276, \"difference_bbox_inclusive\": [19, 163, 989, 527]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/mention-session-filtered.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/mention-session-filtered.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/mention-session-filtered.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"mention-session-filtered\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"52c464bf07e868c876f94bcd833cedcc076000623e76dae2596d2002b85cf2a7\", \"actual_sha256\": \"08d3fee1384ec8c47f60d056d4cbf6a5e1f1e26108520a6c22d8c85c4bb6c2f7\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5bdf398233f9c6229ab17b1910e939293181791f\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/mention-session-filtered.png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/mention-session-filtered.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/mention-session-filtered.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"471983c1cedcebee0cd5ffce2af98ff16e8b520f1aac5fbbbb79f52c459eeefe\", \"actual_sha256\": \"8a63fa352d16a3a3f8194de99da786714491688da5e4a18596f899667a977e24\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 117, \"changed_fraction_diagnostic_only\": 0.00018082344213649851, \"difference_bbox_inclusive\": [320, 163, 335, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/mention-session-after-tab.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/mention-session-after-tab.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/mention-session-after-tab.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"mention-session-after-tab\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"86977e72d5cbb70fec8bb35de29e7b45fe88541e2e14a5987dfd498ffbb153d3\", \"actual_sha256\": \"e2daeb74969a579b34658a684558af6fdba681bda913569bac35f7ac409cb6ba\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"5bdf398233f9c6229ab17b1910e939293181791f\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/upstream/mention-session-after-tab.png",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/oc/mention-session-after-tab.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/mention-20260924-04/mention-session-after-tab.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"40800d9c381278b24a3cb4fee59e76ba2592d3206ef1743e4b791972827fa596\", \"actual_sha256\": \"31c5617430073f394760bbf1d903fa181c40bfb15a5145839265a29da087aad2\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 117, \"changed_fraction_diagnostic_only\": 0.00018082344213649851, \"difference_bbox_inclusive\": [320, 163, 335, 172]}\n",
+    "stderr": ""
+  }
+]
