@@ -1,0 +1,344 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--tab-click",
+      "true",
+      "--tab-restart",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "1b36413cbddc6048e1fd41e4e7021fcef03cd34d\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "b52066c9adddab1bc93676e9d78060ee86b24623\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-adapters/src/runtime.rs b/crates/oc-adapters/src/runtime.rs\nindex d081535..06411bd 100644\n--- a/crates/oc-adapters/src/runtime.rs\n+++ b/crates/oc-adapters/src/runtime.rs\n@@ -785,6 +785,9 @@ pub struct TurnReport {\n     /// Billed usage, if reported: last reported input tokens and the output\n     /// tokens summed over the turn's rounds (never synthesized).\n     pub usage: Option<(u64, u64)>,\n+    /// Latest provider-reported generation input/output pair, even if other\n+    /// rounds omitted usage; not a billed turn total.\n+    pub context_usage: Option<(u64, u64)>,\n     /// Provider-active streaming time in milliseconds, summed over rounds\n     /// (upstream `time.streamed - time.created` per assistant step).\n     pub streamed_ms: u64,\n@@ -1271,7 +1274,7 @@ impl<'a> Runtime<'a> {\n                 &report.turn_id,\n                 &serde_json::json!({\n                     \"duration_ms\": duration_ms, \"streamed_ms\": report.streamed_ms,\n-                    \"usage\": report.usage,\n+                    \"usage\": report.usage, \"context_usage\": report.context_usage,\n                 }),\n             )?;\n             Ok(report)\n@@ -1327,7 +1330,7 @@ impl<'a> Runtime<'a> {\n                 &report.turn_id,\n                 &serde_json::json!({\n                     \"duration_ms\": duration_ms, \"streamed_ms\": report.streamed_ms,\n-                    \"usage\": report.usage,\n+                    \"usage\": report.usage, \"context_usage\": report.context_usage,\n                 }),\n             )?;\n             Ok(report)\n@@ -1729,6 +1732,7 @@ impl<'a> Runtime<'a> {\n         };\n         let mut text = String::new();\n         let mut usage = None;\n+        let mut context_usage = None;\n         let mut usage_complete = true;\n         let mut streamed = Duration::ZERO;\n         let mut calls = Vec::new();\n@@ -1758,6 +1762,7 @@ impl<'a> Runtime<'a> {\n                     rounds,\n                     streamed_ms(streamed),\n                     usage,\n+                    context_usage,\n                     calls,\n                     nudge_hint,\n                     &published,\n@@ -1827,6 +1832,7 @@ impl<'a> Runtime<'a> {\n                     rounds,\n                     streamed_ms(streamed),\n                     usage,\n+                    context_usage,\n                     calls,\n                     nudge_hint,\n                     &published,\n@@ -1890,6 +1896,7 @@ impl<'a> Runtime<'a> {\n                         rounds,\n                         streamed_ms(streamed),\n                         usage,\n+                        context_usage,\n                         calls,\n                         nudge_hint,\n                         &published,\n@@ -1903,6 +1910,11 @@ impl<'a> Runtime<'a> {\n                 turn_log.ingest(item);\n             }\n             text.push_str(&generation.text);\n+            // A generation's measured context remains useful for display when\n+            // another round omitted usage and the billed turn total is unknown.\n+            if let Some(reported) = generation.usage {\n+                context_usage = Some(reported);\n+            }\n             // Usage: the last round's input tokens, output summed over rounds\n             // (upstream aggregates per-step output for tok/s, runtime.rs docs).\n             usage_complete &= generation.usage.is_some();\n@@ -1948,6 +1960,7 @@ impl<'a> Runtime<'a> {\n                         rounds,\n                         streamed_ms(streamed),\n                         usage,\n+                        context_usage,\n                         calls,\n                         nudge_hint,\n                         &published,\n@@ -2005,6 +2018,7 @@ impl<'a> Runtime<'a> {\n                     rounds,\n                     streamed_ms(streamed),\n                     usage,\n+                    context_usage,\n                     calls,\n                     nudge_hint,\n                     &published,\n@@ -2043,6 +2057,7 @@ impl<'a> Runtime<'a> {\n                     rounds,\n                     streamed_ms(streamed),\n                     usage,\n+                    context_usage,\n                     calls,\n                     nudge_hint,\n                     &published,\n@@ -2058,6 +2073,7 @@ impl<'a> Runtime<'a> {\n             rounds,\n             streamed_ms(streamed),\n             usage,\n+            context_usage,\n             calls,\n             nudge_hint,\n             &published,\n@@ -2180,6 +2196,7 @@ impl<'a> Runtime<'a> {\n         rounds: u32,\n         streamed_ms: u64,\n         usage: Option<(u64, u64)>,\n+        context_usage: Option<(u64, u64)>,\n         calls: Vec<CallRecord>,\n         nudge_hint: Option<String>,\n         published: &PublishedGeneration,\n@@ -2207,6 +2224,7 @@ impl<'a> Runtime<'a> {\n             text,\n             rounds,\n             usage,\n+            context_usage,\n             streamed_ms,\n             duration_ms: 0,\n             calls,\ndiff --git a/crates/oc-adapters/src/storage.rs b/crates/oc-adapters/src/storage.rs\nindex b2abd19..bdb3518 100644\n--- a/crates/oc-adapters/src/storage.rs\n+++ b/crates/oc-adapters/src/storage.rs\n@@ -1643,6 +1643,9 @@ impl Db {\n             usage: meta[\"usage\"]\n                 .as_array()\n                 .and_then(|v| Some((v.first()?.as_u64()?, v.get(1)?.as_u64()?))),\n+            context_usage: meta[\"context_usage\"]\n+                .as_array()\n+                .and_then(|v| Some((v.first()?.as_u64()?, v.get(1)?.as_u64()?))),\n             duration_ms: meta[\"duration_ms\"].as_u64(),\n             streamed_ms: meta[\"streamed_ms\"].as_u64(),\n             parts: Vec::new(),\n@@ -2691,6 +2694,48 @@ mod tests {\n         assert!(legacy.parts.is_empty());\n     }\n \n+    #[test]\n+    fn context_usage_projection_requires_a_reported_pair_and_keeps_billing_separate() {\n+        use serde_json::json;\n+\n+        let tmp = tmp_root(\"context-usage\");\n+        let db = Db::open(&tmp.path().join(\"data\")).unwrap();\n+        db.create_session(\"s\").unwrap();\n+        db.begin_turn(\"t\", \"s\", \"inspect\").unwrap();\n+        db.checkpoint_turn(\"t\", &json!({\"display_parts\":[]}).to_string())\n+            .unwrap();\n+        db.update_turn_display(\"t\", &json!({\"context_usage\":[6000,763]}))\n+            .unwrap();\n+        let projected = db.turn_presentation(\"s\", \"t\").unwrap().unwrap();\n+        assert_eq!(projected.context_usage, Some((6000, 763)));\n+        assert_eq!(projected.usage, None);\n+\n+        drop(db);\n+        let db = Db::open(&tmp.path().join(\"data\")).unwrap();\n+        let reopened = db.turn_presentation(\"s\", \"t\").unwrap().unwrap();\n+        assert_eq!(reopened.context_usage, Some((6000, 763)));\n+        assert_eq!(reopened.usage, None);\n+\n+        db.update_turn_display(\"t\", &json!({\"context_usage\":[6000]}))\n+            .unwrap();\n+        assert_eq!(\n+            db.turn_presentation(\"s\", \"t\")\n+                .unwrap()\n+                .unwrap()\n+                .context_usage,\n+            None\n+        );\n+        db.update_turn_display(\"t\", &json!({\"context_usage\":null}))\n+            .unwrap();\n+        assert_eq!(\n+            db.turn_presentation(\"s\", \"t\")\n+                .unwrap()\n+                .unwrap()\n+                .context_usage,\n+            None\n+        );\n+    }\n+\n     #[test]\n     fn turn_tool_reference_and_intent_are_atomic() {\n         let tmp = tmp_root(\"display-intent\");\ndiff --git a/crates/oc-adapters/tests/runtime.rs b/crates/oc-adapters/tests/runtime.rs\nindex 1d42ca2..4a2cefb 100644\n--- a/crates/oc-adapters/tests/runtime.rs\n+++ b/crates/oc-adapters/tests/runtime.rs\n@@ -38,6 +38,10 @@ fn sse_completed_usage(input_tokens: u64, output_tokens: u64) -> String {\n     )\n }\n \n+fn sse_completed_without_usage() -> &'static str {\n+    \"data: {\\\"type\\\":\\\"response.completed\\\",\\\"response\\\":{\\\"status\\\":\\\"completed\\\"}}\\n\\n\"\n+}\n+\n /// Reasoning summary delta (`response.reasoning_summary_text.delta`).\n fn sse_reasoning(text: &str) -> String {\n     format!(\n@@ -4153,6 +4157,135 @@ async fn dto_reasoning_deltas_and_usage_reach_the_event_callbacks() {\n     );\n }\n \n+#[tokio::test]\n+async fn provider_context_usage_survives_missing_round_usage_and_restart() {\n+    let (harness, generation) = make_harness(allow_all());\n+    let runtime = runtime_of(&harness, generation, Vec::new());\n+    let tool = sse_tool_call(\n+        \"missing\",\n+        \"read\",\n+        &serde_json::json!({\"path\":\"missing.txt\"}),\n+    );\n+    let (base, hits) = Fake::start(\n+        vec![\n+            tool + sse_completed_without_usage(),\n+            sse_delta(\"answer\") + &sse_completed_usage(6000, 763),\n+            sse_tool_call(\"known\", \"read\", &serde_json::json!({\"path\":\"missing.txt\"}))\n+                + &sse_completed_usage(4500, 21),\n+            sse_delta(\"later\") + sse_completed_without_usage(),\n+            sse_tool_call(\n+                \"unfinished\",\n+                \"read\",\n+                &serde_json::json!({\"path\":\"missing.txt\"}),\n+            ) + &sse_completed_usage(7000, 34),\n+            sse_tool_call(\n+                \"cancel-after-tool\",\n+                \"read\",\n+                &serde_json::json!({\"path\":\"missing.txt\"}),\n+            ) + &sse_completed_usage(8000, 45),\n+        ],\n+        Duration::ZERO,\n+    );\n+    let fresh = runtime\n+        .run_fresh_turn_with_tool_events(\n+            params(\"context\", \"first\", &harness, provider_of(&base), &NO_CANCEL),\n+            None,\n+            |_| {},\n+            |_, _| {},\n+            |_, _| {},\n+            |_, _| {},\n+        )\n+        .await\n+        .unwrap();\n+    assert_eq!(fresh.status, TurnStatus::Completed);\n+    assert_eq!(fresh.rounds, 2);\n+    assert_eq!(fresh.usage, None, \"missing billed tool round is unknown\");\n+    assert_eq!(fresh.context_usage, Some((6000, 763)));\n+\n+    let next = runtime\n+        .run_turn_with_tool_events(\n+            params(\n+                \"context\",\n+                \"second\",\n+                &harness,\n+                provider_of(&base),\n+                &NO_CANCEL,\n+            ),\n+            |_| {},\n+            |_, _| {},\n+            |_, _| {},\n+            |_, _| {},\n+        )\n+        .await\n+        .unwrap();\n+    assert_eq!(next.status, TurnStatus::Completed);\n+    assert_eq!(next.rounds, 2);\n+    assert_eq!(next.usage, None);\n+    assert_eq!(\n+        next.context_usage,\n+        Some((4500, 21)),\n+        \"a missing final round must not erase a known pair\"\n+    );\n+\n+    let mut incomplete_params =\n+        params(\"context\", \"third\", &harness, provider_of(&base), &NO_CANCEL);\n+    incomplete_params.max_rounds = 1;\n+    let incomplete = runtime.run_turn(incomplete_params).await.unwrap();\n+    assert_eq!(incomplete.status, TurnStatus::Incomplete);\n+    assert_eq!(incomplete.usage, Some((7000, 34)));\n+    assert_eq!(incomplete.context_usage, Some((7000, 34)));\n+\n+    let cancelled_flag = AtomicBool::new(false);\n+    let cancelled = runtime\n+        .run_turn_with_tool_events(\n+            params(\n+                \"context\",\n+                \"fourth\",\n+                &harness,\n+                provider_of(&base),\n+                &cancelled_flag,\n+            ),\n+            |_| {},\n+            |_, _| {},\n+            |_, _| {},\n+            |_, event| {\n+                if matches!(event, ToolCallEvent::Finished { .. }) {\n+                    cancelled_flag.store(true, Ordering::Relaxed);\n+                }\n+            },\n+        )\n+        .await\n+        .unwrap();\n+    assert_eq!(cancelled.status, TurnStatus::Cancelled);\n+    assert_eq!(cancelled.usage, Some((8000, 45)));\n+    assert_eq!(cancelled.context_usage, Some((8000, 45)));\n+    assert_eq!(*hits.lock().unwrap(), 6);\n+\n+    drop(runtime);\n+    drop(harness.db);\n+    let reopened = Db::open(harness._data.path()).unwrap();\n+    for (id, context, expected_status) in [\n+        (fresh.turn_id, [6000, 763], \"completed\"),\n+        (next.turn_id, [4500, 21], \"completed\"),\n+        (incomplete.turn_id, [7000, 34], \"incomplete\"),\n+        (cancelled.turn_id, [8000, 45], \"cancelled\"),\n+    ] {\n+        let (status, result) = reopened.turn_result(&id).unwrap();\n+        assert_eq!(status, expected_status);\n+        let result: serde_json::Value = serde_json::from_str(&result.unwrap()).unwrap();\n+        assert_eq!(\n+            result[\"display\"][\"context_usage\"],\n+            serde_json::json!(context)\n+        );\n+        if status == \"completed\" {\n+            assert!(\n+                result[\"display\"].get(\"usage\").is_none(),\n+                \"unknown billed usage must not reappear\"\n+            );\n+        }\n+    }\n+}\n+\n /// End to end through the real application worker: `application::spawn_with_env`\n /// (project-local config, no process env mutation) broadcasts the new\n /// `ReasoningDelta` and `TurnUsage` events next to `TurnFinished`.\ndiff --git a/crates/oc-core/src/queries.rs b/crates/oc-core/src/queries.rs\nindex a6798d8..22b6ada 100644\n--- a/crates/oc-core/src/queries.rs\n+++ b/crates/oc-core/src/queries.rs\n@@ -106,6 +106,9 @@ pub struct HistoryTurn {\n     pub model_label: String,\n     /// Last input and summed output token counts; None means unreported.\n     pub usage: Option<(u64, u64)>,\n+    /// Latest provider-reported generation input/output pair, independent of\n+    /// whether billed usage for every round of this turn is known.\n+    pub context_usage: Option<(u64, u64)>,\n     /// Measured wall time, if recorded.\n     pub duration_ms: Option<u64>,\n     /// Measured provider-active time, if recorded.\ndiff --git a/crates/oc-tui/src/app.rs b/crates/oc-tui/src/app.rs\nindex 544a79c..3f134c4 100644\n--- a/crates/oc-tui/src/app.rs\n+++ b/crates/oc-tui/src/app.rs\n@@ -2937,6 +2937,7 @@ impl TuiState {\n             duration_ms: (duration_ms > 0).then_some(duration_ms),\n             input_tokens: usage.map(|usage| usage.input_tokens),\n             output_tokens: usage.map(|usage| usage.output_tokens),\n+            context_usage: None,\n             streamed_ms: usage.map(|usage| usage.streamed_ms),\n             interrupted,\n             status: self.live_terminal_status.take(),\n@@ -2995,7 +2996,8 @@ impl TuiState {\n             .or_else(|| {\n                 rows.iter().rev().find_map(|r| {\n                     let m = r.meta.as_ref()?;\n-                    Some((m.input_tokens?, m.output_tokens?))\n+                    m.context_usage\n+                        .or_else(|| Some((m.input_tokens?, m.output_tokens?)))\n                 })\n             })?;\n         let limit = self\ndiff --git a/crates/oc-tui/src/history.rs b/crates/oc-tui/src/history.rs\nindex 495de6f..1bfead9 100644\n--- a/crates/oc-tui/src/history.rs\n+++ b/crates/oc-tui/src/history.rs\n@@ -315,6 +315,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {\n         duration_ms: turn.duration_ms,\n         input_tokens: turn.usage.map(|v| v.0),\n         output_tokens: turn.usage.map(|v| v.1),\n+        context_usage: turn.context_usage,\n         streamed_ms: turn.streamed_ms,\n         interrupted: turn.status == \"cancelled\",\n         status: Some(turn.status.clone()),\ndiff --git a/crates/oc-tui/src/messages.rs b/crates/oc-tui/src/messages.rs\nindex e31333a..fe0da96 100644\n--- a/crates/oc-tui/src/messages.rs\n+++ b/crates/oc-tui/src/messages.rs\n@@ -323,9 +323,7 @@ pub struct ReasoningBlock {\n     pub expanded: bool,\n }\n \n-/// Assistant footer data. Committed history rows carry none: storage keeps\n-/// `(id, session_id, seq, role, text)` only, so the footer is omitted for\n-/// historical messages instead of printing invented numbers.\n+/// Assistant footer data, projected from durable turns or live events.\n #[derive(Debug, Clone, Default, PartialEq, Eq)]\n pub struct AssistantMeta {\n     /// Model label (`provider/id`; our catalog DTOs carry no display name).\n@@ -336,6 +334,9 @@ pub struct AssistantMeta {\n     pub input_tokens: Option<u64>,\n     /// Output tokens summed over the turn's rounds, when reported.\n     pub output_tokens: Option<u64>,\n+    /// Latest provider generation's reported input/output context measurement.\n+    /// Independent of complete turn usage used for tok/s.\n+    pub context_usage: Option<(u64, u64)>,\n     /// Provider-active streaming time in milliseconds, when reported.\n     pub streamed_ms: Option<u64>,\n     /// Upstream `error.message === \"Step interrupted\"`.\ndiff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs\nindex a4e45f4..22d4df8 100644\n--- a/crates/oc-tui/src/shell.rs\n+++ b/crates/oc-tui/src/shell.rs\n@@ -2171,6 +2171,87 @@ mod tests {\n         assert!(shown[37].contains(\"ctrl+p commands\"));\n     }\n \n+    #[tokio::test]\n+    async fn context_footer_uses_reported_generation_without_billing_missing_rounds() {\n+        use oc_core::queries::{HistoryTurn, TranscriptPart};\n+\n+        let mut state = golden_state().await;\n+        let mut snapshot = catalog();\n+        snapshot.models[0].context = 225_000;\n+        state.apply_catalog(snapshot);\n+        assert_eq!(state.context_usage(), None);\n+\n+        let mut answer = msg(3, Role::Assistant, \"answer\");\n+        answer.turn = Some(HistoryTurn {\n+            model_label: \"fixture\".into(),\n+            parts: vec![TranscriptPart::Text(\"answer\".into())],\n+            usage: None,\n+            context_usage: Some((6000, 763)),\n+            streamed_ms: Some(1000),\n+            ..Default::default()\n+        });\n+        state.attach_page(&page(vec![answer.clone()]));\n+        assert_eq!(state.context_usage(), Some((6763, Some(225_000))));\n+        assert!(\n+            footer_line(&state, Theme::dark(), 116, 120)\n+                .to_string()\n+                .contains(\"6.8K (3%)\")\n+        );\n+        let meta = state\n+            .history()\n+            .rows()\n+            .last()\n+            .and_then(|r| r.meta.as_ref())\n+            .unwrap();\n+        assert_eq!(meta.input_tokens, None);\n+        assert_eq!(meta.output_tokens, None);\n+        assert!(\n+            !state\n+                .transcript_lines(116, 120)\n+                .iter()\n+                .any(|line| line.plain_text().contains(\"tok/s\"))\n+        );\n+\n+        // TurnFinished carries no separate context event: the durable page\n+        // replaces the completed live footer with the same reported pair.\n+        let turn = oc_core::core_app::WorkerTurnId(\"context-turn\".into());\n+        state.begin_compress_turn(turn.clone());\n+        state.apply_finished(&turn, \"answer\", 100);\n+        state.attach_page(&page(vec![answer.clone()]));\n+        assert_eq!(state.context_usage(), Some((6763, Some(225_000))));\n+        assert!(\n+            footer_line(&state, Theme::dark(), 116, 120)\n+                .to_string()\n+                .contains(\"6.8K (3%)\")\n+        );\n+\n+        answer.turn.as_mut().unwrap().usage = Some((1200, 300));\n+        state.attach_page(&page(vec![answer.clone()]));\n+        assert_eq!(state.context_usage(), Some((6763, Some(225_000))));\n+        let meta = state\n+            .history()\n+            .rows()\n+            .last()\n+            .and_then(|r| r.meta.as_ref())\n+            .unwrap();\n+        assert_eq!(meta.input_tokens, Some(1200));\n+        assert_eq!(meta.output_tokens, Some(300));\n+        let transcript = state\n+            .transcript_lines(116, 120)\n+            .iter()\n+            .map(|line| line.plain_text())\n+            .collect::<Vec<_>>()\n+            .join(\"\\n\");\n+        assert!(transcript.contains(\"300.0 tok/s\"), \"{transcript}\");\n+\n+        answer.turn.as_mut().unwrap().context_usage = None;\n+        state.attach_page(&page(vec![answer.clone()]));\n+        assert_eq!(state.context_usage(), Some((1500, Some(225_000))));\n+        answer.turn.as_mut().unwrap().usage = None;\n+        state.attach_page(&page(vec![answer]));\n+        assert_eq!(state.context_usage(), None);\n+    }\n+\n     #[tokio::test]\n     async fn v03_sidebar_uses_dto_title_usage_and_styled_boundary() {\n         use ratatui::{Terminal, backend::TestBackend};\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)\n   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.99s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"76d5ae72bd8d570c2f16d5e1d1912ffdcb2021b3823bee1e131e2f85a8a9c8f8\", \"actual_sha256\": \"7d0b757327fb380789103167a029012e57e2a2c517eab9c7bd3c97e38200d4e8\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"1b36413cbddc6048e1fd41e4e7021fcef03cd34d\", \"cells_checked\": 4800, \"different_cells\": 46, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 56, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"f0cd6a81c39ebb3d19fc86cb7467462307afdd34b0b3a14a0ac1ec8d7d954499\", \"actual_sha256\": \"c67b2cb24c06fe0b93cc2d5239064e3fc9d0351ecc6db6fa22b8d611138bf868\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1834, \"changed_fraction_diagnostic_only\": 0.00283444609297725, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"955fca324c04ef2b5c17fff485a2719a779b5f7b32068fb8aaba633148f87ee1\", \"actual_sha256\": \"1375026636b2e53283132aec8bc5e7a82cc5225af04c2e1bda0d9a4f8c57a59f\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"1b36413cbddc6048e1fd41e4e7021fcef03cd34d\", \"cells_checked\": 4800, \"different_cells\": 114, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 3, 115, 34], \"samples\": [{\"x\": 3, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 5, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 20, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 21, \"y\": 34, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"28d125f7dddd2b4a113b95392ad22a3a1a9c4412ca1a394332f8e1fee37b7e53\", \"actual_sha256\": \"c1cd62cdb693e9608263e60a07d3bb7ddf8c3cfe79d1599ecdaacd004e6465f0\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 51, \"changed_fraction_diagnostic_only\": 7.882047477744808e-05, \"difference_bbox_inclusive\": [320, 163, 327, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/tab-added.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/tab-added.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/tab-added.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-added\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"f1cc6b6c088b763aa41e239ecfaf00e0af99083c32dd70d22eb825a73660162d\", \"actual_sha256\": \"a6c42dc95cdfcc7073e456d9de8448b637ae5f337a459590b4a0da7618cc5c07\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"1b36413cbddc6048e1fd41e4e7021fcef03cd34d\", \"cells_checked\": 4800, \"different_cells\": 7, \"cursor_differs\": false, \"difference_bbox_inclusive\": [62, 0, 117, 38], \"samples\": [{\"x\": 62, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/tab-added.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/tab-added.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/tab-added.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"486ff0da9a49daf8122027dd7e3db633a54e8a5ad4a85a21ca53429d35a2ad88\", \"actual_sha256\": \"a700915ebb54e0965887f13a6a675b1f0bcce6448a6c83d3f0c720c88c5e0801\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 337, \"changed_fraction_diagnostic_only\": 0.0005208333333333333, \"difference_bbox_inclusive\": [522, 5, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/tab-second-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/tab-second-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/tab-second-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-second-completed\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"77cabcebe7ba495604ff996e92c680ce23b1e6ba93fa772b9d63d8ad4ab95fb3\", \"actual_sha256\": \"f0837b8d0cc6ad924d2560e0203e1544811bd0f8f3d8a14288b9a18b13b4fbf9\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"1b36413cbddc6048e1fd41e4e7021fcef03cd34d\", \"cells_checked\": 4800, \"different_cells\": 116, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 0, 115, 34], \"samples\": [{\"x\": 62, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 3, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 5, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 34, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/tab-second-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/tab-second-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/tab-second-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"b0bba08e8b6b37c02f238ccb555b1ce06a212b8f4eea0574ea955a0fd8814f9b\", \"actual_sha256\": \"beb4ac0e0fea5b5989532eb90a4fd5e3d763d94d70ed1541b7662842ccefcf94\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 149, \"changed_fraction_diagnostic_only\": 0.00023027942631058358, \"difference_bbox_inclusive\": [320, 5, 529, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/tab-prequit-old.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/tab-prequit-old.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/tab-prequit-old.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-prequit-old\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"3508e9f6e36f94068fe5545dcdc225a5601b3e6349fba26f0b3edc676fb4eb6b\", \"actual_sha256\": \"fc8b77c870abd83c598aa14ae1dd1e1abfa65449ac5d434f0711841c327924e7\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"1b36413cbddc6048e1fd41e4e7021fcef03cd34d\", \"cells_checked\": 4800, \"different_cells\": 114, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 3, 115, 34], \"samples\": [{\"x\": 3, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 5, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 20, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 21, \"y\": 34, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/tab-prequit-old.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/tab-prequit-old.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/tab-prequit-old.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"d52eab925e7f4b1264f3619e46083d6068e0159d9bbb875a7644865527746118\", \"actual_sha256\": \"dc54a14215d48c2528c025f428e5b9fc34c40faeb27111dbc8891ffbe8188ece\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 51, \"changed_fraction_diagnostic_only\": 7.882047477744808e-05, \"difference_bbox_inclusive\": [320, 163, 327, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/tab-restored-entry.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/tab-restored-entry.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/tab-restored-entry.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-restored-entry\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"845499e4d9e8129d404d5a51d38d145a8b01694037a314d3c100d9b81eacf03d\", \"actual_sha256\": \"e806c97a41dfd74e11a91879f92e6eb2dba84726b7daca8783a60324f5d30cb9\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"1b36413cbddc6048e1fd41e4e7021fcef03cd34d\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/tab-restored-entry.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/tab-restored-entry.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/tab-restored-entry.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"ab8ac4167022d860c64c214de7ad5c09359b8f29cf077cc91e9870cf9901bf00\", \"actual_sha256\": \"67a69b51b463507e43d22d02a4fb9cb404cb8f167a336bf249da8e19da723fe7\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 298, \"changed_fraction_diagnostic_only\": 0.00046055885262116715, \"difference_bbox_inclusive\": [943, 611, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/tab-restored-old.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/tab-restored-old.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/tab-restored-old.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-restored-old\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"adbb86f33e478d95dc8404bf67bf5bd0d7455486477b22ed869d6f66ebb2932b\", \"actual_sha256\": \"03fd909dc5ce5544e914ef6f50ee0b333e3183daad70b7a61d23a0c8872c7fc3\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"1b36413cbddc6048e1fd41e4e7021fcef03cd34d\", \"cells_checked\": 4800, \"different_cells\": 114, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 3, 115, 34], \"samples\": [{\"x\": 3, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 5, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 20, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 21, \"y\": 34, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/tab-restored-old.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/tab-restored-old.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/tab-restored-old.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"d52eab925e7f4b1264f3619e46083d6068e0159d9bbb875a7644865527746118\", \"actual_sha256\": \"dc54a14215d48c2528c025f428e5b9fc34c40faeb27111dbc8891ffbe8188ece\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 51, \"changed_fraction_diagnostic_only\": 7.882047477744808e-05, \"difference_bbox_inclusive\": [320, 163, 327, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/tab-restored-second.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/tab-restored-second.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/tab-restored-second.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-restored-second\", \"fixture_sha256\": \"546109431a6bb5d0edfe5bf1d8884fa0471983985afbe4767b70579f560f1624\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"9912f4eb09218bf3296da64b6cd60f76fecd80737180ef1c155ffebf94abb595\", \"actual_sha256\": \"bc76e4da6e7b529a0d3d4976a89c52511a9edc3663bee0b457166f23dfa5967b\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"1b36413cbddc6048e1fd41e4e7021fcef03cd34d\", \"cells_checked\": 4800, \"different_cells\": 115, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 3, 115, 34], \"samples\": [{\"x\": 3, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 5, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 20, \"y\": 34, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/upstream/tab-restored-second.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/oc/tab-restored-second.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-context-usage-01/tab-restored-second.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"b0bba08e8b6b37c02f238ccb555b1ce06a212b8f4eea0574ea955a0fd8814f9b\", \"actual_sha256\": \"a9eb9d91b12a229094c427a6b414cb1e9d8e15f252d90f2d7ea924900146e782\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 113, \"changed_fraction_diagnostic_only\": 0.0001746414441147379, \"difference_bbox_inclusive\": [320, 163, 335, 172]}\n",
+    "stderr": ""
+  }
+]
