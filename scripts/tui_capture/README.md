@@ -367,6 +367,34 @@ The native in-process startup error is not the original service-attach route.
 Original child composer/root-tab behavior also remains different. No near-limit
 PTY paste or editor/paste-chip equivalence is claimed by V03; that is V05 work.
 
+## VIS25 slash-autocomplete diagnostic
+
+Run with both pinned executables and a **new** immutable output directory:
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc \
+  --geometry true --sample tools --sidebar hide --agent-profile true \
+  --columns 120 --rows 40 --autocomplete true \
+  --output /home/opencode/ai/oc/evidence/tui/NEW-AUTOCOMPLETE-ATTEMPT
+```
+
+The opt-in sends `/`, `ren`, and **Tab only** through each real PTY on Home,
+clears the resulting draft with Backspace, completes a real fixture-backed
+read turn, and repeats the three keystrokes in the session. It never sends
+Return to submit the slash draft. Home's available commands may differ from
+session commands: Tab can execute the actual highlighted argument-free action
+(the pinned original selects `/reload` on Home with this query). This is
+recorded, not replaced with a synthetic `/rename` completion. Each stage
+saves full styled cells, PNG, VT, cursor, actual menu rows and draft, provider
+request counts, `autocomplete-checks.json` predicates and normal unmasked
+grid/PNG comparator results. The typed-query predicate applies only before
+Tab; after Tab the runner records the actual draft, caret and reload notice
+without expecting either outcome.
+Comparator inequality still exits 1 and leaves VIS25 unverified. Failed
+attempts, including runner-predicate failures, remain separate immutable paths.
+
 ## V04 variant and search follow-up
 
 `--variants true --sample short` adds the explicit fixture in

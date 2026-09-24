@@ -41,3 +41,5 @@ recovery-v08-regenerate-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v08-regenerate-*/*/*.vt binary
 sidebar-palette-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 sidebar-palette-*/*/*.vt binary
+autocomplete-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+autocomplete-*/*/*.vt binary

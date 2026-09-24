@@ -1,0 +1,149 @@
+[
+  {
+    "route": "home",
+    "stage": "trigger",
+    "expected_draft": "/",
+    "observed": {
+      "draft": "/",
+      "draft_x": 26,
+      "menu": [
+        {
+          "y": 10,
+          "text": "                       ┃ /agents      Switch agent                                               ┃"
+        },
+        {
+          "y": 11,
+          "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+        },
+        {
+          "y": 12,
+          "text": "                       ┃ /cd          Change working directory                                   ┃"
+        },
+        {
+          "y": 13,
+          "text": "                       ┃ /clear       New session                                                ┃"
+        },
+        {
+          "y": 14,
+          "text": "                       ┃ /connect     Connect an integration                                     ┃"
+        },
+        {
+          "y": 15,
+          "text": "                       ┃ /continue    Switch session                                             ┃"
+        },
+        {
+          "y": 16,
+          "text": "                       ┃ /debug       View debug info                                            ┃"
+        },
+        {
+          "y": 17,
+          "text": "                       ┃ /diff        Open diff viewer                                           ┃"
+        },
+        {
+          "y": 18,
+          "text": "                       ┃ /editor      Open editor                                                ┃"
+        },
+        {
+          "y": 19,
+          "text": "                       ┃ /effort      Switch model variant                                       ┃"
+        }
+      ],
+      "rename_options": [],
+      "reload_notice": false,
+      "cursor": {
+        "x": 27,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "query_visible": true,
+      "menu_visible": true,
+      "rename_option_visible": false,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "e219fe1de96b15702eb671b1bed3401a4f833c16c44630d304dce31214ecb098"
+  },
+  {
+    "route": "home",
+    "stage": "filtered",
+    "expected_draft": "/ren",
+    "observed": {
+      "draft": "/ren",
+      "draft_x": 26,
+      "menu": [
+        {
+          "y": 17,
+          "text": "                       ┃ /reload      Reload configuration                                       ┃"
+        },
+        {
+          "y": 18,
+          "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+        },
+        {
+          "y": 19,
+          "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+        }
+      ],
+      "rename_options": [],
+      "reload_notice": false,
+      "cursor": {
+        "x": 30,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "query_visible": true,
+      "menu_visible": true,
+      "rename_option_visible": false,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "1b874aa2744511a35da17501ecada99ffceb396b482152484ac7e559e244a1c0"
+  },
+  {
+    "route": "home",
+    "stage": "after-tab",
+    "expected_draft": "/rename ",
+    "observed": {
+      "draft": "Ask anything… \"Fix broken tests\"",
+      "draft_x": 26,
+      "menu": [],
+      "rename_options": [],
+      "reload_notice": true,
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "query_visible": false,
+      "menu_visible": false,
+      "rename_option_visible": false,
+      "tab_changed_grid": true,
+      "no_provider_request": true
+    },
+    "grid_sha256": "b9ff7f28b43b33da2a1c318e4b967cc104e3e109bc405116a55118a22b7f5727"
+  }
+]

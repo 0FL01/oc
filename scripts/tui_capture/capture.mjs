@@ -44,6 +44,15 @@ if (args['regenerate-title'] !== undefined && !['true','false'].includes(args['r
 const sidebarPalette = args['sidebar-palette'] === 'true';
 if (args['sidebar-palette'] !== undefined && !['true','false'].includes(args['sidebar-palette']))
   throw Error('--sidebar-palette must be true or false');
+const autocomplete = args.autocomplete === 'true';
+if (args.autocomplete !== undefined && !['true','false'].includes(args.autocomplete))
+  throw Error('--autocomplete must be true or false');
+if (autocomplete && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
+    args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
+    !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
+    args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
+    args.tabs === 'vertical' || tabClick || explorationClick || renameSession || sidebarPalette))
+  throw Error('--autocomplete true requires paired binaries, --geometry true --sample tools --sidebar hide --agent-profile true --columns 120 --rows 40 and no other interaction/resize modes');
 if (sidebarPalette && (args.geometry !== 'true' || args.sample !== 'tools' ||
     !['hide','auto'].includes(args.sidebar) || Number(args.columns) !== 160 || Number(args.rows) !== 48 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
@@ -285,6 +294,60 @@ try {
       if(spec.agent_profile && !initial.text.includes('Reader · MiMo-V2.6-Flash Free'))
         throw Error('Explicit paired profile is not selected in the initial prompt');
       if(args.geometry === 'true') await capture('home', initial, 'CAPTURED');
+      const autocompleteChecks=[];
+      const providerCounts=()=>({requests:logs.filter(e=>e.kind==='provider').length,
+        completed:logs.filter(e=>e.kind==='provider_completed').length,
+        invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});
+      const autocompleteObserve=f=>{
+        const rows=f.cells.map(row=>row.map(c=>c.symbol).join(''));
+        const draftRow=rows[f.cursor.y] || '';
+        const draftStart=draftRow.indexOf('┃  ');
+        const menu=rows.map((text,y)=>({y,text:text.trimEnd()})).filter(r=>
+          r.y<f.cursor.y && r.y>=f.cursor.y-12 && /┃\s+\/\S/.test(r.text));
+        return {draft: draftStart<0?null:draftRow.slice(draftStart+3).trimEnd(),
+          draft_x:draftStart<0?null:draftStart+3,menu,
+          rename_options:menu.filter(r=>r.text.includes('/rename')),
+          reload_notice:f.text.includes('Configuration reloaded'),
+          cursor:f.cursor,provider_counts:providerCounts()};
+      };
+      const probeAutocomplete=async route=>{
+        const baseline=providerCounts();
+        const states=[['trigger','/'],['filtered','ren'],['after-tab','\t']];
+        for(const [stage,key] of states) {
+          send(key,`autocomplete_${route}_${stage}`);
+          // Record what the application actually paints; no injected menu text
+          // and no assumption that Home has the session-only /rename action.
+          await sleep(300);
+          const f=await waitFor(()=>true,`autocomplete ${route} ${stage}`,7000);
+          const observed=autocompleteObserve(f);
+          const previous=autocompleteChecks.at(-1);
+          const checks={route,stage,typed_query:stage==='trigger'?'/':stage==='filtered'?'/ren':null,
+            observed,predicates:{typed_query_visible:stage==='after-tab'?null:
+              observed.draft===(stage==='trigger'?'/':'/ren'),
+              menu_visible:observed.menu.length>0,
+              rename_option_visible:observed.rename_options.length>0,
+              tab_changed_grid:stage==='after-tab'?sha(JSON.stringify(f))!==previous?.grid_sha256:null,
+              no_provider_request:canonical(providerCounts())===canonical(baseline)},
+            grid_sha256:sha(JSON.stringify(f))};
+          autocompleteChecks.push(checks);
+          fs.writeFileSync(path.join(dir,'autocomplete-checks.json'),JSON.stringify(autocompleteChecks,null,2)+'\n');
+          if(await capture(`autocomplete-${route}-${stage}`,f,'CAPTURED_AUTOCOMPLETE_DIAGNOSTIC')!=='CAPTURED_AUTOCOMPLETE_DIAGNOSTIC')
+            throw Error('Unstable autocomplete '+route+' '+stage);
+        }
+      };
+      if(autocomplete) {
+        lock.autocomplete ??= {};
+        lock.autocomplete[origin]={status:'IN_PROGRESS',checks:autocompleteChecks};
+        await probeAutocomplete('home');
+        // Undo only the test draft, never submit a slash command from Home.
+        send('\x7f'.repeat(40),'autocomplete_home_clear_draft');
+        const cleared=await waitFor(f=>{const o=autocompleteObserve(f);
+          return o.cursor.x===o.draft_x && o.menu.length===0 && f.text.includes('Ask anything');
+        },'cleared Home autocomplete draft',7000);
+        autocompleteChecks.push({route:'home',stage:'cleared',observed:autocompleteObserve(cleared),
+          predicates:{draft_cleared:true,no_provider_request:providerCounts().requests===0}});
+        fs.writeFileSync(path.join(dir,'autocomplete-checks.json'),JSON.stringify(autocompleteChecks,null,2)+'\n');
+      }
       send('\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\x1b[201~','prompt_paste');
       await sleep(200); send('\r','submit');
        const marker = ['short','reasoning','tools'].includes(args.sample) ? 'GEOMETRY-SHORT' : ['rows','rows-reflow'].includes(args.sample) ? 'ROW-089' : 'Через Code Mode';
@@ -293,6 +356,13 @@ try {
          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript'), 'completed transcript');
        if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');
        const completedStatus = await capture('session-wide-completed',done,'CAPTURED');
+       if(autocomplete) {
+         await probeAutocomplete('session');
+         lock.autocomplete[origin].status='RECORDED';
+         json('capture.lock.json',lock);
+         lock.attempts.push({origin,status:'AUTOCOMPLETE_RECORDED',
+           predicates:autocompleteChecks.map(c=>({route:c.route,stage:c.stage,...c.predicates}))});
+       }
        if(sidebarPalette) {
          const checks=[];
          const expectedBefore=args.sidebar==='auto';
@@ -986,6 +1056,7 @@ try {
        if(tabRestart && lock.tab_restart_interactions?.[origin]) lock.tab_restart_interactions[origin].status='FAILED';
         if(renameSession && lock.rename_interactions?.[origin]) lock.rename_interactions[origin].status='FAILED';
         if(sidebarPalette && lock.sidebar_palette?.[origin]) lock.sidebar_palette[origin].status='FAILED';
+        if(autocomplete && lock.autocomplete?.[origin]) lock.autocomplete[origin].status='FAILED';
       await capture('failure-diagnostic',await frame(),'FAILED_STATE');
     } finally {
       if(!child.stdin.destroyed) child.stdin.write(JSON.stringify({kind:'stop'})+'\n');

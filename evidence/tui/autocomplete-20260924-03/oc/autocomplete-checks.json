@@ -1,0 +1,324 @@
+[
+  {
+    "route": "home",
+    "stage": "trigger",
+    "expected_draft": "/",
+    "observed": {
+      "draft": "/",
+      "draft_x": 26,
+      "menu": [
+        {
+          "y": 10,
+          "text": "                       ┃ /agent  Switch agent                                                    ┃"
+        },
+        {
+          "y": 11,
+          "text": "                       ┃ /agents  Switch agent                                                   ┃"
+        },
+        {
+          "y": 12,
+          "text": "                       ┃ /cards  Tool cards                                                      ┃"
+        },
+        {
+          "y": 13,
+          "text": "                       ┃ /clear  New session                                                     ┃"
+        },
+        {
+          "y": 14,
+          "text": "                       ┃ /close-tab  Close tab                            ▄                      ┃"
+        },
+        {
+          "y": 15,
+          "text": "                       ┃ /commands  Show command palette█▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                 ┃"
+        },
+        {
+          "y": 16,
+          "text": "                       ┃ /continue  Switch session █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                 ┃"
+        },
+        {
+          "y": 17,
+          "text": "                       ┃ /dcp-compress  Compress DCP context ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                 ┃"
+        },
+        {
+          "y": 18,
+          "text": "                       ┃ /effort  Switch model variant                                           ┃"
+        },
+        {
+          "y": 19,
+          "text": "                       ┃ /exit  Exit the app                                                     ┃"
+        }
+      ],
+      "rename_options": [],
+      "reload_notice": false,
+      "cursor": {
+        "x": 27,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "query_visible": true,
+      "menu_visible": true,
+      "rename_option_visible": false,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "0e3de218e77ab4ddb24ffac49230d9258719a1aae9aceb0ce4a4de4b562b8d60"
+  },
+  {
+    "route": "home",
+    "stage": "filtered",
+    "expected_draft": "/ren",
+    "observed": {
+      "draft": "/ren",
+      "draft_x": 26,
+      "menu": [
+        {
+          "y": 18,
+          "text": "                       ┃ /rename  Rename session                                                 ┃"
+        },
+        {
+          "y": 19,
+          "text": "                       ┃ /dcp-compress  Compress DCP context                                     ┃"
+        }
+      ],
+      "rename_options": [
+        {
+          "y": 18,
+          "text": "                       ┃ /rename  Rename session                                                 ┃"
+        }
+      ],
+      "reload_notice": false,
+      "cursor": {
+        "x": 30,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "query_visible": true,
+      "menu_visible": true,
+      "rename_option_visible": true,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "c1a0800a1bd27a465e20b60c976477904130f1f8a3b38f9063ad23d90fd19be8"
+  },
+  {
+    "route": "home",
+    "stage": "after-tab",
+    "expected_draft": "/rename ",
+    "observed": {
+      "draft": "/rename",
+      "draft_x": 26,
+      "menu": [],
+      "rename_options": [],
+      "reload_notice": false,
+      "cursor": {
+        "x": 34,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "query_visible": true,
+      "menu_visible": false,
+      "rename_option_visible": false,
+      "tab_changed_grid": true,
+      "no_provider_request": true
+    },
+    "grid_sha256": "a1811795d1a47f40ca35e2a574fbc324c2197ab47ae838555de84597ec82f646"
+  },
+  {
+    "route": "home",
+    "stage": "cleared",
+    "observed": {
+      "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+      "draft_x": 26,
+      "menu": [],
+      "rename_options": [],
+      "reload_notice": false,
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "draft_cleared": true,
+      "no_provider_request": true
+    }
+  },
+  {
+    "route": "session",
+    "stage": "trigger",
+    "expected_draft": "/",
+    "observed": {
+      "draft": "/",
+      "draft_x": 5,
+      "menu": [
+        {
+          "y": 23,
+          "text": "  ┃ /agent  Switch agent                                                                                             ┃"
+        },
+        {
+          "y": 24,
+          "text": "  ┃ /agents  Switch agent                                                                                            ┃"
+        },
+        {
+          "y": 25,
+          "text": "  ┃ /cards  Tool cards                                                                                               ┃"
+        },
+        {
+          "y": 26,
+          "text": "  ┃ /clear  New session                                                                                              ┃"
+        },
+        {
+          "y": 27,
+          "text": "  ┃ /close-tab  Close tab                                                                                            ┃"
+        },
+        {
+          "y": 28,
+          "text": "  ┃ /commands  Show command palette                                                                                  ┃"
+        },
+        {
+          "y": 29,
+          "text": "  ┃ /continue  Switch session                                                                                        ┃"
+        },
+        {
+          "y": 30,
+          "text": "  ┃ /dcp-compress  Compress DCP context                                                                              ┃"
+        },
+        {
+          "y": 31,
+          "text": "  ┃ /effort  Switch model variant                                                                                    ┃"
+        },
+        {
+          "y": 32,
+          "text": "  ┃ /exit  Exit the app                                                                                              ┃"
+        }
+      ],
+      "rename_options": [],
+      "reload_notice": false,
+      "cursor": {
+        "x": 6,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "query_visible": true,
+      "menu_visible": true,
+      "rename_option_visible": false,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "88cd99f90b86a805a96be9242687cd3c57264daa606db4f87056100f2ed5b270"
+  },
+  {
+    "route": "session",
+    "stage": "filtered",
+    "expected_draft": "/ren",
+    "observed": {
+      "draft": "/ren",
+      "draft_x": 5,
+      "menu": [
+        {
+          "y": 31,
+          "text": "  ┃ /rename  Rename session                                                                                          ┃"
+        },
+        {
+          "y": 32,
+          "text": "  ┃ /dcp-compress  Compress DCP context                                                                              ┃"
+        }
+      ],
+      "rename_options": [
+        {
+          "y": 31,
+          "text": "  ┃ /rename  Rename session                                                                                          ┃"
+        }
+      ],
+      "reload_notice": false,
+      "cursor": {
+        "x": 9,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "query_visible": true,
+      "menu_visible": true,
+      "rename_option_visible": true,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "24100e6a00a787adc92ad32c4db63aa566fc14fe7c36705b1f0f68b2bd9bbeb0"
+  },
+  {
+    "route": "session",
+    "stage": "after-tab",
+    "expected_draft": "/rename ",
+    "observed": {
+      "draft": "/rename",
+      "draft_x": 5,
+      "menu": [],
+      "rename_options": [],
+      "reload_notice": false,
+      "cursor": {
+        "x": 13,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "query_visible": true,
+      "menu_visible": false,
+      "rename_option_visible": false,
+      "tab_changed_grid": true,
+      "no_provider_request": true
+    },
+    "grid_sha256": "dc2069b8d791541b6e04b93d2bb83360bf5b1001d06a5a73135fc435f6cde8ff"
+  }
+]

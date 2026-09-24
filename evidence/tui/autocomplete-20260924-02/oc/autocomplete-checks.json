@@ -1,0 +1,150 @@
+[
+  {
+    "route": "home",
+    "stage": "trigger",
+    "expected_draft": "/",
+    "observed": {
+      "draft": "/",
+      "draft_x": 26,
+      "menu": [
+        {
+          "y": 10,
+          "text": "                       ┃ /agent  Switch agent                                                    ┃"
+        },
+        {
+          "y": 11,
+          "text": "                       ┃ /agents  Switch agent                                                   ┃"
+        },
+        {
+          "y": 12,
+          "text": "                       ┃ /cards  Tool cards                                                      ┃"
+        },
+        {
+          "y": 13,
+          "text": "                       ┃ /clear  New session                                                     ┃"
+        },
+        {
+          "y": 14,
+          "text": "                       ┃ /close-tab  Close tab                            ▄                      ┃"
+        },
+        {
+          "y": 15,
+          "text": "                       ┃ /commands  Show command palette█▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                 ┃"
+        },
+        {
+          "y": 16,
+          "text": "                       ┃ /continue  Switch session █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                 ┃"
+        },
+        {
+          "y": 17,
+          "text": "                       ┃ /dcp-compress  Compress DCP context ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                 ┃"
+        },
+        {
+          "y": 18,
+          "text": "                       ┃ /effort  Switch model variant                                           ┃"
+        },
+        {
+          "y": 19,
+          "text": "                       ┃ /exit  Exit the app                                                     ┃"
+        }
+      ],
+      "rename_options": [],
+      "reload_notice": false,
+      "cursor": {
+        "x": 27,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "query_visible": true,
+      "menu_visible": true,
+      "rename_option_visible": false,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "c4c52eec973d8e9f5a28fd12d4a17f7f0b2ba33ae2a71d9c14e07cdd5ceebd3a"
+  },
+  {
+    "route": "home",
+    "stage": "filtered",
+    "expected_draft": "/ren",
+    "observed": {
+      "draft": "/ren",
+      "draft_x": 26,
+      "menu": [
+        {
+          "y": 18,
+          "text": "                       ┃ /rename  Rename session                                                 ┃"
+        },
+        {
+          "y": 19,
+          "text": "                       ┃ /dcp-compress  Compress DCP context                                     ┃"
+        }
+      ],
+      "rename_options": [
+        {
+          "y": 18,
+          "text": "                       ┃ /rename  Rename session                                                 ┃"
+        }
+      ],
+      "reload_notice": false,
+      "cursor": {
+        "x": 30,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "query_visible": true,
+      "menu_visible": true,
+      "rename_option_visible": true,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "b43954e39334ac71e21ba07df8cc342164a03696b3f8e88fa0c3476d7b46378c"
+  },
+  {
+    "route": "home",
+    "stage": "after-tab",
+    "expected_draft": "/rename ",
+    "observed": {
+      "draft": "/rename",
+      "draft_x": 26,
+      "menu": [],
+      "rename_options": [],
+      "reload_notice": false,
+      "cursor": {
+        "x": 34,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "query_visible": true,
+      "menu_visible": false,
+      "rename_option_visible": false,
+      "tab_changed_grid": true,
+      "no_provider_request": true
+    },
+    "grid_sha256": "f3376be9c069b846de733cabe8b489763f4a024a6d75d5cbd57e4084a5478ca2"
+  }
+]

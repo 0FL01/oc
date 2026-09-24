@@ -1,0 +1,1626 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-24T15:44:00.625Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "d7bbfc573024b6b1677b0907744103503d0ea9fd8d821f2e98e9ada3a9cf2bb6",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "05a8b8b6b9da204e8005a9fd6d3627b1624cf1ca86d11fe7d7f141c1e8ac3b5d"
+  },
+  "fixture_sha256": "16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "35cd2908f9bb71b48f3eabbb0f0eda6bd0164c82",
+    "tree": "57b6bb8d7224e2793ec8c5afa81dbc0de388b1be",
+    "dirty_diff_sha256": "a81c3001b8f20a1a8ea826caa86888d054f404d6d2fdc12aeea48491b01db4d4",
+    "source_manifest_sha256": "536ce7d42a0b1ab8174c6332af27ad5309ed1ea3d9b9f9feb1a67e0a9b3d7a0a",
+    "build_provenance": "Existing binary; build/source association not attested by this run",
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "c4a9f099ceee41ea7dd3ec3664fc03e3bdca60039d17a65f9d48b8ca3b9d065c",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "AUTOCOMPLETE_RECORDED",
+      "predicates": [
+        {
+          "route": "home",
+          "stage": "trigger",
+          "query_visible": true,
+          "menu_visible": false,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "filtered",
+          "query_visible": true,
+          "menu_visible": false,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "after-tab",
+          "query_visible": false,
+          "menu_visible": false,
+          "tab_changed_grid": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "trigger",
+          "query_visible": true,
+          "menu_visible": false,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "filtered",
+          "query_visible": true,
+          "menu_visible": false,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "after-tab",
+          "query_visible": true,
+          "menu_visible": false,
+          "tab_changed_grid": true,
+          "no_provider_request": true
+        }
+      ]
+    },
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "AUTOCOMPLETE_RECORDED",
+      "predicates": [
+        {
+          "route": "home",
+          "stage": "trigger",
+          "query_visible": true,
+          "menu_visible": false,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "filtered",
+          "query_visible": true,
+          "menu_visible": false,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "after-tab",
+          "query_visible": true,
+          "menu_visible": false,
+          "tab_changed_grid": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "trigger",
+          "query_visible": true,
+          "menu_visible": false,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "filtered",
+          "query_visible": true,
+          "menu_visible": false,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "after-tab",
+          "query_visible": true,
+          "menu_visible": false,
+          "tab_changed_grid": true,
+          "no_provider_request": true
+        }
+      ]
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-home-trigger",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-home-trigger",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-home-filtered",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-home-filtered",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-home-after-tab",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-home-after-tab",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-session-trigger",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-session-trigger",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-session-filtered",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-session-filtered",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-session-after-tab",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-session-after-tab",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "349a08217ea3c4079d93258e6160f248f200e53a206ecdcc9900a75d703b3d70",
+      "png_sha256": "35170b8d4650beadf7bd0260146beaeeec42f1f84b21e5c838d47e6c8714ae39",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-home-trigger",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ad76a9ece30a2a23cbd70297ce40084d6a6b3a9be0652ed257435cde19686d6a",
+      "png_sha256": "caaaa07d7ac99533342943ffe88bca42f264cb6ef447865851ef7adb0f57e824",
+      "render_sha256": "b6254c94e465e05bbbb0189e2bc67d58cd6c25fcc352f11163e113fa5ed82a4f",
+      "path": "upstream/autocomplete-home-trigger"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-home-filtered",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "13f2b4901e54c743546c90e7a9cb2a2c883e2ac0dc57c269b30d0ef05bae0296",
+      "png_sha256": "431f43bd23ec66927eaeb60105e9bd2fccce3d50ed7864f8a8b8f11fd159c64b",
+      "render_sha256": "cf4a138ce40b1c0d91f60adf1a316bfd8382ca7977e38aad0a15f2b41bbf3cd2",
+      "path": "upstream/autocomplete-home-filtered"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-home-after-tab",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "87625b311c7f49c70823f16d2b81c98dd2fea771fd8f44e6438e08a0c2bc688b",
+      "png_sha256": "d123f7920d5248c5d75c1a8c6331ba09fc782e945343e25d125eb0e1da742366",
+      "render_sha256": "0f244ad3a7493e72f37cf6ad7cb4c4013150c875ab91cdeeebda22955fbefd2a",
+      "path": "upstream/autocomplete-home-after-tab"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "7251a32f736df3555ba2893dc13a2d104a53e4b7c22df1b9523eaf7550090b8a",
+      "png_sha256": "6be4c6398bead24dc1f2bddc34fcd8182904fc69dbfe5bf09bf1ba3d04f49f05",
+      "render_sha256": "174157f35ee532033fd15633ace6adb59f7dfca286e52282f242f130e2737d02",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-session-trigger",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "6b1468cb939fa0050f29d940af4a8c6308a621f2ffd35c127d07835ad964783e",
+      "png_sha256": "434d0bd2828f709d7eee3f082952787edac126e2957cb1bed8c21853fc1fef9b",
+      "render_sha256": "9e81298a3f84f8f4dc07cac2d5f3d7c0f98f703cdf1b82d304a12b42fb086fee",
+      "path": "upstream/autocomplete-session-trigger"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-session-filtered",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "bf63a3538ae7fddc14d6bbf0d995a100ec458aec839f2e598abf5a7de6112b8c",
+      "png_sha256": "5cf705adda4dabff11b95e31dc381a8277bcfd0fbe8f1b99e3d6a31f2c0f9eca",
+      "render_sha256": "61221d6e23ab55c561c3ea3e725eac40e4722be0b1f845da4a9a3d69c9d22868",
+      "path": "upstream/autocomplete-session-filtered"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-session-after-tab",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d46bfa0a64d5b733b77ffba17f330517a7e688cb49e7a283cf6a74784b31a166",
+      "png_sha256": "1b88b7a01ee310f8b6ec9cef5ff8635db7a01a30e985fc8a2d9ebed086067161",
+      "render_sha256": "328841df9c3484f95ab44fee7f8670864bc816b57c363ef6e7261cbd85219849",
+      "path": "upstream/autocomplete-session-after-tab"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "56e8c0c3088907baf9dde1cbf4702becfff64a3fef2da17fcfc8a1b7e202a4a8",
+      "png_sha256": "172aa25b9627f7c806b1008932d222fd3cdf5c8f3990d810a888f21a1b2b5c3d",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-home-trigger",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "8355209177f8bb6de5d63ea8951571249e99702596ed5f147e7f75e65bbaa894",
+      "png_sha256": "451cd6f5e3547a374c807fa5807ff76b2b8d32a59ea0f62dc576e28a29721cb0",
+      "render_sha256": "0678ae4932069724080e9ba5168550cef1e5b1c8cde4b702fbc51187abbf74f3",
+      "path": "oc/autocomplete-home-trigger"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-home-filtered",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "33c353a0ad1d0fa69b185b61c4fdb2d3f061b68568c9138675e0155eb57a9dcd",
+      "png_sha256": "3997a34fb3674508cc25aeca283dc6734d39315f3bb1ddedc221bd9fef2c5736",
+      "render_sha256": "fd8be50908184c58ab9793a86f002f37d065c069d87fe1a2c2fc91d93d45d32c",
+      "path": "oc/autocomplete-home-filtered"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-home-after-tab",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ab65b1fa9446d070bcdf7eb8c2da1c13cd52d12d57cb1dd33c97dc283e82de94",
+      "png_sha256": "f75b0d1a72ede7be04e3410f81cb02cf4f4a2ae8bf230b71fc2f9e3566eb8ea7",
+      "render_sha256": "ecec8aecc806b706dedbac909dc2b7b4f732080fa9343638725d6aed3376affa",
+      "path": "oc/autocomplete-home-after-tab"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "aa05daa16d97e89a7982f61692dcc46dfa14a425a9ca09b3638dcbabdede1ce7",
+      "png_sha256": "c6e9368bd77d847c63c9bbac0bb91a263b3c8c8f70c9070eaa4b0a50f91b6e8e",
+      "render_sha256": "46773fc00448873e0035f8ccdfb36305df35244ad4c4f8e35e3ca74a59b3dd6e",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-session-trigger",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "9d2a583b2183249386e63dde6fb09f03257a683ea4e46b04ba7d3f8a05eb1121",
+      "png_sha256": "e8bb039cf1e98c27902e8887635dd179408916a065351ffead2eb75cbc1a3262",
+      "render_sha256": "eb58f30095f0112b18e86c870c5f102fbc7f13f63c37c843413553e631ae3815",
+      "path": "oc/autocomplete-session-trigger"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-session-filtered",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "58fe17e5a04d5619267af90bc91183b157a88645b456d1bbc310095cdd42406b",
+      "png_sha256": "34d410eb6a8cb91f5a552386c41c943793a784ace660128810b16de2bc9c3c98",
+      "render_sha256": "efdfa611d46a7c2aab9166eb17069c66d6357856feb29e12fc7b5609b7330834",
+      "path": "oc/autocomplete-session-filtered"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-session-after-tab",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "9129e5aa490bafe50eba7cdd12bdd355e354e909a0db32ae479bf724b340a887",
+      "png_sha256": "b19936b24a9a1e5d17bc27b50e3d2c48c0e55454af815df7118f47ee828df572",
+      "render_sha256": "7fcde4a1b229894863b9025f0d70d0a8e4d0837242b08d1894badaa2dcc02ac3",
+      "path": "oc/autocomplete-session-after-tab"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "autocomplete": {
+    "upstream": {
+      "status": "RECORDED",
+      "checks": [
+        {
+          "route": "home",
+          "stage": "trigger",
+          "expected_draft": "/",
+          "observed": {
+            "draft_slash": [
+              {
+                "x": 26,
+                "y": 21
+              },
+              {
+                "x": 23,
+                "y": 25
+              },
+              {
+                "x": 25,
+                "y": 25
+              },
+              {
+                "x": 30,
+                "y": 25
+              },
+              {
+                "x": 55,
+                "y": 25
+              }
+            ],
+            "draft_ren": [],
+            "completed_rename": [],
+            "rename_options": [],
+            "visible_rows": [
+              {
+                "y": 25,
+                "text": "                       /…/runs/autocomplete-20260924-01/project  shift+tab agents  ctrl+p commands"
+              }
+            ],
+            "cursor": {
+              "x": 27,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "query_visible": true,
+            "menu_visible": false,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "183da2415dfa9e4567d762ff95f5090177f598684c431cc0f02778c7a215224b"
+        },
+        {
+          "route": "home",
+          "stage": "filtered",
+          "expected_draft": "/ren",
+          "observed": {
+            "draft_slash": [
+              {
+                "x": 26,
+                "y": 21
+              },
+              {
+                "x": 23,
+                "y": 25
+              },
+              {
+                "x": 25,
+                "y": 25
+              },
+              {
+                "x": 30,
+                "y": 25
+              },
+              {
+                "x": 55,
+                "y": 25
+              }
+            ],
+            "draft_ren": [
+              {
+                "x": 26,
+                "y": 21
+              }
+            ],
+            "completed_rename": [],
+            "rename_options": [],
+            "visible_rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  /ren"
+              },
+              {
+                "y": 25,
+                "text": "                       /…/runs/autocomplete-20260924-01/project  shift+tab agents  ctrl+p commands"
+              }
+            ],
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "query_visible": true,
+            "menu_visible": false,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "504821c1cf695601304ac0f5378e91b4acf3a101ee8caac22acfa759ffd15655"
+        },
+        {
+          "route": "home",
+          "stage": "after-tab",
+          "expected_draft": "/rename ",
+          "observed": {
+            "draft_slash": [
+              {
+                "x": 23,
+                "y": 25
+              },
+              {
+                "x": 25,
+                "y": 25
+              },
+              {
+                "x": 30,
+                "y": 25
+              },
+              {
+                "x": 55,
+                "y": 25
+              }
+            ],
+            "draft_ren": [],
+            "completed_rename": [],
+            "rename_options": [],
+            "visible_rows": [
+              {
+                "y": 25,
+                "text": "                       /…/runs/autocomplete-20260924-01/project  shift+tab agents  ctrl+p commands"
+              }
+            ],
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "query_visible": false,
+            "menu_visible": false,
+            "tab_changed_grid": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "aa320d585d2ee5e49e8156ad773c3188adcd54dc332bba7057860fb8ca1f494d"
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "observed": {
+            "draft_slash": [
+              {
+                "x": 23,
+                "y": 25
+              },
+              {
+                "x": 25,
+                "y": 25
+              },
+              {
+                "x": 30,
+                "y": 25
+              },
+              {
+                "x": 55,
+                "y": 25
+              }
+            ],
+            "draft_ren": [],
+            "completed_rename": [],
+            "rename_options": [],
+            "visible_rows": [
+              {
+                "y": 25,
+                "text": "                       /…/runs/autocomplete-20260924-01/project  shift+tab agents  ctrl+p commands"
+              }
+            ],
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "no_provider_request": true
+          }
+        },
+        {
+          "route": "session",
+          "stage": "trigger",
+          "expected_draft": "/",
+          "observed": {
+            "draft_slash": [
+              {
+                "x": 4,
+                "y": 23
+              },
+              {
+                "x": 4,
+                "y": 24
+              },
+              {
+                "x": 4,
+                "y": 25
+              },
+              {
+                "x": 4,
+                "y": 26
+              },
+              {
+                "x": 4,
+                "y": 27
+              },
+              {
+                "x": 4,
+                "y": 28
+              },
+              {
+                "x": 4,
+                "y": 29
+              },
+              {
+                "x": 4,
+                "y": 30
+              },
+              {
+                "x": 4,
+                "y": 31
+              },
+              {
+                "x": 4,
+                "y": 32
+              },
+              {
+                "x": 5,
+                "y": 34
+              },
+              {
+                "x": 2,
+                "y": 38
+              },
+              {
+                "x": 4,
+                "y": 38
+              },
+              {
+                "x": 9,
+                "y": 38
+              },
+              {
+                "x": 16,
+                "y": 38
+              },
+              {
+                "x": 29,
+                "y": 38
+              },
+              {
+                "x": 38,
+                "y": 38
+              },
+              {
+                "x": 52,
+                "y": 38
+              },
+              {
+                "x": 57,
+                "y": 38
+              },
+              {
+                "x": 82,
+                "y": 38
+              }
+            ],
+            "draft_ren": [],
+            "completed_rename": [],
+            "rename_options": [],
+            "visible_rows": [
+              {
+                "y": 38,
+                "text": "  /…/ope…/.cache/opencode-tmp/opencode/t44-reference/runs/autocomplete-20260924-01/project  6.8K (3%)  ctrl+p commands"
+              }
+            ],
+            "cursor": {
+              "x": 6,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "query_visible": true,
+            "menu_visible": false,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "b65aa47e9ecd5b592e1ba799819fd3bee846c53dc0c5958264c9b307c42499d7"
+        },
+        {
+          "route": "session",
+          "stage": "filtered",
+          "expected_draft": "/ren",
+          "observed": {
+            "draft_slash": [
+              {
+                "x": 4,
+                "y": 26
+              },
+              {
+                "x": 4,
+                "y": 27
+              },
+              {
+                "x": 4,
+                "y": 28
+              },
+              {
+                "x": 4,
+                "y": 29
+              },
+              {
+                "x": 4,
+                "y": 30
+              },
+              {
+                "x": 4,
+                "y": 31
+              },
+              {
+                "x": 4,
+                "y": 32
+              },
+              {
+                "x": 5,
+                "y": 34
+              },
+              {
+                "x": 2,
+                "y": 38
+              },
+              {
+                "x": 4,
+                "y": 38
+              },
+              {
+                "x": 9,
+                "y": 38
+              },
+              {
+                "x": 16,
+                "y": 38
+              },
+              {
+                "x": 29,
+                "y": 38
+              },
+              {
+                "x": 38,
+                "y": 38
+              },
+              {
+                "x": 52,
+                "y": 38
+              },
+              {
+                "x": 57,
+                "y": 38
+              },
+              {
+                "x": 82,
+                "y": 38
+              }
+            ],
+            "draft_ren": [
+              {
+                "x": 4,
+                "y": 26
+              },
+              {
+                "x": 5,
+                "y": 34
+              }
+            ],
+            "completed_rename": [
+              {
+                "x": 4,
+                "y": 26
+              }
+            ],
+            "rename_options": [
+              {
+                "x": 4,
+                "y": 26
+              }
+            ],
+            "visible_rows": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              },
+              {
+                "y": 34,
+                "text": "  ┃  /ren"
+              },
+              {
+                "y": 38,
+                "text": "  /…/ope…/.cache/opencode-tmp/opencode/t44-reference/runs/autocomplete-20260924-01/project  6.8K (3%)  ctrl+p commands"
+              }
+            ],
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "query_visible": true,
+            "menu_visible": false,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "eff4bab24d30fa702bd8bdd3ace17fb1ba2abaa086510272624394f641175a06"
+        },
+        {
+          "route": "session",
+          "stage": "after-tab",
+          "expected_draft": "/rename ",
+          "observed": {
+            "draft_slash": [
+              {
+                "x": 5,
+                "y": 34
+              },
+              {
+                "x": 2,
+                "y": 38
+              },
+              {
+                "x": 4,
+                "y": 38
+              },
+              {
+                "x": 9,
+                "y": 38
+              },
+              {
+                "x": 16,
+                "y": 38
+              },
+              {
+                "x": 29,
+                "y": 38
+              },
+              {
+                "x": 38,
+                "y": 38
+              },
+              {
+                "x": 52,
+                "y": 38
+              },
+              {
+                "x": 57,
+                "y": 38
+              },
+              {
+                "x": 82,
+                "y": 38
+              }
+            ],
+            "draft_ren": [
+              {
+                "x": 5,
+                "y": 34
+              }
+            ],
+            "completed_rename": [
+              {
+                "x": 5,
+                "y": 34
+              }
+            ],
+            "rename_options": [
+              {
+                "x": 5,
+                "y": 34
+              }
+            ],
+            "visible_rows": [
+              {
+                "y": 34,
+                "text": "  ┃  /rename"
+              },
+              {
+                "y": 38,
+                "text": "  /…/ope…/.cache/opencode-tmp/opencode/t44-reference/runs/autocomplete-20260924-01/project  6.8K (3%)  ctrl+p commands"
+              }
+            ],
+            "cursor": {
+              "x": 13,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "query_visible": true,
+            "menu_visible": false,
+            "tab_changed_grid": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "2623426d40a596fde38059d5a6076ac37f8bccc4e29d53752ccd8f5bb28256ec"
+        }
+      ]
+    },
+    "oc": {
+      "status": "RECORDED",
+      "checks": [
+        {
+          "route": "home",
+          "stage": "trigger",
+          "expected_draft": "/",
+          "observed": {
+            "draft_slash": [
+              {
+                "x": 26,
+                "y": 21
+              },
+              {
+                "x": 23,
+                "y": 25
+              },
+              {
+                "x": 25,
+                "y": 25
+              },
+              {
+                "x": 30,
+                "y": 25
+              },
+              {
+                "x": 55,
+                "y": 25
+              }
+            ],
+            "draft_ren": [],
+            "completed_rename": [],
+            "rename_options": [],
+            "visible_rows": [
+              {
+                "y": 25,
+                "text": "                       /…/runs/autocomplete-20260924-01/project  shift+tab agents  ctrl+p commands"
+              }
+            ],
+            "cursor": {
+              "x": 27,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "query_visible": true,
+            "menu_visible": false,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "3450f73a3fbbf3d99670058a8244c7099b06c63ef62d4d648e72de593114aaab"
+        },
+        {
+          "route": "home",
+          "stage": "filtered",
+          "expected_draft": "/ren",
+          "observed": {
+            "draft_slash": [
+              {
+                "x": 26,
+                "y": 21
+              },
+              {
+                "x": 23,
+                "y": 25
+              },
+              {
+                "x": 25,
+                "y": 25
+              },
+              {
+                "x": 30,
+                "y": 25
+              },
+              {
+                "x": 55,
+                "y": 25
+              }
+            ],
+            "draft_ren": [
+              {
+                "x": 26,
+                "y": 21
+              }
+            ],
+            "completed_rename": [],
+            "rename_options": [],
+            "visible_rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  /ren"
+              },
+              {
+                "y": 25,
+                "text": "                       /…/runs/autocomplete-20260924-01/project  shift+tab agents  ctrl+p commands"
+              }
+            ],
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "query_visible": true,
+            "menu_visible": false,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "25039e32d365fb03dfed06de39167d71e02a36d463b609a0862448fff6fe5274"
+        },
+        {
+          "route": "home",
+          "stage": "after-tab",
+          "expected_draft": "/rename ",
+          "observed": {
+            "draft_slash": [
+              {
+                "x": 26,
+                "y": 21
+              },
+              {
+                "x": 23,
+                "y": 25
+              },
+              {
+                "x": 25,
+                "y": 25
+              },
+              {
+                "x": 30,
+                "y": 25
+              },
+              {
+                "x": 55,
+                "y": 25
+              }
+            ],
+            "draft_ren": [
+              {
+                "x": 26,
+                "y": 21
+              }
+            ],
+            "completed_rename": [
+              {
+                "x": 26,
+                "y": 21
+              }
+            ],
+            "rename_options": [
+              {
+                "x": 26,
+                "y": 21
+              }
+            ],
+            "visible_rows": [
+              {
+                "y": 21,
+                "text": "                       ┃  /rename"
+              },
+              {
+                "y": 25,
+                "text": "                       /…/runs/autocomplete-20260924-01/project  shift+tab agents  ctrl+p commands"
+              }
+            ],
+            "cursor": {
+              "x": 34,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "query_visible": true,
+            "menu_visible": false,
+            "tab_changed_grid": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "eb689910187f58d0a8785cc533dd9d9ea7981ff7e3dabcbb702e8b28c070838c"
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "observed": {
+            "draft_slash": [
+              {
+                "x": 23,
+                "y": 25
+              },
+              {
+                "x": 25,
+                "y": 25
+              },
+              {
+                "x": 30,
+                "y": 25
+              },
+              {
+                "x": 55,
+                "y": 25
+              }
+            ],
+            "draft_ren": [],
+            "completed_rename": [],
+            "rename_options": [],
+            "visible_rows": [
+              {
+                "y": 25,
+                "text": "                       /…/runs/autocomplete-20260924-01/project  shift+tab agents  ctrl+p commands"
+              }
+            ],
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "no_provider_request": true
+          }
+        },
+        {
+          "route": "session",
+          "stage": "trigger",
+          "expected_draft": "/",
+          "observed": {
+            "draft_slash": [
+              {
+                "x": 4,
+                "y": 23
+              },
+              {
+                "x": 4,
+                "y": 24
+              },
+              {
+                "x": 4,
+                "y": 25
+              },
+              {
+                "x": 4,
+                "y": 26
+              },
+              {
+                "x": 4,
+                "y": 27
+              },
+              {
+                "x": 4,
+                "y": 28
+              },
+              {
+                "x": 4,
+                "y": 29
+              },
+              {
+                "x": 4,
+                "y": 30
+              },
+              {
+                "x": 4,
+                "y": 31
+              },
+              {
+                "x": 4,
+                "y": 32
+              },
+              {
+                "x": 5,
+                "y": 34
+              },
+              {
+                "x": 2,
+                "y": 38
+              },
+              {
+                "x": 4,
+                "y": 38
+              },
+              {
+                "x": 9,
+                "y": 38
+              },
+              {
+                "x": 16,
+                "y": 38
+              },
+              {
+                "x": 29,
+                "y": 38
+              },
+              {
+                "x": 38,
+                "y": 38
+              },
+              {
+                "x": 52,
+                "y": 38
+              },
+              {
+                "x": 57,
+                "y": 38
+              },
+              {
+                "x": 82,
+                "y": 38
+              }
+            ],
+            "draft_ren": [],
+            "completed_rename": [],
+            "rename_options": [],
+            "visible_rows": [
+              {
+                "y": 28,
+                "text": "  ┃ /commands  Show command palette                                                                                  ┃"
+              },
+              {
+                "y": 38,
+                "text": "  /…/ope…/.cache/opencode-tmp/opencode/t44-reference/runs/autocomplete-20260924-01/project  6.8K (3%)  ctrl+p commands"
+              }
+            ],
+            "cursor": {
+              "x": 6,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "query_visible": true,
+            "menu_visible": false,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "2f8c1c45636a4839ae6e997cf26a0d6256c9e02c9ce89ca0e64d5c6751896592"
+        },
+        {
+          "route": "session",
+          "stage": "filtered",
+          "expected_draft": "/ren",
+          "observed": {
+            "draft_slash": [
+              {
+                "x": 4,
+                "y": 31
+              },
+              {
+                "x": 4,
+                "y": 32
+              },
+              {
+                "x": 5,
+                "y": 34
+              },
+              {
+                "x": 2,
+                "y": 38
+              },
+              {
+                "x": 4,
+                "y": 38
+              },
+              {
+                "x": 9,
+                "y": 38
+              },
+              {
+                "x": 16,
+                "y": 38
+              },
+              {
+                "x": 29,
+                "y": 38
+              },
+              {
+                "x": 38,
+                "y": 38
+              },
+              {
+                "x": 52,
+                "y": 38
+              },
+              {
+                "x": 57,
+                "y": 38
+              },
+              {
+                "x": 82,
+                "y": 38
+              }
+            ],
+            "draft_ren": [
+              {
+                "x": 4,
+                "y": 31
+              },
+              {
+                "x": 5,
+                "y": 34
+              }
+            ],
+            "completed_rename": [
+              {
+                "x": 4,
+                "y": 31
+              }
+            ],
+            "rename_options": [
+              {
+                "x": 4,
+                "y": 31
+              }
+            ],
+            "visible_rows": [
+              {
+                "y": 31,
+                "text": "  ┃ /rename  Rename session                                                                                          ┃"
+              },
+              {
+                "y": 34,
+                "text": "  ┃  /ren"
+              },
+              {
+                "y": 38,
+                "text": "  /…/ope…/.cache/opencode-tmp/opencode/t44-reference/runs/autocomplete-20260924-01/project  6.8K (3%)  ctrl+p commands"
+              }
+            ],
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "query_visible": true,
+            "menu_visible": false,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "c30fba3def6bcacfa8983122a1dfd7be0288d1a9e97675e9e8ab96e0c769993a"
+        },
+        {
+          "route": "session",
+          "stage": "after-tab",
+          "expected_draft": "/rename ",
+          "observed": {
+            "draft_slash": [
+              {
+                "x": 5,
+                "y": 34
+              },
+              {
+                "x": 2,
+                "y": 38
+              },
+              {
+                "x": 4,
+                "y": 38
+              },
+              {
+                "x": 9,
+                "y": 38
+              },
+              {
+                "x": 16,
+                "y": 38
+              },
+              {
+                "x": 29,
+                "y": 38
+              },
+              {
+                "x": 38,
+                "y": 38
+              },
+              {
+                "x": 52,
+                "y": 38
+              },
+              {
+                "x": 57,
+                "y": 38
+              },
+              {
+                "x": 82,
+                "y": 38
+              }
+            ],
+            "draft_ren": [
+              {
+                "x": 5,
+                "y": 34
+              }
+            ],
+            "completed_rename": [
+              {
+                "x": 5,
+                "y": 34
+              }
+            ],
+            "rename_options": [
+              {
+                "x": 5,
+                "y": 34
+              }
+            ],
+            "visible_rows": [
+              {
+                "y": 34,
+                "text": "  ┃  /rename"
+              },
+              {
+                "y": 38,
+                "text": "  /…/ope…/.cache/opencode-tmp/opencode/t44-reference/runs/autocomplete-20260924-01/project  6.8K (3%)  ctrl+p commands"
+              }
+            ],
+            "cursor": {
+              "x": 13,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "query_visible": true,
+            "menu_visible": false,
+            "tab_changed_grid": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "260302e1b875a09f716b2a6b9b1f336a6fa0d2e3a4a83032163e8d37346544e7"
+        }
+      ]
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-24T15:44:53.799Z",
+  "exit_code": 1
+}
