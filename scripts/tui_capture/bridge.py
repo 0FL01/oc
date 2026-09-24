@@ -38,6 +38,9 @@ elif spec.get('sample') == 'tools':
     answer = 'GEOMETRY-SHORT: tool read completed.'
 elif spec.get('sample') == 'rows':
     answer = '```text\n' + '\n'.join(f'ROW-{i:03}' for i in range(90)) + '\n```'
+elif spec.get('sample') == 'rows-reflow':
+    answer = '```text\n' + '\n'.join(
+        f'ROW-{i:03}' + (' ' + 'x' * 90 if i <= 40 else '') for i in range(90)) + '\n```'
 catalog = json.loads((fixture / 'model-catalog.json').read_text())
 title = json.loads((fixture / 'scenarios.json').read_text())['base']['title']
 transcript_round = 0

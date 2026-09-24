@@ -122,7 +122,9 @@ Source contract anchors (pinned upstream source):
 
 `--geometry true` captures actual Home and completed-session screens and skips
 dialog inputs. `--sample short` supplies a one-line answer; `--sample rows` supplies
-a 90-line code block. The selected sample participates in the fixture hash.
+a 90-line code block. `--sample rows-reflow` keeps 90 ROW markers in a code fence,
+with 90 ASCII characters after ROW-000 through ROW-040 so those lines wrap at
+80 columns but not 160. The selected sample participates in the fixture hash.
 `--matrix true` then resizes both real PTYs through 80×24,120×40,160×48,
 43/44/119/120/121×48,120×80 and back to 160×48. Per-side
 `geometry-checks.json` records observed row-marker counts and sidebar presence;
@@ -140,8 +142,19 @@ cursor-at-draft-end assertions. Original uses its supported Ctrl+Alt+Y/E scroll
 bindings; native uses actual SGR wheel events over the transcript, since Up/Down
 navigate the focused editor/history and would overwrite the draft. This does
 not qualify keymap parity.
-Both sides check that the first visible marker survives shrink/grow. Native
-additionally checks a top-offset clamp after growing to 160×80.
+For `--sample rows`, both sides check that the first visible marker survives
+shrink/grow; native additionally checks a top-offset clamp after growing to
+160×80. For a width-sensitive diagnostic, use `--geometry true
+--sample rows-reflow --scroll-resize true` with an initial 160×48 terminal and
+a fresh output path. Each side records the first visible ROW marker and its screen y
+coordinate for away, 80×24 shrink and 160×48 grow in `scroll-checks.json` and
+`scroll-resize-anchors.json`. The original may retain a physical scroll offset
+rather than the same semantic marker; neither side fails solely for an anchor
+change. Draft/cursor checks and bottom re-pin still apply. This fixture grows
+back to ROW-041 before the Down input and requires the first visible marker to
+advance to ROW-042; an unchanged frame is a failed scroll. `--sample rows-reflow
+--matrix true` is rejected; the native 160×80 clamp is rows-only to keep those
+existing marker-count and clamp assertions.
 
 For the completed real-read exploration group, run a **fresh** output directory:
 

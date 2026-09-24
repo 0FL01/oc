@@ -193,6 +193,21 @@ pub fn wrap_line(line: &Line, width: usize) -> Vec<Line> {
 
 /// At most `limit` wrapped rows; used for bounded Markdown previews.
 pub fn wrap_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
+    wrap_line_with_space_mode(line, width, limit, false)
+}
+
+/// Code-fence wrap keeps source separator spaces on the row before a long
+/// word, so their original style is painted without inventing blank cells.
+pub fn wrap_code_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
+    wrap_line_with_space_mode(line, width, limit, true)
+}
+
+fn wrap_line_with_space_mode(
+    line: &Line,
+    width: usize,
+    limit: usize,
+    preserve_break_space: bool,
+) -> Vec<Line> {
     let max = width.max(1);
     let mut out: Vec<Vec<(String, Style)>> = Vec::new();
     let mut current: Vec<(String, Style)> = Vec::new();
@@ -223,8 +238,10 @@ pub fn wrap_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
                             rest.remove(0);
                         }
                         let mut head = std::mem::take(&mut current);
-                        while head.last().is_some_and(|(ch, _)| ch == " ") {
-                            head.pop();
+                        if !preserve_break_space {
+                            while head.last().is_some_and(|(ch, _)| ch == " ") {
+                                head.pop();
+                            }
                         }
                         out.push(head);
                         current = rest;
@@ -380,6 +397,27 @@ mod tests {
             vec!["中🧑‍💻", "文"]
         );
         assert_eq!(wrap_line_limited(&Line::plain("abcdefghij"), 2, 2).len(), 2);
+    }
+
+    #[test]
+    fn code_wrap_keeps_source_separator_style_and_row_limit() {
+        use ratatui::style::Color;
+
+        let code = Style::default().fg(Color::Rgb(238, 238, 238));
+        let line = Line::new(vec![
+            Span::styled("ROW-014 ", code),
+            Span::plain("x".repeat(90)),
+        ]);
+        let code_rows = wrap_code_line_limited(&line, 77, 2);
+        assert_eq!(code_rows.len(), 2);
+        assert_eq!(code_rows[0].plain_text(), "ROW-014 ");
+        assert_eq!(code_rows[0].spans()[0].style(), code);
+        assert_eq!(code_rows[1].plain_text(), "x".repeat(77));
+        assert_eq!(
+            wrap_line_limited(&line, 77, 2)[0].plain_text(),
+            "ROW-014",
+            "default prose wrap still drops break spaces"
+        );
     }
 
     #[test]

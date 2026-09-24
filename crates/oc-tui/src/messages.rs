@@ -2159,7 +2159,7 @@ fn markdown_at_width_with_columns(
                                     }
                                     let highlighted =
                                         code_lines(Some(&lang), &[safe_text(line)], theme);
-                                    out.extend(styled::wrap_line_limited(
+                                    out.extend(styled::wrap_code_line_limited(
                                         &highlighted[0],
                                         width,
                                         (MAX_MARKDOWN_ROWS + 1).saturating_sub(out.len()),
@@ -2652,7 +2652,11 @@ mod tests {
     use crate::styled;
     use oc_core::queries::ToolOpView;
     use ratatui::buffer::Buffer;
-    use ratatui::{Terminal, backend::TestBackend, widgets::Paragraph};
+    use ratatui::{
+        Terminal,
+        backend::TestBackend,
+        widgets::{Block, Paragraph},
+    };
 
     fn user(text: &str, chips: Vec<Chip>) -> HistoryRow {
         HistoryRow {
@@ -4562,6 +4566,131 @@ mod tests {
             lines[0].spans()[0].style().fg,
             Some(theme.markdown(MarkdownToken::Text))
         );
+    }
+
+    #[test]
+    fn fenced_code_preserves_only_source_separator_on_word_wrap() {
+        // In the pinned rows-reflow fixture ROW-000..040 have a source
+        // separator before a long x word; ROW-041..089 do not.
+        let theme = Theme::dark();
+        let paint = |lines: Vec<Line>, width: u16| {
+            let wrapped = styled::wrap_lines(&lines, width as usize);
+            let count = wrapped.len();
+            let mut terminal = Terminal::new(TestBackend::new(width, 8)).unwrap();
+            terminal
+                .draw(|frame| {
+                    frame.render_widget(
+                        Block::default().style(Style::default().fg(theme.text())),
+                        frame.area(),
+                    );
+                    frame.render_widget(
+                        Paragraph::new(styled::Lines::from(wrapped).into_text()),
+                        frame.area(),
+                    );
+                })
+                .unwrap();
+            (count, terminal.backend().buffer().clone())
+        };
+        for (width, code, expected, separator) in [
+            (
+                80,
+                format!("ROW-014 {}", "x".repeat(90)),
+                vec!["ROW-014 ".to_string(), "x".repeat(77), "x".repeat(13)],
+                true,
+            ),
+            (
+                80,
+                "ROW-041".to_string(),
+                vec!["ROW-041".to_string()],
+                false,
+            ),
+            (
+                10,
+                "ROW-041".to_string(),
+                vec!["ROW-041".to_string()],
+                false,
+            ),
+        ] {
+            let row = assistant(&format!("```text\n{code}\n```"));
+            let full = transcript(std::slice::from_ref(&row), theme, width, width, |_| {
+                theme.text()
+            });
+            let cache = RefCell::new(MarkdownCache::default());
+            let (visible, total) = visible_transcript(
+                std::slice::from_ref(&row),
+                theme,
+                width,
+                width,
+                (8, 0, None),
+                |_| theme.text(),
+                &cache,
+            );
+            for (index, expected_row) in expected.iter().enumerate() {
+                let text = format!("   {expected_row}");
+                assert_eq!(full[index + 1].plain_text(), text, "width {width}");
+                assert_eq!(
+                    visible[index + 2].plain_text(),
+                    text,
+                    "indexed width {width}"
+                );
+            }
+            let (full_count, full_buffer) = paint(full, width);
+            let (visible_count, visible_buffer) = paint(visible, width);
+            assert_eq!(
+                full_count,
+                expected.len() + 1,
+                "width {width}: no extra code row"
+            );
+            assert_eq!(
+                visible_count,
+                expected.len() + 2,
+                "width {width}: indexed leading blank + code"
+            );
+            assert_eq!(total, expected.len() + 2, "width {width}: seek height");
+            let x = MESSAGE_PADDING as u16 + 7;
+            for (buffer, y) in [(&full_buffer, 1), (&visible_buffer, 2)] {
+                assert_eq!(
+                    buffer[(x - 1, y)].symbol(),
+                    if separator { "4" } else { "1" },
+                    "width {width}"
+                );
+                if separator {
+                    assert_eq!(buffer[(x, y)].symbol(), " ");
+                    assert_eq!(
+                        buffer[(x, y)].fg,
+                        theme.markdown(MarkdownToken::CodeBlock),
+                        "width {width}"
+                    );
+                    assert_eq!(
+                        buffer[(x + 1, y)].fg,
+                        theme.text(),
+                        "width {width}: no synthetic cell"
+                    );
+                } else if x < width {
+                    assert_eq!(
+                        buffer[(x, y)].fg,
+                        theme.text(),
+                        "width {width}: short row blank stays default"
+                    );
+                } else {
+                    assert_eq!(x, width, "width {width}: exact fit");
+                }
+            }
+            for (index, _) in expected.iter().enumerate() {
+                for x in 0..width {
+                    assert_eq!(
+                        full_buffer[(x, index as u16 + 1)],
+                        visible_buffer[(x, index as u16 + 2)],
+                        "width {width}, row {index}, x {x}"
+                    );
+                }
+            }
+        }
+
+        let prose = assistant("ROW-041");
+        let (count, buffer) = paint(transcript(&[prose], theme, 80, 80, |_| theme.text()), 80);
+        assert_eq!(count, 2);
+        assert_eq!(buffer[(10, 1)].fg, theme.text(), "prose tail stays default");
     }
 
     /// `reasoningSummary` (`context/thinking.ts:10-19`) extracts only a leading

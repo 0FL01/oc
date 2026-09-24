@@ -612,19 +612,23 @@ fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
         area.width.saturating_sub(4),
         area.height.saturating_sub(2),
     );
-    let title = wrap_text(
+    let title = wrap_text_with_breaks(
         state.session_title.as_deref().unwrap_or(UNTITLED_SESSION),
         inner.width.saturating_sub(2) as usize,
     );
+    let title_style = Style::default()
+        .fg(theme.text())
+        .add_modifier(Modifier::BOLD);
     let mut lines: Vec<Line<'static>> = title
         .into_iter()
-        .map(|t| {
-            Line::styled(
-                t,
-                Style::default()
-                    .fg(theme.text())
-                    .add_modifier(Modifier::BOLD),
-            )
+        .map(|(t, wrapped_at_space)| {
+            let mut line = Line::styled(t, title_style);
+            if wrapped_at_space {
+                // The title_shimmer renders one bold text node: the original
+                // separator before the next word remains on the preceding row.
+                line.spans.push(Span::styled(" ", title_style));
+            }
+            line
         })
         .collect();
     lines.push(Line::default());
@@ -1370,10 +1374,18 @@ fn render_toast(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Re
 /// (`ui/toast.tsx:75`). Words longer than the width are split so no bounded
 /// notice is silently dropped; returns at least one (possibly empty) line.
 fn wrap_text(text: &str, width: usize) -> Vec<String> {
+    wrap_text_with_breaks(text, width)
+        .into_iter()
+        .map(|(line, _)| line)
+        .collect()
+}
+
+/// Whether the next row starts after a source-space rather than a hard word split.
+fn wrap_text_with_breaks(text: &str, width: usize) -> Vec<(String, bool)> {
     if width == 0 {
-        return vec![String::new()];
+        return vec![(String::new(), false)];
     }
-    let mut lines: Vec<String> = Vec::new();
+    let mut lines: Vec<(String, bool)> = Vec::new();
     let mut current = String::new();
     let mut current_width = 0usize;
     for word in text.split(' ') {
@@ -1389,14 +1401,14 @@ fn wrap_text(text: &str, width: usize) -> Vec<String> {
             continue;
         }
         if !current.is_empty() {
-            lines.push(std::mem::take(&mut current));
+            lines.push((std::mem::take(&mut current), true));
         }
         let mut chunk = String::new();
         let mut chunk_width = 0usize;
         for ch in word.chars() {
             let char_width = text_width(&ch.to_string());
             if chunk_width + char_width > width && !chunk.is_empty() {
-                lines.push(std::mem::take(&mut chunk));
+                lines.push((std::mem::take(&mut chunk), false));
                 chunk_width = 0;
             }
             chunk.push(ch);
@@ -1406,7 +1418,7 @@ fn wrap_text(text: &str, width: usize) -> Vec<String> {
         current_width = chunk_width;
     }
     if !current.is_empty() || lines.is_empty() {
-        lines.push(current);
+        lines.push((current, false));
     }
     lines
 }
@@ -2570,6 +2582,78 @@ mod tests {
             }
         }
         assert!(blanks > 1609, "expected the predominantly empty sidebar");
+    }
+
+    #[tokio::test]
+    async fn paired_wrapped_sidebar_title_styles_separator_not_final_tail() {
+        let mut state = golden_state().await;
+        // Pinned VIS05 scroll-away: the title wraps just before "ассистенту".
+        let title = "Какие инструменты доступны ассистенту";
+        state.session_title = Some(title.into());
+        state.chrome.devtools = Some(false);
+        state.close_panel();
+        let theme = Theme::dark();
+        let white = Color::Rgb(255, 255, 255);
+        let mut terminal = Terminal::new(TestBackend::new(160, 48)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        let session = shell_regions(&state, Rect::new(0, 0, 160, 48)).session;
+        let sidebar_x = session.right() - layout::SESSION_SIDEBAR_WIDTH;
+        let title_x = sidebar_x + 2;
+        let first_y = session.y + 1;
+        let first = "Какие инструменты доступны";
+        let second = "ассистенту";
+        for (row, expected) in [(first_y, first), (first_y + 1, second)] {
+            let printed = (title_x..session.right() - 2)
+                .map(|x| buffer[(x, row)].symbol().to_string())
+                .collect::<String>();
+            assert_eq!(printed.trim_end(), expected);
+        }
+        let separator = &buffer[(title_x + text_width(first) as u16, first_y)];
+        assert_eq!(separator.symbol(), " ");
+        assert_eq!(separator.fg, theme.text());
+        assert!(separator.modifier.contains(Modifier::BOLD));
+        let final_tail = &buffer[(title_x + text_width(second) as u16, first_y + 1)];
+        assert_eq!(final_tail.symbol(), " ");
+        assert_eq!(final_tail.fg, white);
+        assert!(!final_tail.modifier.contains(Modifier::BOLD));
+        for (row, after) in [
+            (first_y, title_x + text_width(first) as u16 + 1),
+            (first_y + 1, title_x + text_width(second) as u16),
+        ] {
+            for x in after..session.right() - 2 {
+                let cell = &buffer[(x, row)];
+                assert_eq!(cell.symbol(), " ", "({x},{row})");
+                assert_eq!(cell.fg, white, "({x},{row})");
+                assert!(!cell.modifier.contains(Modifier::BOLD), "({x},{row})");
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn hard_wrapped_unicode_sidebar_title_has_no_separator_cell() {
+        let mut state = golden_state().await;
+        state.session_title = Some("界".repeat(22));
+        let theme = Theme::dark();
+        let white = Color::Rgb(255, 255, 255);
+        let mut terminal = Terminal::new(TestBackend::new(40, 12)).unwrap();
+        terminal
+            .draw(|frame| {
+                frame.render_widget(
+                    Block::default().style(Style::default().fg(white).bg(theme.background())),
+                    frame.area(),
+                );
+                render_sidebar(frame, &state, theme, frame.area());
+            })
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        // 17 double-width glyphs fill the first 34-cell wrapped row; five
+        // remain on the final row. Neither wrap splits at a space.
+        assert_eq!(buffer[(36, 1)].fg, white);
+        assert_eq!(buffer[(12, 2)].symbol(), " ");
+        assert_eq!(buffer[(12, 2)].fg, white);
+        assert!(!buffer[(12, 2)].modifier.contains(Modifier::BOLD));
+        assert_eq!(buffer[(13, 2)].fg, white);
     }
 
     /// The buffer rows with trailing spaces removed, so snapshots stay small

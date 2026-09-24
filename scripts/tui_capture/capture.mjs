@@ -38,6 +38,8 @@ if (tabClick && (args.geometry !== 'true' || args.sample !== 'tools' || args.sid
     args.matrix === 'true' || args['scroll-resize'] === 'true' || args['startup-error'] === 'true' ||
     args['seed-root'] || args.tabs === 'vertical' || !args.reference || !args.oc))
   throw Error('--tab-click true requires both binaries, --geometry true --sample tools --sidebar hide --agent-profile true --columns 120 --rows 40, horizontal tabs and no matrix/scroll-resize/startup-error/seed-root');
+if (args.sample === 'rows-reflow' && args.matrix === 'true')
+  throw Error('--sample rows-reflow does not support --matrix true; use --sample rows for the matrix/clamp run');
 const output = path.resolve(args.output || path.join(repo, 'evidence/tui/recovery-v00', new Date().toISOString().replaceAll(':', '-')));
 fs.mkdirSync(path.dirname(output), {recursive: true});
 try { fs.mkdirSync(output); }
@@ -235,7 +237,7 @@ try {
       if(args.geometry === 'true') await capture('home', initial, 'CAPTURED');
       send('\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\x1b[201~','prompt_paste');
       await sleep(200); send('\r','submit');
-       const marker = ['short','reasoning','tools'].includes(args.sample) ? 'GEOMETRY-SHORT' : args.sample === 'rows' ? 'ROW-089' : 'Через Code Mode';
+       const marker = ['short','reasoning','tools'].includes(args.sample) ? 'GEOMETRY-SHORT' : ['rows','rows-reflow'].includes(args.sample) ? 'ROW-089' : 'Через Code Mode';
        const done = await waitFor(f => f.text.includes(marker) &&
         /MiMo-V2.6-Flash Free · \d/.test(f.text) &&
          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript'), 'completed transcript');
@@ -531,13 +533,23 @@ try {
       if(args['scroll-resize'] === 'true') {
         const checks = [];
         const markers = f => [...f.text.matchAll(/ROW-(\d+)/g)].map(m=>Number(m[1]));
+        const reflow = args.sample === 'rows-reflow';
+        const firstVisibleRow = f => {
+          for (const [y, cells] of f.cells.entries()) {
+            const row = cells.map(c=>c.symbol).join('');
+            const match = /ROW-(\d{3})/.exec(row);
+            if (match) return {marker:match[0], index:Number(match[1]), y};
+          }
+          return null;
+        };
         const check = async (name, predicate) => {
           const f = await waitFor(predicate, name);
           await capture(name, f, 'CAPTURED_SCROLL_GEOMETRY');
           const draftRow = f.cells.findIndex(row=>row.map(c=>c.symbol).join('').includes('scroll-draft'));
           const rowText = draftRow < 0 ? '' : f.cells[draftRow].map(c=>c.symbol).join('');
           const draftX = rowText.indexOf('scroll-draft');
-          const c = {scenario:name, markers:markers(f), cursor:f.cursor, draft_row:draftRow,
+          const c = {scenario:name, columns:f.columns, rows:f.rows, markers:markers(f),
+            first_visible_row:firstVisibleRow(f), cursor:f.cursor, draft_row:draftRow,
             cursor_at_draft_end:f.cursor.visible && f.cursor.x===draftX+12 && f.cursor.y===draftRow};
           checks.push(c);
           fs.writeFileSync(path.join(dir,'scroll-checks.json'),JSON.stringify(checks,null,2)+'\n');
@@ -551,15 +563,27 @@ try {
         // user message. The original retains its documented scroll binding.
         send((origin==='oc' ? '\x1b[<64;10;15M' : '\x1b\x19').repeat(12),'scroll_away_12_lines');
         const away = await check('scroll-away',f=>f.text.includes('scroll-draft') && markers(f).length>0 && !f.text.includes('ROW-089'));
+        const resizeAnchors = {away:away.first_visible_row};
+        let grown;
         for(const [columns,rows,name] of [[80,24,'scroll-shrink'],[160,48,'scroll-grow']]) {
           profile.columns=columns; profile.rows=rows;
           await page.evaluate(({columns,rows})=>term.resize(columns,rows),{columns,rows});
           child.stdin.write(JSON.stringify({kind:'resize',columns,rows})+'\n');
-          const c = await check(name,f=>f.columns===columns && f.rows===rows && f.text.includes('scroll-draft') && !f.text.includes('ROW-089'));
-          if(c.markers[0]!==away.markers[0]) throw Error('scroll top row lost during resize: '+name);
+          const c = await check(name,f=>f.columns===columns && f.rows===rows && f.text.includes('scroll-draft') &&
+            markers(f).length>0 && (reflow || !f.text.includes('ROW-089')));
+          resizeAnchors[name==='scroll-shrink'?'shrink':'grow'] = c.first_visible_row;
+          if(name==='scroll-grow') grown=c;
+          if(!reflow && c.markers[0]!==away.markers[0]) throw Error('scroll top row lost during resize: '+name);
         }
+        fs.writeFileSync(path.join(dir,'scroll-resize-anchors.json'),JSON.stringify({sample:spec.sample,
+          origin, anchors:resizeAnchors},null,2)+'\n');
         send(origin==='oc' ? '\x1b[<65;10;15M' : '\x1b\x05','scroll_down_one');
-        const down = await check('scroll-down-one',f=>markers(f).at(-1)===away.markers.at(-1)+1);
+        // This fixture grows back to the short rows after ROW-041. One scroll
+        // must advance that visible marker; accepting any stable frame would
+        // mistakenly pass if the Down event were lost.
+        const down = await check('scroll-down-one',f=>reflow
+          ? f.text.includes('scroll-draft') && firstVisibleRow(f)?.index===grown.first_visible_row.index+1
+          : markers(f).at(-1)===away.markers.at(-1)+1);
         send((origin==='oc' ? '\x1b[<65;10;15M' : '\x1b\x05').repeat(100),'scroll_repin');
         await check('scroll-repinned',f=>f.text.includes('ROW-089') && f.text.includes('scroll-draft'));
         lock.attempts.push({origin,status:'SCROLL_RESIZE_CHECKS_PASS',one_line_down:down.markers.at(-1)});
@@ -591,7 +615,7 @@ try {
       // This native-only clamp test changes transcript position. Run it after
       // the paired matrix, never before: both sides must enter paired captures
       // with the same repinned viewport.
-      if(args['scroll-resize'] === 'true' && origin==='oc') {
+      if(args['scroll-resize'] === 'true' && args.sample==='rows' && origin==='oc') {
         const markers = f => [...f.text.matchAll(/ROW-(\d+)/g)].map(m=>Number(m[1]));
         const draftBefore = await frame();
         const draftAtStart = draftBefore.cells.findIndex(line=>line.map(c=>c.symbol).join('').includes('scroll-draft'));
