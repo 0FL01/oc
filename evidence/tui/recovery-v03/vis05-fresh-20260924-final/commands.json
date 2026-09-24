@@ -1,0 +1,652 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "rows",
+      "--matrix",
+      "true",
+      "--scroll-resize",
+      "true",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "160",
+      "--rows",
+      "48",
+      "--devtools",
+      "false",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "0f546a531e526e45d77c8d3feb20baccb6b0f5ad\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "a0dc013eb42717b6f6da44f8f7dc3702096ccd7a\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/app.rs b/crates/oc-tui/src/app.rs\nindex 3f134c4..0ed274e 100644\n--- a/crates/oc-tui/src/app.rs\n+++ b/crates/oc-tui/src/app.rs\n@@ -294,6 +294,16 @@ pub(crate) const HOME_EXAMPLES: [&str; 3] = [\n     \"Fix broken tests\",\n ];\n \n+#[derive(Clone, Copy)]\n+struct TranscriptViewport {\n+    width: u16,\n+    terminal_width: u16,\n+    height: u16,\n+    total: usize,\n+    requested_scroll: usize,\n+    displayed_scroll: usize,\n+}\n+\n /// Bounded chat state on the shared handle, optionally attached to a session.\n pub struct TuiState {\n     pub chrome: oc_core::queries::TuiChrome,\n@@ -302,7 +312,7 @@ pub struct TuiState {\n     pub home: bool,\n     /// Sampled once per UI instance; never changes during a redraw.\n     pub(crate) home_example: &'static str,\n-    viewport_max_scroll: std::cell::Cell<Option<usize>>,\n+    viewport: std::cell::Cell<Option<TranscriptViewport>>,\n     /// Current session's durable human title, refreshed with history.\n     pub session_title: Option<String>,\n     /// Session autoaccept capability supplied by the application.\n@@ -415,7 +425,7 @@ impl TuiState {\n             parent_id: None,\n             home,\n             home_example: HOME_EXAMPLES[index],\n-            viewport_max_scroll: std::cell::Cell::new(None),\n+            viewport: std::cell::Cell::new(None),\n             session_title: None,\n             auto_accept: oc_core::queries::AutoAcceptState::Unsupported,\n             app,\n@@ -699,7 +709,7 @@ impl TuiState {\n         self.card_scroll = 0;\n         self.card_seen.set(0);\n         self.detail_area.set(ratatui::layout::Rect::default());\n-        self.viewport_max_scroll.set(None);\n+        self.viewport.set(None);\n         self.parent_id = None;\n         self.home = false;\n         self.session_title = None;\n@@ -992,7 +1002,13 @@ impl TuiState {\n \n     /// Effective offset in the last drawn viewport; requested offset survives resize.\n     pub fn display_scroll(&self) -> usize {\n-        self.scroll.min(self.max_scroll())\n+        self.viewport\n+            .get()\n+            .filter(|view| view.requested_scroll == self.scroll)\n+            .map_or_else(\n+                || self.scroll.min(self.max_scroll()),\n+                |view| view.displayed_scroll,\n+            )\n     }\n \n     /// True while a submission awaits acceptance or a turn streams.\n@@ -1009,7 +1025,7 @@ impl TuiState {\n     pub fn attach_page(&mut self, page: &HistoryPage) {\n         self.exploration_down = None;\n         self.exploration_expanded.clear();\n-        self.viewport_max_scroll.set(None);\n+        self.viewport.set(None);\n         self.parent_id = page.parent_id.clone();\n         self.session_title = page.title.clone();\n         self.window.reset(page);\n@@ -1018,13 +1034,13 @@ impl TuiState {\n \n     /// Add an older page at the front of the window.\n     pub fn prepend_page(&mut self, page: &HistoryPage) {\n-        self.viewport_max_scroll.set(None);\n+        self.viewport.set(None);\n         self.window.prepend_older(page);\n     }\n \n     /// Add a newer page at the back of the window.\n     pub fn append_page(&mut self, page: &HistoryPage) {\n-        self.viewport_max_scroll.set(None);\n+        self.viewport.set(None);\n         self.window.append_newer(page);\n     }\n \n@@ -1115,13 +1131,14 @@ impl TuiState {\n                     {\n                         let rect = crate::shell::transcript_area(self, area);\n                         let height = rect.height as usize;\n-                        let (_, before) =\n-                            self.visible_transcript(rect.width, area.width, rect.height);\n+                        let (_, before, displayed) = self.visible_transcript_at_viewport(\n+                            rect.width,\n+                            area.width,\n+                            rect.height,\n+                        );\n                         // Keep the clicked header at its painted row by anchoring\n                         // the first visible row, rather than the bottom offset.\n-                        let first = before\n-                            .saturating_sub(height)\n-                            .saturating_sub(self.scroll.min(before.saturating_sub(height)));\n+                        let first = before.saturating_sub(height).saturating_sub(displayed);\n                         let rows = self.transcript_rows();\n                         self.exploration_expanded.retain(|id| {\n                             rows.iter()\n@@ -1133,7 +1150,13 @@ impl TuiState {\n                         let (_, after) =\n                             self.visible_transcript(rect.width, area.width, rect.height);\n                         self.scroll = after.saturating_sub(height).saturating_sub(first);\n-                        self.observe_viewport(rect.height, after);\n+                        self.observe_transcript_viewport(\n+                            rect.width,\n+                            area.width,\n+                            rect.height,\n+                            after,\n+                            self.scroll,\n+                        );\n                     }\n                 }\n                 MouseEventKind::Drag(_)\n@@ -1322,7 +1345,11 @@ impl TuiState {\n             &rows,\n             Theme::dark(),\n             (rect.width, area.width),\n-            (rect.height as usize, self.scroll, live_row),\n+            (\n+                rect.height as usize,\n+                self.scroll_for_current_view(),\n+                live_row,\n+            ),\n             |agent| self.agent_color(agent),\n             &self.markdown_cache,\n             (\n@@ -1447,18 +1474,58 @@ impl TuiState {\n         terminal_width: u16,\n         height: u16,\n     ) -> (Vec<Line>, usize) {\n+        let (lines, total, _) = self.visible_transcript_at_viewport(width, terminal_width, height);\n+        (lines, total)\n+    }\n+\n+    /// Resolve a resize against the last painted top row without changing\n+    /// the input-owned scroll request or materializing the whole transcript.\n+    pub(crate) fn visible_transcript_at_viewport(\n+        &self,\n+        width: u16,\n+        terminal_width: u16,\n+        height: u16,\n+    ) -> (Vec<Line>, usize, usize) {\n         let rows = self.transcript_rows();\n         let live_row = (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| {\n             rows.len() - 1 - usize::from(self.active_turn.is_some() && self.live_preview_truncated)\n         });\n-        crate::messages::visible_transcript_expanded(\n-            &rows,\n-            Theme::dark(),\n-            (width, terminal_width),\n-            (height as usize, self.scroll, live_row),\n-            |agent| self.agent_color(agent),\n-            &self.markdown_cache,\n-            &|op| self.exploration_expanded.contains(op),\n+        let render = |height, scroll| {\n+            crate::messages::visible_transcript_expanded(\n+                &rows,\n+                Theme::dark(),\n+                (width, terminal_width),\n+                (height, scroll, live_row),\n+                |agent| self.agent_color(agent),\n+                &self.markdown_cache,\n+                &|op| self.exploration_expanded.contains(op),\n+            )\n+        };\n+        let previous = self.viewport.get();\n+        let resized = previous.is_some_and(|view| {\n+            (view.width, view.terminal_width, view.height) != (width, terminal_width, height)\n+        });\n+        let scroll = if self.scroll == 0 {\n+            0\n+        } else if resized && previous.is_some_and(|view| view.requested_scroll == self.scroll) {\n+            let view = previous.expect(\"resized viewport\");\n+            // Count-only indexing is needed on resize, not on every draw.\n+            let (_, total) = render(0, 0);\n+            let top = view\n+                .total\n+                .saturating_sub(view.height as usize)\n+                .saturating_sub(view.displayed_scroll);\n+            total.saturating_sub(height as usize).saturating_sub(top)\n+        } else if previous.is_some_and(|view| view.requested_scroll == self.scroll) {\n+            self.display_scroll()\n+        } else {\n+            self.scroll\n+        };\n+        let (lines, total) = render(height as usize, scroll);\n+        (\n+            lines,\n+            total,\n+            scroll.min(total.saturating_sub(height as usize)),\n         )\n     }\n \n@@ -2062,7 +2129,7 @@ impl TuiState {\n         }\n         if up {\n             let max_scroll = self.max_scroll();\n-            self.scroll = self.scroll.min(max_scroll);\n+            self.scroll = self.display_scroll();\n             if self.scroll < max_scroll {\n                 self.scroll += 1;\n             }\n@@ -2975,15 +3042,45 @@ impl TuiState {\n     }\n \n     fn max_scroll(&self) -> usize {\n-        self.viewport_max_scroll\n+        self.viewport.get().map_or_else(\n+            || self.line_count().saturating_sub(VIEWPORT_LINES),\n+            |view| view.total.saturating_sub(view.height as usize),\n+        )\n+    }\n+\n+    fn scroll_for_current_view(&self) -> usize {\n+        if self\n+            .viewport\n             .get()\n-            .unwrap_or_else(|| self.line_count().saturating_sub(VIEWPORT_LINES))\n+            .is_some_and(|view| view.requested_scroll == self.scroll)\n+        {\n+            self.display_scroll()\n+        } else {\n+            self.scroll\n+        }\n     }\n \n     /// Actual rendered geometry for input-driven row scrolling.\n     pub fn observe_viewport(&self, height: u16, rendered_rows: usize) {\n-        self.viewport_max_scroll\n-            .set(Some(rendered_rows.saturating_sub(height as usize)));\n+        self.observe_transcript_viewport(0, 0, height, rendered_rows, self.scroll);\n+    }\n+\n+    pub(crate) fn observe_transcript_viewport(\n+        &self,\n+        width: u16,\n+        terminal_width: u16,\n+        height: u16,\n+        total: usize,\n+        displayed_scroll: usize,\n+    ) {\n+        self.viewport.set(Some(TranscriptViewport {\n+            width,\n+            terminal_width,\n+            height,\n+            total,\n+            requested_scroll: self.scroll,\n+            displayed_scroll: displayed_scroll.min(total.saturating_sub(height as usize)),\n+        }));\n     }\n \n     /// Latest measured context, never DCP's estimate or a renderer constant.\ndiff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs\nindex 173056c..104a71e 100644\n--- a/crates/oc-tui/src/shell.rs\n+++ b/crates/oc-tui/src/shell.rs\n@@ -636,34 +636,42 @@ fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area:\n     ));\n     match state.context_usage() {\n         Some((tokens, limit)) => {\n-            lines.push(Line::from(format!(\"{} tokens\", thousands(tokens))));\n-            lines.push(Line::from(limit.map_or_else(\n-                || \"Limit unknown\".into(),\n-                |l| {\n-                    format!(\n-                        \"{}% used\",\n-                        (tokens as f64 / l as f64 * 100.0).round() as u64\n-                    )\n-                },\n-            )));\n+            lines.push(Line::styled(\n+                format!(\"{} tokens\", thousands(tokens)),\n+                Style::default().fg(theme.text_muted()),\n+            ));\n+            lines.push(Line::styled(\n+                limit.map_or_else(\n+                    || \"Limit unknown\".into(),\n+                    |l| {\n+                        format!(\n+                            \"{}% used\",\n+                            (tokens as f64 / l as f64 * 100.0).round() as u64\n+                        )\n+                    },\n+                ),\n+                Style::default().fg(theme.text_muted()),\n+            ));\n         }\n-        None => lines.push(Line::from(\"Usage unknown\")),\n+        None => lines.push(Line::styled(\n+            \"Usage unknown\",\n+            Style::default().fg(theme.text_muted()),\n+        )),\n     }\n-    frame.render_widget(\n-        Paragraph::new(lines).style(Style::default().fg(theme.text_muted())),\n-        inner,\n-    );\n+    frame.render_widget(Paragraph::new(lines), inner);\n     if inner.height > 0 {\n         frame.render_widget(\n-            Paragraph::new(compact_path(\n-                state\n-                    .chrome\n-                    .location\n-                    .as_deref()\n-                    .unwrap_or(\"Location unknown\"),\n-                inner.width as usize,\n-            ))\n-            .style(Style::default().fg(theme.text_muted())),\n+            Paragraph::new(Line::styled(\n+                compact_path(\n+                    state\n+                        .chrome\n+                        .location\n+                        .as_deref()\n+                        .unwrap_or(\"Location unknown\"),\n+                    inner.width as usize,\n+                ),\n+                Style::default().fg(theme.text_muted()),\n+            )),\n             Rect {\n                 y: inner.bottom() - 1,\n                 height: 1,\n@@ -882,8 +890,9 @@ fn render_transcript(frame: &mut Frame<'_>, state: &TuiState, area: Rect, termin\n     if area.height == 0 || area.width == 0 {\n         return;\n     }\n-    let (lines, total) = state.visible_transcript(area.width, terminal_width, area.height);\n-    state.observe_viewport(area.height, total);\n+    let (lines, total, scroll) =\n+        state.visible_transcript_at_viewport(area.width, terminal_width, area.height);\n+    state.observe_transcript_viewport(area.width, terminal_width, area.height, total, scroll);\n     let text = crate::styled::Lines::from(lines).into_text();\n     frame.render_widget(Paragraph::new(text), area);\n }\n@@ -1012,23 +1021,30 @@ fn render_prompt(\n                 ));\n             }\n         }\n-        if body.height > 3\n-            && let Some(line) = metadata_line(state, theme, terminal_width)\n-        {\n+        if body.height > 3 {\n             let metadata = row(body.height - 1);\n-            let text_width = (line.width() as u16).min(metadata.width);\n-            frame.render_widget(\n-                Block::default()\n-                    .style(Style::default().fg(Color::Rgb(255, 255, 255)).bg(prompt_bg)),\n-                metadata,\n-            );\n-            frame.render_widget(\n-                Paragraph::new(line).style(Style::default().bg(prompt_bg)),\n-                Rect {\n-                    width: text_width,\n-                    ..metadata\n-                },\n-            );\n+            let upstream_limit =\n+                terminal_width.saturating_sub(if terminal_width < 44 { 9 } else { 13 });\n+            if let Some(line) = metadata_line(\n+                state,\n+                theme,\n+                metadata.width.min(upstream_limit),\n+                terminal_width,\n+            ) {\n+                let text_width = (line.width() as u16).min(metadata.width);\n+                frame.render_widget(\n+                    Block::default()\n+                        .style(Style::default().fg(Color::Rgb(255, 255, 255)).bg(prompt_bg)),\n+                    metadata,\n+                );\n+                frame.render_widget(\n+                    Paragraph::new(line).style(Style::default().bg(prompt_bg)),\n+                    Rect {\n+                        width: text_width,\n+                        ..metadata\n+                    },\n+                );\n+            }\n         }\n     }\n     if underline.height > 0 && underline.width > 0 {\n@@ -1058,20 +1074,86 @@ fn clip_placeholder(text: &str, width: usize) -> &str {\n     &text[..end]\n }\n \n-/// Prompt metadata row (`component/prompt/metadata.tsx:53-99`): `agent · model\n-/// provider · variant`; below 44 columns the agent and provider are dropped.\n-fn metadata_line(state: &TuiState, theme: &Theme, width: u16) -> Option<Line<'static>> {\n-    let agent = layout::shows_agent_metadata(width)\n+/// Prompt metadata candidates (`component/prompt/metadata.tsx:101-146`) fit\n+/// the painted text rectangle; the 44-column breakpoint uses terminal width.\n+fn metadata_line(\n+    state: &TuiState,\n+    theme: &Theme,\n+    width: u16,\n+    terminal_width: u16,\n+) -> Option<Line<'static>> {\n+    let agent = layout::shows_agent_metadata(terminal_width)\n         .then(|| state.active_agent())\n         .flatten();\n     let model = state.active_model_label();\n-    let provider = layout::shows_agent_metadata(width)\n+    let provider = layout::shows_agent_metadata(terminal_width)\n         .then(|| state.active_provider())\n-        .flatten();\n+        .flatten()\n+        .unwrap_or_default();\n     let variant = model.as_ref().and_then(|(_, variant)| variant.clone());\n     if agent.is_none() && model.is_none() {\n         return None;\n     }\n+    let auto = layout::shows_agent_metadata(terminal_width)\n+        && state.auto_accept == oc_core::queries::AutoAcceptState::Enabled;\n+    let mut model_label = model\n+        .as_ref()\n+        .map_or(\"\", |(name, _)| name.as_str())\n+        .to_string();\n+    let short_provider = provider.rsplit(\" / \").next().unwrap_or(provider);\n+    let fits = |auto, provider: &str| {\n+        let mut parts = Vec::new();\n+        if let Some(agent) = agent.filter(|agent| !agent.is_empty()) {\n+            parts.push(agent);\n+        }\n+        if auto {\n+            parts.push(\"auto\");\n+        }\n+        if !model_label.is_empty() {\n+            if agent.is_some() {\n+                parts.push(\"·\");\n+            }\n+            parts.push(model_label.as_str());\n+        }\n+        if !provider.is_empty() {\n+            parts.push(provider);\n+        }\n+        if let Some(variant) = variant.as_deref().filter(|variant| !variant.is_empty()) {\n+            parts.extend([\"·\", variant]);\n+        }\n+        UnicodeWidthStr::width(parts.join(\" \").as_str()) <= width as usize\n+    };\n+    let (show_auto, provider) = [\n+        (auto, provider),\n+        (false, provider),\n+        (false, short_provider),\n+        (false, \"\"),\n+    ]\n+    .into_iter()\n+    .find(|(auto, provider)| fits(*auto, provider))\n+    .unwrap_or_else(|| {\n+        // `Locale.truncateWidth`, including the upstream minimum of nine\n+        // cells and trimming whitespace just before the ellipsis.\n+        let prefix = agent.map_or(0, |agent| UnicodeWidthStr::width(agent) + 3);\n+        let suffix = variant\n+            .as_ref()\n+            .map_or(0, |variant| UnicodeWidthStr::width(variant.as_str()) + 3);\n+        let available = (width as usize).saturating_sub(prefix + suffix).max(9);\n+        if UnicodeWidthStr::width(model_label.as_str()) > available {\n+            let mut used = 0;\n+            let mut end = 0;\n+            for (offset, grapheme) in model_label.grapheme_indices(true) {\n+                let cells = UnicodeWidthStr::width(grapheme);\n+                if used + cells > available - 1 {\n+                    break;\n+                }\n+                used += cells;\n+                end = offset + grapheme.len();\n+            }\n+            model_label = format!(\"{}…\", model_label[..end].trim_end());\n+        }\n+        (false, \"\")\n+    });\n     let muted = Style::default().fg(theme.text_muted());\n     let text = Style::default().fg(theme.text());\n     let gap = Style::default().fg(Color::Rgb(255, 255, 255));\n@@ -1082,23 +1164,21 @@ fn metadata_line(state: &TuiState, theme: &Theme, width: u16) -> Option<Line<'st\n             Style::default().fg(state.agent_color(Some(agent))),\n         ));\n     }\n-    if layout::shows_agent_metadata(width)\n-        && state.auto_accept == oc_core::queries::AutoAcceptState::Enabled\n-    {\n+    if show_auto {\n         if !spans.is_empty() {\n             spans.push(Span::styled(\" \", gap));\n         }\n         spans.push(Span::styled(\"auto\", muted));\n     }\n-    if let Some((id, _)) = &model {\n-        if !spans.is_empty() {\n+    if model.is_some() {\n+        if agent.is_some() {\n             spans.push(Span::styled(\" \", gap));\n             spans.push(Span::styled(\"·\", muted));\n             spans.push(Span::styled(\" \", gap));\n         }\n-        spans.push(Span::styled(id.clone(), text));\n+        spans.push(Span::styled(model_label, text));\n     }\n-    if let Some(provider) = provider {\n+    if !provider.is_empty() {\n         spans.push(Span::styled(\" \", gap));\n         spans.push(Span::styled(provider.to_string(), muted));\n     }\n@@ -2172,6 +2252,66 @@ mod tests {\n         assert!(wide.iter().any(|r| r.contains(\"Context\")), \"actual sidebar\");\n     }\n \n+    #[tokio::test]\n+    async fn scrolled_resize_keeps_top_row_and_draft_while_bottom_stays_pinned() {\n+        let mut state = golden_state().await;\n+        state.chrome.devtools = Some(false);\n+        let text = (0..90).map(|i| format!(\"ROW-{i:03}\\n\")).collect::<String>();\n+        state.attach_page(&page(vec![msg(1, Role::Assistant, &text)]));\n+        for key in \"draft\".chars() {\n+            state.handle_key(KeyAction::Char(key)).await;\n+        }\n+        state.handle_key(KeyAction::Left).await;\n+        let draft = state.input().to_string();\n+        let caret = state.prompt_layout(60).1;\n+        let first_row = |frame: &[String]| {\n+            frame.iter().find_map(|line| {\n+                line.split(\"ROW-\")\n+                    .nth(1)\n+                    .and_then(|tail| tail.get(..3))\n+                    .and_then(|number| number.parse::<usize>().ok())\n+            })\n+        };\n+\n+        let pinned = screen(&state, 160, 48);\n+        assert!(pinned.join(\"\\n\").contains(\"ROW-089\"));\n+        let smaller_pinned = screen(&state, 80, 24);\n+        assert!(smaller_pinned.join(\"\\n\").contains(\"ROW-089\"));\n+        assert_eq!(state.scroll(), 0);\n+\n+        let _ = screen(&state, 160, 48);\n+        while first_row(&screen(&state, 160, 48)) != Some(41) {\n+            assert!(state.scroll() < 90, \"expected to reach ROW-041\");\n+            state.scroll_transcript(true);\n+        }\n+        let wide = screen(&state, 160, 48);\n+        assert_eq!(first_row(&wide), Some(41));\n+        let narrow = screen(&state, 80, 24);\n+        assert_eq!(\n+            first_row(&narrow),\n+            Some(41),\n+            \"shrink must not jump to the bottom\"\n+        );\n+        assert!(narrow.join(\"\\n\").contains(\"ROW-055\"), \"{narrow:?}\");\n+        assert!(narrow.join(\"\\n\").contains(\"draft\"));\n+        state.scroll_transcript(false);\n+        assert_eq!(first_row(&screen(&state, 80, 24)), Some(42));\n+        state.scroll_transcript(true);\n+        assert_eq!(first_row(&screen(&state, 80, 24)), Some(41));\n+        let restored = screen(&state, 160, 48);\n+        assert_eq!(first_row(&restored), Some(41));\n+        assert!(restored.join(\"\\n\").contains(\"ROW-079\"), \"{restored:?}\");\n+        assert_eq!(state.input(), draft);\n+        assert_eq!(state.prompt_layout(60).1, caret);\n+\n+        while first_row(&screen(&state, 160, 48)) != Some(0) {\n+            assert!(state.scroll() < 95, \"expected to reach the top edge\");\n+            state.scroll_transcript(true);\n+        }\n+        assert_eq!(first_row(&screen(&state, 80, 24)), Some(0));\n+        assert_eq!(first_row(&screen(&state, 160, 48)), Some(0));\n+    }\n+\n     #[tokio::test]\n     async fn v03_paste_keeps_full_draft_behind_compact_prompt() {\n         let mut state = golden_state().await;\n@@ -2354,6 +2494,84 @@ mod tests {\n         );\n     }\n \n+    #[tokio::test]\n+    async fn sidebar_padding_keeps_canvas_foreground_while_labels_are_styled() {\n+        let mut state = golden_state().await;\n+        state.chrome.devtools = Some(false);\n+        state.chrome.location = Some(\"/workspace/real-project\".into());\n+        state.session_title = Some(\"Actual title\".into());\n+        state.begin_compress_turn(oc_core::core_app::WorkerTurnId(\"usage\".into()));\n+        state.close_panel();\n+        state.apply_usage(\n+            &oc_core::core_app::WorkerTurnId(\"usage\".into()),\n+            300,\n+            20,\n+            100,\n+        );\n+        let theme = Theme::dark();\n+        let white = Color::Rgb(255, 255, 255);\n+        let mut terminal = Terminal::new(TestBackend::new(160, 48)).unwrap();\n+        terminal.draw(|frame| render(frame, &state)).unwrap();\n+        let buffer = terminal.backend().buffer();\n+        let sidebar = shell_regions(&state, Rect::new(0, 0, 160, 48)).session;\n+        let sidebar = Rect::new(\n+            sidebar.right() - layout::SESSION_SIDEBAR_WIDTH,\n+            sidebar.y,\n+            layout::SESSION_SIDEBAR_WIDTH,\n+            sidebar.height,\n+        );\n+        let labels = [\n+            (\"Actual title\", theme.text(), true),\n+            (\"Context\", theme.text(), true),\n+            (\"320 tokens\", theme.text_muted(), false),\n+            (\"32% used\", theme.text_muted(), false),\n+            (\"/workspace/real-project\", theme.text_muted(), false),\n+        ];\n+        let mut muted_spaces = Vec::new();\n+        for (label, foreground, bold) in labels {\n+            let cells = (sidebar.y..sidebar.bottom()).flat_map(|y| {\n+                (sidebar.x..sidebar.right()).filter_map(move |x| {\n+                    (x + label.len() as u16 <= sidebar.right()\n+                        && buffer[(x, y)].symbol() == &label[..1])\n+                        .then_some((x, y))\n+                })\n+            });\n+            let (x, y) = cells\n+                .into_iter()\n+                .find(|&(x, y)| {\n+                    label\n+                        .chars()\n+                        .enumerate()\n+                        .all(|(index, ch)| buffer[(x + index as u16, y)].symbol() == ch.to_string())\n+                })\n+                .unwrap_or_else(|| panic!(\"missing sidebar label {label}\"));\n+            for (index, glyph) in label.chars().enumerate() {\n+                let x = x + index as u16;\n+                let cell = &buffer[(x, y)];\n+                if glyph == ' ' && foreground == theme.text_muted() {\n+                    muted_spaces.push((x, y));\n+                    continue;\n+                }\n+                assert_eq!(cell.fg, foreground, \"{label} foreground at ({x},{y})\");\n+                assert_eq!(cell.modifier.contains(Modifier::BOLD), bold, \"{label} bold\");\n+            }\n+        }\n+        let mut blanks = 0;\n+        for y in sidebar.y..sidebar.bottom() {\n+            for x in sidebar.x..sidebar.right() {\n+                let cell = &buffer[(x, y)];\n+                if cell.symbol() == \" \"\n+                    && cell.bg == theme.background_panel()\n+                    && !muted_spaces.contains(&(x, y))\n+                {\n+                    assert_eq!(cell.fg, white, \"sidebar blank at ({x},{y})\");\n+                    blanks += 1;\n+                }\n+            }\n+        }\n+        assert!(blanks > 1609, \"expected the predominantly empty sidebar\");\n+    }\n+\n     /// The buffer rows with trailing spaces removed, so snapshots stay small\n     /// enough to review while leading padding is still asserted.\n     fn screen(state: &TuiState, width: u16, height: u16) -> Vec<String> {\n@@ -2380,7 +2598,7 @@ mod tests {\n             snapshot.auto_accept = mode;\n             snapshot.agents[0].color_index = 3;\n             state.apply_catalog(snapshot);\n-            let line = super::metadata_line(&state, crate::theme::Theme::dark(), 120).unwrap();\n+            let line = super::metadata_line(&state, crate::theme::Theme::dark(), 111, 120).unwrap();\n             assert_eq!(line.to_string().contains(\"auto\"), visible);\n             assert_eq!(\n                 line.spans[0].style.fg,\n@@ -2398,7 +2616,7 @@ mod tests {\n         snapshot.variant = None;\n         state.apply_catalog(snapshot);\n         for width in [44, 80, 120, 160] {\n-            let metadata = metadata_line(&state, Theme::dark(), width).unwrap();\n+            let metadata = metadata_line(&state, Theme::dark(), width, width).unwrap();\n             assert_eq!(metadata.to_string(), \"x · a ludka2\");\n         }\n         assert!(\n@@ -2413,6 +2631,92 @@ mod tests {\n         );\n     }\n \n+    #[tokio::test]\n+    async fn prompt_metadata_fits_the_painted_row_at_43_44_and_120() {\n+        let mut state = golden_state().await;\n+        let mut snapshot = catalog();\n+        snapshot.models[0].display_name = \"MiMo-V2.6-Flash\".into();\n+        snapshot.models[0].provider_name = \"OpenCode\".into();\n+        snapshot.variant = Some(\"Free\".into());\n+        snapshot.models[0].variants = vec![VariantEntry {\n+            name: \"Free\".into(),\n+            disabled: false,\n+            reasoning_effort: None,\n+        }];\n+        snapshot.agents[0].id = \"Reader\".into();\n+        snapshot.agent_id = Some(\"Reader\".into());\n+        state.apply_catalog(snapshot);\n+        state.chrome.devtools = Some(false);\n+        for (width, expected) in [\n+            (43, \"MiMo-V2.6-Flash · Free\"),\n+            (44, \"Reader · MiMo-V2.6-Flash · Free\"),\n+            (120, \"Reader · MiMo-V2.6-Flash OpenCode · Free\"),\n+        ] {\n+            let rows = screen(&state, width, 48);\n+            let row = rows.iter().find(|row| row.contains(\"MiMo-\")).unwrap();\n+            assert!(row.contains(expected), \"{width}: {row}\");\n+            assert!(!row.contains(\"OpenC\") || width == 120, \"{width}: {row}\");\n+        }\n+        let mut terminal = Terminal::new(TestBackend::new(44, 48)).unwrap();\n+        terminal.draw(|frame| render(frame, &state)).unwrap();\n+        let buffer = terminal.backend().buffer();\n+        assert_eq!(buffer[(5, 44)].fg, state.agent_color(Some(\"Reader\")));\n+        assert_eq!(buffer[(14, 44)].fg, Theme::dark().text());\n+        assert_eq!(buffer[(33, 44)].fg, Theme::dark().warning());\n+        assert_eq!(buffer[(39, 44)].fg, Color::Rgb(255, 255, 255));\n+        assert_eq!(buffer[(39, 44)].symbol(), \" \");\n+    }\n+\n+    #[tokio::test]\n+    async fn prompt_metadata_candidates_and_grapheme_fallback() {\n+        let mut state = golden_state().await;\n+        let mut snapshot = catalog();\n+        snapshot.models[0].display_name = \"模型 Very Long Model Name\".into();\n+        snapshot.models[0].provider_name = \"Organization / Short\".into();\n+        snapshot.variant = None;\n+        snapshot.auto_accept = oc_core::queries::AutoAcceptState::Enabled;\n+        state.apply_catalog(snapshot);\n+        let theme = Theme::dark();\n+        let metadata = |width| {\n+            metadata_line(&state, theme, width, 120)\n+                .unwrap()\n+                .to_string()\n+        };\n+        assert_eq!(\n+            metadata(60),\n+            \"x auto · 模型 Very Long Model Name Organization / Short\"\n+        );\n+        assert_eq!(\n+            metadata(50),\n+            \"x · 模型 Very Long Model Name Organization / Short\"\n+        );\n+        assert_eq!(metadata(39), \"x · 模型 Very Long Model Name Short\");\n+        assert_eq!(metadata(32), \"x · 模型 Very Long Model Name\");\n+        assert_eq!(metadata(13), \"x · 模型 Ver…\");\n+        assert_eq!(UnicodeWidthStr::width(metadata(13).as_str()), 13);\n+    }\n+\n+    #[tokio::test]\n+    async fn prompt_metadata_uses_upstream_budget_not_only_painted_width() {\n+        let mut state = golden_state().await;\n+        let mut snapshot = catalog();\n+        snapshot.agents[0].id = \"x\".into();\n+        snapshot.agent_id = Some(\"x\".into());\n+        snapshot.models[0].display_name = \"a\".into();\n+        snapshot.models[0].provider_name = \"P\".repeat(26);\n+        snapshot.variant = None;\n+        state.apply_catalog(snapshot);\n+        let row = screen(&state, 44, 48)\n+            .into_iter()\n+            .find(|line| line.contains(\"x · a\"))\n+            .expect(\"metadata row\");\n+        assert!(row.contains(\"x · a\"));\n+        assert!(\n+            !row.contains('P'),\n+            \"provider must be omitted at 44 columns: {row}\"\n+        );\n+    }\n+\n     #[tokio::test]\n     async fn golden_screen_80x24() {\n         let state = golden_state().await;\ndiff --git a/scripts/tui_capture/README.md b/scripts/tui_capture/README.md\nindex 68cbcc0..2012372 100644\n--- a/scripts/tui_capture/README.md\n+++ b/scripts/tui_capture/README.md\n@@ -137,8 +137,11 @@ completed-footer predicates use the V02 model display name.\n draft/cursor, scroll-away, 80×24 shrink, 160×48 grow, one-row Down and bottom\n re-pin in each executable. `scroll-checks.json` records actual row markers and\n cursor-at-draft-end assertions. Original uses its supported Ctrl+Alt+Y/E scroll\n-bindings; native uses its existing Up/Down. This does not qualify keymap parity.\n-Native additionally checks a top-offset clamp after growing to 160×80.\n+bindings; native uses actual SGR wheel events over the transcript, since Up/Down\n+navigate the focused editor/history and would overwrite the draft. This does\n+not qualify keymap parity.\n+Both sides check that the first visible marker survives shrink/grow. Native\n+additionally checks a top-offset clamp after growing to 160×80.\n \n For the completed real-read exploration group, run a **fresh** output directory:\n \ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex a94de7d..b2c0bab 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -546,29 +546,22 @@ try {\n         };\n         send('scroll-draft','single_line_draft');\n         await check('scroll-pinned-draft',f=>f.text.includes('scroll-draft') && f.text.includes('ROW-089'));\n-        send((origin==='oc' ? '\\x1b[A' : '\\x1b\\x19').repeat(12),'scroll_away_12_lines');\n+        // Up/Down are editor/history keys in the native prompt; wheel input\n+        // targets the transcript without replacing the draft with a recalled\n+        // user message. The original retains its documented scroll binding.\n+        send((origin==='oc' ? '\\x1b[<64;10;15M' : '\\x1b\\x19').repeat(12),'scroll_away_12_lines');\n         const away = await check('scroll-away',f=>f.text.includes('scroll-draft') && markers(f).length>0 && !f.text.includes('ROW-089'));\n         for(const [columns,rows,name] of [[80,24,'scroll-shrink'],[160,48,'scroll-grow']]) {\n           profile.columns=columns; profile.rows=rows;\n           await page.evaluate(({columns,rows})=>term.resize(columns,rows),{columns,rows});\n           child.stdin.write(JSON.stringify({kind:'resize',columns,rows})+'\\n');\n           const c = await check(name,f=>f.columns===columns && f.rows===rows && f.text.includes('scroll-draft') && !f.text.includes('ROW-089'));\n-          if(origin==='oc' && c.markers.at(-1)!==away.markers.at(-1)) throw Error('native scroll offset lost during resize');\n+          if(c.markers[0]!==away.markers[0]) throw Error('scroll top row lost during resize: '+name);\n         }\n-        send(origin==='oc' ? '\\x1b[B' : '\\x1b\\x05','scroll_down_one');\n+        send(origin==='oc' ? '\\x1b[<65;10;15M' : '\\x1b\\x05','scroll_down_one');\n         const down = await check('scroll-down-one',f=>markers(f).at(-1)===away.markers.at(-1)+1);\n-        send((origin==='oc' ? '\\x1b[B' : '\\x1b\\x05').repeat(100),'scroll_repin');\n+        send((origin==='oc' ? '\\x1b[<65;10;15M' : '\\x1b\\x05').repeat(100),'scroll_repin');\n         await check('scroll-repinned',f=>f.text.includes('ROW-089') && f.text.includes('scroll-draft'));\n-        if(origin==='oc') {\n-          send('\\x1b[A'.repeat(150),'scroll_to_top');\n-          await check('scroll-top',f=>f.text.includes('ROW-000') && !f.text.includes('ROW-089'));\n-          profile.rows=80;\n-          await page.evaluate(()=>term.resize(160,80));\n-          child.stdin.write(JSON.stringify({kind:'resize',columns:160,rows:80})+'\\n');\n-          const top = await check('scroll-top-grow',f=>f.rows===80 && f.text.includes('ROW-000') && !f.text.includes('ROW-089'));\n-          send('\\x1b[B','scroll_down_after_clamp');\n-          await check('scroll-clamped-down',f=>markers(f).at(-1)===top.markers.at(-1)+1);\n-        }\n         lock.attempts.push({origin,status:'SCROLL_RESIZE_CHECKS_PASS',one_line_down:down.markers.at(-1)});\n       }\n       if(args.matrix === 'true') {\n@@ -581,16 +574,58 @@ try {\n           const name = 'resize-'+columns+'x'+rows+'-'+checks.length;\n           await capture(name, f, 'CAPTURED');\n           const count = (f.text.match(/ROW-\\d+/g)||[]).length;\n+          const draftRow = f.cells.findIndex(row=>row.map(c=>c.symbol).join('').includes('scroll-draft'));\n+          const draftText = draftRow < 0 ? '' : f.cells[draftRow].map(c=>c.symbol).join('');\n+          const draftX = draftText.indexOf('scroll-draft');\n+          const draftCursor = f.cursor.visible && f.cursor.x===draftX+12 && f.cursor.y===draftRow;\n           checks.push({scenario:name, columns, rows, visible_row_markers:count,\n-            viewport_check:args.sample==='rows' && rows>=40 ? (count>20?'PASS':'FAIL') : 'NOT_APPLICABLE',\n-            sidebar_present:f.text.includes('Context')});\n+             viewport_check:args.sample==='rows' && rows>=40 ? (count>20?'PASS':'FAIL') : 'NOT_APPLICABLE',\n+            ...(args['scroll-resize']==='true' ? {draft_row:draftRow,cursor_at_draft_end:draftCursor} : {}),\n+             sidebar_present:f.text.includes('Context')});\n           fs.writeFileSync(path.join(dir,'geometry-checks.json'),JSON.stringify(checks,null,2)+'\\n');\n+          if(args['scroll-resize']==='true' && !draftCursor) throw Error('draft/cursor lost in matrix: '+name);\n         }\n+        fs.writeFileSync(path.join(dir,'geometry-checks.json'),JSON.stringify(checks,null,2)+'\\n');\n+        if(checks.some(c=>c.viewport_check==='FAIL')) result=1;\n+      }\n+      // This native-only clamp test changes transcript position. Run it after\n+      // the paired matrix, never before: both sides must enter paired captures\n+      // with the same repinned viewport.\n+      if(args['scroll-resize'] === 'true' && origin==='oc') {\n+        const markers = f => [...f.text.matchAll(/ROW-(\\d+)/g)].map(m=>Number(m[1]));\n+        const draftBefore = await frame();\n+        const draftAtStart = draftBefore.cells.findIndex(line=>line.map(c=>c.symbol).join('').includes('scroll-draft'));\n+        if(draftAtStart<0 || !draftBefore.cursor.visible || draftBefore.cursor.y!==draftAtStart)\n+          throw Error('draft/cursor lost before native clamp');\n+        const clampChecks = [];\n+        const check = async (name, predicate) => {\n+          const f = await waitFor(predicate,name);\n+          const row = f.cells.findIndex(line=>line.map(c=>c.symbol).join('').includes('scroll-draft'));\n+          if(!f.cursor.visible || f.cursor.x!==draftBefore.cursor.x || f.cursor.y!==row)\n+            throw Error('draft/cursor lost: '+name);\n+          clampChecks.push({scenario:name,columns:f.columns,rows:f.rows,markers:markers(f),cursor:f.cursor,draft_row:row});\n+          fs.writeFileSync(path.join(dir,'scroll-clamp-checks.json'),JSON.stringify(clampChecks,null,2)+'\\n');\n+          return f;\n+        };\n+        send('\\x1b[<64;10;15M'.repeat(150),'scroll_to_top');\n+        await check('scroll-top',f=>f.text.includes('ROW-000') && !f.text.includes('ROW-089'));\n+        profile.columns=160; profile.rows=80;\n+        await page.evaluate(()=>term.resize(160,80));\n+        child.stdin.write(JSON.stringify({kind:'resize',columns:160,rows:80})+'\\n');\n+        const top = await check('scroll-top-grow',f=>f.rows===80 && f.text.includes('ROW-000') && !f.text.includes('ROW-089'));\n+        send('\\x1b[<65;10;15M','scroll_down_after_clamp');\n+        await check('scroll-clamped-down',f=>markers(f).at(-1)===markers(top).at(-1)+1);\n+        send('\\x1b[<65;10;15M'.repeat(150),'scroll_repin_after_clamp');\n+        await check('scroll-repinned-after-clamp',f=>f.text.includes('ROW-089'));\n+        profile.rows=48;\n+        await page.evaluate(()=>term.resize(160,48));\n+        child.stdin.write(JSON.stringify({kind:'resize',columns:160,rows:48})+'\\n');\n+        await waitFor(f=>f.columns===160 && f.rows===48 && f.text.includes('ROW-089'),'restore matrix geometry');\n+      }\n+      if(args.matrix === 'true') {\n         send('\\x1b[200~draft-one\\ndraft-two\\ndraft-three\\x1b[201~','multiline_draft');\n         const draft = await waitFor(f=>f.text.includes('draft-three') || f.text.includes('[Pasted ~3 lines]'),'multiline draft or upstream paste chip');\n         await capture('multiline-draft', draft, draft.text.includes('[Pasted ~3 lines]') ? 'CAPTURED_PASTE_CHIP' : 'CAPTURED_MULTILINE_TEXT');\n-        fs.writeFileSync(path.join(dir,'geometry-checks.json'),JSON.stringify(checks,null,2)+'\\n');\n-        if(checks.some(c=>c.viewport_check==='FAIL')) result=1;\n       }\n       if(args.geometry !== 'true') {\n       send('\\x10','CTRL_P');\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)\n   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.95s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"cea2b09693bc333b979bf39899c94decf6ca0d902b1733ea29b036d620f71b78\", \"actual_sha256\": \"9d3a3845eb0e3482da68697eb0a5eb07c63b1833355a21becdf4a0315e46e662\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 7680, \"different_cells\": 46, \"cursor_differs\": false, \"difference_bbox_inclusive\": [61, 25, 157, 46], \"samples\": [{\"x\": 61, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 62, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 63, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 64, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 65, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 66, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 67, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 68, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 69, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 70, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 71, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 72, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 77, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 78, \"y\": 25, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 79, \"y\": 25, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 80, \"y\": 25, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"74721f0025ef51de7ee6b12b8f451e4207c17f873717d44452fbe09f86140c53\", \"actual_sha256\": \"bacf35d383cabf8a42c02e62e5f2caa8c1b56f3f4dd35b7b73057407936a753e\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 1783, \"changed_fraction_diagnostic_only\": 0.0017209893130714108, \"difference_bbox_inclusive\": [513, 402, 1329, 748]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"9b9b5266c5842099ce3a187ed0609e0ceddadb95b61973ccccf9ff818b3350de\", \"actual_sha256\": \"6ec45805df1264cdb87317ec53751c7639a433036f3cd93dc40ca9b32bf58b2d\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 7680, \"different_cells\": 21, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 2, 146, 39], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}, {\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"9eda83b349b6e5dee8aa3fa190642fccc0bf4ebfd86cab88e1388e72d3069dfe\", \"actual_sha256\": \"6809c68011dd4001827b1805f3d9dc7a28de5b27aca8123f3a1976a728413ab8\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 744, \"changed_fraction_diagnostic_only\": 0.0007181245366938473, \"difference_bbox_inclusive\": [312, 626, 478, 638]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/scroll-pinned-draft.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/scroll-pinned-draft.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/scroll-pinned-draft.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-pinned-draft\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"f8ae19a14ae72ac13c591326b5d024fb7afcdd3acf6822c3d62079c41bc51180\", \"actual_sha256\": \"65a035752db8ab07c998ea6d765d8a0b07c90f642f5022f2b5309383fd3af651\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 7680, \"different_cells\": 21, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 2, 146, 39], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}, {\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/scroll-pinned-draft.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/scroll-pinned-draft.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/scroll-pinned-draft.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"64bfb88b9d83ec6bcbb92d41e60f1d66f9a5c637eab76182123ac6b7e8df96d3\", \"actual_sha256\": \"aecde21e2fe9c526e7a980e1ff4590c472d8b9d3e93e900069ea001bfba013aa\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 744, \"changed_fraction_diagnostic_only\": 0.0007181245366938473, \"difference_bbox_inclusive\": [312, 626, 478, 638]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/scroll-away.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/scroll-away.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/scroll-away.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-away\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"946f30447a61f97e45845bd52ddc453403d59d9b5e242757c3c8d2a9cc67e309\", \"actual_sha256\": \"58699040fbeec6b38228d97438b87c663f03dfd61970670681a5b41dab4141ef\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 7680, \"different_cells\": 1, \"cursor_differs\": false, \"difference_bbox_inclusive\": [146, 2, 146, 2], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/scroll-away.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/scroll-away.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/scroll-away.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"37b136f6f7ee9e0281b5c5ba5fe1382b359d02e728b0a14661ad256b7e3c4d43\", \"actual_sha256\": \"37b136f6f7ee9e0281b5c5ba5fe1382b359d02e728b0a14661ad256b7e3c4d43\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/scroll-shrink.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/scroll-shrink.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/scroll-shrink.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-shrink\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"6aa890173f389a18364888fb2a4199d1af74e42ac4a735ef7e961a7f3d8a9ef5\", \"reference_sha256\": \"9cf02bb93d46a85784bea5d0ebb5cf4da98f5848e7d4cae7cb0697bb451f05ef\", \"actual_sha256\": \"b9063f747e6de7570c0a9554075f23a6c7cb839d7810e35eedf91db1b3c43969\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 1920, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/scroll-shrink.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/scroll-shrink.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/scroll-shrink.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"4787d3bcee15fc7fffabb224100d612423538b3fa4c7c3b583ebe6b91e8397e2\", \"actual_sha256\": \"82f0b53919c665f487d2c0f8d2b7112c33536519b79fe7627e535c77410275ef\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 32, \"changed_fraction_diagnostic_only\": 0.00012363996043521266, \"difference_bbox_inclusive\": [673, 352, 673, 383]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/scroll-grow.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/scroll-grow.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/scroll-grow.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-grow\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"d4526ecf59629a3ce463b50338f6d2801375672385316a1a4d8fcfdc3e3d72d8\", \"actual_sha256\": \"ed3573e3d57859e579b3165dd465e1b9074dac1ed11533c1187baa8abb5807f1\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 7680, \"different_cells\": 1, \"cursor_differs\": false, \"difference_bbox_inclusive\": [146, 2, 146, 2], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/scroll-grow.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/scroll-grow.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/scroll-grow.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"37b136f6f7ee9e0281b5c5ba5fe1382b359d02e728b0a14661ad256b7e3c4d43\", \"actual_sha256\": \"37b136f6f7ee9e0281b5c5ba5fe1382b359d02e728b0a14661ad256b7e3c4d43\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/scroll-down-one.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/scroll-down-one.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/scroll-down-one.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-down-one\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"7b6c3b8ebeb7ae78a480de4fc08e875d07dfe7909218341f254a6a4c9b9134a6\", \"actual_sha256\": \"f06e447b7f377a41d3c286c6777ced0587295ac6926d91f60c4db8002ef6d42b\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 7680, \"different_cells\": 1, \"cursor_differs\": false, \"difference_bbox_inclusive\": [146, 2, 146, 2], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/scroll-down-one.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/scroll-down-one.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/scroll-down-one.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"2b217d8748aa35f2122a22fbe90b4265741f20e3490b3f115d7aa1bd5c132b52\", \"actual_sha256\": \"2b217d8748aa35f2122a22fbe90b4265741f20e3490b3f115d7aa1bd5c132b52\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/scroll-repinned.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/scroll-repinned.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/scroll-repinned.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-repinned\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"68d72f50d458b8d67c6ed6bc64df917e8f03cb13997064713a133c8d54bc7fc1\", \"actual_sha256\": \"5d4626f6f60c8c57cfa8f8268e90d2b85daefa3a1b7c18c251a27b24a3df8d93\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 7680, \"different_cells\": 21, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 2, 146, 39], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}, {\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/scroll-repinned.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/scroll-repinned.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/scroll-repinned.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"64bfb88b9d83ec6bcbb92d41e60f1d66f9a5c637eab76182123ac6b7e8df96d3\", \"actual_sha256\": \"aecde21e2fe9c526e7a980e1ff4590c472d8b9d3e93e900069ea001bfba013aa\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 744, \"changed_fraction_diagnostic_only\": 0.0007181245366938473, \"difference_bbox_inclusive\": [312, 626, 478, 638]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-80x24-0.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-80x24-0.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-80x24-0.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"resize-80x24-0\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"6aa890173f389a18364888fb2a4199d1af74e42ac4a735ef7e961a7f3d8a9ef5\", \"reference_sha256\": \"f3fd8de62bcbc06befca45cdf6f4dcd8a315a8c8bf05c1862d4d472f1bd79d19\", \"actual_sha256\": \"89968908f0f004e643097e8100cb2523842d4be7258f80004498f83fb4f2318f\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 1920, \"different_cells\": 20, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 15, 56, 15], \"samples\": [{\"x\": 37, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 15, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 15, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 15, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 56, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-80x24-0.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-80x24-0.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-80x24-0.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"ee85fb9587f2ceff8b761065442a92ac9d193ac78cefb539b7126b6563e508f0\", \"actual_sha256\": \"fa442280f6dcd5275bc4bc28036125c8875acdfdf9603e7699dc6bf5b0ae77e5\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 788, \"changed_fraction_diagnostic_only\": 0.0030446340257171117, \"difference_bbox_inclusive\": [312, 242, 673, 383]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-120x40-1.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-120x40-1.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-120x40-1.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"resize-120x40-1\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"c683f5a545781520121fb765b1828754465280ea10d5a0e831697977f757197b\", \"reference_sha256\": \"0822bd1966547d3bb9530059fadb0d711da34d5837469078540bc9bccbd15ba3\", \"actual_sha256\": \"214467647c9b70439b67263ae99ef4c959e5601e9c641222c12bfd10a418c5b2\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 4800, \"different_cells\": 20, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 31, 56, 31], \"samples\": [{\"x\": 37, \"y\": 31, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 31, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 31, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 31, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 31, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 31, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 31, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 31, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 31, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 31, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 31, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 31, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 31, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 31, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 31, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 31, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 31, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 31, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 31, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 56, \"y\": 31, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-120x40-1.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-120x40-1.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-120x40-1.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"86274561d63dbc64e8cf663ac1f208be375174f077036d786e60eebc93bb950e\", \"actual_sha256\": \"7d2ccaf23f7be02a15a0fce9e3b38470b5507d3d2f8eee633f8d3c2e987f3289\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 756, \"changed_fraction_diagnostic_only\": 0.0011683976261127596, \"difference_bbox_inclusive\": [312, 498, 478, 510]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-160x48-2.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-160x48-2.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-160x48-2.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"resize-160x48-2\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"5bef4b545cf6d975741bb1aa22ec0e26fdde9dfc4384d8b3b596f39aa18f78c7\", \"actual_sha256\": \"b455832810e751b96fc067a98ce85438860c7f6e232b34e7e0526bdad0f3f06a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 7680, \"different_cells\": 21, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 2, 146, 39], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}, {\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-160x48-2.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-160x48-2.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-160x48-2.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"64bfb88b9d83ec6bcbb92d41e60f1d66f9a5c637eab76182123ac6b7e8df96d3\", \"actual_sha256\": \"aecde21e2fe9c526e7a980e1ff4590c472d8b9d3e93e900069ea001bfba013aa\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 744, \"changed_fraction_diagnostic_only\": 0.0007181245366938473, \"difference_bbox_inclusive\": [312, 626, 478, 638]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-43x48-3.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-43x48-3.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-43x48-3.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"resize-43x48-3\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"00a6a5dd0c9d53abe9eaaac4dce2f85f737687649c345ac30bbbdae7e849eb12\", \"reference_sha256\": \"3ce405b3dcfbd75c66629c6b8ffbad8e11185f36cd5b117df2a4065100d9b641\", \"actual_sha256\": \"1667eb5daa6fd6b9e39ef35006ee400281ec46168b61ac0a740ffd84063f830b\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 2064, \"different_cells\": 5, \"cursor_differs\": false, \"difference_bbox_inclusive\": [36, 39, 40, 39], \"samples\": [{\"x\": 36, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-43x48-3.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-43x48-3.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-43x48-3.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"093bb3b42fb3eaa19f6254b132279b044ea4a339e874df22c49ddd8f2e7997ef\", \"actual_sha256\": \"3bf451099e2e4e4dbf3d5bccd38971715dbb5cc9cf93627c37d4d945cdcb6d5e\", \"width\": 362, \"height\": 768, \"pixels_checked\": 278016, \"different_pixels\": 300, \"changed_fraction_diagnostic_only\": 0.0010790745856353592, \"difference_bbox_inclusive\": [303, 627, 361, 727]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-44x48-4.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-44x48-4.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-44x48-4.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"resize-44x48-4\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"7ed4c2e6120c5299ee0e979c0bb28610f9806867dfbdc791388124624a6df65d\", \"reference_sha256\": \"ce488561995765ac6276d40478786f9e09c3e0319291d70949c975cc6e47c262\", \"actual_sha256\": \"662e7c70f90d174020d5585ed955c9d848911ee5c06e7ef85bcd779537bcc8bf\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 2112, \"different_cells\": 5, \"cursor_differs\": false, \"difference_bbox_inclusive\": [36, 39, 40, 39], \"samples\": [{\"x\": 36, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 39, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 40, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-44x48-4.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-44x48-4.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-44x48-4.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"d01588b9ad86fb28fb0bd466af1f270fc57fb2522eb608a91f08ec507510e73e\", \"actual_sha256\": \"16bf5192b4095c59f888b16a1fae45920a32fb5a4566d9bc1d46ce8d6270ae5d\", \"width\": 371, \"height\": 768, \"pixels_checked\": 284928, \"different_pixels\": 174, \"changed_fraction_diagnostic_only\": 0.0006106805929919138, \"difference_bbox_inclusive\": [312, 627, 343, 636]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-119x48-5.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-119x48-5.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-119x48-5.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"resize-119x48-5\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"c7e3a4445a2184dc5066e756ce0f02ac3edd74ff650425f082eb533034882589\", \"reference_sha256\": \"73e59bd03593cf0f58f2dc7c72419930483bf92a0a30ecd0c8944abb32c9b0b9\", \"actual_sha256\": \"130db0fe71eeb80d2d5fa930d44bdf879c0e751dc67b0c8772eab0e90aa08171\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 5712, \"different_cells\": 20, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 39, 56, 39], \"samples\": [{\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 56, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-119x48-5.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-119x48-5.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-119x48-5.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"d518e9c48ee9d142ba89e6cf05560ddf3bc06f11a1496297b79ef52a1d1a689b\", \"actual_sha256\": \"519c7fd6875e821facfcfa428cde2b7670a007ec014387222b7cb30a26e7b309\", \"width\": 1003, \"height\": 768, \"pixels_checked\": 770304, \"different_pixels\": 739, \"changed_fraction_diagnostic_only\": 0.0009593614988368229, \"difference_bbox_inclusive\": [312, 626, 478, 638]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-120x48-6.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-120x48-6.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-120x48-6.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"resize-120x48-6\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"bdd8aa7248c8de49b20b41f24618388f57f25089755bee87256314913f929632\", \"reference_sha256\": \"6da77898ef84a902782a074211796daa8facc1b1b0a02a67283acedb7bea62f1\", \"actual_sha256\": \"dad1f4c493b7732a4ec5cf9e513f3690951a6fa7fc3110ade558b7b8c1332e79\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 5760, \"different_cells\": 20, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 39, 56, 39], \"samples\": [{\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 56, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-120x48-6.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-120x48-6.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-120x48-6.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"f4edfd321a8b008dfd9be28d543beaed3d69e974cd19729888bc7d7b45bb137a\", \"actual_sha256\": \"97324be40f257a021fe915878101cc874590e52754e4bbc8df77d165e2728488\", \"width\": 1011, \"height\": 768, \"pixels_checked\": 776448, \"different_pixels\": 756, \"changed_fraction_diagnostic_only\": 0.0009736646884272997, \"difference_bbox_inclusive\": [312, 626, 478, 638]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-121x48-7.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-121x48-7.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-121x48-7.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"resize-121x48-7\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"1930beeba5870bf0948cebf8fde6167776820073ba0354fc73d00cf7e9181175\", \"reference_sha256\": \"533d7d6a0ecb1927f58dcea075dc56c87c64c688c3719097f6f182069fec1d91\", \"actual_sha256\": \"e99b624bf9ffdb6ae63561ba30716fd756f737741e8d31e36d9e45bf6048b157\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 5808, \"different_cells\": 21, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 2, 107, 39], \"samples\": [{\"x\": 107, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}, {\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-121x48-7.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-121x48-7.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-121x48-7.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"4b5b67a06e3557d61316dc8533197f8bd2e427bf2ea94c4cabfff24ec39b1379\", \"actual_sha256\": \"ad0a7e8024329df0fc7ec0db34bbc1223fb287c272a536a40a6938917be52ce8\", \"width\": 1020, \"height\": 768, \"pixels_checked\": 783360, \"different_pixels\": 741, \"changed_fraction_diagnostic_only\": 0.0009459252450980392, \"difference_bbox_inclusive\": [312, 626, 478, 638]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-120x80-8.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-120x80-8.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-120x80-8.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"resize-120x80-8\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"0a98d75980e7b4f37347cf4649cd9947a8a8005dcbae6383eb5bfc3c3e6afeea\", \"reference_sha256\": \"46ebb76df60c47142fc814bbbd0b3a0af7e5f84eea6af14f4e35e050d103c54c\", \"actual_sha256\": \"0d4364a01574f1a22749652bc8d42cb4f67b718158209c0c6f83168ec82482b2\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 9600, \"different_cells\": 20, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 71, 56, 71], \"samples\": [{\"x\": 37, \"y\": 71, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 71, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 71, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 71, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 71, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 71, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 71, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 71, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 71, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 71, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 71, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 71, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 71, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 71, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 71, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 71, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 71, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 71, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 71, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 56, \"y\": 71, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-120x80-8.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-120x80-8.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-120x80-8.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"6d215a6eddfaa34088618e310f6b2b0c67ef26b9e5e7a863c2e515183f7881c0\", \"actual_sha256\": \"49307de63c6da33ee6768db21268e6bda06b4aaa3e29bc34f1f225f9c655a324\", \"width\": 1011, \"height\": 1100, \"pixels_checked\": 1112100, \"different_pixels\": 752, \"changed_fraction_diagnostic_only\": 0.0006761981836165813, \"difference_bbox_inclusive\": [1010, 16, 1010, 767]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-160x48-9.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-160x48-9.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-160x48-9.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"resize-160x48-9\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"4e230bd69802f02623c5bd57692aa31f24ac39059dadd163b923908e95811052\", \"actual_sha256\": \"f6f7cd63b09b966a5ecff7fb360902f0fb0599e35a77ce5fe7726a8a6aa931bc\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 7680, \"different_cells\": 21, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 2, 146, 39], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}, {\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/resize-160x48-9.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/resize-160x48-9.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/resize-160x48-9.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"64bfb88b9d83ec6bcbb92d41e60f1d66f9a5c637eab76182123ac6b7e8df96d3\", \"actual_sha256\": \"aecde21e2fe9c526e7a980e1ff4590c472d8b9d3e93e900069ea001bfba013aa\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 744, \"changed_fraction_diagnostic_only\": 0.0007181245366938473, \"difference_bbox_inclusive\": [312, 626, 478, 638]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/multiline-draft.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/multiline-draft.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/multiline-draft.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"multiline-draft\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"1cc1cf3cb42859f7775245d0fb94f944cbd051c8f6c277c60a90e3b6d6276920\", \"actual_sha256\": \"cb1f43d1488647df11cd75eb47d1c815ecbd72d00190ef359c927122186a2b63\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 7680, \"different_cells\": 38, \"cursor_differs\": false, \"difference_bbox_inclusive\": [17, 2, 146, 42], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}, {\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/upstream/multiline-draft.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/oc/multiline-draft.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-final/multiline-draft.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"6c52614e20d06588126a3893be97b42716ad1024ed893f7467a64e9b035c4c4c\", \"actual_sha256\": \"64d2b9f67872a49bcb0b6a5752949551dc491f18576d0b4abc44144d9edae95a\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 3032, \"changed_fraction_diagnostic_only\": 0.002926550531257722, \"difference_bbox_inclusive\": [143, 626, 478, 687]}\n",
+    "stderr": ""
+  }
+]

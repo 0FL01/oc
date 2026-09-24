@@ -1,0 +1,202 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "rows",
+      "--matrix",
+      "true",
+      "--scroll-resize",
+      "true",
+      "--columns",
+      "160",
+      "--rows",
+      "48",
+      "--devtools",
+      "false",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "0f546a531e526e45d77c8d3feb20baccb6b0f5ad\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "a0dc013eb42717b6f6da44f8f7dc3702096ccd7a\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.17s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"71f0a51f6e9fbe1c7b9eb9cdf157f2bcab0191928e37a36a62952efab8294882\", \"actual_sha256\": \"45aeafc7c6d68c2d046029d8b15448cdbb60f38d93ff1744c26a1d8832392d41\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 7680, \"different_cells\": 89, \"cursor_differs\": false, \"difference_bbox_inclusive\": [43, 24, 157, 46], \"samples\": [{\"x\": 43, \"y\": 24, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 25, \"different_fields\": [\"fg\"]}, {\"x\": 61, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 62, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 63, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 64, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 65, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 66, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 67, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 68, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 69, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 70, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 71, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 72, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 73, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 77, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 78, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 79, \"y\": 25, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"68e5adbfd151b0a12031355d46cfc1abc6ffbdf1c3e3501e7e0ea815a66afed2\", \"actual_sha256\": \"40853411b89bccd8a3fa2df8f00d191182ed17a7f028f59a5007171b75c1980c\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 4233, \"changed_fraction_diagnostic_only\": 0.0040857811341734615, \"difference_bbox_inclusive\": [365, 384, 1329, 748]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"1c4100e24aa9a7b7053b09130a451517072d2dacfda0627f48b8b0ba5de11dcd\", \"actual_sha256\": \"61081499b2ecdd6ba1e9af36bd778ea27d0774562afc8b378e6d2d251c71fac8\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 7680, \"different_cells\": 1697, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 2, 157, 45], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}, {\"x\": 147, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 148, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 149, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 150, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 151, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 152, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 153, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 154, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 155, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 156, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 157, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 130, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 131, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 132, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 133, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 134, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 135, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 136, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 137, \"y\": 3, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"684cf341ceb785755567df7b45482fac7638173acaaf81f19e04bb7744ef6e45\", \"actual_sha256\": \"e69bccb12bd123a6ecaef001bb9b71ab3c6c96ce7b33a49b0c68c56e3525b51d\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 4218, \"changed_fraction_diagnostic_only\": 0.004071302816901408, \"difference_bbox_inclusive\": [19, 626, 402, 728]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/upstream/scroll-pinned-draft.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/oc/scroll-pinned-draft.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/scroll-pinned-draft.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scroll-pinned-draft\", \"fixture_sha256\": \"51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65\", \"environment_id\": \"b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd\", \"reference_sha256\": \"e87d83e664b2f1040a4d3b2ce75dca8183f0603b63ad91560f121d981ef0e34f\", \"actual_sha256\": \"56b9404a3689f309ee018ac65419ee7c6a6c8c5f847077cc386bfd6e746933f3\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"0f546a531e526e45d77c8d3feb20baccb6b0f5ad\", \"cells_checked\": 7680, \"different_cells\": 1697, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 2, 157, 45], \"samples\": [{\"x\": 146, \"y\": 2, \"different_fields\": [\"fg\", \"modifiers\"]}, {\"x\": 147, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 148, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 149, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 150, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 151, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 152, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 153, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 154, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 155, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 156, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 157, \"y\": 2, \"different_fields\": [\"fg\"]}, {\"x\": 130, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 131, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 132, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 133, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 134, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 135, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 136, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 137, \"y\": 3, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/upstream/scroll-pinned-draft.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/oc/scroll-pinned-draft.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v03/vis05-fresh-20260924-01/scroll-pinned-draft.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"b1fd5c0b68483c6fcbcabd1d104e395ab9a4820563194ade67b2decf59d18475\", \"actual_sha256\": \"1eb405b7db56bc878eda02d92a22fdedc21b627a520d6635c793eb046335d4c4\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 4218, \"changed_fraction_diagnostic_only\": 0.004071302816901408, \"difference_bbox_inclusive\": [19, 626, 402, 728]}\n",
+    "stderr": ""
+  }
+]

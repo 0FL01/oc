@@ -1,0 +1,102 @@
+[
+  {
+    "scenario": "resize-80x24-0",
+    "columns": 80,
+    "rows": 24,
+    "visible_row_markers": 13,
+    "viewport_check": "NOT_APPLICABLE",
+    "draft_row": 18,
+    "cursor_at_draft_end": true,
+    "sidebar_present": false
+  },
+  {
+    "scenario": "resize-120x40-1",
+    "columns": 120,
+    "rows": 40,
+    "visible_row_markers": 29,
+    "viewport_check": "PASS",
+    "draft_row": 34,
+    "cursor_at_draft_end": true,
+    "sidebar_present": false
+  },
+  {
+    "scenario": "resize-160x48-2",
+    "columns": 160,
+    "rows": 48,
+    "visible_row_markers": 37,
+    "viewport_check": "PASS",
+    "draft_row": 42,
+    "cursor_at_draft_end": true,
+    "sidebar_present": true
+  },
+  {
+    "scenario": "resize-43x48-3",
+    "columns": 43,
+    "rows": 48,
+    "visible_row_markers": 37,
+    "viewport_check": "PASS",
+    "draft_row": 42,
+    "cursor_at_draft_end": true,
+    "sidebar_present": false
+  },
+  {
+    "scenario": "resize-44x48-4",
+    "columns": 44,
+    "rows": 48,
+    "visible_row_markers": 37,
+    "viewport_check": "PASS",
+    "draft_row": 42,
+    "cursor_at_draft_end": true,
+    "sidebar_present": false
+  },
+  {
+    "scenario": "resize-119x48-5",
+    "columns": 119,
+    "rows": 48,
+    "visible_row_markers": 37,
+    "viewport_check": "PASS",
+    "draft_row": 42,
+    "cursor_at_draft_end": true,
+    "sidebar_present": false
+  },
+  {
+    "scenario": "resize-120x48-6",
+    "columns": 120,
+    "rows": 48,
+    "visible_row_markers": 37,
+    "viewport_check": "PASS",
+    "draft_row": 42,
+    "cursor_at_draft_end": true,
+    "sidebar_present": false
+  },
+  {
+    "scenario": "resize-121x48-7",
+    "columns": 121,
+    "rows": 48,
+    "visible_row_markers": 37,
+    "viewport_check": "PASS",
+    "draft_row": 42,
+    "cursor_at_draft_end": true,
+    "sidebar_present": true
+  },
+  {
+    "scenario": "resize-120x80-8",
+    "columns": 120,
+    "rows": 80,
+    "visible_row_markers": 69,
+    "viewport_check": "PASS",
+    "draft_row": 74,
+    "cursor_at_draft_end": true,
+    "sidebar_present": false
+  },
+  {
+    "scenario": "resize-160x48-9",
+    "columns": 160,
+    "rows": 48,
+    "visible_row_markers": 37,
+    "viewport_check": "PASS",
+    "draft_row": 42,
+    "cursor_at_draft_end": true,
+    "sidebar_present": true
+  }
+]

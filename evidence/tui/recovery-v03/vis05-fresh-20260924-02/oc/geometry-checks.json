@@ -1,0 +1,82 @@
+[
+  {
+    "scenario": "resize-80x24-0",
+    "columns": 80,
+    "rows": 24,
+    "visible_row_markers": 15,
+    "viewport_check": "NOT_APPLICABLE",
+    "sidebar_present": false
+  },
+  {
+    "scenario": "resize-120x40-1",
+    "columns": 120,
+    "rows": 40,
+    "visible_row_markers": 31,
+    "viewport_check": "PASS",
+    "sidebar_present": false
+  },
+  {
+    "scenario": "resize-160x48-2",
+    "columns": 160,
+    "rows": 48,
+    "visible_row_markers": 39,
+    "viewport_check": "PASS",
+    "sidebar_present": true
+  },
+  {
+    "scenario": "resize-43x48-3",
+    "columns": 43,
+    "rows": 48,
+    "visible_row_markers": 39,
+    "viewport_check": "PASS",
+    "sidebar_present": false
+  },
+  {
+    "scenario": "resize-44x48-4",
+    "columns": 44,
+    "rows": 48,
+    "visible_row_markers": 39,
+    "viewport_check": "PASS",
+    "sidebar_present": false
+  },
+  {
+    "scenario": "resize-119x48-5",
+    "columns": 119,
+    "rows": 48,
+    "visible_row_markers": 39,
+    "viewport_check": "PASS",
+    "sidebar_present": false
+  },
+  {
+    "scenario": "resize-120x48-6",
+    "columns": 120,
+    "rows": 48,
+    "visible_row_markers": 39,
+    "viewport_check": "PASS",
+    "sidebar_present": false
+  },
+  {
+    "scenario": "resize-121x48-7",
+    "columns": 121,
+    "rows": 48,
+    "visible_row_markers": 39,
+    "viewport_check": "PASS",
+    "sidebar_present": true
+  },
+  {
+    "scenario": "resize-120x80-8",
+    "columns": 120,
+    "rows": 80,
+    "visible_row_markers": 67,
+    "viewport_check": "PASS",
+    "sidebar_present": false
+  },
+  {
+    "scenario": "resize-160x48-9",
+    "columns": 160,
+    "rows": 48,
+    "visible_row_markers": 39,
+    "viewport_check": "PASS",
+    "sidebar_present": true
+  }
+]

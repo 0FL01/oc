@@ -1,0 +1,777 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-24T07:21:13.254Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "08cc6a6aaede5585e4415d4c0acc79bf6a377ad5cfb299c1720e63b549330fb2",
+    "frontend.js": "422f93bd137f00b2b677e2b5e1f8f31170cccffd9330eab2c66f26528820f6ee",
+    "bridge.py": "dc098cbd6237c5271a841fcac729b65c2cb23dcc945328f87e9d5d31d79da244"
+  },
+  "fixture_sha256": "51135a45831e2bc8202681ffcb602409475d7a9a8bf93a6dd176947e24d91d65",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "0f546a531e526e45d77c8d3feb20baccb6b0f5ad",
+    "tree": "a0dc013eb42717b6f6da44f8f7dc3702096ccd7a",
+    "dirty_diff_sha256": "06f3bfffc39138cb430483724ad8112a6dfb08b1d5c6bf29af3eb08a0bd95383",
+    "source_manifest_sha256": "b0700599c186f3cd578749048cbf73199483ffeea51b8ac790af56f97dbb8d20",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "f35fc94d75ab9044be825b672e5c197073fdf403c96000ecdc46b862398d16d9",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "SCROLL_RESIZE_CHECKS_PASS",
+      "one_line_down": 80
+    },
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "SCROLL_RESIZE_CHECKS_PASS",
+      "one_line_down": 80
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "scroll-pinned-draft",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "scroll-pinned-draft",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "scroll-away",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "scroll-away",
+      "mode": "png",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "scroll-shrink",
+      "mode": "grid",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "scroll-shrink",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "scroll-grow",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "scroll-grow",
+      "mode": "png",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "scroll-down-one",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "scroll-down-one",
+      "mode": "png",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "scroll-repinned",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "scroll-repinned",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-80x24-0",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-80x24-0",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-120x40-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-120x40-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-160x48-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-160x48-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-43x48-3",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-43x48-3",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-44x48-4",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-44x48-4",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-119x48-5",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-119x48-5",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-120x48-6",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-120x48-6",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-121x48-7",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-121x48-7",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-120x80-8",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-120x80-8",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-160x48-9",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "resize-160x48-9",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "multiline-draft",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "multiline-draft",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "scroll-top",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-top",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-top-grow",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-top-grow",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-clamped-down",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-clamped-down",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-repinned-after-clamp",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "scroll-repinned-after-clamp",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "de468665b70e2cf9c81c5f234532bb8e65e6825291b4327e8b203093dd2e6f4b",
+      "png_sha256": "f27b3a25bd4f6e2e77f7271edbf1bc3df1891226137d7e080088bab17c30d851",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "5981d1b15f40737a3c9fa89141301844c90d3a95fd3ec5734f0c5504addfa876",
+      "png_sha256": "c844da6ef22b429b6618b95c3596a632dfbc58d08587cdb4002ed1a3f9e9e498",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "scroll-pinned-draft",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "ea926345e69b876c021452f4231682ede6bb46ba2bf65de844c7c79f318f458b",
+      "png_sha256": "5472430f70d8bf268beea4b75a8d63dca6d3df4f6e0fbbd9a2bc78aa446c3287",
+      "path": "upstream/scroll-pinned-draft"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "scroll-away",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "3929256ff01b16676969859cde905bfd51298ae3ccb3e608840953188786b840",
+      "png_sha256": "79b454295db997bb07755d61276e04b09934d62377309598c6ffcc228bf4f6b5",
+      "path": "upstream/scroll-away"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "scroll-shrink",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "6aa890173f389a18364888fb2a4199d1af74e42ac4a735ef7e961a7f3d8a9ef5",
+      "cells_sha256": "13fc4d855bd968a6f38b9bae1cf471dccb45d510724393f7b80aac9a68fa0638",
+      "png_sha256": "1f8c8dd446d10e54d0586ab2ac2a5ed9edbe7dc6af3e610fcf2f220aba4dc7e4",
+      "path": "upstream/scroll-shrink"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "scroll-grow",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "6bd1bbb6ddb8a9505b0a69719ce587a65d1cf779fcfb1ab5841f2c39cb8b232b",
+      "png_sha256": "79b454295db997bb07755d61276e04b09934d62377309598c6ffcc228bf4f6b5",
+      "path": "upstream/scroll-grow"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "scroll-down-one",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "00ebd0168fe7a39fbb5cc7bb5b41f22ee80a2f8f127179f4aed4c5f0653dc404",
+      "png_sha256": "22dcb60e62f9f3fca17d7392f4df735a90c4250fb05d3b8b1c5a27aa34c5a3c2",
+      "path": "upstream/scroll-down-one"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "scroll-repinned",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "f82c6727de94ca89e35ecae4ec30c46366d4c21a9ffc11cc97bd46f718e30861",
+      "png_sha256": "5472430f70d8bf268beea4b75a8d63dca6d3df4f6e0fbbd9a2bc78aa446c3287",
+      "path": "upstream/scroll-repinned"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "resize-80x24-0",
+      "status": "CAPTURED",
+      "environment_id": "6aa890173f389a18364888fb2a4199d1af74e42ac4a735ef7e961a7f3d8a9ef5",
+      "cells_sha256": "e46b100ca087f363f612355fb4dee7d18a53c46bdb86a46f68110f494b426098",
+      "png_sha256": "f6eca7849ed6c152060ab1950f18b27f202f6b3d583f24d19b2a32e45b734f57",
+      "path": "upstream/resize-80x24-0"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "resize-120x40-1",
+      "status": "CAPTURED",
+      "environment_id": "c683f5a545781520121fb765b1828754465280ea10d5a0e831697977f757197b",
+      "cells_sha256": "f7ccc49b8d8fecc329ebde8d18aae077a10e0bcd2f7bc4247c73ddf70449d039",
+      "png_sha256": "e9a1c8c3d6cac0b4d9e92d8716aa0b55a8ae581184c3f086c07ff8ee257b3c1c",
+      "path": "upstream/resize-120x40-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "resize-160x48-2",
+      "status": "CAPTURED",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "7a1611f99b830f135a0c308e8ce582b249fca4b0461f4ece0acce8a0d2470f73",
+      "png_sha256": "5472430f70d8bf268beea4b75a8d63dca6d3df4f6e0fbbd9a2bc78aa446c3287",
+      "path": "upstream/resize-160x48-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "resize-43x48-3",
+      "status": "CAPTURED",
+      "environment_id": "00a6a5dd0c9d53abe9eaaac4dce2f85f737687649c345ac30bbbdae7e849eb12",
+      "cells_sha256": "a830dcef2112a67ef3ee694a535a497117dd1e5c20fcc114cfd8cdd782901e0b",
+      "png_sha256": "cf9833b796f637c33ce7915ef207c534ed91476ede4c1b4805e9fc90c5877751",
+      "path": "upstream/resize-43x48-3"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "resize-44x48-4",
+      "status": "CAPTURED",
+      "environment_id": "7ed4c2e6120c5299ee0e979c0bb28610f9806867dfbdc791388124624a6df65d",
+      "cells_sha256": "e4a06a175b90072f3966d03f8f061cbb42ae8b6007b35cb99d42b4642522550b",
+      "png_sha256": "82deb87fb10057020b84ebf056832d2ce721aa2564317273784152698ae6128e",
+      "path": "upstream/resize-44x48-4"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "resize-119x48-5",
+      "status": "CAPTURED",
+      "environment_id": "c7e3a4445a2184dc5066e756ce0f02ac3edd74ff650425f082eb533034882589",
+      "cells_sha256": "6f2e181e3b41be64801d3fd792cf8c2e82038e280557e678c5f57c9ba2074094",
+      "png_sha256": "80cffce1c67135a1cafabee5b0f2cda812fa213bd1619765264f73437637a21a",
+      "path": "upstream/resize-119x48-5"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "resize-120x48-6",
+      "status": "CAPTURED",
+      "environment_id": "bdd8aa7248c8de49b20b41f24618388f57f25089755bee87256314913f929632",
+      "cells_sha256": "a6188db8b1aee404aea4d94c488d15691a50191ded1cedea36e42a36aebb4eef",
+      "png_sha256": "170ff8b0ecdf07f1a6d1eb9e7dd2099b2966ed33118028b955c3f436214c21ed",
+      "path": "upstream/resize-120x48-6"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "resize-121x48-7",
+      "status": "CAPTURED",
+      "environment_id": "1930beeba5870bf0948cebf8fde6167776820073ba0354fc73d00cf7e9181175",
+      "cells_sha256": "95528c9d19c49cc12480111e98936643861b1ccca9d9f60a10595e2512a5aa6d",
+      "png_sha256": "b774d369cd16713a6dcaa96525f335361fe45b378ac6449966ca15303fbff6f1",
+      "path": "upstream/resize-121x48-7"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "resize-120x80-8",
+      "status": "CAPTURED",
+      "environment_id": "0a98d75980e7b4f37347cf4649cd9947a8a8005dcbae6383eb5bfc3c3e6afeea",
+      "cells_sha256": "d46b33b2ba62c2d2692cc300b2659b2463846f72efceaa9a3c1d430a5dc728c9",
+      "png_sha256": "6d215a6eddfaa34088618e310f6b2b0c67ef26b9e5e7a863c2e515183f7881c0",
+      "path": "upstream/resize-120x80-8"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "resize-160x48-9",
+      "status": "CAPTURED",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "6261baabe536af12a7c7bb6dcdd116ef5c9031bee198f10df2d975b71196a39b",
+      "png_sha256": "5472430f70d8bf268beea4b75a8d63dca6d3df4f6e0fbbd9a2bc78aa446c3287",
+      "path": "upstream/resize-160x48-9"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "multiline-draft",
+      "status": "CAPTURED_PASTE_CHIP",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "2fd450278f048094ad41c793b3e9f4552c30f3b63044d8db9027a5e5e7b945a2",
+      "png_sha256": "d5a4fab0fa2ca9ccdbb0da8c93d8d72bed24c617c09f1d01f577d38266a9de5e",
+      "path": "upstream/multiline-draft"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "94c0409f6378a539e4d0cc8b760d621c15014b4d6e8b2ad31e8af3825c0006c4",
+      "png_sha256": "bc683aef4a4a425cc458d523e355188d7fd572643199b28cc816b5912fd5d6f5",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "23d7970cb1e2b5d49ced80a56f687003cf72f3a6a4a8b9ed43875b15ff821ff2",
+      "png_sha256": "635062d072a9a98085ad52dca2a805bf01acda1e05de2913f6ebf3c3e7199b74",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-pinned-draft",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "9197f2a157f2c259316cbfb53a30c1278a4303302708f5974083d65442f4145f",
+      "png_sha256": "406441fe35db2f9ad96a4cbe7a06456e02800100e6aa89bf6e5a088f3c5090ef",
+      "path": "oc/scroll-pinned-draft"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-away",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "f0e6adeb9c42cbae7d479c67bbc7b287a95d726cbd059e2738a6bda5b493f32e",
+      "png_sha256": "79b454295db997bb07755d61276e04b09934d62377309598c6ffcc228bf4f6b5",
+      "path": "oc/scroll-away"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-shrink",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "6aa890173f389a18364888fb2a4199d1af74e42ac4a735ef7e961a7f3d8a9ef5",
+      "cells_sha256": "45e8e10ad032c58605b977975716d324f9fdfb3b9b75eb94bacd73c4d565b5e9",
+      "png_sha256": "f52103668366002fdce74e6eb8bbc7da30307d4ca89089db47e81c681aaa387c",
+      "path": "oc/scroll-shrink"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-grow",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "ba1fbc8a5f6b5c645dd535e4f0cc57f9e34cdf8bf186f7b80c947eda9d8d79ae",
+      "png_sha256": "79b454295db997bb07755d61276e04b09934d62377309598c6ffcc228bf4f6b5",
+      "path": "oc/scroll-grow"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-down-one",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "77410f0b5e6b63b3bfbbdae2100f5a9e423267ad72f622e23b98b7acb6b02f93",
+      "png_sha256": "22dcb60e62f9f3fca17d7392f4df735a90c4250fb05d3b8b1c5a27aa34c5a3c2",
+      "path": "oc/scroll-down-one"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-repinned",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "2ad5990f1870b3f954449edd291c793f41d70ab913252b4d05445f2cea05cee0",
+      "png_sha256": "406441fe35db2f9ad96a4cbe7a06456e02800100e6aa89bf6e5a088f3c5090ef",
+      "path": "oc/scroll-repinned"
+    },
+    {
+      "origin": "oc",
+      "scenario": "resize-80x24-0",
+      "status": "CAPTURED",
+      "environment_id": "6aa890173f389a18364888fb2a4199d1af74e42ac4a735ef7e961a7f3d8a9ef5",
+      "cells_sha256": "c49ed2f1ab80b4e06f808796f0194e4f53a435eac9fb961f0c0fd9911ffe7b73",
+      "png_sha256": "8cc065c266db6ae11393bcfb1e2f80731f4bc87b1f7b211ee4f6c4fe54d29c51",
+      "path": "oc/resize-80x24-0"
+    },
+    {
+      "origin": "oc",
+      "scenario": "resize-120x40-1",
+      "status": "CAPTURED",
+      "environment_id": "c683f5a545781520121fb765b1828754465280ea10d5a0e831697977f757197b",
+      "cells_sha256": "27c67e24e08d6e886da74054fca188d9d0fc94662a0ce08723aa35726ee929d7",
+      "png_sha256": "de6bf2975f8bc3e4b0099088ad6c9e98d36ba31717b80c7f6668344e818525c4",
+      "path": "oc/resize-120x40-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "resize-160x48-2",
+      "status": "CAPTURED",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "25b84bcb15ebd30e3d4aab23385977252d6310f3a424b673ac3ae88e7dacfa18",
+      "png_sha256": "406441fe35db2f9ad96a4cbe7a06456e02800100e6aa89bf6e5a088f3c5090ef",
+      "path": "oc/resize-160x48-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "resize-43x48-3",
+      "status": "CAPTURED",
+      "environment_id": "00a6a5dd0c9d53abe9eaaac4dce2f85f737687649c345ac30bbbdae7e849eb12",
+      "cells_sha256": "d73c59ae88eb4c5b2fbb5abab16336004676e5b914f18bd311b2b93382aeadc2",
+      "png_sha256": "64ce50a32bfe11285a354e70e2f48011955bd6fa5ed50af1132cbf325e89be5f",
+      "path": "oc/resize-43x48-3"
+    },
+    {
+      "origin": "oc",
+      "scenario": "resize-44x48-4",
+      "status": "CAPTURED",
+      "environment_id": "7ed4c2e6120c5299ee0e979c0bb28610f9806867dfbdc791388124624a6df65d",
+      "cells_sha256": "51390c57bedbed02236423dd7695b1bc64af7e778ad7d63e1af3cb6d556fdb70",
+      "png_sha256": "db9193361f3104bcb7413bf0e8d955b140a74b3643eaa5c5b75c7f044604d99d",
+      "path": "oc/resize-44x48-4"
+    },
+    {
+      "origin": "oc",
+      "scenario": "resize-119x48-5",
+      "status": "CAPTURED",
+      "environment_id": "c7e3a4445a2184dc5066e756ce0f02ac3edd74ff650425f082eb533034882589",
+      "cells_sha256": "5d7c3935792e7ac4f9622ef3c8956e94bcafc5b0096b32d79466176c7fa051e7",
+      "png_sha256": "35a34a2dd09ec28fd0a56dc72c7a44672fd6da5432ab3624d93ddef2217a3258",
+      "path": "oc/resize-119x48-5"
+    },
+    {
+      "origin": "oc",
+      "scenario": "resize-120x48-6",
+      "status": "CAPTURED",
+      "environment_id": "bdd8aa7248c8de49b20b41f24618388f57f25089755bee87256314913f929632",
+      "cells_sha256": "37e3c4a9df3767abdf603897ac238fc875ec32eeb76b5df5b5976ec0a74aadfa",
+      "png_sha256": "8e1cc384cca481b4d8861b26d452e83eb9b6b614e056f12d4d0a1b321e7d623b",
+      "path": "oc/resize-120x48-6"
+    },
+    {
+      "origin": "oc",
+      "scenario": "resize-121x48-7",
+      "status": "CAPTURED",
+      "environment_id": "1930beeba5870bf0948cebf8fde6167776820073ba0354fc73d00cf7e9181175",
+      "cells_sha256": "882c6b51af9983e020fa4a9afbe9800100e248a56357c0a6d21d4c289df68dfd",
+      "png_sha256": "d8d5470667e58e5db124f906f2dfd4b33e04473433bbe499be303cf06d1fc062",
+      "path": "oc/resize-121x48-7"
+    },
+    {
+      "origin": "oc",
+      "scenario": "resize-120x80-8",
+      "status": "CAPTURED",
+      "environment_id": "0a98d75980e7b4f37347cf4649cd9947a8a8005dcbae6383eb5bfc3c3e6afeea",
+      "cells_sha256": "1d64956c4b9fb1ada53c1269a65504ce04938e167ec2ba8d11eeff957ca537d6",
+      "png_sha256": "49307de63c6da33ee6768db21268e6bda06b4aaa3e29bc34f1f225f9c655a324",
+      "path": "oc/resize-120x80-8"
+    },
+    {
+      "origin": "oc",
+      "scenario": "resize-160x48-9",
+      "status": "CAPTURED",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "4afb682d72b41c9eba452652a6508e72204928fc669c3716cc20006173003dde",
+      "png_sha256": "406441fe35db2f9ad96a4cbe7a06456e02800100e6aa89bf6e5a088f3c5090ef",
+      "path": "oc/resize-160x48-9"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-top",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "547bdc685c6782e02dfc8572cb9ea96baeb9fd00fcad51beb95df047130dfb72",
+      "png_sha256": "873025345a78cb73da7c977eac780c94cd3c267c672cdc41fb76d4bb6536a0e4",
+      "path": "oc/scroll-top"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-top-grow",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "43d004c5d836fd3133bbdabdee3b05806c8c26d9b687e0a1a2669a1240b3bccd",
+      "cells_sha256": "3ede2b2b281fc107ddad66ef3a9cc03d46923198000b531beb7ed06f872ecce7",
+      "png_sha256": "27268d76ef6ad7fcc573021871ad4f42045b01d0100424abae586119ccad39a8",
+      "path": "oc/scroll-top-grow"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-clamped-down",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "43d004c5d836fd3133bbdabdee3b05806c8c26d9b687e0a1a2669a1240b3bccd",
+      "cells_sha256": "fa004b2f3ca7ea3f1927cd1bedfc0911789b03f4bc9b1a7f67913fd513e6affb",
+      "png_sha256": "a691482b90bff139624939d95697104c7be43e06eaaf3dff5bb98e48e9eed9d5",
+      "path": "oc/scroll-clamped-down"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scroll-repinned-after-clamp",
+      "status": "CAPTURED_SCROLL_GEOMETRY",
+      "environment_id": "43d004c5d836fd3133bbdabdee3b05806c8c26d9b687e0a1a2669a1240b3bccd",
+      "cells_sha256": "a5461e754c6486ad36c957b236e22a55703787e454bf1c4e58457ae29c24d8d5",
+      "png_sha256": "a18a7b3a0700dd206f840b56b28c334ea149d22201cc1f8d7c9eaa242de6fcf5",
+      "path": "oc/scroll-repinned-after-clamp"
+    },
+    {
+      "origin": "oc",
+      "scenario": "multiline-draft",
+      "status": "CAPTURED_PASTE_CHIP",
+      "environment_id": "b865055d8fea731e157004f417f3ea4af70f6aa36f454151f52aadfd629fbddd",
+      "cells_sha256": "2896eb50fac8e004afce6ee24f56804f8352c845307aee134ee49ecd3f7fc73b",
+      "png_sha256": "c4911af0e1f5525fc6b08a1cb2ad6ed7d843a4d0913755ca01249ee8c522e7ac",
+      "path": "oc/multiline-draft"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 160,
+    "rows": 48,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "auto",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "pixel_width": 1349,
+    "pixel_height": 768,
+    "measured_cell_width": 8.43125,
+    "measured_cell_height": 16
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "auto",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-24T07:23:48.099Z",
+  "exit_code": 1
+}

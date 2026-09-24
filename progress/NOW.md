@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-24T06:50:34+00:00
+State updated: 2026-09-24T08:16:03+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,19 +14,19 @@ Evidence target: evidence/T44/report.md
 
 ## Result
 
-Commit `8728fe3` corrects user-message padding and empty prompt's canvas foreground rather than tinting blank cells with text color. The pinned original/native actual two-root Reader/read 120x40 restart pair `evidence/tui/recovery-v08-blank-fg-01/` verifies both regions exactly (0/2 user padding and 0/111 prompt blank styled-cell differences) after test-first regression. Full restored old/second frames still DIFFERENT by 2/4800 and 1/4800 styled cells, solely measured elapsed-time glyphs. Factual report: `evidence/tui/recovery-v08-blank-fg-report.md`. T44 remains ACTIVE; no whole-frame/VIS PASS.
+The current pinned v2.0.12 original/native VIS05 matrix in `evidence/tui/recovery-v03/vis05-fresh-20260924-final/` confirms actual scroll/resize, draft/cursor and 80x24/120x40/160x48/43/44/119/120/121x48 geometry state predicates on both PTYs. TUI now preserves the first displayed transcript row when resizing a scrolled viewport; test harness uses SGR wheel instead of Up/Down history recall, keeps paired states equal before comparison, and verifies draft/cursor in each matrix frame. Pinned metadata fitting and sidebar blank foreground were corrected with test-first regressions. Full comparator still DIFFERENT, so VIS05 and T44 stay ACTIVE. Factual report `evidence/tui/recovery-v03/vis05-current-report.md`; immutable attempts `vis05-fresh-20260924-01` through `-10`, plus `-final` preserve failure/diagnosis and final result.
 
 ## Checks
 
-Final `CARGO_BUILD_JOBS=2 RUST_TEST_THREADS=1 cargo test --locked --workspace --no-fail-fast --quiet` PASS zero failures (207 TUI; existing live opt-in ignored), `cargo fmt --all -- --check` after a formatting-only correction, workspace all-target clippy `-D warnings`, build, docs/progress and diff PASS. Paired original/native `provider_contract=true` and `TAB_RESTART_CHECKS_PASS` both sides, natural quit and no extra provider request on reopening histories. Runner exit 1 is the honest full-frame DIFFERENT comparator, not a failed provider or tab predicate.
+Final full serialized locked workspace tests PASS (212 TUI tests; existing opt-in live ignored), workspace fmt/clippy all targets `-D warnings`, locked build, Node syntax, docs/progress/diff PASS. Final both sides `SCROLL_RESIZE_CHECKS_PASS`, `provider_contract=true`, 0/1920 styled-cell differences on 80x24 scroll-shrink but 32 PNG edge pixels differ. Matrix visible marker counts, draft row and cursor agree; full-frame runner exits 1 honestly.
 
 ## Risks
 
-Only the paired 120×40 real two-root read/restart case is measured; timing, independent Home examples, actual version and remaining geometries/dialogs/error states are not frozen or masked. VIS01–VIS24 and V08/V09/S07 remain open. Pre-existing `.opencode/` untouched.
+This fixture does not test semantic anchoring if preceding lines reflow under width change; current top anchor is a wrapped-row index. Pinned original/native duration, tok-s, Home random example, true app version and a remaining sidebar blank style differ. Some existing T44 VIS states and S07/V08/V09 qualification remain unmeasured; no mask/threshold relaxation. Old untracked `.opencode/` untouched.
 
 ## Next
 
-Run the pinned 80×24, 120×40, 160×48 and 43/44/119/120/121 width matrix on current code with actual input, scroll/resize/draft state predicates and full styled-cell/PNG comparison; fix proven non-dynamic mismatches without changing acceptance. Continue remaining VIS/V08–V09 cases and safety metrics before T44 finish.
+Test width-sensitive multiline/Markdown content above a scrolled anchor against the pinned reference; resolve any actual mis-anchoring. Continue paired Commands/Models, error/replay and remaining VIS geometries and safety gates until mandatory zero-unexplained-diff acceptance; do not mark T44 done on this slice.
 
 
 Ready (до 5): T45, T46, T47
