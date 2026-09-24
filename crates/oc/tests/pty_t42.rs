@@ -1080,6 +1080,50 @@ fn retained_tab_mouse_add_restores_draft_and_home_submit_binds_one_new_root() {
 }
 
 #[test]
+fn hovered_close_reopens_durable_session_without_creating_a_root() {
+    let fixture = Fixture::new();
+    let metrics = fixture.root.path().join("close-metrics.json");
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &fixture.project_a(),
+        &["tui", "--session", "close-reopen"],
+        Some(&metrics),
+    );
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "persisted before close");
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    assert_eq!(journal_counts(&fixture).0, 1);
+
+    // The 32-cell first tab paints its hovered close at x=31 (one-based).
+    // A real SGR move is required before a release in that cell means close.
+    pty.send(b"\x1b[<35;31;1M");
+    wait_screen_row(&pty, "✕", DEADLINE);
+    click(&mut pty, 31, 1);
+    wait_screen_row(&pty, "Ask anything", DEADLINE);
+    assert_eq!(journal_counts(&fixture).0, 1, "close is process-local");
+
+    pty.send(b"/sessions\r");
+    wait_screen_row(&pty, "close-reopen", DEADLINE);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "persisted before close", DEADLINE);
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    pty.send(b"/quit\r");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored());
+    assert!(contains(&output, ALT_LEAVE));
+    assert_eq!(journal_counts(&fixture).0, 1);
+    let metrics: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(metrics).unwrap()).unwrap();
+    assert_eq!(metrics["session"], "close-reopen");
+    assert_eq!(metrics["tab_count"], 1);
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    assert_eq!(
+        db.read_history("close-reopen").unwrap()[0].1,
+        "persisted before close"
+    );
+}
+
+#[test]
 fn retained_deck_refuses_add_during_turn_and_keeps_tabs_on_failed_location() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(

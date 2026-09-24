@@ -298,7 +298,9 @@ fn tab_line(
     indicators: TabIndicators,
     busy: bool,
 ) -> Line<'static> {
-    deck_tab_line(theme, tab_width, title, indicators, busy, 0, true, false)
+    deck_tab_line(
+        theme, tab_width, title, indicators, busy, 0, true, false, false,
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -311,6 +313,7 @@ fn deck_tab_line(
     index: usize,
     selected: bool,
     home_slot: bool,
+    hovered: bool,
 ) -> Line<'static> {
     let title = if home_slot {
         NEW_SESSION_TAB_TITLE
@@ -319,10 +322,19 @@ fn deck_tab_line(
     };
     let tab_bg = if selected {
         theme.decrease(theme.background_panel())
+    } else if hovered {
+        theme
+            .color("background.action.primary.$hovered")
+            .unwrap_or(theme.background())
     } else {
         theme.background()
     };
-    let title_width = tab_width.saturating_sub(3) as usize;
+    let title_width = tab_width.saturating_sub(if hovered { 5 } else { 3 }) as usize;
+    let foreground = if hovered || selected {
+        theme.text()
+    } else {
+        theme.text_muted()
+    };
     let overflow = UnicodeWidthStr::width(title) > title_width;
     let mut used = 0;
     let mut visible = Vec::new();
@@ -341,7 +353,7 @@ fn deck_tab_line(
     // idle label; a busy tab uses the first dot-spinner frame even without
     // animations (`TabIndicator`, `spinner-frames.ts`).
     let number = tint(
-        if selected {
+        if selected || hovered {
             theme.text()
         } else {
             theme.text_muted()
@@ -385,26 +397,30 @@ fn deck_tab_line(
             0.0
         };
         let mut style = Style::default()
-            .fg(tint(
-                if selected {
-                    theme.text()
-                } else {
-                    theme.text_muted()
-                },
-                tab_bg,
-                opacity,
-            ))
+            .fg(tint(foreground, tab_bg, opacity))
             .bg(tab_bg);
         if selected {
             style = style.add_modifier(Modifier::BOLD);
         }
         spans.push(Span::styled((*grapheme).to_owned(), style));
     }
-    if (tab_width as usize) > 3 + used {
+    let pad = (tab_width as usize).saturating_sub(3 + used);
+    if hovered {
+        if pad > 2 {
+            spans.push(Span::styled(
+                " ".repeat(pad - 2),
+                Style::default().bg(tab_bg),
+            ));
+        }
         spans.push(Span::styled(
-            " ".repeat(tab_width as usize - 3 - used),
-            Style::default().bg(tab_bg),
+            "✕",
+            Style::default()
+                .fg(tint(theme.text_muted(), theme.text(), 0.6))
+                .bg(tab_bg),
         ));
+        spans.push(Span::styled(" ", Style::default().bg(tab_bg)));
+    } else if pad > 0 {
+        spans.push(Span::styled(" ".repeat(pad), Style::default().bg(tab_bg)));
     }
     Line::from(spans)
 }
@@ -453,6 +469,9 @@ fn render_deck_tabs(
         } else {
             tab.index == active
         };
+        let hovered = state
+            .tab_close_cell(frame.area(), tab.index, tab.rect)
+            .is_some();
         frame.render_widget(
             Paragraph::new(deck_tab_line(
                 theme,
@@ -463,6 +482,7 @@ fn render_deck_tabs(
                 tab.index,
                 selected,
                 home_slot || presentation.is_some_and(|p| p.home),
+                hovered,
             )),
             tab.rect,
         );
@@ -1701,6 +1721,110 @@ mod tests {
             terminal.backend().buffer()[(strip.tabs[1].rect.x + 3, 0)]
                 .modifier
                 .contains(Modifier::BOLD)
+        );
+    }
+
+    #[tokio::test]
+    async fn close_glyph_only_on_hovered_eligible_tab_and_title_fade_moves_left() {
+        use crossterm::event::{KeyModifiers, MouseEvent, MouseEventKind};
+        let mut state = golden_state().await;
+        state.home = true;
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: Some("abcdefghijklmnopqrstuvwxyz123456789".into()),
+                home: false,
+                busy: false,
+            }],
+            0,
+            false,
+        );
+        let area = Rect::new(0, 0, 80, 24);
+        let strip = tab_strip(&state, area).unwrap();
+        let first = strip.tabs[0].rect;
+        let home = strip.tabs[1].rect;
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        let moved = |x| MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: x,
+            row: 0,
+            modifiers: KeyModifiers::NONE,
+        };
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_ne!(
+            terminal.backend().buffer()[(first.right() - 2, 0)].symbol(),
+            "✕"
+        );
+        assert_ne!(
+            terminal.backend().buffer()[(home.right() - 2, 0)].symbol(),
+            "✕"
+        );
+        state.handle_mouse(moved(first.x + 3), area);
+        terminal.draw(|f| render(f, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(first.right() - 2, 0)].symbol(), "✕");
+        assert_eq!(
+            buffer[(first.right() - 2, 0)].fg,
+            tint(Theme::dark().text_muted(), Theme::dark().text(), 0.6)
+        );
+        let hover_bg = Theme::dark()
+            .color("background.action.primary.$hovered")
+            .unwrap();
+        assert_eq!(buffer[(first.right() - 1, 0)].symbol(), " ");
+        assert_eq!(
+            buffer[(first.right() - 3, 0)].fg,
+            tint(Theme::dark().text(), hover_bg, 0.92)
+        );
+        assert_ne!(buffer[(home.right() - 2, 0)].symbol(), "✕");
+        state.handle_mouse(moved(home.x + 3), area);
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_ne!(
+            terminal.backend().buffer()[(first.right() - 2, 0)].symbol(),
+            "✕"
+        );
+        assert_eq!(
+            terminal.backend().buffer()[(home.right() - 2, 0)].symbol(),
+            "✕"
+        );
+        state.close_panel();
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: None,
+                home: false,
+                busy: true,
+            }],
+            0,
+            false,
+        );
+        state.home = false;
+        state.handle_mouse(moved(first.x + 3), area);
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_ne!(
+            terminal.backend().buffer()[(first.right() - 2, 0)].symbol(),
+            "✕"
+        );
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: Some("Long title".into()),
+                home: false,
+                busy: false,
+            }],
+            0,
+            false,
+        );
+        let narrow = Rect::new(0, 0, 4, 24);
+        state.handle_mouse(moved(2), narrow);
+        let mut clipped = Terminal::new(TestBackend::new(4, 24)).unwrap();
+        clipped.draw(|f| render(f, &state)).unwrap();
+        assert!((0..4).all(|x| clipped.backend().buffer()[(x, 0)].symbol() != "✕"));
+
+        state.handle_mouse(moved(first.x + 3), area);
+        state.handle_key(KeyAction::Char('x')).await;
+        state.handle_key(KeyAction::Enter).await;
+        assert!(state.is_busy());
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_ne!(
+            terminal.backend().buffer()[(first.right() - 2, 0)].symbol(),
+            "✕"
         );
     }
 

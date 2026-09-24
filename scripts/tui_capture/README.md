@@ -186,6 +186,16 @@ interaction success do not imply pixel equality. Failures keep diagnostic
 frames and a nonzero exit. Existing attempt paths are rejected before launch;
 use a fresh path after any failed run. This is test-only capture tooling.
 
+To exercise the actual hovered close control, add `--tab-close true` to the
+paired command above and use another **fresh** output directory. After opening
+synthetic Home, the runner sends a real SGR mouse-motion event on each side,
+locates that side's painted `✕`, then sends a matching down/up. It requires the
+old transcript to return, the Home tab to disappear, and provider request counts
+to remain unchanged. Separate `tab-close-hovered-before` and
+`tab-close-closed-after` styled grids, PNGs, VT, input bytes and predicate checks
+are retained. This replaces the old-tab return click only for this opt-in;
+interaction success is not a whole-frame parity claim.
+
 `--tabs vertical --columns 162` and `--columns 163` check both sides of the
 42-cell rail-adjusted auto-sidebar breakpoint using text **and styled blank
 backgrounds**. `--devtools unset` omits the explicit override; native debug builds

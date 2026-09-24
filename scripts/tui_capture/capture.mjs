@@ -21,6 +21,10 @@ if (args['exploration-click'] !== undefined && !['true','false'].includes(args['
 const tabClick = args['tab-click'] === 'true';
 if (args['tab-click'] !== undefined && !['true','false'].includes(args['tab-click']))
   throw Error('--tab-click must be true or false');
+const tabClose = args['tab-close'] === 'true';
+if (args['tab-close'] !== undefined && !['true','false'].includes(args['tab-close']))
+  throw Error('--tab-close must be true or false');
+if (tabClose && !tabClick) throw Error('--tab-close true requires --tab-click true (paired Reader tools 120x40 profile)');
 if (explorationClick && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     Number(args.columns) !== 120 || Number(args.rows) !== 40 || args.matrix === 'true' || args['scroll-resize'] === 'true'))
   throw Error('--exploration-click true requires --geometry true --sample tools --sidebar hide --columns 120 --rows 40 without matrix/scroll-resize');
@@ -264,22 +268,99 @@ try {
          try { added=await waitFor(f=>addedPredicate(tabObserve(f)),'Home with retained old tab and + New session'); }
          catch(e) { record('tab-added',await frame(),'old tab + synthetic New session on Home, old transcript absent: '+e.message,false); }
          record('tab-added',added,'old tab + synthetic New session on Home, old transcript absent',addedPredicate(tabObserve(added)));
-         if(await capture('tab-added',added,'CAPTURED_TAB_ADDED') !== 'CAPTURED_TAB_ADDED')
-           throw Error('Unstable tab-added frame');
-         const beforeReturn=await frame();
-         const returning=tabObserve(beforeReturn);
-         record('before-return',beforeReturn,'retained old tab uniquely painted on Home',addedPredicate(returning));
-         // Click inside the old title, not the synthetic Home slot. Re-locate
-         // on this side after the asynchronous route transition and screenshot.
-         click('return',returning.old[0]);
-         const returnedPredicate = c => c.old.length===1 && c.new_title.length===0 && c.add.length===1 &&
-           c.add[0].x>c.old[0].x && c.old_content && !c.home_prompt;
-         let returned;
-         try { returned=await waitFor(f=>returnedPredicate(tabObserve(f)),'returned original session transcript'); }
-         catch(e) { record('tab-returned',await frame(),'old transcript restored with original tab selected: '+e.message,false); }
-         record('tab-returned',returned,'old transcript restored with original tab selected',returnedPredicate(tabObserve(returned)));
-         if(await capture('tab-returned',returned,'CAPTURED_TAB_RETURNED') !== 'CAPTURED_TAB_RETURNED')
-           throw Error('Unstable tab-returned frame');
+          if(await capture('tab-added',added,'CAPTURED_TAB_ADDED') !== 'CAPTURED_TAB_ADDED')
+            throw Error('Unstable tab-added frame');
+          if(tabClose) {
+            const closeChecks = [];
+            const counts = () => ({provider_requests:logs.filter(e=>e.kind==='provider').length,
+              provider_completed:logs.filter(e=>e.kind==='provider_completed').length,
+              transcript_requests:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length,
+              title_requests:logs.filter(e=>e.kind==='provider' && e.operation==='title').length});
+            const baseline = counts();
+            lock.tab_close_interactions ??= {};
+            lock.tab_close_interactions[origin] = {status:'IN_PROGRESS',baseline,checks:closeChecks};
+            const saveClose = () => {
+              fs.writeFileSync(path.join(dir,'tab-close-checks.json'),JSON.stringify({baseline,checks:closeChecks},null,2)+'\n');
+              json('capture.lock.json',lock);
+            };
+            const closeRecord = (stage, f, predicate, passed, extra={}) => {
+              closeChecks.push({stage,predicate,passed,...tabObserve(f),provider_counts:counts(),...extra});
+              saveClose();
+              if(!passed) throw Error('Tab close predicate failed: '+stage);
+            };
+            const noCall = () => JSON.stringify(counts())===JSON.stringify(baseline);
+            saveClose();
+            // Move onto the painted synthetic title; SGR 35 is a motion event
+            // (not a click). Each application must reveal its own close cell.
+            const home=tabObserve(added).new_title[0];
+            const hover={x:home.x+3,y:home.y};
+            const move=`\x1b[<35;${hover.x+1};${hover.y+1}M`;
+            closeChecks.push({stage:'home-hover-move',point:hover,pty_column:hover.x+1,pty_row:hover.y+1,
+              move_base64:Buffer.from(move).toString('base64'),provider_counts:counts()});
+            saveClose();
+            send(move,'home_close_mouse_move');
+            const closeGlyphs = f => {
+              const c=tabObserve(f);
+              return c.new_title.length===1 ? visibleMatches(f,'✕').filter(p=>p.y===0 && p.x>c.new_title[0].x) : [];
+            };
+            const hoveredPredicate = f => addedPredicate(tabObserve(f)) && closeGlyphs(f).length===1 && noCall();
+            let hovered;
+            try { hovered=await waitFor(hoveredPredicate,'visible hovered synthetic Home close glyph'); }
+            catch(e) { closeRecord('home-hovered',await frame(),'unique visible row-0 ✕ after synthetic title: '+e.message,false); }
+            const glyphs=closeGlyphs(hovered);
+            closeRecord('home-hovered',hovered,'one visible ✕ after the synthetic title, Home selected, no new provider request',
+              hoveredPredicate(hovered),{hover,glyph:glyphs[0]});
+            if(await capture('tab-close-hovered-before',hovered,'CAPTURED_TAB_CLOSE_HOVERED') !== 'CAPTURED_TAB_CLOSE_HOVERED')
+              throw Error('Unstable hovered tab-close frame');
+            // Re-measure after screenshot; never reuse the upstream x for Rust.
+            const beforeClose=await frame();
+            const target=closeGlyphs(beforeClose);
+            closeRecord('before-close',beforeClose,'one still-visible synthetic ✕, no provider call',
+              addedPredicate(tabObserve(beforeClose)) && target.length===1 && noCall(),{glyph:target[0]});
+            const point=target[0];
+            const column=point.x+1, row=point.y+1;
+            const down=`\x1b[<0;${column};${row}M`, up=`\x1b[<0;${column};${row}m`;
+            closeChecks.push({stage:'home-close-click',point,pty_column:column,pty_row:row,
+              down_base64:Buffer.from(down).toString('base64'),up_base64:Buffer.from(up).toString('base64'),
+              provider_counts:counts()});
+            saveClose();
+            send(down,'home_close_mouse_down'); send(up,'home_close_mouse_up');
+            const closedPredicate = f => {
+              const c=tabObserve(f);
+              return c.old.length===1 && c.new_title.length===0 && c.add.length===1 &&
+                c.add[0].x>c.old[0].x && c.old_content && !c.home_prompt &&
+                closeGlyphs(f).length===0 && noCall();
+            };
+            let closedFrame;
+            try { closedFrame=await waitFor(closedPredicate,'synthetic Home closed and old transcript restored without provider call'); }
+            catch(e) { closeRecord('home-closed',await frame(),'old transcript restored, synthetic slot gone, provider counts unchanged: '+e.message,false); }
+            closeRecord('home-closed',closedFrame,'old transcript restored, synthetic slot gone, provider counts unchanged',
+              closedPredicate(closedFrame));
+            if(await capture('tab-close-closed-after',closedFrame,'CAPTURED_TAB_CLOSE_CLOSED') !== 'CAPTURED_TAB_CLOSE_CLOSED')
+              throw Error('Unstable closed tab-close frame');
+            const afterCapture=await frame();
+            closeRecord('closed-capture-verified',afterCapture,'old transcript and synthetic removal persist, provider counts unchanged',
+              closedPredicate(afterCapture));
+            lock.tab_close_interactions[origin].status='PASS';
+            saveClose();
+            lock.attempts.push({origin,status:'TAB_CLOSE_CHECKS_PASS',provider_counts:counts(),
+              predicates:closeChecks.filter(c=>c.passed===true).map(c=>c.stage)});
+          } else {
+            const beforeReturn=await frame();
+            const returning=tabObserve(beforeReturn);
+            record('before-return',beforeReturn,'retained old tab uniquely painted on Home',addedPredicate(returning));
+            // Click inside the old title, not the synthetic Home slot. Re-locate
+            // on this side after the asynchronous route transition and screenshot.
+            click('return',returning.old[0]);
+            const returnedPredicate = c => c.old.length===1 && c.new_title.length===0 && c.add.length===1 &&
+              c.add[0].x>c.old[0].x && c.old_content && !c.home_prompt;
+            let returned;
+            try { returned=await waitFor(f=>returnedPredicate(tabObserve(f)),'returned original session transcript'); }
+            catch(e) { record('tab-returned',await frame(),'old transcript restored with original tab selected: '+e.message,false); }
+            record('tab-returned',returned,'old transcript restored with original tab selected',returnedPredicate(tabObserve(returned)));
+            if(await capture('tab-returned',returned,'CAPTURED_TAB_RETURNED') !== 'CAPTURED_TAB_RETURNED')
+              throw Error('Unstable tab-returned frame');
+          }
          lock.tab_interactions[origin].status='PASS';
          json('capture.lock.json',lock);
          lock.attempts.push({origin,status:'TAB_INTERACTION_CHECKS_PASS',predicates:checks.filter(c=>c.passed===true).map(c=>c.stage)});
@@ -432,6 +513,7 @@ try {
     } catch(e) {
       result=1; lock.attempts.push({origin,status:'FAILED',reason:e.message});
       if(tabClick && lock.tab_interactions?.[origin]) lock.tab_interactions[origin].status='FAILED';
+      if(tabClose && lock.tab_close_interactions?.[origin]) lock.tab_close_interactions[origin].status='FAILED';
       await capture('failure-diagnostic',await frame(),'FAILED_STATE');
     } finally {
       if(!child.stdin.destroyed) child.stdin.write(JSON.stringify({kind:'stop'})+'\n');

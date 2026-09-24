@@ -110,6 +110,12 @@ pub struct TabSlot {
     pub rect: Rect,
 }
 
+/// Horizontal close overlay at upstream `right={1}`. Do not offer a glyph
+/// where the prefix/title/right padding cannot all fit in the painted tab.
+pub(crate) fn tab_close_cell(rect: Rect) -> Option<u16> {
+    (rect.height > 0 && rect.width >= 5).then(|| rect.right() - 2)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HorizontalTabStrip {
     pub start: usize,

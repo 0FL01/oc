@@ -223,6 +223,70 @@ impl LoopState {
         true
     }
 
+    async fn close_tab(
+        &mut self,
+        app: &CoreApp,
+        state: &mut TuiState,
+        index: usize,
+    ) -> Result<(), String> {
+        if state.is_busy() {
+            return Err("turn active; tab close refused".into());
+        }
+        if index == self.tabs.len() {
+            // Home is a synthetic slot, and cannot be closed when it is the
+            // only route. When selected, activate the last real view before
+            // discarding the parked Home (and its draft).
+            if self.active_tab.is_none() && !self.tabs.is_empty() {
+                self.activate(state, self.tabs.len() - 1)?;
+            } else if self.home.is_none() {
+                return Err("tab unavailable".into());
+            }
+            self.home = None;
+            self.sync_tabs(state);
+            return Ok(());
+        }
+        if index >= self.tabs.len() {
+            return Err("tab unavailable".into());
+        }
+        if self.active_tab == Some(index) {
+            if self.tabs.len() == 1 {
+                if self.home.is_some() {
+                    self.restore_home(state);
+                    self.tabs.clear();
+                    self.tab_cards_before.clear();
+                    self.sync_tabs(state);
+                    return Ok(());
+                }
+                // A failed owner query must leave the active view and the
+                // entire deck intact; closing never creates a durable root.
+                let snapshot = app
+                    .home_selection(SelectionAction::Current)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                let mut home = TuiState::new_home(app.clone());
+                home.apply_catalog(snapshot);
+                *state = home;
+                self.reset_deck();
+                self.sync_tabs(state);
+                return Ok(());
+            }
+            // Immediately previous if available, otherwise the next tab.
+            let survivor = if index > 0 { index - 1 } else { 1 };
+            self.activate(state, survivor)?;
+        }
+        // The former active view is now parked. Removing the parallel cursor
+        // at the same index keeps paging state aligned with the real tabs.
+        self.tabs.remove(index);
+        self.tab_cards_before.remove(index);
+        if let Some(active) = self.active_tab.as_mut()
+            && *active > index
+        {
+            *active -= 1;
+        }
+        self.sync_tabs(state);
+        Ok(())
+    }
+
     fn reset_deck(&mut self) {
         self.tabs.clear();
         self.tab_cards_before.clear();
@@ -548,6 +612,7 @@ async fn apply_intent_with_origin(
             loop_state.open_home(state, home);
         }
         PanelIntent::ActivateTab { index } => loop_state.activate(state, index)?,
+        PanelIntent::CloseTab { index } => loop_state.close_tab(app, state, index).await?,
         PanelIntent::SelectAgent { id } => {
             let snapshot = selection(app, state, SelectionAction::Agent(id)).await?;
             let note = match &snapshot.agent_id {
@@ -922,7 +987,8 @@ mod tests {
     use super::*;
     use oc_core::core_app::InboxMsg;
     use oc_core::core_app::WorkerTurnId;
-    use oc_core::queries::{AutoAcceptState, ToolOpPage, ToolOpView};
+    use oc_core::queries::{AutoAcceptState, HistoryMessage, HistoryPage, ToolOpPage, ToolOpView};
+    use oc_core::session::Role;
 
     fn catalog() -> CatalogSnapshot {
         CatalogSnapshot {
@@ -936,6 +1002,306 @@ mod tests {
             agent_id: None,
             commands: Vec::new(),
         }
+    }
+
+    fn append_tab(app: &CoreApp, deck: &mut LoopState, state: &mut TuiState, id: &str) {
+        let old = deck.active_tab.expect("active real tab");
+        deck.tabs[old] = Some(std::mem::replace(
+            state,
+            TuiState::new(app.clone(), SessionId::new(id).unwrap()),
+        ));
+        deck.tab_cards_before[old] = deck.cards_before;
+        deck.active_tab = Some(deck.tabs.len());
+        deck.tabs.push(None);
+        deck.tab_cards_before.push(None);
+        deck.cards_before = None;
+        deck.sync_tabs(state);
+    }
+
+    #[tokio::test]
+    async fn close_inactive_tab_reindexes_active_view_and_cursor_without_owner_query() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("a").unwrap());
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        state.handle_paste("first draft");
+        state.attach_page(&HistoryPage {
+            rows: vec![HistoryMessage {
+                seq: 1,
+                role: Role::User,
+                text: "first viewport marker".into(),
+                turn: None,
+            }],
+            total: 1,
+            ..Default::default()
+        });
+        deck.cards_before = Some(11);
+        append_tab(&app, &mut deck, &mut state, "b");
+        state.handle_paste("middle draft");
+        deck.cards_before = Some(22);
+        append_tab(&app, &mut deck, &mut state, "c");
+        state.handle_paste("active draft");
+        deck.cards_before = Some(33);
+
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::CloseTab { index: 1 },
+        )
+        .await
+        .unwrap();
+        assert_eq!(deck.active_tab, Some(1));
+        assert_eq!(deck.tab_cards_before, [Some(11), None]);
+        assert_eq!(deck.cards_before, Some(33));
+        assert_eq!(state.input(), "active draft");
+        assert_eq!(state.tab_presentation().0.len(), 2);
+        assert_eq!(state.tab_presentation().1, 1);
+        assert!(inbox.try_recv().is_err(), "close cannot delete a session");
+        deck.activate(&mut state, 0).unwrap();
+        assert_eq!(state.input(), "first draft");
+        assert!(
+            state
+                .viewport()
+                .join("\n")
+                .contains("first viewport marker")
+        );
+        assert_eq!(deck.cards_before, Some(11));
+    }
+
+    #[tokio::test]
+    async fn close_selected_real_tab_prefers_previous_and_preserves_survivors() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("a").unwrap());
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        state.handle_paste("first draft");
+        append_tab(&app, &mut deck, &mut state, "b");
+        state.handle_paste("middle draft");
+        append_tab(&app, &mut deck, &mut state, "c");
+        state.handle_paste("discarded draft");
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::CloseTab { index: 2 },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.session().0, "b");
+        assert_eq!(state.input(), "middle draft");
+        assert_eq!(deck.active_tab, Some(1));
+        assert_eq!(deck.tabs.len(), 2);
+        assert_eq!(state.tab_presentation().0.len(), 2);
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::CloseTab { index: 0 },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.session().0, "b");
+        assert_eq!(deck.active_tab, Some(0));
+        assert_eq!(state.tab_presentation().0.len(), 1);
+        assert!(inbox.try_recv().is_err());
+        assert_eq!(
+            apply_intent(
+                &app,
+                &mut state,
+                &mut deck,
+                PanelIntent::CloseTab { index: 2 }
+            )
+            .await
+            .unwrap_err(),
+            "tab unavailable"
+        );
+        assert_eq!(state.input(), "middle draft");
+    }
+
+    #[tokio::test]
+    async fn close_last_real_tab_queries_current_home_before_discarding_and_reopens() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("durable").unwrap());
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        state.handle_paste("saved draft");
+        let worker = tokio::spawn(async move {
+            for result in [Err(CoreError::Shutdown), Ok(catalog())] {
+                let Some(InboxMsg::HomeSelection { action, ack }) = inbox.recv().await else {
+                    panic!("close must query Home only")
+                };
+                assert_eq!(action, SelectionAction::Current);
+                ack.send(result).unwrap();
+            }
+            let Some(InboxMsg::SessionSelection {
+                session,
+                action,
+                ack,
+                ..
+            }) = inbox.recv().await
+            else {
+                panic!("Sessions reopen must query existing selection")
+            };
+            assert_eq!(session.0, "durable");
+            assert_eq!(action, SelectionAction::Current);
+            ack.send(Ok(catalog())).unwrap();
+            let Some(InboxMsg::History { session, ack, .. }) = inbox.recv().await else {
+                panic!("Sessions reopen must read durable history")
+            };
+            assert_eq!(session.0, "durable");
+            ack.send(Ok(Default::default())).unwrap();
+        });
+        let intent = PanelIntent::CloseTab { index: 0 };
+        assert!(
+            apply_intent(&app, &mut state, &mut deck, intent.clone())
+                .await
+                .is_err()
+        );
+        assert_eq!(state.input(), "saved draft");
+        assert_eq!(state.session().0, "durable");
+        assert_eq!(deck.tabs.len(), 1);
+        apply_intent(&app, &mut state, &mut deck, intent)
+            .await
+            .unwrap();
+        assert!(state.attached_session().is_none());
+        assert_eq!(deck.active_tab, None);
+        assert!(deck.tabs.is_empty() && deck.tab_cards_before.is_empty());
+        assert!(state.tab_presentation().0.is_empty());
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::SwitchSession {
+                id: "durable".into(),
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.session().0, "durable");
+        assert_eq!(deck.tabs.len(), 1);
+        assert_eq!(deck.active_tab, Some(0));
+        assert!(deck.home.is_some(), "reopening parks synthetic Home");
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::CloseTab { index: 0 },
+        )
+        .await
+        .unwrap();
+        assert!(state.attached_session().is_none());
+        assert!(deck.home.is_none() && deck.tabs.is_empty());
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn close_selected_or_parked_synthetic_home_never_creates_a_root() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("kept").unwrap());
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        state.handle_paste("kept draft");
+        deck.open_home(&mut state, TuiState::new_home(app.clone()));
+        state.handle_paste("home draft");
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::CloseTab { index: 1 },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.session().0, "kept");
+        assert_eq!(state.input(), "kept draft");
+        assert!(deck.home.is_none());
+        assert_eq!(state.tab_presentation().0.len(), 1);
+        assert_eq!(state.tab_presentation().1, 0);
+        deck.open_home(&mut state, TuiState::new_home(app.clone()));
+        deck.activate(&mut state, 0).unwrap();
+        assert!(deck.home.is_some());
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::CloseTab { index: 1 },
+        )
+        .await
+        .unwrap();
+        assert!(deck.home.is_none());
+        assert_eq!(state.input(), "kept draft");
+        deck.open_home(&mut state, TuiState::new_home(app.clone()));
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::CloseTab { index: 0 },
+        )
+        .await
+        .unwrap();
+        assert!(state.attached_session().is_none());
+        assert!(deck.tabs.is_empty() && deck.tab_cards_before.is_empty());
+        assert!(state.tab_presentation().0.is_empty());
+        assert_eq!(
+            apply_intent(
+                &app,
+                &mut state,
+                &mut deck,
+                PanelIntent::CloseTab { index: 0 }
+            )
+            .await
+            .unwrap_err(),
+            "tab unavailable"
+        );
+        assert!(inbox.try_recv().is_err());
+    }
+
+    #[tokio::test]
+    async fn closing_last_real_tab_restores_parked_home_draft_without_query() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("kept").unwrap());
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        deck.open_home(&mut state, TuiState::new_home(app.clone()));
+        state.handle_paste("parked Home draft");
+        deck.activate(&mut state, 0).unwrap();
+        assert!(deck.home.is_some());
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::CloseTab { index: 0 },
+        )
+        .await
+        .unwrap();
+        assert!(state.attached_session().is_none());
+        assert_eq!(state.input(), "parked Home draft");
+        assert!(deck.tabs.is_empty() && deck.home.is_none());
+        assert!(inbox.try_recv().is_err());
+    }
+
+    #[tokio::test]
+    async fn close_refuses_pending_turn_and_preserves_deck() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("busy").unwrap());
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        state.handle_paste("pending draft");
+        state.handle_key(KeyAction::Enter).await;
+        let _request = inbox.recv().await.unwrap();
+        let error = apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::CloseTab { index: 0 },
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error, "turn active; tab close refused");
+        assert_eq!(state.input(), "pending draft");
+        assert_eq!(state.session().0, "busy");
+        assert_eq!(deck.tabs.len(), 1);
+        assert!(inbox.try_recv().is_err());
     }
 
     #[tokio::test]

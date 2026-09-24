@@ -106,6 +106,8 @@ pub enum PanelIntent {
     NewSession,
     /// Activate a retained real tab by its zero-based deck index.
     ActivateTab { index: usize },
+    /// Close a retained tab; `tabs.len()` denotes the synthetic Home slot.
+    CloseTab { index: usize },
     /// Select a model, restoring the owner's remembered variant preference.
     SelectModel {
         /// Exact model id.
@@ -156,6 +158,7 @@ pub struct TabPresentation {
 enum TabPress {
     Add,
     Tab(usize),
+    Close(usize),
 }
 
 /// One key handling result: optional status note, optional intent for the
@@ -295,6 +298,7 @@ pub struct TuiState {
     /// Press origin prevents drag-release across the backdrop from dismissing a dialog.
     mouse_down: Option<crate::dialog::DialogHit>,
     tab_down: Option<TabPress>,
+    hovered_tab: std::cell::Cell<Option<(usize, Rect)>>,
     tabs: Vec<TabPresentation>,
     active_tab: usize,
     can_add_tab: bool,
@@ -402,6 +406,7 @@ impl TuiState {
             select: Default::default(),
             mouse_down: None,
             tab_down: None,
+            hovered_tab: std::cell::Cell::new(None),
             tabs: Vec::new(),
             active_tab: 0,
             can_add_tab: false,
@@ -487,6 +492,13 @@ impl TuiState {
     /// action; Home itself becomes a synthetic final slot only in the renderer.
     pub fn set_tab_strip(&mut self, tabs: Vec<TabPresentation>, active: usize, can_add: bool) {
         self.tab_down = None;
+        let count = tabs.len().min(16);
+        if self.tabs.len() != count
+            || self.active_tab != active.min(count.saturating_sub(1))
+            || self.can_add_tab != (can_add && count > 0)
+        {
+            self.hovered_tab.set(None);
+        }
         self.tabs = tabs.into_iter().take(16).collect();
         self.active_tab = active.min(self.tabs.len().saturating_sub(1));
         self.can_add_tab = can_add && !self.tabs.is_empty();
@@ -779,6 +791,7 @@ impl TuiState {
 
     fn open_variants(&mut self) {
         self.panel = TuiPanel::Variant;
+        self.hovered_tab.set(None);
         // A press belongs to the dialog where it began, not the replacement.
         self.mouse_down = None;
         self.select.reset();
@@ -919,6 +932,7 @@ impl TuiState {
         self.card_seen.set(0);
         self.mouse_down = None;
         self.tab_down = None;
+        self.hovered_tab.set(None);
         self.exploration_down = None;
         self.select.reset();
     }
@@ -930,6 +944,14 @@ impl TuiState {
         use crate::dialog::DialogHit;
         if self.panel == TuiPanel::None {
             match event.kind {
+                MouseEventKind::Moved => {
+                    self.hovered_tab.set(
+                        crate::shell::tab_strip(self, area)
+                            .and_then(|strip| strip.hit_test(event.column, event.row))
+                            .map(|index| (index, area)),
+                    );
+                    self.exploration_down = None;
+                }
                 MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
                     self.tab_down = self.tab_hit(area, event.column, event.row);
                     self.exploration_down = self
@@ -947,6 +969,7 @@ impl TuiState {
                             intent: Some(match tab {
                                 TabPress::Add => PanelIntent::NewSession,
                                 TabPress::Tab(index) => PanelIntent::ActivateTab { index },
+                                TabPress::Close(index) => PanelIntent::CloseTab { index },
                             }),
                             ..KeyOutcome::default()
                         };
@@ -989,14 +1012,17 @@ impl TuiState {
                 | MouseEventKind::ScrollDown => {
                     self.exploration_down = None;
                     self.tab_down = None;
+                    if matches!(event.kind, MouseEventKind::Drag(_)) {
+                        self.hovered_tab.set(None);
+                    }
                 }
-                MouseEventKind::Moved => self.exploration_down = None,
                 _ => {}
             }
             return KeyOutcome::default();
         }
         self.exploration_down = None;
         self.tab_down = None;
+        self.hovered_tab.set(None);
         if self.panel == TuiPanel::Cards && self.card_output.is_some() {
             let (rect, _, _) = crate::dialog::card_geometry(area);
             let inside = rect.contains((event.column, event.row).into());
@@ -1101,9 +1127,44 @@ impl TuiState {
             return Some(TabPress::Add);
         }
         let index = strip.hit_test(x, y)?;
+        if strip
+            .tabs
+            .iter()
+            .find(|tab| tab.index == index)
+            .and_then(|tab| self.tab_close_cell(area, tab.index, tab.rect))
+            == Some(x)
+        {
+            return Some(TabPress::Close(index));
+        }
         // The promoted Home slot is already selected; its click is not an
         // application action. Only retained real tabs have activation intents.
         (index < self.tabs.len()).then_some(TabPress::Tab(index))
+    }
+
+    /// Hover is tied to the frame geometry that actually received a motion event.
+    pub(crate) fn hovered_tab(&self, area: Rect) -> Option<usize> {
+        if self.panel != TuiPanel::None {
+            return None;
+        }
+        match self.hovered_tab.get() {
+            Some((index, painted)) if painted == area => Some(index),
+            Some(_) => {
+                self.hovered_tab.set(None);
+                None
+            }
+            None => None,
+        }
+    }
+
+    /// Same eligibility and cell for the painted overlay and mouse action.
+    pub(crate) fn tab_close_cell(&self, area: Rect, index: usize, rect: Rect) -> Option<u16> {
+        (!self.tabs.is_empty()
+            && (index < self.tabs.len() || (self.home && index == self.tabs.len()))
+            && self.hovered_tab(area) == Some(index)
+            && !self.is_busy()
+            && !self.tabs.get(index).is_some_and(|tab| tab.busy))
+        .then(|| crate::layout::tab_close_cell(rect))
+        .flatten()
     }
 
     fn exploration_hit(&self, area: Rect, x: u16, y: u16) -> Option<String> {
@@ -2022,6 +2083,7 @@ impl TuiState {
         self.select.reset();
         self.mouse_down = None;
         self.tab_down = None;
+        self.hovered_tab.set(None);
         self.leader = None;
         let mut outcome = KeyOutcome::default();
         match action {
@@ -3135,6 +3197,9 @@ mod tests {
             Some(PanelIntent::ActivateTab { index: 10 })
         );
         for rect in [strip.before_marker.unwrap(), strip.after_marker.unwrap()] {
+            state.handle_mouse(event(MouseEventKind::Moved, active.x, 0, plain), area);
+            state.handle_mouse(event(MouseEventKind::Moved, rect.x, 0, plain), area);
+            assert_eq!(state.hovered_tab(area), None);
             assert_eq!(click(&mut state, rect.x, 0), None);
         }
         assert_eq!(click(&mut state, area.right() - 1, 1), None);
@@ -3267,6 +3332,238 @@ mod tests {
             false,
         );
         assert_eq!(state.handle_mouse(mouse(up, real.x + 1), area).intent, None);
+    }
+
+    #[tokio::test]
+    async fn hovered_close_requires_painted_cell_matching_press_and_no_drag() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        use ratatui::layout::Rect;
+        let (app, _inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new_home(app);
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: Some("Long real tab title".into()),
+                home: false,
+                busy: false,
+            }],
+            0,
+            false,
+        );
+        let area = Rect::new(0, 0, 80, 24);
+        let strip = crate::shell::tab_strip(&state, area).unwrap();
+        let real = strip.tabs[0].rect;
+        let home = strip.tabs[1].rect;
+        let event = |kind, x, modifiers| MouseEvent {
+            kind,
+            column: x,
+            row: 0,
+            modifiers,
+        };
+        let plain = KeyModifiers::NONE;
+        let down = MouseEventKind::Down(MouseButton::Left);
+        let up = MouseEventKind::Up(MouseButton::Left);
+        let real_close = real.right() - 2;
+        let home_close = home.right() - 2;
+        assert_eq!(
+            state
+                .handle_mouse(event(down, real_close, plain), area)
+                .intent,
+            None
+        );
+        assert_eq!(
+            state
+                .handle_mouse(event(up, real_close, plain), area)
+                .intent,
+            Some(PanelIntent::ActivateTab { index: 0 })
+        );
+
+        state.handle_mouse(event(MouseEventKind::Moved, real.x + 3, plain), area);
+        assert_eq!(state.hovered_tab(area), Some(0));
+        state.handle_mouse(event(down, real_close, plain), area);
+        assert_eq!(state.hovered_tab(area), Some(0));
+        assert_eq!(
+            state
+                .handle_mouse(event(up, real_close, plain), area)
+                .intent,
+            Some(PanelIntent::CloseTab { index: 0 })
+        );
+
+        state.handle_mouse(event(down, real_close, plain), area);
+        assert_eq!(
+            state
+                .handle_mouse(event(up, real_close - 1, plain), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(event(down, real_close - 1, plain), area);
+        assert_eq!(
+            state
+                .handle_mouse(event(up, real_close, plain), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(event(down, real_close, plain), area);
+        state.handle_mouse(
+            event(MouseEventKind::Drag(MouseButton::Left), real_close, plain),
+            area,
+        );
+        assert_eq!(
+            state
+                .handle_mouse(event(up, real_close, plain), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(event(down, real_close, KeyModifiers::SHIFT), area);
+        assert_eq!(
+            state
+                .handle_mouse(event(up, real_close, plain), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(event(down, real_close, plain), area);
+        assert_eq!(
+            state
+                .handle_mouse(event(up, real_close, KeyModifiers::SHIFT), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(
+            event(MouseEventKind::Down(MouseButton::Right), real_close, plain),
+            area,
+        );
+        assert_eq!(
+            state
+                .handle_mouse(event(up, real_close, plain), area)
+                .intent,
+            None
+        );
+
+        state.handle_mouse(event(MouseEventKind::Moved, home_close, plain), area);
+        state.handle_mouse(event(down, home_close, plain), area);
+        assert_eq!(
+            state
+                .handle_mouse(event(up, home_close, plain), area)
+                .intent,
+            Some(PanelIntent::CloseTab { index: 1 })
+        );
+        state.handle_mouse(event(MouseEventKind::Moved, home.right(), plain), area);
+        assert_eq!(state.hovered_tab(area), None);
+        state.handle_mouse(event(down, home_close, plain), area);
+        assert_eq!(
+            state
+                .handle_mouse(event(up, home_close, plain), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(event(MouseEventKind::Moved, home_close, plain), area);
+        state.handle_mouse(event(down, home_close, plain), area);
+        state.run_command(crate::commands::CommandAction::OpenCommands);
+        assert_eq!(state.hovered_tab(area), None);
+        assert_eq!(
+            state
+                .handle_mouse(event(up, home_close, plain), area)
+                .intent,
+            None
+        );
+        state.close_panel();
+        assert_eq!(state.hovered_tab(area), None);
+        state.handle_mouse(event(MouseEventKind::Moved, home_close, plain), area);
+        state.set_tab_strip(vec![], 0, false);
+        assert_eq!(state.hovered_tab(area), None);
+    }
+
+    #[tokio::test]
+    async fn busy_and_clipped_tabs_never_emit_close() {
+        use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
+        use ratatui::layout::Rect;
+        let mut state = fresh_state("close-busy").await;
+        let wide = Rect::new(0, 0, 80, 24);
+        let mouse = |kind, x| MouseEvent {
+            kind,
+            column: x,
+            row: 0,
+            modifiers: crossterm::event::KeyModifiers::NONE,
+        };
+        let down = MouseEventKind::Down(MouseButton::Left);
+        let up = MouseEventKind::Up(MouseButton::Left);
+        let legacy = crate::shell::tab_strip(&state, wide).unwrap().tabs[0].rect;
+        state.handle_mouse(mouse(MouseEventKind::Moved, legacy.right() - 2), wide);
+        assert_eq!(state.tab_close_cell(wide, 0, legacy), None);
+        state.handle_mouse(mouse(down, legacy.right() - 2), wide);
+        assert_eq!(
+            state
+                .handle_mouse(mouse(up, legacy.right() - 2), wide)
+                .intent,
+            None
+        );
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: Some("Busy".into()),
+                home: false,
+                busy: true,
+            }],
+            0,
+            false,
+        );
+        let narrow = Rect::new(0, 0, 4, 24);
+        let x = crate::shell::tab_strip(&state, wide).unwrap().tabs[0]
+            .rect
+            .right()
+            - 2;
+        state.handle_mouse(mouse(MouseEventKind::Moved, x), wide);
+        state.handle_mouse(mouse(down, x), wide);
+        assert_eq!(
+            state.handle_mouse(mouse(up, x), wide).intent,
+            Some(PanelIntent::ActivateTab { index: 0 })
+        );
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: None,
+                home: false,
+                busy: false,
+            }],
+            0,
+            false,
+        );
+        state.active_turn = Some(WorkerTurnId("busy-close".into()));
+        state.handle_mouse(mouse(MouseEventKind::Moved, x), wide);
+        assert_eq!(
+            state.tab_close_cell(
+                wide,
+                0,
+                crate::shell::tab_strip(&state, wide).unwrap().tabs[0].rect
+            ),
+            None
+        );
+        state.handle_mouse(mouse(down, x), wide);
+        assert_eq!(
+            state.handle_mouse(mouse(up, x), wide).intent,
+            Some(PanelIntent::ActivateTab { index: 0 })
+        );
+        state.active_turn = None;
+        let small = crate::shell::tab_strip(&state, narrow).unwrap().tabs[0].rect;
+        assert_eq!(small.width, 4);
+        state.handle_mouse(mouse(MouseEventKind::Moved, small.right() - 2), narrow);
+        assert_eq!(state.tab_close_cell(narrow, 0, small), None);
+        state.handle_mouse(mouse(down, small.right() - 2), narrow);
+        assert_eq!(
+            state
+                .handle_mouse(mouse(up, small.right() - 2), narrow)
+                .intent,
+            Some(PanelIntent::ActivateTab { index: 0 })
+        );
+        state.handle_mouse(mouse(MouseEventKind::Moved, x), wide);
+        assert_eq!(state.hovered_tab(wide), Some(0));
+        assert_eq!(
+            state.hovered_tab(narrow),
+            None,
+            "resize invalidates painted hover"
+        );
+        assert_eq!(
+            state.hovered_tab(wide),
+            None,
+            "old geometry must not resurrect on grow"
+        );
     }
 
     async fn submit_echo(
