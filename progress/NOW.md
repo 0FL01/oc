@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-24T02:38:15+00:00
+State updated: 2026-09-24T04:59:06+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,19 +14,19 @@ Evidence target: evidence/T44/report.md
 
 ## Result
 
-Commit `8f33412` implements the pinned mouse-close tab geometry hold and pointer-aware close glyph. The actual released pointer re-hits the surviving tab; keyboard activation never manufactures hover. Resize, modal, wheel leaving the strip and mouse down end the hold. Factual report and three immutable attempts: `evidence/tui/recovery-v08-tab-close-hold-report.md`.
+Commit `f8e5540` persists up to 16 ordered Location-bound root tabs and selected route through the single application owner without creating a session for Home or on restart. Explicit `--session` retains authority; child inspection is standalone/read-only. Byte-bounded versioned preference, Location-bound CAS and validated root IDs guard against stale writes/foreign or partial projection; a pending-adoption marker atomically journaled with the first turn recovers accepted roots after a crash. Admission fails closed on a malformed or full saved deck; tab close is durably saved before view mutation. Native real-PTY+SQLite restart/negative evidence and immutable paired current-frame captures are in `evidence/tui/recovery-v08-persisted-tabs-report.md` and its three named attempts.
 
 ## Checks
 
-Final serial `CARGO_BUILD_JOBS=2 RUST_TEST_THREADS=1 cargo test --locked --workspace --no-fail-fast --quiet` PASS 0 failed (204 TUI tests, existing ignored opt-in live); workspace fmt, all-target Clippy `-D warnings`, locked build, docs/progress and diff checks PASS. The qualified actual original/native 120x40 read+tab add/close paired capture succeeded on both providers and click predicates, but whole frames DIFFERENT. Closed-after tab row x0–69,y0 exact 0/70 styled-cell differences; full closed frame 201/4800 cells, 4579/647040 PNG pixels, not VIS parity. First two captures document unadjusted close glyph color and a pre-wheel routing fix.
+Final `CARGO_BUILD_JOBS=2 RUST_TEST_THREADS=1 cargo test --locked --workspace --no-fail-fast --quiet` PASS 0 failures (204 TUI, existing opt-in live ignores); workspace fmt, all-target Clippy `-D warnings`, locked build, docs/progress and diff checks PASS. Qualified actual original/native v2.0.12 120x40 Reader/read+tab add/close pair passes both provider and click predicates; after-close tab row x0–69,y0 has 0/70 styled-cell differences. Whole after-close frame remains DIFFERENT: 200/4800 styled cells, 4540/647040 PNG pixels. This runner did not compare seeded paired restarts; native PTY+SQLite restart is the durability evidence. Earlier full-workspace failures were stale MCP root-count and V03 Home assertions after semantics changed; targeted and full reruns passed after asserting actual no-root and restored routes.
 
 ## Risks
 
-Home example selection, actual binary version, Location text, durations and other full-frame cells differ; tabs still process-local after restart. No full VIS01–VIS24 or T44 PASS. Mouse hold is a bounded five-second temporary layout, not persisted state. Preexisting untracked `.opencode/` untouched.
+Full VIS01–VIS24 and T44 parity remain open; paired reference/native restart with equivalent persisted history, V08–V09, remaining S07, other terminal sizes/states, dynamic timer/Home random example, native real version and Location text still differ. Unreadable/projected/stale saved preferences do not delete roots or silently rewrite hidden IDs; owner returns a bounded safe error. The old untracked `.opencode/` was not accessed.
 
 ## Next
 
-Implement validated Location-scoped ordered-tab preference through the application owner, restore IDs and active route without root creation on sessionless Home, then PTY+SQLite restart and paired multi-tab qualification. Continue remaining VIS, V08–V09 and S07 measures.
+Develop a paired original/native restart fixture with equivalent opened tabs, selected route and state, validate VIS at 80x24/120x40/160x48 and narrower widths, and continue frozen remaining V08–V09/VIS01–24 outcomes without marking T44 done until complete pixel equality and safety gates are verified.
 
 
 Ready (до 5): T45, T46, T47
