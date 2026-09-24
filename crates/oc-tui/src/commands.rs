@@ -27,6 +27,8 @@ pub enum CommandAction {
     OpenVariants,
     /// Create and attach a genuine empty application session.
     NewSession,
+    /// Ask the application to close the active retained tab (or Home slot).
+    CloseTab,
     /// Open the primary agent selector.
     OpenAgents,
     /// Open the session list.
@@ -97,6 +99,7 @@ impl CommandSpec {
             && matches!(
                 self.action,
                 CommandAction::NewSession
+                    | CommandAction::CloseTab
                     | CommandAction::OpenSessions
                     | CommandAction::OpenModelPicker
                     | CommandAction::OpenVariants
@@ -176,6 +179,14 @@ pub const REGISTRY: &[CommandSpec] = &[
         shortcuts: &["ctrl+x n"],
         aliases: &["new", "clear"],
         action: CommandAction::NewSession,
+    },
+    CommandSpec {
+        id: "session.tab.close",
+        title: "Close tab",
+        group: "Session",
+        shortcuts: &["ctrl+x w"],
+        aliases: &["close-tab"],
+        action: CommandAction::CloseTab,
     },
     CommandSpec {
         id: "session.sidebar.toggle",
@@ -286,6 +297,21 @@ pub fn complete(prefix: &str) -> Vec<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::{CommandAction, complete, dispatch};
+
+    #[test]
+    fn close_tab_is_a_palette_leader_and_slash_action() {
+        let close = super::REGISTRY
+            .iter()
+            .find(|entry| entry.id == "session.tab.close")
+            .expect("close tab in registry");
+        assert_eq!(close.title, "Close tab");
+        assert_eq!(close.shortcuts, ["ctrl+x w"]);
+        assert_eq!(close.action, CommandAction::CloseTab);
+        assert_eq!(close.aliases, ["close-tab"]);
+        assert!(close.in_palette(false));
+        assert_eq!(dispatch("/close-tab"), Some(CommandAction::CloseTab));
+        assert!(complete("/close-").contains(&"close-tab"));
+    }
 
     #[test]
     fn routes_builtins() {

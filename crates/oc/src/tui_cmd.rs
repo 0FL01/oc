@@ -909,7 +909,10 @@ async fn apply_mouse_outcome(
         PanelIntent::CloseTab { index } if pointer.is_some() => state.mouse_close_snapshot(index),
         _ => None,
     };
-    let activate = matches!(intent, PanelIntent::ActivateTab { .. });
+    let activate = matches!(
+        intent,
+        PanelIntent::ActivateTab { .. } | PanelIntent::NewSession
+    );
     match apply_intent_with_origin(app, state, loop_state, intent, false).await {
         Ok(()) => {
             loop_state.sync_tabs(state);
@@ -940,12 +943,19 @@ async fn apply_outcome(
     let Some(intent) = outcome.intent else {
         return;
     };
+    let keyboard_close_pointer = (matches!(intent, PanelIntent::CloseTab { .. })
+        && *state.panel() == TuiPanel::None)
+        .then(|| state.mouse_position())
+        .flatten();
     // Scrolling intents never consume typed input; commands do.
     let consumes = matches!(intent, PanelIntent::SwitchLocation { .. });
     match apply_intent_with_origin(app, state, loop_state, intent, typed_new).await {
         Ok(()) => {
             if consumes {
                 state.accept_intent();
+            }
+            if let Some(pointer) = keyboard_close_pointer {
+                state.restore_tab_hover_at(pointer);
             }
         }
         Err(message) => state.apply_intent_error(message),
@@ -2311,6 +2321,65 @@ mod tests {
         let normal = oc_tui::shell::tab_strip(&state, area).unwrap();
         assert_eq!(normal.tabs[0].rect.width, 32);
         assert_eq!(state.tab_close_cell(area, 0, normal.tabs[0].rect), None);
+    }
+
+    #[tokio::test]
+    async fn keyboard_close_after_mouse_add_retests_real_pointer_without_mouse_hold() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent};
+        use ratatui::{Terminal, backend::TestBackend, layout::Rect, style::Color};
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("kept").unwrap());
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        let area = Rect::new(0, 0, 120, 40);
+        let add = oc_tui::shell::tab_strip(&state, area).unwrap().add.unwrap();
+        let pointer = add.x + 1;
+        let mouse = |kind| MouseEvent {
+            kind,
+            column: pointer,
+            row: add.y,
+            modifiers: KeyModifiers::NONE,
+        };
+        state.handle_mouse(mouse(MouseEventKind::Moved), area);
+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left)), area);
+        let outcome = state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left)), area);
+        assert_eq!(outcome.intent, Some(PanelIntent::NewSession));
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
+                panic!("owner Home selection")
+            };
+            ack.send(Ok(catalog())).unwrap();
+            inbox
+        });
+        apply_mouse_outcome(&app, &mut state, &mut deck, outcome, area, pointer, add.y).await;
+        let mut inbox = worker.await.unwrap();
+        assert!(state.home);
+        assert_eq!(state.mouse_position(), Some((pointer, add.y, area)));
+        assert_eq!(state.handle_key(KeyAction::Leader).await.intent, None);
+        let close = state.handle_key(KeyAction::Char('w')).await;
+        assert_eq!(close.intent, Some(PanelIntent::CloseTab { index: 1 }));
+        apply_outcome(&app, &mut state, &mut deck, close, false).await;
+        assert!(!state.home);
+        assert_eq!(state.session().0, "kept");
+        assert_eq!(state.mouse_position(), Some((pointer, add.y, area)));
+        let strip = oc_tui::shell::tab_strip(&state, area).unwrap();
+        assert_eq!(strip.add.unwrap(), add);
+        assert_eq!(
+            strip.tabs[0].rect.width, 32,
+            "keyboard close cannot hold mouse geometry"
+        );
+        assert_eq!(state.tab_close_cell(area, 0, strip.tabs[0].rect), None);
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|frame| render_frame(frame, &state)).unwrap();
+        for x in add.x..add.right() {
+            let cell = &terminal.backend().buffer()[(x, add.y)];
+            assert_eq!(cell.fg, Color::Rgb(238, 238, 238));
+            assert_eq!(cell.bg, Color::Rgb(20, 20, 20));
+        }
+        assert!(
+            inbox.try_recv().is_err(),
+            "close Home needs no provider or owner query"
+        );
     }
 
     #[tokio::test]

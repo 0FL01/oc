@@ -509,8 +509,25 @@ fn render_deck_tabs(
         );
     }
     if let Some(add) = strip.add.filter(|rect| rect.width == 3) {
+        // session-tabs.tsx:1744-1752: the entire " + " control, including
+        // padding, shares the hovered text and action background tokens.
+        let hovered = state.tab_add_hovered(frame.area(), add);
         frame.render_widget(
-            Paragraph::new(" + ").style(Style::default().fg(theme.text_muted())),
+            Paragraph::new(" + ").style(
+                Style::default()
+                    .fg(if hovered {
+                        theme.text()
+                    } else {
+                        theme.text_muted()
+                    })
+                    .bg(if hovered {
+                        theme
+                            .color("background.action.primary.$hovered")
+                            .unwrap_or(theme.background())
+                    } else {
+                        theme.background()
+                    }),
+            ),
             add,
         );
     }
@@ -1906,6 +1923,67 @@ mod tests {
         terminal.draw(|frame| render(frame, &state)).unwrap();
         assert!(tab_strip(&state, area).unwrap().add.is_none());
         assert!(!(0..80).any(|x| terminal.backend().buffer()[(x, 0)].symbol() == "+"));
+    }
+
+    #[tokio::test]
+    async fn retained_add_colors_follow_real_pointer_and_eligibility() {
+        use crossterm::event::{KeyModifiers, MouseEvent, MouseEventKind};
+        let mut state = golden_state().await;
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: Some("Old".into()),
+                home: false,
+                busy: false,
+            }],
+            0,
+            true,
+        );
+        let area = Rect::new(0, 0, 120, 40);
+        let add = tab_strip(&state, area).unwrap().add.unwrap();
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        let colors = |state: &TuiState, terminal: &mut Terminal<TestBackend>| {
+            terminal.draw(|frame| render(frame, state)).unwrap();
+            (add.x..add.right())
+                .map(|x| {
+                    let cell = &terminal.backend().buffer()[(x, add.y)];
+                    (cell.symbol().to_owned(), cell.fg, cell.bg)
+                })
+                .collect::<Vec<_>>()
+        };
+        let theme = Theme::dark();
+        let idle = colors(&state, &mut terminal);
+        assert_eq!(idle[1].0, "+");
+        assert_eq!(idle[1].1, theme.text_muted());
+        let moved = |x, y| MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: x,
+            row: y,
+            modifiers: KeyModifiers::NONE,
+        };
+        state.handle_mouse(moved(add.x + 1, add.y), area);
+        let hovered = colors(&state, &mut terminal);
+        for (x, (symbol, fg, bg)) in hovered.iter().enumerate() {
+            assert_eq!(symbol, &idle[x].0);
+            assert_eq!(*fg, theme.text());
+            assert_eq!(
+                *bg,
+                theme.color("background.action.primary.$hovered").unwrap()
+            );
+        }
+        state.handle_mouse(moved(add.right(), add.y), area);
+        assert_eq!(colors(&state, &mut terminal), idle);
+        state.restore_tab_hover_at((add.right(), add.y, area));
+        assert_eq!(colors(&state, &mut terminal), idle);
+        state.handle_mouse(moved(add.x + 1, add.y), area);
+        state.clear_mouse_position(); // resize invalidates the painted coordinate
+        assert_eq!(colors(&state, &mut terminal), idle);
+        state.handle_key(KeyAction::Commands).await;
+        state.restore_tab_hover_at((add.x + 1, add.y, area));
+        assert_eq!(state.mouse_position(), None, "modal cannot restore hover");
+        state.close_panel();
+        state.handle_mouse(moved(add.x + 1, add.y), area);
+        state.set_tab_strip(state.tab_presentation().0.to_vec(), 0, false);
+        assert!(tab_strip(&state, area).unwrap().add.is_none());
     }
 
     #[tokio::test]

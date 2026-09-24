@@ -25,11 +25,16 @@ const tabClose = args['tab-close'] === 'true';
 if (args['tab-close'] !== undefined && !['true','false'].includes(args['tab-close']))
   throw Error('--tab-close must be true or false');
 if (tabClose && !tabClick) throw Error('--tab-close true requires --tab-click true (paired Reader tools 120x40 profile)');
+const tabCloseKey = args['tab-close-key'] === 'true';
+if (args['tab-close-key'] !== undefined && !['true','false'].includes(args['tab-close-key']))
+  throw Error('--tab-close-key must be true or false');
+if (tabCloseKey && (!tabClick || tabClose))
+  throw Error('--tab-close-key true requires --tab-click true without --tab-close true (paired Reader tools 120x40 profile)');
 const tabRestart = args['tab-restart'] === 'true';
 if (args['tab-restart'] !== undefined && !['true','false'].includes(args['tab-restart']))
   throw Error('--tab-restart must be true or false');
-if (tabRestart && (!tabClick || tabClose || explorationClick))
-  throw Error('--tab-restart true requires --tab-click true without tab-close/exploration-click');
+if (tabRestart && (!tabClick || tabClose || tabCloseKey || explorationClick))
+  throw Error('--tab-restart true requires --tab-click true without tab-close/tab-close-key/exploration-click');
 if (explorationClick && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     Number(args.columns) !== 120 || Number(args.rows) !== 40 || args.matrix === 'true' || args['scroll-resize'] === 'true'))
   throw Error('--exploration-click true requires --geometry true --sample tools --sidebar hide --columns 120 --rows 40 without matrix/scroll-resize');
@@ -391,7 +396,59 @@ try {
               lock.attempts.push({origin,status:selectedHome?'TAB_RESTART_CHECKS_PASS':'TAB_RESTART_SELECTION_DIFFERENT',
                 selected_on_relaunch:selectedOld?'old':'synthetic_home',predicates:checks.filter(c=>c.passed).map(c=>c.stage),baseline,after:counts()});
               if(!selectedHome) result=1;
-           } else if(tabClose) {
+            } else if(tabCloseKey) {
+             const keyChecks = [];
+             const counts = () => ({provider_requests:logs.filter(e=>e.kind==='provider').length,
+               provider_completed:logs.filter(e=>e.kind==='provider_completed').length,
+               transcript_requests:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length,
+               title_requests:logs.filter(e=>e.kind==='provider' && e.operation==='title').length,
+               invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});
+             const baseline = counts();
+             lock.tab_close_key_interactions ??= {};
+             lock.tab_close_key_interactions[origin] = {status:'IN_PROGRESS',baseline,checks:keyChecks};
+             const saveKey = () => {
+               fs.writeFileSync(path.join(dir,'tab-close-key-checks.json'),JSON.stringify({baseline,checks:keyChecks},null,2)+'\n');
+               json('capture.lock.json',lock);
+             };
+             const keyRecord = (stage, f, predicate, passed, extra={}) => {
+               keyChecks.push({stage,predicate,passed,...tabObserve(f),provider_counts:counts(),...extra});
+               saveKey();
+               if(!passed) throw Error('Tab keyboard close predicate failed: '+stage);
+             };
+             const noCall = () => JSON.stringify(counts())===JSON.stringify(baseline);
+             const beforeKey = await frame();
+             keyRecord('before-keyboard-close',beforeKey,
+               'old tab and synthetic Home selected, old transcript absent, provider counts unchanged',
+               addedPredicate(tabObserve(beforeKey)) && noCall());
+             // Real PTY leader chord, as in the dialog key path: send the
+             // Ctrl+X prefix and then w, rather than changing the fixture.
+             const leader='\x18', key='w';
+             keyChecks.push({stage:'keyboard-close-input',leader_base64:Buffer.from(leader).toString('base64'),
+               key_base64:Buffer.from(key).toString('base64'),provider_counts:counts()});
+             saveKey();
+             send(leader,'home_close_ctrl_x');
+             await sleep(100);
+             send(key,'home_close_w');
+             const closedPredicate = f => {
+               const c=tabObserve(f);
+               return c.old.length===1 && c.new_title.length===0 && c.add.length===1 &&
+                 c.add[0].x>c.old[0].x && c.old_content && !c.home_prompt && noCall();
+             };
+             let closedFrame;
+             try { closedFrame=await waitFor(closedPredicate,'keyboard-closed synthetic Home and restored old transcript without provider requests'); }
+             catch(e) { keyRecord('keyboard-closed',await frame(),'old transcript restored, synthetic Home gone, provider counts unchanged: '+e.message,false); }
+             keyRecord('keyboard-closed',closedFrame,'old transcript restored, synthetic Home gone, provider counts unchanged',
+               closedPredicate(closedFrame));
+             if(await capture('keyboard-close-after',closedFrame,'CAPTURED_TAB_KEYBOARD_CLOSED') !== 'CAPTURED_TAB_KEYBOARD_CLOSED')
+               throw Error('Unstable keyboard-close frame');
+             const afterCapture=await frame();
+             keyRecord('keyboard-close-capture-verified',afterCapture,
+               'old transcript and synthetic removal persist, provider counts unchanged',closedPredicate(afterCapture));
+             lock.tab_close_key_interactions[origin].status='PASS';
+             saveKey();
+             lock.attempts.push({origin,status:'TAB_CLOSE_KEY_CHECKS_PASS',provider_counts:counts(),
+               predicates:keyChecks.filter(c=>c.passed===true).map(c=>c.stage)});
+            } else if(tabClose) {
             const closeChecks = [];
             const counts = () => ({provider_requests:logs.filter(e=>e.kind==='provider').length,
               provider_completed:logs.filter(e=>e.kind==='provider_completed').length,
@@ -692,6 +749,7 @@ try {
       result=1; lock.attempts.push({origin,status:'FAILED',reason:e.message});
       if(tabClick && lock.tab_interactions?.[origin]) lock.tab_interactions[origin].status='FAILED';
       if(tabClose && lock.tab_close_interactions?.[origin]) lock.tab_close_interactions[origin].status='FAILED';
+      if(tabCloseKey && lock.tab_close_key_interactions?.[origin]) lock.tab_close_key_interactions[origin].status='FAILED';
       if(tabRestart && lock.tab_restart_interactions?.[origin]) lock.tab_restart_interactions[origin].status='FAILED';
       await capture('failure-diagnostic',await frame(),'FAILED_STATE');
     } finally {

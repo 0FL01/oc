@@ -1916,6 +1916,136 @@ fn hovered_close_reopens_durable_session_without_creating_a_root() {
 }
 
 #[test]
+fn keyboard_and_palette_close_tab_keep_the_root_durable_and_reopenable() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let path = fixture.root.path().join("keyboard-close-metrics.json");
+    let mut pty = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&pty, "Ask anything", DEADLINE);
+    submit(&mut pty, "keyboard close history");
+    fixture.wait_requests(1);
+    wait_screen_row(&pty, "echo: keyboard close history", DEADLINE);
+    wait_idle(&pty);
+    let initial: serde_json::Value =
+        serde_json::from_str(&live_deck_record(&fixture, &project)).unwrap();
+    let root = initial["active"]
+        .as_str()
+        .expect("accepted root")
+        .to_string();
+    assert_eq!(initial["sessions"], serde_json::json!([root]));
+    let counts = journal_counts(&fixture);
+    assert_eq!((counts.0, counts.2, counts.3), (1, 1, 2));
+
+    // Ctrl+X W is the actual two-key PTY chord, not a direct owner intent.
+    pty.send(b"\x18");
+    pty.send(b"w");
+    wait_screen_row(&pty, "Ask anything", DEADLINE);
+    let closed: serde_json::Value =
+        serde_json::from_str(&live_deck_record(&fixture, &project)).unwrap();
+    assert_eq!(closed["sessions"], serde_json::json!([]));
+    assert!(closed["active"].is_null());
+    assert_eq!(
+        journal_counts(&fixture),
+        counts,
+        "close only changes the deck"
+    );
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .join("\n")
+            .contains("keyboard close history")
+    );
+
+    pty.send(b"/sessions\r");
+    wait_screen_row(&pty, &root, DEADLINE);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "keyboard close history", DEADLINE);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&live_deck_record(&fixture, &project)).unwrap()["active"],
+        root
+    );
+
+    // The searchable command palette invokes the same close on the reopened
+    // root. Enter must select the visible result rather than submit a turn.
+    pty.send(b"\x10");
+    wait_screen_row(&pty, "Commands", DEADLINE);
+    pty.send(b"Close tab");
+    wait_screen_row(&pty, "Close tab", DEADLINE);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "Ask anything", DEADLINE);
+    let closed_again: serde_json::Value =
+        serde_json::from_str(&live_deck_record(&fixture, &project)).unwrap();
+    assert_eq!(closed_again["sessions"], serde_json::json!([]));
+    assert!(closed_again["active"].is_null());
+    assert_eq!(journal_counts(&fixture), counts);
+    quit(&mut pty);
+    assert!(metrics(&path)["session"].is_null());
+    assert_eq!(metrics(&path)["tab_ids"], serde_json::json!([]));
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    assert_eq!(db.list_sessions().unwrap(), vec![root.clone()]);
+    assert_eq!(
+        db.read_history(&root).unwrap()[0].1,
+        "keyboard close history"
+    );
+    drop(db);
+
+    let mut restored = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&restored, "Ask anything", DEADLINE);
+    restored.send(b"/sessions\r");
+    wait_screen_row(&restored, &root, DEADLINE);
+    restored.send(b"\r");
+    wait_screen_row(&restored, "keyboard close history", DEADLINE);
+    quit(&mut restored);
+    assert_eq!(metrics(&path)["session"], root);
+    assert_eq!(metrics(&path)["tab_ids"], serde_json::json!([root]));
+    assert_eq!(journal_counts(&fixture), counts);
+    assert_eq!(fixture.wait_requests(1).len(), 1, "reopen sends no turn");
+}
+
+#[test]
+fn keyboard_close_refuses_busy_turn_without_losing_draft() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "busy-close-root"],
+        None,
+    );
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "slow stream");
+    fixture.wait_requests(1);
+    pty.send(b"unsent draft");
+    wait_screen_row(&pty, "unsent draft", DEADLINE);
+    let before = live_deck_record(&fixture, &project);
+    pty.send(b"\x18w");
+    wait_screen_row(&pty, "tab busy; action unavailable", DEADLINE);
+    wait_screen_row(&pty, "unsent draft", DEADLINE);
+    assert_eq!(live_deck_record(&fixture, &project), before);
+    wait_screen_row(&pty, "answer:slow stream", DEADLINE);
+    wait_idle(&pty);
+    assert_eq!(live_deck_record(&fixture, &project), before);
+    assert!(
+        render_screen(&pty.snapshot())
+            .rows()
+            .join("\n")
+            .contains("unsent draft")
+    );
+    pty.send(&[0x7f; 64]);
+    quit(&mut pty);
+    assert_eq!(journal_counts(&fixture).0, 1);
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    assert_eq!(
+        db.read_history("busy-close-root").unwrap(),
+        vec![
+            ("user".into(), "slow stream".into()),
+            ("assistant".into(), "answer:slow stream".into()),
+        ]
+    );
+    assert_eq!(fixture.wait_requests(1).len(), 1);
+}
+
+#[test]
 fn retained_deck_refuses_add_during_turn_and_keeps_tabs_on_failed_location() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(

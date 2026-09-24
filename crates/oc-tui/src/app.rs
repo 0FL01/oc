@@ -558,6 +558,32 @@ impl TuiState {
         );
     }
 
+    /// A keyboard close can replace the view that received the last real mouse
+    /// event. Only restore the add hover if that same pointer hits the newly
+    /// painted, owner-enabled control; keys never create a mouse close hold.
+    pub fn restore_tab_hover_at(&mut self, pointer: (u16, u16, Rect)) {
+        let (x, y, area) = pointer;
+        if self.panel != TuiPanel::None || self.is_busy() {
+            return;
+        }
+        if crate::shell::tab_strip(self, area)
+            .and_then(|strip| strip.add)
+            .is_some_and(|add| add.width == 3 && add.contains((x, y).into()))
+        {
+            self.last_mouse = Some(pointer);
+            self.hovered_tab.set(None);
+        }
+    }
+
+    pub(crate) fn tab_add_hovered(&self, area: Rect, add: Rect) -> bool {
+        self.panel == TuiPanel::None
+            && !self.is_busy()
+            && add.width == 3
+            && self.last_mouse.is_some_and(|(x, y, pointer_area)| {
+                pointer_area == area && add.contains((x, y).into())
+            })
+    }
+
     pub fn mouse_position(&self) -> Option<(u16, u16, Rect)> {
         self.last_mouse
     }
@@ -798,6 +824,7 @@ impl TuiState {
                         .iter()
                         .filter(|c| {
                             c.in_palette(self.picker.as_ref().is_some_and(|p| p.has_variants()))
+                                && (c.action != CommandAction::CloseTab || !self.tabs.is_empty())
                         })
                         .map(|c| {
                             item(
@@ -880,6 +907,15 @@ impl TuiState {
     }
 
     pub fn command_unavailable(&self, action: &CommandAction) -> Option<&'static str> {
+        if *action == CommandAction::CloseTab {
+            let (tabs, index, _) = self.tab_presentation();
+            if tabs.is_empty() || (index >= tabs.len() && !self.home) {
+                return Some("no tab to close");
+            }
+            if tabs.get(index).is_some_and(|tab| tab.busy) {
+                return Some("tab busy; action unavailable");
+            }
+        }
         if self.session.is_none()
             && matches!(
                 action,
@@ -2334,6 +2370,15 @@ impl TuiState {
                 ..KeyOutcome::default()
             };
         }
+        if action == CommandAction::CloseTab {
+            let (_, index, _) = self.tab_presentation();
+            // The binary applies the close and replaces the view on success.
+            // A refused owner action must leave the dialog and draft intact.
+            return KeyOutcome {
+                intent: Some(PanelIntent::CloseTab { index }),
+                ..KeyOutcome::default()
+            };
+        }
         self.select.reset();
         self.mouse_down = None;
         self.tab_down = None;
@@ -2368,6 +2413,7 @@ impl TuiState {
             CommandAction::NewSession => {
                 outcome.intent = Some(PanelIntent::NewSession);
             }
+            CommandAction::CloseTab => unreachable!("close is returned before modal reset"),
             CommandAction::OpenAgents => {
                 self.panel = TuiPanel::Agents;
                 open_snapshot(&mut outcome, self.catalog_loaded, PanelIntent::LoadCatalog);
@@ -3443,6 +3489,183 @@ mod tests {
         std::mem::forget(guard);
         app.create_session(sid(name)).await.expect("create");
         TuiState::new(app, sid(name))
+    }
+
+    #[tokio::test]
+    async fn close_tab_chord_uses_the_presented_active_slot_without_mutating_the_deck() {
+        let mut state = fresh_state("close-chord").await;
+        let tabs = vec![
+            TabPresentation {
+                title: Some("Old".into()),
+                home: false,
+                busy: false,
+            },
+            TabPresentation {
+                title: Some("Current".into()),
+                home: false,
+                busy: false,
+            },
+        ];
+        state.set_tab_strip(tabs.clone(), 1, true);
+        type_text(&mut state, "draft").await;
+        assert_eq!(
+            state.handle_key(KeyAction::Leader).await,
+            KeyOutcome::default()
+        );
+        assert_eq!(
+            state.handle_key(KeyAction::Char('w')).await,
+            KeyOutcome {
+                intent: Some(PanelIntent::CloseTab { index: 1 }),
+                ..KeyOutcome::default()
+            }
+        );
+        assert_eq!(state.tab_presentation().0, tabs);
+        assert_eq!(state.input(), "draft");
+        assert_eq!(state.panel(), &TuiPanel::None);
+    }
+
+    #[tokio::test]
+    async fn close_tab_palette_selection_preserves_modal_and_draft_until_owner_accepts() {
+        let mut state = fresh_state("close-palette").await;
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: Some("Only tab".into()),
+                home: false,
+                busy: false,
+            }],
+            0,
+            true,
+        );
+        type_text(&mut state, "unsent draft").await;
+        state.handle_key(KeyAction::Commands).await;
+        state.handle_paste("Close tab");
+        let options = state.modal_options();
+        assert_eq!(options.len(), 1);
+        assert_eq!(options[0].value, "session.tab.close");
+        assert_eq!(options[0].footer, "ctrl+x w");
+        assert_eq!(
+            state.handle_panel_key(KeyAction::Enter),
+            KeyOutcome {
+                intent: Some(PanelIntent::CloseTab { index: 0 }),
+                ..KeyOutcome::default()
+            }
+        );
+        assert_eq!(state.panel(), &TuiPanel::Commands);
+        assert_eq!(state.select.query, "Close tab");
+        assert_eq!(state.input(), "unsent draft");
+        assert_eq!(state.tab_presentation().0.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn close_tab_home_last_and_busy_availability() {
+        use crate::commands::CommandAction;
+        use oc_core::core_app::InboxMsg;
+
+        let (app, _, _) = CoreApp::channel(4);
+        let mut home = TuiState::new_home(app);
+        assert_eq!(
+            home.command_unavailable(&CommandAction::CloseTab),
+            Some("no tab to close")
+        );
+        home.handle_key(KeyAction::Commands).await;
+        home.handle_paste("Close tab");
+        assert!(home.modal_options().is_empty());
+        home.handle_panel_key(KeyAction::Cancel);
+        home.handle_key(KeyAction::Leader).await;
+        let bare = home.handle_key(KeyAction::Char('w')).await;
+        assert_eq!(bare.intent, None);
+        assert_eq!(bare.note.as_deref(), Some("no tab to close"));
+        home.set_tab_strip(
+            vec![TabPresentation {
+                title: Some("Old".into()),
+                home: false,
+                busy: false,
+            }],
+            0,
+            false,
+        );
+        assert_eq!(home.command_unavailable(&CommandAction::CloseTab), None);
+        assert_eq!(home.handle_key(KeyAction::Leader).await.intent, None);
+        assert_eq!(
+            home.handle_key(KeyAction::Char('w')).await.intent,
+            Some(PanelIntent::CloseTab { index: 1 })
+        );
+        assert!(home.home);
+        assert_eq!(home.tab_presentation().0.len(), 1);
+
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut last = TuiState::new(app, sid("close-last"));
+        assert_eq!(
+            last.command_unavailable(&CommandAction::CloseTab),
+            Some("no tab to close")
+        );
+        last.set_tab_strip(
+            vec![TabPresentation {
+                title: Some("Last".into()),
+                home: false,
+                busy: false,
+            }],
+            0,
+            false,
+        );
+        assert_eq!(
+            last.run_command(CommandAction::CloseTab).intent,
+            Some(PanelIntent::CloseTab { index: 0 })
+        );
+        assert_eq!(last.tab_presentation().0.len(), 1);
+
+        last.set_tab_strip(
+            vec![TabPresentation {
+                title: Some("Busy tab".into()),
+                home: false,
+                busy: true,
+            }],
+            0,
+            false,
+        );
+        assert_eq!(
+            last.command_unavailable(&CommandAction::CloseTab),
+            Some("tab busy; action unavailable")
+        );
+        assert_eq!(last.run_command(CommandAction::CloseTab).intent, None);
+        last.set_tab_strip(
+            vec![TabPresentation {
+                title: Some("Last".into()),
+                home: false,
+                busy: false,
+            }],
+            0,
+            false,
+        );
+
+        type_text(&mut last, "pending draft").await;
+        last.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+            panic!("submit")
+        };
+        last.handle_key(KeyAction::Commands).await;
+        last.handle_paste("Close tab");
+        assert!(last.modal_options()[0].footer.contains("turn active"));
+        let refused = last.handle_panel_key(KeyAction::Enter);
+        assert_eq!(refused.intent, None);
+        assert_eq!(
+            refused.note.as_deref(),
+            Some("turn active; action unavailable")
+        );
+        assert_eq!(last.panel(), &TuiPanel::Commands);
+        assert_eq!(last.input(), "pending draft");
+        last.handle_panel_key(KeyAction::Cancel);
+        assert_eq!(last.run_command(CommandAction::CloseTab).intent, None);
+        assert!(inbox.try_recv().is_err());
+        drop(ack);
+
+        let (app, _, _) = CoreApp::channel(4);
+        let mut bare = TuiState::new_home(app);
+        type_text(&mut bare, "/close-tab").await;
+        let refused = bare.handle_key(KeyAction::Enter).await;
+        assert_eq!(refused.intent, None);
+        assert_eq!(refused.note.as_deref(), Some("no tab to close"));
+        assert_eq!(bare.input(), "/close-tab");
     }
 
     #[tokio::test]

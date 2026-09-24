@@ -236,6 +236,19 @@ to remain unchanged. Separate `tab-close-hovered-before` and
 are retained. This replaces the old-tab return click only for this opt-in;
 interaction success is not a whole-frame parity claim.
 
+To exercise the keyboard close binding instead, add `--tab-close-key true` to
+the paired `--tab-click true` command and use a **fresh** output directory. It
+requires the same 120×40 Reader/tools profile and cannot be combined with
+`--tab-restart true` or the mouse-close `--tab-close true`. After each side's
+real add click reaches synthetic Home, the runner sends genuine Ctrl+X followed
+by `w` through that side's PTY. It requires Home to disappear, the old transcript
+and add control to return, and provider request/completion counts to remain
+unchanged. `keyboard-close-after` has its own styled cells, PNG and VT per
+side; `inputs.json`, `tab-close-key-checks.json` and `capture.lock.json` record
+the actual input bytes, predicates, counts and result. Failed predicates cannot
+yield a keyboard-close PASS. The normal full-grid/PNG comparators report equality
+separately; no fixture shortcut or masking is used.
+
 For a paired **real two-session restart**, use the same Reader/tools 120×40
 command with `--tab-click true --tab-restart true` and a fresh output path
 (without `--tab-close` or `--exploration-click`). After the first real read,
