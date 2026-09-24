@@ -583,7 +583,7 @@ fn visit_row_blocks(
                     for wrapped in styled::wrap_line_limited(&line, inner, MAX_MARKDOWN_ROWS) {
                         let mut spans = vec![
                             Span::styled("┃", border),
-                            Span::styled(" ".repeat(USER_PADDING), body),
+                            Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
                         ];
                         spans.extend(wrapped.spans().iter().cloned());
                         lines.push(user_row(&spans, bg, width as usize));
@@ -595,10 +595,7 @@ fn visit_row_blocks(
                 emit(vec![user_row(
                     &[
                         Span::styled("┃", border),
-                        Span::styled(
-                            " ".repeat(USER_PADDING),
-                            Style::default().fg(theme.text()).bg(bg),
-                        ),
+                        Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
                     ],
                     bg,
                     width as usize,
@@ -611,10 +608,7 @@ fn visit_row_blocks(
             for chips in chip_rows(&row.chips, theme, inner) {
                 let mut spans = vec![
                     Span::styled("┃", border),
-                    Span::styled(
-                        " ".repeat(USER_PADDING),
-                        Style::default().fg(theme.text()).bg(bg),
-                    ),
+                    Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
                 ];
                 spans.extend(chips);
                 chip_lines.push(user_row(&spans, bg, width as usize));
@@ -1609,7 +1603,7 @@ fn user_block(
             for wrapped in styled::wrap_line(&line, inner.max(1)) {
                 let mut spans = vec![
                     Span::styled("┃", border),
-                    Span::styled(" ".repeat(USER_PADDING), body),
+                    Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
                 ];
                 spans.extend(wrapped.spans().iter().cloned());
                 out.push(user_row(&spans, bg, width));
@@ -1622,7 +1616,7 @@ fn user_block(
         for chips in chip_rows(&row.chips, theme, inner) {
             let mut spans = vec![
                 Span::styled("┃", border),
-                Span::styled(" ".repeat(USER_PADDING), body),
+                Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
             ];
             spans.extend(chips);
             out.push(user_row(&spans, bg, width));
@@ -1659,6 +1653,12 @@ fn user_row(spans: &[Span], bg: Color, width: usize) -> Line {
         ));
     }
     Line::new(spans).with_style(Style::default().bg(bg))
+}
+
+/// The upstream user box owns the leading padding; the text child alone uses
+/// `theme.text.base` (`routes/session/index.tsx:2339-2345`).
+fn user_padding(bg: Color) -> Style {
+    Style::default().fg(Color::Rgb(255, 255, 255)).bg(bg)
 }
 
 /// One chip: ` skill ` on `hue.accent[light ? 300 : 200]` with

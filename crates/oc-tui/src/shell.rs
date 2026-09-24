@@ -959,9 +959,11 @@ fn render_prompt(
                                 crate::styled::Span::styled(
                                     text,
                                     if selected {
-                                        Style::default().add_modifier(Modifier::REVERSED)
-                                    } else {
                                         Style::default()
+                                            .fg(theme.text())
+                                            .add_modifier(Modifier::REVERSED)
+                                    } else {
+                                        Style::default().fg(theme.text())
                                     },
                                 )
                             })
@@ -978,7 +980,7 @@ fn render_prompt(
                 Paragraph::new(
                     crate::styled::Lines::from(input_lines[start..].to_vec()).into_text(),
                 )
-                .style(Style::default().fg(theme.text()).bg(prompt_bg)),
+                .style(Style::default().bg(prompt_bg)),
                 Rect {
                     height: body.height.saturating_sub(3),
                     ..row(1)
@@ -1613,6 +1615,64 @@ mod tests {
                 assert_ne!(user_border.fg, Color::Rgb(255, 255, 255));
             }
         }
+    }
+
+    #[tokio::test]
+    async fn restored_session_user_padding_and_empty_prompt_keep_canvas_foreground() {
+        let mut state = golden_state().await;
+        state.chrome.devtools = Some(false);
+        state.chrome.sidebar_hidden = true;
+        state.set_tab_strip(
+            vec![
+                TabPresentation {
+                    title: Some("Old".into()),
+                    home: false,
+                    busy: false,
+                },
+                TabPresentation {
+                    title: Some("Second".into()),
+                    home: false,
+                    busy: false,
+                },
+            ],
+            1,
+            true,
+        );
+        let theme = Theme::dark();
+        let white = Color::Rgb(255, 255, 255);
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        for x in 5..=115 {
+            let cell = &buffer[(x, 34)];
+            assert_eq!(cell.symbol(), " ", "prompt at x={x}");
+            assert_eq!(cell.bg, theme.decrease(theme.background_panel()), "x={x}");
+            assert_eq!(cell.fg, white, "prompt at x={x}");
+        }
+        let prompt_border = &buffer[(2, 34)];
+        assert_eq!(prompt_border.symbol(), "┃");
+        assert_ne!(prompt_border.fg, white);
+        for x in 3..=4 {
+            let cell = &buffer[(x, 3)];
+            assert_eq!(cell.symbol(), " ", "user padding at x={x}");
+            assert_eq!(cell.bg, theme.user_message_background(), "x={x}");
+            assert_eq!(cell.fg, white, "user padding at x={x}");
+        }
+        let user_text = &buffer[(5, 3)];
+        assert_eq!(user_text.symbol(), "h");
+        assert_eq!(user_text.fg, theme.text());
+        assert_eq!(user_text.bg, theme.user_message_background());
+        let user_border = &buffer[(2, 3)];
+        assert_eq!(user_border.symbol(), "┃");
+        assert_ne!(user_border.fg, white);
+
+        state.handle_key(KeyAction::Char('d')).await;
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(5, 34)].symbol(), "d");
+        assert_eq!(buffer[(5, 34)].fg, theme.text());
+        assert_eq!(buffer[(5, 34)].bg, theme.decrease(theme.background_panel()));
+        assert_eq!(buffer[(6, 34)].fg, white);
     }
 
     #[tokio::test]
