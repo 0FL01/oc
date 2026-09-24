@@ -38,6 +38,10 @@ fn sse_completed_usage(input_tokens: u64, output_tokens: u64) -> String {
     )
 }
 
+fn sse_completed_without_usage() -> &'static str {
+    "data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\"}}\n\n"
+}
+
 /// Reasoning summary delta (`response.reasoning_summary_text.delta`).
 fn sse_reasoning(text: &str) -> String {
     format!(
@@ -4151,6 +4155,135 @@ async fn dto_reasoning_deltas_and_usage_reach_the_event_callbacks() {
             ("assistant".to_string(), "answer".to_string())
         ]
     );
+}
+
+#[tokio::test]
+async fn provider_context_usage_survives_missing_round_usage_and_restart() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    let tool = sse_tool_call(
+        "missing",
+        "read",
+        &serde_json::json!({"path":"missing.txt"}),
+    );
+    let (base, hits) = Fake::start(
+        vec![
+            tool + sse_completed_without_usage(),
+            sse_delta("answer") + &sse_completed_usage(6000, 763),
+            sse_tool_call("known", "read", &serde_json::json!({"path":"missing.txt"}))
+                + &sse_completed_usage(4500, 21),
+            sse_delta("later") + sse_completed_without_usage(),
+            sse_tool_call(
+                "unfinished",
+                "read",
+                &serde_json::json!({"path":"missing.txt"}),
+            ) + &sse_completed_usage(7000, 34),
+            sse_tool_call(
+                "cancel-after-tool",
+                "read",
+                &serde_json::json!({"path":"missing.txt"}),
+            ) + &sse_completed_usage(8000, 45),
+        ],
+        Duration::ZERO,
+    );
+    let fresh = runtime
+        .run_fresh_turn_with_tool_events(
+            params("context", "first", &harness, provider_of(&base), &NO_CANCEL),
+            None,
+            |_| {},
+            |_, _| {},
+            |_, _| {},
+            |_, _| {},
+        )
+        .await
+        .unwrap();
+    assert_eq!(fresh.status, TurnStatus::Completed);
+    assert_eq!(fresh.rounds, 2);
+    assert_eq!(fresh.usage, None, "missing billed tool round is unknown");
+    assert_eq!(fresh.context_usage, Some((6000, 763)));
+
+    let next = runtime
+        .run_turn_with_tool_events(
+            params(
+                "context",
+                "second",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ),
+            |_| {},
+            |_, _| {},
+            |_, _| {},
+            |_, _| {},
+        )
+        .await
+        .unwrap();
+    assert_eq!(next.status, TurnStatus::Completed);
+    assert_eq!(next.rounds, 2);
+    assert_eq!(next.usage, None);
+    assert_eq!(
+        next.context_usage,
+        Some((4500, 21)),
+        "a missing final round must not erase a known pair"
+    );
+
+    let mut incomplete_params =
+        params("context", "third", &harness, provider_of(&base), &NO_CANCEL);
+    incomplete_params.max_rounds = 1;
+    let incomplete = runtime.run_turn(incomplete_params).await.unwrap();
+    assert_eq!(incomplete.status, TurnStatus::Incomplete);
+    assert_eq!(incomplete.usage, Some((7000, 34)));
+    assert_eq!(incomplete.context_usage, Some((7000, 34)));
+
+    let cancelled_flag = AtomicBool::new(false);
+    let cancelled = runtime
+        .run_turn_with_tool_events(
+            params(
+                "context",
+                "fourth",
+                &harness,
+                provider_of(&base),
+                &cancelled_flag,
+            ),
+            |_| {},
+            |_, _| {},
+            |_, _| {},
+            |_, event| {
+                if matches!(event, ToolCallEvent::Finished { .. }) {
+                    cancelled_flag.store(true, Ordering::Relaxed);
+                }
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(cancelled.status, TurnStatus::Cancelled);
+    assert_eq!(cancelled.usage, Some((8000, 45)));
+    assert_eq!(cancelled.context_usage, Some((8000, 45)));
+    assert_eq!(*hits.lock().unwrap(), 6);
+
+    drop(runtime);
+    drop(harness.db);
+    let reopened = Db::open(harness._data.path()).unwrap();
+    for (id, context, expected_status) in [
+        (fresh.turn_id, [6000, 763], "completed"),
+        (next.turn_id, [4500, 21], "completed"),
+        (incomplete.turn_id, [7000, 34], "incomplete"),
+        (cancelled.turn_id, [8000, 45], "cancelled"),
+    ] {
+        let (status, result) = reopened.turn_result(&id).unwrap();
+        assert_eq!(status, expected_status);
+        let result: serde_json::Value = serde_json::from_str(&result.unwrap()).unwrap();
+        assert_eq!(
+            result["display"]["context_usage"],
+            serde_json::json!(context)
+        );
+        if status == "completed" {
+            assert!(
+                result["display"].get("usage").is_none(),
+                "unknown billed usage must not reappear"
+            );
+        }
+    }
 }
 
 /// End to end through the real application worker: `application::spawn_with_env`

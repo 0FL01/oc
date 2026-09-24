@@ -785,6 +785,9 @@ pub struct TurnReport {
     /// Billed usage, if reported: last reported input tokens and the output
     /// tokens summed over the turn's rounds (never synthesized).
     pub usage: Option<(u64, u64)>,
+    /// Latest provider-reported generation input/output pair, even if other
+    /// rounds omitted usage; not a billed turn total.
+    pub context_usage: Option<(u64, u64)>,
     /// Provider-active streaming time in milliseconds, summed over rounds
     /// (upstream `time.streamed - time.created` per assistant step).
     pub streamed_ms: u64,
@@ -1271,7 +1274,7 @@ impl<'a> Runtime<'a> {
                 &report.turn_id,
                 &serde_json::json!({
                     "duration_ms": duration_ms, "streamed_ms": report.streamed_ms,
-                    "usage": report.usage,
+                    "usage": report.usage, "context_usage": report.context_usage,
                 }),
             )?;
             Ok(report)
@@ -1327,7 +1330,7 @@ impl<'a> Runtime<'a> {
                 &report.turn_id,
                 &serde_json::json!({
                     "duration_ms": duration_ms, "streamed_ms": report.streamed_ms,
-                    "usage": report.usage,
+                    "usage": report.usage, "context_usage": report.context_usage,
                 }),
             )?;
             Ok(report)
@@ -1729,6 +1732,7 @@ impl<'a> Runtime<'a> {
         };
         let mut text = String::new();
         let mut usage = None;
+        let mut context_usage = None;
         let mut usage_complete = true;
         let mut streamed = Duration::ZERO;
         let mut calls = Vec::new();
@@ -1758,6 +1762,7 @@ impl<'a> Runtime<'a> {
                     rounds,
                     streamed_ms(streamed),
                     usage,
+                    context_usage,
                     calls,
                     nudge_hint,
                     &published,
@@ -1827,6 +1832,7 @@ impl<'a> Runtime<'a> {
                     rounds,
                     streamed_ms(streamed),
                     usage,
+                    context_usage,
                     calls,
                     nudge_hint,
                     &published,
@@ -1890,6 +1896,7 @@ impl<'a> Runtime<'a> {
                         rounds,
                         streamed_ms(streamed),
                         usage,
+                        context_usage,
                         calls,
                         nudge_hint,
                         &published,
@@ -1903,6 +1910,11 @@ impl<'a> Runtime<'a> {
                 turn_log.ingest(item);
             }
             text.push_str(&generation.text);
+            // A generation's measured context remains useful for display when
+            // another round omitted usage and the billed turn total is unknown.
+            if let Some(reported) = generation.usage {
+                context_usage = Some(reported);
+            }
             // Usage: the last round's input tokens, output summed over rounds
             // (upstream aggregates per-step output for tok/s, runtime.rs docs).
             usage_complete &= generation.usage.is_some();
@@ -1948,6 +1960,7 @@ impl<'a> Runtime<'a> {
                         rounds,
                         streamed_ms(streamed),
                         usage,
+                        context_usage,
                         calls,
                         nudge_hint,
                         &published,
@@ -2005,6 +2018,7 @@ impl<'a> Runtime<'a> {
                     rounds,
                     streamed_ms(streamed),
                     usage,
+                    context_usage,
                     calls,
                     nudge_hint,
                     &published,
@@ -2043,6 +2057,7 @@ impl<'a> Runtime<'a> {
                     rounds,
                     streamed_ms(streamed),
                     usage,
+                    context_usage,
                     calls,
                     nudge_hint,
                     &published,
@@ -2058,6 +2073,7 @@ impl<'a> Runtime<'a> {
             rounds,
             streamed_ms(streamed),
             usage,
+            context_usage,
             calls,
             nudge_hint,
             &published,
@@ -2180,6 +2196,7 @@ impl<'a> Runtime<'a> {
         rounds: u32,
         streamed_ms: u64,
         usage: Option<(u64, u64)>,
+        context_usage: Option<(u64, u64)>,
         calls: Vec<CallRecord>,
         nudge_hint: Option<String>,
         published: &PublishedGeneration,
@@ -2207,6 +2224,7 @@ impl<'a> Runtime<'a> {
             text,
             rounds,
             usage,
+            context_usage,
             streamed_ms,
             duration_ms: 0,
             calls,

@@ -323,9 +323,7 @@ pub struct ReasoningBlock {
     pub expanded: bool,
 }
 
-/// Assistant footer data. Committed history rows carry none: storage keeps
-/// `(id, session_id, seq, role, text)` only, so the footer is omitted for
-/// historical messages instead of printing invented numbers.
+/// Assistant footer data, projected from durable turns or live events.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AssistantMeta {
     /// Model label (`provider/id`; our catalog DTOs carry no display name).
@@ -336,6 +334,9 @@ pub struct AssistantMeta {
     pub input_tokens: Option<u64>,
     /// Output tokens summed over the turn's rounds, when reported.
     pub output_tokens: Option<u64>,
+    /// Latest provider generation's reported input/output context measurement.
+    /// Independent of complete turn usage used for tok/s.
+    pub context_usage: Option<(u64, u64)>,
     /// Provider-active streaming time in milliseconds, when reported.
     pub streamed_ms: Option<u64>,
     /// Upstream `error.message === "Step interrupted"`.

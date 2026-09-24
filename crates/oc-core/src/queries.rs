@@ -106,6 +106,9 @@ pub struct HistoryTurn {
     pub model_label: String,
     /// Last input and summed output token counts; None means unreported.
     pub usage: Option<(u64, u64)>,
+    /// Latest provider-reported generation input/output pair, independent of
+    /// whether billed usage for every round of this turn is known.
+    pub context_usage: Option<(u64, u64)>,
     /// Measured wall time, if recorded.
     pub duration_ms: Option<u64>,
     /// Measured provider-active time, if recorded.

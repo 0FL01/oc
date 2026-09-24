@@ -1643,6 +1643,9 @@ impl Db {
             usage: meta["usage"]
                 .as_array()
                 .and_then(|v| Some((v.first()?.as_u64()?, v.get(1)?.as_u64()?))),
+            context_usage: meta["context_usage"]
+                .as_array()
+                .and_then(|v| Some((v.first()?.as_u64()?, v.get(1)?.as_u64()?))),
             duration_ms: meta["duration_ms"].as_u64(),
             streamed_ms: meta["streamed_ms"].as_u64(),
             parts: Vec::new(),
@@ -2689,6 +2692,48 @@ mod tests {
         let legacy = db.turn_presentation("s", "t").unwrap().unwrap();
         assert!(legacy.legacy_text_only);
         assert!(legacy.parts.is_empty());
+    }
+
+    #[test]
+    fn context_usage_projection_requires_a_reported_pair_and_keeps_billing_separate() {
+        use serde_json::json;
+
+        let tmp = tmp_root("context-usage");
+        let db = Db::open(&tmp.path().join("data")).unwrap();
+        db.create_session("s").unwrap();
+        db.begin_turn("t", "s", "inspect").unwrap();
+        db.checkpoint_turn("t", &json!({"display_parts":[]}).to_string())
+            .unwrap();
+        db.update_turn_display("t", &json!({"context_usage":[6000,763]}))
+            .unwrap();
+        let projected = db.turn_presentation("s", "t").unwrap().unwrap();
+        assert_eq!(projected.context_usage, Some((6000, 763)));
+        assert_eq!(projected.usage, None);
+
+        drop(db);
+        let db = Db::open(&tmp.path().join("data")).unwrap();
+        let reopened = db.turn_presentation("s", "t").unwrap().unwrap();
+        assert_eq!(reopened.context_usage, Some((6000, 763)));
+        assert_eq!(reopened.usage, None);
+
+        db.update_turn_display("t", &json!({"context_usage":[6000]}))
+            .unwrap();
+        assert_eq!(
+            db.turn_presentation("s", "t")
+                .unwrap()
+                .unwrap()
+                .context_usage,
+            None
+        );
+        db.update_turn_display("t", &json!({"context_usage":null}))
+            .unwrap();
+        assert_eq!(
+            db.turn_presentation("s", "t")
+                .unwrap()
+                .unwrap()
+                .context_usage,
+            None
+        );
     }
 
     #[test]

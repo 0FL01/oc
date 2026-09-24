@@ -315,6 +315,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         duration_ms: turn.duration_ms,
         input_tokens: turn.usage.map(|v| v.0),
         output_tokens: turn.usage.map(|v| v.1),
+        context_usage: turn.context_usage,
         streamed_ms: turn.streamed_ms,
         interrupted: turn.status == "cancelled",
         status: Some(turn.status.clone()),

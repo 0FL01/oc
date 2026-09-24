@@ -2172,6 +2172,87 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn context_footer_uses_reported_generation_without_billing_missing_rounds() {
+        use oc_core::queries::{HistoryTurn, TranscriptPart};
+
+        let mut state = golden_state().await;
+        let mut snapshot = catalog();
+        snapshot.models[0].context = 225_000;
+        state.apply_catalog(snapshot);
+        assert_eq!(state.context_usage(), None);
+
+        let mut answer = msg(3, Role::Assistant, "answer");
+        answer.turn = Some(HistoryTurn {
+            model_label: "fixture".into(),
+            parts: vec![TranscriptPart::Text("answer".into())],
+            usage: None,
+            context_usage: Some((6000, 763)),
+            streamed_ms: Some(1000),
+            ..Default::default()
+        });
+        state.attach_page(&page(vec![answer.clone()]));
+        assert_eq!(state.context_usage(), Some((6763, Some(225_000))));
+        assert!(
+            footer_line(&state, Theme::dark(), 116, 120)
+                .to_string()
+                .contains("6.8K (3%)")
+        );
+        let meta = state
+            .history()
+            .rows()
+            .last()
+            .and_then(|r| r.meta.as_ref())
+            .unwrap();
+        assert_eq!(meta.input_tokens, None);
+        assert_eq!(meta.output_tokens, None);
+        assert!(
+            !state
+                .transcript_lines(116, 120)
+                .iter()
+                .any(|line| line.plain_text().contains("tok/s"))
+        );
+
+        // TurnFinished carries no separate context event: the durable page
+        // replaces the completed live footer with the same reported pair.
+        let turn = oc_core::core_app::WorkerTurnId("context-turn".into());
+        state.begin_compress_turn(turn.clone());
+        state.apply_finished(&turn, "answer", 100);
+        state.attach_page(&page(vec![answer.clone()]));
+        assert_eq!(state.context_usage(), Some((6763, Some(225_000))));
+        assert!(
+            footer_line(&state, Theme::dark(), 116, 120)
+                .to_string()
+                .contains("6.8K (3%)")
+        );
+
+        answer.turn.as_mut().unwrap().usage = Some((1200, 300));
+        state.attach_page(&page(vec![answer.clone()]));
+        assert_eq!(state.context_usage(), Some((6763, Some(225_000))));
+        let meta = state
+            .history()
+            .rows()
+            .last()
+            .and_then(|r| r.meta.as_ref())
+            .unwrap();
+        assert_eq!(meta.input_tokens, Some(1200));
+        assert_eq!(meta.output_tokens, Some(300));
+        let transcript = state
+            .transcript_lines(116, 120)
+            .iter()
+            .map(|line| line.plain_text())
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(transcript.contains("300.0 tok/s"), "{transcript}");
+
+        answer.turn.as_mut().unwrap().context_usage = None;
+        state.attach_page(&page(vec![answer.clone()]));
+        assert_eq!(state.context_usage(), Some((1500, Some(225_000))));
+        answer.turn.as_mut().unwrap().usage = None;
+        state.attach_page(&page(vec![answer]));
+        assert_eq!(state.context_usage(), None);
+    }
+
+    #[tokio::test]
     async fn v03_sidebar_uses_dto_title_usage_and_styled_boundary() {
         use ratatui::{Terminal, backend::TestBackend};
         let mut state = golden_state().await;

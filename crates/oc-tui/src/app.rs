@@ -2937,6 +2937,7 @@ impl TuiState {
             duration_ms: (duration_ms > 0).then_some(duration_ms),
             input_tokens: usage.map(|usage| usage.input_tokens),
             output_tokens: usage.map(|usage| usage.output_tokens),
+            context_usage: None,
             streamed_ms: usage.map(|usage| usage.streamed_ms),
             interrupted,
             status: self.live_terminal_status.take(),
@@ -2995,7 +2996,8 @@ impl TuiState {
             .or_else(|| {
                 rows.iter().rev().find_map(|r| {
                     let m = r.meta.as_ref()?;
-                    Some((m.input_tokens?, m.output_tokens?))
+                    m.context_usage
+                        .or_else(|| Some((m.input_tokens?, m.output_tokens?)))
                 })
             })?;
         let limit = self
