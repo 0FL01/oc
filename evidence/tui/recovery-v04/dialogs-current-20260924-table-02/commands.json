@@ -1,0 +1,194 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "160",
+      "--rows",
+      "48",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "146af21c6760fd1b669de13a117c1d539fd683ad\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "b188b910fc67ec0287abe426aae188e29c894d13\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/messages.rs b/crates/oc-tui/src/messages.rs\nindex eed97ea..e0c142b 100644\n--- a/crates/oc-tui/src/messages.rs\n+++ b/crates/oc-tui/src/messages.rs\n@@ -921,7 +921,7 @@ fn table_source(line: &str) -> (&str, usize) {\n \n fn table_column_widths(rows: &[Vec<String>], available: usize) -> Vec<usize> {\n     let count = rows.iter().map(Vec::len).max().unwrap_or(0);\n-    let mut widths: Vec<_> = (0..count)\n+    let widths: Vec<_> = (0..count)\n         .map(|i| {\n             rows.iter()\n                 .filter_map(|r| r.get(i))\n@@ -931,22 +931,39 @@ fn table_column_widths(rows: &[Vec<String>], available: usize) -> Vec<usize> {\n                 .max(1)\n         })\n         .collect();\n+    fit_table_widths(widths, available)\n+}\n+\n+/// TextPart selects OpenTUI's grid/full table with one cell of padding on\n+/// either side. Its TextTable expands spare space equally across columns\n+/// (`@opentui/core@0.5.10 renderables/TextTable.ts:expandColumnWidths`). Work\n+/// in content cells, excluding borders and two padding cells per column.\n+fn fit_table_widths(mut widths: Vec<usize>, available: usize) -> Vec<usize> {\n+    let count = widths.len();\n+    if count == 0 || available == usize::MAX {\n+        return widths;\n+    }\n     let usable = available.saturating_sub(count * 3 + 1).max(count);\n-    if widths.iter().sum::<usize>() > usable {\n-        let natural = widths.clone();\n-        widths.fill(1);\n-        for _ in 0..usable.saturating_sub(count).min(available) {\n-            let col = (0..count)\n-                .filter(|&i| widths[i] < natural[i])\n-                .min_by_key(|&i| widths[i])\n-                .unwrap_or(count - 1);\n-            widths[col] += 1;\n+    let natural = widths.iter().sum::<usize>();\n+    if natural <= usable {\n+        let extra = usable - natural;\n+        for (i, width) in widths.iter_mut().enumerate() {\n+            *width += extra / count + usize::from(i < extra % count);\n         }\n+        return widths;\n     }\n-    if count == 2 && available >= 24 && available != usize::MAX {\n-        let label_extra = (available.saturating_sub(74).saturating_add(7) / 8).min(5);\n-        widths[0] = (widths[0] + label_extra).min(usable.saturating_sub(1));\n-        widths[1] = usable - widths[0];\n+\n+    // Keep the existing narrow-table policy: shorter columns reach their\n+    // intrinsic width before a long cell consumes the rest. The proportional\n+    // OpenTUI shrinker would change long-cell paging and label visibility.\n+    let intrinsic = widths.clone();\n+    widths.fill(1);\n+    for _ in 0..usable.saturating_sub(count).min(available) {\n+        let col = (0..count)\n+            .filter(|&i| widths[i] < intrinsic[i])\n+            .min_by_key(|&i| widths[i])\n+            .unwrap_or(count - 1);\n+        widths[col] += 1;\n     }\n     widths\n }\n@@ -2292,7 +2309,7 @@ fn render_table(\n         theme.border()\n     });\n     let padding = Style::default().fg(theme.hue(\"neutral\", 100).unwrap_or_else(|| theme.text()));\n-    let mut widths = (0..count)\n+    let widths = (0..count)\n         .map(|column| {\n             rows.iter()\n                 .filter_map(|row| row.get(column))\n@@ -2303,34 +2320,7 @@ fn render_table(\n         })\n         .collect::<Vec<_>>();\n     let usable = available.saturating_sub(count * 3 + 1).max(count);\n-    if widths.iter().sum::<usize>() > usable {\n-        widths.fill(1);\n-        let extra = usable.saturating_sub(count);\n-        // Give the shorter label column room before assigning the remaining\n-        // cells to the long description; never allocate beyond the viewport.\n-        for _ in 0..extra.min(available) {\n-            let col = (0..count)\n-                .filter(|&i| {\n-                    widths[i]\n-                        < rows\n-                            .iter()\n-                            .filter_map(|row| row.get(i))\n-                            .map(|cell| cell.spans().iter().map(styled::span_width).sum())\n-                            .max()\n-                            .unwrap_or(1)\n-                })\n-                .min_by_key(|&i| widths[i])\n-                .unwrap_or(count - 1);\n-            widths[col] += 1;\n-        }\n-    }\n-    if count == 2 && available >= 24 && available != usize::MAX {\n-        // Captured upstream at 120x40: label column reserves five cells past\n-        // its longest word; the description column fills the content box.\n-        let label_extra = (available.saturating_sub(74).saturating_add(7) / 8).min(5);\n-        widths[0] = (widths[0] + label_extra).min(usable.saturating_sub(1));\n-        widths[1] = usable - widths[0];\n-    }\n+    let mut widths = fit_table_widths(widths, available);\n     if let Some(columns) = columns.filter(|c| c.len() == count && c.iter().sum::<usize>() <= usable)\n     {\n         widths.copy_from_slice(columns);\n@@ -3324,7 +3314,7 @@ mod tests {\n         let wide = markdown_at_width(table, theme, 114);\n         assert!(\n             wide.iter()\n-                .any(|r| r.plain_text().contains(\"│ Инструмент      │\"))\n+                .any(|r| r.plain_text().contains(\"│ Инструмент       │\"))\n         );\n         let wide = markdown_at_width(table, theme, 112);\n         assert!(\n@@ -3347,6 +3337,58 @@ mod tests {\n         );\n     }\n \n+    #[test]\n+    fn table_grid_columns_follow_pinned_full_width_sizing() {\n+        // opencode v2.0.12 TextPart uses OpenTUI 0.5.10's grid/full table\n+        // (message-parts.tsx:160-170). In the paired 160x48 Reader capture,\n+        // the fixture grid's left and right edges agree, but the native\n+        // divider is one cell too far right (x23 instead of x22).\n+        let fixture = include_str!(\"../../../tui-recovery/fixtures/transcript.md\");\n+        let table = &fixture\n+            [fixture.find(\"| Инструмент\").unwrap()..fixture.find(\"Через Code Mode\").unwrap()];\n+        let theme = Theme::dark();\n+        for (available, first_column) in [(74, 10), (110, 14), (114, 16)] {\n+            let rows = markdown_at_width(table, theme, available);\n+            let border = rows.first().unwrap().plain_text();\n+            let divider = border.chars().position(|ch| ch == '┬').unwrap();\n+            assert_eq!(divider, first_column + 3, \"available={available}: {border}\");\n+            assert_eq!(UnicodeWidthStr::width(border.as_str()), available);\n+        }\n+    }\n+\n+    #[test]\n+    fn unicode_table_widths_agree_between_full_and_indexed_pages() {\n+        let text = \"| 名称 | 説明 |\\n| --- | --- |\\n| 中文🧑‍💻 | 長い説明 with several words |\\n| café | 東京に行く とても長い説明 with many more words to wrap |\\n\";\n+        let short = \"| 中文🧑‍💻 | 東京 |\\n| --- | --- |\\n| 中文🧑‍💻 | 東京 |\";\n+        let theme = Theme::dark();\n+        // Natural content widths are 6 and 4 cells. Grid borders and padding\n+        // cost seven cells; the remaining spare width is divided evenly.\n+        for (width, divider) in [(80, 42), (120, 62), (160, 82)] {\n+            let border = markdown_block(short, theme, width)[0].plain_text();\n+            assert_eq!(border.chars().position(|ch| ch == '┬'), Some(divider));\n+            assert_eq!(UnicodeWidthStr::width(border.as_str()), width as usize);\n+            let full = markdown_block(text, theme, width);\n+            let page = index_source(text, width)\n+                .into_iter()\n+                .find_map(|page| page.table_widths)\n+                .unwrap();\n+            let indexed = markdown_block_with_widths(text, theme, width, Some(&page));\n+            let grid = full.iter().map(Line::plain_text).collect::<Vec<_>>();\n+            assert_eq!(\n+                full.first().unwrap().plain_text(),\n+                indexed.first().unwrap().plain_text()\n+            );\n+            assert!(grid.iter().any(|line| line.contains(\"中文🧑‍💻\")));\n+            assert!(grid.iter().any(|line| line.contains(\"東京に行く\")));\n+            assert!(full.iter().all(|line| {\n+                line.spans().iter().map(styled::span_width).sum::<usize>() <= width as usize\n+            }));\n+            assert!(indexed.iter().all(|line| {\n+                line.spans().iter().map(styled::span_width).sum::<usize>() <= width as usize\n+            }));\n+        }\n+    }\n+\n     #[test]\n     fn v06a_cached_parts_invalidate_only_dirty_revision_width_and_theme() {\n         let dark = Theme::dark();\ndiff --git a/scripts/tui_capture/README.md b/scripts/tui_capture/README.md\nindex 8f54ab1..197f998 100644\n--- a/scripts/tui_capture/README.md\n+++ b/scripts/tui_capture/README.md\n@@ -15,6 +15,7 @@ Use the approved external directory (no `npm install` in this workspace):\n npm install --prefix /home/opencode/.cache/opencode-tmp/opencode/t44-reference --save-exact @xterm/xterm@6.0.0 @xterm/addon-unicode11@0.9.0 playwright@1.58.2\n PLAYWRIGHT_BROWSERS_PATH=/home/opencode/.cache/opencode-tmp/opencode/t44-reference/browsers /home/opencode/.cache/opencode-tmp/opencode/t44-reference/node_modules/.bin/playwright install chromium\n node scripts/tui_capture/check_frontend.mjs\n+node scripts/tui_capture/check_capture_geometry.mjs\n ```\n \n Python 3 stdlib, Pillow (PNG comparator), fontconfig and DejaVu Sans Mono must be\n@@ -67,6 +68,29 @@ exit `2` denotes a runner blocker. Neither is parity success.\n   continuations, and cursor. `.txt` is review convenience only. `.vt` contains\n   the actual bytes up to capture, `raw.vt` the full run. `protocol.json`,\n   `inputs.json`, `commands.json`, and `capture.lock.json` preserve provenance.\n+* Each frame also has `.render.json`: float `.xterm-screen` bounds, viewport/DPR,\n+  measured cell sizes, independent terminal/viewport/text/row/cursor/selection\n+  layer CSS backgrounds and layout boxes, and any screen canvas CSS/intrinsic\n+  sizes. It records the exact screenshot clip and actual PNG dimensions, plus\n+  before/after layout readings. Two `requestAnimationFrame` callbacks precede\n+  each capture (including resize captures) and are recorded per frame. A changed\n+  layout is flagged, not masked or cropped away. The render file hash is locked\n+  with the cell and PNG hashes. No DOM text, canvas pixels or URLs are read by\n+  this geometry probe. The common environment ID hashes only the configured\n+  profile (including requested columns/rows), never measured per-side geometry;\n+  equal-size frames on both sides therefore retain the same environment ID even\n+  if their painted screen bounds differ.\n+* Optional `--refresh-before-capture true` calls xterm's full-row repaint from\n+  its existing VT buffer on **both** sides before every screenshot and records\n+  that action in `.render.json`. It does not alter the PTY or mask/crop pixels.\n+  Use it to diagnose stale DOM rows after resize; preserve the unrefreshed\n+  attempt alongside it rather than treating a repaint as an application fix.\n+  For DOM-rendered xterm, `.render.json` also records only the final two\n+  `.xterm-rows` children (row index, position, foreground/background and bounds)\n+  and up to four trailing element children per row (index, computed width,\n+  position, colors and bounds). It includes counts but never child text or\n+  arbitrary attributes; compare the last span's right edge with the screen's\n+  right edge when a styled final-column cell differs in PNG only.\n \n For a diagnostic pair with the **same configured primary profile**, add\n `--agent-profile true`. Both isolated configs then select `Reader`,\ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex d8587e9..8e66eab 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -196,17 +196,34 @@ try {\n     const capture = async (scenario, f, status) => {\n       const name = path.join(dir,scenario);\n       if (fs.existsSync(name+'.cells.json')) throw Error('Refusing to overwrite scenario: '+name);\n+      // Repaint the same VT buffer on both sides to distinguish a stale xterm\n+      // DOM row left behind by resize from a real application cell mismatch.\n+      // This never changes the buffer, input sequence, or comparator regions.\n+      const refreshed = args['refresh-before-capture'] === 'true';\n+      if (refreshed) await page.evaluate(() => term.refresh(0,term.rows-1));\n+      // The grid can settle before Chromium paints resized canvas/text layers.\n+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));\n+      const paintWaitFrames = 2;\n+      const before = await page.evaluate(() => readCaptureGeometry());\n       const rect = await page.locator('.xterm-screen').boundingBox();\n-      profile.pixel_width = Math.ceil(rect.width); profile.pixel_height = Math.ceil(rect.height);\n-      profile.measured_cell_width = rect.width/profile.columns;\n-      profile.measured_cell_height = rect.height/profile.rows;\n+      if (!rect) throw Error('Missing .xterm-screen screenshot bounds');\n+      const clip = {x:rect.x,y:rect.y,width:Math.ceil(rect.width),height:Math.ceil(rect.height)};\n+      // Profile records requested shared inputs only. Measured CSS/PNG facts are\n+      // per-side observations and must not alter the paired environment ID.\n       const environment = sha(canonical(profile));\n       const {text, ...grid} = f;\n       fs.writeFileSync(name+'.cells.json', JSON.stringify({schema_version:1, origin, scenario,\n         fixture_sha256:fixtureSha, environment_id:environment,\n         producer_commit: origin==='upstream' ? lock.sources.upstream_commit : commit, ...grid}));\n       fs.writeFileSync(name+'.txt', text+'\\n');\n-      await page.screenshot({path:name+'.png', clip:{x:rect.x,y:rect.y,width:profile.pixel_width,height:profile.pixel_height}});\n+      const png = await page.screenshot({path:name+'.png', clip});\n+      const after = await page.evaluate(() => readCaptureGeometry());\n+      const render = {schema_version:1, origin, scenario, environment_id:environment,\n+        terminal_refresh_from_buffer:refreshed,\n+        paint_wait_request_animation_frames:paintWaitFrames, before, after,\n+        layout_changed_during_screenshot:canonical(before)!==canonical(after),\n+        screenshot: {clip, png_width:png.readUInt32BE(16), png_height:png.readUInt32BE(20)}};\n+      fs.writeFileSync(name+'.render.json',JSON.stringify(render,null,2)+'\\n');\n       if(sha(JSON.stringify(await frame())) !== sha(JSON.stringify(f))) {\n         status='UNSTABLE_CAPTURE'; result=1;\n         lock.attempts.push({origin,scenario,status,reason:'VT grid changed during PNG capture'});\n@@ -214,6 +231,7 @@ try {\n       fs.writeFileSync(name+'.vt', Buffer.concat(chunks[generation]));\n       lock.captures.push({origin,scenario,status,environment_id:environment,\n         cells_sha256:sha(fs.readFileSync(name+'.cells.json')),png_sha256:sha(fs.readFileSync(name+'.png')),\n+        render_sha256:sha(fs.readFileSync(name+'.render.json')),\n         path:path.relative(output,name)});\n       lock.profile=profile; json('capture.lock.json',lock);\n       return status;\ndiff --git a/scripts/tui_capture/frontend.js b/scripts/tui_capture/frontend.js\nindex d6aad25..78dc1f9 100644\n--- a/scripts/tui_capture/frontend.js\n+++ b/scripts/tui_capture/frontend.js\n@@ -12,6 +12,58 @@ window.startTerminal = ({ columns, rows }) => {\n   term.onData(data => window.terminalReply(data));\n };\n window.writeTerminal = data => new Promise(resolve => term.write(Uint8Array.from(atob(data), c => c.charCodeAt(0)), resolve));\n+// Geometry-only diagnostic. Read CSS/layer layout independently of the VT buffer;\n+// do not collect DOM text, attributes, URLs, or canvas pixels here.\n+window.readCaptureGeometry = () => {\n+  const rect = element => {\n+    const {x, y, width, height, right, bottom} = element.getBoundingClientRect();\n+    return {x, y, width, height, right, bottom};\n+  };\n+  const describe = element => {\n+    if (!element) return null;\n+    const css = getComputedStyle(element);\n+    return {rect: rect(element),\n+      layout: {client_width: element.clientWidth, client_height: element.clientHeight,\n+        offset_width: element.offsetWidth, offset_height: element.offsetHeight,\n+        scroll_width: element.scrollWidth, scroll_height: element.scrollHeight},\n+      css: {width: css.width, height: css.height, background_color: css.backgroundColor,\n+        opacity: css.opacity, position: css.position, transform: css.transform,\n+        overflow_x: css.overflowX, overflow_y: css.overflowY,\n+        padding_left: css.paddingLeft, padding_right: css.paddingRight,\n+        border_left_width: css.borderLeftWidth, border_right_width: css.borderRightWidth}};\n+  };\n+  const screen = document.querySelector('.xterm-screen');\n+  if (!screen) throw Error('Missing .xterm-screen for capture geometry');\n+  const layers = Object.fromEntries(['.xterm', '.xterm-viewport', '.xterm-screen',\n+    '.xterm-text-layer', '.xterm-rows', '.xterm-cursor-layer', '.xterm-selection-layer']\n+    .map(selector => [selector, describe(document.querySelector(selector))]));\n+  const canvases = [...screen.querySelectorAll('canvas')].map((canvas, index) => ({\n+    index, parent_class: canvas.parentElement?.className || '',\n+    intrinsic_width: canvas.width, intrinsic_height: canvas.height, ...describe(canvas)}));\n+  const paint = element => {\n+    const css = getComputedStyle(element);\n+    return {rect: rect(element), css: {width: css.width, position: css.position,\n+      color: css.color, background_color: css.backgroundColor}};\n+  };\n+  const rows = document.querySelector('.xterm-rows');\n+  const lastRows = rows ? [...rows.children].slice(-2) : [];\n+  const domRows = {element_count: rows?.children.length ?? 0,\n+    last_rows: lastRows.map((row, index) => {\n+      const lastChildren = [...row.children].slice(-4);\n+      return {row_index: rows.children.length - lastRows.length + index, ...paint(row),\n+        element_child_count: row.children.length,\n+        last_element_children: lastChildren.map((child, childIndex) => ({\n+          child_index: row.children.length - lastChildren.length + childIndex, ...paint(child)}))};\n+    })};\n+  return {device_pixel_ratio: window.devicePixelRatio,\n+    viewport: {width: window.innerWidth, height: window.innerHeight,\n+      document_client_width: document.documentElement.clientWidth,\n+      document_client_height: document.documentElement.clientHeight},\n+    screen_rect: layers['.xterm-screen'].rect,\n+    measured_cell_width: layers['.xterm-screen'].rect.width / term.cols,\n+    measured_cell_height: layers['.xterm-screen'].rect.height / term.rows,\n+    columns: term.cols, rows: term.rows, layers, canvases, dom_rows: domRows};\n+};\n window.readTerminal = () => {\n   const buffer = term.buffer.active;\n   const colors = term._core._themeService.colors;\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "scripts/tui_capture/check_capture_geometry.mjs\u0000Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)\n   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.01s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"4af8f46c344629b5bfde86f0cce4502e4958841eb671ef245e10c305a9e15cd2\", \"environment_id\": \"50d156640d3a2bd27b172e65def22101e07bba6485084f80c11f3b8dbb49abea\", \"reference_sha256\": \"89d09e254859c065b5c14c8b5d174eda7ad52e38f89f6327833a39252f23ab93\", \"actual_sha256\": \"9ce38857dd923306897d70cf8c854aed90f170ad3376ebebe03675e6a48955dd\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"146af21c6760fd1b669de13a117c1d539fd683ad\", \"cells_checked\": 7680, \"different_cells\": 21, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 36, 113, 39], \"samples\": [{\"x\": 113, \"y\": 36, \"different_fields\": [\"fg\"]}, {\"x\": 37, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 39, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 39, \"different_fields\": [\"fg\"]}, {\"x\": 52, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 39, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c70b0cde8d2758fb21fb8c28094fbe8fad4480c04ac36d0eb15b90aba8ddbdd3\", \"actual_sha256\": \"cf3a1d4144c19b5482b2336bc15a243c68f0ee495491e9fb8b09f1a0743e79f5\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 737, \"changed_fraction_diagnostic_only\": 0.0007113679886335557, \"difference_bbox_inclusive\": [312, 626, 478, 638]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/upstream/commands-over-session.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/oc/commands-over-session.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/commands-over-session.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"commands-over-session\", \"fixture_sha256\": \"4af8f46c344629b5bfde86f0cce4502e4958841eb671ef245e10c305a9e15cd2\", \"environment_id\": \"50d156640d3a2bd27b172e65def22101e07bba6485084f80c11f3b8dbb49abea\", \"reference_sha256\": \"343a1dd6888ab035744e62250e5e2fd3614c697d017b32380286be334e0c8f6d\", \"actual_sha256\": \"c82521e1d17f4163fc0c4532c615fa4567a93ebce98cdf6882916e745545e47c\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"146af21c6760fd1b669de13a117c1d539fd683ad\", \"cells_checked\": 7680, \"different_cells\": 293, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 21, 105, 39], \"samples\": [{\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 56, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 61, \"y\": 21, \"different_fields\": [\"fg\"]}, {\"x\": 62, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 63, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 64, \"y\": 21, \"different_fields\": [\"fg\"]}, {\"x\": 65, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 66, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 67, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 68, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 69, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 70, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 71, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 73, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/upstream/commands-over-session.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/oc/commands-over-session.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/commands-over-session.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"797cfdc4a387f1647762b223229c8940a62af1565639efd02af5da6fc6de9e6e\", \"actual_sha256\": \"d921b747d48694c7260d5d9754fc9e645defb545fe1dd3365f0771d60710b045\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 12589, \"changed_fraction_diagnostic_only\": 0.012151169075858661, \"difference_bbox_inclusive\": [312, 240, 973, 638]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/upstream/models-over-session.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/oc/models-over-session.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/models-over-session.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"models-over-session\", \"fixture_sha256\": \"4af8f46c344629b5bfde86f0cce4502e4958841eb671ef245e10c305a9e15cd2\", \"environment_id\": \"50d156640d3a2bd27b172e65def22101e07bba6485084f80c11f3b8dbb49abea\", \"reference_sha256\": \"de41364952657b3f834058f1efa40cad812252ced3a4468b69dc1dce2f69d156\", \"actual_sha256\": \"ec4257a17fc5ac5b174b0065bb6ffea6271934786531413d191007c55719358f\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"146af21c6760fd1b669de13a117c1d539fd683ad\", \"cells_checked\": 7680, \"different_cells\": 105, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 26, 109, 39], \"samples\": [{\"x\": 54, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 55, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 56, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 57, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 58, \"y\": 26, \"different_fields\": [\"fg\"]}, {\"x\": 59, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 60, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 61, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 62, \"y\": 26, \"different_fields\": [\"fg\"]}, {\"x\": 63, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 64, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 65, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 66, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 67, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 68, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 69, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 70, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 71, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 73, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/upstream/models-over-session.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/oc/models-over-session.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v04/dialogs-current-20260924-table-02/models-over-session.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"6a3ec1fb76c3c1f672e7df879792dc3bc490b44a7ae3cea715b6afeb765822b1\", \"actual_sha256\": \"02d21cc7a6af423781f43d5ddc9cac6bfe88d6c951dc2c8a8ca97260713d40fc\", \"width\": 1349, \"height\": 768, \"pixels_checked\": 1036032, \"different_pixels\": 9929, \"changed_fraction_diagnostic_only\": 0.009583680812947862, \"difference_bbox_inclusive\": [312, 240, 973, 638]}\n",
+    "stderr": ""
+  }
+]

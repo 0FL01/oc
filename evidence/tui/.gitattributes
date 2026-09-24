@@ -27,3 +27,7 @@ recovery-v08-context-usage-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v08-context-usage-*/*/*.vt binary
 recovery-v08-blank-fg-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v08-blank-fg-*/*/*.vt binary
+recovery-v03/vis05-reflow-geometry-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+recovery-v03/vis05-reflow-geometry-*/*/*.vt binary
+recovery-v04/dialogs-current-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+recovery-v04/dialogs-current-*/*/*.vt binary
