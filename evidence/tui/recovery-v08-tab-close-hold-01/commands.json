@@ -1,0 +1,260 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--tab-click",
+      "true",
+      "--tab-close",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "6582daf140381e342a01e2a7b562fc790b610e61\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "21c6c1bd475f6bd80cf676afad0777ba4c9c6a84\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/app.rs b/crates/oc-tui/src/app.rs\nindex 440ef33..1a41686 100644\n--- a/crates/oc-tui/src/app.rs\n+++ b/crates/oc-tui/src/app.rs\n@@ -161,6 +161,23 @@ enum TabPress {\n     Close(usize),\n }\n \n+/// Geometry and pointer from a genuine mouse release on a painted close cell.\n+/// Kept across the binary's replacement of the active view only on success.\n+pub struct TabCloseSnapshot {\n+    area: Rect,\n+    strip: crate::layout::HorizontalTabStrip,\n+    tabs: Vec<TabPresentation>,\n+    home: bool,\n+    closed: usize,\n+    pointer: (u16, u16),\n+}\n+\n+pub(crate) struct TabCloseHold {\n+    pub(crate) area: Rect,\n+    pub(crate) strip: crate::layout::HorizontalTabStrip,\n+    pub(crate) until: Instant,\n+}\n+\n /// One key handling result: optional status note, optional intent for the\n /// binary to apply, and whether the input buffer was consumed.\n #[derive(Debug, Clone, Default, PartialEq, Eq)]\n@@ -299,6 +316,8 @@ pub struct TuiState {\n     mouse_down: Option<crate::dialog::DialogHit>,\n     tab_down: Option<TabPress>,\n     hovered_tab: std::cell::Cell<Option<(usize, Rect)>>,\n+    last_mouse: Option<(u16, u16, Rect)>,\n+    pub(crate) close_hold: Option<TabCloseHold>,\n     tabs: Vec<TabPresentation>,\n     active_tab: usize,\n     can_add_tab: bool,\n@@ -407,6 +426,8 @@ impl TuiState {\n             mouse_down: None,\n             tab_down: None,\n             hovered_tab: std::cell::Cell::new(None),\n+            last_mouse: None,\n+            close_hold: None,\n             tabs: Vec::new(),\n             active_tab: 0,\n             can_add_tab: false,\n@@ -498,12 +519,108 @@ impl TuiState {\n             || self.can_add_tab != (can_add && count > 0)\n         {\n             self.hovered_tab.set(None);\n+            self.close_hold = None;\n         }\n         self.tabs = tabs.into_iter().take(16).collect();\n         self.active_tab = active.min(self.tabs.len().saturating_sub(1));\n         self.can_add_tab = can_add && !self.tabs.is_empty();\n     }\n \n+    /// Clear the recorded SGR coordinate when a resize invalidates its frame.\n+    pub fn clear_mouse_position(&mut self) {\n+        self.last_mouse = None;\n+        self.hovered_tab.set(None);\n+        self.close_hold = None;\n+        self.tab_down = None;\n+    }\n+\n+    /// Recover hover after a successful mouse tab activation (never on keys).\n+    pub fn restore_mouse_hover(&mut self, pointer: (u16, u16, Rect)) {\n+        let (x, y, area) = pointer;\n+        if self.panel != TuiPanel::None || self.is_busy() {\n+            return;\n+        }\n+        self.last_mouse = Some(pointer);\n+        self.hovered_tab.set(\n+            crate::shell::tab_strip(self, area)\n+                .and_then(|strip| strip.hit_test(x, y))\n+                .map(|index| (index, area)),\n+        );\n+    }\n+\n+    pub fn mouse_position(&self) -> Option<(u16, u16, Rect)> {\n+        self.last_mouse\n+    }\n+\n+    /// Snapshot must be taken before the owner mutates the deck. A plain\n+    /// CloseTab intent (e.g. keyboard) cannot create a mouse hold.\n+    pub fn mouse_close_snapshot(&self, index: usize) -> Option<TabCloseSnapshot> {\n+        let (x, y, area) = self.last_mouse?;\n+        let region = crate::shell::tab_region(self, area);\n+        if self.panel != TuiPanel::None\n+            || self.is_busy()\n+            || region.height != 1\n+            || region.width != area.width\n+            || self.tab_hit(area, x, y) != Some(TabPress::Close(index))\n+        {\n+            return None;\n+        }\n+        Some(TabCloseSnapshot {\n+            area,\n+            strip: crate::shell::tab_strip(self, area)?,\n+            tabs: self.tabs.clone(),\n+            home: self.home,\n+            closed: index,\n+            pointer: (x, y),\n+        })\n+    }\n+\n+    /// `session-tabs.tsx:237-274,1446-1467`: hold the adjacent visible\n+    /// survivor under the release column for up to five seconds. Reject a\n+    /// changed deck or a clipped cell; re-hit-test exactly what is painted.\n+    pub fn restore_mouse_close(&mut self, snapshot: TabCloseSnapshot) {\n+        let old_count = snapshot.tabs.len() + usize::from(snapshot.home);\n+        let new_count = self.tabs.len() + usize::from(self.home);\n+        if self.panel != TuiPanel::None || self.is_busy() || old_count != new_count + 1 {\n+            return;\n+        }\n+        let old_tabs = snapshot.tabs.len();\n+        let mut old = snapshot.tabs;\n+        if snapshot.closed < old.len() {\n+            old.remove(snapshot.closed);\n+        }\n+        if old != self.tabs || (snapshot.closed != old_tabs && snapshot.home != self.home) {\n+            return;\n+        }\n+        let target = if snapshot.closed < old_count - 1 {\n+            snapshot.closed\n+        } else if snapshot.closed > 0 {\n+            snapshot.closed - 1\n+        } else {\n+            return;\n+        };\n+        let region = crate::shell::tab_region(self, snapshot.area);\n+        if region.height != 1 || region.width != snapshot.area.width {\n+            return; // The surviving route changed orientation or terminal geometry.\n+        }\n+        if let Some(strip) = crate::layout::held_after_close(\n+            &snapshot.strip,\n+            region,\n+            snapshot.closed,\n+            new_count,\n+            target,\n+            snapshot.pointer.0,\n+            !self.home && self.can_add_tab,\n+        ) {\n+            self.close_hold = Some(TabCloseHold {\n+                area: snapshot.area,\n+                strip,\n+                until: Instant::now() + std::time::Duration::from_secs(5),\n+            });\n+        }\n+        self.restore_mouse_hover((snapshot.pointer.0, snapshot.pointer.1, snapshot.area));\n+    }\n+\n     pub(crate) fn set_detail_area(&self, area: ratatui::layout::Rect) {\n         self.detail_area.set(area);\n     }\n@@ -792,6 +909,8 @@ impl TuiState {\n     fn open_variants(&mut self) {\n         self.panel = TuiPanel::Variant;\n         self.hovered_tab.set(None);\n+        self.close_hold = None;\n+        self.last_mouse = None;\n         // A press belongs to the dialog where it began, not the replacement.\n         self.mouse_down = None;\n         self.select.reset();\n@@ -933,6 +1052,8 @@ impl TuiState {\n         self.mouse_down = None;\n         self.tab_down = None;\n         self.hovered_tab.set(None);\n+        self.close_hold = None;\n+        self.last_mouse = None;\n         self.exploration_down = None;\n         self.select.reset();\n     }\n@@ -942,6 +1063,16 @@ impl TuiState {\n     /// the replacement restores the original prompt draft, selection and caret.\n     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {\n         use crate::dialog::DialogHit;\n+        self.last_mouse = (self.panel == TuiPanel::None).then_some((event.column, event.row, area));\n+        if self.close_hold.as_ref().is_some_and(|hold| {\n+            hold.area != area\n+                || hold.until <= Instant::now()\n+                || event.row != hold.strip.tabs.first().map_or(u16::MAX, |tab| tab.rect.y)\n+                || !area.contains((event.column, event.row).into())\n+        }) || matches!(event.kind, MouseEventKind::Down(_))\n+        {\n+            self.close_hold = None;\n+        }\n         if self.panel == TuiPanel::None {\n             match event.kind {\n                 MouseEventKind::Moved => {\n@@ -1023,6 +1154,7 @@ impl TuiState {\n         self.exploration_down = None;\n         self.tab_down = None;\n         self.hovered_tab.set(None);\n+        self.close_hold = None;\n         if self.panel == TuiPanel::Cards && self.card_output.is_some() {\n             let (rect, _, _) = crate::dialog::card_geometry(area);\n             let inside = rect.contains((event.column, event.row).into());\n@@ -1147,7 +1279,17 @@ impl TuiState {\n             return None;\n         }\n         match self.hovered_tab.get() {\n-            Some((index, painted)) if painted == area => Some(index),\n+            Some((index, painted))\n+                if painted == area\n+                    && self.last_mouse.is_some_and(|(x, y, pointer_area)| {\n+                        pointer_area == area\n+                            && crate::shell::tab_strip(self, area)\n+                                .and_then(|strip| strip.hit_test(x, y))\n+                                == Some(index)\n+                    }) =>\n+            {\n+                Some(index)\n+            }\n             Some(_) => {\n                 self.hovered_tab.set(None);\n                 None\n@@ -1157,7 +1299,7 @@ impl TuiState {\n     }\n \n     /// Same eligibility and cell for the painted overlay and mouse action.\n-    pub(crate) fn tab_close_cell(&self, area: Rect, index: usize, rect: Rect) -> Option<u16> {\n+    pub fn tab_close_cell(&self, area: Rect, index: usize, rect: Rect) -> Option<u16> {\n         (!self.tabs.is_empty()\n             && (index < self.tabs.len() || (self.home && index == self.tabs.len()))\n             && self.hovered_tab(area) == Some(index)\n@@ -1540,6 +1682,7 @@ impl TuiState {\n         self.active_turn = Some(turn);\n         self.status = TuiStatus::Streaming;\n         self.panel = TuiPanel::Dcp;\n+        self.clear_mouse_position();\n         self.input.clear();\n         self.editor.clear();\n         self.live_text.clear();\n@@ -2084,6 +2227,8 @@ impl TuiState {\n         self.mouse_down = None;\n         self.tab_down = None;\n         self.hovered_tab.set(None);\n+        self.close_hold = None;\n+        self.last_mouse = None;\n         self.leader = None;\n         let mut outcome = KeyOutcome::default();\n         match action {\n@@ -3472,6 +3617,64 @@ mod tests {\n         assert_eq!(state.hovered_tab(area), None);\n     }\n \n+    #[tokio::test]\n+    async fn post_close_hold_is_released_when_a_modal_opens() {\n+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};\n+        use ratatui::layout::Rect;\n+        let (app, _, _) = CoreApp::channel(4);\n+        let mut state = TuiState::new_home(app);\n+        let real = TabPresentation {\n+            title: Some(\"survivor\".into()),\n+            home: false,\n+            busy: false,\n+        };\n+        state.set_tab_strip(vec![real.clone()], 0, false);\n+        let area = Rect::new(0, 0, 120, 40);\n+        let before = crate::shell::tab_strip(&state, area).unwrap();\n+        let x = before.tabs[1].rect.right() - 2;\n+        let mouse = |kind| MouseEvent {\n+            kind,\n+            column: x,\n+            row: 0,\n+            modifiers: KeyModifiers::NONE,\n+        };\n+        state.handle_mouse(mouse(MouseEventKind::Moved), area);\n+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left)), area);\n+        assert_eq!(\n+            state\n+                .handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left)), area)\n+                .intent,\n+            Some(PanelIntent::CloseTab { index: 1 })\n+        );\n+        let snapshot = state.mouse_close_snapshot(1).unwrap();\n+        state.home = false;\n+        state.set_tab_strip(vec![real], 0, true);\n+        state.restore_mouse_close(snapshot);\n+        assert_eq!(\n+            crate::shell::tab_strip(&state, area).unwrap().tabs[0]\n+                .rect\n+                .width,\n+            64\n+        );\n+        state.run_command(crate::commands::CommandAction::OpenCommands);\n+        assert_eq!(\n+            crate::shell::tab_strip(&state, area).unwrap().tabs[0]\n+                .rect\n+                .width,\n+            32\n+        );\n+        state.close_panel();\n+        assert_eq!(state.mouse_position(), None);\n+        assert_eq!(\n+            state.tab_close_cell(\n+                area,\n+                0,\n+                crate::shell::tab_strip(&state, area).unwrap().tabs[0].rect\n+            ),\n+            None\n+        );\n+    }\n+\n     #[tokio::test]\n     async fn busy_and_clipped_tabs_never_emit_close() {\n         use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};\ndiff --git a/crates/oc-tui/src/layout.rs b/crates/oc-tui/src/layout.rs\nindex 4fa622c..5b2aa69 100644\n--- a/crates/oc-tui/src/layout.rs\n+++ b/crates/oc-tui/src/layout.rs\n@@ -137,6 +137,93 @@ impl HorizontalTabStrip {\n     }\n }\n \n+/// Pinned `session-tabs.tsx:237-274,1446-1467`: on a mouse close, keep\n+/// surviving visible widths and stretch the adjacent tab until its close cell\n+/// occupies the actual release column. The hold is owned by the view and is\n+/// released independently of the ordinary adaptive solver.\n+pub fn held_after_close(\n+    old: &HorizontalTabStrip,\n+    area: Rect,\n+    closed: usize,\n+    count: usize,\n+    target: usize,\n+    pointer_x: u16,\n+    can_add: bool,\n+) -> Option<HorizontalTabStrip> {\n+    if target >= count || area.height == 0 || pointer_x < area.x || pointer_x >= area.right() {\n+        return None;\n+    }\n+    let remap = |index: usize| (index != closed).then(|| index - usize::from(index > closed));\n+    let mut visible: Vec<(usize, u16)> = old\n+        .tabs\n+        .iter()\n+        .filter_map(|tab| remap(tab.index).map(|index| (index, tab.rect.width)))\n+        .collect();\n+    if !visible.iter().any(|(index, _)| *index == target) {\n+        visible.push((target, 1));\n+        visible.sort_by_key(|(index, _)| *index);\n+    }\n+    let start = visible.first()?.0;\n+    if visible\n+        .iter()\n+        .enumerate()\n+        .any(|(offset, (index, _))| *index != start + offset)\n+    {\n+        return None;\n+    }\n+    let before = start;\n+    let after = count.checked_sub(start + visible.len())?;\n+    let marker_width = |hidden: usize| (hidden > 0).then(|| hidden.to_string().len() as u16 + 2);\n+    let leading = marker_width(before).unwrap_or(0);\n+    let preceding: u32 = visible\n+        .iter()\n+        .take_while(|(index, _)| *index != target)\n+        .map(|(_, width)| u32::from(*width))\n+        .sum();\n+    let target_start = u32::from(area.x) + u32::from(leading) + preceding;\n+    let width = u32::from(pointer_x)\n+        .checked_add(2)?\n+        .checked_sub(target_start)?;\n+    if width < 5 || width > u32::from(u16::MAX) {\n+        return None;\n+    }\n+    visible.iter_mut().find(|(index, _)| *index == target)?.1 = width as u16;\n+    let mut x = area.x;\n+    let mut take = |width: u16| {\n+        let width = width.min(area.right().saturating_sub(x));\n+        let rect = Rect::new(x, area.y, width, area.height.min(1));\n+        x = x.saturating_add(width);\n+        rect\n+    };\n+    let before_marker = marker_width(before).map(&mut take);\n+    let tabs: Vec<_> = visible\n+        .into_iter()\n+        .map(|(index, width)| TabSlot {\n+            index,\n+            rect: take(width),\n+        })\n+        .collect();\n+    let after_marker = marker_width(after).map(&mut take);\n+    let add = can_add.then(|| take(3));\n+    if tabs\n+        .iter()\n+        .find(|tab| tab.index == target)\n+        .and_then(|tab| tab_close_cell(tab.rect))\n+        != Some(pointer_x)\n+    {\n+        return None;\n+    }\n+    Some(HorizontalTabStrip {\n+        start,\n+        before,\n+        after,\n+        before_marker,\n+        tabs,\n+        after_marker,\n+        add,\n+    })\n+}\n+\n /// `context/session-tabs-model.ts:33-37,175-257` adaptive window and widths;\n /// `component/session-tabs.tsx:1316-1338,1739-1772` reserves the three-cell\n /// add affordance only when its action is available. Rectangles are clipped\n@@ -534,6 +621,32 @@ mod tests {\n         assert_eq!(window.after_marker, Some(Rect::new(28, 0, 3, 1)));\n     }\n \n+    #[test]\n+    fn closing_hovered_home_holds_close_column_then_clips_at_resize() {\n+        let area = Rect::new(0, 0, 120, 1);\n+        let old = horizontal_tab_strip(area, 2, Some(1), 0, false);\n+        let close = old.tabs[1].rect.right() - 2;\n+        let held = held_after_close(&old, area, 1, 1, 0, close, true).unwrap();\n+        assert_eq!(held.tabs[0].rect, Rect::new(0, 0, 64, 1));\n+        assert_eq!(held.add, Some(Rect::new(64, 0, 3, 1)));\n+        assert_eq!(held.hit_test(close, 0), Some(0));\n+        assert_eq!(\n+            held_after_close(&old, Rect::new(0, 0, 40, 1), 1, 1, 0, close, true),\n+            None\n+        );\n+\n+        // Overflow: if the next sibling was hidden, bring it into the\n+        // visible window, retaining the before marker and the pointer cell.\n+        let narrow = Rect::new(0, 0, 31, 1);\n+        let window = horizontal_tab_strip(narrow, 3, Some(1), 0, false);\n+        let close = window.tabs[0].rect.right() - 2;\n+        let next = held_after_close(&window, narrow, 1, 2, 1, close, false).unwrap();\n+        assert_eq!((next.before, next.after), (1, 0));\n+        assert_eq!(next.tabs[0].index, 1);\n+        assert_eq!(next.hit_test(close, 0), Some(1));\n+        assert_eq!(tab_close_cell(next.tabs[0].rect), Some(close));\n+    }\n+\n     #[test]\n     fn horizontal_tabs_keep_active_visible_and_respect_previous_start() {\n         let area = Rect::new(5, 3, 44, 1);\ndiff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs\nindex 8b58741..ead4847 100644\n--- a/crates/oc-tui/src/shell.rs\n+++ b/crates/oc-tui/src/shell.rs\n@@ -228,11 +228,17 @@ fn shell_regions(state: &TuiState, area: Rect) -> layout::ShellRegions {\n }\n \n /// Shared painted rectangles for the strip and nonmodal mouse routing.\n-pub(crate) fn tab_strip(state: &TuiState, area: Rect) -> Option<layout::HorizontalTabStrip> {\n+pub fn tab_strip(state: &TuiState, area: Rect) -> Option<layout::HorizontalTabStrip> {\n     let (tabs, active, can_add) = state.tab_presentation();\n     if state.home && tabs.is_empty() {\n         return None;\n     }\n+    if let Some(hold) = &state.close_hold\n+        && hold.area == area\n+        && hold.until > std::time::Instant::now()\n+    {\n+        return Some(hold.strip.clone());\n+    }\n     let region = shell_regions(state, area).tabs;\n     if region.width == 0 || region.height == 0 {\n         return None;\n@@ -256,6 +262,10 @@ pub(crate) fn tab_strip(state: &TuiState, area: Rect) -> Option<layout::Horizont\n     ))\n }\n \n+pub(crate) fn tab_region(state: &TuiState, area: Rect) -> Rect {\n+    shell_regions(state, area).tabs\n+}\n+\n fn session_main(state: &TuiState, area: Rect) -> Rect {\n     let sidebar = !state.home\n         && state.parent_id.is_none()\ndiff --git a/crates/oc/src/tui_cmd.rs b/crates/oc/src/tui_cmd.rs\nindex 7e8696b..7ff475d 100644\n--- a/crates/oc/src/tui_cmd.rs\n+++ b/crates/oc/src/tui_cmd.rs\n@@ -477,24 +477,74 @@ async fn handle_event(\n             }\n         }\n         Some(UiEvent::Mouse(mouse)) => {\n-            let outcome = if *state.panel() == TuiPanel::None\n+            if *state.panel() == TuiPanel::None\n                 && matches!(\n                     mouse.kind,\n                     MouseEventKind::ScrollUp | MouseEventKind::ScrollDown\n-                ) {\n-                state.scroll_transcript(mouse.kind == MouseEventKind::ScrollUp)\n+                )\n+            {\n+                let outcome = state.scroll_transcript(mouse.kind == MouseEventKind::ScrollUp);\n+                apply_outcome(app, state, loop_state, outcome, false).await;\n             } else {\n                 let (cols, rows) =\n                     crossterm::terminal::size().map_err(|e| format!(\"mouse terminal size: {e}\"))?;\n-                state.handle_mouse(mouse, ratatui::layout::Rect::new(0, 0, cols, rows))\n-            };\n-            apply_outcome(app, state, loop_state, outcome, false).await;\n+                let area = ratatui::layout::Rect::new(0, 0, cols, rows);\n+                let outcome = state.handle_mouse(mouse, area);\n+                apply_mouse_outcome(\n+                    app,\n+                    state,\n+                    loop_state,\n+                    outcome,\n+                    area,\n+                    mouse.column,\n+                    mouse.row,\n+                )\n+                .await;\n+            }\n         }\n-        Some(UiEvent::Resize) | None => {}\n+        Some(UiEvent::Resize) => state.clear_mouse_position(),\n+        None => {}\n     }\n     Ok(())\n }\n \n+/// A tab view replacement loses the old view's hover. Re-hit-test only the\n+/// last real mouse release, and only after the application accepts the action.\n+async fn apply_mouse_outcome(\n+    app: &CoreApp,\n+    state: &mut TuiState,\n+    loop_state: &mut LoopState,\n+    outcome: KeyOutcome,\n+    area: ratatui::layout::Rect,\n+    x: u16,\n+    y: u16,\n+) {\n+    if let Some(note) = outcome.note {\n+        state.push_note(&note);\n+    }\n+    let Some(intent) = outcome.intent else { return };\n+    let pointer = (state.mouse_position() == Some((x, y, area))).then_some((x, y, area));\n+    let close = match intent {\n+        PanelIntent::CloseTab { index } if pointer.is_some() => state.mouse_close_snapshot(index),\n+        _ => None,\n+    };\n+    let activate = matches!(intent, PanelIntent::ActivateTab { .. });\n+    match apply_intent_with_origin(app, state, loop_state, intent, false).await {\n+        Ok(()) => {\n+            loop_state.sync_tabs(state);\n+            if let Some(snapshot) = close {\n+                state.restore_mouse_close(snapshot);\n+            } else if activate && let Some(pointer) = pointer {\n+                state.restore_mouse_hover(pointer);\n+            }\n+        }\n+        Err(message) => {\n+            state.apply_intent_error(message);\n+            loop_state.sync_tabs(state);\n+        }\n+    }\n+}\n+\n /// Report a note, then apply the intent (or its typed failure).\n async fn apply_outcome(\n     app: &CoreApp,\n@@ -1018,6 +1068,86 @@ mod tests {\n         deck.sync_tabs(state);\n     }\n \n+    #[tokio::test]\n+    async fn mouse_close_home_holds_survivor_at_the_pointer_but_keyboard_switch_does_not() {\n+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent};\n+        use ratatui::layout::Rect;\n+        let (app, mut inbox, _) = CoreApp::channel(4);\n+        let mut state = TuiState::new(app.clone(), SessionId::new(\"kept\").unwrap());\n+        state.session_title = Some(\"Какие инструменты доступны ассистенту\".into());\n+        let mut deck = LoopState::default();\n+        deck.sync_tabs(&mut state);\n+        deck.open_home(&mut state, TuiState::new_home(app.clone()));\n+        let area = Rect::new(0, 0, 120, 40);\n+        let before = oc_tui::shell::tab_strip(&state, area).unwrap();\n+        let close = before.tabs[1].rect.right() - 2;\n+        let mouse = |kind| MouseEvent {\n+            kind,\n+            column: close,\n+            row: 0,\n+            modifiers: KeyModifiers::NONE,\n+        };\n+        state.handle_mouse(mouse(MouseEventKind::Moved), area);\n+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left)), area);\n+        let outcome = state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left)), area);\n+        assert_eq!(outcome.intent, Some(PanelIntent::CloseTab { index: 1 }));\n+        apply_mouse_outcome(&app, &mut state, &mut deck, outcome, area, close, 0).await;\n+        let after = oc_tui::shell::tab_strip(&state, area).unwrap();\n+        assert!(deck.home.is_none());\n+        assert_eq!(state.session().0, \"kept\");\n+        assert_eq!(after.tabs[0].rect.right() - 2, close);\n+        assert_eq!(\n+            state.tab_close_cell(area, 0, after.tabs[0].rect),\n+            Some(close)\n+        );\n+        assert_eq!(after.add.unwrap().x, close + 2);\n+        assert!(inbox.try_recv().is_err());\n+\n+        let mut terminal =\n+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();\n+        terminal.draw(|frame| render_frame(frame, &state)).unwrap();\n+        let cells = terminal.backend().buffer();\n+        let row: String = (0..120).map(|x| cells[(x, 0)].symbol()).collect();\n+        assert!(\n+            row.starts_with(\"   Какие инструменты доступны ассистенту\"),\n+            \"{row}\"\n+        );\n+        assert_eq!(cells[(close, 0)].symbol(), \"✕\");\n+        assert_eq!(cells[(close + 3, 0)].symbol(), \"+\");\n+\n+        state.clear_mouse_position(); // PTY resize invalidates the held frame.\n+        let resized = oc_tui::shell::tab_strip(&state, area).unwrap();\n+        assert_eq!(resized.tabs[0].rect.width, 32);\n+        assert_eq!(state.tab_close_cell(area, 0, resized.tabs[0].rect), None);\n+\n+        // Clicking a real tab replaces Home's view too: re-hit-test the\n+        // release, rather than relying on the parked view's stale hover.\n+        deck.open_home(&mut state, TuiState::new_home(app.clone()));\n+        let point = |kind| MouseEvent {\n+            kind,\n+            column: 3,\n+            row: 0,\n+            modifiers: KeyModifiers::NONE,\n+        };\n+        state.handle_mouse(point(MouseEventKind::Moved), area);\n+        state.handle_mouse(point(MouseEventKind::Down(MouseButton::Left)), area);\n+        let activate = state.handle_mouse(point(MouseEventKind::Up(MouseButton::Left)), area);\n+        assert_eq!(activate.intent, Some(PanelIntent::ActivateTab { index: 0 }));\n+        apply_mouse_outcome(&app, &mut state, &mut deck, activate, area, 3, 0).await;\n+        let clicked = oc_tui::shell::tab_strip(&state, area).unwrap().tabs[0].rect;\n+        assert_eq!(\n+            state.tab_close_cell(area, 0, clicked),\n+            Some(clicked.right() - 2)\n+        );\n+\n+        // A keyboard switch has no pointer event and must not manufacture hover.\n+        deck.open_home(&mut state, TuiState::new_home(app.clone()));\n+        deck.activate(&mut state, 0).unwrap();\n+        let normal = oc_tui::shell::tab_strip(&state, area).unwrap();\n+        assert_eq!(normal.tabs[0].rect.width, 32);\n+        assert_eq!(state.tab_close_cell(area, 0, normal.tabs[0].rect), None);\n+    }\n+\n     #[tokio::test]\n     async fn close_inactive_tab_reindexes_active_view_and_cursor_without_owner_query() {\n         let (app, mut inbox, _) = CoreApp::channel(4);\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)\n   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.17s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"d18132f88c4a7a638a244b0ea92007163246fc3ce0bbe5bcb2b90df02a67bb39\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"ec34ca53ca7af1c542c5740e1986c131cfd8ff975732ad094d3c4c452133163c\", \"actual_sha256\": \"1e06070192869b769345dc8e5b1ec39de608bf36229f35e732a530f863f82e02\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6582daf140381e342a01e2a7b562fc790b610e61\", \"cells_checked\": 4800, \"different_cells\": 157, \"cursor_differs\": false, \"difference_bbox_inclusive\": [0, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 21, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c157d48bc9529d9896cd3d4abbeb537954a92f5df1e2d9d282c641ca4580554c\", \"actual_sha256\": \"c4abc2c705b509b2fa0e77a177ee39b1a32bbf7c992fd0e51c43ce4f387f3dbb\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2043, \"changed_fraction_diagnostic_only\": 0.0031574554896142432, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"d18132f88c4a7a638a244b0ea92007163246fc3ce0bbe5bcb2b90df02a67bb39\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"88e3a6d29d23e6e10ec2b88799be545cfd9be0d11111e73be46bbf26daf947d1\", \"actual_sha256\": \"ce9fe077d649431ef849693d443d6cae1a272202f23bce27e13769c271fb2173\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6582daf140381e342a01e2a7b562fc790b610e61\", \"cells_checked\": 4800, \"different_cells\": 208, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 3, 115, 38], \"samples\": [{\"x\": 3, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 5, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 20, \"y\": 34, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"cc9efb977e7db5b5b576761e397d4c5b7e198c6e850a2079db9865ce35062b0e\", \"actual_sha256\": \"d640f542504d5c00e91fb4249fa2c95de331c6902f525395087882040cd64641\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 4929, \"changed_fraction_diagnostic_only\": 0.00761776706231454, \"difference_bbox_inclusive\": [42, 163, 848, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/upstream/tab-added.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/oc/tab-added.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/tab-added.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-added\", \"fixture_sha256\": \"d18132f88c4a7a638a244b0ea92007163246fc3ce0bbe5bcb2b90df02a67bb39\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"16862fd9f1e568085edb3b10353f1ae67452f6516626a595246943691920ac4a\", \"actual_sha256\": \"fb76fedc73196f457904b092aaa174098e33d1a701ae5e5fae9cf4090a3744e8\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6582daf140381e342a01e2a7b562fc790b610e61\", \"cells_checked\": 4800, \"different_cells\": 158, \"cursor_differs\": false, \"difference_bbox_inclusive\": [0, 0, 117, 38], \"samples\": [{\"x\": 62, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 41, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 22, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/upstream/tab-added.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/oc/tab-added.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/tab-added.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"70b5d12251a54fb32e60b040f3d6e2f01e6f207fba8fd67b19b0621ce8054699\", \"actual_sha256\": \"3fc37fadbeb9f1019c9a2ce223a0232bd279871c8cae16515b06314113ff8dc7\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2082, \"changed_fraction_diagnostic_only\": 0.0032177299703264094, \"difference_bbox_inclusive\": [345, 5, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/upstream/tab-close-hovered-before.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/oc/tab-close-hovered-before.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/tab-close-hovered-before.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-close-hovered-before\", \"fixture_sha256\": \"d18132f88c4a7a638a244b0ea92007163246fc3ce0bbe5bcb2b90df02a67bb39\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"8edf7c048533fd38913afce386b30e47d79ab96793e6ab4427d7e815ebc53773\", \"actual_sha256\": \"96daeeb87dd26e618cdaf00afd1b8da4ca80b516c8f7d94a0e701f343517ab32\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6582daf140381e342a01e2a7b562fc790b610e61\", \"cells_checked\": 4800, \"different_cells\": 157, \"cursor_differs\": false, \"difference_bbox_inclusive\": [0, 22, 117, 38], \"samples\": [{\"x\": 41, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 22, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/upstream/tab-close-hovered-before.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/oc/tab-close-hovered-before.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/tab-close-hovered-before.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"70b5d12251a54fb32e60b040f3d6e2f01e6f207fba8fd67b19b0621ce8054699\", \"actual_sha256\": \"b42df67c282c7ff0d065d4002ebc6df961a7e0b65f513fa6bd3dfbe8bfcf811d\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2043, \"changed_fraction_diagnostic_only\": 0.0031574554896142432, \"difference_bbox_inclusive\": [345, 354, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/upstream/tab-close-closed-after.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/oc/tab-close-closed-after.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/tab-close-closed-after.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-close-closed-after\", \"fixture_sha256\": \"d18132f88c4a7a638a244b0ea92007163246fc3ce0bbe5bcb2b90df02a67bb39\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"2ed56a864db0145e96eae6ba9b28af6a78ce312f4f784ff07092fc65291b561c\", \"actual_sha256\": \"36aef3341135ddfa2f1d3f32dfd7e2580da71eada94cae9d35efe72384c91305\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6582daf140381e342a01e2a7b562fc790b610e61\", \"cells_checked\": 4800, \"different_cells\": 209, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 0, 115, 38], \"samples\": [{\"x\": 62, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 3, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 5, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 34, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/upstream/tab-close-closed-after.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/oc/tab-close-closed-after.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-tab-close-hold-01/tab-close-closed-after.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"efedb0b714e9cbb924fd11e09d643508b3d35417310c9a262611eb5165b32b92\", \"actual_sha256\": \"5d4f80bffa17f8a78295d16a93af11c7f3e59f386ea14c262de172b9f35238f3\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 4966, \"changed_fraction_diagnostic_only\": 0.007674950544015826, \"difference_bbox_inclusive\": [42, 5, 848, 623]}\n",
+    "stderr": ""
+  }
+]
