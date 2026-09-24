@@ -16,7 +16,7 @@ use ratatui::{
     style::{Color, Modifier, Style},
     symbols::border,
     text::{Line, Span},
-    widgets::{Block, Borders, Padding, Paragraph},
+    widgets::{Block, Borders, Clear, Padding, Paragraph},
 };
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
@@ -952,6 +952,8 @@ fn render_slash(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, body: Re
         return;
     }
     let bg = theme.background_raised_high();
+    // Background styles do not replace symbols already painted by the Home logo.
+    frame.render_widget(Clear, area);
     frame.render_widget(Block::default().style(Style::default().bg(bg)), area);
     frame.render_widget(
         Block::default()
@@ -986,9 +988,32 @@ fn render_slash(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, body: Re
         };
         let rect = Rect::new(area.x + 1, area.y + row as u16, area.width - 2, 1);
         frame.render_widget(Block::default().style(style), rect);
-        let text = format!(" /{}  {}", option.name, option.description);
+        let label = format!(
+            " /{}{}",
+            option.name,
+            " ".repeat(
+                option
+                    .display_width
+                    .saturating_sub(1 + UnicodeWidthStr::width(option.name.as_str()))
+            )
+        );
+        let label = clip_placeholder(&label, rect.width as usize);
+        let remaining = (rect.width as usize).saturating_sub(UnicodeWidthStr::width(label));
+        let description = format!(" {}", option.description);
+        let description = clip_placeholder(&description, remaining);
         frame.render_widget(
-            Paragraph::new(clip_placeholder(&text, rect.width as usize)).style(style),
+            Paragraph::new(Line::from(vec![
+                Span::styled(label, style),
+                Span::styled(
+                    description,
+                    if focused {
+                        style
+                    } else {
+                        style.fg(theme.text_muted())
+                    },
+                ),
+            ]))
+            .style(style),
             rect,
         );
     }
@@ -1781,6 +1806,320 @@ mod tests {
                     .any(|row| row.contains("No matching commands"))
             );
         }
+    }
+
+    #[tokio::test]
+    async fn slash_descriptions_align_to_full_inventory_on_home_and_session() {
+        for home in [true, false] {
+            let mut state = if home {
+                let (app, guard) = CoreApp::spawn(MockProvider::echo());
+                std::mem::forget(guard);
+                let mut state = TuiState::new_home(app);
+                state.apply_catalog(catalog());
+                state
+            } else {
+                golden_state().await
+            };
+            state.handle_paste("/");
+            let unfiltered = state.slash_options().unwrap();
+            let builtin_width = unfiltered
+                .iter()
+                .map(|option| option.name.len() + 1)
+                .max()
+                .unwrap()
+                + 2;
+            assert!(
+                unfiltered
+                    .iter()
+                    .any(|option| option.name == "dcp-compress")
+            );
+            assert!(
+                unfiltered
+                    .iter()
+                    .all(|option| option.display_width == builtin_width)
+            );
+            let rows = screen(&state, 120, 40);
+            for name in ["agents", "cards"] {
+                let option = unfiltered
+                    .iter()
+                    .find(|option| option.name == name)
+                    .unwrap();
+                let row = rows
+                    .iter()
+                    .find(|row| row.contains(&format!("/{name}")))
+                    .unwrap();
+                let x = row.find(&option.description).unwrap();
+                assert_eq!(
+                    x,
+                    row.find(&format!("/{name}")).unwrap() + builtin_width + 1
+                );
+            }
+            state.apply_catalog({
+                let mut snapshot = catalog();
+                snapshot.commands = vec!["extraordinarily-long-workspace-command".into()];
+                snapshot
+            });
+            let full_width = "/extraordinarily-long-workspace-command".len() + 2;
+            assert!(full_width > builtin_width);
+            assert!(
+                state
+                    .slash_options()
+                    .unwrap()
+                    .iter()
+                    .all(|option| option.display_width == full_width)
+            );
+            // The long workspace command is not a match for /ren. It still
+            // fixes the column for the filtered built-in suggestion.
+            state.handle_paste("ren");
+            let name = if home { "reload" } else { "rename" };
+            let option = state
+                .slash_options()
+                .unwrap()
+                .into_iter()
+                .find(|option| option.name == name)
+                .unwrap();
+            assert_eq!(option.display_width, full_width);
+            let rows = screen(&state, 120, 40);
+            let (y, row) = rows
+                .iter()
+                .enumerate()
+                .find(|(_, row)| row.contains(&format!("/{name}")))
+                .unwrap();
+            let anchor_x = if home {
+                (120_u16 - 75).div_ceil(2)
+            } else {
+                let shell = shell_regions(&state, Rect::new(0, 0, 120, 40));
+                let main = session_main(&state, shell.session);
+                session_regions(&state, main, 40).prompt.x
+            } as usize;
+            assert_eq!(
+                UnicodeWidthStr::width(&row[..row.find(&format!("/{name}")).unwrap()]),
+                anchor_x + 2
+            );
+            let description_x = anchor_x + 3 + full_width;
+            assert_eq!(
+                UnicodeWidthStr::width(&row[..row.find(&option.description).unwrap()]),
+                description_x
+            );
+            let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+            terminal.draw(|frame| render(frame, &state)).unwrap();
+            assert_eq!(
+                terminal.backend().buffer()[(description_x as u16, y as u16)].symbol(),
+                &option.description[..1]
+            );
+            assert_eq!(
+                terminal.backend().buffer()[((description_x - 1) as u16, y as u16)].symbol(),
+                " "
+            );
+
+            state.apply_catalog(catalog());
+            let narrowed = state
+                .slash_options()
+                .unwrap()
+                .into_iter()
+                .find(|option| option.name == name)
+                .unwrap();
+            assert_eq!(
+                narrowed.display_width, builtin_width,
+                "Location command removal updates width"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn slash_label_and_description_have_independent_foregrounds() {
+        for home in [true, false] {
+            let mut state = if home {
+                let (app, guard) = CoreApp::spawn(MockProvider::echo());
+                std::mem::forget(guard);
+                let mut state = TuiState::new_home(app);
+                state.apply_catalog(catalog());
+                state
+            } else {
+                golden_state().await
+            };
+            state.handle_paste("/");
+            let options = state.slash_options().unwrap();
+            assert!(options.len() > 1);
+            let rows = screen(&state, 120, 40);
+            let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+            terminal.draw(|frame| render(frame, &state)).unwrap();
+            let buffer = terminal.backend().buffer();
+            let theme = Theme::dark();
+            for (index, option) in options.iter().take(2).enumerate() {
+                let (y, row) = rows
+                    .iter()
+                    .enumerate()
+                    .find(|(_, row)| row.contains(&format!("/{}", option.name)))
+                    .unwrap();
+                let name_x =
+                    UnicodeWidthStr::width(&row[..row.find(&format!("/{}", option.name)).unwrap()])
+                        as u16;
+                let description_x =
+                    UnicodeWidthStr::width(&row[..row.find(&option.description).unwrap()]) as u16;
+                let (fg, bg, description_fg) = if index == 0 {
+                    let fg = theme.color("text.action.primary.$focused").unwrap();
+                    (
+                        fg,
+                        theme.color("background.action.primary.$focused").unwrap(),
+                        fg,
+                    )
+                } else {
+                    (
+                        theme.text(),
+                        theme.background_raised_high(),
+                        theme.text_muted(),
+                    )
+                };
+                let name = &buffer[(name_x, y as u16)];
+                let description = &buffer[(description_x, y as u16)];
+                assert_eq!(name.symbol(), "/");
+                assert_eq!(name.fg, fg);
+                assert_eq!(name.bg, bg);
+                assert_eq!(description.fg, description_fg);
+                assert_eq!(description.bg, bg);
+                assert_eq!(buffer[(description_x - 1, y as u16)].bg, bg);
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn slash_clips_description_and_wide_label_at_grapheme_boundaries() {
+        let (app, guard) = CoreApp::spawn(MockProvider::echo());
+        std::mem::forget(guard);
+        let mut state = TuiState::new_home(app);
+        let mut snapshot = catalog();
+        snapshot.commands = vec!["aaa".into(), "aab".into()];
+        snapshot.command_descriptions.insert(
+            "aab".into(),
+            "界界界界e\u{301}🙂Z trailing text that must not wrap".into(),
+        );
+        state.apply_catalog(snapshot);
+        state.handle_paste("/");
+        let options = state.slash_options().unwrap();
+        let index = options
+            .iter()
+            .position(|option| option.name == "aab")
+            .unwrap();
+        assert_eq!(index, 1);
+        let theme = Theme::dark();
+        let label_width = 1 + options[index].display_width as u16;
+        let body = Rect::new(2, 15, label_width + 11 + 2, 1);
+        let mut terminal = Terminal::new(TestBackend::new(40, 20)).unwrap();
+        terminal
+            .draw(|frame| render_slash(frame, &state, theme, body))
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        let y = body.y - 10 + index as u16;
+        // Eleven cells remain after the full-inventory padded label.
+        let desc_x = body.x + 1 + label_width;
+        assert_eq!(buffer[(desc_x, y)].symbol(), " ");
+        assert_eq!(buffer[(desc_x + 1, y)].symbol(), "界");
+        assert_eq!(buffer[(desc_x + 9, y)].symbol(), "e\u{301}");
+        assert_eq!(buffer[(body.right() - 2, y)].symbol(), " ");
+        assert_eq!(
+            buffer[(body.right() - 2, y)].bg,
+            theme.background_raised_high()
+        );
+        assert_eq!(buffer[(body.right() - 2, y)].fg, theme.text());
+        assert_eq!(buffer[(body.right() - 1, y)].symbol(), "┃");
+        assert_eq!(buffer[(body.right() - 2, body.y)].symbol(), " ");
+
+        let mut snapshot = catalog();
+        snapshot.commands = vec!["界".repeat(9)];
+        state.apply_catalog(snapshot);
+        state.handle_paste("界");
+        let option = &state.slash_options().unwrap()[0];
+        assert_eq!(option.display_width, 21);
+        let body = Rect::new(2, 15, 9, 1);
+        terminal
+            .draw(|frame| render_slash(frame, &state, theme, body))
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        let y = body.y - 1;
+        assert_eq!(buffer[(body.x + 2, y)].symbol(), "/");
+        assert_eq!(buffer[(body.x + 3, y)].symbol(), "界");
+        assert_eq!(buffer[(body.x + 5, y)].symbol(), "界");
+        assert_eq!(buffer[(body.right() - 2, y)].symbol(), " ");
+        assert_eq!(buffer[(body.right() - 1, y)].symbol(), "┃");
+    }
+
+    #[tokio::test]
+    async fn slash_overlay_erases_home_logo_before_painting_blank_option_cells() {
+        let (app, guard) = CoreApp::spawn(MockProvider::echo());
+        std::mem::forget(guard);
+        let mut state = TuiState::new_home(app);
+        state.apply_catalog(catalog());
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let home = terminal.backend().buffer().clone();
+
+        state.handle_paste("/");
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let rows = screen(&state, 120, 40);
+        let options = state.slash_options().unwrap();
+        assert!(options.len() >= 7, "overlay must reach the logo");
+        let first = &options[0];
+        let (y, _row) = rows
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.contains(&format!("/{}", first.name)))
+            .expect("slash option above the Home logo");
+        let prompt_x = (120_u16 - 75).div_ceil(2);
+        let logo_cell = options
+            .iter()
+            .take(10)
+            .enumerate()
+            .find_map(|(index, option)| {
+                let label = format!(
+                    " /{:<width$} {}",
+                    option.name,
+                    option.description,
+                    width = option.display_width - 1
+                );
+                let start = prompt_x + 1 + UnicodeWidthStr::width(label.as_str()) as u16;
+                (start..prompt_x + 74)
+                    .find(|&x| home[(x, y as u16 + index as u16)].symbol() != " ")
+                    .map(|x| (x, y as u16 + index as u16))
+            });
+        let (logo_x, logo_y) =
+            logo_cell.expect("Home logo lies behind a slash option's blank padding");
+
+        let theme = Theme::dark();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(
+            buffer[(logo_x, logo_y)].symbol(),
+            " ",
+            "logo glyph must be erased"
+        );
+        for (row_offset, option) in options.iter().take(10).enumerate() {
+            let label = format!(
+                " /{:<width$} {}",
+                option.name,
+                option.description,
+                width = option.display_width - 1
+            );
+            let start = prompt_x + 1 + UnicodeWidthStr::width(clip_placeholder(&label, 73)) as u16;
+            let expected_bg = if row_offset == 0 {
+                theme.color("background.action.primary.$focused").unwrap()
+            } else {
+                theme.background_raised_high()
+            };
+            let expected_fg = if row_offset == 0 {
+                theme.color("text.action.primary.$focused").unwrap()
+            } else {
+                theme.text()
+            };
+            for x in start..prompt_x + 74 {
+                let cell = &buffer[(x, y as u16 + row_offset as u16)];
+                assert_eq!(cell.symbol(), " ", "row={row_offset} x={x}");
+                assert_eq!(cell.bg, expected_bg, "row={row_offset} x={x}");
+                assert_eq!(cell.fg, expected_fg, "row={row_offset} x={x}");
+            }
+        }
+        assert_eq!(buffer[(prompt_x, y as u16)].symbol(), "┃");
+        assert_eq!(buffer[(prompt_x + 74, y as u16)].symbol(), "┃");
+        assert!(rows.iter().any(|row| row.contains("┃  /")));
     }
 
     #[tokio::test]

@@ -1,7 +1,8 @@
 //! Inline slash options from the admitted command registry and current catalog.
 //! Pinned reference: `component/prompt/autocomplete.tsx:466-504,520-575,584-626,780-810`.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+use unicode_width::UnicodeWidthStr;
 
 use crate::commands::{self, CommandAction};
 use crate::fuzzy::{Query, Target};
@@ -10,6 +11,8 @@ use crate::fuzzy::{Query, Target};
 pub(crate) struct SlashOption {
     pub name: String,
     pub description: String,
+    /// Padded `/name` width from the entire route's command inventory.
+    pub display_width: usize,
     pub action: Option<CommandAction>,
     pub arguments: bool,
 }
@@ -39,6 +42,7 @@ pub(crate) fn options(
     filter: &str,
     workspace: &[String],
     descriptions: &BTreeMap<String, String>,
+    home: bool,
 ) -> Vec<SlashOption> {
     let mut options: Vec<_> = commands::REGISTRY
         .iter()
@@ -46,6 +50,7 @@ pub(crate) fn options(
             command.aliases.iter().map(move |name| SlashOption {
                 name: (*name).into(),
                 description: command.title.into(),
+                display_width: 0,
                 arguments: matches!(
                     command.action,
                     CommandAction::RenameSession { .. }
@@ -56,19 +61,36 @@ pub(crate) fn options(
             })
         })
         .collect();
+    if home {
+        options
+            .retain(|option| option.action != Some(CommandAction::RenameSession { title: None }));
+    }
+    let mut names: BTreeSet<String> = options.iter().map(|option| option.name.clone()).collect();
     for name in workspace {
         // A colliding alias dispatches to the built-in in the existing composer.
         // Never advertise the same spelling as a separately executable action.
-        if !options.iter().any(|option| option.name == *name) {
+        if names.insert(name.clone()) {
             options.push(SlashOption {
                 name: name.clone(),
                 description: descriptions.get(name).cloned().unwrap_or_default(),
+                display_width: 0,
                 action: None,
                 arguments: true,
             });
         }
     }
     options.sort_by(|a, b| a.name.cmp(&b.name));
+    // Pinned autocomplete.tsx:474-504 pads each display to max + 2 before
+    // options are fuzzy-filtered. Include this Location's admitted commands.
+    let width = options
+        .iter()
+        .map(|option| UnicodeWidthStr::width(option.name.as_str()) + 1)
+        .max()
+        .unwrap_or(0)
+        + 2;
+    for option in &mut options {
+        option.display_width = width;
+    }
     if filter.is_empty() {
         return options;
     }

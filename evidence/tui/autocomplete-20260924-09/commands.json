@@ -1,0 +1,342 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--autocomplete",
+      "true",
+      "--build-oc",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "c48a82c326bf41ae40ca038a4ea42b9337f43d13\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "ddb8d6de149fcf41ad2e738e5374fd265e826147\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/app.rs b/crates/oc-tui/src/app.rs\nindex 53d7bf0..78acc53 100644\n--- a/crates/oc-tui/src/app.rs\n+++ b/crates/oc-tui/src/app.rs\n@@ -1152,17 +1152,14 @@ impl TuiState {\n             return None;\n         }\n         let filter = crate::autocomplete::query(&self.input, self.editor.cursor)?;\n-        let mut options =\n-            crate::autocomplete::options(filter, &self.commands, &self.command_descriptions);\n-        // The pinned Home route does not register the session-only rename\n-        // action. Keep direct `/rename` refusal intact; do not expose it as a\n-        // selectable Home suggestion (including for `/ren`).\n-        if self.home {\n-            options.retain(|option| {\n-                option.action != Some(CommandAction::RenameSession { title: None })\n-            });\n-        }\n-        Some(options)\n+        // Home does not register the session-only rename action. Inventory\n+        // padding must be measured after that route exclusion, before search.\n+        Some(crate::autocomplete::options(\n+            filter,\n+            &self.commands,\n+            &self.command_descriptions,\n+            self.home,\n+        ))\n     }\n \n     /// Keep selection and activation aligned when caret movement or a catalog\ndiff --git a/crates/oc-tui/src/autocomplete.rs b/crates/oc-tui/src/autocomplete.rs\nindex afeed4f..bc72b3a 100644\n--- a/crates/oc-tui/src/autocomplete.rs\n+++ b/crates/oc-tui/src/autocomplete.rs\n@@ -1,7 +1,7 @@\n //! Inline slash options from the admitted command registry and current catalog.\n //! Pinned reference: `component/prompt/autocomplete.tsx:466-504,520-575,584-626,780-810`.\n \n-use std::collections::BTreeMap;\n+use std::collections::{BTreeMap, BTreeSet};\n \n use crate::commands::{self, CommandAction};\n use crate::fuzzy::{Query, Target};\n@@ -10,6 +10,8 @@ use crate::fuzzy::{Query, Target};\n pub(crate) struct SlashOption {\n     pub name: String,\n     pub description: String,\n+    /// Padded `/name` width from the entire route's command inventory.\n+    pub display_width: usize,\n     pub action: Option<CommandAction>,\n     pub arguments: bool,\n }\n@@ -39,6 +41,7 @@ pub(crate) fn options(\n     filter: &str,\n     workspace: &[String],\n     descriptions: &BTreeMap<String, String>,\n+    home: bool,\n ) -> Vec<SlashOption> {\n     let mut options: Vec<_> = commands::REGISTRY\n         .iter()\n@@ -46,6 +49,7 @@ pub(crate) fn options(\n             command.aliases.iter().map(move |name| SlashOption {\n                 name: (*name).into(),\n                 description: command.title.into(),\n+                display_width: 0,\n                 arguments: matches!(\n                     command.action,\n                     CommandAction::RenameSession { .. }\n@@ -56,19 +60,36 @@ pub(crate) fn options(\n             })\n         })\n         .collect();\n+    if home {\n+        options\n+            .retain(|option| option.action != Some(CommandAction::RenameSession { title: None }));\n+    }\n+    let mut names: BTreeSet<String> = options.iter().map(|option| option.name.clone()).collect();\n     for name in workspace {\n         // A colliding alias dispatches to the built-in in the existing composer.\n         // Never advertise the same spelling as a separately executable action.\n-        if !options.iter().any(|option| option.name == *name) {\n+        if names.insert(name.clone()) {\n             options.push(SlashOption {\n                 name: name.clone(),\n                 description: descriptions.get(name).cloned().unwrap_or_default(),\n+                display_width: 0,\n                 action: None,\n                 arguments: true,\n             });\n         }\n     }\n     options.sort_by(|a, b| a.name.cmp(&b.name));\n+    // Pinned autocomplete.tsx:474-504 pads each display to max + 2 before\n+    // options are fuzzy-filtered. Include this Location's admitted commands.\n+    let width = options\n+        .iter()\n+        .map(|option| option.name.len() + 1)\n+        .max()\n+        .unwrap_or(0)\n+        + 2;\n+    for option in &mut options {\n+        option.display_width = width;\n+    }\n     if filter.is_empty() {\n         return options;\n     }\ndiff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs\nindex 59a47ca..d2a681a 100644\n--- a/crates/oc-tui/src/shell.rs\n+++ b/crates/oc-tui/src/shell.rs\n@@ -16,7 +16,7 @@ use ratatui::{\n     style::{Color, Modifier, Style},\n     symbols::border,\n     text::{Line, Span},\n-    widgets::{Block, Borders, Padding, Paragraph},\n+    widgets::{Block, Borders, Clear, Padding, Paragraph},\n };\n use unicode_segmentation::UnicodeSegmentation;\n use unicode_width::UnicodeWidthStr;\n@@ -952,6 +952,8 @@ fn render_slash(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, body: Re\n         return;\n     }\n     let bg = theme.background_raised_high();\n+    // Background styles do not replace symbols already painted by the Home logo.\n+    frame.render_widget(Clear, area);\n     frame.render_widget(Block::default().style(Style::default().bg(bg)), area);\n     frame.render_widget(\n         Block::default()\n@@ -986,7 +988,12 @@ fn render_slash(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, body: Re\n         };\n         let rect = Rect::new(area.x + 1, area.y + row as u16, area.width - 2, 1);\n         frame.render_widget(Block::default().style(style), rect);\n-        let text = format!(\" /{}  {}\", option.name, option.description);\n+        let text = format!(\n+            \" /{:<width$} {}\",\n+            option.name,\n+            option.description,\n+            width = option.display_width - 1\n+        );\n         frame.render_widget(\n             Paragraph::new(clip_placeholder(&text, rect.width as usize)).style(style),\n             rect,\n@@ -1783,6 +1790,202 @@ mod tests {\n         }\n     }\n \n+    #[tokio::test]\n+    async fn slash_descriptions_align_to_full_inventory_on_home_and_session() {\n+        for home in [true, false] {\n+            let mut state = if home {\n+                let (app, guard) = CoreApp::spawn(MockProvider::echo());\n+                std::mem::forget(guard);\n+                let mut state = TuiState::new_home(app);\n+                state.apply_catalog(catalog());\n+                state\n+            } else {\n+                golden_state().await\n+            };\n+            state.handle_paste(\"/\");\n+            let unfiltered = state.slash_options().unwrap();\n+            let builtin_width = unfiltered\n+                .iter()\n+                .map(|option| option.name.len() + 1)\n+                .max()\n+                .unwrap()\n+                + 2;\n+            assert!(\n+                unfiltered\n+                    .iter()\n+                    .any(|option| option.name == \"dcp-compress\")\n+            );\n+            assert!(\n+                unfiltered\n+                    .iter()\n+                    .all(|option| option.display_width == builtin_width)\n+            );\n+            let rows = screen(&state, 120, 40);\n+            for name in [\"agents\", \"cards\"] {\n+                let option = unfiltered\n+                    .iter()\n+                    .find(|option| option.name == name)\n+                    .unwrap();\n+                let row = rows\n+                    .iter()\n+                    .find(|row| row.contains(&format!(\"/{name}\")))\n+                    .unwrap();\n+                let x = row.find(&option.description).unwrap();\n+                assert_eq!(\n+                    x,\n+                    row.find(&format!(\"/{name}\")).unwrap() + builtin_width + 1\n+                );\n+            }\n+            state.apply_catalog({\n+                let mut snapshot = catalog();\n+                snapshot.commands = vec![\"extraordinarily-long-workspace-command\".into()];\n+                snapshot\n+            });\n+            let full_width = \"/extraordinarily-long-workspace-command\".len() + 2;\n+            assert!(full_width > builtin_width);\n+            assert!(\n+                state\n+                    .slash_options()\n+                    .unwrap()\n+                    .iter()\n+                    .all(|option| option.display_width == full_width)\n+            );\n+            // The long workspace command is not a match for /ren. It still\n+            // fixes the column for the filtered built-in suggestion.\n+            state.handle_paste(\"ren\");\n+            let name = if home { \"reload\" } else { \"rename\" };\n+            let option = state\n+                .slash_options()\n+                .unwrap()\n+                .into_iter()\n+                .find(|option| option.name == name)\n+                .unwrap();\n+            assert_eq!(option.display_width, full_width);\n+            let rows = screen(&state, 120, 40);\n+            let (y, row) = rows\n+                .iter()\n+                .enumerate()\n+                .find(|(_, row)| row.contains(&format!(\"/{name}\")))\n+                .unwrap();\n+            let anchor_x = if home {\n+                (120_u16 - 75).div_ceil(2)\n+            } else {\n+                let shell = shell_regions(&state, Rect::new(0, 0, 120, 40));\n+                let main = session_main(&state, shell.session);\n+                session_regions(&state, main, 40).prompt.x\n+            } as usize;\n+            assert_eq!(\n+                UnicodeWidthStr::width(&row[..row.find(&format!(\"/{name}\")).unwrap()]),\n+                anchor_x + 2\n+            );\n+            let description_x = anchor_x + 3 + full_width;\n+            assert_eq!(\n+                UnicodeWidthStr::width(&row[..row.find(&option.description).unwrap()]),\n+                description_x\n+            );\n+            let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();\n+            terminal.draw(|frame| render(frame, &state)).unwrap();\n+            assert_eq!(\n+                terminal.backend().buffer()[(description_x as u16, y as u16)].symbol(),\n+                &option.description[..1]\n+            );\n+            assert_eq!(\n+                terminal.backend().buffer()[((description_x - 1) as u16, y as u16)].symbol(),\n+                \" \"\n+            );\n+\n+            state.apply_catalog(catalog());\n+            let narrowed = state\n+                .slash_options()\n+                .unwrap()\n+                .into_iter()\n+                .find(|option| option.name == name)\n+                .unwrap();\n+            assert_eq!(\n+                narrowed.display_width, builtin_width,\n+                \"Location command removal updates width\"\n+            );\n+        }\n+    }\n+\n+    #[tokio::test]\n+    async fn slash_overlay_erases_home_logo_before_painting_blank_option_cells() {\n+        let (app, guard) = CoreApp::spawn(MockProvider::echo());\n+        std::mem::forget(guard);\n+        let mut state = TuiState::new_home(app);\n+        state.apply_catalog(catalog());\n+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();\n+        terminal.draw(|frame| render(frame, &state)).unwrap();\n+        let home = terminal.backend().buffer().clone();\n+\n+        state.handle_paste(\"/\");\n+        terminal.draw(|frame| render(frame, &state)).unwrap();\n+        let rows = screen(&state, 120, 40);\n+        let options = state.slash_options().unwrap();\n+        assert!(options.len() >= 7, \"overlay must reach the logo\");\n+        let first = &options[0];\n+        let (y, _row) = rows\n+            .iter()\n+            .enumerate()\n+            .find(|(_, row)| row.contains(&format!(\"/{}\", first.name)))\n+            .expect(\"slash option above the Home logo\");\n+        let prompt_x = (120_u16 - 75).div_ceil(2);\n+        let logo_cell = options\n+            .iter()\n+            .take(10)\n+            .enumerate()\n+            .find_map(|(index, option)| {\n+                let label = format!(\n+                    \" /{:<width$} {}\",\n+                    option.name,\n+                    option.description,\n+                    width = option.display_width - 1\n+                );\n+                let start = prompt_x + 1 + UnicodeWidthStr::width(label.as_str()) as u16;\n+                (start..prompt_x + 74)\n+                    .find(|&x| home[(x, y as u16 + index as u16)].symbol() != \" \")\n+                    .map(|x| (x, y as u16 + index as u16))\n+            });\n+        let (logo_x, logo_y) =\n+            logo_cell.expect(\"Home logo lies behind a slash option's blank padding\");\n+\n+        let theme = Theme::dark();\n+        let buffer = terminal.backend().buffer();\n+        assert_eq!(\n+            buffer[(logo_x, logo_y)].symbol(),\n+            \" \",\n+            \"logo glyph must be erased\"\n+        );\n+        for (row_offset, option) in options.iter().take(10).enumerate() {\n+            let label = format!(\n+                \" /{:<width$} {}\",\n+                option.name,\n+                option.description,\n+                width = option.display_width - 1\n+            );\n+            let start = prompt_x + 1 + UnicodeWidthStr::width(clip_placeholder(&label, 73)) as u16;\n+            let expected_bg = if row_offset == 0 {\n+                theme.color(\"background.action.primary.$focused\").unwrap()\n+            } else {\n+                theme.background_raised_high()\n+            };\n+            let expected_fg = if row_offset == 0 {\n+                theme.color(\"text.action.primary.$focused\").unwrap()\n+            } else {\n+                theme.text()\n+            };\n+            for x in start..prompt_x + 74 {\n+                let cell = &buffer[(x, y as u16 + row_offset as u16)];\n+                assert_eq!(cell.symbol(), \" \", \"row={row_offset} x={x}\");\n+                assert_eq!(cell.bg, expected_bg, \"row={row_offset} x={x}\");\n+                assert_eq!(cell.fg, expected_fg, \"row={row_offset} x={x}\");\n+            }\n+        }\n+        assert_eq!(buffer[(prompt_x, y as u16)].symbol(), \"┃\");\n+        assert_eq!(buffer[(prompt_x + 74, y as u16)].symbol(), \"┃\");\n+        assert!(rows.iter().any(|row| row.contains(\"┃  /\")));\n+    }\n+\n     #[tokio::test]\n     async fn vis26_file_rows_anchor_to_home_and_session_prompt() {\n         for home in [false, true] {\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/assets/upstream/PROVENANCE.md\u0000crates/oc-adapters/assets/upstream/v2/review.txt\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)\n   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.38s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"63acea75cd27425940880efb03fca5c6e5a9b650f31cc785bddf95ed034ef0cc\", \"actual_sha256\": \"24ca86da80cf138ef47e89a0833ff9687e510bb09f41263d14aee223eda99c9c\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"c48a82c326bf41ae40ca038a4ea42b9337f43d13\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"61a7de78f7d29061598305f73f85b8cc012bd86cc70213c7bb1d298f2a792fb6\", \"actual_sha256\": \"2b31fc1e9a36185b6d6106c6df2a876474810afba527e7ac2543c8d07680db50\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 298, \"changed_fraction_diagnostic_only\": 0.00046055885262116715, \"difference_bbox_inclusive\": [943, 611, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/autocomplete-home-trigger.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/autocomplete-home-trigger.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/autocomplete-home-trigger.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-home-trigger\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"465460dc7808861f6b692de1dd12c714113ef568d5e7a31edc2bff4ba905547e\", \"actual_sha256\": \"5d93053bee7872c620e48f6a8a9953d131f98252f7e1d8e310d1baca361b5ef2\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"c48a82c326bf41ae40ca038a4ea42b9337f43d13\", \"cells_checked\": 4800, \"different_cells\": 685, \"cursor_differs\": false, \"difference_bbox_inclusive\": [23, 10, 117, 38], \"samples\": [{\"x\": 23, \"y\": 10, \"different_fields\": [\"bg\"]}, {\"x\": 24, \"y\": 10, \"different_fields\": [\"fg\"]}, {\"x\": 31, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 52, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 54, \"y\": 10, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/autocomplete-home-trigger.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/autocomplete-home-trigger.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/autocomplete-home-trigger.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"cfef5498bd1a4f76770c38ed859f9ac5269dbad02acc79b2fa12d25467595e47\", \"actual_sha256\": \"6b555d4b27162cbb7e974006543b2cd924e5357e74c44cc19f7a6d84252fefcd\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 15677, \"changed_fraction_diagnostic_only\": 0.02422879574678536, \"difference_bbox_inclusive\": [194, 160, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/autocomplete-home-filtered.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/autocomplete-home-filtered.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/autocomplete-home-filtered.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-home-filtered\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"e01ad9fa6a910029bbabc5c06e590ebb2907f803027498e58bd1ac4a2faced41\", \"actual_sha256\": \"6d54bcaff27d8dbffc5b9b1ce89ac618e6466ec876ffa2d9fb99a7345cdc31b2\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"c48a82c326bf41ae40ca038a4ea42b9337f43d13\", \"cells_checked\": 4800, \"different_cells\": 205, \"cursor_differs\": false, \"difference_bbox_inclusive\": [23, 17, 117, 38], \"samples\": [{\"x\": 23, \"y\": 17, \"different_fields\": [\"bg\"]}, {\"x\": 24, \"y\": 17, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 17, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/autocomplete-home-filtered.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/autocomplete-home-filtered.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/autocomplete-home-filtered.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"ef7624a8a46c2678a567e988af6e670c8a4702747d8668c01bc27cf204d5388d\", \"actual_sha256\": \"9e6e1380ac397bf54351a7223090595ff86537e6eaea620a60b7b72cab683882\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 7966, \"changed_fraction_diagnostic_only\": 0.0123114490603363, \"difference_bbox_inclusive\": [194, 272, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/autocomplete-home-after-tab.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/autocomplete-home-after-tab.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/autocomplete-home-after-tab.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-home-after-tab\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"7b4fb2006301461633bc9b5ade25e9b00dd29bd3c593d8add7bca0b79a78d050\", \"actual_sha256\": \"6bc248b717eb6783105b67262e3fa2c18e56b9cba1bbd401aec48bad4343d695\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"c48a82c326bf41ae40ca038a4ea42b9337f43d13\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/autocomplete-home-after-tab.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/autocomplete-home-after-tab.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/autocomplete-home-after-tab.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"599bc41842f3787859c5216aa640fc6f52d4a3d65926d8b5d98cd53e81acac42\", \"actual_sha256\": \"72ea69ef4235e31a2bae80a04c88de7ce82b7d2580c3d497845f5d5284ce78fa\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 298, \"changed_fraction_diagnostic_only\": 0.00046055885262116715, \"difference_bbox_inclusive\": [943, 611, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"e8ab06fb702275cabfde66d0815598ac74d66ebf3e1da8f626c033f2ee6d530e\", \"actual_sha256\": \"68ee598d4836db5f82e78fe85abab6fb5e8a37bb6633f652ea50ebca92d60cb9\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"c48a82c326bf41ae40ca038a4ea42b9337f43d13\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"f6e55826c7b94e8ea01ca8edb52bba1b85dde2276ca38fe12fde49b23c5df35f\", \"actual_sha256\": \"c9356abc2ca90f32e2782c7e58f8b879c68b5f192ced2ba0e97c8f474904316f\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 125, \"changed_fraction_diagnostic_only\": 0.0001931874381800198, \"difference_bbox_inclusive\": [320, 163, 335, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/autocomplete-session-trigger.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/autocomplete-session-trigger.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/autocomplete-session-trigger.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-session-trigger\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"463af5d62b2091782792b04ecd940e10734e55b50cd9e2496dc8420b3f50bf6b\", \"actual_sha256\": \"ede97bbcd4c67b4f3a0117450dc5a1952c8f3c8d71a81622b33e0db5a05b146b\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"c48a82c326bf41ae40ca038a4ea42b9337f43d13\", \"cells_checked\": 4800, \"different_cells\": 1085, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 32], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 23, \"different_fields\": [\"bg\"]}, {\"x\": 3, \"y\": 23, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 23, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 30, \"y\": 23, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 31, \"y\": 23, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/autocomplete-session-trigger.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/autocomplete-session-trigger.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/autocomplete-session-trigger.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"82ed9f8f7ef9d598670842018e51c65d89a956bd443f13eb25e5d95d8df95958\", \"actual_sha256\": \"211b28ba928823f391835d37fba10fc8b7e27231efde2a05df3232eb512bbf2f\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 15051, \"changed_fraction_diagnostic_only\": 0.023261313056379823, \"difference_bbox_inclusive\": [17, 163, 992, 527]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/autocomplete-session-filtered.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/autocomplete-session-filtered.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/autocomplete-session-filtered.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-session-filtered\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"4a546d267aa6df74b3cae1debacbd3cc65b9ab09ee8082f57aff412c838bfebe\", \"actual_sha256\": \"02b2eb0affacd53812e05d8fca60330c7a5ffa7d8ca536bf0104ed82d5de403a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"c48a82c326bf41ae40ca038a4ea42b9337f43d13\", \"cells_checked\": 4800, \"different_cells\": 801, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 32], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 3, \"y\": 26, \"different_fields\": [\"bg\"]}, {\"x\": 4, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 5, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 6, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 7, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 8, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 9, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 10, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 11, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 12, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 13, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 14, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 15, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 16, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 17, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 18, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 19, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/autocomplete-session-filtered.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/autocomplete-session-filtered.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/autocomplete-session-filtered.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"1f627570e004e183d0f87199c47a3f720face9c64fc06527e6acf83588e1bd02\", \"actual_sha256\": \"f5121d7986f7af8ab99a13ac119b8f7df3d39258212a3de35636b3af16f4c0d0\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 70127, \"changed_fraction_diagnostic_only\": 0.10838124381800197, \"difference_bbox_inclusive\": [17, 163, 992, 527]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/autocomplete-session-after-tab.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/autocomplete-session-after-tab.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/autocomplete-session-after-tab.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-session-after-tab\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"a6204369d692ed5d533e0c009a8fa2c6646f7d3ab8f4a33162243e119f2a6d88\", \"actual_sha256\": \"25b125d3c9bbc598369c8c28f6e2a2c31302d73fb57c27727fc4b1f53b8c9061\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"c48a82c326bf41ae40ca038a4ea42b9337f43d13\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/upstream/autocomplete-session-after-tab.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/oc/autocomplete-session-after-tab.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-09/autocomplete-session-after-tab.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"4b73a23175a540751588d0293f3cd32f4dcd7a71a0fd18d0e0d69565bce6abb3\", \"actual_sha256\": \"0dfb2bab31ba8c6f5ad0bd24772103fcfe2150ee5d0792d776fae068ff38e75e\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 125, \"changed_fraction_diagnostic_only\": 0.0001931874381800198, \"difference_bbox_inclusive\": [320, 163, 335, 172]}\n",
+    "stderr": ""
+  }
+]

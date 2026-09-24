@@ -1,0 +1,1179 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-24T20:36:27.143Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "fb369d3d64035fdd07fa656f9a4b071ab708e6c2c9c9eebb5feaec029cd9c696",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "05a8b8b6b9da204e8005a9fd6d3627b1624cf1ca86d11fe7d7f141c1e8ac3b5d"
+  },
+  "fixture_sha256": "16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "c48a82c326bf41ae40ca038a4ea42b9337f43d13",
+    "tree": "ddb8d6de149fcf41ad2e738e5374fd265e826147",
+    "dirty_diff_sha256": "5ef471478637eba4134ce3202668490e3ed29f7815cb5beb1c143fb52d9bb701",
+    "source_manifest_sha256": "5bb701262d373ded9881943d2eed9bbc378ee5a4616afdbfb7ffcef75a308e65",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "b653ec5dc5502312114de944fe7cf97b6ce188326182224b3eddfebcc85c4eeb",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "AUTOCOMPLETE_RECORDED",
+      "predicates": [
+        {
+          "route": "home",
+          "stage": "trigger",
+          "typed_query_visible": true,
+          "menu_visible": true,
+          "rename_option_visible": false,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "filtered",
+          "typed_query_visible": true,
+          "menu_visible": true,
+          "rename_option_visible": false,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "after-tab",
+          "typed_query_visible": null,
+          "menu_visible": false,
+          "rename_option_visible": false,
+          "tab_changed_grid": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "trigger",
+          "typed_query_visible": true,
+          "menu_visible": true,
+          "rename_option_visible": false,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "filtered",
+          "typed_query_visible": true,
+          "menu_visible": true,
+          "rename_option_visible": true,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "after-tab",
+          "typed_query_visible": null,
+          "menu_visible": false,
+          "rename_option_visible": false,
+          "tab_changed_grid": true,
+          "no_provider_request": true
+        }
+      ]
+    },
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "AUTOCOMPLETE_RECORDED",
+      "predicates": [
+        {
+          "route": "home",
+          "stage": "trigger",
+          "typed_query_visible": true,
+          "menu_visible": true,
+          "rename_option_visible": false,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "filtered",
+          "typed_query_visible": true,
+          "menu_visible": true,
+          "rename_option_visible": false,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "after-tab",
+          "typed_query_visible": null,
+          "menu_visible": false,
+          "rename_option_visible": false,
+          "tab_changed_grid": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "trigger",
+          "typed_query_visible": true,
+          "menu_visible": true,
+          "rename_option_visible": false,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "filtered",
+          "typed_query_visible": true,
+          "menu_visible": true,
+          "rename_option_visible": true,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "after-tab",
+          "typed_query_visible": null,
+          "menu_visible": false,
+          "rename_option_visible": false,
+          "tab_changed_grid": true,
+          "no_provider_request": true
+        }
+      ]
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-home-trigger",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-home-trigger",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-home-filtered",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-home-filtered",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-home-after-tab",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-home-after-tab",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-session-trigger",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-session-trigger",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-session-filtered",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-session-filtered",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-session-after-tab",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "autocomplete-session-after-tab",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "5908a1db666903f421d7bcc3eab1dc99e9ce22c35fd271272ef7d07ba5b0c27b",
+      "png_sha256": "40013c6d5aa71da8ad04e00d37b6983f08636a38ba5c1267c0da24c47e1c48a9",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-home-trigger",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "be36e31424d25a4f5ca120569adeedfa0f98aa29994fc94582b74429080d2423",
+      "png_sha256": "d9a5f17f30b3d72256cc932acf67f8abd648305d88fad48772c77c74c493a30b",
+      "render_sha256": "b6254c94e465e05bbbb0189e2bc67d58cd6c25fcc352f11163e113fa5ed82a4f",
+      "path": "upstream/autocomplete-home-trigger"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-home-filtered",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2ae21ca5ff9e9793c40dc1db7074f7a96e6c72ebbf1ccdf133d78efe96c13ef2",
+      "png_sha256": "88b7bc20c7e8c2e6d19fcd7a23d20c76991bd9fe3302a84eb13e1e1c0a85aea2",
+      "render_sha256": "cf4a138ce40b1c0d91f60adf1a316bfd8382ca7977e38aad0a15f2b41bbf3cd2",
+      "path": "upstream/autocomplete-home-filtered"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-home-after-tab",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "de07a44d0ae3a76cf957df4bd93ec9fab343f8634833ef5f03c67dbcd34a1686",
+      "png_sha256": "4b3eec29839f41bef0108f3b7bfcc0e1fb39d19207382d4db5bb21c33dc39299",
+      "render_sha256": "0f244ad3a7493e72f37cf6ad7cb4c4013150c875ab91cdeeebda22955fbefd2a",
+      "path": "upstream/autocomplete-home-after-tab"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "bca91e859e98189c6b47c71da8b855f53dc95c97aafb12ce2d01a4a1e7723248",
+      "png_sha256": "1b8aa925178d264132481027a06d3f076776aa484efdae4a108b66e05f09df60",
+      "render_sha256": "174157f35ee532033fd15633ace6adb59f7dfca286e52282f242f130e2737d02",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-session-trigger",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "699c87afcc0b1bf70c1cc05f6d8bf06783c3e4731e8361cc44daa592848c307f",
+      "png_sha256": "228f788cc60133ee0d271a4f7bdd8e9a98fdd53fcbb27c924460d6df96addedd",
+      "render_sha256": "9e81298a3f84f8f4dc07cac2d5f3d7c0f98f703cdf1b82d304a12b42fb086fee",
+      "path": "upstream/autocomplete-session-trigger"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-session-filtered",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "0fe65b1c651a39b74e2afddefe953996be813913fa0520c0482ef6b9706f77fd",
+      "png_sha256": "c4765900765cd22822a69b70b41ca75a176edd21af6a2989a22aa9eb0d94fa2d",
+      "render_sha256": "61221d6e23ab55c561c3ea3e725eac40e4722be0b1f845da4a9a3d69c9d22868",
+      "path": "upstream/autocomplete-session-filtered"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "autocomplete-session-after-tab",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f17afa3f7c199afcd9264a8f1d6fa65fb984883c77e3c543d869e85f9ac0b1f0",
+      "png_sha256": "5f28205b93201bbaebf2f94d366d7c97701d459f227493f8239df90ccd212724",
+      "render_sha256": "328841df9c3484f95ab44fee7f8670864bc816b57c363ef6e7261cbd85219849",
+      "path": "upstream/autocomplete-session-after-tab"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "29f57455b81197e05e0ccb3554aef308f588083914d50620bfbd98f5018a8147",
+      "png_sha256": "882f1163279b78e7f979542f83de94d1b9846559dd37b0342f65da69f214ed27",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-home-trigger",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "34346cbff56b7bfd167f2ef7cbbdbf08dd4069b9671f5a35f540bdaf316c1372",
+      "png_sha256": "7c9a968ac68d7e79c7c61b80d5c83d4ddbbb78152b63dbb15ae7d296f7a2bdc3",
+      "render_sha256": "0678ae4932069724080e9ba5168550cef1e5b1c8cde4b702fbc51187abbf74f3",
+      "path": "oc/autocomplete-home-trigger"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-home-filtered",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "05c5cf966e23bd7fbb431e73b810c986c05e39b891c35b57c5796e7da92be631",
+      "png_sha256": "8f5c0aa8596f498fe74f13587c00217f84ddbce03654bf8d9ed2bf94109a33a0",
+      "render_sha256": "fd8be50908184c58ab9793a86f002f37d065c069d87fe1a2c2fc91d93d45d32c",
+      "path": "oc/autocomplete-home-filtered"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-home-after-tab",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "52836c6a76c5c60cb75a172e419d20e85ace95a0e4ff36b6bbe9ed9b952c2bd9",
+      "png_sha256": "e38080f4014d1e17cc22475e770320ed54c379c493cf493417fa36458e0e5d35",
+      "render_sha256": "ecec8aecc806b706dedbac909dc2b7b4f732080fa9343638725d6aed3376affa",
+      "path": "oc/autocomplete-home-after-tab"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2561aca9546b70d93cc8dba7b79f2d1fa88131d9e440285bcdb3d9ff5cc4d659",
+      "png_sha256": "9f6c311f1b9f24ddeb01d3672f34bcb049b388ed9767e964797635a1eaf3d4bf",
+      "render_sha256": "46773fc00448873e0035f8ccdfb36305df35244ad4c4f8e35e3ca74a59b3dd6e",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-session-trigger",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "fb4e343ed3c9d11397f304961e3e457e54bec0443a2975392ab48822113fef3b",
+      "png_sha256": "74c4774f41931fa16ce54454ce2804fae4bb0516fcbc4e2aa6ae37b6f1303a8e",
+      "render_sha256": "eb58f30095f0112b18e86c870c5f102fbc7f13f63c37c843413553e631ae3815",
+      "path": "oc/autocomplete-session-trigger"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-session-filtered",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f1f2e60b0488a7a20e500f7bea53ee803f02a0127f7e59845bf1d1913878d25e",
+      "png_sha256": "64c81e975e1ce3049bb44e3615bb3bbf409977e3afe00e427a8dc3906b261ed6",
+      "render_sha256": "efdfa611d46a7c2aab9166eb17069c66d6357856feb29e12fc7b5609b7330834",
+      "path": "oc/autocomplete-session-filtered"
+    },
+    {
+      "origin": "oc",
+      "scenario": "autocomplete-session-after-tab",
+      "status": "CAPTURED_AUTOCOMPLETE_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3b6c44ce7d9501f121ba99a92585383d48e089ccec08feb9da0873bec2c9716c",
+      "png_sha256": "388d3fcfe15e7c088fa6071524733d5302c4e6faeec37bd7c57e090f086f4bd2",
+      "render_sha256": "7fcde4a1b229894863b9025f0d70d0a8e4d0837242b08d1894badaa2dcc02ac3",
+      "path": "oc/autocomplete-session-after-tab"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "autocomplete": {
+    "upstream": {
+      "status": "RECORDED",
+      "checks": [
+        {
+          "route": "home",
+          "stage": "trigger",
+          "typed_query": "/",
+          "observed": {
+            "draft": "/",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 10,
+                "text": "                       ┃ /agents      Switch agent                                               ┃"
+              },
+              {
+                "y": 11,
+                "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+              },
+              {
+                "y": 12,
+                "text": "                       ┃ /cd          Change working directory                                   ┃"
+              },
+              {
+                "y": 13,
+                "text": "                       ┃ /clear       New session                                                ┃"
+              },
+              {
+                "y": 14,
+                "text": "                       ┃ /connect     Connect an integration                                     ┃"
+              },
+              {
+                "y": 15,
+                "text": "                       ┃ /continue    Switch session                                             ┃"
+              },
+              {
+                "y": 16,
+                "text": "                       ┃ /debug       View debug info                                            ┃"
+              },
+              {
+                "y": 17,
+                "text": "                       ┃ /diff        Open diff viewer                                           ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /editor      Open editor                                                ┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /effort      Switch model variant                                       ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 27,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": true,
+            "rename_option_visible": false,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "301aacc4c0fa76940d3f64ff4bf3aea768106de8d61fa715416f09574fdbb5bd"
+        },
+        {
+          "route": "home",
+          "stage": "filtered",
+          "typed_query": "/ren",
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload      Reload configuration                                       ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review      review changes [commit|branch|pr], defaults to uncommitted ┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /btw         One-shot answer from the session's context without adding  ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": true,
+            "rename_option_visible": false,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "c9a4d9bdc8b1be1c5f714f5fce120c91006feae671896e7c7c96b961b97baded"
+        },
+        {
+          "route": "home",
+          "stage": "after-tab",
+          "typed_query": null,
+          "observed": {
+            "draft": "Ask anything… \"Fix broken tests\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": true,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": null,
+            "menu_visible": false,
+            "rename_option_visible": false,
+            "tab_changed_grid": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "0f42ff4423930464cc8b32e3f805d67d93019c0fde3ffbe676e9e4749b97e326"
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "observed": {
+            "draft": "Ask anything… \"Fix broken tests\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": true,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "no_provider_request": true
+          }
+        },
+        {
+          "route": "session",
+          "stage": "trigger",
+          "typed_query": "/",
+          "observed": {
+            "draft": "/",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 23,
+                "text": "  ┃ /agents      Switch agent                                                                                        ┃"
+              },
+              {
+                "y": 24,
+                "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+              },
+              {
+                "y": 25,
+                "text": "  ┃ /cd          Change working directory                                                                            ┃"
+              },
+              {
+                "y": 26,
+                "text": "  ┃ /clear       New session                                                                                         ┃"
+              },
+              {
+                "y": 27,
+                "text": "  ┃ /compact     Compact session                                                                                     ┃"
+              },
+              {
+                "y": 28,
+                "text": "  ┃ /connect     Connect an integration                                                                              ┃"
+              },
+              {
+                "y": 29,
+                "text": "  ┃ /continue    Switch session                                                                                      ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /copy        Copy session transcript                                                                             ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /debug       View debug info                                                                                     ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /diff        Open diff viewer                                                                                    ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 6,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": true,
+            "rename_option_visible": false,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "b7d0bd6443e8b7aae85deee5f8add56abf086642e360d4a9d222b027450f7214"
+        },
+        {
+          "route": "session",
+          "stage": "filtered",
+          "typed_query": "/ren",
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              },
+              {
+                "y": 27,
+                "text": "  ┃ /reload      Reload configuration                                                                                ┃"
+              },
+              {
+                "y": 28,
+                "text": "  ┃ /review      review changes [commit|branch|pr], defaults to uncommitted                                          ┃"
+              },
+              {
+                "y": 29,
+                "text": "  ┃ /share       Share session                                                                                       ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /fork        Fork session                                                                                        ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /export      Export session transcript                                                                           ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /btw         One-shot answer from the session's context without adding to the conversation                       ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 26,
+                "text": "  ┃ /rename      Rename session                                                                                      ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": true,
+            "rename_option_visible": true,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "a73f13e4d63299b240c800a6ae86563efcd84a717e81b467687d9d355e2727d2"
+        },
+        {
+          "route": "session",
+          "stage": "after-tab",
+          "typed_query": null,
+          "observed": {
+            "draft": "/rename",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 13,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": null,
+            "menu_visible": false,
+            "rename_option_visible": false,
+            "tab_changed_grid": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "171b0ceef61ebecbb57b6593d41122fabe304c1aa9646a2f90100c4346a440e6"
+        }
+      ]
+    },
+    "oc": {
+      "status": "RECORDED",
+      "checks": [
+        {
+          "route": "home",
+          "stage": "trigger",
+          "typed_query": "/",
+          "observed": {
+            "draft": "/",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 10,
+                "text": "                       ┃ /agent           Switch agent                                           ┃"
+              },
+              {
+                "y": 11,
+                "text": "                       ┃ /agents          Switch agent                                           ┃"
+              },
+              {
+                "y": 12,
+                "text": "                       ┃ /cards           Tool cards                                             ┃"
+              },
+              {
+                "y": 13,
+                "text": "                       ┃ /clear           New session                                            ┃"
+              },
+              {
+                "y": 14,
+                "text": "                       ┃ /close-tab       Close tab                                              ┃"
+              },
+              {
+                "y": 15,
+                "text": "                       ┃ /commands        Show command palette                                   ┃"
+              },
+              {
+                "y": 16,
+                "text": "                       ┃ /continue        Switch session                                         ┃"
+              },
+              {
+                "y": 17,
+                "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /effort          Switch model variant                                   ┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /exit            Exit the app                                           ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 27,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": true,
+            "rename_option_visible": false,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "f63a4ffee0efba0e67f4340b8f781d9c3fc0717185044841f929a8e50b90eb74"
+        },
+        {
+          "route": "home",
+          "stage": "filtered",
+          "typed_query": "/ren",
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 17,
+                "text": "                       ┃ /reload          Reload configuration                                   ┃"
+              },
+              {
+                "y": 18,
+                "text": "                       ┃ /review          review changes [commit|branch|pr], defaults to uncommit┃"
+              },
+              {
+                "y": 19,
+                "text": "                       ┃ /dcp-compress    Compress DCP context                                   ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": true,
+            "rename_option_visible": false,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "aeed0abedd1a710bd64cc8a58834a8d83fc748f65986b2d3089578e64adeb9ea"
+        },
+        {
+          "route": "home",
+          "stage": "after-tab",
+          "typed_query": null,
+          "observed": {
+            "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": true,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": null,
+            "menu_visible": false,
+            "rename_option_visible": false,
+            "tab_changed_grid": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "57a66d955d125b3914dbecc3ab4bbb25c63e05df6a25d0a4cde09ea1a229eff8"
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "observed": {
+            "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+            "draft_x": 26,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": true,
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "no_provider_request": true
+          }
+        },
+        {
+          "route": "session",
+          "stage": "trigger",
+          "typed_query": "/",
+          "observed": {
+            "draft": "/",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 23,
+                "text": "  ┃ /agent           Switch agent                                                                                    ┃"
+              },
+              {
+                "y": 24,
+                "text": "  ┃ /agents          Switch agent                                                                                    ┃"
+              },
+              {
+                "y": 25,
+                "text": "  ┃ /cards           Tool cards                                                                                      ┃"
+              },
+              {
+                "y": 26,
+                "text": "  ┃ /clear           New session                                                                                     ┃"
+              },
+              {
+                "y": 27,
+                "text": "  ┃ /close-tab       Close tab                                                                                       ┃"
+              },
+              {
+                "y": 28,
+                "text": "  ┃ /commands        Show command palette                                                                            ┃"
+              },
+              {
+                "y": 29,
+                "text": "  ┃ /continue        Switch session                                                                                  ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /effort          Switch model variant                                                                            ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /exit            Exit the app                                                                                    ┃"
+              }
+            ],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 6,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": true,
+            "rename_option_visible": false,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "3f9019965bfc55914b0673b8c2e5bf2cb5409e266453a011bc080d3d95cdd29d"
+        },
+        {
+          "route": "session",
+          "stage": "filtered",
+          "typed_query": "/ren",
+          "observed": {
+            "draft": "/ren",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              },
+              {
+                "y": 30,
+                "text": "  ┃ /reload          Reload configuration                                                                            ┃"
+              },
+              {
+                "y": 31,
+                "text": "  ┃ /review          review changes [commit|branch|pr], defaults to uncommitted                                      ┃"
+              },
+              {
+                "y": 32,
+                "text": "  ┃ /dcp-compress    Compress DCP context                                                                            ┃"
+              }
+            ],
+            "rename_options": [
+              {
+                "y": 29,
+                "text": "  ┃ /rename          Rename session                                                                                  ┃"
+              }
+            ],
+            "reload_notice": false,
+            "cursor": {
+              "x": 9,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": true,
+            "rename_option_visible": true,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "d910b52fbc5739878a873c111bd2b2341660cff8b91836afa80bea9edc25c23b"
+        },
+        {
+          "route": "session",
+          "stage": "after-tab",
+          "typed_query": null,
+          "observed": {
+            "draft": "/rename",
+            "draft_x": 5,
+            "menu": [],
+            "rename_options": [],
+            "reload_notice": false,
+            "cursor": {
+              "x": 13,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": null,
+            "menu_visible": false,
+            "rename_option_visible": false,
+            "tab_changed_grid": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "bb7f4e4df0a30372510456790592096531109485fc822fc0fa9e544642afe318"
+        }
+      ]
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-24T20:37:24.576Z",
+  "exit_code": 1
+}

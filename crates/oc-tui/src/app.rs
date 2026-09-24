@@ -1152,17 +1152,14 @@ impl TuiState {
             return None;
         }
         let filter = crate::autocomplete::query(&self.input, self.editor.cursor)?;
-        let mut options =
-            crate::autocomplete::options(filter, &self.commands, &self.command_descriptions);
-        // The pinned Home route does not register the session-only rename
-        // action. Keep direct `/rename` refusal intact; do not expose it as a
-        // selectable Home suggestion (including for `/ren`).
-        if self.home {
-            options.retain(|option| {
-                option.action != Some(CommandAction::RenameSession { title: None })
-            });
-        }
-        Some(options)
+        // Home does not register the session-only rename action. Inventory
+        // padding must be measured after that route exclusion, before search.
+        Some(crate::autocomplete::options(
+            filter,
+            &self.commands,
+            &self.command_descriptions,
+            self.home,
+        ))
     }
 
     /// Keep selection and activation aligned when caret movement or a catalog
