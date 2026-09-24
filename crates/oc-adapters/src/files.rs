@@ -10,7 +10,11 @@
 //! regex mode is refused until a vetted engine is pinned (see below).
 
 use std::collections::BTreeMap;
+use std::ffi::{CStr, CString, OsString};
+use std::fs::File;
 use std::io::Read as _;
+use std::os::fd::{AsRawFd, FromRawFd};
+use std::os::unix::ffi::OsStrExt as _;
 use std::os::unix::fs::OpenOptionsExt as _;
 use std::path::{Component, Path, PathBuf};
 
@@ -34,6 +38,13 @@ pub const GLOB_SEGMENTS_CAP: usize = 64;
 pub const GREP_HIT_BYTES_CAP: usize = 2048;
 /// Default page size for glob/grep.
 pub const DEFAULT_PAGE_LIMIT: usize = 50;
+/// Maximum directory entries inspected for one file suggestion query.
+pub const SUGGEST_ENTRIES_CAP: usize = 2048;
+/// Maximum paths returned by one file suggestion query.
+pub const SUGGEST_RESULTS_CAP: usize = 20;
+const SUGGEST_QUERY_BYTES_CAP: usize = 256;
+const SUGGEST_PATH_BYTES_CAP: usize = 4096;
+const SUGGEST_DEPTH_CAP: usize = 64;
 
 /// Typed file-tool errors (no file contents in messages).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
@@ -88,11 +99,138 @@ pub struct GrepHit {
     pub text: String,
 }
 
+/// Location-relative file suggestions; `truncated` indicates more matches or an incomplete scan.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileSuggestionResult {
+    /// Sorted project-relative paths with `/` separators.
+    pub paths: Vec<String>,
+    /// More matches exist, or the scan was incomplete.
+    pub truncated: bool,
+}
+
 /// Tools bound to one trusted project root and one forbidden data root.
 #[derive(Debug, Clone)]
 pub struct Files {
     root: PathBuf,
     data_root: PathBuf,
+}
+
+fn normalize_suggest_root(path: &Path) -> PathBuf {
+    let mut normalized = PathBuf::from("/");
+    for part in path.components() {
+        match part {
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            Component::Normal(name) => normalized.push(name),
+            _ => {}
+        }
+    }
+    normalized
+}
+
+fn suggest_openat(dir: &File, name: &CStr, flags: libc::c_int) -> std::io::Result<File> {
+    // SAFETY: the borrowed directory fd and NUL-terminated component remain valid.
+    let fd = unsafe {
+        libc::openat(
+            dir.as_raw_fd(),
+            name.as_ptr(),
+            flags | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+        )
+    };
+    if fd < 0 {
+        Err(std::io::Error::last_os_error())
+    } else {
+        // SAFETY: openat returned a new owned descriptor.
+        Ok(unsafe { File::from_raw_fd(fd) })
+    }
+}
+
+fn open_suggest_root(path: &Path) -> Result<File, FileToolError> {
+    let mut dir = File::open("/").map_err(|_| FileToolError::Io)?;
+    for part in path.components() {
+        let Component::Normal(name) = part else {
+            continue;
+        };
+        let name = CString::new(name.as_bytes()).map_err(|_| FileToolError::Io)?;
+        dir = suggest_openat(&dir, &name, libc::O_RDONLY | libc::O_DIRECTORY).map_err(|_| {
+            if suggest_openat(&dir, &name, libc::O_PATH)
+                .and_then(|entry| entry.metadata())
+                .is_ok_and(|meta| meta.file_type().is_symlink())
+            {
+                FileToolError::SymlinkEscape
+            } else {
+                FileToolError::Io
+            }
+        })?;
+    }
+    Ok(dir)
+}
+
+struct SuggestDir(*mut libc::DIR);
+
+impl Drop for SuggestDir {
+    fn drop(&mut self) {
+        // SAFETY: fdopendir transferred ownership of the duplicated descriptor.
+        unsafe {
+            libc::closedir(self.0);
+        }
+    }
+}
+
+fn suggest_dir_names(
+    dir: &File,
+    inspected: &mut usize,
+    truncated: &mut bool,
+) -> Result<Vec<OsString>, FileToolError> {
+    // fdopendir consumes its fd; duplicate so the caller keeps its pinned directory.
+    // SAFETY: dir owns a live directory descriptor during this call.
+    let fd = unsafe { libc::fcntl(dir.as_raw_fd(), libc::F_DUPFD_CLOEXEC, 0) };
+    if fd < 0 {
+        return Err(FileToolError::Io);
+    }
+    // SAFETY: fd is a new directory descriptor owned by fdopendir on success.
+    let raw = unsafe { libc::fdopendir(fd) };
+    if raw.is_null() {
+        // SAFETY: fdopendir failed and did not take ownership of fd.
+        unsafe {
+            libc::close(fd);
+        }
+        return Err(FileToolError::Io);
+    }
+    let reader = SuggestDir(raw);
+    let mut names = Vec::new();
+    loop {
+        // SAFETY: errno is thread-local and this thread is the only writer here.
+        let errno = unsafe { libc::__errno_location() };
+        // SAFETY: errno points to this thread's live error slot.
+        unsafe {
+            *errno = 0;
+        }
+        // SAFETY: reader owns a live DIR; its returned entry is valid until the next call.
+        let entry = unsafe { libc::readdir(reader.0) };
+        if entry.is_null() {
+            // SAFETY: errno points to this thread's live error slot.
+            if unsafe { *errno } != 0 {
+                *truncated = true;
+            }
+            break;
+        }
+        // SAFETY: readdir returned a live dirent with a NUL-terminated name.
+        let name_ptr = unsafe { (*entry).d_name.as_ptr() };
+        // SAFETY: name_ptr remains valid until the next readdir call.
+        let name = unsafe { CStr::from_ptr(name_ptr) }.to_bytes();
+        if name == b"." || name == b".." {
+            continue;
+        }
+        if *inspected >= SUGGEST_ENTRIES_CAP {
+            *truncated = true;
+            break;
+        }
+        *inspected += 1;
+        names.push(OsString::from(std::ffi::OsStr::from_bytes(name)));
+    }
+    Ok(names)
 }
 
 impl Files {
@@ -166,6 +304,146 @@ impl Files {
         hits.sort();
         let limit = limit.clamp(1, 1000);
         Ok(hits.into_iter().skip(offset).take(limit).collect())
+    }
+
+    /// Suggest files under this Location without reading file contents.
+    ///
+    /// Returns the lexicographically smallest matches among bounded inspected
+    /// entries. An empty query lists the first matches.
+    pub fn suggest(
+        &self,
+        query: &str,
+        limit: usize,
+    ) -> Result<FileSuggestionResult, FileToolError> {
+        if query.len() > SUGGEST_QUERY_BYTES_CAP
+            || query.starts_with('/')
+            || query.contains(|c: char| c.is_control() || c.is_whitespace() || c == '\\')
+            || query.split('/').any(|part| part == "." || part == "..")
+            || query.contains("//")
+        {
+            return Err(FileToolError::InvalidPattern(
+                "invalid file suggestion query".to_string(),
+            ));
+        }
+        let root = normalize_suggest_root(&self.root);
+        let data_root = std::fs::canonicalize(&self.data_root)
+            .unwrap_or_else(|_| normalize_suggest_root(&self.data_root));
+        if root.starts_with(&data_root) {
+            return Ok(FileSuggestionResult {
+                paths: Vec::new(),
+                truncated: false,
+            });
+        }
+        let mut result = FileSuggestionResult {
+            paths: Vec::new(),
+            truncated: false,
+        };
+        let mut inspected = 0;
+        let root_dir = open_suggest_root(&root)?;
+        Self::suggest_walk(
+            (&root, &data_root),
+            &root_dir,
+            Path::new(""),
+            0,
+            &mut inspected,
+            (query, limit.clamp(1, SUGGEST_RESULTS_CAP)),
+            &mut result,
+        )?;
+        Ok(result)
+    }
+
+    fn suggest_walk(
+        roots: (&Path, &Path),
+        dir: &File,
+        rel: &Path,
+        depth: usize,
+        inspected: &mut usize,
+        (query, limit): (&str, usize),
+        result: &mut FileSuggestionResult,
+    ) -> Result<(), FileToolError> {
+        let (root, data_root) = roots;
+        let mut names = suggest_dir_names(dir, inspected, &mut result.truncated)?;
+        names.sort();
+        for name in names {
+            let Some(name_str) = name.to_str() else {
+                continue;
+            };
+            let child = rel.join(name_str);
+            let path = root.join(&child);
+            if path.starts_with(data_root) {
+                continue;
+            }
+            let Some(relative) = child.to_str() else {
+                continue;
+            };
+            if relative.len() > SUGGEST_PATH_BYTES_CAP {
+                result.truncated = true;
+                continue;
+            }
+            let Ok(name_c) = CString::new(name.as_bytes()) else {
+                continue;
+            };
+            let Ok(entry) = suggest_openat(dir, &name_c, libc::O_PATH) else {
+                result.truncated = true;
+                continue;
+            };
+            let Ok(meta) = entry.metadata() else {
+                result.truncated = true;
+                continue;
+            };
+            if meta.file_type().is_dir() {
+                if matches!(
+                    name_str,
+                    ".git"
+                        | ".hg"
+                        | ".svn"
+                        | "target"
+                        | "node_modules"
+                        | "dist"
+                        | "build"
+                        | ".next"
+                        | ".turbo"
+                ) {
+                    continue;
+                }
+                if depth >= SUGGEST_DEPTH_CAP {
+                    result.truncated = true;
+                    continue;
+                }
+                let Ok(child_dir) =
+                    suggest_openat(dir, &name_c, libc::O_RDONLY | libc::O_DIRECTORY)
+                else {
+                    result.truncated = true;
+                    continue;
+                };
+                // An entry may change between O_PATH and the directory open;
+                // only the second, pinned descriptor is used for traversal.
+                if let Err(_err) = Self::suggest_walk(
+                    roots,
+                    &child_dir,
+                    &child,
+                    depth + 1,
+                    inspected,
+                    (query, limit),
+                    result,
+                ) {
+                    result.truncated = true;
+                }
+            } else if meta.file_type().is_file() && relative.contains(query) {
+                match result.paths.binary_search_by(|p| p.as_str().cmp(relative)) {
+                    Ok(_) => {}
+                    Err(index) if index < limit => {
+                        result.paths.insert(index, relative.to_string());
+                        if result.paths.len() > limit {
+                            result.paths.pop();
+                            result.truncated = true;
+                        }
+                    }
+                    Err(_) => result.truncated = true,
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Stable sorted paginated grep (literal substring or `regex:` prefix).
@@ -530,6 +808,217 @@ mod tests {
         let deep = files.glob("**/*.txt", 0, DEFAULT_PAGE_LIMIT).expect("deep");
         assert_eq!(deep.len(), 4);
         assert_eq!(deep[0], "a.txt");
+    }
+
+    #[test]
+    fn suggest_sorted_relative_filtered_and_skips_vcs_build_directories() {
+        let (_tmp, files) = setup();
+        let root = project_of(&files);
+        for name in [
+            "zeta.rs",
+            "src/beta.rs",
+            "src/alpha.rs",
+            "src/note.txt",
+            ".git/private.rs",
+            ".hg/private.rs",
+            ".svn/private.rs",
+            "target/private.rs",
+            "node_modules/private.rs",
+            "dist/private.rs",
+            "build/private.rs",
+            ".next/private.rs",
+            ".turbo/private.rs",
+        ] {
+            let path = root.join(name);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, "not inspected").unwrap();
+        }
+        let all = files.suggest("", 20).unwrap();
+        assert_eq!(
+            all.paths,
+            ["src/alpha.rs", "src/beta.rs", "src/note.txt", "zeta.rs"]
+        );
+        assert!(!all.truncated);
+        assert_eq!(
+            files.suggest("src/", 20).unwrap().paths,
+            ["src/alpha.rs", "src/beta.rs", "src/note.txt"]
+        );
+        assert_eq!(files.suggest(".rs", 20).unwrap().paths.len(), 3);
+        // The suggestion-specific excludes must not alter the existing glob.
+        assert_eq!(files.glob(".git/*.rs", 0, 20).unwrap(), [".git/private.rs"]);
+    }
+
+    #[test]
+    fn suggest_refuses_symlinks_and_own_data_root() {
+        let (tmp, files) = setup();
+        let root = project_of(&files);
+        fs::write(root.join("visible.rs"), "ok").unwrap();
+        fs::write(tmp.path().join("data/secret.rs"), "secret").unwrap();
+        symlink(tmp.path().join("data/secret.rs"), root.join("file-link.rs")).unwrap();
+        symlink(tmp.path().join("data"), root.join("dir-link")).unwrap();
+        let outside = tmp.path().join("outside");
+        fs::create_dir(&outside).unwrap();
+        fs::write(outside.join("outside.rs"), "outside").unwrap();
+        symlink(&outside, root.join("outside-link")).unwrap();
+        let nested_data = root.join("private");
+        fs::create_dir(&nested_data).unwrap();
+        fs::write(nested_data.join("secret.rs"), "secret").unwrap();
+        let nested = Files::new(&root, &nested_data).unwrap();
+        assert_eq!(nested.suggest("", 20).unwrap().paths, ["visible.rs"]);
+        assert_eq!(
+            files.suggest("", 20).unwrap().paths,
+            ["private/secret.rs", "visible.rs"]
+        );
+
+        let root_link = tmp.path().join("project-link");
+        symlink(&root, &root_link).unwrap();
+        assert_eq!(
+            Files::new(&root_link, &tmp.path().join("data"))
+                .unwrap()
+                .suggest("", 20),
+            Err(FileToolError::SymlinkEscape)
+        );
+        let ancestor_link = tmp.path().join("ancestor-link");
+        symlink(tmp.path(), &ancestor_link).unwrap();
+        assert_eq!(
+            Files::new(&ancestor_link.join("project"), &tmp.path().join("data"))
+                .unwrap()
+                .suggest("", 20),
+            Err(FileToolError::SymlinkEscape)
+        );
+        assert!(
+            Files::new(&root.join("../data"), &tmp.path().join("data"))
+                .unwrap()
+                .suggest("", 20)
+                .unwrap()
+                .paths
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn suggest_caps_results_and_entries_with_partial_results() {
+        let (_tmp, files) = setup();
+        let root = project_of(&files);
+        for index in 0..=super::SUGGEST_RESULTS_CAP {
+            fs::write(root.join(format!("match-{index:03}.rs")), "").unwrap();
+        }
+        let small = files.suggest("match", 2).unwrap();
+        assert_eq!(small.paths.len(), 2);
+        assert!(small.paths.windows(2).all(|w| w[0] < w[1]));
+        assert!(small.truncated);
+        let capped = files.suggest("match", usize::MAX).unwrap();
+        assert_eq!(capped.paths.len(), super::SUGGEST_RESULTS_CAP);
+        assert!(capped.truncated);
+
+        for index in 0..super::SUGGEST_ENTRIES_CAP {
+            fs::write(root.join(format!("other-{index:04}")), "").unwrap();
+        }
+        let exhausted = files.suggest("no-such-file", 20).unwrap();
+        assert!(exhausted.paths.is_empty());
+        assert!(exhausted.truncated);
+    }
+
+    #[test]
+    fn suggest_returns_lexicographic_top_even_when_created_in_reverse_order() {
+        let (_tmp, files) = setup();
+        let root = project_of(&files);
+        for index in (0..60).rev() {
+            let path = root.join(format!("sub/{index:03}.rs"));
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, "").unwrap();
+        }
+        for index in (0..60).rev() {
+            fs::write(root.join(format!("{index:03}.rs")), "").unwrap();
+        }
+        let matches = files.suggest(".rs", 3).unwrap();
+        assert_eq!(matches.paths, ["000.rs", "001.rs", "002.rs"]);
+        assert!(matches.truncated);
+        let nested = files.suggest("sub/", 3).unwrap();
+        assert_eq!(nested.paths, ["sub/000.rs", "sub/001.rs", "sub/002.rs"]);
+        assert!(nested.truncated);
+    }
+
+    #[test]
+    fn suggest_skips_unreadable_nested_directory_with_partial_result() {
+        use std::os::unix::fs::PermissionsExt as _;
+        // SAFETY: geteuid reads only the process credentials.
+        if unsafe { libc::geteuid() } == 0 {
+            return; // root can read a directory even with mode 000.
+        }
+        let (_tmp, files) = setup();
+        let root = project_of(&files);
+        fs::create_dir(root.join("blocked")).unwrap();
+        fs::write(root.join("blocked/secret.rs"), "").unwrap();
+        fs::write(root.join("good.rs"), "").unwrap();
+        fs::set_permissions(root.join("blocked"), fs::Permissions::from_mode(0o0)).unwrap();
+        let result = files.suggest(".rs", 20);
+        fs::set_permissions(root.join("blocked"), fs::Permissions::from_mode(0o700)).unwrap();
+        let result = result.unwrap();
+        assert_eq!(result.paths, ["good.rs"]);
+        assert!(result.truncated);
+    }
+
+    #[test]
+    fn suggest_concurrent_symlink_swap_never_reports_outside_or_data_files() {
+        use std::sync::Arc;
+        use std::sync::atomic::{AtomicBool, Ordering};
+        let (tmp, files) = setup();
+        let root = project_of(&files);
+        let inside = root.join("slot");
+        let parked = root.join("parked");
+        let outside = tmp.path().join("outside");
+        fs::create_dir(&inside).unwrap();
+        fs::create_dir(&outside).unwrap();
+        fs::write(inside.join("safe.rs"), "").unwrap();
+        fs::write(outside.join("outside-secret.rs"), "").unwrap();
+        let data = tmp.path().join("data");
+        fs::write(data.join("data-secret.rs"), "").unwrap();
+        fs::write(root.join("good.rs"), "").unwrap();
+        let stop = Arc::new(AtomicBool::new(false));
+        let done = Arc::clone(&stop);
+        let worker = std::thread::spawn(move || {
+            for i in 0..400 {
+                if done.load(Ordering::Relaxed) {
+                    break;
+                }
+                fs::rename(&inside, &parked).unwrap();
+                symlink(if i % 2 == 0 { &outside } else { &data }, &inside).unwrap();
+                std::thread::yield_now();
+                fs::remove_file(&inside).unwrap();
+                fs::rename(&parked, &inside).unwrap();
+            }
+        });
+        for _ in 0..200 {
+            let found = files.suggest(".rs", 20).unwrap();
+            assert!(found.paths.contains(&"good.rs".to_string()));
+            assert!(
+                found.paths.iter().all(|p| !p.contains("secret")),
+                "{found:?}"
+            );
+        }
+        stop.store(true, Ordering::Relaxed);
+        worker.join().unwrap();
+    }
+
+    #[test]
+    fn suggest_rejects_malformed_or_oversized_queries_without_root_in_error() {
+        let (_tmp, files) = setup();
+        for query in [
+            "/etc/passwd".to_string(),
+            "../data".to_string(),
+            "src/./file".to_string(),
+            "src//file".to_string(),
+            "src\\file".to_string(),
+            "a b".to_string(),
+            "a\n".to_string(),
+            "a\0".to_string(),
+            "x".repeat(super::SUGGEST_QUERY_BYTES_CAP + 1),
+        ] {
+            let err = files.suggest(&query, 20).unwrap_err();
+            assert!(matches!(err, FileToolError::InvalidPattern(_)));
+            assert!(!err.to_string().contains(files.root.to_str().unwrap()));
+        }
     }
 
     #[test]

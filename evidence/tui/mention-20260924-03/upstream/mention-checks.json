@@ -1,0 +1,292 @@
+[
+  {
+    "route": "home",
+    "stage": "trigger",
+    "typed_query": "@",
+    "observed": {
+      "draft": "@",
+      "draft_x": 26,
+      "menu": [
+        {
+          "y": 16,
+          "text": "                       ┃ @opencode Use this skill for any question about OpenCode itself,  skill ┃"
+        },
+        {
+          "y": 17,
+          "text": "                       ┃ @report Use when the user wants to report an opencode issue or b  skill ┃"
+        },
+        {
+          "y": 18,
+          "text": "                       ┃ @general                                                          agent ┃"
+        },
+        {
+          "y": 19,
+          "text": "                       ┃ @explore                                                          agent ┃"
+        }
+      ],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 27,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": true,
+      "menu_visible": true,
+      "fixture_option_visible": false,
+      "relative_mention_inserted": null,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "1352491fe0fd13671969a1c650f069d7cf921c53e29ab48ba169b16cae7b34e1"
+  },
+  {
+    "route": "home",
+    "stage": "filtered",
+    "typed_query": "@fixture",
+    "observed": {
+      "draft": "@fixture",
+      "draft_x": 26,
+      "menu": [
+        {
+          "y": 19,
+          "text": "                       ┃ fixture-note.txt                                                        ┃"
+        }
+      ],
+      "fixture_rows": [
+        {
+          "y": 19,
+          "text": "                       ┃ fixture-note.txt                                                        ┃"
+        }
+      ],
+      "cursor": {
+        "x": 34,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": true,
+      "menu_visible": true,
+      "fixture_option_visible": true,
+      "relative_mention_inserted": null,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "39ca122f536a8651c9f9090b1dde0c9fb7c27aa835ce9ae399f00bdaf6dcfd91"
+  },
+  {
+    "route": "home",
+    "stage": "after-tab",
+    "typed_query": null,
+    "observed": {
+      "draft": "@fixture-note.txt",
+      "draft_x": 26,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 44,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": null,
+      "menu_visible": false,
+      "fixture_option_visible": false,
+      "relative_mention_inserted": true,
+      "tab_changed_grid": true,
+      "no_provider_request": true
+    },
+    "grid_sha256": "4d0c69dbb22166c3b83418ed628c7ffbfe1c2287b80d41cd623b12ac7f86d21b"
+  },
+  {
+    "route": "home",
+    "stage": "cleared",
+    "observed": {
+      "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+      "draft_x": 26,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "draft_cleared": true,
+      "no_provider_request": true
+    }
+  },
+  {
+    "route": "session",
+    "stage": "trigger",
+    "typed_query": "@",
+    "observed": {
+      "draft": "@",
+      "draft_x": 5,
+      "menu": [
+        {
+          "y": 29,
+          "text": "  ┃ @opencode Use this skill for any question about OpenCode itself, including how OpenCode works, using or c  skill ┃"
+        },
+        {
+          "y": 30,
+          "text": "  ┃ @report Use when the user wants to report an opencode issue or bug. Collect standard diagnostics, add use  skill ┃"
+        },
+        {
+          "y": 31,
+          "text": "  ┃ @general                                                                                                   agent ┃"
+        },
+        {
+          "y": 32,
+          "text": "  ┃ @explore                                                                                                   agent ┃"
+        }
+      ],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 6,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": true,
+      "menu_visible": true,
+      "fixture_option_visible": false,
+      "relative_mention_inserted": null,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "d9b43bebe8c06208af7fa19e1aa496a6bdceec86a882f436f393fffcdbb2fe2d"
+  },
+  {
+    "route": "session",
+    "stage": "filtered",
+    "typed_query": "@fixture",
+    "observed": {
+      "draft": "@fixture",
+      "draft_x": 5,
+      "menu": [
+        {
+          "y": 32,
+          "text": "  ┃ fixture-note.txt                                                                                                 ┃"
+        }
+      ],
+      "fixture_rows": [
+        {
+          "y": 32,
+          "text": "  ┃ fixture-note.txt                                                                                                 ┃"
+        }
+      ],
+      "cursor": {
+        "x": 13,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": true,
+      "menu_visible": true,
+      "fixture_option_visible": true,
+      "relative_mention_inserted": null,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "41cd9a1f3ed44f10e0f7c7cc5abbceaafe3528f7a7851bd1b80566500c65e0db"
+  },
+  {
+    "route": "session",
+    "stage": "after-tab",
+    "typed_query": null,
+    "observed": {
+      "draft": "@fixture-note.txt",
+      "draft_x": 5,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 23,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": null,
+      "menu_visible": false,
+      "fixture_option_visible": false,
+      "relative_mention_inserted": true,
+      "tab_changed_grid": true,
+      "no_provider_request": true
+    },
+    "grid_sha256": "f36bc94b78b392ff1cc2c505cf31b2efd4e2554345381a991ed468280a2fadd3"
+  },
+  {
+    "route": "session",
+    "stage": "cleared",
+    "observed": {
+      "draft": "",
+      "draft_x": 5,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "draft_cleared": true,
+      "no_provider_request": true
+    }
+  }
+]

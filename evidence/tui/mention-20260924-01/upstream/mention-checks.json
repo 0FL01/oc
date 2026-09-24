@@ -1,0 +1,105 @@
+[
+  {
+    "route": "home",
+    "stage": "trigger",
+    "typed_query": "@",
+    "observed": {
+      "draft": "@",
+      "draft_x": 26,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 27,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": true,
+      "menu_visible": false,
+      "fixture_option_visible": false,
+      "relative_mention_inserted": null,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "53fc8f014f9bede19b2a19a06f20b35106e3e4ddb46f12e6804e59d7387e4eb4"
+  },
+  {
+    "route": "home",
+    "stage": "filtered",
+    "typed_query": "@fixture",
+    "observed": {
+      "draft": "@fixture",
+      "draft_x": 26,
+      "menu": [
+        {
+          "y": 19,
+          "text": "                       ┃ fixture-note.txt                                                        ┃"
+        }
+      ],
+      "fixture_rows": [
+        {
+          "y": 19,
+          "text": "                       ┃ fixture-note.txt                                                        ┃"
+        }
+      ],
+      "cursor": {
+        "x": 34,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": true,
+      "menu_visible": true,
+      "fixture_option_visible": true,
+      "relative_mention_inserted": null,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "bebb9f0ce362fe71fead2169b8412bee63fd7cc09991852496b3ce9df8347dbb"
+  },
+  {
+    "route": "home",
+    "stage": "after-tab",
+    "typed_query": null,
+    "observed": {
+      "draft": "@fixture-note.txt",
+      "draft_x": 26,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 44,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": null,
+      "menu_visible": false,
+      "fixture_option_visible": false,
+      "relative_mention_inserted": true,
+      "tab_changed_grid": true,
+      "no_provider_request": true
+    },
+    "grid_sha256": "6f66afd67bc4a0b5aa85783e4e82a984ee3204884acf445b2a96c6944b51794c"
+  }
+]

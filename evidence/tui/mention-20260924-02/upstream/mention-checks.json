@@ -1,0 +1,258 @@
+[
+  {
+    "route": "home",
+    "stage": "trigger",
+    "typed_query": "@",
+    "observed": {
+      "draft": "@",
+      "draft_x": 26,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 27,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": true,
+      "menu_visible": false,
+      "fixture_option_visible": false,
+      "relative_mention_inserted": null,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "e9681ac4363a220d22385d32f1896cd826728566ea4e732a11067bbf552c4def"
+  },
+  {
+    "route": "home",
+    "stage": "filtered",
+    "typed_query": "@fixture",
+    "observed": {
+      "draft": "@fixture",
+      "draft_x": 26,
+      "menu": [
+        {
+          "y": 19,
+          "text": "                       ┃ fixture-note.txt                                                        ┃"
+        }
+      ],
+      "fixture_rows": [
+        {
+          "y": 19,
+          "text": "                       ┃ fixture-note.txt                                                        ┃"
+        }
+      ],
+      "cursor": {
+        "x": 34,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": true,
+      "menu_visible": true,
+      "fixture_option_visible": true,
+      "relative_mention_inserted": null,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "da29c8e2baec8d2bc06609d9b23f3e24d22ec6435f3af5ee854750fd6286eba9"
+  },
+  {
+    "route": "home",
+    "stage": "after-tab",
+    "typed_query": null,
+    "observed": {
+      "draft": "@fixture-note.txt",
+      "draft_x": 26,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 44,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": null,
+      "menu_visible": false,
+      "fixture_option_visible": false,
+      "relative_mention_inserted": true,
+      "tab_changed_grid": true,
+      "no_provider_request": true
+    },
+    "grid_sha256": "bed0ecfcfe03c50987cce56a0280cd7bdcd4d01bda22401a64e195ac8c790147"
+  },
+  {
+    "route": "home",
+    "stage": "cleared",
+    "observed": {
+      "draft": "Ask anything… \"What is the tech stack of this project?\"",
+      "draft_x": 26,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "draft_cleared": true,
+      "no_provider_request": true
+    }
+  },
+  {
+    "route": "session",
+    "stage": "trigger",
+    "typed_query": "@",
+    "observed": {
+      "draft": "@",
+      "draft_x": 5,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 6,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": true,
+      "menu_visible": false,
+      "fixture_option_visible": false,
+      "relative_mention_inserted": null,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "43658394f000648fb939a5b88af56f1d55bf9aa05f5a87e3e530a62eac8d715d"
+  },
+  {
+    "route": "session",
+    "stage": "filtered",
+    "typed_query": "@fixture",
+    "observed": {
+      "draft": "@fixture",
+      "draft_x": 5,
+      "menu": [
+        {
+          "y": 32,
+          "text": "  ┃ fixture-note.txt                                                                                                 ┃"
+        }
+      ],
+      "fixture_rows": [
+        {
+          "y": 32,
+          "text": "  ┃ fixture-note.txt                                                                                                 ┃"
+        }
+      ],
+      "cursor": {
+        "x": 13,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": true,
+      "menu_visible": true,
+      "fixture_option_visible": true,
+      "relative_mention_inserted": null,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "a5dcb3947fe4f276c0bd0be1cfb74eb89dc5190d4eb26495e861c6052509c6cd"
+  },
+  {
+    "route": "session",
+    "stage": "after-tab",
+    "typed_query": null,
+    "observed": {
+      "draft": "@fixture-note.txt",
+      "draft_x": 5,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 23,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": null,
+      "menu_visible": false,
+      "fixture_option_visible": false,
+      "relative_mention_inserted": true,
+      "tab_changed_grid": true,
+      "no_provider_request": true
+    },
+    "grid_sha256": "fa8c44f28e58392b5d50c545e587a1e98d4ea88437e5c0c4045027f24f77ad1a"
+  },
+  {
+    "route": "session",
+    "stage": "cleared",
+    "observed": {
+      "draft": "",
+      "draft_x": 5,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "draft_cleared": true,
+      "no_provider_request": true
+    }
+  }
+]

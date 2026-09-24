@@ -1,0 +1,1061 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-24T16:38:37.439Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "9a5efd7cb181c761a794a38617bf4d6b1730119c53efdcb86345d0b8600d1b61",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "05a8b8b6b9da204e8005a9fd6d3627b1624cf1ca86d11fe7d7f141c1e8ac3b5d"
+  },
+  "fixture_sha256": "16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "574efe667a5114d5950ad831e0ee9d702fde0994",
+    "tree": "992eab980b0cebf97f8a970bc24b57320bdf14e4",
+    "dirty_diff_sha256": "a671e261d3169bc213dff296b6fcaf2013061f965d2cede0503111c564dea0b7",
+    "source_manifest_sha256": "149ddae2bd7aa19132b62130b6a3e3d0561ec68790ae2b2f6c9fbd563c7b6849",
+    "build_provenance": "Existing binary; build/source association not attested by this run",
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "5d88b11959313498845577d5d210379053d6b8b5b1db5956f13ba9d6d97294fe",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "MENTION_RECORDED",
+      "predicates": [
+        {
+          "route": "home",
+          "stage": "trigger",
+          "typed_query_visible": true,
+          "menu_visible": false,
+          "fixture_option_visible": false,
+          "relative_mention_inserted": null,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "filtered",
+          "typed_query_visible": true,
+          "menu_visible": true,
+          "fixture_option_visible": true,
+          "relative_mention_inserted": null,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "after-tab",
+          "typed_query_visible": null,
+          "menu_visible": false,
+          "fixture_option_visible": false,
+          "relative_mention_inserted": true,
+          "tab_changed_grid": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "trigger",
+          "typed_query_visible": true,
+          "menu_visible": false,
+          "fixture_option_visible": false,
+          "relative_mention_inserted": null,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "filtered",
+          "typed_query_visible": true,
+          "menu_visible": true,
+          "fixture_option_visible": true,
+          "relative_mention_inserted": null,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "after-tab",
+          "typed_query_visible": null,
+          "menu_visible": false,
+          "fixture_option_visible": false,
+          "relative_mention_inserted": true,
+          "tab_changed_grid": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "no_provider_request": true
+        }
+      ]
+    },
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "MENTION_RECORDED",
+      "predicates": [
+        {
+          "route": "home",
+          "stage": "trigger",
+          "typed_query_visible": true,
+          "menu_visible": true,
+          "fixture_option_visible": true,
+          "relative_mention_inserted": null,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "filtered",
+          "typed_query_visible": true,
+          "menu_visible": true,
+          "fixture_option_visible": true,
+          "relative_mention_inserted": null,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "after-tab",
+          "typed_query_visible": null,
+          "menu_visible": false,
+          "fixture_option_visible": false,
+          "relative_mention_inserted": true,
+          "tab_changed_grid": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "trigger",
+          "typed_query_visible": true,
+          "menu_visible": true,
+          "fixture_option_visible": true,
+          "relative_mention_inserted": null,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "filtered",
+          "typed_query_visible": true,
+          "menu_visible": true,
+          "fixture_option_visible": true,
+          "relative_mention_inserted": null,
+          "tab_changed_grid": null,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "after-tab",
+          "typed_query_visible": null,
+          "menu_visible": false,
+          "fixture_option_visible": false,
+          "relative_mention_inserted": true,
+          "tab_changed_grid": true,
+          "no_provider_request": true
+        },
+        {
+          "route": "session",
+          "stage": "cleared",
+          "draft_cleared": true,
+          "no_provider_request": true
+        }
+      ]
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "mention-home-trigger",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "mention-home-trigger",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "mention-home-filtered",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "mention-home-filtered",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "mention-home-after-tab",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "mention-home-after-tab",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "mention-session-trigger",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "mention-session-trigger",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "mention-session-filtered",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "mention-session-filtered",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "mention-session-after-tab",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "mention-session-after-tab",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "4a20c89910283f02a852f1b2a8866895c17acf94e55a1c39b64b3d28107b6ac0",
+      "png_sha256": "2638f2c0aa1aef2ac5471f1b549fd5c6f38ed69bd8fe02ae5189d232037d832a",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "mention-home-trigger",
+      "status": "CAPTURED_MENTION_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "9a36060e6b1013cbba8eacc66fb11b0102918e7813675e9fb507b2e43c1fc05f",
+      "png_sha256": "50436a40613a15f43b18ec9d0ee63a0600601b65d28a1ae8402d4160e0d12a04",
+      "render_sha256": "4e7d9dc483f74d91e7123f7894ee5bc86399847faab9d0f8e5451b01a07804e2",
+      "path": "upstream/mention-home-trigger"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "mention-home-filtered",
+      "status": "CAPTURED_MENTION_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "fa300a40957d7fd94c26d445e7a3d32e14624ab293616d8fc13cae7912c94d9d",
+      "png_sha256": "49412dd5bf6b7752ff04d2645ccbae1acefe98559912862d356ca18618dfdf44",
+      "render_sha256": "b34cb954aa5b25d6fbb100af99121c17d8872964ea72e563c8dff0f819c5bd07",
+      "path": "upstream/mention-home-filtered"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "mention-home-after-tab",
+      "status": "CAPTURED_MENTION_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f4dd6963c5044237f193e656ae82f397565f93bd5c0b67ba4e3251f6bd43c997",
+      "png_sha256": "4288c88a609e16709c93e31bd75a89312ac9ab3b91259a0c8ee1cd42261071c6",
+      "render_sha256": "40d4424a4cbaf3f9e0e168391e132d30f0b121fe59acdc102327b780a300de86",
+      "path": "upstream/mention-home-after-tab"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "924e0c7619b2d044015ee3595cf9455466be1b5f196f64f04753f0f56d9785d3",
+      "png_sha256": "d16d21994aad3c8c3e2705bee4b040072038c7b189900a82020ac83cf597dd48",
+      "render_sha256": "31f31f7967a9b188338e122ceec9ca19a46a316b78492e4ee12ffd5204ba486e",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "mention-session-trigger",
+      "status": "CAPTURED_MENTION_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ab0f6c07564b8d39f236ecfc98e2fee4a06e1c44c9389869c9b09267e9114fa6",
+      "png_sha256": "26660ab66c815a0022159136461052e9bc1a60be342c4aabd128e86e9fffc4e6",
+      "render_sha256": "ad9517ae497457be7397b5172544e00af181990e76a6ec7f7587f471bb85e8df",
+      "path": "upstream/mention-session-trigger"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "mention-session-filtered",
+      "status": "CAPTURED_MENTION_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "fc3c6b0c92c3928130cedea4597872ec09ec5d764464fd7839a45312d0b8a198",
+      "png_sha256": "35dcf78df72cf8c01b38b1e907a1daf887397363befdaa4a441ef01be02952c4",
+      "render_sha256": "177b023847a5491c23bb73c973b6a5f65af838f271f445999cc9b08f097ff17f",
+      "path": "upstream/mention-session-filtered"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "mention-session-after-tab",
+      "status": "CAPTURED_MENTION_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d427f87369b3673a9bb51827ebb42b8a3d731a8218ef9d521a08e1c6de43abe9",
+      "png_sha256": "43d7f487de069c688c5430cff5b0b291b783b90cb6e9b0f412c777d626eee3d6",
+      "render_sha256": "8c0e9501d3d8990fb523f4b2ba8de496234b9193e11ab6ae746cb870ed6a80c0",
+      "path": "upstream/mention-session-after-tab"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "424a8b4566bfe2593c7541e463bd061c875050c841a7a548ca4fa368e7bf5cce",
+      "png_sha256": "9d7123c91367de9c78633a6b97305873bd94e761c291de2028e532ff9a93b7d2",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "mention-home-trigger",
+      "status": "CAPTURED_MENTION_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "77c56e09d6062f931d0dbd7adce06cdb0aa2e96bd7af1f00ca7fb727e39e6913",
+      "png_sha256": "11a67955db579b242acd881855d6124821584b3912b6aeaa21f2c3555cb54d0b",
+      "render_sha256": "73af3966c8459b5a437e03043129e365b404767d339fde28c419447515aacfec",
+      "path": "oc/mention-home-trigger"
+    },
+    {
+      "origin": "oc",
+      "scenario": "mention-home-filtered",
+      "status": "CAPTURED_MENTION_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "fcf39365c187b777b21d68f1b255e1de39bcc59765a17a03811936dd6e9ec14b",
+      "png_sha256": "ba49e670289c155c924c18578a76971e6252842d79f5ec2f1decd9cfa28298f3",
+      "render_sha256": "6e6e7e09b583849ff3aa53ccfba3ba6f0b68efee9d48f7213aa4ed3a39af5265",
+      "path": "oc/mention-home-filtered"
+    },
+    {
+      "origin": "oc",
+      "scenario": "mention-home-after-tab",
+      "status": "CAPTURED_MENTION_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "9ebf40b4090949aa1b6487b57a1bb1b2cbe4eb4c431b9b469ec16f6cbc730da5",
+      "png_sha256": "56cc6fcd48f885f4393c36726ccfa8fa7e85e6dabe8ff45e3f40ce8a50fc5ced",
+      "render_sha256": "835260e99040528a6713e6a24812bfd0dbb49eafd3b37b033173042ee902d71a",
+      "path": "oc/mention-home-after-tab"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "86e8c07210bf88aa648c0a30b2e621e42b28922d8a2fc16e115ab565d69bf920",
+      "png_sha256": "c22b466f1266c3e1d5b65515b78ba78e98ebb3814f0bc03cdaaf19a954867d13",
+      "render_sha256": "bbcb61aa1a235504674a1c080c5988494874fc609d68d829d07af90a21840b16",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "mention-session-trigger",
+      "status": "CAPTURED_MENTION_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f86117b945fe058de69ee9312c145f50916948e9e7ff6757956750d7d9aac91d",
+      "png_sha256": "15e49812855ef4e07a2c8f7c0682e10e224f965e7f167ecdb39dbae63b357ef8",
+      "render_sha256": "0956785fc608112cc34d314f44dc1a8bd883ca2f7415308b8bc757a43d772f24",
+      "path": "oc/mention-session-trigger"
+    },
+    {
+      "origin": "oc",
+      "scenario": "mention-session-filtered",
+      "status": "CAPTURED_MENTION_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "0c5b79a1c3e939878d9e0191975bec40e690821c256b3dfe8e47054f60eeb044",
+      "png_sha256": "136486425b4c93c1e2edffd373bc3c2823bfd362b3ab3b9b73d078cc7184a121",
+      "render_sha256": "dbafdb089ebf3a45cf13f39813f43cf1d0a9fac91c768e142f6d4da607adab7c",
+      "path": "oc/mention-session-filtered"
+    },
+    {
+      "origin": "oc",
+      "scenario": "mention-session-after-tab",
+      "status": "CAPTURED_MENTION_DIAGNOSTIC",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2e2ccb8d7dc42dbf7840ee00a0f6c3f898b099ae11399da825f8d253bf337fb5",
+      "png_sha256": "9eaea8b7e988757b290418f88a992cb370f0079cc5aab0bd7c3e7a8dfaadd293",
+      "render_sha256": "6ed063141b3377017597204bb427409984d74ee3f6381b34cb82c331162f7021",
+      "path": "oc/mention-session-after-tab"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "mention": {
+    "upstream": {
+      "status": "RECORDED",
+      "checks": [
+        {
+          "route": "home",
+          "stage": "trigger",
+          "typed_query": "@",
+          "observed": {
+            "draft": "@",
+            "draft_x": 26,
+            "menu": [],
+            "fixture_rows": [],
+            "cursor": {
+              "x": 27,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": false,
+            "fixture_option_visible": false,
+            "relative_mention_inserted": null,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "e9681ac4363a220d22385d32f1896cd826728566ea4e732a11067bbf552c4def"
+        },
+        {
+          "route": "home",
+          "stage": "filtered",
+          "typed_query": "@fixture",
+          "observed": {
+            "draft": "@fixture",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 19,
+                "text": "                       ┃ fixture-note.txt                                                        ┃"
+              }
+            ],
+            "fixture_rows": [
+              {
+                "y": 19,
+                "text": "                       ┃ fixture-note.txt                                                        ┃"
+              }
+            ],
+            "cursor": {
+              "x": 34,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": true,
+            "fixture_option_visible": true,
+            "relative_mention_inserted": null,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "da29c8e2baec8d2bc06609d9b23f3e24d22ec6435f3af5ee854750fd6286eba9"
+        },
+        {
+          "route": "home",
+          "stage": "after-tab",
+          "typed_query": null,
+          "observed": {
+            "draft": "@fixture-note.txt",
+            "draft_x": 26,
+            "menu": [],
+            "fixture_rows": [],
+            "cursor": {
+              "x": 44,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": null,
+            "menu_visible": false,
+            "fixture_option_visible": false,
+            "relative_mention_inserted": true,
+            "tab_changed_grid": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "bed0ecfcfe03c50987cce56a0280cd7bdcd4d01bda22401a64e195ac8c790147"
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "observed": {
+            "draft": "Ask anything… \"What is the tech stack of this project?\"",
+            "draft_x": 26,
+            "menu": [],
+            "fixture_rows": [],
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "no_provider_request": true
+          }
+        },
+        {
+          "route": "session",
+          "stage": "trigger",
+          "typed_query": "@",
+          "observed": {
+            "draft": "@",
+            "draft_x": 5,
+            "menu": [],
+            "fixture_rows": [],
+            "cursor": {
+              "x": 6,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": false,
+            "fixture_option_visible": false,
+            "relative_mention_inserted": null,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "43658394f000648fb939a5b88af56f1d55bf9aa05f5a87e3e530a62eac8d715d"
+        },
+        {
+          "route": "session",
+          "stage": "filtered",
+          "typed_query": "@fixture",
+          "observed": {
+            "draft": "@fixture",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 32,
+                "text": "  ┃ fixture-note.txt                                                                                                 ┃"
+              }
+            ],
+            "fixture_rows": [
+              {
+                "y": 32,
+                "text": "  ┃ fixture-note.txt                                                                                                 ┃"
+              }
+            ],
+            "cursor": {
+              "x": 13,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": true,
+            "fixture_option_visible": true,
+            "relative_mention_inserted": null,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "a5dcb3947fe4f276c0bd0be1cfb74eb89dc5190d4eb26495e861c6052509c6cd"
+        },
+        {
+          "route": "session",
+          "stage": "after-tab",
+          "typed_query": null,
+          "observed": {
+            "draft": "@fixture-note.txt",
+            "draft_x": 5,
+            "menu": [],
+            "fixture_rows": [],
+            "cursor": {
+              "x": 23,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": null,
+            "menu_visible": false,
+            "fixture_option_visible": false,
+            "relative_mention_inserted": true,
+            "tab_changed_grid": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "fa8c44f28e58392b5d50c545e587a1e98d4ea88437e5c0c4045027f24f77ad1a"
+        },
+        {
+          "route": "session",
+          "stage": "cleared",
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "fixture_rows": [],
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "no_provider_request": true
+          }
+        }
+      ]
+    },
+    "oc": {
+      "status": "RECORDED",
+      "checks": [
+        {
+          "route": "home",
+          "stage": "trigger",
+          "typed_query": "@",
+          "observed": {
+            "draft": "@",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 19,
+                "text": "                       ┃ @fixture-note.txt                                                       ┃"
+              }
+            ],
+            "fixture_rows": [
+              {
+                "y": 19,
+                "text": "                       ┃ @fixture-note.txt                                                       ┃"
+              }
+            ],
+            "cursor": {
+              "x": 27,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": true,
+            "fixture_option_visible": true,
+            "relative_mention_inserted": null,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "63d5fba1f9ee14fc515b0609e7087e83425e7b81aa93b4a46ffd08564e4b67ce"
+        },
+        {
+          "route": "home",
+          "stage": "filtered",
+          "typed_query": "@fixture",
+          "observed": {
+            "draft": "@fixture",
+            "draft_x": 26,
+            "menu": [
+              {
+                "y": 19,
+                "text": "                       ┃ @fixture-note.txt                                                       ┃"
+              }
+            ],
+            "fixture_rows": [
+              {
+                "y": 19,
+                "text": "                       ┃ @fixture-note.txt                                                       ┃"
+              }
+            ],
+            "cursor": {
+              "x": 34,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": true,
+            "fixture_option_visible": true,
+            "relative_mention_inserted": null,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "ca4414f46071b7c7390983d8087ae75d15dbc5ab2988e8beca44d67e69e186f3"
+        },
+        {
+          "route": "home",
+          "stage": "after-tab",
+          "typed_query": null,
+          "observed": {
+            "draft": "@fixture-note.txt",
+            "draft_x": 26,
+            "menu": [],
+            "fixture_rows": [],
+            "cursor": {
+              "x": 44,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": null,
+            "menu_visible": false,
+            "fixture_option_visible": false,
+            "relative_mention_inserted": true,
+            "tab_changed_grid": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "53a91b258f056e93dd5695661ce1751117a81cca54c8bc819054450e8de1ce9b"
+        },
+        {
+          "route": "home",
+          "stage": "cleared",
+          "observed": {
+            "draft": "Ask anything… \"What is the tech stack of this project?\"",
+            "draft_x": 26,
+            "menu": [],
+            "fixture_rows": [],
+            "cursor": {
+              "x": 26,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 0,
+              "completed": 0,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "no_provider_request": true
+          }
+        },
+        {
+          "route": "session",
+          "stage": "trigger",
+          "typed_query": "@",
+          "observed": {
+            "draft": "@",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 32,
+                "text": "  ┃ @fixture-note.txt                                                                                                ┃"
+              }
+            ],
+            "fixture_rows": [
+              {
+                "y": 32,
+                "text": "  ┃ @fixture-note.txt                                                                                                ┃"
+              }
+            ],
+            "cursor": {
+              "x": 6,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": true,
+            "fixture_option_visible": true,
+            "relative_mention_inserted": null,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "8034ff180730b1f18c5789ff3a08f39cb3c306b5cadd8522906ff23c04b2c832"
+        },
+        {
+          "route": "session",
+          "stage": "filtered",
+          "typed_query": "@fixture",
+          "observed": {
+            "draft": "@fixture",
+            "draft_x": 5,
+            "menu": [
+              {
+                "y": 32,
+                "text": "  ┃ @fixture-note.txt                                                                                                ┃"
+              }
+            ],
+            "fixture_rows": [
+              {
+                "y": 32,
+                "text": "  ┃ @fixture-note.txt                                                                                                ┃"
+              }
+            ],
+            "cursor": {
+              "x": 13,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": true,
+            "menu_visible": true,
+            "fixture_option_visible": true,
+            "relative_mention_inserted": null,
+            "tab_changed_grid": null,
+            "no_provider_request": true
+          },
+          "grid_sha256": "43f94b2fcc2abe117f0a3291ae1069812e9009c702bb03a9317a1b4911ff6793"
+        },
+        {
+          "route": "session",
+          "stage": "after-tab",
+          "typed_query": null,
+          "observed": {
+            "draft": "@fixture-note.txt",
+            "draft_x": 5,
+            "menu": [],
+            "fixture_rows": [],
+            "cursor": {
+              "x": 23,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "typed_query_visible": null,
+            "menu_visible": false,
+            "fixture_option_visible": false,
+            "relative_mention_inserted": true,
+            "tab_changed_grid": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "7cf421f0f26c29ed1ca8db0b13c52eceb18b79ca304afafd7d55cbfaa782c636"
+        },
+        {
+          "route": "session",
+          "stage": "cleared",
+          "observed": {
+            "draft": "",
+            "draft_x": 5,
+            "menu": [],
+            "fixture_rows": [],
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "draft_cleared": true,
+            "no_provider_request": true
+          }
+        }
+      ]
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-24T16:39:34.851Z",
+  "exit_code": 1
+}

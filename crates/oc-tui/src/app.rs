@@ -18,7 +18,8 @@ use oc_core::core_app::{
 };
 use oc_core::domain::SessionId;
 use oc_core::queries::{
-    AgentEntry, CatalogSnapshot, DcpSnapshot, HistoryPage, SkillCard, ToolOpView,
+    AgentEntry, CatalogSnapshot, DcpSnapshot, FileSuggestionsSnapshot, HistoryPage, SkillCard,
+    ToolOpView,
 };
 use oc_core::session::CoreError;
 use ratatui::layout::Rect;
@@ -42,6 +43,22 @@ pub const CARDS_MAX: usize = 160;
 /// Max live turn parts kept before the oldest is evicted (defensive: the
 /// runtime caps rounds, so a real turn stays far below this).
 pub const LIVE_PARTS_MAX: usize = 64;
+/// Maximum rows fetched for one inline mention (owner traversal is separately bounded).
+pub const MENTION_LIMIT: usize = 10;
+static NEXT_VIEW_ID: AtomicU64 = AtomicU64::new(1);
+
+/// Exact identity of one focused file query. A tab can park and return with
+/// the same draft, so the key includes the view instance as well as its edit.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MentionRequest {
+    pub query: String,
+    pub location: String,
+    pub view_id: u64,
+    pub generation: u64,
+    pub revision: u64,
+    pub caret: usize,
+    pub start: usize,
+}
 
 /// Provider-reported usage for the active turn.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -384,6 +401,11 @@ pub struct TuiState {
     input_revision: u64,
     slash_selected: usize,
     slash_dismissed: Option<u64>,
+    view_id: u64,
+    mention_selected: usize,
+    mention_dismissed: Option<MentionRequest>,
+    mention_result: Option<(MentionRequest, FileSuggestionsSnapshot)>,
+    mention_owner_epoch: Option<u64>,
     /// Model picker (present while the Model panel lives).
     pub(crate) picker: Option<ModelPicker>,
     catalog_loaded: bool,
@@ -492,6 +514,11 @@ impl TuiState {
             input_revision: 0,
             slash_selected: 0,
             slash_dismissed: None,
+            view_id: NEXT_VIEW_ID.fetch_add(1, Ordering::Relaxed),
+            mention_selected: 0,
+            mention_dismissed: None,
+            mention_result: None,
+            mention_owner_epoch: None,
             picker: None,
             catalog_loaded: false,
             agents: Vec::new(),
@@ -716,6 +743,7 @@ impl TuiState {
         self.close_panel();
         self.slash_selected = 0;
         self.slash_dismissed = None;
+        self.clear_mentions();
         self.tabs.clear();
         self.active_tab = 0;
         self.can_add_tab = false;
@@ -754,6 +782,7 @@ impl TuiState {
         self.close_panel();
         self.slash_selected = 0;
         self.slash_dismissed = None;
+        self.clear_mentions();
         self.exploration_expanded.clear();
         self.cards.clear();
         self.card_ops.clear();
@@ -1101,6 +1130,136 @@ impl TuiState {
     /// refresh shrinks the filtered list without an intervening text edit.
     pub(crate) fn slash_selected(&self, count: usize) -> usize {
         self.slash_selected.min(count.saturating_sub(1))
+    }
+
+    fn clear_mentions(&mut self) {
+        self.mention_result = None;
+        self.mention_dismissed = None;
+        self.mention_owner_epoch = None;
+        self.mention_selected = 0;
+    }
+
+    /// A parked view retains its draft, but its filesystem snapshot is no
+    /// longer current when the route becomes active again.
+    pub fn invalidate_file_suggestions(&mut self) {
+        self.generation += 1;
+        self.clear_mentions();
+    }
+
+    /// No storage or filesystem access: the binary asks the owner after the
+    /// input burst, then delivers the bounded snapshot using this exact key.
+    pub fn mention_request(&self) -> Option<MentionRequest> {
+        if self.panel != TuiPanel::None || self.editor.selected().is_some() {
+            return None;
+        }
+        let location = self.chrome.location.as_ref()?.clone();
+        let (start, query) = crate::autocomplete::mention(&self.input, self.editor.cursor)?;
+        let request = MentionRequest {
+            query: query.into(),
+            location,
+            view_id: self.view_id,
+            generation: self.generation,
+            revision: self.input_revision,
+            caret: self.editor.cursor,
+            start,
+        };
+        (self.mention_dismissed.as_ref() != Some(&request)).then_some(request)
+    }
+
+    /// Reject late results from another edit, caret, route, or owner epoch.
+    pub fn apply_file_suggestions(
+        &mut self,
+        request: MentionRequest,
+        result: FileSuggestionsSnapshot,
+    ) -> bool {
+        if self.mention_request().as_ref() != Some(&request)
+            || self.chrome.location.as_deref() != Some(result.location.as_str())
+            || self
+                .mention_owner_epoch
+                .is_some_and(|epoch| epoch != result.generation)
+        {
+            return false;
+        }
+        self.mention_owner_epoch = Some(result.generation);
+        self.mention_selected = 0;
+        self.mention_result = Some((request, result));
+        true
+    }
+
+    /// A zero-match snapshot is loaded too; do not query again each frame.
+    pub fn mention_loaded(&self, request: &MentionRequest) -> bool {
+        self.mention_result
+            .as_ref()
+            .is_some_and(|(key, _)| key == request)
+    }
+
+    pub(crate) fn mention_options(&self) -> Option<&FileSuggestionsSnapshot> {
+        let request = self.mention_request()?;
+        self.mention_result
+            .as_ref()
+            .filter(|(key, snapshot)| {
+                *key == request
+                    && snapshot.location == request.location
+                    && self.mention_owner_epoch == Some(snapshot.generation)
+            })
+            .map(|(_, snapshot)| snapshot)
+    }
+
+    pub(crate) fn mention_selected(&self, count: usize) -> usize {
+        self.mention_selected.min(count.saturating_sub(1))
+    }
+
+    fn select_mention(&mut self) {
+        let Some((start, caret, path)) = self.mention_options().and_then(|options| {
+            let path = options
+                .paths
+                .get(self.mention_selected(options.paths.len()))?;
+            Some((
+                self.mention_request()?.start,
+                self.editor.cursor,
+                path.clone(),
+            ))
+        }) else {
+            return;
+        };
+        // An owner path is Location-relative. It is inserted as ordinary text;
+        // no structured part or implicit read is created.
+        if path.starts_with('/') || path.split('/').any(|part| part == "..") {
+            return;
+        }
+        // Pinned autocomplete.tsx:164-175 inserts a separator at the caret,
+        // except when the following text already supplies whitespace.
+        let separator = self
+            .input
+            .get(caret..)
+            .and_then(|after| after.chars().next())
+            .is_some_and(char::is_whitespace);
+        let replacement = format!("@{path}{}", if separator { "" } else { " " });
+        if self.input.len() - (caret - start) + replacement.len() > MAX_INPUT_BYTES {
+            return;
+        }
+        self.editor.move_to(start, false);
+        if self.editor.cursor != start {
+            // A pasted chip is an atomic editor range; never expand a mention
+            // selection across hidden pasted text.
+            self.editor.move_to(caret, false);
+            return;
+        }
+        self.editor.move_to(caret, true);
+        if self.editor.selected() != Some((start, caret)) {
+            self.editor.move_to(caret, false);
+            return;
+        }
+        if self
+            .editor
+            .replace(&mut self.input, &replacement, MAX_INPUT_BYTES)
+            > 0
+        {
+            self.input_revision += 1;
+            self.mention_selected = 0;
+            self.mention_result = None;
+            self.mention_dismissed = self.mention_request();
+        }
     }
 
     fn replace_slash(&mut self, name: &str, trailing_space: bool) {
@@ -1567,6 +1726,16 @@ impl TuiState {
                 .map(LivePart::retained_bytes)
                 .sum::<usize>()
             + self.input.len()
+            + self.mention_result.as_ref().map_or(0, |(key, result)| {
+                key.query.len()
+                    + key.location.len()
+                    + result.location.len()
+                    + result.paths.iter().map(String::len).sum::<usize>()
+            })
+            + self
+                .mention_dismissed
+                .as_ref()
+                .map_or(0, |key| key.query.len() + key.location.len())
             + self.editor.retained_bytes()
             + self
                 .pending
@@ -1746,6 +1915,10 @@ impl TuiState {
 
     /// Apply a catalog snapshot: picker, agents and the effective selection.
     pub fn apply_catalog(&mut self, snapshot: CatalogSnapshot) {
+        if self.chrome.location != snapshot.chrome.location {
+            self.generation += 1;
+            self.clear_mentions();
+        }
         self.chrome = snapshot.chrome.clone();
         self.auto_accept = snapshot.auto_accept;
         let mut picker = ModelPicker::new(catalog_from_snapshot(&snapshot));
@@ -1889,6 +2062,7 @@ impl TuiState {
         if paste.inserted > 0 {
             self.input_revision += 1;
             self.slash_selected = 0;
+            self.mention_selected = 0;
         }
         let mut notes = Vec::new();
         if exceeded || clean.len() > paste.inserted + paste.trimmed {
@@ -2255,6 +2429,43 @@ impl TuiState {
                 _ => {}
             }
         }
+        if let Some(options) = self.mention_options() {
+            let count = options.paths.len();
+            match action {
+                KeyAction::Up | KeyAction::Commands => {
+                    if count > 0 {
+                        self.mention_selected = (self.mention_selected(count) + count - 1) % count;
+                    }
+                    return KeyOutcome::default();
+                }
+                KeyAction::Down => {
+                    if count > 0 {
+                        self.mention_selected = (self.mention_selected(count) + 1) % count;
+                    }
+                    return KeyOutcome::default();
+                }
+                KeyAction::Tab => {
+                    self.select_mention();
+                    return KeyOutcome::default();
+                }
+                KeyAction::Cancel => {
+                    self.mention_dismissed = self.mention_request();
+                    return KeyOutcome::default();
+                }
+                _ => {}
+            }
+        } else if let Some(request) = self.mention_request() {
+            match action {
+                KeyAction::Cancel => {
+                    self.mention_dismissed = Some(request);
+                    return KeyOutcome::default();
+                }
+                KeyAction::Up | KeyAction::Down | KeyAction::Commands | KeyAction::Tab => {
+                    return KeyOutcome::default();
+                }
+                _ => {}
+            }
+        }
         if matches!(
             action,
             KeyAction::Cancel
@@ -2348,6 +2559,7 @@ impl TuiState {
                 {
                     self.input_revision += 1;
                     self.slash_selected = 0;
+                    self.mention_selected = 0;
                     KeyOutcome::default()
                 } else {
                     KeyOutcome {
@@ -2362,6 +2574,7 @@ impl TuiState {
                 if self.editor.delete(&mut self.input, true, false) {
                     self.input_revision += 1;
                     self.slash_selected = 0;
+                    self.mention_selected = 0;
                 }
                 KeyOutcome::default()
             }
@@ -4011,6 +4224,178 @@ mod tests {
         std::mem::forget(guard);
         app.create_session(sid(name)).await.expect("create");
         TuiState::new(app, sid(name))
+    }
+
+    fn file_result(
+        location: &str,
+        generation: u64,
+        paths: &[&str],
+    ) -> oc_core::queries::FileSuggestionsSnapshot {
+        oc_core::queries::FileSuggestionsSnapshot {
+            location: location.into(),
+            generation,
+            paths: paths.iter().map(|path| (*path).into()).collect(),
+            truncated: false,
+        }
+    }
+
+    #[tokio::test]
+    async fn vis26_trigger_caret_tab_and_escape_keep_textual_draft() {
+        let mut state = fresh_state("mention-editor").await;
+        state.chrome.location = Some("/A".into());
+        state.handle_paste("email@host and @sr tail");
+        state.handle_key(KeyAction::Left).await;
+        for _ in 0..4 {
+            state.handle_key(KeyAction::Left).await;
+        }
+        let request = state
+            .mention_request()
+            .expect("space-separated mention before caret");
+        assert_eq!(request.query, "sr");
+        assert_eq!(&state.input()[request.caret..], " tail");
+        assert!(state.apply_file_suggestions(
+            request.clone(),
+            file_result("/A", 7, &["src/a.rs", "src/b.rs"])
+        ));
+        state.handle_key(KeyAction::Down).await;
+        assert_eq!(state.mention_selected(2), 1);
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+        let previous =
+            crate::events::map_key(KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL))
+                .unwrap();
+        state.handle_key(previous).await;
+        assert_eq!(state.mention_selected(2), 0);
+        let next = crate::events::map_key(KeyEvent::new(KeyCode::Char('n'), KeyModifiers::CONTROL))
+            .unwrap();
+        state.handle_key(next).await;
+        assert_eq!(state.mention_selected(2), 1);
+        state.handle_key(KeyAction::Tab).await;
+        assert_eq!(state.input(), "email@host and @src/b.rs tail");
+        assert_eq!(state.editor.cursor, "email@host and @src/b.rs".len());
+        assert!(state.mention_options().is_none());
+        state.handle_key(KeyAction::Undo).await;
+        assert_eq!(state.input(), "email@host and @sr tail");
+        state.handle_key(KeyAction::End).await;
+        state.handle_paste(" @");
+        let empty = state.mention_request().unwrap();
+        assert_eq!(empty.query, "");
+        assert!(state.apply_file_suggestions(empty, file_result("/A", 7, &[])));
+        assert!(state.mention_options().unwrap().paths.is_empty());
+        state.handle_key(KeyAction::Cancel).await;
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        assert!(state.input().ends_with(" @"));
+        assert!(state.mention_request().is_none());
+        state.handle_key(KeyAction::Char('x')).await;
+        assert_eq!(state.mention_request().unwrap().query, "x");
+        state.handle_key(KeyAction::SelectLeft).await;
+        assert!(
+            state.mention_request().is_none(),
+            "selection owns the editor"
+        );
+
+        for (text, cursor) in [("foo@bar", 7), ("@a b", 4), ("@a\nb", 4), ("x @a", 1)] {
+            assert!(
+                crate::autocomplete::mention(text, cursor).is_none(),
+                "{text:?} {cursor}"
+            );
+        }
+        assert_eq!(
+            crate::autocomplete::mention("next\n@src", 9),
+            Some((5, "src"))
+        );
+    }
+
+    #[tokio::test]
+    async fn vis26_stale_edits_location_roundtrip_and_view_instances() {
+        let mut state = fresh_state("mention-stale").await;
+        state.chrome.location = Some("/A".into());
+        state.handle_paste("@");
+        let first = state.mention_request().unwrap();
+        state.handle_key(KeyAction::Char('x')).await;
+        assert!(!state.apply_file_suggestions(first.clone(), file_result("/A", 1, &["old"])));
+        let current = state.mention_request().unwrap();
+        assert!(!state.apply_file_suggestions(current.clone(), file_result("/B", 1, &["old"])));
+        assert!(state.apply_file_suggestions(current.clone(), file_result("/A", 1, &["new"])));
+        state.handle_key(KeyAction::Backspace).await;
+        state.handle_key(KeyAction::Char('x')).await;
+        assert!(!state.apply_file_suggestions(current, file_result("/A", 1, &["old"])));
+        let later = state.mention_request().unwrap();
+        assert!(
+            !state.apply_file_suggestions(later.clone(), file_result("/A", 2, &["wrong epoch"]))
+        );
+        state.reset_workspace();
+        state.chrome.location = Some("/B".into());
+        state.chrome.location = Some("/A".into());
+        assert!(!state.apply_file_suggestions(later, file_result("/A", 1, &["old"])));
+        let returned = state.mention_request().unwrap();
+        assert!(state.apply_file_suggestions(returned.clone(), file_result("/A", 3, &["fresh"])));
+        let (app, guard) = CoreApp::spawn(MockProvider::echo());
+        std::mem::forget(guard);
+        let mut other = TuiState::new_home(app);
+        other.chrome.location = Some("/A".into());
+        other.handle_paste("@x");
+        assert!(!other.apply_file_suggestions(returned, file_result("/A", 3, &["old"])));
+        assert_ne!(
+            state.mention_request().unwrap().view_id,
+            other.mention_request().unwrap().view_id
+        );
+    }
+
+    #[tokio::test]
+    async fn vis26_enter_submits_unmodified_text_without_implicit_file_read() {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let mut state = TuiState::new_home(app);
+        state.chrome.location = Some("/A".into());
+        state.handle_paste("inspect @src/main.rs");
+        let key = state.mention_request().unwrap();
+        assert!(state.apply_file_suggestions(key, file_result("/A", 1, &["src/main.rs"])));
+        state.handle_key(KeyAction::Enter).await;
+        let Some(oc_core::core_app::InboxMsg::SubmitFresh { text, .. }) = inbox.recv().await else {
+            panic!("ordinary Home submission");
+        };
+        assert_eq!(text, "inspect @src/main.rs");
+    }
+
+    #[tokio::test]
+    async fn vis26_tab_never_replaces_an_atomic_paste_chip() {
+        let mut state = fresh_state("mention-chip").await;
+        state.chrome.location = Some("/A".into());
+        state.handle_paste("first\nsecond\n@sr");
+        let original = state.input().to_string();
+        let key = state.mention_request().unwrap();
+        assert!(state.apply_file_suggestions(key, file_result("/A", 1, &["src/main.rs"])));
+        state.handle_key(KeyAction::Tab).await;
+        assert_eq!(state.input(), original);
+        assert_eq!(state.editor.cursor, original.len());
+    }
+
+    #[tokio::test]
+    async fn vis26_tab_separator_depends_on_next_character_and_keeps_suffix() {
+        for (suffix, expected) in [
+            ("", "@src/main.rs "),
+            (" more", "@src/main.rs more"),
+            ("\nmore", "@src/main.rs\nmore"),
+            ("more", "@src/main.rs more"),
+        ] {
+            let mut state = fresh_state("mention-space").await;
+            state.chrome.location = Some("/A".into());
+            state.handle_key(KeyAction::Char('@')).await;
+            state.handle_key(KeyAction::Char('s')).await;
+            state.handle_key(KeyAction::Char('r')).await;
+            state.handle_paste(suffix);
+            for _ in suffix.chars() {
+                state.handle_key(KeyAction::Left).await;
+            }
+            let key = state.mention_request().unwrap();
+            assert!(state.apply_file_suggestions(key, file_result("/A", 1, &["src/main.rs"])));
+            state.handle_key(KeyAction::Tab).await;
+            assert_eq!(state.input(), expected, "suffix {suffix:?}");
+            assert_eq!(
+                state.editor.cursor,
+                expected.len() - suffix.len(),
+                "caret stays before original suffix"
+            );
+        }
     }
 
     #[tokio::test]

@@ -590,6 +590,7 @@ fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
     );
     render_footer(frame, state, theme, regions.footer, area.width);
     render_slash(frame, state, theme, regions.prompt);
+    render_mentions(frame, state, theme, regions.prompt);
 }
 
 fn prompt_lines(state: &TuiState, width: u16) -> Vec<crate::styled::Line> {
@@ -771,6 +772,7 @@ fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rec
     );
     render_footer(frame, state, theme, footer, area.width);
     render_slash(frame, state, theme, body);
+    render_mentions(frame, state, theme, body);
     if area.height >= 2 {
         let version = env!("CARGO_PKG_VERSION");
         let row_width = area.width.saturating_sub(2);
@@ -993,6 +995,66 @@ fn render_slash(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, body: Re
     if options.is_empty() {
         frame.render_widget(
             Paragraph::new(" No matching commands")
+                .style(Style::default().fg(theme.text_muted()).bg(bg)),
+            Rect::new(area.x + 1, area.y, area.width - 2, 1),
+        );
+    }
+}
+
+/// Bounded, owner-provided Location-relative paths above either composer.
+fn render_mentions(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, body: Rect) {
+    let Some(options) = state.mention_options() else {
+        return;
+    };
+    let height = (options.paths.len().clamp(1, crate::app::MENTION_LIMIT) as u16)
+        .min(body.y.saturating_sub(frame.area().y));
+    let area = Rect::new(body.x, body.y.saturating_sub(height), body.width, height);
+    if area.width < 3 || area.height == 0 {
+        return;
+    }
+    let bg = theme.background_raised_high();
+    frame.render_widget(Block::default().style(Style::default().bg(bg)), area);
+    frame.render_widget(
+        Block::default()
+            .borders(Borders::LEFT | Borders::RIGHT)
+            .border_set(border::Set {
+                vertical_left: "┃",
+                vertical_right: "┃",
+                ..border::PLAIN
+            })
+            .border_style(Style::default().fg(theme.border())),
+        area,
+    );
+    let selected = state.mention_selected(options.paths.len());
+    let offset = selected.saturating_sub(area.height as usize - 1);
+    for (row, path) in options
+        .paths
+        .iter()
+        .skip(offset)
+        .take(area.height as usize)
+        .enumerate()
+    {
+        let style = if row + offset == selected {
+            Style::default()
+                .fg(theme
+                    .color("text.action.primary.$focused")
+                    .unwrap_or(theme.text()))
+                .bg(theme
+                    .color("background.action.primary.$focused")
+                    .unwrap_or(bg))
+        } else {
+            Style::default().fg(theme.text()).bg(bg)
+        };
+        let rect = Rect::new(area.x + 1, area.y + row as u16, area.width - 2, 1);
+        frame.render_widget(Block::default().style(style), rect);
+        frame.render_widget(
+            Paragraph::new(clip_placeholder(&format!(" {path}"), rect.width as usize)).style(style),
+            rect,
+        );
+    }
+    if options.paths.is_empty() {
+        frame.render_widget(
+            Paragraph::new(" No matching files")
                 .style(Style::default().fg(theme.text_muted()).bg(bg)),
             Rect::new(area.x + 1, area.y, area.width - 2, 1),
         );
@@ -1659,6 +1721,90 @@ mod tests {
                 screen(&state, 120, 40)
                     .iter()
                     .any(|row| row.contains("No matching commands"))
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn vis26_file_rows_anchor_to_home_and_session_prompt() {
+        for home in [false, true] {
+            let mut state = if home {
+                let (app, guard) = CoreApp::spawn(MockProvider::echo());
+                std::mem::forget(guard);
+                let mut view = TuiState::new_home(app);
+                view.apply_catalog(catalog());
+                view
+            } else {
+                golden_state().await
+            };
+            state.chrome.location = Some("/fixture".into());
+            state.handle_paste("look @sr");
+            let key = state.mention_request().unwrap();
+            assert!(state.apply_file_suggestions(
+                key,
+                oc_core::queries::FileSuggestionsSnapshot {
+                    location: "/fixture".into(),
+                    generation: 3,
+                    paths: vec!["src/lib.rs".into(), "src/main.rs".into()],
+                    truncated: false,
+                }
+            ));
+            let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+            terminal.draw(|frame| render(frame, &state)).unwrap();
+            let rows = screen(&state, 120, 40);
+            let (y, row) = rows
+                .iter()
+                .enumerate()
+                .find(|(_, row)| row.contains("src/lib.rs"))
+                .unwrap();
+            let x = UnicodeWidthStr::width(&row[..row.find("src/lib.rs").unwrap()]) as u16;
+            let prompt = if home {
+                let width = (120 - 2 * layout::session_padding(120)).min(75);
+                let px = (120 - width).div_ceil(2);
+                assert_eq!(terminal.backend().buffer()[(px, y as u16)].symbol(), "┃");
+                px
+            } else {
+                session_regions(
+                    &state,
+                    session_main(
+                        &state,
+                        shell_regions(&state, Rect::new(0, 0, 120, 40)).session,
+                    ),
+                    40,
+                )
+                .prompt
+                .x
+            };
+            assert_eq!(x, prompt + 2);
+            assert_eq!(
+                terminal.backend().buffer()[(x, y as u16)].bg,
+                Theme::dark()
+                    .color("background.action.primary.$focused")
+                    .unwrap()
+            );
+            state.handle_key(KeyAction::Down).await;
+            state.handle_key(KeyAction::Tab).await;
+            assert_eq!(state.input(), "look @src/main.rs ");
+            assert!(
+                !screen(&state, 120, 40)
+                    .iter()
+                    .any(|row| row.contains("src/lib.rs"))
+            );
+            state.handle_paste(" @zzzz");
+            let key = state.mention_request().unwrap();
+            assert!(state.apply_file_suggestions(
+                key,
+                oc_core::queries::FileSuggestionsSnapshot {
+                    location: "/fixture".into(),
+                    generation: 3,
+                    paths: Vec::new(),
+                    truncated: false,
+                }
+            ));
+            assert!(
+                screen(&state, 120, 40)
+                    .iter()
+                    .any(|row| row.contains("No matching files"))
             );
         }
     }

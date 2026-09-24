@@ -395,6 +395,37 @@ without expecting either outcome.
 Comparator inequality still exits 1 and leaves VIS25 unverified. Failed
 attempts, including runner-predicate failures, remain separate immutable paths.
 
+## VIS26 file-mention diagnostic
+
+Once the native binary has been rebuilt with VIS26, run both pinned executables
+with a **new** immutable output directory (without `--autocomplete true`):
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc \
+  --geometry true --sample tools --sidebar hide --agent-profile true \
+  --columns 120 --rows 40 --mention true \
+  --output /home/opencode/ai/oc/evidence/tui/mention-20260924-01
+```
+
+If that output path already exists, choose the next unused suffix; the runner
+refuses to overwrite an attempt. The bridge seeds `fixture-note.txt` in the
+isolated Location for the tools sample. On each side, the probe types `@`, then
+`fixture`, then **Tab only** on Home, clears the draft with Backspace before
+the normal fixture-backed turn, and repeats/clears the probe in the completed
+session. It never submits the mention draft. `mention-checks.json` records the
+actual prompt, cursor, nearby painted file rows, fixture suggestion, inserted
+relative mention (if any), provider counts, and stage predicates independently
+for original and native. A provider request during the probe fails that side.
+
+Every trigger/filtered/after-Tab state saves full styled cells, PNG and VT.
+`capture.lock.json` retains per-side outcomes and the existing **whole-frame**
+grid/PNG comparator exit codes. Exit 1 means differing frames or failed
+predicates, not parity. Record an executed run and its actual comparator results
+in `evidence/tui/mention-report.md`; do not write capture evidence or a PASS
+claim for a binary that predates VIS26.
+
 ## V04 variant and search follow-up
 
 `--variants true --sample short` adds the explicit fixture in

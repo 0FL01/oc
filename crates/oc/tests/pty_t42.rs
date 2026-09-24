@@ -2810,6 +2810,100 @@ fn home_location_refusal_and_a_b_a_b_remain_sessionless_until_first_submit() {
 }
 
 #[test]
+fn vis26_bare_oc_mention_tab_submits_durable_location_relative_prompt() {
+    let fixture = Fixture::new();
+    let alpha = fixture.project_a();
+    let beta = fixture.project_b();
+    std::fs::write(alpha.join("vis26-alpha.txt"), "alpha fixture\n").unwrap();
+    std::fs::write(beta.join("vis26-beta.txt"), "beta fixture\n").unwrap();
+    // A directory link into the application's own data root must never
+    // become a suggested file, even for an empty @ query.
+    std::fs::create_dir_all(fixture.data_dir()).unwrap();
+    std::fs::write(
+        fixture.data_dir().join("vis26-private.txt"),
+        "private fixture\n",
+    )
+    .unwrap();
+    std::os::unix::fs::symlink(fixture.data_dir(), alpha.join("vis26-data-link")).unwrap();
+
+    let mut pty = PtySession::spawn(fixture.clone(), &alpha, &[], None);
+    pty.wait_visible("█▀▀█", DEADLINE);
+    pty.send(b"@");
+    wait_screen_row(&pty, " src/lib.rs", DEADLINE);
+    let empty_query = render_screen(&pty.snapshot()).rows().join("\n");
+    assert!(!empty_query.contains("vis26-private.txt"), "{empty_query}");
+    assert!(!empty_query.contains("vis26-data-link"), "{empty_query}");
+    assert!(!empty_query.contains(&fixture.data_dir().display().to_string()));
+
+    pty.send(b"vis26-alpha");
+    wait_screen_row(&pty, "┃  @vis26-alpha", DEADLINE);
+    // The empty-query menu can predate the filtered owner response. Wait for
+    // the debounce and the fully typed draft before selecting its result.
+    std::thread::sleep(Duration::from_millis(180));
+    wait_screen_row(&pty, " vis26-alpha.txt", DEADLINE);
+    pty.send(b"\t");
+    let start = Instant::now();
+    loop {
+        let rows = render_screen(&pty.snapshot()).rows();
+        if rows.iter().any(|row| row.contains("┃  @vis26-alpha.txt"))
+            && rows.iter().all(|row| !row.contains("┃ vis26-alpha.txt"))
+        {
+            break;
+        }
+        assert!(
+            start.elapsed() < DEADLINE,
+            "Tab did not close the mention list: {rows:?}"
+        );
+        std::thread::sleep(POLL);
+    }
+    pty.send(b"check\r");
+    let prompt = "@vis26-alpha.txt check";
+    wait_screen_row(&pty, &message_needle("┃  ", prompt), DEADLINE);
+    let main = fixture.wait_requests(1);
+    assert_eq!(last_user_text(&main[0]).as_deref(), Some(prompt));
+    assert!(!request_text(&main[0]).contains("vis26-private.txt"));
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    wait_idle(&pty);
+
+    // A published Location switch invalidates the old suggestion snapshot.
+    pty.send(format!("/location {}\r", beta.display()).as_bytes());
+    wait_screen_row(&pty, "location:", DEADLINE);
+    pty.send(b"@vis26-");
+    wait_screen_row(&pty, " vis26-beta.txt", DEADLINE);
+    let beta_screen = render_screen(&pty.snapshot()).rows().join("\n");
+    assert!(!beta_screen.contains("vis26-alpha.txt"), "{beta_screen}");
+    assert!(!beta_screen.contains("vis26-private.txt"), "{beta_screen}");
+    pty.send(b"\x1b"); // close overlay, then clear the draft before quitting
+    pty.send(&[0x7f; 80]);
+    quit(&mut pty);
+
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).expect("durable journal");
+    let sessions = db.list_sessions().expect("sessions");
+    assert_eq!(sessions.len(), 1, "switching to B must not invent a root");
+    assert_eq!(
+        db.read_history(&sessions[0]).expect("owner history"),
+        vec![
+            ("user".into(), prompt.into()),
+            ("assistant".into(), format!("echo: {prompt}")),
+        ]
+    );
+    assert_eq!(
+        db.get_pref(&format!(
+            "{}{}",
+            oc_adapters::runtime::SESSION_LOCATION_PREFIX,
+            sessions[0]
+        ))
+        .expect("Location binding"),
+        Some(alpha.canonicalize().unwrap().to_string_lossy().into_owned())
+    );
+    assert_eq!(
+        fixture.wait_requests(1).len(),
+        1,
+        "one genuine Responses turn"
+    );
+}
+
+#[test]
 fn bare_first_accepted_prompt_creates_exactly_one_bound_root_and_turn() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(fixture.clone(), &fixture.project_a(), &[], None);

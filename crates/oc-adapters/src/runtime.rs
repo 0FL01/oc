@@ -1016,6 +1016,13 @@ impl<'a> Runtime<'a> {
         &self.location
     }
 
+    /// Capture the trusted file root and its owning Location together before
+    /// handing a synchronous walk to the blocking pool. A later switch cannot
+    /// rebind this clone to a different project.
+    pub(crate) fn file_suggestion_source(&self) -> (crate::files::Files, String) {
+        (self.files.clone(), self.location.clone())
+    }
+
     /// Atomically publish a fully built candidate generation. Only lands
     /// between turns; returns the new id.
     pub async fn reload(&self, generation: Generation) -> Result<u64, RuntimeError> {

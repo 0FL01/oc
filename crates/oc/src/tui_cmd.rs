@@ -16,10 +16,15 @@ use ratatui::backend::CrosstermBackend;
 use oc_adapters::application::{HISTORY_PAGE_LIMIT, TOOL_OPS_PAGE_LIMIT};
 use oc_core::core_app::{CoreApp, CoreEvent};
 use oc_core::domain::SessionId;
-use oc_core::queries::{CatalogSnapshot, SessionSelectionAction as SelectionAction};
+use oc_core::queries::{
+    CatalogSnapshot, FileSuggestionsSnapshot, SessionSelectionAction as SelectionAction,
+};
 use oc_core::queries::{SessionProbe, StartupNotice, TabDeckSnapshot};
 use oc_core::session::{CoreError, LocationSwitchFailure};
-use oc_tui::app::{KeyOutcome, PanelIntent, TabPresentation, TuiPanel, TuiState, TuiStatus};
+use oc_tui::app::{
+    KeyOutcome, MENTION_LIMIT, MentionRequest, PanelIntent, TabPresentation, TuiPanel, TuiState,
+    TuiStatus,
+};
 use oc_tui::commands::{CommandAction, dispatch};
 use oc_tui::dcp_panel::DcpOutcome;
 use oc_tui::events::{KeyAction, UiEvent, map_event};
@@ -48,6 +53,7 @@ struct FrameMetrics {
 /// input still yields to the worker drain below each frame).
 const MAX_KEYS_PER_FRAME: usize = 256;
 const MAX_TABS: usize = 16;
+const MENTION_DEBOUNCE: Duration = Duration::from_millis(90);
 
 /// Launch the interactive TUI; returns process exit code.
 pub async fn run_tui(data_dir: &Path, session_opt: Option<String>) -> ExitCode {
@@ -123,6 +129,12 @@ async fn run_stages(data_dir: &Path, session_opt: Option<String>) -> Result<u8, 
 /// Loop-local application state that is not part of the view-model.
 #[derive(Default)]
 struct LoopState {
+    mention_pending: Option<(MentionRequest, Instant)>,
+    mention_job: Option<(
+        MentionRequest,
+        tokio::task::JoinHandle<Result<FileSuggestionsSnapshot, CoreError>>,
+    )>,
+    mention_failed: Option<MentionRequest>,
     /// Provider work is awaited separately from the synchronous terminal loop.
     title_job: Option<(
         SessionId,
@@ -287,6 +299,7 @@ impl LoopState {
         state.close_panel();
         let next = self.tabs[index].take().expect("parked tab");
         let previous = std::mem::replace(state, next);
+        state.invalidate_file_suggestions();
         if let Some(old) = self.active_tab {
             self.tabs[old] = Some(previous);
             self.tab_cards_before[old] = self.cards_before;
@@ -321,6 +334,7 @@ impl LoopState {
         state.close_panel();
         let old = self.active_tab.take().expect("Home parked from a tab");
         self.tabs[old] = Some(std::mem::replace(state, home));
+        state.invalidate_file_suggestions();
         self.tab_cards_before[old] = self.cards_before;
         self.cards_before = None;
         self.dcp_seen = false;
@@ -455,6 +469,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
 
     loop {
         poll_and_sync(app, &mut state, &mut loop_state).await;
+        sync_mention(app, &mut state, &mut loop_state).await;
         if loop_state
             .title_job
             .as_ref()
@@ -519,6 +534,8 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
             }
             loop_state.sync_tabs(&mut state);
         }
+        // Arm the debounce for the final caret/edit after the key burst.
+        sync_mention(app, &mut state, &mut loop_state).await;
         // The DCP panel shows runtime counters: refresh when it opens.
         if *state.panel() == TuiPanel::Dcp && !loop_state.dcp_seen {
             if let Some(current) = state.attached_session().cloned() {
@@ -533,10 +550,65 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
         let _ = app.cancel_title(session).await;
         let _ = job.await;
     }
+    if let Some((_, job)) = loop_state.mention_job.take() {
+        job.abort();
+    }
     reconcile_exit(app, &mut state, &mut loop_state).await?;
     write_metrics(&state, &loop_state, frame_metrics.as_ref());
     drop(_term);
     Ok(0)
+}
+
+/// Never await the owner on a key. The quiet period avoids owner-side blocking
+/// work for intermediate edits; aborting a JoinHandle alone cannot stop a
+/// request that the owner has already started. Only deliver exact-key results.
+async fn sync_mention(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+    let current = state.mention_request();
+    if deck.mention_pending.as_ref().map(|(key, _)| key) != current.as_ref() {
+        deck.mention_pending = current.clone().map(|key| (key, Instant::now()));
+    }
+    if deck
+        .mention_job
+        .as_ref()
+        .is_some_and(|(key, _)| Some(key) != current.as_ref())
+        && let Some((_, job)) = deck.mention_job.take()
+    {
+        job.abort();
+    }
+    if deck.mention_failed.as_ref() != current.as_ref() {
+        deck.mention_failed = None;
+    }
+    if deck
+        .mention_job
+        .as_ref()
+        .is_some_and(|(_, job)| job.is_finished())
+    {
+        let (key, job) = deck.mention_job.take().expect("finished mention job");
+        match job.await {
+            Ok(Ok(snapshot)) => {
+                if !state.apply_file_suggestions(key.clone(), snapshot) {
+                    deck.mention_failed = Some(key);
+                }
+            }
+            _ => deck.mention_failed = Some(key),
+        }
+    }
+    if let Some(key) = current
+        && !state.mention_loaded(&key)
+        && deck.mention_failed.as_ref() != Some(&key)
+        && deck.mention_job.is_none()
+        && deck
+            .mention_pending
+            .as_ref()
+            .is_some_and(|(pending, since)| pending == &key && since.elapsed() >= MENTION_DEBOUNCE)
+    {
+        let owner = app.clone();
+        let query = key.query.clone();
+        deck.mention_job = Some((
+            key,
+            tokio::spawn(async move { owner.file_suggestions(query, MENTION_LIMIT).await }),
+        ));
+    }
 }
 
 async fn poll_and_sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
@@ -1625,6 +1697,142 @@ mod tests {
     use oc_core::core_app::WorkerTurnId;
     use oc_core::queries::{AutoAcceptState, HistoryMessage, HistoryPage, ToolOpPage, ToolOpView};
     use oc_core::session::Role;
+
+    #[tokio::test]
+    async fn vis26_key_burst_only_queries_latest_and_route_swap_cancels_old_view() {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let mut state = TuiState::new_home(app.clone());
+        state.chrome.location = Some("/A".into());
+        let mut deck = LoopState::default();
+        for key in ['@', 's'] {
+            state.handle_key(KeyAction::Char(key)).await;
+            sync_mention(&app, &mut state, &mut deck).await;
+        }
+        tokio::time::sleep(Duration::from_millis(40)).await;
+        state.handle_key(KeyAction::Char('r')).await;
+        sync_mention(&app, &mut state, &mut deck).await;
+        tokio::time::sleep(Duration::from_millis(60)).await;
+        sync_mention(&app, &mut state, &mut deck).await;
+        assert!(
+            inbox.try_recv().is_err(),
+            "intermediate edits must not start owner traversal"
+        );
+        tokio::time::sleep(Duration::from_millis(40)).await;
+        sync_mention(&app, &mut state, &mut deck).await;
+        let Some(InboxMsg::FileSuggestions {
+            query,
+            limit,
+            ack: old_ack,
+        }) = inbox.recv().await
+        else {
+            panic!("one latest query");
+        };
+        assert_eq!(query, "sr");
+        assert_eq!(limit, MENTION_LIMIT);
+        let old_key = deck.mention_job.as_ref().unwrap().0.clone();
+
+        // A second view can have the same draft, Location and local revision.
+        let mut next = TuiState::new_home(app.clone());
+        next.chrome.location = Some("/A".into());
+        next.handle_paste("@sr");
+        std::mem::swap(&mut state, &mut next);
+        sync_mention(&app, &mut state, &mut deck).await;
+        let new_key = state.mention_request().unwrap();
+        assert_ne!(old_key.view_id, new_key.view_id);
+        assert!(deck.mention_job.is_none());
+        assert!(inbox.try_recv().is_err(), "new view also waits for quiet");
+        tokio::time::sleep(MENTION_DEBOUNCE).await;
+        sync_mention(&app, &mut state, &mut deck).await;
+        let Some(InboxMsg::FileSuggestions { query, ack, .. }) = inbox.recv().await else {
+            panic!("new view query");
+        };
+        assert_eq!(query, "sr");
+        // The old owner request may already have started, but its receiver is
+        // cancelled; it cannot populate either the old or new view.
+        let _ = old_ack.send(Ok(FileSuggestionsSnapshot {
+            location: "/A".into(),
+            generation: 1,
+            paths: vec!["old".into()],
+            truncated: false,
+        }));
+        ack.send(Ok(FileSuggestionsSnapshot {
+            location: "/A".into(),
+            generation: 1,
+            paths: vec!["fresh".into()],
+            truncated: false,
+        }))
+        .unwrap();
+        for _ in 0..10 {
+            tokio::task::yield_now().await;
+            sync_mention(&app, &mut state, &mut deck).await;
+            if state.mention_loaded(&new_key) {
+                break;
+            }
+        }
+        assert!(state.mention_loaded(&new_key));
+        assert!(!next.mention_loaded(&old_key));
+        sync_mention(&app, &mut state, &mut deck).await;
+        assert!(
+            inbox.try_recv().is_err(),
+            "loaded result is not queried every frame"
+        );
+    }
+
+    #[tokio::test]
+    async fn vis26_parked_tab_refreshes_file_rows_only_on_reactivation() {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let mut state = TuiState::new(app.clone(), SessionId::new("first").unwrap());
+        state.chrome.location = Some("/A".into());
+        state.handle_paste("@sr");
+        let cached = state.mention_request().unwrap();
+        assert!(state.apply_file_suggestions(
+            cached.clone(),
+            FileSuggestionsSnapshot {
+                location: "/A".into(),
+                generation: 1,
+                paths: vec!["src/removed.rs".into()],
+                truncated: false,
+            }
+        ));
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        sync_mention(&app, &mut state, &mut deck).await;
+        assert!(inbox.try_recv().is_err(), "active result stays cached");
+        append_tab(&app, &mut deck, &mut state, "second");
+        assert!(deck.tabs[0].as_ref().unwrap().mention_loaded(&cached));
+        deck.activate(&mut state, 0).unwrap();
+        let refreshed = state.mention_request().unwrap();
+        assert_ne!(cached, refreshed);
+        assert!(!state.mention_loaded(&refreshed));
+        sync_mention(&app, &mut state, &mut deck).await;
+        assert!(inbox.try_recv().is_err(), "restored tab is debounced");
+        tokio::time::sleep(MENTION_DEBOUNCE).await;
+        sync_mention(&app, &mut state, &mut deck).await;
+        let Some(InboxMsg::FileSuggestions { query, ack, .. }) = inbox.recv().await else {
+            panic!("restored tab requests a fresh snapshot");
+        };
+        assert_eq!(query, "sr");
+        ack.send(Ok(FileSuggestionsSnapshot {
+            location: "/A".into(),
+            generation: 2,
+            paths: vec!["src/new.rs".into()],
+            truncated: false,
+        }))
+        .unwrap();
+        for _ in 0..10 {
+            tokio::task::yield_now().await;
+            sync_mention(&app, &mut state, &mut deck).await;
+            if state.mention_loaded(&refreshed) {
+                break;
+            }
+        }
+        assert!(state.mention_loaded(&refreshed));
+        assert!(!state.mention_loaded(&cached));
+        sync_mention(&app, &mut state, &mut deck).await;
+        assert!(inbox.try_recv().is_err(), "normal sync does not invalidate");
+        state.handle_key(KeyAction::Tab).await;
+        assert_eq!(state.input(), "@src/new.rs ");
+    }
 
     #[tokio::test]
     async fn immediate_quit_reconciles_only_accepted_fresh_root_before_owner_shutdown() {

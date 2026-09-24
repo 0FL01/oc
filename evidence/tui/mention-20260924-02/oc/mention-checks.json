@@ -1,0 +1,278 @@
+[
+  {
+    "route": "home",
+    "stage": "trigger",
+    "typed_query": "@",
+    "observed": {
+      "draft": "@",
+      "draft_x": 26,
+      "menu": [
+        {
+          "y": 19,
+          "text": "                       ┃ @fixture-note.txt                                                       ┃"
+        }
+      ],
+      "fixture_rows": [
+        {
+          "y": 19,
+          "text": "                       ┃ @fixture-note.txt                                                       ┃"
+        }
+      ],
+      "cursor": {
+        "x": 27,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": true,
+      "menu_visible": true,
+      "fixture_option_visible": true,
+      "relative_mention_inserted": null,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "63d5fba1f9ee14fc515b0609e7087e83425e7b81aa93b4a46ffd08564e4b67ce"
+  },
+  {
+    "route": "home",
+    "stage": "filtered",
+    "typed_query": "@fixture",
+    "observed": {
+      "draft": "@fixture",
+      "draft_x": 26,
+      "menu": [
+        {
+          "y": 19,
+          "text": "                       ┃ @fixture-note.txt                                                       ┃"
+        }
+      ],
+      "fixture_rows": [
+        {
+          "y": 19,
+          "text": "                       ┃ @fixture-note.txt                                                       ┃"
+        }
+      ],
+      "cursor": {
+        "x": 34,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": true,
+      "menu_visible": true,
+      "fixture_option_visible": true,
+      "relative_mention_inserted": null,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "ca4414f46071b7c7390983d8087ae75d15dbc5ab2988e8beca44d67e69e186f3"
+  },
+  {
+    "route": "home",
+    "stage": "after-tab",
+    "typed_query": null,
+    "observed": {
+      "draft": "@fixture-note.txt",
+      "draft_x": 26,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 44,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": null,
+      "menu_visible": false,
+      "fixture_option_visible": false,
+      "relative_mention_inserted": true,
+      "tab_changed_grid": true,
+      "no_provider_request": true
+    },
+    "grid_sha256": "53a91b258f056e93dd5695661ce1751117a81cca54c8bc819054450e8de1ce9b"
+  },
+  {
+    "route": "home",
+    "stage": "cleared",
+    "observed": {
+      "draft": "Ask anything… \"What is the tech stack of this project?\"",
+      "draft_x": 26,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "draft_cleared": true,
+      "no_provider_request": true
+    }
+  },
+  {
+    "route": "session",
+    "stage": "trigger",
+    "typed_query": "@",
+    "observed": {
+      "draft": "@",
+      "draft_x": 5,
+      "menu": [
+        {
+          "y": 32,
+          "text": "  ┃ @fixture-note.txt                                                                                                ┃"
+        }
+      ],
+      "fixture_rows": [
+        {
+          "y": 32,
+          "text": "  ┃ @fixture-note.txt                                                                                                ┃"
+        }
+      ],
+      "cursor": {
+        "x": 6,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": true,
+      "menu_visible": true,
+      "fixture_option_visible": true,
+      "relative_mention_inserted": null,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "8034ff180730b1f18c5789ff3a08f39cb3c306b5cadd8522906ff23c04b2c832"
+  },
+  {
+    "route": "session",
+    "stage": "filtered",
+    "typed_query": "@fixture",
+    "observed": {
+      "draft": "@fixture",
+      "draft_x": 5,
+      "menu": [
+        {
+          "y": 32,
+          "text": "  ┃ @fixture-note.txt                                                                                                ┃"
+        }
+      ],
+      "fixture_rows": [
+        {
+          "y": 32,
+          "text": "  ┃ @fixture-note.txt                                                                                                ┃"
+        }
+      ],
+      "cursor": {
+        "x": 13,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": true,
+      "menu_visible": true,
+      "fixture_option_visible": true,
+      "relative_mention_inserted": null,
+      "tab_changed_grid": null,
+      "no_provider_request": true
+    },
+    "grid_sha256": "43f94b2fcc2abe117f0a3291ae1069812e9009c702bb03a9317a1b4911ff6793"
+  },
+  {
+    "route": "session",
+    "stage": "after-tab",
+    "typed_query": null,
+    "observed": {
+      "draft": "@fixture-note.txt",
+      "draft_x": 5,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 23,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "typed_query_visible": null,
+      "menu_visible": false,
+      "fixture_option_visible": false,
+      "relative_mention_inserted": true,
+      "tab_changed_grid": true,
+      "no_provider_request": true
+    },
+    "grid_sha256": "7cf421f0f26c29ed1ca8db0b13c52eceb18b79ca304afafd7d55cbfaa782c636"
+  },
+  {
+    "route": "session",
+    "stage": "cleared",
+    "observed": {
+      "draft": "",
+      "draft_x": 5,
+      "menu": [],
+      "fixture_rows": [],
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "predicates": {
+      "draft_cleared": true,
+      "no_provider_request": true
+    }
+  }
+]

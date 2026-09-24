@@ -20,6 +20,19 @@ pub(crate) fn query(text: &str, cursor: usize) -> Option<&str> {
     (!filter.contains(char::is_whitespace) && !filter.contains('/')).then_some(filter)
 }
 
+/// File mentions start at a line boundary or after an ASCII space. Only the
+/// segment before the caret participates; later text is left in the draft.
+pub(crate) fn mention(text: &str, cursor: usize) -> Option<(usize, &str)> {
+    let before = text.get(..cursor)?;
+    let start = before.rfind('@')?;
+    if start > 0 && !matches!(before.as_bytes()[start - 1], b' ' | b'\n') {
+        return None;
+    }
+    let query = &before[start + 1..];
+    (!query.chars().any(char::is_whitespace) && !query.contains('@') && query.len() <= 256)
+        .then_some((start, query))
+}
+
 pub(crate) fn options(filter: &str, workspace: &[String]) -> Vec<SlashOption> {
     let mut options: Vec<_> = commands::REGISTRY
         .iter()

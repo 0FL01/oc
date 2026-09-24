@@ -13,8 +13,8 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 
 use crate::domain::SessionId;
 use crate::queries::{
-    CatalogSnapshot, DcpSnapshot, HistoryPage, HomeLocationSnapshot, LocationSnapshot,
-    SessionProbe, SkillCard, TabDeckSnapshot, ToolOpPage,
+    CatalogSnapshot, DcpSnapshot, FileSuggestionsSnapshot, HistoryPage, HomeLocationSnapshot,
+    LocationSnapshot, SessionProbe, SkillCard, TabDeckSnapshot, ToolOpPage,
 };
 use crate::session::{CoreError, MAX_INPUT_BYTES, MAX_QUEUE_ITEMS, Message, MessageId, Role};
 
@@ -431,6 +431,12 @@ pub enum InboxMsg {
     Skills {
         /// Query result.
         ack: oneshot::Sender<Result<Vec<SkillCard>, CoreError>>,
+    },
+    /// Suggest paths from the owner's current Location; no caller-supplied root.
+    FileSuggestions {
+        query: String,
+        limit: usize,
+        ack: oneshot::Sender<Result<FileSuggestionsSnapshot, CoreError>>,
     },
     /// Select the effective model (and optional variant) for later turns.
     SelectModel {
@@ -945,6 +951,22 @@ impl CoreApp {
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// Suggest bounded Location-relative file paths without reading file contents.
+    /// Responses are tagged with the Location and owner epoch: discard a late
+    /// response when either differs from the currently displayed route.
+    pub async fn file_suggestions(
+        &self,
+        query: String,
+        limit: usize,
+    ) -> Result<FileSuggestionsSnapshot, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::FileSuggestions { query, limit, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Select the effective model (and optional variant) for later turns.
     pub async fn select_model(
         &self,
@@ -1309,6 +1331,9 @@ fn scripted_unsupported(message: InboxMsg) {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::Skills { ack } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::FileSuggestions { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::TabDeck { ack } => {

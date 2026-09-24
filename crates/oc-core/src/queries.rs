@@ -357,6 +357,8 @@ mod chrome_tests {
 pub struct LocationSnapshot {
     /// Canonical Location id (project path) now served.
     pub location: String,
+    /// Monotonic owner Location epoch; compare with async file suggestions.
+    pub generation: u64,
     /// Session bound to that Location (new, or the recorded one on return).
     pub session: String,
     /// Catalog for the new generation.
@@ -374,12 +376,29 @@ pub struct LocationSnapshot {
 pub struct HomeLocationSnapshot {
     /// Canonical Location id now served.
     pub location: String,
+    /// Monotonic owner Location epoch; compare with async file suggestions.
+    pub generation: u64,
     /// Current Home choice and catalog in the target Location.
     pub catalog: CatalogSnapshot,
     /// Detailed diagnostics for application callers; frontends display `notices`.
     pub diagnostics: Vec<String>,
     /// Allowlisted interactive warnings.
     pub notices: Vec<StartupNotice>,
+}
+
+/// Bounded file candidates from the application owner's current Location.
+/// Consumers must compare both `location` and `generation` with their current
+/// route before showing an asynchronously delivered response (including A→B→A).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileSuggestionsSnapshot {
+    /// Canonical Location that owned the file walk.
+    pub location: String,
+    /// Monotonic owner Location epoch; changes on every successful switch.
+    pub generation: u64,
+    /// Sorted Location-relative paths; no file contents.
+    pub paths: Vec<String>,
+    /// More matches exist or the traversal budget was reached.
+    pub truncated: bool,
 }
 
 /// Source of non-fatal composition/persisted-selection diagnostics. Never

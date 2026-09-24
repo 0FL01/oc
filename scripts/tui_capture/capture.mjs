@@ -47,12 +47,17 @@ if (args['sidebar-palette'] !== undefined && !['true','false'].includes(args['si
 const autocomplete = args.autocomplete === 'true';
 if (args.autocomplete !== undefined && !['true','false'].includes(args.autocomplete))
   throw Error('--autocomplete must be true or false');
-if (autocomplete && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
+const mention = args.mention === 'true';
+if (args.mention !== undefined && !['true','false'].includes(args.mention))
+  throw Error('--mention must be true or false');
+if (mention && autocomplete) throw Error('--mention true and --autocomplete true are mutually exclusive');
+if ((autocomplete || mention) && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
     args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
-    args.tabs === 'vertical' || tabClick || explorationClick || renameSession || sidebarPalette))
-  throw Error('--autocomplete true requires paired binaries, --geometry true --sample tools --sidebar hide --agent-profile true --columns 120 --rows 40 and no other interaction/resize modes');
+    args.tabs === 'vertical' || tabClick || explorationClick || renameSession || sidebarPalette ||
+    regenerateTitle || tabClose || tabCloseKey || tabRestart))
+  throw Error('--autocomplete/--mention true requires paired binaries, --geometry true --sample tools --sidebar hide --agent-profile true --columns 120 --rows 40 and no other interaction/resize modes');
 if (sidebarPalette && (args.geometry !== 'true' || args.sample !== 'tools' ||
     !['hide','auto'].includes(args.sidebar) || Number(args.columns) !== 160 || Number(args.rows) !== 48 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
@@ -335,6 +340,60 @@ try {
             throw Error('Unstable autocomplete '+route+' '+stage);
         }
       };
+      const mentionChecks=[];
+      const mentionObserve=f=>{
+        const rows=f.cells.map(row=>row.map(c=>c.symbol).join(''));
+        const draftRow=rows[f.cursor.y] || '';
+        const draftStart=draftRow.indexOf('┃  ');
+        // Read only painted cells. The reference may label file suggestions
+        // differently; keep actual rows and predicates instead of synthesizing
+        // a matching menu or a completed path.
+        const menu=rows.map((text,y)=>({y,text:text.trimEnd()})).filter(r=>
+          r.y<f.cursor.y && r.y>=f.cursor.y-12 && r.text.includes('┃') &&
+          /┃\s*\S/.test(r.text));
+        const draft=draftStart<0?null:draftRow.slice(draftStart+3).trimEnd();
+        return {draft,draft_x:draftStart<0?null:draftStart+3,menu,
+          fixture_rows:menu.filter(r=>r.text.includes('fixture-note.txt')),
+          cursor:f.cursor,provider_counts:providerCounts()};
+      };
+      const probeMention=async route=>{
+        const baseline=providerCounts();
+        const states=[['trigger','@'],['filtered','fixture'],['after-tab','\t']];
+        for(const [stage,key] of states) {
+          send(key,`mention_${route}_${stage}`);
+          await sleep(300);
+          const f=await waitFor(()=>true,`mention ${route} ${stage}`,7000);
+          const observed=mentionObserve(f);
+          const previous=mentionChecks.at(-1);
+          const checks={route,stage,typed_query:stage==='trigger'?'@':stage==='filtered'?'@fixture':null,
+            observed,predicates:{typed_query_visible:stage==='after-tab'?null:
+              observed.draft===(stage==='trigger'?'@':'@fixture'),
+              menu_visible:observed.menu.length>0,
+              fixture_option_visible:observed.fixture_rows.length>0,
+              relative_mention_inserted:stage==='after-tab'?observed.draft==='@fixture-note.txt':null,
+              tab_changed_grid:stage==='after-tab'?sha(JSON.stringify(f))!==previous?.grid_sha256:null,
+              no_provider_request:canonical(providerCounts())===canonical(baseline)},
+            grid_sha256:sha(JSON.stringify(f))};
+          mentionChecks.push(checks);
+          fs.writeFileSync(path.join(dir,'mention-checks.json'),JSON.stringify(mentionChecks,null,2)+'\n');
+          if(await capture(`mention-${route}-${stage}`,f,'CAPTURED_MENTION_DIAGNOSTIC')!=='CAPTURED_MENTION_DIAGNOSTIC')
+            throw Error('Unstable mention '+route+' '+stage);
+          if(!checks.predicates.no_provider_request) throw Error('Unexpected provider request during mention '+route+' '+stage);
+        }
+        // Tab may insert a path of varying length on either side. Backspace
+        // never submits the draft; assert the empty prompt before proceeding.
+        send('\x7f'.repeat(64),`mention_${route}_clear_draft`);
+        const cleared=await waitFor(f=>{const o=mentionObserve(f);
+          return o.cursor.x===o.draft_x && (o.draft==='' || o.draft?.startsWith('Ask anything…')) && o.menu.length===0;
+        },`cleared ${route} mention draft`,7000);
+        const observed=mentionObserve(cleared);
+        const predicates={draft_cleared:observed.cursor.x===observed.draft_x &&
+          (observed.draft==='' || observed.draft?.startsWith('Ask anything…')) && observed.menu.length===0,
+          no_provider_request:canonical(providerCounts())===canonical(baseline)};
+        mentionChecks.push({route,stage:'cleared',observed,predicates});
+        fs.writeFileSync(path.join(dir,'mention-checks.json'),JSON.stringify(mentionChecks,null,2)+'\n');
+        if(!predicates.no_provider_request) throw Error('Unexpected provider request while clearing '+route+' mention');
+      };
       if(autocomplete) {
         lock.autocomplete ??= {};
         lock.autocomplete[origin]={status:'IN_PROGRESS',checks:autocompleteChecks};
@@ -347,6 +406,11 @@ try {
         autocompleteChecks.push({route:'home',stage:'cleared',observed:autocompleteObserve(cleared),
           predicates:{draft_cleared:true,no_provider_request:providerCounts().requests===0}});
         fs.writeFileSync(path.join(dir,'autocomplete-checks.json'),JSON.stringify(autocompleteChecks,null,2)+'\n');
+      }
+      if(mention) {
+        lock.mention ??= {};
+        lock.mention[origin]={status:'IN_PROGRESS',checks:mentionChecks};
+        await probeMention('home');
       }
       send('\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\x1b[201~','prompt_paste');
       await sleep(200); send('\r','submit');
@@ -363,6 +427,13 @@ try {
          lock.attempts.push({origin,status:'AUTOCOMPLETE_RECORDED',
            predicates:autocompleteChecks.map(c=>({route:c.route,stage:c.stage,...c.predicates}))});
        }
+        if(mention) {
+          await probeMention('session');
+          lock.mention[origin].status='RECORDED';
+          json('capture.lock.json',lock);
+          lock.attempts.push({origin,status:'MENTION_RECORDED',
+            predicates:mentionChecks.map(c=>({route:c.route,stage:c.stage,...c.predicates}))});
+        }
        if(sidebarPalette) {
          const checks=[];
          const expectedBefore=args.sidebar==='auto';
@@ -1057,6 +1128,7 @@ try {
         if(renameSession && lock.rename_interactions?.[origin]) lock.rename_interactions[origin].status='FAILED';
         if(sidebarPalette && lock.sidebar_palette?.[origin]) lock.sidebar_palette[origin].status='FAILED';
         if(autocomplete && lock.autocomplete?.[origin]) lock.autocomplete[origin].status='FAILED';
+         if(mention && lock.mention?.[origin]) lock.mention[origin].status='FAILED';
       await capture('failure-diagnostic',await frame(),'FAILED_STATE');
     } finally {
       if(!child.stdin.destroyed) child.stdin.write(JSON.stringify({kind:'stop'})+'\n');

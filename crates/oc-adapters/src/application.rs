@@ -6,16 +6,17 @@
 
 use std::collections::BTreeMap;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 
 use oc_core::core_app::{
     CoreApp, CoreEvent, InboxMsg, WorkerGuard, WorkerTurnId, normalized_session_title,
 };
 use oc_core::domain::SessionId;
 use oc_core::queries::{
-    AgentEntry, CatalogSnapshot, DcpSnapshot, HistoryMessage, HistoryPage, HomeLocationSnapshot,
-    LocationSnapshot, ModelEntry, SessionProbe, SkillCard, StartupNotice, ToolOpPage, ToolOpView,
-    VariantEntry,
+    AgentEntry, CatalogSnapshot, DcpSnapshot, FileSuggestionsSnapshot, HistoryMessage, HistoryPage,
+    HomeLocationSnapshot, LocationSnapshot, ModelEntry, SessionProbe, SkillCard, StartupNotice,
+    ToolOpPage, ToolOpView, VariantEntry,
 };
 use oc_core::session::{CoreError, LocationSwitchFailure, MAX_QUEUE_ITEMS, MessageId, Role};
 use tokio::sync::{broadcast, mpsc, oneshot};
@@ -648,6 +649,10 @@ async fn start_worker(
     // This worker, not any one Location runtime, owns unresolved remote calls.
     // No endpoint identity or credential leaves the runtime/application boundary.
     let mut remote_retry_quarantined = false;
+    // Runtime publication ids restart at 1 after a Location rebuild. A
+    // worker-wide epoch distinguishes even a return to the same Location.
+    let location_epoch = Arc::new(AtomicU64::new(1));
+    let suggestion_queue = Arc::new(Mutex::new(SuggestionQueue::default()));
     loop {
         let outcome = worker(
             &runtime,
@@ -659,6 +664,8 @@ async fn start_worker(
             &events,
             &mut sessions,
             &mut home_choices,
+            &location_epoch,
+            &suggestion_queue,
         )
         .await?;
         match outcome {
@@ -715,6 +722,7 @@ async fn start_worker(
                             next.quarantine_remote_retries();
                         }
                         runtime = next;
+                        location_epoch.fetch_add(1, Ordering::SeqCst);
                         let location = runtime.location().to_string();
                         let mut notices = next_composition.startup_notices.clone();
                         if notes.len() > next_composition.diagnostics.len() {
@@ -727,6 +735,7 @@ async fn start_worker(
                             SwitchAck::Session(ack) => {
                                 let _ = ack.send(Ok(LocationSnapshot {
                                     location,
+                                    generation: location_epoch.load(Ordering::SeqCst),
                                     session: session.expect("attached switch has a session").0,
                                     catalog: effective.snapshot(&composition),
                                     diagnostics: notes,
@@ -736,6 +745,7 @@ async fn start_worker(
                             SwitchAck::Home(ack) => {
                                 let _ = ack.send(Ok(HomeLocationSnapshot {
                                     location,
+                                    generation: location_epoch.load(Ordering::SeqCst),
                                     catalog: home_catalog.expect("Home switch has a catalog"),
                                     diagnostics: notes,
                                     notices,
@@ -913,6 +923,118 @@ fn app_error(error: impl std::fmt::Display) -> CoreError {
     CoreError::Application(error.to_string())
 }
 
+fn file_suggestion_error(error: crate::files::FileToolError) -> CoreError {
+    // InvalidPattern may carry arbitrary text in other Files operations; no
+    // underlying filesystem/configuration details cross the frontend boundary.
+    use crate::files::FileToolError;
+    let category = match error {
+        FileToolError::InvalidPattern(_) => "invalid file suggestion query",
+        FileToolError::Io => "file suggestions unavailable",
+        FileToolError::SymlinkEscape => "file suggestion root unavailable",
+        FileToolError::OutsideRoot | FileToolError::OwnDataRoot => "file suggestions refused",
+        FileToolError::BudgetExhausted => "file suggestion budget exhausted",
+        FileToolError::NotFound | FileToolError::Binary => "file suggestions unavailable",
+    };
+    app_error(category)
+}
+
+fn file_suggestion_reply(
+    epoch: &AtomicU64,
+    generation: u64,
+    location: String,
+    result: Result<crate::files::FileSuggestionResult, CoreError>,
+) -> Result<FileSuggestionsSnapshot, CoreError> {
+    if epoch.load(Ordering::SeqCst) != generation {
+        return Err(app_error("file suggestions belong to previous Location"));
+    }
+    result.map(|result| FileSuggestionsSnapshot {
+        location,
+        generation,
+        paths: result.paths,
+        truncated: result.truncated,
+    })
+}
+
+type SuggestionWork = Box<
+    dyn FnOnce() -> Result<crate::files::FileSuggestionResult, crate::files::FileToolError> + Send,
+>;
+
+struct SuggestionRequest {
+    work: SuggestionWork,
+    location: String,
+    generation: u64,
+    ack: oneshot::Sender<Result<FileSuggestionsSnapshot, CoreError>>,
+}
+
+#[derive(Default)]
+struct SuggestionQueue {
+    running: bool,
+    pending: Option<SuggestionRequest>,
+}
+
+fn enqueue_file_suggestion(
+    queue: &Arc<Mutex<SuggestionQueue>>,
+    epoch: &Arc<AtomicU64>,
+    request: SuggestionRequest,
+) {
+    if request.ack.is_closed() {
+        return;
+    }
+    let (previous, start) = {
+        let mut queue = queue.lock().expect("file suggestion queue poisoned");
+        let previous = queue.pending.replace(request);
+        let start = !queue.running;
+        queue.running = true;
+        (previous, start)
+    };
+    if let Some(previous) = previous {
+        let _ = previous
+            .ack
+            .send(Err(app_error("file suggestions superseded")));
+    }
+    if start {
+        let queue = Arc::clone(queue);
+        let epoch = Arc::clone(epoch);
+        tokio::spawn(async move {
+            loop {
+                let Some(request) = ({
+                    let mut queue = queue.lock().expect("file suggestion queue poisoned");
+                    match queue.pending.take() {
+                        Some(request) => Some(request),
+                        None => {
+                            queue.running = false;
+                            None
+                        }
+                    }
+                }) else {
+                    break;
+                };
+                // An aborted UI task closes ack. Skip it (and old Location
+                // requests) before occupying a blocking thread. Once started,
+                // always join the bounded walk before taking the next request.
+                if request.ack.is_closed() {
+                    continue;
+                }
+                if epoch.load(Ordering::SeqCst) != request.generation {
+                    let _ = request.ack.send(Err(app_error(
+                        "file suggestions belong to previous Location",
+                    )));
+                    continue;
+                }
+                let result = tokio::task::spawn_blocking(request.work)
+                    .await
+                    .map_err(|_| app_error("file suggestions unavailable"))
+                    .and_then(|result| result.map_err(file_suggestion_error));
+                if !request.ack.is_closed() {
+                    let result =
+                        file_suggestion_reply(&epoch, request.generation, request.location, result);
+                    let _ = request.ack.send(result);
+                }
+            }
+        });
+    }
+}
+
 /// Prompt for a manual `/dcp-compress` request: the model drives the
 /// compress tool over the closed span, exactly like an automatic nudge.
 fn compress_prompt(focus: &str) -> String {
@@ -945,6 +1067,8 @@ fn query(
     registry: &mut WorkspaceRegistry,
     sessions: &mut BTreeMap<String, String>,
     home_choices: &mut BTreeMap<String, Effective>,
+    location_epoch: &Arc<AtomicU64>,
+    suggestion_queue: &Arc<Mutex<SuggestionQueue>>,
     message: InboxMsg,
 ) {
     match message {
@@ -1231,6 +1355,23 @@ fn query(
         InboxMsg::Skills { ack } => {
             let _ = ack.send(Ok(skill_cards(composition)));
         }
+        InboxMsg::FileSuggestions { query, limit, ack } => {
+            if ack.is_closed() {
+                return;
+            }
+            let (files, location) = runtime.file_suggestion_source();
+            let generation = location_epoch.load(Ordering::SeqCst);
+            enqueue_file_suggestion(
+                suggestion_queue,
+                location_epoch,
+                SuggestionRequest {
+                    work: Box::new(move || files.suggest(&query, limit)),
+                    location,
+                    generation,
+                    ack,
+                },
+            );
+        }
         InboxMsg::SelectModel { id, variant, ack } => {
             let result = (|| -> Result<CatalogSnapshot, CoreError> {
                 if runtime.turn_active() {
@@ -1375,6 +1516,8 @@ async fn worker(
     events: &broadcast::Sender<CoreEvent>,
     sessions: &mut BTreeMap<String, String>,
     home_choices: &mut BTreeMap<String, Effective>,
+    location_epoch: &Arc<AtomicU64>,
+    suggestion_queue: &Arc<Mutex<SuggestionQueue>>,
 ) -> Result<WorkerOutcome, String> {
     while let Some(message) = inbox.recv().await {
         // A manual compress request is a real turn: the model drives the
@@ -1546,7 +1689,7 @@ async fn worker(
                                 cancel.store(true, Ordering::Relaxed);
                                 let _ = ack.send(Ok(()));
                             }
-                            Some(command) => query(db, runtime, composition, effective, registry, sessions, home_choices, command),
+                            Some(command) => query(db, runtime, composition, effective, registry, sessions, home_choices, location_epoch, suggestion_queue, command),
                         },
                     }
                 };
@@ -1901,6 +2044,8 @@ async fn worker(
                                     registry,
                                     sessions,
                                     home_choices,
+                                    location_epoch,
+                                    suggestion_queue,
                                     command,
                                 ),
                             }
@@ -2000,6 +2145,8 @@ async fn worker(
                 registry,
                 sessions,
                 home_choices,
+                location_epoch,
+                suggestion_queue,
                 message,
             ),
         }
@@ -2026,4 +2173,263 @@ fn resolve_submission(
         .collect::<Vec<_>>();
     let expanded = crate::runtime::expand_command(template, &args)?;
     Ok((expanded, Some(text)))
+}
+
+#[cfg(test)]
+mod file_suggestion_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn burst_coalesces_to_one_pending_walk_without_overlapping_active_walk() {
+        use std::sync::atomic::AtomicUsize;
+        use tokio::time::{Duration, timeout};
+
+        let queue = Arc::new(Mutex::new(SuggestionQueue::default()));
+        let epoch = Arc::new(AtomicU64::new(1));
+        let active = Arc::new(AtomicUsize::new(0));
+        let entered = Arc::new(AtomicUsize::new(0));
+        let (started, started_rx) = oneshot::channel();
+        let (release, release_rx) = std::sync::mpsc::channel();
+        let (first_ack, first_rx) = oneshot::channel();
+        let first_active = Arc::clone(&active);
+        let first_entered = Arc::clone(&entered);
+        enqueue_file_suggestion(
+            &queue,
+            &epoch,
+            SuggestionRequest {
+                work: Box::new(move || {
+                    assert_eq!(first_active.fetch_add(1, Ordering::SeqCst), 0);
+                    first_entered.fetch_add(1, Ordering::SeqCst);
+                    let _ = started.send(());
+                    release_rx.recv().unwrap();
+                    first_active.fetch_sub(1, Ordering::SeqCst);
+                    Ok(crate::files::FileSuggestionResult {
+                        paths: vec!["first".into()],
+                        truncated: false,
+                    })
+                }),
+                location: "/a".into(),
+                generation: 1,
+                ack: first_ack,
+            },
+        );
+        timeout(Duration::from_secs(5), started_rx)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let mut last_rx = None;
+        for index in 0..100 {
+            let (ack, rx) = oneshot::channel();
+            let next_active = Arc::clone(&active);
+            let next_entered = Arc::clone(&entered);
+            enqueue_file_suggestion(
+                &queue,
+                &epoch,
+                SuggestionRequest {
+                    work: Box::new(move || {
+                        assert_eq!(next_active.fetch_add(1, Ordering::SeqCst), 0);
+                        next_entered.fetch_add(1, Ordering::SeqCst);
+                        next_active.fetch_sub(1, Ordering::SeqCst);
+                        Ok(crate::files::FileSuggestionResult {
+                            paths: vec![index.to_string()],
+                            truncated: false,
+                        })
+                    }),
+                    location: "/a".into(),
+                    generation: 1,
+                    ack,
+                },
+            );
+            if let Some(previous) = last_rx.replace(rx) {
+                assert_eq!(
+                    previous.await.unwrap(),
+                    Err(app_error("file suggestions superseded"))
+                );
+            }
+        }
+        assert_eq!(entered.load(Ordering::SeqCst), 1);
+        assert!(queue.lock().unwrap().pending.is_some());
+        // Cancellation of the latest pending request must also skip the pool.
+        drop(last_rx);
+        let (ack, rx) = oneshot::channel();
+        let last_entered = Arc::clone(&entered);
+        let last_active = Arc::clone(&active);
+        enqueue_file_suggestion(
+            &queue,
+            &epoch,
+            SuggestionRequest {
+                work: Box::new(move || {
+                    assert_eq!(last_active.fetch_add(1, Ordering::SeqCst), 0);
+                    last_entered.fetch_add(1, Ordering::SeqCst);
+                    last_active.fetch_sub(1, Ordering::SeqCst);
+                    Ok(crate::files::FileSuggestionResult {
+                        paths: vec!["latest".into()],
+                        truncated: false,
+                    })
+                }),
+                location: "/a".into(),
+                generation: 1,
+                ack,
+            },
+        );
+        release.send(()).unwrap();
+        assert_eq!(
+            timeout(Duration::from_secs(5), first_rx)
+                .await
+                .unwrap()
+                .unwrap()
+                .unwrap()
+                .paths,
+            ["first"]
+        );
+        assert_eq!(
+            timeout(Duration::from_secs(5), rx)
+                .await
+                .unwrap()
+                .unwrap()
+                .unwrap()
+                .paths,
+            ["latest"]
+        );
+        assert_eq!(entered.load(Ordering::SeqCst), 2);
+    }
+
+    #[tokio::test]
+    async fn canceled_pending_request_never_enters_blocking_pool() {
+        use std::sync::atomic::AtomicUsize;
+        use tokio::time::{Duration, timeout};
+
+        let queue = Arc::new(Mutex::new(SuggestionQueue::default()));
+        let epoch = Arc::new(AtomicU64::new(1));
+        let entered = Arc::new(AtomicUsize::new(0));
+        let (started, started_rx) = oneshot::channel();
+        let (release, release_rx) = std::sync::mpsc::channel();
+        let (ack, rx) = oneshot::channel();
+        let first_entered = Arc::clone(&entered);
+        enqueue_file_suggestion(
+            &queue,
+            &epoch,
+            SuggestionRequest {
+                work: Box::new(move || {
+                    first_entered.fetch_add(1, Ordering::SeqCst);
+                    let _ = started.send(());
+                    release_rx.recv().unwrap();
+                    Ok(crate::files::FileSuggestionResult {
+                        paths: Vec::new(),
+                        truncated: false,
+                    })
+                }),
+                location: "/a".into(),
+                generation: 1,
+                ack,
+            },
+        );
+        timeout(Duration::from_secs(5), started_rx)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let (ack, canceled) = oneshot::channel();
+        let pending_entered = Arc::clone(&entered);
+        enqueue_file_suggestion(
+            &queue,
+            &epoch,
+            SuggestionRequest {
+                work: Box::new(move || {
+                    pending_entered.fetch_add(1, Ordering::SeqCst);
+                    Ok(crate::files::FileSuggestionResult {
+                        paths: Vec::new(),
+                        truncated: false,
+                    })
+                }),
+                location: "/a".into(),
+                generation: 1,
+                ack,
+            },
+        );
+        drop(canceled);
+        release.send(()).unwrap();
+        timeout(Duration::from_secs(5), rx)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        timeout(Duration::from_secs(5), async {
+            while queue.lock().unwrap().running {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        assert_eq!(entered.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn suggestions_follow_owner_across_home_switch_and_return() {
+        let root = tempfile::tempdir().unwrap();
+        let a = root.path().join("a");
+        let b = root.path().join("b");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&a).unwrap();
+        std::fs::create_dir_all(&b).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let config = r#"{"model":"fixture/m","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"dummy"},"models":{"m":{}}}}}"#;
+        for project in [&a, &b] {
+            std::fs::write(project.join("opencode.json"), config).unwrap();
+        }
+        std::fs::write(a.join("only-a.rs"), "a").unwrap();
+        std::fs::write(b.join("only-b.rs"), "b").unwrap();
+        let env = BTreeMap::from([
+            ("HOME".into(), data.to_string_lossy().into_owned()),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]);
+        let (app, guard, _) = spawn_with_env(&a, &data, env).await.unwrap();
+        let first = app.file_suggestions("only".into(), 20).await.unwrap();
+        assert_eq!(first.location, a.to_string_lossy());
+        assert_eq!(first.paths, ["only-a.rs"]);
+        assert!(!first.truncated);
+
+        let switched = app
+            .switch_location_home(b.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        let second = app.file_suggestions("only".into(), 20).await.unwrap();
+        assert_eq!(second.location, b.to_string_lossy());
+        assert_eq!(second.paths, ["only-b.rs"]);
+        assert!(second.generation > first.generation);
+        assert_eq!(second.generation, switched.generation);
+
+        let returned = app
+            .switch_location_home(a.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        let third = app.file_suggestions("only".into(), 20).await.unwrap();
+        assert_eq!(third.location, first.location);
+        assert_eq!(third.paths, first.paths);
+        assert!(third.generation > second.generation);
+        assert_eq!(third.generation, returned.generation);
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[test]
+    fn stale_walk_is_refused_even_when_location_returns_to_same_path() {
+        let epoch = AtomicU64::new(1);
+        // A detached blocking walk finishes after the owner publishes A→B→A.
+        epoch.fetch_add(2, Ordering::SeqCst);
+        let result = file_suggestion_reply(
+            &epoch,
+            1,
+            "/project/a".into(),
+            Ok(crate::files::FileSuggestionResult {
+                paths: vec!["old.rs".into()],
+                truncated: false,
+            }),
+        );
+        assert_eq!(
+            result,
+            Err(app_error("file suggestions belong to previous Location"))
+        );
+    }
 }
