@@ -13,7 +13,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use oc_adapters::models::ModelCatalog;
-use oc_core::core_app::{CoreApp, CoreEvent, SubmissionReceipt, WorkerTurnId};
+use oc_core::core_app::{
+    CoreApp, CoreEvent, MAX_SESSION_TITLE_BYTES, SubmissionReceipt, WorkerTurnId,
+};
 use oc_core::domain::SessionId;
 use oc_core::queries::{
     AgentEntry, CatalogSnapshot, DcpSnapshot, HistoryPage, SkillCard, ToolOpView,
@@ -79,6 +81,8 @@ pub enum TuiPanel {
     Agents,
     /// Session list with resume (UI03).
     Sessions,
+    /// Focused single-line session title editor.
+    Rename,
     /// Skill catalog (UI06).
     Skills,
     /// Help, optionally for one topic.
@@ -108,6 +112,10 @@ pub enum PanelIntent {
     ActivateTab { index: usize },
     /// Close a retained tab; `tabs.len()` denotes the synthetic Home slot.
     CloseTab { index: usize },
+    /// Apply the trimmed title to the attached session through the owner.
+    RenameSession { title: String },
+    /// Apply a slash-supplied title without opening the editor; ACK clears the slash draft.
+    RenameSessionDirect { title: String },
     /// Select a model, restoring the owner's remembered variant preference.
     SelectModel {
         /// Exact model id.
@@ -337,6 +345,10 @@ pub struct TuiState {
     leader: Option<Instant>,
     input: String,
     editor: crate::editor::Editor,
+    rename_input: String,
+    rename_editor: crate::editor::Editor,
+    rename_pending: Option<String>,
+    rename_direct_pending: Option<(String, u64)>,
     window: HistoryWindow,
     markdown_cache: std::cell::RefCell<crate::messages::MarkdownCache>,
     live_text: String,
@@ -446,6 +458,10 @@ impl TuiState {
             leader: None,
             input: String::new(),
             editor: Default::default(),
+            rename_input: String::new(),
+            rename_editor: Default::default(),
+            rename_pending: None,
+            rename_direct_pending: None,
             window: HistoryWindow::new(),
             markdown_cache: std::cell::RefCell::new(Default::default()),
             live_text: String::new(),
@@ -825,6 +841,8 @@ impl TuiState {
                         .filter(|c| {
                             c.in_palette(self.picker.as_ref().is_some_and(|p| p.has_variants()))
                                 && (c.action != CommandAction::CloseTab || !self.tabs.is_empty())
+                                && (!matches!(c.action, CommandAction::RenameSession { .. })
+                                    || self.command_unavailable(&c.action).is_none())
                         })
                         .map(|c| {
                             item(
@@ -895,6 +913,7 @@ impl TuiState {
                     )
                 })
                 .collect(),
+            TuiPanel::Rename => Vec::new(),
             TuiPanel::None => Vec::new(),
             _ => crate::views::panel_lines(self)
                 .into_iter()
@@ -913,6 +932,17 @@ impl TuiState {
                 return Some("no tab to close");
             }
             if tabs.get(index).is_some_and(|tab| tab.busy) {
+                return Some("tab busy; action unavailable");
+            }
+        }
+        if matches!(action, CommandAction::RenameSession { .. }) {
+            if self.home || self.session.is_none() {
+                return Some("no session yet");
+            }
+            if self.parent_id.is_some() {
+                return Some("child session is read-only");
+            }
+            if self.tabs.get(self.active_tab).is_some_and(|tab| tab.busy) {
                 return Some("tab busy; action unavailable");
             }
         }
@@ -1098,6 +1128,9 @@ impl TuiState {
     /// Close any open panel (chat view).
     pub fn close_panel(&mut self) {
         self.panel = TuiPanel::None;
+        self.rename_input.clear();
+        self.rename_editor.clear();
+        self.rename_pending = None;
         self.card_output = None;
         self.card_scroll = 0;
         self.card_seen.set(0);
@@ -1214,6 +1247,33 @@ impl TuiState {
         self.tab_down = None;
         self.hovered_tab.set(None);
         self.close_hold = None;
+        if self.panel == TuiPanel::Rename {
+            let rect = crate::dialog::rename_geometry(area);
+            let hit = if !rect.contains((event.column, event.row).into()) {
+                DialogHit::Backdrop
+            } else if event.row == rect.y + 1
+                && event.column >= rect.right().saturating_sub(7)
+                && event.column < rect.right().saturating_sub(4)
+            {
+                DialogHit::Close
+            } else {
+                DialogHit::Surface
+            };
+            match event.kind {
+                MouseEventKind::Down(MouseButton::Left) => self.mouse_down = Some(hit),
+                MouseEventKind::Up(MouseButton::Left) => {
+                    let pressed = self.mouse_down.take();
+                    if self.rename_pending.is_none()
+                        && ((pressed == Some(DialogHit::Backdrop) && hit == DialogHit::Backdrop)
+                            || (pressed == Some(DialogHit::Close) && hit == DialogHit::Close))
+                    {
+                        self.close_panel();
+                    }
+                }
+                _ => {}
+            }
+            return KeyOutcome::default();
+        }
         if self.panel == TuiPanel::Cards && self.card_output.is_some() {
             let (rect, _, _) = crate::dialog::card_geometry(area);
             let inside = rect.contains((event.column, event.row).into());
@@ -1689,6 +1749,9 @@ impl TuiState {
             return KeyOutcome::default();
         }
         if self.panel != TuiPanel::None {
+            if self.panel == TuiPanel::Rename {
+                return self.paste_rename(text);
+            }
             let room = 512_usize.saturating_sub(self.select.query.len());
             let mut kept = 0;
             for grapheme in text.graphemes(true) {
@@ -1766,6 +1829,103 @@ impl TuiState {
     /// user can retry or edit it.
     pub fn apply_intent_error(&mut self, message: String) {
         self.note = Some(message);
+    }
+
+    /// Current modal value, distinct from the prompt draft and its caret.
+    pub fn rename_title(&self) -> Option<&str> {
+        (self.panel == TuiPanel::Rename).then_some(self.rename_input.as_str())
+    }
+
+    pub(crate) fn rename_cursor(&self) -> usize {
+        self.rename_editor.cursor
+    }
+
+    /// Call only after the application owner has accepted the title update.
+    /// This also updates the active tab until the next owner deck snapshot.
+    pub fn rename_session_applied(&mut self, title: String) {
+        if self.panel != TuiPanel::Rename || self.rename_pending.as_deref() != Some(&title) {
+            return;
+        }
+        self.session_title = Some(title.clone());
+        if let Some(tab) = self.tabs.get_mut(self.active_tab) {
+            tab.title = Some(title);
+        }
+        self.close_panel();
+        self.note = None;
+    }
+
+    /// Owner refusal retains the focused title and prompt draft for retry.
+    pub fn rename_session_rejected(&mut self, message: String) {
+        if self.panel == TuiPanel::Rename {
+            self.rename_pending = None;
+            self.apply_intent_error(message);
+        }
+    }
+
+    /// ACK a direct `/rename <title>` only when its matching owner request completed.
+    /// Preserve edits made to the composer while the owner was working.
+    pub fn rename_session_direct_applied(&mut self, title: String) {
+        let Some((pending, revision)) = self.rename_direct_pending.take() else {
+            return;
+        };
+        if pending != title {
+            self.rename_direct_pending = Some((pending, revision));
+            return;
+        }
+        self.session_title = Some(title.clone());
+        if let Some(tab) = self.tabs.get_mut(self.active_tab) {
+            tab.title = Some(title);
+        }
+        if self.input_revision == revision {
+            self.accept_intent();
+            self.input_revision += 1;
+        }
+        self.note = None;
+    }
+
+    /// A failed direct request leaves the original slash draft available for correction.
+    pub fn rename_session_direct_rejected(&mut self, message: String) {
+        if self.rename_direct_pending.take().is_some() {
+            self.apply_intent_error(message);
+        }
+    }
+
+    fn paste_rename(&mut self, text: &str) -> KeyOutcome {
+        use unicode_segmentation::UnicodeSegmentation as _;
+        if self.rename_pending.is_some() {
+            return KeyOutcome::default();
+        }
+        let mut clean = String::new();
+        let mut clipped = false;
+        for grapheme in text.graphemes(true) {
+            let safe = match grapheme {
+                "\r\n" | "\n" | "\r" | "\t" => " ",
+                _ if grapheme.chars().any(char::is_control) => continue,
+                _ => grapheme,
+            };
+            if clean.len() + safe.len() > MAX_SESSION_TITLE_BYTES {
+                clipped = true;
+                break;
+            }
+            clean.push_str(safe);
+        }
+        let inserted =
+            self.rename_editor
+                .replace(&mut self.rename_input, &clean, MAX_SESSION_TITLE_BYTES);
+        KeyOutcome {
+            note: (clipped || inserted < clean.len()).then(|| self.rename_limit_note()),
+            ..KeyOutcome::default()
+        }
+    }
+
+    fn rename_limit_note(&self) -> String {
+        if self.rename_input.len() > MAX_SESSION_TITLE_BYTES {
+            format!(
+                "session title exceeds {MAX_SESSION_TITLE_BYTES} bytes; shorten it or select all to replace"
+            )
+        } else {
+            format!("session title truncated at {MAX_SESSION_TITLE_BYTES} bytes")
+        }
     }
 
     /// Report that an intent was accepted and applied; clears the input.
@@ -1954,6 +2114,7 @@ impl TuiState {
                 | KeyAction::Quit
                 | KeyAction::Commands
                 | KeyAction::Agents
+                | KeyAction::Rename
         ) {
             self.leader = None;
         } else if let Some(start) = self.leader.take()
@@ -1972,6 +2133,7 @@ impl TuiState {
         match action {
             KeyAction::Commands => self.run_command(CommandAction::OpenCommands),
             KeyAction::Agents => self.run_command(CommandAction::OpenAgents),
+            KeyAction::Rename => self.run_command(CommandAction::RenameSession { title: None }),
             KeyAction::Leader => {
                 self.leader = Some(Instant::now());
                 KeyOutcome::default()
@@ -2192,6 +2354,15 @@ impl TuiState {
             return KeyOutcome::default();
         }
         if self.pending.is_some() {
+            if matches!(
+                dispatch(self.input.trim()),
+                Some(CommandAction::RenameSession { title: None })
+            ) {
+                return KeyOutcome {
+                    note: Some("/rename without a title is unavailable (title generation is not implemented)".into()),
+                    ..KeyOutcome::default()
+                };
+            }
             if let Some(action) = dispatch(self.input.trim())
                 && let Some(reason) = self.command_unavailable(&action)
             {
@@ -2213,6 +2384,12 @@ impl TuiState {
             // Workspace commands reach the application, which owns their
             // templates; the built-in table only routes known commands.
             if !matches!(action, CommandAction::Help(None)) || !self.is_workspace_command(&text) {
+                if matches!(action, CommandAction::RenameSession { title: None }) {
+                    return KeyOutcome {
+                        note: Some("/rename without a title is unavailable (title generation is not implemented)".into()),
+                        ..KeyOutcome::default()
+                    };
+                }
                 let outcome = self.run_command(action);
                 if outcome.consumed_input
                     || matches!(
@@ -2379,6 +2556,28 @@ impl TuiState {
                 ..KeyOutcome::default()
             };
         }
+        if let CommandAction::RenameSession { title: Some(title) } = &action {
+            if self.rename_direct_pending.is_some() {
+                return KeyOutcome {
+                    note: Some("session rename pending".into()),
+                    ..KeyOutcome::default()
+                };
+            }
+            let Some(title) = oc_core::core_app::normalized_session_title(title) else {
+                return KeyOutcome {
+                    note: Some(format!(
+                        "session title must be 1–{MAX_SESSION_TITLE_BYTES} bytes of visible text"
+                    )),
+                    ..KeyOutcome::default()
+                };
+            };
+            let title = title.to_string();
+            self.rename_direct_pending = Some((title.clone(), self.input_revision));
+            return KeyOutcome {
+                intent: Some(PanelIntent::RenameSessionDirect { title }),
+                ..KeyOutcome::default()
+            };
+        }
         self.select.reset();
         self.mouse_down = None;
         self.tab_down = None;
@@ -2412,6 +2611,37 @@ impl TuiState {
             CommandAction::OpenVariants => self.open_variants(),
             CommandAction::NewSession => {
                 outcome.intent = Some(PanelIntent::NewSession);
+            }
+            CommandAction::RenameSession { title: None } => {
+                self.panel = TuiPanel::Rename;
+                // Generated titles contain at most 100 Unicode scalar values (<=400
+                // UTF-8 bytes). Keep the whole title, even when the owner would
+                // reject it as a replacement, so Enter cannot submit a prefix.
+                // An unexpectedly larger title stays only in session_title, not
+                // in the editor's undo history or an unbounded modal copy.
+                const MAX_RENAME_PREFILL_BYTES: usize = 100 * 4;
+                self.rename_input = self
+                    .session_title
+                    .as_ref()
+                    .filter(|title| title.len() <= MAX_RENAME_PREFILL_BYTES)
+                    .cloned()
+                    .unwrap_or_default();
+                if self
+                    .session_title
+                    .as_ref()
+                    .is_some_and(|title| title.len() > MAX_RENAME_PREFILL_BYTES)
+                {
+                    outcome.note =
+                        Some("existing title too long to prefill; type a replacement".into());
+                } else if self.rename_input.len() > MAX_SESSION_TITLE_BYTES {
+                    outcome.note = Some(self.rename_limit_note());
+                }
+                self.rename_editor.clear();
+                self.rename_editor.cursor = self.rename_input.len();
+                self.rename_pending = None;
+            }
+            CommandAction::RenameSession { title: Some(_) } => {
+                unreachable!("direct rename is returned before modal reset")
             }
             CommandAction::CloseTab => unreachable!("close is returned before modal reset"),
             CommandAction::OpenAgents => {
@@ -2459,6 +2689,9 @@ impl TuiState {
     /// Panel navigation: Up/Down move the panel cursor, Enter chooses,
     /// Esc closes; text and paste belong to the focused modal search.
     pub fn handle_panel_key(&mut self, action: KeyAction) -> KeyOutcome {
+        if self.panel == TuiPanel::Rename {
+            return self.handle_rename_key(action);
+        }
         if self.panel == TuiPanel::Cards && self.card_output.is_some() {
             let (start, height, count) = crate::views::card_window(self);
             self.card_scroll = start;
@@ -2593,6 +2826,127 @@ impl TuiState {
         }
     }
 
+    fn handle_rename_key(&mut self, action: KeyAction) -> KeyOutcome {
+        if action == KeyAction::Cancel || action == KeyAction::Interrupt {
+            if self.rename_pending.is_none() {
+                self.close_panel();
+            }
+            return KeyOutcome::default();
+        }
+        if self.rename_pending.is_some() {
+            return KeyOutcome::default();
+        }
+        match action {
+            KeyAction::Enter => {
+                if let Some(reason) =
+                    self.command_unavailable(&CommandAction::RenameSession { title: None })
+                {
+                    return KeyOutcome {
+                        note: Some(reason.into()),
+                        ..KeyOutcome::default()
+                    };
+                }
+                if self.rename_input.trim().is_empty() {
+                    return KeyOutcome::default();
+                }
+                if self.rename_input.len() > MAX_SESSION_TITLE_BYTES {
+                    if self.session_title.as_deref() == Some(self.rename_input.as_str()) {
+                        self.close_panel();
+                        return KeyOutcome::default();
+                    }
+                    return KeyOutcome {
+                        note: Some(self.rename_limit_note()),
+                        ..KeyOutcome::default()
+                    };
+                }
+                let title = self.rename_input.trim().to_string();
+                self.rename_pending = Some(title.clone());
+                KeyOutcome {
+                    intent: Some(PanelIntent::RenameSession { title }),
+                    ..KeyOutcome::default()
+                }
+            }
+            KeyAction::Char(c) if !c.is_control() => {
+                let inserted = self.rename_editor.replace(
+                    &mut self.rename_input,
+                    &c.to_string(),
+                    MAX_SESSION_TITLE_BYTES,
+                );
+                KeyOutcome {
+                    note: (inserted == 0).then(|| self.rename_limit_note()),
+                    ..KeyOutcome::default()
+                }
+            }
+            KeyAction::Backspace | KeyAction::WordBackspace => {
+                self.rename_editor.delete(
+                    &mut self.rename_input,
+                    true,
+                    action == KeyAction::WordBackspace,
+                );
+                KeyOutcome::default()
+            }
+            KeyAction::Delete | KeyAction::DeleteOrQuit | KeyAction::WordDelete => {
+                self.rename_editor.delete(
+                    &mut self.rename_input,
+                    false,
+                    action == KeyAction::WordDelete,
+                );
+                KeyOutcome::default()
+            }
+            KeyAction::Left
+            | KeyAction::Right
+            | KeyAction::WordLeft
+            | KeyAction::WordRight
+            | KeyAction::SelectLeft
+            | KeyAction::SelectRight
+            | KeyAction::SelectWordLeft
+            | KeyAction::SelectWordRight => {
+                self.rename_editor.horizontal(
+                    &self.rename_input,
+                    matches!(
+                        action,
+                        KeyAction::Right
+                            | KeyAction::WordRight
+                            | KeyAction::SelectRight
+                            | KeyAction::SelectWordRight
+                    ),
+                    matches!(
+                        action,
+                        KeyAction::WordLeft
+                            | KeyAction::WordRight
+                            | KeyAction::SelectWordLeft
+                            | KeyAction::SelectWordRight
+                    ),
+                    matches!(
+                        action,
+                        KeyAction::SelectLeft
+                            | KeyAction::SelectRight
+                            | KeyAction::SelectWordLeft
+                            | KeyAction::SelectWordRight
+                    ),
+                );
+                KeyOutcome::default()
+            }
+            KeyAction::Home | KeyAction::End | KeyAction::SelectHome | KeyAction::SelectEnd => {
+                self.rename_editor.move_to(
+                    if matches!(action, KeyAction::End | KeyAction::SelectEnd) {
+                        self.rename_input.len()
+                    } else {
+                        0
+                    },
+                    matches!(action, KeyAction::SelectHome | KeyAction::SelectEnd),
+                );
+                KeyOutcome::default()
+            }
+            KeyAction::Undo | KeyAction::Redo => {
+                self.rename_editor
+                    .undo(&mut self.rename_input, action == KeyAction::Redo);
+                KeyOutcome::default()
+            }
+            _ => KeyOutcome::default(),
+        }
+    }
+
     fn move_panel_cursor(&mut self, delta: isize) {
         match self.panel {
             TuiPanel::Model => {
@@ -2630,6 +2984,7 @@ impl TuiState {
                     return self.run_command(command.action.clone());
                 }
             }
+            TuiPanel::Rename => return self.handle_rename_key(KeyAction::Enter),
             TuiPanel::Model if self.is_busy() => {
                 outcome.note = self
                     .command_unavailable(&CommandAction::OpenModelPicker)
@@ -3446,8 +3801,9 @@ pub enum PumpOutcome {
 #[cfg(test)]
 mod tests {
     use super::{
-        HOME_EXAMPLES, KeyOutcome, LIVE_PARTS_MAX, MAX_INPUT_BYTES, PanelIntent, PumpOutcome,
-        ScriptDriver, TabCloseHold, TabPresentation, TuiPanel, TuiState, TuiStatus, VIEWPORT_LINES,
+        HOME_EXAMPLES, KeyOutcome, LIVE_PARTS_MAX, MAX_INPUT_BYTES, MAX_SESSION_TITLE_BYTES,
+        PanelIntent, PumpOutcome, ScriptDriver, TabCloseHold, TabPresentation, TuiPanel, TuiState,
+        TuiStatus, VIEWPORT_LINES,
     };
     use crate::events::KeyAction;
     use crate::history::{WINDOW_BYTES, WINDOW_ROWS};
@@ -3489,6 +3845,359 @@ mod tests {
         std::mem::forget(guard);
         app.create_session(sid(name)).await.expect("create");
         TuiState::new(app, sid(name))
+    }
+
+    #[tokio::test]
+    async fn rename_shortcut_edits_graphemes_and_waits_for_owner_ack() {
+        use crate::commands::CommandAction;
+        let mut state = fresh_state("rename-shortcut").await;
+        state.session_title = Some("е\u{301}🧑‍💻界".into());
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: state.session_title.clone(),
+                home: false,
+                busy: false,
+            }],
+            0,
+            true,
+        );
+        type_text(&mut state, "unsent prompt").await;
+        let (draft, caret) = (state.input.clone(), state.editor.cursor);
+        assert_eq!(state.handle_key(KeyAction::Rename).await.intent, None);
+        assert_eq!(state.panel(), &TuiPanel::Rename);
+        assert_eq!(state.rename_title(), Some("е\u{301}🧑‍💻界"));
+        assert_eq!(state.rename_cursor(), "е\u{301}🧑‍💻界".len());
+        state.handle_key(KeyAction::Left).await;
+        state.handle_key(KeyAction::Backspace).await;
+        assert_eq!(state.rename_title(), Some("е\u{301}界"));
+        state.handle_paste("  🦊\n\tnew  ");
+        assert_eq!(state.rename_title(), Some("е\u{301}  🦊  new  界"));
+        let outcome = state.handle_key(KeyAction::Enter).await;
+        let title = "е\u{301}  🦊  new  界".to_string();
+        assert_eq!(
+            outcome.intent,
+            Some(PanelIntent::RenameSession {
+                title: title.clone()
+            })
+        );
+        assert_eq!(state.panel(), &TuiPanel::Rename);
+        assert_eq!(state.session_title.as_deref(), Some("е\u{301}🧑‍💻界"));
+        assert_eq!(
+            state.handle_key(KeyAction::Enter).await.intent,
+            None,
+            "no duplicate while waiting"
+        );
+        state.rename_session_rejected("rename failed".into());
+        assert_eq!(state.note(), Some("rename failed"));
+        assert_eq!(state.rename_title(), Some(title.as_str()));
+        assert_eq!(state.input(), draft);
+        assert_eq!(state.editor.cursor, caret);
+        assert_eq!(
+            state.handle_key(KeyAction::Enter).await.intent,
+            Some(PanelIntent::RenameSession {
+                title: title.clone()
+            })
+        );
+        state.rename_session_applied("wrong title".into());
+        assert_eq!(state.panel(), &TuiPanel::Rename);
+        state.rename_session_applied(title.clone());
+        assert_eq!(state.panel(), &TuiPanel::None);
+        assert_eq!(state.session_title.as_deref(), Some(title.as_str()));
+        assert_eq!(
+            state.tab_presentation().0[0].title.as_deref(),
+            Some(title.as_str())
+        );
+        assert_eq!(state.input(), draft);
+        assert_eq!(state.editor.cursor, caret);
+        assert_eq!(
+            state.command_unavailable(&CommandAction::RenameSession { title: None }),
+            None
+        );
+    }
+
+    #[tokio::test]
+    async fn rename_palette_slash_blank_cancel_and_refusal() {
+        use crate::commands::CommandAction;
+        let (app, _, _) = CoreApp::channel(4);
+        let mut home = TuiState::new_home(app);
+        assert_eq!(
+            home.handle_key(KeyAction::Rename).await.note.as_deref(),
+            Some("no session yet")
+        );
+        home.handle_key(KeyAction::Commands).await;
+        home.handle_paste("Rename session");
+        assert!(home.modal_options().is_empty());
+
+        let mut state = fresh_state("rename-palette").await;
+        state.handle_key(KeyAction::Commands).await;
+        state.handle_paste("Rename session");
+        assert_eq!(state.modal_options()[0].value, "session.rename");
+        assert_eq!(state.modal_options()[0].footer, "ctrl+r");
+        state.handle_panel_key(KeyAction::Enter);
+        assert_eq!(state.rename_title(), Some(""));
+        assert_eq!(state.handle_panel_key(KeyAction::Enter).intent, None);
+        state.handle_paste("  \n\t");
+        assert_eq!(state.handle_panel_key(KeyAction::Enter).intent, None);
+        assert_eq!(state.panel(), &TuiPanel::Rename);
+        state.handle_panel_key(KeyAction::Cancel);
+        assert_eq!(state.rename_title(), None);
+        assert_eq!(state.session_title, None);
+
+        type_text(&mut state, "/rename").await;
+        let bare = state.handle_key(KeyAction::Enter).await;
+        assert_eq!(bare.intent, None);
+        assert_eq!(
+            bare.note.as_deref(),
+            Some("/rename without a title is unavailable (title generation is not implemented)")
+        );
+        assert_eq!(state.panel(), &TuiPanel::None);
+        assert_eq!(state.input(), "/rename");
+
+        state.parent_id = Some("parent".into());
+        assert_eq!(
+            state
+                .run_command(CommandAction::RenameSession { title: None })
+                .note
+                .as_deref(),
+            Some("child session is read-only")
+        );
+        state.parent_id = None;
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: None,
+                home: false,
+                busy: true,
+            }],
+            0,
+            false,
+        );
+        assert_eq!(
+            state.handle_key(KeyAction::Rename).await.note.as_deref(),
+            Some("tab busy; action unavailable")
+        );
+    }
+
+    #[tokio::test]
+    async fn rename_oversized_prefill_never_submits_a_prefix_and_can_be_replaced() {
+        let mut state = fresh_state("rename-generated").await;
+        let generated = "🙂".repeat(100);
+        assert_eq!(generated.len(), 400);
+        state.session_title = Some(generated.clone());
+        let opened = state.handle_key(KeyAction::Rename).await;
+        assert_eq!(state.rename_title(), Some(generated.as_str()));
+        assert!(
+            opened
+                .note
+                .as_deref()
+                .unwrap()
+                .contains("shorten it or select all")
+        );
+        assert_eq!(state.rename_cursor(), generated.len());
+        assert!(state.rename_editor.retained_bytes() <= 400 * 32);
+        assert_eq!(state.handle_key(KeyAction::Enter).await.intent, None);
+        assert_eq!(state.panel(), &TuiPanel::None);
+        assert_eq!(state.session_title.as_deref(), Some(generated.as_str()));
+
+        state.handle_key(KeyAction::Rename).await;
+        assert_eq!(state.handle_key(KeyAction::Char('x')).await.intent, None);
+        assert_eq!(state.rename_title(), Some(generated.as_str()));
+        state.handle_key(KeyAction::Backspace).await;
+        assert_eq!(state.rename_title(), Some("🙂".repeat(99).as_str()));
+        assert_eq!(state.handle_key(KeyAction::Enter).await.intent, None);
+        assert_eq!(state.panel(), &TuiPanel::Rename);
+        assert_eq!(state.session_title.as_deref(), Some(generated.as_str()));
+        state.handle_key(KeyAction::SelectHome).await;
+        state.handle_paste("е\u{301}🧑‍💻 renamed");
+        let title = "е\u{301}🧑‍💻 renamed".to_string();
+        assert_eq!(state.rename_title(), Some(title.as_str()));
+        assert_eq!(
+            state.handle_key(KeyAction::Enter).await.intent,
+            Some(PanelIntent::RenameSession {
+                title: title.clone()
+            })
+        );
+        assert_eq!(state.session_title.as_deref(), Some(generated.as_str()));
+        state.rename_session_applied(title.clone());
+        assert_eq!(state.session_title.as_deref(), Some(title.as_str()));
+        assert_eq!(state.panel(), &TuiPanel::None);
+    }
+
+    #[tokio::test]
+    async fn rename_full_unicode_prefill_stays_on_one_row_at_narrow_width() {
+        use ratatui::{
+            Terminal,
+            backend::{Backend, TestBackend},
+            layout::Rect,
+        };
+
+        let mut state = fresh_state("rename-narrow").await;
+        let title = "🙂".repeat(100);
+        state.session_title = Some(title.clone());
+        state.handle_key(KeyAction::Rename).await;
+        let mut terminal = Terminal::new(TestBackend::new(43, 24)).unwrap();
+        terminal
+            .draw(|frame| crate::dialog::render(frame, &state))
+            .unwrap();
+        let rect = crate::dialog::rename_geometry(Rect::new(0, 0, 43, 24));
+        let buffer = terminal.backend().buffer();
+        assert!((rect.x + 2..rect.right() - 2).any(|x| buffer[(x, rect.y + 3)].symbol() == "🙂"));
+        assert!((rect.x + 2..rect.right() - 2).all(|x| buffer[(x, rect.y + 4)].symbol() == " "));
+        assert_eq!(
+            terminal.backend_mut().get_cursor_position().unwrap().y,
+            rect.y + 3
+        );
+        assert_eq!(state.rename_title(), Some(title.as_str()));
+    }
+
+    #[tokio::test]
+    async fn rename_limits_prefill_typing_and_paste_to_owner_bytes_without_splitting_graphemes() {
+        let mut state = fresh_state("rename-limits").await;
+        state.session_title = Some(format!("{}🧑‍💻", "a".repeat(252)));
+        let opened = state.handle_key(KeyAction::Rename).await;
+        assert_eq!(state.rename_title(), state.session_title.as_deref());
+        assert!(
+            opened
+                .note
+                .as_deref()
+                .unwrap()
+                .contains("shorten it or select all")
+        );
+        state.handle_key(KeyAction::Backspace).await;
+        assert_eq!(state.rename_title(), Some("a".repeat(252).as_str()));
+        assert_eq!(state.handle_key(KeyAction::Char('界')).await.intent, None);
+        assert_eq!(state.rename_title().unwrap().len(), 255);
+        assert_eq!(
+            state
+                .handle_key(KeyAction::Char('界'))
+                .await
+                .note
+                .as_deref(),
+            Some("session title truncated at 256 bytes")
+        );
+        let outcome = state.handle_paste("🦊界");
+        assert_eq!(
+            outcome.note.as_deref(),
+            Some("session title truncated at 256 bytes")
+        );
+        assert_eq!(state.rename_title().unwrap().len(), 255);
+        state.handle_key(KeyAction::Backspace).await;
+        let outcome = state.handle_paste("界🦊");
+        assert_eq!(
+            outcome.note.as_deref(),
+            Some("session title truncated at 256 bytes")
+        );
+        assert_eq!(
+            state.rename_title(),
+            Some(format!("{}界", "a".repeat(252)).as_str())
+        );
+        let intent = state.handle_key(KeyAction::Enter).await.intent;
+        assert_eq!(
+            intent,
+            Some(PanelIntent::RenameSession {
+                title: format!("{}界", "a".repeat(252))
+            })
+        );
+        assert!(state.rename_title().unwrap().len() <= MAX_SESSION_TITLE_BYTES);
+    }
+
+    #[tokio::test]
+    async fn rename_combined_unicode_prefill_and_editor_history_stay_bounded() {
+        let mut state = fresh_state("rename-combined").await;
+        // 100 Unicode scalar values, with combined graphemes and UTF-8 >256.
+        let original = format!("{}{}", "🧑‍💻".repeat(20), "е\u{301}".repeat(20));
+        assert_eq!(original.chars().count(), 100);
+        assert!(original.len() > MAX_SESSION_TITLE_BYTES);
+        assert!(original.len() <= 400);
+        state.session_title = Some(original.clone());
+        state.handle_key(KeyAction::Rename).await;
+        assert_eq!(state.rename_title(), Some(original.as_str()));
+        state.handle_key(KeyAction::Backspace).await;
+        assert_eq!(
+            state.rename_title(),
+            Some(format!("{}{}", "🧑‍💻".repeat(20), "е\u{301}".repeat(19)).as_str())
+        );
+        state.handle_key(KeyAction::Undo).await;
+        assert_eq!(state.rename_title(), Some(original.as_str()));
+        assert_eq!(state.handle_key(KeyAction::Enter).await.intent, None);
+        assert_eq!(state.session_title.as_deref(), Some(original.as_str()));
+
+        // Even malformed/older oversized titles do not create an unbounded
+        // modal copy or retained undo snapshots.
+        state.session_title = Some("🙂".repeat(10_000));
+        state.handle_key(KeyAction::Rename).await;
+        assert_eq!(state.rename_title(), Some(""));
+        for _ in 0..40 {
+            state.handle_paste(&"🧑‍💻".repeat(100));
+            state.handle_key(KeyAction::Undo).await;
+        }
+        assert!(state.rename_title().unwrap().len() <= 400);
+        assert!(state.rename_editor.retained_bytes() <= 32 * 400);
+        state.close_panel();
+        assert_eq!(state.rename_editor.retained_bytes(), 0);
+    }
+
+    #[tokio::test]
+    async fn slash_rename_direct_waits_for_owner_and_retains_draft_on_async_failure() {
+        let mut state = fresh_state("rename-direct").await;
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: None,
+                home: false,
+                busy: false,
+            }],
+            0,
+            true,
+        );
+        state.input = "/rename  🦊 edited  ".into();
+        state.editor.cursor = state.input.len();
+        let original = state.input.clone();
+        let intent = state.handle_key(KeyAction::Enter).await.intent;
+        assert_eq!(
+            intent,
+            Some(PanelIntent::RenameSessionDirect {
+                title: "🦊 edited".into()
+            })
+        );
+        assert_eq!(state.panel(), &TuiPanel::None);
+        assert_eq!(state.input(), original);
+        assert_eq!(state.handle_key(KeyAction::Enter).await.intent, None);
+        state.rename_session_applied("🦊 edited".into());
+        assert_eq!(
+            state.session_title, None,
+            "dialog ACK must not accept a direct request"
+        );
+        state.rename_session_direct_rejected("storage failed".into());
+        assert_eq!(state.note(), Some("storage failed"));
+        assert_eq!(state.input(), original);
+        assert_eq!(state.handle_key(KeyAction::Enter).await.intent, intent);
+        state.rename_session_direct_applied("wrong title".into());
+        assert_eq!(state.input(), original);
+        state.rename_session_direct_applied("🦊 edited".into());
+        assert_eq!(state.input(), "");
+        assert_eq!(state.session_title.as_deref(), Some("🦊 edited"));
+        assert_eq!(
+            state.tab_presentation().0[0].title.as_deref(),
+            Some("🦊 edited")
+        );
+
+        state.input = format!("/rename {}🦊", "a".repeat(MAX_SESSION_TITLE_BYTES));
+        state.editor.cursor = state.input.len();
+        let invalid = state.handle_key(KeyAction::Enter).await;
+        assert_eq!(invalid.intent, None);
+        assert!(invalid.note.as_deref().unwrap().contains("256 bytes"));
+        assert!(!state.input().is_empty());
+
+        state.input = "/rename short".into();
+        state.editor.cursor = state.input.len();
+        assert_eq!(
+            state.handle_key(KeyAction::Enter).await.intent,
+            Some(PanelIntent::RenameSessionDirect {
+                title: "short".into()
+            })
+        );
+        state.handle_key(KeyAction::Char('!')).await;
+        state.rename_session_direct_applied("short".into());
+        assert_eq!(state.input(), "/rename short!");
     }
 
     #[tokio::test]

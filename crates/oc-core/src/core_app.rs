@@ -18,6 +18,75 @@ use crate::queries::{
 };
 use crate::session::{CoreError, MAX_INPUT_BYTES, MAX_QUEUE_ITEMS, Message, MessageId, Role};
 
+/// Maximum UTF-8 bytes stored for a manually selected session title.
+pub const MAX_SESSION_TITLE_BYTES: usize = 256;
+
+// Deliberately conservative pictographic endpoints for emoji ZWJ sequences.
+// Text, digits, whitespace and standalone variation selectors never qualify.
+fn emoji_join_endpoint(c: char) -> bool {
+    !matches!(c, '\u{1f3fb}'..='\u{1f3ff}')
+        && matches!(c,
+        '\u{2640}' | '\u{2642}' | '\u{2695}' | '\u{2764}'
+        | '\u{1f300}'..='\u{1f5ff}' | '\u{1f600}'..='\u{1f64f}'
+        | '\u{1f680}'..='\u{1f6ff}' | '\u{1f900}'..='\u{1f9ff}'
+        | '\u{1fa70}'..='\u{1faff}')
+}
+
+fn emoji_joiner_context(title: &str, at: usize) -> bool {
+    let mut before = title[..at].chars().rev();
+    // An emoji presentation selector or skin-tone modifier belongs to the
+    // preceding visible emoji, rather than being an emoji endpoint itself.
+    let base = match before.next() {
+        Some('\u{fe0f}' | '\u{1f3fb}'..='\u{1f3ff}') => before.next(),
+        other => other,
+    };
+    base.is_some_and(emoji_join_endpoint)
+        && title[at + '\u{200d}'.len_utf8()..]
+            .chars()
+            .next()
+            .is_some_and(emoji_join_endpoint)
+}
+
+/// Normalize an interactive title without allowing invisible/control text.
+/// Used again by the owner because inbox messages can bypass the handle.
+pub fn normalized_session_title(title: &str) -> Option<&str> {
+    // Unicode format (Cf) characters do not render as text. This includes
+    // zero-width spaces, soft hyphens, bidi controls and tag characters.
+    // ZWJ is admitted only inside a visible emoji sequence.
+    // The combining grapheme joiner (Mn) also changes rendering invisibly.
+    if title.char_indices().any(|(at, c)| {
+        c.is_control()
+            || (c == '\u{200d}' && !emoji_joiner_context(title, at))
+            || matches!(c,
+                '\u{00ad}' | '\u{034f}' | '\u{0600}'..='\u{0605}' | '\u{061c}' | '\u{06dd}'
+                | '\u{070f}' | '\u{0890}'..='\u{0891}' | '\u{08e2}' | '\u{180e}'
+                | '\u{200b}'..='\u{200c}' | '\u{200e}'..='\u{200f}' | '\u{202a}'..='\u{202e}'
+                | '\u{2060}'..='\u{2064}' | '\u{2066}'..='\u{206f}'
+                | '\u{feff}' | '\u{fff9}'..='\u{fffb}' | '\u{110bd}'
+                | '\u{110cd}' | '\u{13430}'..='\u{1343f}'
+                | '\u{1bca0}'..='\u{1bca3}' | '\u{1d173}'..='\u{1d17a}'
+                | '\u{e0001}' | '\u{e0020}'..='\u{e007f}')
+    }) {
+        return None;
+    }
+    let trimmed = title.trim();
+    // Variation selectors are legitimate after an emoji, but not a title on
+    // their own. The same applies to blank glyphs that `str::trim` does not
+    // recognize as whitespace.
+    let visible = trimmed.chars().any(|c| {
+        !c.is_whitespace()
+            && !matches!(c,
+                '\u{115f}'..='\u{1160}' | '\u{180b}'..='\u{180d}'
+                | '\u{180f}' | '\u{2800}' | '\u{3164}' | '\u{fe00}'..='\u{fe0f}'
+                | '\u{ffa0}' | '\u{e0100}'..='\u{e01ef}')
+    });
+    if !visible || trimmed.len() > MAX_SESSION_TITLE_BYTES {
+        None
+    } else {
+        Some(trimmed)
+    }
+}
+
 /// Opaque turn id for the worker (monotonic `t0001`, …).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WorkerTurnId(pub String);
@@ -229,6 +298,12 @@ pub enum InboxMsg {
         /// Session id.
         id: SessionId,
         /// Acceptance after the operation succeeds.
+        ack: oneshot::Sender<Result<(), CoreError>>,
+    },
+    /// Persist an explicit title on an existing root in the current Location.
+    RenameSession {
+        session: SessionId,
+        title: String,
         ack: oneshot::Sender<Result<(), CoreError>>,
     },
     /// Accept input and start a turn.
@@ -501,6 +576,23 @@ impl CoreApp {
             .await
             .map_err(|_| CoreError::Shutdown)?;
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Rename a Location-bound root; succeeds after the title is durable.
+    pub async fn rename_session(&self, session: SessionId, title: String) -> Result<(), CoreError> {
+        let title = normalized_session_title(&title)
+            .ok_or_else(|| CoreError::Application("invalid session title".into()))?
+            .to_string();
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::RenameSession {
+                session,
+                title,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
     }
 
     /// Submit input; fails fast on oversize/unknown/busy without queueing.
@@ -1195,6 +1287,9 @@ fn scripted_unsupported(message: InboxMsg) {
         InboxMsg::SaveTabDeck { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
+        InboxMsg::RenameSession { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::SelectModel { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
@@ -1227,7 +1322,8 @@ fn scripted_unsupported(message: InboxMsg) {
 #[cfg(test)]
 mod tests {
     use super::{
-        CoreApp, CoreEvent, FreshSelection, InboxMsg, MockProvider, WorkerGuard, WorkerTurnId,
+        CoreApp, CoreEvent, FreshSelection, InboxMsg, MAX_SESSION_TITLE_BYTES, MockProvider,
+        WorkerGuard, WorkerTurnId, normalized_session_title,
     };
     use crate::domain::SessionId;
     use crate::session::{CoreError, Role};
@@ -1278,6 +1374,91 @@ mod tests {
             .await
             .expect_err("a panicked worker is a join failure");
         assert!(error.contains("application worker join"), "{error}");
+    }
+
+    #[test]
+    fn session_title_normalization_requires_visible_text_and_limits_utf8_bytes() {
+        for invalid in [
+            "\u{200b}",
+            " \u{200b} ",
+            "hello\u{200b}world",
+            "a\u{200d}b",
+            "\u{200d}",
+            "\u{200d}👩",
+            "👩\u{200d}",
+            "👩\u{200d} 👩",
+            "👩 \u{200d}👩",
+            "👩\u{200d}\u{200d}💻",
+            "👩\u{301}\u{200d}💻",
+            "👩\u{200d}a",
+            "a\u{200d}👩",
+            "♩\u{200d}♩",
+            "👩\u{200d}\u{fe0f}💻",
+            "👩\u{200d}🏽",
+            "👩\u{fe0f}\u{fe0f}\u{200d}💻",
+            "👩\u{200d}💻\u{200b}",
+            "👩\u{200d}💻\u{202e}",
+            "a\u{00ad}b",
+            "a\u{034f}b",
+            "a\u{202e}b",
+            "a\u{2066}b",
+            "a\u{e0020}b",
+            "a\nb",
+            "\u{fe0f}",
+            "\u{034f}\u{fe0f}",
+            "\u{2800}",
+            " \u{3164} ",
+            " \t ",
+        ] {
+            assert_eq!(normalized_session_title(invalid), None, "{invalid:?}");
+        }
+        assert_eq!(normalized_session_title("  Café 🦀  "), Some("Café 🦀"));
+        for valid in [
+            "👩\u{200d}💻",
+            "👩🏽\u{200d}💻",
+            "👩\u{200d}⚕️",
+            "👩\u{200d}❤️\u{200d}👩",
+            "  Pair 👩\u{200d}💻  ",
+        ] {
+            assert_eq!(normalized_session_title(valid), Some(valid.trim()));
+        }
+        assert_eq!(
+            normalized_session_title(" e\u{301} 👩️ "),
+            Some("e\u{301} 👩️")
+        );
+        let max_ascii = "a".repeat(MAX_SESSION_TITLE_BYTES);
+        let max_unicode = "é".repeat(MAX_SESSION_TITLE_BYTES / 2);
+        let max_emoji = "🦀".repeat(MAX_SESSION_TITLE_BYTES / 4);
+        for valid in [&max_ascii, &max_unicode, &max_emoji] {
+            assert_eq!(normalized_session_title(valid), Some(valid.as_str()));
+            assert_eq!(
+                normalized_session_title(&format!(" {valid} ")),
+                Some(valid.as_str())
+            );
+            assert_eq!(normalized_session_title(&format!("{valid}a")), None);
+        }
+        let joined = "👩\u{200d}💻"; // 11 UTF-8 bytes, including the joiner.
+        let within_limit = format!("{}{}", "a".repeat(245), joined);
+        assert_eq!(within_limit.len(), MAX_SESSION_TITLE_BYTES);
+        assert_eq!(
+            normalized_session_title(&within_limit),
+            Some(within_limit.as_str())
+        );
+        assert_eq!(normalized_session_title(&format!("{within_limit}a")), None);
+    }
+
+    #[tokio::test]
+    async fn scripted_worker_explicitly_refuses_rename() {
+        let (app, guard) = CoreApp::spawn(MockProvider::echo());
+        app.create_session(sid("root")).await.unwrap();
+        assert_eq!(
+            app.rename_session(sid("root"), "New title".into()).await,
+            Err(CoreError::Application(
+                "query unsupported by scripted worker".into()
+            ))
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
     }
 
     #[tokio::test]

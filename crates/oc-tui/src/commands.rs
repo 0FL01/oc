@@ -29,6 +29,10 @@ pub enum CommandAction {
     NewSession,
     /// Ask the application to close the active retained tab (or Home slot).
     CloseTab,
+    /// Palette/shortcut open the editor; slash args request a direct rename.
+    /// A bare `/rename` is reported unavailable by the composer until title
+    /// generation is implemented by the application owner.
+    RenameSession { title: Option<String> },
     /// Open the primary agent selector.
     OpenAgents,
     /// Open the session list.
@@ -61,7 +65,11 @@ pub fn dispatch(input: &str) -> Option<CommandAction> {
     if name.is_empty() || name.len() > COMMAND_NAME_MAX {
         return Some(CommandAction::Help(None));
     }
-    let args = args.get(..args.len().min(COMMAND_ARGS_MAX)).unwrap_or("");
+    let mut end = args.len().min(COMMAND_ARGS_MAX);
+    while !args.is_char_boundary(end) {
+        end -= 1;
+    }
+    let args = &args[..end];
     let Some(command) = REGISTRY.iter().find(|c| c.aliases.contains(&name)) else {
         return Some(CommandAction::Help(None));
     };
@@ -71,6 +79,9 @@ pub fn dispatch(input: &str) -> Option<CommandAction> {
         },
         CommandAction::DcpCompress { .. } => CommandAction::DcpCompress {
             focus: args.to_string(),
+        },
+        CommandAction::RenameSession { .. } => CommandAction::RenameSession {
+            title: (!args.is_empty()).then(|| args.to_string()),
         },
         CommandAction::Help(_) => CommandAction::Help(if args.is_empty() {
             None
@@ -100,6 +111,7 @@ impl CommandSpec {
                 self.action,
                 CommandAction::NewSession
                     | CommandAction::CloseTab
+                    | CommandAction::RenameSession { .. }
                     | CommandAction::OpenSessions
                     | CommandAction::OpenModelPicker
                     | CommandAction::OpenVariants
@@ -187,6 +199,14 @@ pub const REGISTRY: &[CommandSpec] = &[
         shortcuts: &["ctrl+x w"],
         aliases: &["close-tab"],
         action: CommandAction::CloseTab,
+    },
+    CommandSpec {
+        id: "session.rename",
+        title: "Rename session",
+        group: "Session",
+        shortcuts: &["ctrl+r"],
+        aliases: &["rename"],
+        action: CommandAction::RenameSession { title: None },
     },
     CommandSpec {
         id: "session.sidebar.toggle",
@@ -311,6 +331,39 @@ mod tests {
         assert!(close.in_palette(false));
         assert_eq!(dispatch("/close-tab"), Some(CommandAction::CloseTab));
         assert!(complete("/close-").contains(&"close-tab"));
+    }
+
+    #[test]
+    fn rename_is_an_action_with_a_real_shortcut_and_both_slash_forms() {
+        let rename = super::spec(&CommandAction::RenameSession { title: None });
+        assert_eq!(rename.id, "session.rename");
+        assert_eq!(rename.shortcuts, ["ctrl+r"]);
+        assert!(rename.in_palette(false));
+        assert_eq!(
+            dispatch("/rename"),
+            Some(CommandAction::RenameSession { title: None })
+        );
+        assert_eq!(
+            dispatch("/rename  🦊 edited  "),
+            Some(CommandAction::RenameSession {
+                title: Some("🦊 edited".into())
+            })
+        );
+        assert!(complete("/ren").contains(&"rename"));
+        assert_eq!(
+            dispatch(&format!("/rename {}🦊", "a".repeat(511))),
+            Some(CommandAction::RenameSession {
+                title: Some("a".repeat(511))
+            }),
+            "the argument cap must not split a UTF-8 title; the view rejects an overlong direct title"
+        );
+        assert_eq!(
+            super::direct(crossterm::event::KeyEvent::new(
+                crossterm::event::KeyCode::Char('r'),
+                crossterm::event::KeyModifiers::CONTROL,
+            )),
+            Some(CommandAction::RenameSession { title: None })
+        );
     }
 
     #[test]

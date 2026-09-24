@@ -8,7 +8,9 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use oc_core::core_app::{CoreApp, CoreEvent, InboxMsg, WorkerGuard, WorkerTurnId};
+use oc_core::core_app::{
+    CoreApp, CoreEvent, InboxMsg, WorkerGuard, WorkerTurnId, normalized_session_title,
+};
 use oc_core::domain::SessionId;
 use oc_core::queries::{
     AgentEntry, CatalogSnapshot, DcpSnapshot, HistoryMessage, HistoryPage, HomeLocationSnapshot,
@@ -951,6 +953,37 @@ fn query(
             if result.is_ok() {
                 sessions.insert(runtime.location().to_string(), id.0.clone());
             }
+            let _ = ack.send(result);
+        }
+        InboxMsg::RenameSession {
+            session,
+            title,
+            ack,
+        } => {
+            let result = (|| -> Result<(), CoreError> {
+                let title = normalized_session_title(&title)
+                    .ok_or_else(|| app_error("invalid session title"))?;
+                runtime
+                    .open_session(&session.0)
+                    .map_err(|error| match error {
+                        RuntimeError::SessionNotFound | RuntimeError::LocationMismatch { .. } => {
+                            CoreError::SessionNotFound
+                        }
+                        _ => app_error("session storage unavailable"),
+                    })?;
+                let meta = db.session_meta(&session.0).map_err(|error| match error {
+                    StorageError::SessionNotFound => CoreError::SessionNotFound,
+                    _ => app_error("session storage unavailable"),
+                })?;
+                if meta.parent_id.is_some() {
+                    return Err(CoreError::SessionNotFound);
+                }
+                db.rename_root_session(&session.0, title)
+                    .map_err(|error| match error {
+                        StorageError::SessionNotFound => CoreError::SessionNotFound,
+                        _ => app_error("session storage unavailable"),
+                    })
+            })();
             let _ = ack.send(result);
         }
         InboxMsg::List { ack } => {

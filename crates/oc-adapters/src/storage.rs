@@ -1586,6 +1586,30 @@ impl Db {
         Ok(())
     }
 
+    /// Set a manual root title even when one was already generated. The event
+    /// and title commit together; no child or missing row can be renamed.
+    pub(crate) fn rename_root_session(
+        &self,
+        session: &str,
+        title: &str,
+    ) -> Result<(), StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        let affected = tx.execute(
+            "UPDATE sessions SET title = ?2 WHERE id = ?1 AND parent_id IS NULL",
+            params![session, title],
+        )?;
+        if affected == 0 {
+            return Err(StorageError::SessionNotFound);
+        }
+        tx.execute(
+            "INSERT INTO events(session_id, kind, payload) VALUES (?1, 'session_updated', ?2)",
+            params![session, serde_json::json!({"title": title}).to_string()],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
     /// Set a generated title once; explicit/child titles always win.
     pub(crate) fn set_generated_title(
         &self,
@@ -1594,7 +1618,7 @@ impl Db {
     ) -> Result<(), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         conn.execute(
-            "UPDATE sessions SET title = ?2 WHERE id = ?1 AND title IS NULL",
+            "UPDATE sessions SET title = ?2 WHERE id = ?1 AND parent_id IS NULL AND title IS NULL",
             params![session, title],
         )?;
         Ok(())
@@ -2653,6 +2677,50 @@ mod tests {
         // Keep the name in the test log without moving the dir.
         let _ = name;
         dir
+    }
+
+    #[test]
+    fn manual_root_title_overrides_generated_and_rolls_back_with_event_failure() {
+        let tmp = tmp_root("manual-title");
+        let db = Db::open(tmp.path()).unwrap();
+        db.create_session("root").unwrap();
+        db.create_child_session("root", "child", None, None, Some("child title"))
+            .unwrap();
+        db.set_generated_title("root", "generated").unwrap();
+        db.rename_root_session("root", "manual").unwrap();
+        db.set_generated_title("root", "late generation").unwrap();
+        assert_eq!(
+            db.session_meta("root").unwrap().title.as_deref(),
+            Some("manual")
+        );
+        assert!(matches!(
+            db.rename_root_session("child", "wrong"),
+            Err(StorageError::SessionNotFound)
+        ));
+        assert!(matches!(
+            db.rename_root_session("missing", "wrong"),
+            Err(StorageError::SessionNotFound)
+        ));
+        assert_eq!(
+            db.session_meta("child").unwrap().title.as_deref(),
+            Some("child title")
+        );
+        let conn = db.conn.lock().unwrap();
+        let count: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM events WHERE session_id='root' AND kind='session_updated'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+        conn.execute_batch("CREATE TRIGGER fail_title_event BEFORE INSERT ON events WHEN NEW.kind='session_updated' BEGIN SELECT RAISE(ABORT, 'injected'); END;").unwrap();
+        drop(conn);
+        assert!(db.rename_root_session("root", "should roll back").is_err());
+        assert_eq!(
+            db.session_meta("root").unwrap().title.as_deref(),
+            Some("manual")
+        );
     }
 
     #[test]

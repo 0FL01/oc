@@ -35,6 +35,15 @@ if (args['tab-restart'] !== undefined && !['true','false'].includes(args['tab-re
   throw Error('--tab-restart must be true or false');
 if (tabRestart && (!tabClick || tabClose || tabCloseKey || explorationClick))
   throw Error('--tab-restart true requires --tab-click true without tab-close/tab-close-key/exploration-click');
+const renameSession = args['rename-session'] === 'true';
+if (args['rename-session'] !== undefined && !['true','false'].includes(args['rename-session']))
+  throw Error('--rename-session must be true or false');
+if (renameSession && (tabClick || tabClose || tabCloseKey || tabRestart || explorationClick ||
+    args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
+    args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
+    args.matrix === 'true' || args.variants === 'true' || args['scroll-resize'] === 'true' || args['startup-error'] === 'true' ||
+    args['seed-root'] || args.tabs === 'vertical' || !args.reference || !args.oc))
+  throw Error('--rename-session true requires both binaries, --geometry true --sample tools --sidebar hide --agent-profile true --columns 120 --rows 40, horizontal tabs and no tab-click/tab-close/tab-close-key/tab-restart/exploration-click/matrix/variants/scroll-resize/startup-error/seed-root');
 if (explorationClick && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     Number(args.columns) !== 120 || Number(args.rows) !== 40 || args.matrix === 'true' || args['scroll-resize'] === 'true'))
   throw Error('--exploration-click true requires --geometry true --sample tools --sidebar hide --columns 120 --rows 40 without matrix/scroll-resize');
@@ -122,6 +131,7 @@ const tabObserve = f => {
     header:tabRow(f).trimEnd()};
 };
 const secondTitle = 'Second fixture session';
+const renamedTitle = 'Paired renamed session';
 const restartObserve = f => ({...tabObserve(f), second:visibleMatches(f,secondTitle.slice(0,6)).filter(p=>p.y===0),
   second_content:f.text.includes('GEOMETRY-SECOND: tool read completed.')});
 try {
@@ -149,7 +159,7 @@ try {
       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,
       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
       agent_profile: args['agent-profile'] === 'true',
-      seed_root: args['seed-root'], session: args.session, tab_restart: tabRestart};
+       seed_root: args['seed-root'], session: args.session, tab_restart: tabRestart || renameSession};
     fs.writeFileSync(path.join(dir,'bridge-spec.json'), JSON.stringify(spec, null, 2));
     lock[origin] = {...lock[origin], executable_path: binary, executable_sha256: hash};
     const page = await browser.newPage({viewport: {width: 1800, height: 1100}, deviceScaleFactor: 1});
@@ -266,7 +276,108 @@ try {
          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript'), 'completed transcript');
        if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');
        const completedStatus = await capture('session-wide-completed',done,'CAPTURED');
-       if(tabClick) {
+        if(renameSession) {
+          const checks=[];
+          const checkFile=path.join(dir,'rename-checks.json');
+          const counts=()=>({transcript:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length,
+            title:logs.filter(e=>e.kind==='provider' && e.operation==='title').length,
+            completed_transcript:logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length,
+            completed_title:logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length,
+            invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});
+          const baseline=counts();
+          const noRequests=()=>canonical(counts())===canonical(baseline);
+          // The original fixture title is truncated by the tab width, whereas
+          // the replacement fits: require its entire painted title on row 0.
+          const namedTab=(f,name)=>visibleMatches(f,name===renamedTitle ? name : [...name].slice(0,6).join(''))
+            .filter(p=>p.y===0);
+          const observed=f=>({header:tabRow(f).trimEnd(),old_tabs:namedTab(f,tabTitle),
+            renamed_tabs:namedTab(f,renamedTitle),dialog:f.text.includes('Rename session'),
+            prefilled:visibleMatches(f,tabTitle).some(p=>p.y>0),
+            renamed_value:visibleMatches(f,renamedTitle).some(p=>p.y>0),
+            transcript:f.text.includes('GEOMETRY-SHORT: tool read completed.'),
+            home:f.text.includes('Ask anything') && f.text.includes('Reader · MiMo-V2.6-Flash Free')});
+          lock.rename_interactions ??= {};
+          lock.rename_interactions[origin]={status:'IN_PROGRESS',baseline,checks};
+          const save=()=>{json(path.relative(output,checkFile),{baseline,checks});json('capture.lock.json',lock);};
+          const check=(stage,f,predicate,passed,extra={})=>{
+            checks.push({stage,predicate,passed,...observed(f),provider_counts:counts(),...extra});
+            save();
+            if(!passed) throw Error('Rename predicate failed: '+stage);
+          };
+          const awaitRename=async(stage,predicate,description)=>{
+            let f;
+            try {f=await waitFor(predicate,description);}
+            catch(e) {check(stage,await frame(),description+': '+e.message,false);}
+            check(stage,f,description,predicate(f));
+            return f;
+          };
+          const before=f=>{const o=observed(f);return o.old_tabs.length===1 && o.renamed_tabs.length===0 &&
+            o.transcript && !o.dialog && !o.home && noRequests();};
+          const ready=await awaitRename('completed-and-titled',before,'one fixture-titled tab, completed read, no modal or new requests');
+          check('provider-baseline',ready,'two completed transcript requests and one completed title request, valid fixture contract',
+            baseline.transcript===2 && baseline.title===1 && baseline.completed_transcript===2 &&
+            baseline.completed_title===1 && baseline.invalid===0,{baseline});
+          send('\x12','rename_ctrl_r');
+          const dialog=f=>{const o=observed(f);return o.dialog && o.prefilled && o.old_tabs.length===1 &&
+            o.transcript && noRequests();};
+          const prefilled=await awaitRename('dialog-prefilled',dialog,'Rename session dialog with actual fixture title prefilled, no provider requests');
+          if(await capture('rename-prefilled',prefilled,'CAPTURED_RENAME_PREFILLED')!=='CAPTURED_RENAME_PREFILLED')
+            throw Error('Unstable rename-prefilled frame');
+          // Both modal textareas accept Home followed by Shift+End replacement;
+          // Ctrl+A is editor-specific (often moves to line start), not select-all.
+          send('\x1b[H','rename_home');
+          await sleep(100);
+          send('\x1b[1;2F','rename_shift_end');
+          await sleep(100);
+          send(renamedTitle,'rename_keyboard_replacement');
+          const edited=f=>{const o=observed(f);return o.dialog && o.renamed_value && !o.prefilled &&
+            o.old_tabs.length===1 && noRequests();};
+          const draft=await awaitRename('dialog-edited',edited,'modal input displays replacement title, original prefill absent, no provider requests');
+          if(await capture('rename-edited',draft,'CAPTURED_RENAME_EDITED')!=='CAPTURED_RENAME_EDITED')
+            throw Error('Unstable rename-edited frame');
+          send('\r','rename_submit_return');
+          const renamed=f=>{const o=observed(f);return !o.dialog && o.renamed_tabs.length===1 &&
+            o.old_tabs.length===0 && o.transcript && !o.home && noRequests();};
+          const after=await awaitRename('renamed-in-session',renamed,'renamed tab/header with completed transcript, original title gone, no provider requests');
+          if(await capture('rename-after',after,'CAPTURED_RENAMED')!=='CAPTURED_RENAMED')
+            throw Error('Unstable rename-after frame');
+          const verified=await frame();
+          check('rename-capture-verified',verified,'renamed tab and transcript persist without provider requests',renamed(verified));
+          send('\x04','rename_graceful_exit_ctrl_d');
+          const deadline=Date.now()+15000;
+          while(!logs.some(e=>e.kind==='exit' && e.generation===0) && Date.now()<deadline) await sleep(100);
+          const exit=logs.find(e=>e.kind==='exit' && e.generation===0);
+          check('graceful-exit',after,'first process exited naturally with code 0; no provider requests',
+            !!exit && exit.code===0 && exit.termination==='natural' && noRequests(),{exit});
+          fs.writeFileSync(path.join(dir,'prequit.raw.vt'),Buffer.concat(chunks[0]));
+          fs.writeFileSync(path.join(dir,'prequit.protocol.json'),JSON.stringify(logs,null,2)+'\n');
+          fs.writeFileSync(path.join(dir,'prequit.inputs.json'),JSON.stringify(inputs,null,2)+'\n');
+          prequitBoundary={logs:logs.length,inputs:inputs.length};
+          generation=1;
+          await writeQueue;
+          await page.evaluate(()=>term.reset());
+          child.stdin.write(JSON.stringify({kind:'relaunch'})+'\n');
+          const restoredHome=f=>{const o=observed(f);return o.home && o.renamed_tabs.length===1 &&
+            o.old_tabs.length===0 && !o.dialog && !o.transcript && noRequests() &&
+            logs.some(e=>e.kind==='relaunch' && e.generation===1);};
+          const home=await awaitRename('restored-home',restoredHome,'Home with persisted renamed tab, no transcript or provider requests');
+          if(await capture('rename-restored-home',home,'CAPTURED_RENAME_RESTORED_HOME')!=='CAPTURED_RENAME_RESTORED_HOME')
+            throw Error('Unstable rename-restored-home frame');
+          const target=namedTab(await frame(),renamedTitle);
+          check('restored-tab-target',await frame(),'one painted renamed tab on Home and no provider requests',target.length===1 && noRequests(),{target:target[0]});
+          const point=target[0],down=`\x1b[<0;${point.x+1};${point.y+1}M`,up=`\x1b[<0;${point.x+1};${point.y+1}m`;
+          checks.push({stage:'restored-tab-click',point,down_base64:Buffer.from(down).toString('base64'),
+            up_base64:Buffer.from(up).toString('base64')});save();
+          send(down,'restored_renamed_tab_mouse_down');send(up,'restored_renamed_tab_mouse_up');
+          const replay=await awaitRename('restored-renamed-session',renamed,'renamed tab selected from Home, durable transcript visible, no provider requests');
+          if(await capture('rename-restored-session',replay,'CAPTURED_RENAME_RESTORED_SESSION')!=='CAPTURED_RENAME_RESTORED_SESSION')
+            throw Error('Unstable rename-restored-session frame');
+          check('post-capture-no-requests',await frame(),'provider counts unchanged after restored capture',noRequests());
+          lock.rename_interactions[origin].status='PASS';save();
+          lock.attempts.push({origin,status:'RENAME_CHECKS_PASS',baseline,after:counts(),
+            predicates:checks.filter(c=>c.passed).map(c=>c.stage)});
+        }
+        if(tabClick) {
          if(completedStatus !== 'CAPTURED') throw Error('Tab interaction requires a stable completed-session capture');
          const checks = [];
          const checkFile = path.join(dir,'tab-checks.json');
@@ -750,14 +861,15 @@ try {
       if(tabClick && lock.tab_interactions?.[origin]) lock.tab_interactions[origin].status='FAILED';
       if(tabClose && lock.tab_close_interactions?.[origin]) lock.tab_close_interactions[origin].status='FAILED';
       if(tabCloseKey && lock.tab_close_key_interactions?.[origin]) lock.tab_close_key_interactions[origin].status='FAILED';
-      if(tabRestart && lock.tab_restart_interactions?.[origin]) lock.tab_restart_interactions[origin].status='FAILED';
+       if(tabRestart && lock.tab_restart_interactions?.[origin]) lock.tab_restart_interactions[origin].status='FAILED';
+       if(renameSession && lock.rename_interactions?.[origin]) lock.rename_interactions[origin].status='FAILED';
       await capture('failure-diagnostic',await frame(),'FAILED_STATE');
     } finally {
       if(!child.stdin.destroyed) child.stdin.write(JSON.stringify({kind:'stop'})+'\n');
       await closed;
       await writeQueue;
       fs.writeFileSync(path.join(dir,'raw.vt'),Buffer.concat(chunks.flat()));
-      if(tabRestart && prequitBoundary) {
+       if((tabRestart || renameSession) && prequitBoundary) {
         fs.writeFileSync(path.join(dir,'restored.raw.vt'),Buffer.concat(chunks[1]));
         fs.writeFileSync(path.join(dir,'restored.protocol.json'),JSON.stringify(logs.slice(prequitBoundary.logs),null,2)+'\n');
         fs.writeFileSync(path.join(dir,'restored.inputs.json'),JSON.stringify(inputs.slice(prequitBoundary.inputs),null,2)+'\n');

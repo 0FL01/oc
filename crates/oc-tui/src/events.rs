@@ -18,6 +18,8 @@ pub enum KeyAction {
     Interrupt,
     /// Open the native agent selector.
     Agents,
+    /// Open the focused session-title editor.
+    Rename,
     /// Modal page navigation.
     PageUp,
     /// Modal page navigation.
@@ -108,6 +110,7 @@ pub fn map_key(event: KeyEvent) -> Option<KeyAction> {
         return match action {
             crate::commands::CommandAction::OpenCommands => Some(KeyAction::Commands),
             crate::commands::CommandAction::OpenAgents => Some(KeyAction::Agents),
+            crate::commands::CommandAction::RenameSession { .. } => Some(KeyAction::Rename),
             crate::commands::CommandAction::Quit if event.code == KeyCode::Char('c') => {
                 Some(KeyAction::Interrupt)
             }
@@ -242,6 +245,10 @@ mod tests {
         assert_eq!(
             map_key(KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL)),
             Some(KeyAction::Commands)
+        );
+        assert_eq!(
+            map_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::CONTROL)),
+            Some(KeyAction::Rename)
         );
         assert_eq!(
             map_key(KeyEvent::new(KeyCode::Char('x'), KeyModifiers::CONTROL)),

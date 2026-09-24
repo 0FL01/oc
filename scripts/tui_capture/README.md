@@ -282,6 +282,36 @@ even with the same selected route, so those frames remain diagnostic unless
 their underlying visible state happens to match. No masking or fixed-clock
 substitution is used to turn such a comparison into a parity claim.
 
+For a paired **real session rename and restart**, use a new output path and
+the Reader/tools profile (without any tab-click, tab-close, tab-restart,
+exploration-click, variants, resize/matrix, seed-root or startup-error mode):
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --geometry true --sample tools --sidebar hide --agent-profile true \
+  --columns 120 --rows 40 --rename-session true \
+  --output /home/opencode/ai/oc/evidence/tui/NEW-RENAME-ATTEMPT
+```
+
+Both PTYs complete the real read/tool/title fixture first (two completed
+transcript requests and one completed title request each). Each then receives
+Ctrl+R to open its own `Rename session` dialog with the fixture title prefilled.
+The runner uses Home, Shift+End and typed keyboard input to replace the field
+with `Paired renamed session`; it captures the prefilled and edited dialogs,
+submits Return, and requires the renamed painted tab and original transcript.
+Ctrl+D must naturally exit code 0 before the same bridge relaunches the same
+binary with the same isolated HOME/XDG/project/config/provider. On the restored
+Home, it finds that side's renamed tab, clicks it with real PTY mouse input and
+requires the persisted title and transcript. `rename-checks.json`,
+`inputs.json`, per-generation raw VT/protocol/input files and
+`capture.lock.json` retain predicates and provider counts. Rename/relaunch/
+history navigation must issue no additional provider request. Styled grids,
+PNGs, VT and ordinary unmasked grid/PNG comparator reports are preserved for
+`rename-prefilled`, `rename-edited`, `rename-after`, `rename-restored-home` and
+`rename-restored-session`; an interaction PASS does not mean frame equality.
+
 `--tabs vertical --columns 162` and `--columns 163` check both sides of the
 42-cell rail-adjusted auto-sidebar breakpoint using text **and styled blank
 backgrounds**. `--devtools unset` omits the explicit override; native debug builds

@@ -1052,6 +1052,545 @@ fn wait_idle(pty: &PtySession) {
     std::thread::sleep(Duration::from_millis(150));
 }
 
+fn stored_title(fixture: &Fixture, session: &str) -> Option<String> {
+    let conn = rusqlite::Connection::open(fixture.data_dir().join("oc.sqlite")).unwrap();
+    conn.query_row(
+        "SELECT title FROM sessions WHERE id = ?1",
+        [session],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
+fn wait_stored_title(fixture: &Fixture, session: &str, expected: Option<&str>) {
+    let start = Instant::now();
+    loop {
+        if stored_title(fixture, session).as_deref() == expected {
+            return;
+        }
+        assert!(
+            start.elapsed() < DEADLINE,
+            "session {session} did not persist title {expected:?}"
+        );
+        std::thread::sleep(POLL);
+    }
+}
+
+fn wait_prompt_cleared(pty: &PtySession, slash_text: &str) {
+    let start = Instant::now();
+    loop {
+        let rows = render_screen(&pty.snapshot()).rows();
+        if !rows.iter().any(|row| row.contains(slash_text)) {
+            return;
+        }
+        assert!(
+            start.elapsed() < DEADLINE,
+            "direct slash input remained after owner ACK: {rows:?}"
+        );
+        std::thread::sleep(POLL);
+    }
+}
+
+fn wait_dialog_closed(pty: &PtySession, title: &str) {
+    let start = Instant::now();
+    loop {
+        if !render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|row| row.contains(title))
+        {
+            return;
+        }
+        assert!(start.elapsed() < DEADLINE, "dialog still open: {title}");
+        std::thread::sleep(POLL);
+    }
+}
+
+fn assert_rename_input(pty: &PtySession, text: &str) {
+    let start = Instant::now();
+    loop {
+        let rows = render_screen(&pty.snapshot()).rows();
+        if rows
+            .iter()
+            .position(|row| row.contains("Rename session"))
+            .and_then(|header| rows.get(header + 2))
+            .is_some_and(|row| row.contains(text))
+        {
+            return;
+        }
+        assert!(
+            start.elapsed() < DEADLINE,
+            "rename modal field must contain {text:?}; screen: {rows:?}"
+        );
+        std::thread::sleep(POLL);
+    }
+}
+
+#[test]
+fn direct_rename_trims_unicode_and_persists_without_second_enter_or_overwriting_generated_title() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "direct-rename"],
+        None,
+    );
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "give me a generated title");
+    wait_stored_title(&fixture, "direct-rename", Some("Fixture session title"));
+    wait_idle(&pty);
+    let deck = live_deck_record(&fixture, &project);
+    let counts = journal_counts(&fixture);
+    let requests = fixture.requests.lock().unwrap().len();
+
+    let slash = "/rename  Новое 🦊  ";
+    pty.send(slash.as_bytes());
+    wait_screen_row(&pty, "/rename  Новое 🦊", DEADLINE);
+    assert_eq!(
+        stored_title(&fixture, "direct-rename").as_deref(),
+        Some("Fixture session title")
+    );
+    pty.send(b"\r"); // exactly one Enter: the owner ACK must clear the command
+    wait_stored_title(&fixture, "direct-rename", Some("Новое 🦊"));
+    wait_prompt_cleared(&pty, "/rename");
+    let rows = render_screen(&pty.snapshot()).rows();
+    assert!(rows.iter().any(|row| row.contains("Новое 🦊")), "{rows:?}");
+    assert!(
+        !rows.iter().any(|row| row.contains("Rename session")),
+        "no modal: {rows:?}"
+    );
+    assert_eq!(live_deck_record(&fixture, &project), deck);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+    let after = journal_counts(&fixture);
+    assert_eq!(
+        (after.0, after.2, after.3, after.4),
+        (counts.0, counts.2, counts.3, counts.4),
+        "direct rename cannot create a turn or a root"
+    );
+    assert_eq!(after.1, counts.1 + 1, "one owner title event");
+    quit(&mut pty);
+
+    let mut restart = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "direct-rename"],
+        None,
+    );
+    wait_screen_row(&restart, "Новое 🦊", DEADLINE);
+    assert!(
+        !render_screen(&restart.snapshot())
+            .rows()
+            .iter()
+            .any(|row| row.contains("Rename session"))
+    );
+    quit(&mut restart);
+    assert_eq!(
+        stored_title(&fixture, "direct-rename").as_deref(),
+        Some("Новое 🦊")
+    );
+    assert_eq!(journal_counts(&fixture), after);
+}
+
+#[test]
+fn direct_rename_invalid_titles_keep_slash_draft_and_existing_title() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "direct-invalid"],
+        None,
+    );
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "give me a generated title");
+    wait_stored_title(&fixture, "direct-invalid", Some("Fixture session title"));
+    wait_idle(&pty);
+    let counts = journal_counts(&fixture);
+    let requests = fixture.requests.lock().unwrap().len();
+
+    let too_long = format!("/rename {}🦊", "x".repeat(256));
+    pty.send(format!("\x1b[200~{too_long}\x1b[201~").as_bytes());
+    pty.send(b"\r");
+    wait_screen_row(&pty, "session title must be 1", DEADLINE);
+    wait_screen_row(&pty, "[Pasted ~1 lines]", DEADLINE);
+    assert_eq!(
+        stored_title(&fixture, "direct-invalid").as_deref(),
+        Some("Fixture session title")
+    );
+    assert_eq!(journal_counts(&fixture), counts);
+    pty.send(b"\x1b");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "direct-invalid"],
+        None,
+    );
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    let invisible = "/rename safe\u{200b}title";
+    pty.send(invisible.as_bytes());
+    wait_screen_row(&pty, "/rename safe", DEADLINE);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "session title must be 1", DEADLINE);
+    assert!(
+        render_screen(&pty.snapshot())
+            .rows()
+            .join("\n")
+            .contains("/rename"),
+        "invisible draft must remain: {:?}",
+        render_screen(&pty.snapshot()).rows()
+    );
+    assert_eq!(
+        stored_title(&fixture, "direct-invalid").as_deref(),
+        Some("Fixture session title")
+    );
+    assert_eq!(journal_counts(&fixture), counts);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|row| row.contains("Rename session"))
+    );
+    pty.send(b"\x1b");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+}
+
+#[test]
+fn direct_rename_owner_storage_refusal_keeps_slash_input_for_single_enter_retry() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "direct-refuse"],
+        None,
+    );
+    pty.wait_visible(READY, DEADLINE);
+    let conn = rusqlite::Connection::open(fixture.data_dir().join("oc.sqlite")).unwrap();
+    conn.execute_batch("CREATE TRIGGER refuse_direct_rename BEFORE UPDATE OF title ON sessions BEGIN SELECT RAISE(ABORT, 'test direct refusal'); END;").unwrap();
+    let deck = live_deck_record(&fixture, &project);
+    let counts = journal_counts(&fixture);
+    let slash = "/rename Retry 🦊";
+    pty.send(slash.as_bytes());
+    wait_screen_row(&pty, slash, DEADLINE);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "session rename unavailable", DEADLINE);
+    wait_screen_row(&pty, slash, DEADLINE);
+    assert_eq!(stored_title(&fixture, "direct-refuse"), None);
+    assert_eq!(live_deck_record(&fixture, &project), deck);
+    assert_eq!(journal_counts(&fixture), counts);
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .join("\n")
+            .contains("test direct refusal")
+    );
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|row| row.contains("Rename session"))
+    );
+
+    conn.execute_batch("DROP TRIGGER refuse_direct_rename")
+        .unwrap();
+    pty.send(b"\r");
+    wait_stored_title(&fixture, "direct-refuse", Some("Retry 🦊"));
+    wait_prompt_cleared(&pty, slash);
+    assert_eq!(live_deck_record(&fixture, &project), deck);
+    assert!(fixture.requests.lock().unwrap().is_empty());
+    quit(&mut pty);
+    let after = journal_counts(&fixture);
+    assert_eq!(after.1, counts.1 + 1);
+    let mut restart = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "direct-refuse"],
+        None,
+    );
+    wait_screen_row(&restart, "Retry 🦊", DEADLINE);
+    quit(&mut restart);
+    assert_eq!(journal_counts(&fixture), after);
+}
+
+#[test]
+fn rename_shortcut_palette_unicode_trim_and_restart_use_owner_title() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "rename-root"],
+        None,
+    );
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "give me a generated title");
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    wait_idle(&pty);
+    assert_eq!(
+        stored_title(&fixture, "rename-root").as_deref(),
+        Some("Fixture session title")
+    );
+    let deck = live_deck_record(&fixture, &project);
+    let counts = journal_counts(&fixture);
+    let requests = fixture.requests.lock().unwrap().len();
+
+    pty.send(b"prompt draft kept");
+    wait_screen_row(&pty, "prompt draft kept", DEADLINE);
+    pty.send(b"\x12"); // real Ctrl+R preloads the owner-generated title
+    wait_screen_row(&pty, "Rename session", DEADLINE);
+    assert_rename_input(&pty, "Fixture session title");
+    // Escape cancels only the modal, without persisting or eating the draft.
+    pty.send(b"\x1b");
+    wait_dialog_closed(&pty, "Rename session");
+    wait_screen_row(&pty, "prompt draft kept", DEADLINE);
+    assert_eq!(
+        stored_title(&fixture, "rename-root").as_deref(),
+        Some("Fixture session title")
+    );
+
+    pty.send(b"\x10"); // Ctrl+P, searchable real command
+    wait_screen_row(&pty, "Commands", DEADLINE);
+    pty.send(b"Rename session");
+    wait_screen_row(&pty, "Rename session", DEADLINE);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    assert_rename_input(&pty, "Fixture session title");
+    pty.send(b"\x1b");
+    wait_dialog_closed(&pty, "Rename session");
+    wait_screen_row(&pty, "prompt draft kept", DEADLINE);
+    assert_eq!(
+        stored_title(&fixture, "rename-root").as_deref(),
+        Some("Fixture session title")
+    );
+    pty.send(b"\x12");
+    wait_screen_row(&pty, "Rename session", DEADLINE);
+    assert_rename_input(&pty, "Fixture session title");
+    pty.send(&vec![0x7f; "Fixture session title".len()]);
+    pty.send("\x1b[200~  Новое 🦊  \x1b[201~".as_bytes());
+    wait_screen_row(&pty, "Новое 🦊", DEADLINE);
+    assert_rename_input(&pty, "Новое 🦊");
+    pty.send(b"\r");
+    wait_dialog_closed(&pty, "Rename session");
+    wait_screen_row(&pty, "Новое 🦊", DEADLINE);
+    assert_eq!(
+        stored_title(&fixture, "rename-root").as_deref(),
+        Some("Новое 🦊")
+    );
+    assert_eq!(live_deck_record(&fixture, &project), deck);
+    assert!(
+        render_screen(&pty.snapshot())
+            .rows()
+            .join("\n")
+            .contains("prompt draft kept")
+    );
+    pty.send(b"\x12");
+    wait_screen_row(&pty, "Rename session", DEADLINE);
+    assert_rename_input(&pty, "Новое 🦊");
+    pty.send(b"\x1b");
+    wait_dialog_closed(&pty, "Rename session");
+    pty.send(&[0x7f; 100]);
+    quit(&mut pty);
+    let after = journal_counts(&fixture);
+    assert_eq!(
+        (after.0, after.2, after.3, after.4),
+        (counts.0, counts.2, counts.3, counts.4),
+        "rename creates no turn or root"
+    );
+    assert_eq!(after.1, counts.1 + 1, "one durable title update event");
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+
+    let mut restart = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "rename-root"],
+        None,
+    );
+    wait_screen_row(&restart, "Новое 🦊", DEADLINE);
+    restart.send(b"\x12");
+    wait_screen_row(&restart, "Rename session", DEADLINE);
+    assert_rename_input(&restart, "Новое 🦊");
+    restart.send(b"\x1b");
+    wait_dialog_closed(&restart, "Rename session");
+    quit(&mut restart);
+    assert_eq!(
+        stored_title(&fixture, "rename-root").as_deref(),
+        Some("Новое 🦊")
+    );
+    assert_eq!(journal_counts(&fixture), after);
+}
+
+#[test]
+fn rename_storage_refusal_keeps_modal_value_draft_and_old_tab_until_retry() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "rename-refuse"],
+        None,
+    );
+    pty.wait_visible(READY, DEADLINE);
+    pty.send(b"draft sentinel");
+    wait_screen_row(&pty, "draft sentinel", DEADLINE);
+    let conn = rusqlite::Connection::open(fixture.data_dir().join("oc.sqlite")).unwrap();
+    conn.execute_batch("CREATE TRIGGER refuse_rename BEFORE UPDATE OF title ON sessions BEGIN SELECT RAISE(ABORT, 'test refusal'); END;").unwrap();
+    let deck = live_deck_record(&fixture, &project);
+    let counts = journal_counts(&fixture);
+    pty.send(b"\x12");
+    wait_screen_row(&pty, "Rename session", DEADLINE);
+    pty.send(&vec![0x7f; READY.len()]);
+    pty.send(b"Retry title");
+    wait_screen_row(&pty, "Retry title", DEADLINE);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "session rename unavailable", DEADLINE);
+    assert_rename_input(&pty, "Retry title");
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .join("\n")
+            .contains("test refusal")
+    );
+    assert_eq!(stored_title(&fixture, "rename-refuse"), None);
+    assert_eq!(live_deck_record(&fixture, &project), deck);
+    assert_eq!(journal_counts(&fixture), counts);
+    // The original prompt is still parked behind the modal. A second Enter
+    // after the storage fault is removed succeeds without retyping.
+    conn.execute_batch("DROP TRIGGER refuse_rename").unwrap();
+    pty.send(b"\r");
+    wait_dialog_closed(&pty, "Rename session");
+    wait_screen_row(&pty, "draft sentinel", DEADLINE);
+    assert_eq!(
+        stored_title(&fixture, "rename-refuse").as_deref(),
+        Some("Retry title")
+    );
+    pty.send(&[0x7f; 100]);
+    quit(&mut pty);
+    assert!(fixture.requests.lock().unwrap().is_empty());
+}
+
+#[test]
+fn rename_refuses_home_child_foreign_and_busy_without_changing_titles() {
+    let fixture = Fixture::new();
+    let alpha = fixture.project_a();
+    let beta = fixture.project_b();
+    let mut home = PtySession::spawn(fixture.clone(), &alpha, &[], None);
+    wait_screen_row(&home, "Ask anything", DEADLINE);
+    home.send(b"\x12");
+    wait_screen_row(&home, "no session yet", DEADLINE);
+    assert!(
+        !render_screen(&home.snapshot())
+            .rows()
+            .join("\n")
+            .contains("Rename session")
+    );
+    assert_eq!(journal_counts(&fixture).0, 0);
+    quit(&mut home);
+
+    let mut root = PtySession::spawn(
+        fixture.clone(),
+        &alpha,
+        &["tui", "--session", "rename-parent"],
+        None,
+    );
+    root.wait_visible(READY, DEADLINE);
+    submit(&mut root, "slow stream");
+    fixture.wait_requests(1);
+    root.send(b"unsent root draft");
+    wait_screen_row(&root, "unsent root draft", DEADLINE);
+    root.send(b"\x12");
+    wait_screen_row(&root, "tab busy; action unavailable", DEADLINE);
+    assert!(
+        !render_screen(&root.snapshot())
+            .rows()
+            .join("\n")
+            .contains("Rename session")
+    );
+    wait_screen_row(&root, "answer:slow stream", DEADLINE);
+    wait_idle(&root);
+    assert!(
+        render_screen(&root.snapshot())
+            .rows()
+            .join("\n")
+            .contains("unsent root draft")
+    );
+    assert_eq!(
+        stored_title(&fixture, "rename-parent").as_deref(),
+        Some("Fixture session title")
+    );
+    root.send(&[0x7f; 100]);
+    quit(&mut root);
+
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    db.create_child_session(
+        "rename-parent",
+        "rename-child",
+        None,
+        None,
+        Some("Child original"),
+    )
+    .unwrap();
+    db.set_pref(
+        &format!(
+            "{}rename-child",
+            oc_adapters::runtime::SESSION_LOCATION_PREFIX
+        ),
+        &alpha.canonicalize().unwrap().to_string_lossy(),
+    )
+    .unwrap();
+    drop(db);
+    let mut child = PtySession::spawn(
+        fixture.clone(),
+        &alpha,
+        &["tui", "--session", "rename-child"],
+        None,
+    );
+    wait_screen_row(&child, "Child original", DEADLINE);
+    child.send(b"\x12");
+    wait_screen_row(&child, "child session is read-only", DEADLINE);
+    assert!(
+        !render_screen(&child.snapshot())
+            .rows()
+            .join("\n")
+            .contains("Rename session")
+    );
+    quit(&mut child);
+    assert_eq!(
+        stored_title(&fixture, "rename-child").as_deref(),
+        Some("Child original")
+    );
+
+    let mut foreign = PtySession::spawn(
+        fixture.clone(),
+        &beta,
+        &["tui", "--session", "rename-parent"],
+        None,
+    );
+    wait_screen_row(&foreign, "startup", DEADLINE);
+    foreign.send(b"\x12");
+    assert!(
+        !render_screen(&foreign.snapshot())
+            .rows()
+            .join("\n")
+            .contains("Rename session")
+    );
+    foreign.send(b"q");
+    assert!(!foreign.wait_exit(DEADLINE).0.success());
+    assert_eq!(
+        stored_title(&fixture, "rename-parent").as_deref(),
+        Some("Fixture session title")
+    );
+    assert_eq!(
+        stored_title(&fixture, "rename-child").as_deref(),
+        Some("Child original")
+    );
+}
+
 #[test]
 fn immediate_ctrl_c_after_first_home_submit_restores_committed_root_on_restart() {
     let fixture = Fixture::new();

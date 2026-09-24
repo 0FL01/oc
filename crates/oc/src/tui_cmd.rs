@@ -1078,6 +1078,62 @@ async fn apply_intent_with_origin(
         PanelIntent::CloseTab { index } => {
             loop_state.close_tab(app, state, index).await?;
         }
+        intent @ (PanelIntent::RenameSession { .. } | PanelIntent::RenameSessionDirect { .. }) => {
+            let direct = matches!(intent, PanelIntent::RenameSessionDirect { .. });
+            let title = match intent {
+                PanelIntent::RenameSession { title }
+                | PanelIntent::RenameSessionDirect { title } => title,
+                _ => unreachable!(),
+            };
+            // A selected root in the current deck is the only writable route.
+            // The owner validates its Location and persists the title before
+            // the dialog or tab presentation is changed.
+            let result = async {
+                if loop_state.read_only {
+                    return Err("child session: read-only history; rename refused");
+                }
+                let session = state
+                    .attached_session()
+                    .filter(|_| {
+                        !state.home
+                            && loop_state.active_tab.is_some_and(|index| {
+                                index < loop_state.tabs.len() && loop_state.tabs[index].is_none()
+                            })
+                    })
+                    .cloned()
+                    .ok_or("no active session; rename refused")?;
+                if state.is_busy() {
+                    return Err("turn active; rename refused");
+                }
+                app.rename_session(session, title.clone())
+                    .await
+                    .map_err(|error| match error {
+                        CoreError::Application(ref reason) if reason == "invalid session title" => {
+                            "invalid session title (max 256 bytes; no invisible or control text)"
+                        }
+                        CoreError::SessionNotFound => "session unavailable for rename",
+                        _ => "session rename unavailable; check the data directory",
+                    })
+            }
+            .await;
+            match result {
+                Ok(()) => {
+                    if direct {
+                        state.rename_session_direct_applied(title);
+                    } else {
+                        state.rename_session_applied(title);
+                    }
+                    loop_state.sync_tabs(state);
+                }
+                Err(message) => {
+                    if direct {
+                        state.rename_session_direct_rejected(message.into());
+                    } else {
+                        state.rename_session_rejected(message.into());
+                    }
+                }
+            }
+        }
         PanelIntent::SelectAgent { id } => {
             let snapshot = selection(app, state, SelectionAction::Agent(id)).await?;
             let note = match &snapshot.agent_id {

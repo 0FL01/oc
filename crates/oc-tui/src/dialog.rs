@@ -523,6 +523,10 @@ impl SelectList {
 }
 
 pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
+    if state.panel() == &TuiPanel::Rename {
+        render_rename(frame, state);
+        return;
+    }
     if state.panel() == &TuiPanel::Cards && state.card_output.is_some() {
         render_card_detail(frame, state);
         return;
@@ -534,6 +538,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         TuiPanel::Variant => "Select variant",
         TuiPanel::Agents => "Select agent",
         TuiPanel::Sessions => "Switch session",
+        TuiPanel::Rename => unreachable!("rendered above"),
         TuiPanel::Skills => "Skills",
         TuiPanel::Cards => "Tool cards",
         TuiPanel::Help(_) => "Help",
@@ -543,6 +548,92 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     state
         .select
         .render(frame, title, size, &state.modal_options(), None);
+}
+
+/// The pinned DialogPrompt uses a medium 60-cell surface and a focused,
+/// single-line textarea with wrapMode=none.
+pub(crate) fn rename_geometry(area: Rect) -> Rect {
+    DialogFrame::rect(area, DialogSize::Medium, 7)
+}
+
+fn render_rename(frame: &mut Frame<'_>, state: &TuiState) {
+    use unicode_segmentation::UnicodeSegmentation;
+    use unicode_width::UnicodeWidthStr;
+
+    let theme = Theme::dark();
+    let rect = rename_geometry(frame.area());
+    DialogFrame::paint(frame, rect, theme);
+    if rect.width < 12 || rect.height < 6 {
+        return;
+    }
+    let text = slot(theme, "text.base");
+    let muted = slot(theme, "text.muted");
+    let inner = Rect::new(rect.x + 2, rect.y + 1, rect.width - 4, 1);
+    frame.render_widget(
+        Paragraph::new(ratatui::text::Line::from(ratatui::text::Span::styled(
+            "Rename session",
+            Style::default().fg(text).add_modifier(Modifier::BOLD),
+        ))),
+        inner,
+    );
+    frame.render_widget(
+        Paragraph::new(ratatui::text::Line::from(ratatui::text::Span::styled(
+            "esc",
+            Style::default().fg(muted),
+        ))),
+        Rect::new(rect.right() - 5, rect.y + 1, 3, 1),
+    );
+    let width = rect.width.saturating_sub(4) as usize;
+    let input = state.rename_title().unwrap_or("");
+    let cursor = state.rename_cursor();
+    // Clip by whole graphemes; the caret follows the end of a horizontally
+    // scrolled one-line field instead of wrapping into the next modal row.
+    let before = UnicodeWidthStr::width(&input[..cursor]);
+    let start_cells = before.saturating_sub(width.saturating_sub(1));
+    let mut cells = 0;
+    let mut visible = String::new();
+    let mut shown = 0;
+    for grapheme in input.graphemes(true) {
+        let size = UnicodeWidthStr::width(grapheme);
+        if cells + size > start_cells && shown + size <= width {
+            visible.push_str(grapheme);
+            shown += size;
+        }
+        cells += size;
+        if shown + size > width && cells > before {
+            break;
+        }
+    }
+    let field = Rect::new(rect.x + 2, rect.y + 3, width as u16, 1);
+    frame.render_widget(
+        Paragraph::new(ratatui::text::Line::from(ratatui::text::Span::styled(
+            if input.is_empty() {
+                "Session title"
+            } else {
+                &visible
+            },
+            Style::default().fg(if input.is_empty() {
+                muted
+            } else {
+                slot(theme, "text.formfield.base")
+            }),
+        ))),
+        field,
+    );
+    frame.render_widget(
+        Paragraph::new(ratatui::text::Line::from(vec![
+            ratatui::text::Span::styled("enter ", Style::default().fg(text)),
+            ratatui::text::Span::styled("submit", Style::default().fg(muted)),
+        ])),
+        Rect::new(rect.x + 2, rect.y + 5, width as u16, 1),
+    );
+    frame.set_cursor_position((
+        field.x
+            + before
+                .saturating_sub(start_cells)
+                .min(width.saturating_sub(1)) as u16,
+        field.y,
+    ));
 }
 
 /// The detail viewport has a fixed header and footer and no searchable list.
@@ -615,6 +706,104 @@ pub fn size_for(panel: &TuiPanel) -> DialogSize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn rename_medium_dialog_clips_wide_graphemes_on_one_focused_row() {
+        use crate::events::KeyAction;
+        use oc_core::{core_app::CoreApp, domain::SessionId};
+        use ratatui::{
+            Terminal,
+            backend::{Backend, TestBackend},
+        };
+
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, SessionId::new("rename-render").unwrap());
+        state.session_title = Some("🙂".repeat(60));
+        state.handle_key(KeyAction::Rename).await;
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let rect = rename_geometry(Rect::new(0, 0, 120, 40));
+        assert_eq!(rect.width, 60);
+        let buffer = terminal.backend().buffer();
+        let field: String = (rect.x + 2..rect.right() - 2)
+            .map(|x| buffer[(x, rect.y + 3)].symbol().to_string())
+            .collect();
+        assert_eq!(buffer[(rect.x + 2, rect.y + 1)].symbol(), "R");
+        assert_eq!(buffer[(rect.right() - 5, rect.y + 1)].symbol(), "e");
+        assert_eq!(
+            buffer[(rect.x + 2, rect.y + 3)].fg,
+            slot(Theme::dark(), "text.formfield.base")
+        );
+        assert_eq!(buffer[(rect.x + 2, rect.y + 5)].symbol(), "e");
+        let assert_style = |x, y, fg, bg, bold| {
+            let cell = &buffer[(x, y)];
+            assert_eq!(cell.fg, fg, "foreground at ({x},{y})");
+            assert_eq!(cell.bg, bg, "background at ({x},{y})");
+            assert_eq!(
+                cell.modifier.contains(Modifier::BOLD),
+                bold,
+                "bold at ({x},{y})"
+            );
+        };
+        let surface = Color::Rgb(20, 20, 20);
+        assert_style(46, 11, Color::Rgb(255, 255, 255), surface, false);
+        assert_style(85, 11, Theme::dark().text_muted(), surface, false);
+        assert_style(32, 15, Theme::dark().text(), surface, false);
+        assert_style(39, 15, Theme::dark().text_muted(), surface, false);
+        assert_style(44, 15, Color::Rgb(255, 255, 255), surface, false);
+        assert_style(
+            30,
+            17,
+            Color::Rgb(255, 255, 255),
+            Color::Rgb(4, 4, 4),
+            false,
+        );
+        assert!(
+            field.contains("🙂"),
+            "visible Unicode title is horizontally scrolled"
+        );
+        assert!(!field.contains('�'));
+        assert_eq!(
+            buffer[(rect.x + 4, rect.y + 4)].symbol(),
+            " ",
+            "no wrapped second line"
+        );
+        assert_eq!(
+            terminal.backend_mut().get_cursor_position().unwrap().y,
+            rect.y + 3
+        );
+        assert_eq!(state.rename_cursor(), state.rename_title().unwrap().len());
+        state.handle_paste("\n");
+        assert_eq!(
+            state
+                .rename_title()
+                .unwrap()
+                .chars()
+                .filter(|c| *c == '\n')
+                .count(),
+            0
+        );
+        assert_eq!(
+            state.handle_panel_key(KeyAction::Enter).intent,
+            Some(crate::app::PanelIntent::RenameSession {
+                title: "🙂".repeat(60),
+            })
+        );
+    }
+    #[tokio::test]
+    async fn rename_focused_text_and_only_actual_text_are_colored() {
+        use crate::events::KeyAction;
+        use oc_core::{core_app::CoreApp, domain::SessionId};
+        use ratatui::{Terminal, backend::TestBackend};
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, SessionId::new("rename-style").unwrap());
+        state.session_title = Some("Какие инструменты доступны ассистенту".into());
+        state.handle_key(KeyAction::Rename).await;
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(32, 13)].fg, Theme::dark().text());
+        assert_eq!(buffer[(69, 13)].fg, Color::Rgb(255, 255, 255));
+    }
     #[test]
     fn v04_full_catalog_cpu_and_bounded_cache() {
         use std::time::{Duration, Instant};
