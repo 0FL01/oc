@@ -2731,6 +2731,122 @@ fn bare_home_abandon_and_new_do_not_create_a_root() {
 }
 
 #[test]
+fn vis25_reload_rebuilds_real_config_on_home_and_session_without_losing_identity() {
+    for attached in [false, true] {
+        let fixture = Fixture::new();
+        let metrics = fixture.root.path().join("reload-metrics.json");
+        let args: &[&str] = if attached {
+            &["tui", "--session", "reload-root"]
+        } else {
+            &[]
+        };
+        let mut pty =
+            PtySession::spawn(fixture.clone(), &fixture.project_a(), args, Some(&metrics));
+        if attached {
+            pty.wait_visible(READY, DEADLINE);
+        } else {
+            pty.wait_visible("█▀▀█", DEADLINE);
+        }
+        // A failed rebuild must not publish the edited config or announce success.
+        let project_config = fixture.project_a().join("opencode.json");
+        let original = std::fs::read(&project_config).unwrap();
+        std::fs::write(&project_config, "{").unwrap();
+        let from = pty.snapshot().len();
+        pty.send(b"/reload\r");
+        pty.wait_visible_after(from, "Reloading configuration…", DEADLINE);
+        wait_screen_row(&pty, "Configuration reload failed", DEADLINE);
+        let screen = render_screen(&pty.snapshot()).rows().join("\n");
+        assert!(
+            screen.contains("/reload"),
+            "failed slash draft stays editable"
+        );
+        assert!(!screen.contains("Configuration reloaded"));
+        std::fs::write(&project_config, original).unwrap();
+        let config = fixture
+            .root
+            .path()
+            .join("home/config/opencode/opencode.json");
+        let edited = std::fs::read_to_string(&config)
+            .unwrap()
+            .replace("T42 model", "Reloaded T42 model");
+        std::fs::write(config, edited).unwrap();
+        // Home omits session-only rename; Tab executes real /reload.
+        pty.send(&[0x7f; 64]);
+        pty.send(if attached {
+            &b"/reload\r"[..]
+        } else {
+            &b"/ren\t"[..]
+        });
+        wait_screen_row(&pty, "Configuration reloaded", DEADLINE);
+        pty.send(b"/models\r");
+        wait_screen_row(&pty, "Reloaded T42 model", DEADLINE);
+        pty.send(b"\x1b");
+        std::thread::sleep(Duration::from_millis(150));
+        pty.send(b"/quit\r");
+        let (status, output) = pty.wait_exit(DEADLINE);
+        assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+        let metrics: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(metrics).unwrap()).unwrap();
+        if attached {
+            assert_eq!(metrics["session"], "reload-root");
+            assert_eq!(metrics["tab_ids"], serde_json::json!(["reload-root"]));
+        } else {
+            assert!(metrics["session"].is_null());
+            assert_eq!(journal_counts(&fixture), (0, 0, 0, 0, 0));
+        }
+    }
+}
+
+#[test]
+fn reload_refuses_busy_turn_and_refreshes_parked_tab_after_owner_success() {
+    let fixture = Fixture::new();
+    let metrics = fixture.root.path().join("reload-deck-metrics.json");
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &fixture.project_a(),
+        &["tui", "--session", "reload-deck"],
+        Some(&metrics),
+    );
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "slow stream");
+    fixture.wait_requests(1);
+    pty.send(b"/reload\r");
+    wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
+    assert!(
+        render_screen(&pty.snapshot())
+            .rows()
+            .join("\n")
+            .contains("/reload")
+    );
+    wait_screen_row(&pty, "answer:slow stream", DEADLINE);
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    pty.send(&[0x7f; 64]);
+    pty.send(b"/new\r");
+    wait_screen_row(&pty, "New session", DEADLINE);
+    let config = fixture
+        .root
+        .path()
+        .join("home/config/opencode/opencode.json");
+    let edited = std::fs::read_to_string(&config)
+        .unwrap()
+        .replace("T42 model", "Reloaded T42 model");
+    std::fs::write(config, edited).unwrap();
+    pty.send(b"/reload\r");
+    wait_screen_row(&pty, "Configuration reloaded", DEADLINE);
+    // A parked tab must not retain the former catalog on reactivation.
+    click(&mut pty, 10, 1);
+    wait_screen_row(&pty, "Reloaded T42 model", DEADLINE);
+    pty.send(b"/quit\r");
+    let (status, _) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored());
+    let metrics: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(metrics).unwrap()).unwrap();
+    assert_eq!(metrics["session"], "reload-deck");
+    assert_eq!(metrics["tab_ids"], serde_json::json!(["reload-deck"]));
+    assert_eq!(journal_counts(&fixture).0, 1);
+}
+
+#[test]
 fn home_location_refusal_and_a_b_a_b_remain_sessionless_until_first_submit() {
     let fixture = Fixture::new();
     let bad = fixture.root.path().join("bad-location");

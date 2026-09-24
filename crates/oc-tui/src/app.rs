@@ -115,6 +115,8 @@ pub enum TuiPanel {
 pub enum PanelIntent {
     /// Load the model/agent catalog snapshot.
     LoadCatalog,
+    /// Rebuild the current Location without replacing the session or draft.
+    ReloadConfiguration,
     /// Load the session list snapshot.
     LoadSessions,
     /// Load the skill card snapshot.
@@ -1125,7 +1127,16 @@ impl TuiState {
             return None;
         }
         let filter = crate::autocomplete::query(&self.input, self.editor.cursor)?;
-        Some(crate::autocomplete::options(filter, &self.commands))
+        let mut options = crate::autocomplete::options(filter, &self.commands);
+        // The pinned Home route does not register the session-only rename
+        // action. Keep direct `/rename` refusal intact; do not expose it as a
+        // selectable Home suggestion (including for `/ren`).
+        if self.home {
+            options.retain(|option| {
+                option.action != Some(CommandAction::RenameSession { title: None })
+            });
+        }
+        Some(options)
     }
 
     /// Keep selection and activation aligned when caret movement or a catalog
@@ -1146,6 +1157,21 @@ impl TuiState {
     pub fn invalidate_file_suggestions(&mut self) {
         self.generation += 1;
         self.clear_mentions();
+    }
+
+    /// A successful owner reload invalidates Location-generation UI snapshots
+    /// even when the canonical path and prompt text did not change.
+    pub fn refresh_configuration(&mut self, catalog: CatalogSnapshot) {
+        self.close_panel();
+        self.invalidate_file_suggestions();
+        self.slash_selected = 0;
+        self.slash_dismissed = None;
+        self.sessions.clear();
+        self.sessions_loaded = false;
+        self.skills.clear();
+        self.skills_loaded = false;
+        self.dcp = DcpPanelState::default();
+        self.apply_catalog(catalog);
     }
 
     /// No storage or filesystem access: the binary asks the owner after the
@@ -1290,12 +1316,20 @@ impl TuiState {
         let Some(option) = options.into_iter().nth(selected) else {
             return KeyOutcome::default();
         };
-        if !enter || option.arguments || option.action.is_none() {
+        if (!enter && option.action != Some(CommandAction::ReloadConfiguration))
+            || option.arguments
+            || option.action.is_none()
+        {
             self.replace_slash(&option.name, true);
             return KeyOutcome::default();
         }
         let action = option.action.expect("argument-free built-in");
-        if matches!(action, CommandAction::NewSession | CommandAction::CloseTab) {
+        if matches!(
+            action,
+            CommandAction::NewSession
+                | CommandAction::CloseTab
+                | CommandAction::ReloadConfiguration
+        ) {
             // The binary clears these drafts only after its owner accepts the
             // intent. An optimistic removal would lose `/new` on refusal.
             if self.input != format!("/{}", option.name) {
@@ -2998,6 +3032,9 @@ impl TuiState {
             CommandAction::NewSession => {
                 outcome.intent = Some(PanelIntent::NewSession);
             }
+            CommandAction::ReloadConfiguration => {
+                outcome.intent = Some(PanelIntent::ReloadConfiguration);
+            }
             CommandAction::RenameSession { title: None } => {
                 self.panel = TuiPanel::Rename;
                 // Generated titles contain at most 100 Unicode scalar values (<=400
@@ -4446,6 +4483,7 @@ mod tests {
         state.editor.clear();
         state.input.clear();
         state.handle_paste("/ren");
+        assert_eq!(state.slash_options().unwrap()[0].name, "rename");
         state.handle_key(KeyAction::Tab).await;
         assert_eq!(state.input(), "/rename ");
         state.handle_paste("title");
@@ -4490,6 +4528,64 @@ mod tests {
         assert!(state.slash_options().is_some());
         state.reset_workspace();
         assert!(state.commands.is_empty(), "old Location commands are gone");
+    }
+
+    #[tokio::test]
+    async fn reload_refresh_invalidates_generation_options_without_erasing_draft() {
+        let mut state = fresh_state("reload-view").await;
+        let mut old = snapshot();
+        old.chrome.location = Some("/A".into());
+        old.commands = vec!["retired-command".into()];
+        state.apply_catalog(old);
+        state.handle_paste("@src");
+        let stale = state.mention_request().unwrap();
+        assert!(state.apply_file_suggestions(stale.clone(), file_result("/A", 1, &["src/old.rs"])));
+        state.apply_sessions(vec!["stale-session".into()]);
+        let mut next = snapshot();
+        next.chrome.location = Some("/A".into());
+        next.commands = vec!["fresh-command".into()];
+        state.refresh_configuration(next);
+        assert_eq!(state.input(), "@src");
+        assert_eq!(state.attached_session().unwrap().0, "reload-view");
+        assert!(state.sessions.is_empty());
+        assert!(!state.sessions_loaded);
+        assert_eq!(state.commands, ["fresh-command"]);
+        assert!(!state.mention_loaded(&stale));
+        assert!(!state.apply_file_suggestions(stale, file_result("/A", 1, &["src/old.rs"])));
+        assert_eq!(state.mention_request().unwrap().query, "src");
+    }
+
+    #[tokio::test]
+    async fn home_ren_filter_selects_real_reload_without_stealing_workspace_ren() {
+        let (app, _guard) = CoreApp::spawn(MockProvider::echo());
+        let mut home = TuiState::new_home(app);
+        let mut catalog = snapshot();
+        catalog.commands = vec!["ren".into()];
+        home.apply_catalog(catalog);
+        home.handle_paste("/ren");
+        let options = home.slash_options().unwrap();
+        assert_eq!(options[0].name, "ren");
+        assert!(!options.iter().any(|option| option.name == "rename"));
+        assert!(options.iter().any(|option| option.name == "reload"));
+        assert!(
+            options[0].action.is_none(),
+            "workspace /ren owns exact dispatch"
+        );
+        home.handle_key(KeyAction::Tab).await;
+        assert_eq!(home.input(), "/ren ");
+        // The session-only rename is absent from Home suggestions; Tab on
+        // the genuine argument-free reload asks the application owner.
+        let (app, _guard) = CoreApp::spawn(MockProvider::echo());
+        let mut home = TuiState::new_home(app);
+        home.apply_catalog(snapshot());
+        home.handle_paste("/ren");
+        let options = home.slash_options().unwrap();
+        assert_eq!(options[0].name, "reload");
+        assert_eq!(
+            home.handle_key(KeyAction::Tab).await.intent,
+            Some(PanelIntent::ReloadConfiguration)
+        );
+        assert_eq!(home.input(), "/reload");
     }
 
     #[tokio::test]

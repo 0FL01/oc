@@ -15,8 +15,8 @@ use oc_core::core_app::{
 use oc_core::domain::SessionId;
 use oc_core::queries::{
     AgentEntry, CatalogSnapshot, DcpSnapshot, FileSuggestionsSnapshot, HistoryMessage, HistoryPage,
-    HomeLocationSnapshot, LocationSnapshot, ModelEntry, SessionProbe, SkillCard, StartupNotice,
-    ToolOpPage, ToolOpView, VariantEntry,
+    HomeLocationSnapshot, LocationSnapshot, ModelEntry, ReloadLocationSnapshot, SessionProbe,
+    SkillCard, StartupNotice, ToolOpPage, ToolOpView, VariantEntry,
 };
 use oc_core::session::{CoreError, LocationSwitchFailure, MAX_QUEUE_ITEMS, MessageId, Role};
 use tokio::sync::{broadcast, mpsc, oneshot};
@@ -592,6 +592,7 @@ enum WorkerOutcome {
 enum SwitchAck {
     Session(oneshot::Sender<Result<LocationSnapshot, CoreError>>),
     Home(oneshot::Sender<Result<HomeLocationSnapshot, CoreError>>),
+    Reload(oneshot::Sender<Result<ReloadLocationSnapshot, CoreError>>),
 }
 
 /// Own the whole application task: build the runtime, publish the workspace
@@ -677,7 +678,7 @@ async fn start_worker(
                 break;
             }
             WorkerOutcome::Switch { path, ack } => {
-                let home = matches!(ack, SwitchAck::Home(_));
+                let home = !matches!(ack, SwitchAck::Session(_));
                 match switch_target(
                     &db,
                     &path,
@@ -688,7 +689,24 @@ async fn start_worker(
                 .await
                 {
                     Ok((next, next_composition, next_effective, next_registry, session, notes)) => {
-                        let home_catalog = if home {
+                        if matches!(ack, SwitchAck::Reload(_)) {
+                            let validation = validate_reload_selections(
+                                &db,
+                                &runtime,
+                                &next,
+                                &next_composition,
+                                &next_effective,
+                                &sessions,
+                            );
+                            if let Err(error) = validation {
+                                let _ = next.shutdown_mcp().await;
+                                if let SwitchAck::Reload(ack) = ack {
+                                    let _ = ack.send(Err(error));
+                                }
+                                continue;
+                            }
+                        }
+                        let home_catalog = if matches!(ack, SwitchAck::Home(_)) {
                             let selected = match home_choices.get(next.location()) {
                                 Some(selected) => Ok(selected.clone()),
                                 None => {
@@ -751,6 +769,20 @@ async fn start_worker(
                                     notices,
                                 }));
                             }
+                            SwitchAck::Reload(ack) => {
+                                // A cached Home draft belongs to the old
+                                // config. Recompute it from the new generation
+                                // on the next Home query, without altering the
+                                // persisted deck or any session selection.
+                                home_choices.remove(&location);
+                                let _ = ack.send(Ok(ReloadLocationSnapshot {
+                                    location,
+                                    generation: location_epoch.load(Ordering::SeqCst),
+                                    catalog: effective.snapshot(&composition),
+                                    diagnostics: notes,
+                                    notices,
+                                }));
+                            }
                         }
                     }
                     Err(issue) => {
@@ -772,10 +804,67 @@ async fn start_worker(
                             SwitchAck::Home(ack) => {
                                 let _ = ack.send(Err(error));
                             }
+                            SwitchAck::Reload(ack) => {
+                                let _ = ack.send(Err(error));
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+    Ok(())
+}
+
+/// A reload retains the same Location's tab deck and scoped session choices.
+/// Resolve them through the owner's Current path before publishing the new
+/// generation; a configured fallback is allowed only where that path really
+/// replaces the old choice (for example an unpinned session model).
+fn validate_reload_selections(
+    db: &Db,
+    old: &Runtime<'_>,
+    next: &Runtime<'_>,
+    composition: &Composition,
+    effective: &Effective,
+    sessions: &BTreeMap<String, String>,
+) -> Result<(), CoreError> {
+    let storage_error = || CoreError::LocationSwitch {
+        category: LocationSwitchFailure::Storage,
+        detail: "retained tab deck unavailable".into(),
+    };
+    let selection_error = || CoreError::LocationSwitch {
+        category: LocationSwitchFailure::Configuration,
+        detail: "retained session selection unavailable in reloaded configuration".into(),
+    };
+    let old_deck = tab_deck::load(db, old).map_err(|_| storage_error())?;
+    let next_deck = tab_deck::load(db, next).map_err(|_| storage_error())?;
+    // Projection must not make an existing saved root disappear on reload.
+    if old_deck.sessions != next_deck.sessions || old_deck.active != next_deck.active {
+        return Err(storage_error());
+    }
+    let mut retained = old_deck.sessions;
+    if let Some(id) = sessions.get(old.location())
+        && !retained.iter().any(|session| &session.0 == id)
+    {
+        retained.push(SessionId(id.clone()));
+    }
+    for session in retained {
+        next.open_session(&session.0).map_err(|_| storage_error())?;
+        let selected = selection::apply(
+            db,
+            composition,
+            effective,
+            &session.0,
+            false,
+            oc_core::queries::SessionSelectionAction::Current,
+        )
+        .map_err(|_| selection_error())?;
+        let turn = selection::for_turn(db, composition, effective, &session.0)
+            .map_err(|_| selection_error())?;
+        for selected in [&selected, &turn] {
+            crate::models::select_model(&composition.catalog, &selected.model_id)
+                .and_then(|base| crate::models::select_variant(&base, selected.variant.as_deref()))
+                .map_err(|_| selection_error())?;
         }
     }
     Ok(())
@@ -1427,6 +1516,9 @@ fn query(
         InboxMsg::SwitchLocationHome { ack, .. } => {
             let _ = ack.send(Err(CoreError::TurnBusy));
         }
+        InboxMsg::ReloadLocation { ack } => {
+            let _ = ack.send(Err(CoreError::TurnBusy));
+        }
         InboxMsg::Dcp { session, ack } => {
             let result = (|| -> Result<DcpSnapshot, CoreError> {
                 runtime.open_session(&session.0).map_err(app_error)?;
@@ -1708,6 +1800,12 @@ async fn worker(
                 return Ok(WorkerOutcome::Switch {
                     path,
                     ack: SwitchAck::Home(ack),
+                });
+            }
+            InboxMsg::ReloadLocation { ack } => {
+                return Ok(WorkerOutcome::Switch {
+                    path: runtime.location().to_string(),
+                    ack: SwitchAck::Reload(ack),
                 });
             }
             message @ (InboxMsg::Submit { .. } | InboxMsg::SubmitFresh { .. }) => {
@@ -2409,6 +2507,16 @@ mod file_suggestion_tests {
         assert_eq!(third.paths, first.paths);
         assert!(third.generation > second.generation);
         assert_eq!(third.generation, returned.generation);
+        let reloaded = app.reload_location().await.unwrap();
+        assert_eq!(reloaded.location, third.location);
+        assert!(reloaded.generation > third.generation);
+        assert_eq!(
+            app.file_suggestions("only".into(), 20)
+                .await
+                .unwrap()
+                .generation,
+            reloaded.generation
+        );
         app.shutdown().await.unwrap();
         guard.join().await.unwrap();
     }
@@ -2431,5 +2539,335 @@ mod file_suggestion_tests {
             result,
             Err(app_error("file suggestions belong to previous Location"))
         );
+    }
+}
+
+#[cfg(test)]
+mod reload_tests {
+    use super::*;
+    use oc_core::queries::SessionSelectionAction as Action;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    fn config(model: &str, base_url: &str, static_model: bool) -> String {
+        let provider = if static_model { "fixture" } else { "ludka2" };
+        let models = if static_model {
+            serde_json::json!({(model): {}})
+        } else {
+            serde_json::json!({})
+        };
+        serde_json::json!({
+            "model": format!("{provider}/{model}"),
+            "provider": {(provider): {
+                "npm": "@ai-sdk/openai",
+                "options": {"baseURL": base_url, "apiKey": "dummy"},
+                "models": models
+            }}
+        })
+        .to_string()
+    }
+
+    fn env(data: &Path) -> BTreeMap<String, String> {
+        BTreeMap::from([
+            ("HOME".into(), data.to_string_lossy().into_owned()),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ])
+    }
+
+    #[tokio::test]
+    async fn removed_selected_primary_refuses_reload_and_keeps_old_turn_usable() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base_url = format!("http://{}/v1", listener.local_addr().unwrap());
+        let config = |include_review: bool| {
+            let mut value: serde_json::Value =
+                serde_json::from_str(&config("old", &base_url, true)).unwrap();
+            value["agent"] = serde_json::json!({
+                "build": {"mode": "primary", "prompt": "BUILD_PRIMARY"},
+                "review": {"mode": "primary", "prompt": "REVIEW_PRIMARY"}
+            });
+            value["default_agent"] = "build".into();
+            if !include_review {
+                value["agent"].as_object_mut().unwrap().remove("review");
+            }
+            value.to_string()
+        };
+        let path = project.join("opencode.json");
+        std::fs::write(&path, config(true)).unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let session = SessionId("retained-review".into());
+        let active = SessionId("active-build".into());
+        app.create_session(session.clone()).await.unwrap();
+        app.create_session(active.clone()).await.unwrap();
+        let saved = app
+            .save_tab_deck(oc_core::queries::TabDeckSnapshot {
+                sessions: vec![session.clone(), active.clone()],
+                active: Some(active),
+                ..app.tab_deck().await.unwrap()
+            })
+            .await
+            .unwrap();
+        let chosen = app
+            .session_selection(session.clone(), false, Action::Agent("review".into()))
+            .await
+            .unwrap();
+        assert_eq!(chosen.agent_id.as_deref(), Some("review"));
+        let initial = app.file_suggestions("".into(), 1).await.unwrap();
+        let catalog = app.catalog().await.unwrap();
+
+        std::fs::write(&path, config(false)).unwrap();
+        assert_eq!(
+            app.reload_location().await,
+            Err(CoreError::LocationSwitch {
+                category: LocationSwitchFailure::Configuration,
+                detail: "retained session selection unavailable in reloaded configuration".into(),
+            })
+        );
+        assert_eq!(app.catalog().await.unwrap(), catalog);
+        assert_eq!(app.tab_deck().await.unwrap(), saved);
+        assert_eq!(
+            app.file_suggestions("".into(), 1).await.unwrap().generation,
+            initial.generation
+        );
+        assert_eq!(
+            app.session_selection(session.clone(), false, Action::Current)
+                .await
+                .unwrap(),
+            chosen
+        );
+
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut request = Vec::new();
+            let mut chunk = [0; 4096];
+            loop {
+                let n = stream.read(&mut chunk).await.unwrap();
+                assert!(n > 0);
+                request.extend_from_slice(&chunk[..n]);
+                if let Some(headers_end) = request.windows(4).position(|w| w == b"\r\n\r\n") {
+                    let headers = String::from_utf8_lossy(&request[..headers_end]);
+                    let content_length = headers
+                        .lines()
+                        .find_map(|line| {
+                            line.to_ascii_lowercase()
+                                .strip_prefix("content-length: ")
+                                .and_then(|n| n.parse::<usize>().ok())
+                        })
+                        .unwrap();
+                    if request.len() >= headers_end + 4 + content_length {
+                        break;
+                    }
+                }
+            }
+            let body = String::from_utf8_lossy(&request);
+            assert!(body.contains("REVIEW_PRIMARY"), "old agent prompt missing");
+            assert!(body.contains("retained turn"), "old session prompt missing");
+            let sse = "data: {\"type\":\"response.output_text.delta\",\"delta\":\"answer\"}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\"}}\n\n";
+            stream
+                .write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{sse}", sse.len()).as_bytes())
+                .await
+                .unwrap();
+        });
+        let mut events = app.subscribe();
+        app.submit(session.clone(), "retained turn".into())
+            .await
+            .unwrap();
+        loop {
+            match tokio::time::timeout(std::time::Duration::from_secs(10), events.recv())
+                .await
+                .unwrap()
+                .unwrap()
+            {
+                CoreEvent::TurnFinished { session: id, .. } if id == session => break,
+                CoreEvent::TurnFailed { error, .. } => panic!("retained turn failed: {error}"),
+                _ => {}
+            }
+        }
+        server.await.unwrap();
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn retired_explicit_tab_model_is_not_silently_replaced_by_config_fallback() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let path = project.join("opencode.json");
+        let config = |retired: bool| {
+            let mut value: serde_json::Value =
+                serde_json::from_str(&config("new", "http://127.0.0.1:9/v1", true)).unwrap();
+            if !retired {
+                value["provider"]["fixture"]["models"]["old"] = serde_json::json!({});
+            }
+            value.to_string()
+        };
+        std::fs::write(&path, config(false)).unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let session = SessionId("explicit-old-model".into());
+        app.create_session(session.clone()).await.unwrap();
+        app.save_tab_deck(oc_core::queries::TabDeckSnapshot {
+            sessions: vec![session.clone()],
+            active: Some(session.clone()),
+            ..app.tab_deck().await.unwrap()
+        })
+        .await
+        .unwrap();
+        app.session_selection(session.clone(), false, Action::Model("old".into()))
+            .await
+            .unwrap();
+        let initial = app.file_suggestions("".into(), 1).await.unwrap();
+        std::fs::write(&path, config(true)).unwrap();
+        assert!(matches!(
+            app.reload_location().await,
+            Err(CoreError::LocationSwitch {
+                category: LocationSwitchFailure::Configuration,
+                ..
+            })
+        ));
+        assert_eq!(
+            app.session_selection(session, false, Action::Current)
+                .await
+                .unwrap()
+                .model_id,
+            "old"
+        );
+        assert_eq!(
+            app.file_suggestions("".into(), 1).await.unwrap().generation,
+            initial.generation
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn current_reload_discovers_new_catalog_preserves_deck_and_rolls_back_failures() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let path = project.join("opencode.json");
+        std::fs::write(&path, config("old", "http://127.0.0.1:9/v1", true)).unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let session = SessionId("reload-root".into());
+        app.create_session(session.clone()).await.unwrap();
+        let deck = app.tab_deck().await.unwrap();
+        let saved = app
+            .save_tab_deck(oc_core::queries::TabDeckSnapshot {
+                sessions: vec![session.clone()],
+                active: Some(session.clone()),
+                ..deck
+            })
+            .await
+            .unwrap();
+        let initial = app.file_suggestions("".into(), 1).await.unwrap();
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base_url = format!("http://{}/v1", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move {
+            for (model, count) in [("new", 1), ("new", 0)] {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let mut request = Vec::new();
+                let mut chunk = [0; 1024];
+                while !request.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
+                    let n = stream.read(&mut chunk).await.unwrap();
+                    assert!(n > 0);
+                    request.extend_from_slice(&chunk[..n]);
+                }
+                assert!(request.starts_with(b"GET /v1/models HTTP/1.1"));
+                let entries = if count == 1 {
+                    vec![serde_json::json!({"id": model, "context_length": 1000})]
+                } else {
+                    vec![]
+                };
+                let body = serde_json::json!({"object":"list", "data": entries}).to_string();
+                stream
+                    .write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes())
+                    .await
+                    .unwrap();
+            }
+        });
+        std::fs::write(&path, config("new", &base_url, false)).unwrap();
+        let reloaded = app.reload_location().await.unwrap();
+        assert_eq!(reloaded.location, initial.location);
+        assert!(reloaded.generation > initial.generation);
+        assert_eq!(reloaded.catalog.model_id, "new");
+        assert_eq!(reloaded.catalog.models.len(), 1);
+        assert_eq!(reloaded.catalog.models[0].id, "new");
+        assert_eq!(app.tab_deck().await.unwrap(), saved);
+        assert_eq!(
+            app.session_selection(session.clone(), false, Action::Current)
+                .await
+                .unwrap()
+                .model_id,
+            "new"
+        );
+        assert_eq!(
+            app.probe_session(session.clone()).await.unwrap(),
+            SessionProbe::Root
+        );
+
+        std::fs::write(&path, "{broken").unwrap();
+        assert!(matches!(
+            app.reload_location().await,
+            Err(CoreError::LocationSwitch { .. })
+        ));
+        assert_eq!(app.catalog().await.unwrap(), reloaded.catalog);
+        assert_eq!(
+            app.file_suggestions("".into(), 1).await.unwrap().generation,
+            reloaded.generation
+        );
+
+        std::fs::write(&path, config("new", &base_url, false)).unwrap();
+        assert!(matches!(
+            app.reload_location().await,
+            Err(CoreError::LocationSwitch { .. })
+        ));
+        server.await.unwrap();
+        assert_eq!(app.catalog().await.unwrap(), reloaded.catalog);
+        assert_eq!(app.tab_deck().await.unwrap(), saved);
+        assert_eq!(
+            app.probe_session(session).await.unwrap(),
+            SessionProbe::Root
+        );
+        assert_eq!(
+            app.file_suggestions("".into(), 1).await.unwrap().generation,
+            reloaded.generation
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn reload_is_refused_by_owner_during_active_turn() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base_url = format!("http://{}/v1", listener.local_addr().unwrap());
+        std::fs::write(
+            project.join("opencode.json"),
+            config("old", &base_url, true),
+        )
+        .unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let session = SessionId("active-reload".into());
+        app.submit_fresh(session.clone(), "hello".into(), None)
+            .await
+            .unwrap();
+        assert_eq!(app.reload_location().await, Err(CoreError::TurnBusy));
+        app.cancel(session).await.unwrap();
+        // Drop the stalled transport so the cancelled turn can terminate.
+        drop(listener);
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
     }
 }

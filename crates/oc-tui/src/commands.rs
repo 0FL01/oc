@@ -19,6 +19,8 @@ pub enum CommandAction {
     ToggleSidebar,
     /// Toggle public reasoning between collapsed title and expanded body.
     ToggleThinking,
+    /// Rebuild the current Location through the application owner.
+    ReloadConfiguration,
     /// Exit the TUI.
     Quit,
     /// Open the model picker.
@@ -117,6 +119,7 @@ impl CommandSpec {
                     | CommandAction::OpenVariants
                     | CommandAction::OpenAgents
                     | CommandAction::SwitchLocation { .. }
+                    | CommandAction::ReloadConfiguration
                     | CommandAction::DcpCompress { .. }
             )
         {
@@ -285,6 +288,14 @@ pub const REGISTRY: &[CommandSpec] = &[
         },
     },
     CommandSpec {
+        id: "location.reload",
+        title: "Reload configuration",
+        group: "System",
+        shortcuts: &[],
+        aliases: &["reload"],
+        action: CommandAction::ReloadConfiguration,
+    },
+    CommandSpec {
         id: "help.show",
         title: "Help",
         group: "System",
@@ -368,6 +379,17 @@ mod tests {
 
     #[test]
     fn routes_builtins() {
+        assert_eq!(
+            dispatch("/reload"),
+            Some(CommandAction::ReloadConfiguration)
+        );
+        assert_eq!(dispatch("/ren"), Some(CommandAction::Help(None)));
+        assert_eq!(complete("/ren"), ["rename"]);
+        assert!(super::spec(&CommandAction::ReloadConfiguration).in_palette(false));
+        assert_eq!(
+            super::spec(&CommandAction::ReloadConfiguration).unavailable(true, false),
+            Some("turn active; action unavailable")
+        );
         assert_eq!(dispatch("/quit"), Some(CommandAction::Quit));
         assert_eq!(dispatch("/model"), Some(CommandAction::OpenModelPicker));
         assert_eq!(dispatch("/agents"), Some(CommandAction::OpenAgents));

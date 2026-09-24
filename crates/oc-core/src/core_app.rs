@@ -14,7 +14,7 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 use crate::domain::SessionId;
 use crate::queries::{
     CatalogSnapshot, DcpSnapshot, FileSuggestionsSnapshot, HistoryPage, HomeLocationSnapshot,
-    LocationSnapshot, SessionProbe, SkillCard, TabDeckSnapshot, ToolOpPage,
+    LocationSnapshot, ReloadLocationSnapshot, SessionProbe, SkillCard, TabDeckSnapshot, ToolOpPage,
 };
 use crate::session::{CoreError, MAX_INPUT_BYTES, MAX_QUEUE_ITEMS, Message, MessageId, Role};
 
@@ -471,6 +471,11 @@ pub enum InboxMsg {
         path: String,
         /// Location/catalog/diagnostics without an attached session.
         ack: oneshot::Sender<Result<HomeLocationSnapshot, CoreError>>,
+    },
+    /// Rebuild the current canonical Location's config/catalog/runtime between
+    /// turns without switching Location, creating sessions or changing the deck.
+    ReloadLocation {
+        ack: oneshot::Sender<Result<ReloadLocationSnapshot, CoreError>>,
     },
     /// DCP context/stats snapshot for a session.
     Dcp {
@@ -941,6 +946,18 @@ impl CoreApp {
         result.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// Atomically reload the current canonical Location for subsequent turns.
+    /// Refused by the owner while a turn or title request is in progress. A
+    /// failed rebuild leaves the published generation and selection effective.
+    pub async fn reload_location(&self) -> Result<ReloadLocationSnapshot, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ReloadLocation { ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Skill catalog cards (metadata only).
     pub async fn skills(&self) -> Result<Vec<SkillCard>, CoreError> {
         let (ack_tx, ack_rx) = oneshot::channel();
@@ -1361,6 +1378,9 @@ fn scripted_unsupported(message: InboxMsg) {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::SwitchLocationHome { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::ReloadLocation { ack } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::Dcp { ack, .. } => {

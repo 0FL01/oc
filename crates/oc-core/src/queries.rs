@@ -386,6 +386,22 @@ pub struct HomeLocationSnapshot {
     pub notices: Vec<StartupNotice>,
 }
 
+/// Rebuilt configuration for the current canonical Location. Existing roots,
+/// selected tab and stored deck are untouched; the catalog is for the next turn.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReloadLocationSnapshot {
+    /// Canonical Location still served by the application.
+    pub location: String,
+    /// Monotonic owner epoch, including reloads and A→B→A switches.
+    pub generation: u64,
+    /// Fresh catalog and effective selection for this generation.
+    pub catalog: CatalogSnapshot,
+    /// Detailed diagnostics for application callers; UIs display `notices`.
+    pub diagnostics: Vec<String>,
+    /// Allowlisted interactive warnings.
+    pub notices: Vec<StartupNotice>,
+}
+
 /// Bounded file candidates from the application owner's current Location.
 /// Consumers must compare both `location` and `generation` with their current
 /// route before showing an asynchronously delivered response (including A→B→A).

@@ -16,6 +16,7 @@ use ratatui::backend::CrosstermBackend;
 use oc_adapters::application::{HISTORY_PAGE_LIMIT, TOOL_OPS_PAGE_LIMIT};
 use oc_core::core_app::{CoreApp, CoreEvent};
 use oc_core::domain::SessionId;
+use oc_core::queries::ReloadLocationSnapshot;
 use oc_core::queries::{
     CatalogSnapshot, FileSuggestionsSnapshot, SessionSelectionAction as SelectionAction,
 };
@@ -140,6 +141,11 @@ struct LoopState {
         SessionId,
         tokio::task::JoinHandle<Result<String, CoreError>>,
     )>,
+    /// The owner rebuild runs off the terminal loop so the progress notice
+    /// paints before the final outcome. Only quit and resize are accepted meanwhile.
+    reload_job: Option<tokio::task::JoinHandle<Result<ReloadLocationSnapshot, CoreError>>>,
+    reload_draft: Option<String>,
+    reload_painted: bool,
     /// Turn started by a manual `/dcp-compress` request.
     /// Cursor for paging older tool cards.
     cards_before: Option<i64>,
@@ -470,6 +476,31 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
     loop {
         poll_and_sync(app, &mut state, &mut loop_state).await;
         sync_mention(app, &mut state, &mut loop_state).await;
+        if loop_state.reload_job.is_some() {
+            if loop_state.reload_painted
+                && loop_state
+                    .reload_job
+                    .as_ref()
+                    .is_some_and(|job| job.is_finished())
+            {
+                let job = loop_state.reload_job.take().expect("finished reload job");
+                let draft = loop_state.reload_draft.take();
+                match job.await.unwrap_or(Err(CoreError::Shutdown)) {
+                    Ok(snapshot) => {
+                        match finish_reload(app, &mut state, &mut loop_state, snapshot, draft).await
+                        {
+                            Ok(()) => state.push_note("Configuration reloaded"),
+                            Err(message) => state.apply_intent_error(message),
+                        }
+                    }
+                    Err(error) => state.apply_intent_error(reload_error(error)),
+                }
+                loop_state.reload_painted = false;
+                loop_state.sync_tabs(&mut state);
+            } else {
+                loop_state.reload_painted = true;
+            }
+        }
         if loop_state
             .title_job
             .as_ref()
@@ -556,6 +587,12 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
     reconcile_exit(app, &mut state, &mut loop_state).await?;
     write_metrics(&state, &loop_state, frame_metrics.as_ref());
     drop(_term);
+    // The terminal is restored promptly even when the owner is still rebuilding.
+    // Do not abort the request: the owner's published transaction must finish
+    // before run_stages queues shutdown, and a quit never claims reload success.
+    if let Some(job) = loop_state.reload_job.take() {
+        let _ = job.await;
+    }
     Ok(0)
 }
 
@@ -930,7 +967,23 @@ async fn handle_event(
     loop_state: &mut LoopState,
     cev: CEvent,
 ) -> Result<(), String> {
-    match map_event(cev) {
+    let event = map_event(cev);
+    if loop_state.reload_job.is_some() {
+        match event {
+            Some(UiEvent::Key(KeyAction::Interrupt | KeyAction::Quit)) => {
+                // Bypass modal/editor focus, but leave owner reload intact for
+                // the post-terminal join and orderly application shutdown.
+                state.handle_key(KeyAction::Quit).await;
+            }
+            Some(UiEvent::Key(KeyAction::Enter)) if state.input().trim() == "/quit" => {
+                state.handle_key(KeyAction::Quit).await;
+            }
+            Some(UiEvent::Resize) => state.clear_mouse_position(),
+            _ => {}
+        }
+        return Ok(());
+    }
+    match event {
         Some(UiEvent::Key(action)) => {
             if action == KeyAction::Cancel
                 && *state.panel() == TuiPanel::None
@@ -1091,6 +1144,9 @@ async fn apply_intent_with_origin(
     intent: PanelIntent,
     typed_new: bool,
 ) -> Result<(), String> {
+    if loop_state.reload_job.is_some() {
+        return Err("configuration reload pending".into());
+    }
     if loop_state.read_only
         && matches!(
             intent,
@@ -1102,11 +1158,28 @@ async fn apply_intent_with_origin(
                 | PanelIntent::ChooseModel { .. }
                 | PanelIntent::SelectAgent { .. }
                 | PanelIntent::Compress { .. }
+                | PanelIntent::ReloadConfiguration
         )
     {
         return Err("child session: read-only history; saved tabs are unchanged".into());
     }
     match intent {
+        PanelIntent::ReloadConfiguration => {
+            if state.is_busy()
+                || loop_state.tabs.iter().flatten().any(TuiState::is_busy)
+                || loop_state.home.as_ref().is_some_and(TuiState::is_busy)
+                || loop_state.title_job.is_some()
+            {
+                return Err("turn active; configuration reload refused".into());
+            }
+            let slash_draft = (state.input().trim() == "/reload").then(|| state.input().to_owned());
+            state.push_note("Reloading configuration…");
+            loop_state.reload_draft = slash_draft;
+            let owner = app.clone();
+            loop_state.reload_job =
+                Some(tokio::spawn(async move { owner.reload_location().await }));
+            loop_state.reload_painted = false;
+        }
         PanelIntent::LoadCatalog => {
             let snapshot = selection(app, state, SelectionAction::Current).await?;
             state.apply_catalog(snapshot);
@@ -1418,6 +1491,115 @@ fn switch_error(error: CoreError) -> String {
     }
 }
 
+fn reload_error(error: CoreError) -> String {
+    match error {
+        CoreError::TurnBusy => "turn active; configuration reload refused".into(),
+        CoreError::LocationSwitch { category, .. } => match category {
+            LocationSwitchFailure::Configuration => {
+                "Configuration reload failed; check opencode.json/jsonc and selected model".into()
+            }
+            LocationSwitchFailure::Storage => {
+                "Configuration reload failed; check the data directory and saved selection".into()
+            }
+            LocationSwitchFailure::Runtime => {
+                "Configuration reload failed; check native settings".into()
+            }
+        },
+        _ => "Configuration reload failed; check the current Location".into(),
+    }
+}
+
+/// Owner success is already published. Refresh every retained route before
+/// acknowledging the slash draft; an external shared handle may have switched
+/// Locations while the asynchronous rebuild was in flight.
+async fn finish_reload(
+    app: &CoreApp,
+    state: &mut TuiState,
+    deck: &mut LoopState,
+    snapshot: ReloadLocationSnapshot,
+    slash_draft: Option<String>,
+) -> Result<(), String> {
+    if state.chrome.location.as_deref() != Some(snapshot.location.as_str())
+        || deck.location.as_deref() != Some(snapshot.location.as_str())
+    {
+        return Err(
+            "Configuration reload incomplete; visible Location changed during refresh".into(),
+        );
+    }
+    let mut catalogs = Vec::with_capacity(deck.tabs.len());
+    for (index, parked) in deck.tabs.iter().enumerate() {
+        let view = if deck.active_tab == Some(index) {
+            &*state
+        } else {
+            parked.as_ref().expect("parked tab")
+        };
+        let session = view.attached_session().expect("real tab");
+        catalogs.push(
+            app.session_selection(session.clone(), view.home, SelectionAction::Current)
+                .await
+                .map_err(|_| "Configuration reload incomplete; session selection refresh failed; retry /reload".to_string())?,
+        );
+    }
+    let home_catalog = if deck.active_tab.is_none() || deck.home.is_some() {
+        Some(
+            app.home_selection(SelectionAction::Current)
+                .await
+                .map_err(|_| {
+                    "Configuration reload incomplete; Home selection refresh failed; retry /reload"
+                        .to_string()
+                })?,
+        )
+    } else {
+        None
+    };
+    if app
+        .catalog()
+        .await
+        .map_err(|_| "Configuration reload incomplete; catalog verification failed".to_string())?
+        .chrome
+        .location
+        .as_deref()
+        != Some(snapshot.location.as_str())
+        || catalogs
+            .iter()
+            .any(|catalog| catalog.chrome.location.as_deref() != Some(snapshot.location.as_str()))
+        || home_catalog.as_ref().is_some_and(|catalog| {
+            catalog.chrome.location.as_deref() != Some(snapshot.location.as_str())
+        })
+    {
+        return Err("Configuration reload incomplete; Location changed during refresh".into());
+    }
+    if let Some((_, job)) = deck.mention_job.take() {
+        job.abort();
+    }
+    deck.mention_pending = None;
+    deck.mention_failed = None;
+    for (index, catalog) in catalogs.into_iter().enumerate() {
+        if deck.active_tab == Some(index) {
+            state.refresh_configuration(catalog);
+        } else {
+            deck.tabs[index]
+                .as_mut()
+                .expect("parked tab")
+                .refresh_configuration(catalog);
+        }
+    }
+    if let Some(catalog) = home_catalog {
+        if deck.active_tab.is_none() {
+            state.refresh_configuration(catalog);
+        } else if let Some(home) = deck.home.as_mut() {
+            home.refresh_configuration(catalog);
+        }
+    }
+    if slash_draft.as_deref() == Some(state.input()) {
+        state.accept_intent();
+    }
+    for notice in snapshot.notices {
+        state.push_warning(startup_notice(notice));
+    }
+    Ok(())
+}
+
 /// A published Location invalidates every old view, including the parked
 /// Home draft. On a broken preference keep the new Location's Home and show
 /// a static diagnostic rather than accidentally repainting old-location data.
@@ -1693,6 +1875,7 @@ fn write_metrics(state: &TuiState, deck: &LoopState, frames: Option<&FrameMetric
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use oc_core::core_app::InboxMsg;
     use oc_core::core_app::WorkerTurnId;
     use oc_core::queries::{AutoAcceptState, HistoryMessage, HistoryPage, ToolOpPage, ToolOpView};
@@ -2225,6 +2408,100 @@ mod tests {
         deck.tab_cards_before.push(None);
         deck.cards_before = None;
         deck.sync_tabs(state);
+    }
+
+    #[tokio::test]
+    async fn pending_owner_reload_allows_resize_and_quit_without_dropping_owner_receipt() {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let mut state = TuiState::new_home(app.clone());
+        state.handle_paste("/reload");
+        let mut deck = LoopState::default();
+        let owner = app.clone();
+        deck.reload_job = Some(tokio::spawn(async move { owner.reload_location().await }));
+        let Some(InboxMsg::ReloadLocation { ack }) = inbox.recv().await else {
+            panic!("owner reload must be in flight")
+        };
+        let pointer = (2, 3, ratatui::layout::Rect::new(0, 0, 80, 24));
+        state.restore_mouse_hover(pointer);
+        assert_eq!(state.mouse_position(), Some(pointer));
+        handle_event(&app, &mut state, &mut deck, CEvent::Resize(100, 30))
+            .await
+            .unwrap();
+        assert_eq!(state.mouse_position(), None);
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            CEvent::Key(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL)),
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.status(), &TuiStatus::Quit);
+        assert_eq!(state.input(), "/reload");
+        assert!(!deck.reload_job.as_ref().unwrap().is_finished());
+        // The owner can complete its transaction after terminal quit: no
+        // dropped receiver or optimistic success/selection replacement.
+        ack.send(Err(CoreError::Shutdown)).unwrap();
+        assert!(deck.reload_job.take().unwrap().await.unwrap().is_err());
+    }
+
+    #[tokio::test]
+    async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let mut old = catalog();
+        old.chrome.location = Some("/fixture".into());
+        old.commands = vec!["old-command".into()];
+        let mut state = TuiState::new(app.clone(), SessionId::new("first").unwrap());
+        state.apply_catalog(old.clone());
+        let mut deck = LoopState {
+            location: Some("/fixture".into()),
+            ..Default::default()
+        };
+        deck.sync_tabs(&mut state);
+        append_tab(&app, &mut deck, &mut state, "second");
+        state.apply_catalog(old.clone());
+        state.handle_paste("/reload");
+        let mut fresh = old.clone();
+        fresh.commands = vec!["fresh-command".into()];
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+                panic!("parked session selection")
+            };
+            ack.send(Ok(fresh)).unwrap();
+            let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+                panic!("active session selection")
+            };
+            ack.send(Err(CoreError::Shutdown)).unwrap();
+        });
+        let error = finish_reload(
+            &app,
+            &mut state,
+            &mut deck,
+            ReloadLocationSnapshot {
+                location: "/fixture".into(),
+                generation: 2,
+                catalog: old,
+                diagnostics: Vec::new(),
+                notices: Vec::new(),
+            },
+            Some("/reload".into()),
+        )
+        .await
+        .unwrap_err();
+        worker.await.unwrap();
+        assert!(error.contains("selection refresh failed"));
+        state.apply_intent_error(error);
+        assert!(state.note().unwrap().contains("reload incomplete"));
+        assert_eq!(state.input(), "/reload");
+        assert!(state.is_workspace_command("/old-command"));
+        assert!(!state.is_workspace_command("/fresh-command"));
+        assert!(
+            deck.tabs[0]
+                .as_ref()
+                .unwrap()
+                .is_workspace_command("/old-command")
+        );
     }
 
     #[tokio::test]
