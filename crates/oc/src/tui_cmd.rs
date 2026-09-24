@@ -19,9 +19,10 @@ use oc_core::domain::SessionId;
 use oc_core::queries::StartupNotice;
 use oc_core::queries::{CatalogSnapshot, SessionSelectionAction as SelectionAction};
 use oc_core::session::{CoreError, LocationSwitchFailure};
-use oc_tui::app::{KeyOutcome, PanelIntent, TuiPanel, TuiState, TuiStatus};
+use oc_tui::app::{KeyOutcome, PanelIntent, TabPresentation, TuiPanel, TuiState, TuiStatus};
+use oc_tui::commands::{CommandAction, dispatch};
 use oc_tui::dcp_panel::DcpOutcome;
-use oc_tui::events::{UiEvent, map_event};
+use oc_tui::events::{KeyAction, UiEvent, map_event};
 use oc_tui::shell::{StartupFailure, render_startup_failure};
 use oc_tui::terminal::{enter, install_panic_hook};
 use oc_tui::views::render_frame;
@@ -46,6 +47,7 @@ struct FrameMetrics {
 /// Max key events drained per frame (paste bursts stay fast; a flooding
 /// input still yields to the worker drain below each frame).
 const MAX_KEYS_PER_FRAME: usize = 256;
+const MAX_TABS: usize = 16;
 
 /// Launch the interactive TUI; returns process exit code.
 pub async fn run_tui(data_dir: &Path, session_opt: Option<String>) -> ExitCode {
@@ -115,6 +117,120 @@ struct LoopState {
     cards_before: Option<i64>,
     /// DCP snapshot was fetched for the currently open panel.
     dcp_seen: bool,
+    /// Ordered real tabs. The selected tab lives in `drive_ui`'s `state`
+    /// instead of being duplicated here. A sessionless Home is a synthetic
+    /// slot outside this vector until its first turn is accepted.
+    tabs: Vec<Option<TuiState>>,
+    /// Card cursors follow the same slots as `tabs` (including the active slot).
+    tab_cards_before: Vec<Option<i64>>,
+    active_tab: Option<usize>,
+    home: Option<TuiState>,
+}
+
+impl LoopState {
+    fn can_open_session(&self) -> bool {
+        self.tabs.len() < MAX_TABS - usize::from(self.home.is_some() || self.active_tab.is_none())
+    }
+
+    fn sync_tabs(&mut self, state: &mut TuiState) {
+        // Bare Home has no tab. Acceptance attaches it to the first real
+        // session; subsequent Home submissions append to the existing deck.
+        if self.active_tab.is_none() && state.attached_session().is_some() {
+            debug_assert!(self.tabs.len() < MAX_TABS);
+            self.active_tab = Some(self.tabs.len());
+            self.tabs.push(None);
+            self.tab_cards_before.push(self.cards_before);
+        }
+        let tabs: Vec<_> = self
+            .tabs
+            .iter()
+            .enumerate()
+            .map(|(index, parked)| {
+                let view = if self.active_tab == Some(index) {
+                    &*state
+                } else {
+                    parked.as_ref().expect("parked tab")
+                };
+                TabPresentation {
+                    title: view.session_title.clone(),
+                    home: false,
+                    busy: view.is_busy(),
+                }
+            })
+            .collect();
+        let active = self.active_tab.unwrap_or(self.tabs.len());
+        let can_add = !state.is_busy() && self.tabs.len() < MAX_TABS;
+        let (shown, selected, allowed) = state.tab_presentation();
+        // `set_tab_strip` cancels a pending mouse Down: never call it while
+        // nothing painted has changed, even across the 50ms redraw loop.
+        if shown != tabs || selected != active || allowed != (can_add && !tabs.is_empty()) {
+            state.set_tab_strip(tabs, active, can_add);
+        }
+    }
+
+    fn activate(&mut self, state: &mut TuiState, index: usize) -> Result<(), String> {
+        if state.is_busy() {
+            return Err("turn active; session switch refused".into());
+        }
+        if index >= self.tabs.len() {
+            return Err("tab unavailable".into());
+        }
+        if self.active_tab == Some(index) {
+            state.close_panel();
+            return Ok(());
+        }
+        state.close_panel();
+        let next = self.tabs[index].take().expect("parked tab");
+        let previous = std::mem::replace(state, next);
+        if let Some(old) = self.active_tab {
+            self.tabs[old] = Some(previous);
+            self.tab_cards_before[old] = self.cards_before;
+        } else {
+            self.home = Some(previous);
+        }
+        self.active_tab = Some(index);
+        self.cards_before = self.tab_cards_before[index];
+        self.dcp_seen = false;
+        self.sync_tabs(state);
+        Ok(())
+    }
+
+    fn open_home(&mut self, state: &mut TuiState, next: TuiState) {
+        state.close_panel();
+        let previous = std::mem::replace(state, next);
+        if let Some(old) = self.active_tab.take() {
+            self.tabs[old] = Some(previous);
+            self.tab_cards_before[old] = self.cards_before;
+        }
+        // An existing synthetic Home is replaced by a fresh `/new` Home.
+        self.home = None;
+        self.cards_before = None;
+        self.dcp_seen = false;
+        self.sync_tabs(state);
+    }
+
+    fn restore_home(&mut self, state: &mut TuiState) -> bool {
+        let Some(home) = self.home.take() else {
+            return false;
+        };
+        state.close_panel();
+        let old = self.active_tab.take().expect("Home parked from a tab");
+        self.tabs[old] = Some(std::mem::replace(state, home));
+        self.tab_cards_before[old] = self.cards_before;
+        self.cards_before = None;
+        self.dcp_seen = false;
+        self.sync_tabs(state);
+        true
+    }
+
+    fn reset_deck(&mut self) {
+        self.tabs.clear();
+        self.tab_cards_before.clear();
+        self.active_tab = None;
+        self.home = None;
+        self.cards_before = None;
+        self.dcp_seen = false;
+    }
 }
 
 async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, String> {
@@ -130,10 +246,12 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
     };
     let mut rx = app.subscribe();
     let mut loop_state = LoopState::default();
+    loop_state.sync_tabs(&mut state);
     let mut frame_metrics = std::env::var_os(METRICS_ENV).map(|_| FrameMetrics::default());
 
     loop {
         state.poll_submission();
+        loop_state.sync_tabs(&mut state);
         let draw_start = frame_metrics.as_ref().map(|_| Instant::now());
         terminal
             .draw(|frame| render_frame(frame, &state))
@@ -175,6 +293,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
             if let Some(current) = state.attached_session().cloned() {
                 handle_worker_event(app, &mut state, &mut loop_state, &current, event).await?;
             }
+            loop_state.sync_tabs(&mut state);
         }
         // The DCP panel shows runtime counters: refresh when it opens.
         if *state.panel() == TuiPanel::Dcp && !loop_state.dcp_seen {
@@ -277,12 +396,15 @@ async fn handle_event(
 ) -> Result<(), String> {
     match map_event(cev) {
         Some(UiEvent::Key(action)) => {
+            let typed_new = action == KeyAction::Enter
+                && *state.panel() == TuiPanel::None
+                && dispatch(state.input().trim()) == Some(CommandAction::NewSession);
             let outcome = if *state.panel() == TuiPanel::None {
                 state.handle_key(action).await
             } else {
                 state.handle_panel_key(action)
             };
-            apply_outcome(app, state, loop_state, outcome).await;
+            apply_outcome(app, state, loop_state, outcome, typed_new).await;
         }
         Some(UiEvent::Paste(text)) => {
             let outcome = state.handle_paste(&text);
@@ -302,7 +424,7 @@ async fn handle_event(
                     crossterm::terminal::size().map_err(|e| format!("mouse terminal size: {e}"))?;
                 state.handle_mouse(mouse, ratatui::layout::Rect::new(0, 0, cols, rows))
             };
-            apply_outcome(app, state, loop_state, outcome).await;
+            apply_outcome(app, state, loop_state, outcome, false).await;
         }
         Some(UiEvent::Resize) | None => {}
     }
@@ -315,6 +437,7 @@ async fn apply_outcome(
     state: &mut TuiState,
     loop_state: &mut LoopState,
     outcome: KeyOutcome,
+    typed_new: bool,
 ) {
     if let Some(note) = outcome.note {
         state.push_note(&note);
@@ -324,7 +447,7 @@ async fn apply_outcome(
     };
     // Scrolling intents never consume typed input; commands do.
     let consumes = matches!(intent, PanelIntent::SwitchLocation { .. });
-    match apply_intent(app, state, loop_state, intent).await {
+    match apply_intent_with_origin(app, state, loop_state, intent, typed_new).await {
         Ok(()) => {
             if consumes {
                 state.accept_intent();
@@ -332,13 +455,25 @@ async fn apply_outcome(
         }
         Err(message) => state.apply_intent_error(message),
     }
+    loop_state.sync_tabs(state);
 }
 
+#[cfg(test)]
 async fn apply_intent(
     app: &CoreApp,
     state: &mut TuiState,
     loop_state: &mut LoopState,
     intent: PanelIntent,
+) -> Result<(), String> {
+    apply_intent_with_origin(app, state, loop_state, intent, false).await
+}
+
+async fn apply_intent_with_origin(
+    app: &CoreApp,
+    state: &mut TuiState,
+    loop_state: &mut LoopState,
+    intent: PanelIntent,
+    typed_new: bool,
 ) -> Result<(), String> {
     match intent {
         PanelIntent::LoadCatalog => {
@@ -389,6 +524,16 @@ async fn apply_intent(
             if state.is_busy() {
                 return Err("turn active; action unavailable".into());
             }
+            if loop_state.home.is_some() {
+                if typed_new {
+                    state.accept_intent();
+                }
+                loop_state.restore_home(state);
+                return Ok(());
+            }
+            if loop_state.tabs.len() >= MAX_TABS && state.attached_session().is_some() {
+                return Err("tab limit reached".into());
+            }
             let snapshot = app
                 .home_selection(SelectionAction::New(
                     state.active_agent().map(str::to_string),
@@ -397,10 +542,12 @@ async fn apply_intent(
                 .map_err(|e| e.to_string())?;
             let mut home = TuiState::new_home(app.clone());
             home.apply_catalog(snapshot);
-            *state = home;
-            loop_state.cards_before = None;
-            loop_state.dcp_seen = false;
+            if typed_new {
+                state.accept_intent();
+            }
+            loop_state.open_home(state, home);
         }
+        PanelIntent::ActivateTab { index } => loop_state.activate(state, index)?,
         PanelIntent::SelectAgent { id } => {
             let snapshot = selection(app, state, SelectionAction::Agent(id)).await?;
             let note = match &snapshot.agent_id {
@@ -418,6 +565,25 @@ async fn apply_intent(
                 return Err("turn active; session switch refused".to_string());
             }
             let target = SessionId::new(id).ok_or_else(|| "bad session id".to_string())?;
+            if let Some(index) = loop_state
+                .tabs
+                .iter()
+                .enumerate()
+                .find_map(|(index, parked)| {
+                    let view = if loop_state.active_tab == Some(index) {
+                        &*state
+                    } else {
+                        parked.as_ref().expect("parked tab")
+                    };
+                    (view.attached_session() == Some(&target)).then_some(index)
+                })
+            {
+                loop_state.activate(state, index)?;
+                return Ok(());
+            }
+            if !loop_state.can_open_session() {
+                return Err("tab limit reached".into());
+            }
             let snapshot = app
                 .session_selection(target.clone(), false, SelectionAction::Current)
                 .await
@@ -426,11 +592,22 @@ async fn apply_intent(
                 .history_page(target.clone(), None, None, HISTORY_PAGE_LIMIT)
                 .await
                 .map_err(|e| e.to_string())?;
-            state.set_session(target);
-            state.attach_page(&page);
-            state.apply_catalog(snapshot);
+            let mut next = TuiState::new(app.clone(), target);
+            next.attach_page(&page);
+            next.apply_catalog(snapshot);
             state.close_panel();
+            if let Some(old) = loop_state.active_tab.take() {
+                loop_state.tabs[old] = Some(std::mem::replace(state, next));
+                loop_state.tab_cards_before[old] = loop_state.cards_before;
+            } else {
+                loop_state.home = Some(std::mem::replace(state, next));
+            }
+            loop_state.active_tab = Some(loop_state.tabs.len());
+            loop_state.tabs.push(None);
+            loop_state.tab_cards_before.push(None);
             loop_state.cards_before = None;
+            loop_state.dcp_seen = false;
+            loop_state.sync_tabs(state);
         }
         PanelIntent::SwitchLocation { path } => {
             // The application refuses a switch during a turn; the view-model
@@ -442,6 +619,7 @@ async fn apply_intent(
                 // Do not touch the view (including its editable draft) until
                 // the owner has validated and published the target generation.
                 let snapshot = app.switch_location_home(path).await.map_err(switch_error)?;
+                loop_state.reset_deck();
                 state.reset_workspace();
                 state.apply_catalog(snapshot.catalog);
                 loop_state.cards_before = None;
@@ -455,6 +633,12 @@ async fn apply_intent(
             let snapshot = app.switch_location(path).await.map_err(switch_error)?;
             let target = SessionId::new(snapshot.session.clone())
                 .ok_or_else(|| "bad session id".to_string())?;
+            // Publication changed the application generation. No parked view
+            // from the old Location may be reactivated, even if a later
+            // history/catalog read in the new generation fails.
+            loop_state.reset_deck();
+            state.reset_workspace();
+            state.set_session(target.clone());
             let page = app
                 .history_page(target.clone(), None, None, HISTORY_PAGE_LIMIT)
                 .await
@@ -465,8 +649,6 @@ async fn apply_intent(
                 .session_selection(target.clone(), false, SelectionAction::Current)
                 .await
                 .map_err(|_| "Location selection unavailable; check saved selection".to_string())?;
-            state.reset_workspace();
-            state.set_session(target);
             state.attach_page(&page);
             state.apply_catalog(catalog);
             state.close_panel();
@@ -475,6 +657,7 @@ async fn apply_intent(
             for notice in snapshot.notices {
                 state.push_note(&format!("warning: {}", startup_notice(notice)));
             }
+            loop_state.sync_tabs(state);
         }
         PanelIntent::LoadOlder => {
             let session = require_session(state)?;
@@ -721,6 +904,7 @@ fn write_metrics(state: &TuiState, frames: Option<&FrameMetrics>) {
     };
     let metrics = serde_json::json!({
         "session": state.attached_session().map(|session| &session.0),
+        "tab_count": state.tab_presentation().0.len(),
         "retained_bytes": state.retained_bytes(),
         "window_rows": state.history().len(),
         "window_total": state.history().total(),
@@ -736,8 +920,199 @@ fn write_metrics(state: &TuiState, frames: Option<&FrameMetrics>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use oc_core::core_app::InboxMsg;
     use oc_core::core_app::WorkerTurnId;
-    use oc_tui::events::KeyAction;
+    use oc_core::queries::{AutoAcceptState, ToolOpPage, ToolOpView};
+
+    fn catalog() -> CatalogSnapshot {
+        CatalogSnapshot {
+            chrome: Default::default(),
+            auto_accept: AutoAcceptState::Unsupported,
+            provider: "fixture".into(),
+            models: Vec::new(),
+            model_id: "fixture/model".into(),
+            variant: None,
+            agents: Vec::new(),
+            agent_id: None,
+            commands: Vec::new(),
+        }
+    }
+
+    #[tokio::test]
+    async fn home_reserves_sixteenth_slot_against_new_session_selection() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("tab-0").unwrap());
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        for index in 1..MAX_TABS - 1 {
+            let next = TuiState::new(app.clone(), SessionId::new(format!("tab-{index}")).unwrap());
+            deck.tabs[deck.active_tab.unwrap()] = Some(std::mem::replace(&mut state, next));
+            deck.active_tab = Some(deck.tabs.len());
+            deck.tabs.push(None);
+            deck.tab_cards_before.push(None);
+        }
+        assert_eq!(deck.tabs.len(), MAX_TABS - 1);
+        deck.open_home(&mut state, TuiState::new_home(app.clone()));
+        state.handle_paste("Home draft");
+        deck.activate(&mut state, 0).unwrap();
+        state.handle_paste("parked draft");
+        let error = apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::SwitchSession {
+                id: "tab-15".into(),
+            },
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error, "tab limit reached");
+        assert!(
+            inbox.try_recv().is_err(),
+            "rejection must precede app selection"
+        );
+        assert_eq!(state.input(), "parked draft");
+        assert_eq!(deck.tabs.len(), MAX_TABS - 1);
+        apply_intent(&app, &mut state, &mut deck, PanelIntent::NewSession)
+            .await
+            .unwrap();
+        assert_eq!(state.input(), "Home draft");
+        assert!(state.attached_session().is_none());
+        // The actual first-turn receipt binds Home to its reserved slot.
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::SubmitFresh { text, ack, .. }) = inbox.recv().await else {
+            panic!("expected fresh Home submission")
+        };
+        assert_eq!(text, "Home draft");
+        ack.send(Ok(WorkerTurnId("accepted-home-turn".into())))
+            .unwrap();
+        state.poll_submission();
+        deck.sync_tabs(&mut state);
+        assert_eq!(deck.tabs.len(), MAX_TABS);
+        assert!(state.attached_session().is_some());
+        assert_eq!(deck.tabs[0].as_ref().unwrap().input(), "parked draft");
+    }
+
+    #[tokio::test]
+    async fn typed_new_consumes_only_successful_command_before_parking() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("old").unwrap());
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        state.handle_paste("ordinary draft");
+        // Mouse + leaves the parked editor untouched.
+        let worker = tokio::spawn(async move {
+            for _ in 0..2 {
+                let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
+                    panic!("expected Home selection")
+                };
+                ack.send(Ok(catalog())).unwrap();
+            }
+        });
+        apply_intent(&app, &mut state, &mut deck, PanelIntent::NewSession)
+            .await
+            .unwrap();
+        deck.activate(&mut state, 0).unwrap();
+        assert_eq!(state.input(), "ordinary draft");
+        state.accept_intent();
+        state.handle_paste("/new");
+        // The parked Home is restored without querying a new selection.
+        let outcome = state.handle_key(KeyAction::Enter).await;
+        apply_outcome(&app, &mut state, &mut deck, outcome, true).await;
+        deck.activate(&mut state, 0).unwrap();
+        assert_eq!(state.input(), "");
+        // An initial attached view follows the selection-success path too.
+        let mut state = TuiState::new(app.clone(), SessionId::new("another").unwrap());
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        state.handle_paste("/new");
+        let outcome = state.handle_key(KeyAction::Enter).await;
+        apply_outcome(&app, &mut state, &mut deck, outcome, true).await;
+        deck.activate(&mut state, 0).unwrap();
+        assert_eq!(state.input(), "");
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn rejected_typed_new_keeps_editable_command() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("old").unwrap());
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        state.handle_paste("/new");
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
+                panic!("expected Home selection")
+            };
+            ack.send(Err(CoreError::Shutdown)).unwrap();
+        });
+        let outcome = state.handle_key(KeyAction::Enter).await;
+        apply_outcome(&app, &mut state, &mut deck, outcome, true).await;
+        assert_eq!(state.input(), "/new");
+        assert_eq!(deck.tabs.len(), 1);
+        assert!(deck.home.is_none());
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn cards_cursor_follows_parked_view_and_pages_from_oldest_loaded_row() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("cards-a").unwrap());
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        let worker = tokio::spawn(async move {
+            for (before, ids, has_older) in
+                [(None, vec![30, 20], true), (Some(20), vec![10], false)]
+            {
+                let Some(InboxMsg::ToolOps {
+                    before_rowid, ack, ..
+                }) = inbox.recv().await
+                else {
+                    panic!("expected cards query")
+                };
+                assert_eq!(before_rowid, before);
+                ack.send(Ok(ToolOpPage {
+                    rows: ids
+                        .into_iter()
+                        .map(|rowid| ToolOpView {
+                            op: format!("op-{rowid}"),
+                            rowid,
+                            name: "read".into(),
+                            state: "completed".into(),
+                            input: None,
+                            output: None,
+                            output_bytes: 0,
+                            output_truncated: false,
+                        })
+                        .collect(),
+                    total: 3,
+                    has_older,
+                }))
+                .unwrap();
+            }
+        });
+        apply_intent(&app, &mut state, &mut deck, PanelIntent::LoadCards)
+            .await
+            .unwrap();
+        assert_eq!(deck.cards_before, Some(20));
+        assert!(state.cards_need_older());
+        let next = TuiState::new(app.clone(), SessionId::new("cards-b").unwrap());
+        deck.tabs[0] = Some(std::mem::replace(&mut state, next));
+        deck.tab_cards_before[0] = deck.cards_before;
+        deck.active_tab = Some(1);
+        deck.tabs.push(None);
+        deck.tab_cards_before.push(None);
+        deck.cards_before = None;
+        deck.activate(&mut state, 0).unwrap();
+        assert_eq!(deck.cards_before, Some(20));
+        assert!(state.cards_need_older());
+        apply_intent(&app, &mut state, &mut deck, PanelIntent::LoadCards)
+            .await
+            .unwrap();
+        assert_eq!(deck.cards_before, Some(10));
+        assert!(!state.cards_need_older());
+        worker.await.unwrap();
+    }
 
     #[tokio::test]
     async fn v03_catalog_failure_is_not_an_empty_usable_session() {

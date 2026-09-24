@@ -18,12 +18,21 @@ const {chromium} = require('playwright');
 const explorationClick = args['exploration-click'] === 'true';
 if (args['exploration-click'] !== undefined && !['true','false'].includes(args['exploration-click']))
   throw Error('--exploration-click must be true or false');
+const tabClick = args['tab-click'] === 'true';
+if (args['tab-click'] !== undefined && !['true','false'].includes(args['tab-click']))
+  throw Error('--tab-click must be true or false');
 if (explorationClick && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     Number(args.columns) !== 120 || Number(args.rows) !== 40 || args.matrix === 'true' || args['scroll-resize'] === 'true'))
   throw Error('--exploration-click true requires --geometry true --sample tools --sidebar hide --columns 120 --rows 40 without matrix/scroll-resize');
+if (tabClick && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
+    args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
+    args.matrix === 'true' || args['scroll-resize'] === 'true' || args['startup-error'] === 'true' ||
+    args['seed-root'] || args.tabs === 'vertical' || !args.reference || !args.oc))
+  throw Error('--tab-click true requires both binaries, --geometry true --sample tools --sidebar hide --agent-profile true --columns 120 --rows 40, horizontal tabs and no matrix/scroll-resize/startup-error/seed-root');
 const output = path.resolve(args.output || path.join(repo, 'evidence/tui/recovery-v00', new Date().toISOString().replaceAll(':', '-')));
-if (fs.existsSync(output)) throw Error('Refusing to overwrite attempt: ' + output);
-fs.mkdirSync(output, {recursive: true});
+fs.mkdirSync(path.dirname(output), {recursive: true});
+try { fs.mkdirSync(output); }
+catch (e) { if (e.code === 'EEXIST') throw Error('Refusing to overwrite attempt: ' + output); throw e; }
 const sha = data => createHash('sha256').update(data).digest('hex');
 const canonical = value => JSON.stringify(value, (_, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a],[b]) => a.localeCompare(b))) : v);
 const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.stringify(value, null, 2) + '\n');
@@ -82,6 +91,19 @@ const visibleMatches = (f, needle) => {
     }
   }
   return matches;
+};
+const tabTitle = JSON.parse(fs.readFileSync(path.join(fixture,'scenarios.json'),'utf8')).base.title;
+const oldTitlePrefix = [...tabTitle].slice(0, 6).join('');
+const tabRow = f => f.cells[0].map(c => c.symbol).join('');
+const tabObserve = f => {
+  const newTitle = visibleMatches(f, '+ New session').filter(p => p.y === 0);
+  // The promoted Home slot also starts with " + "; it is not an add button.
+  const add = visibleMatches(f, ' + ').filter(p => p.y === 0 &&
+    !newTitle.some(title => title.x === p.x+1));
+  const old = visibleMatches(f, oldTitlePrefix).filter(p => p.y === 0);
+  return {add, old, new_title:newTitle, old_content:f.text.includes('GEOMETRY-SHORT: tool read completed.'),
+    home_prompt:f.text.includes('Reader · MiMo-V2.6-Flash Free') && f.text.includes('Ask anything'),
+    header:tabRow(f).trimEnd()};
 };
 try {
   browser = await chromium.launch({headless: true, env: cleanEnv});
@@ -153,13 +175,14 @@ try {
       throw Error('Timed out waiting for '+label);
     };
     const capture = async (scenario, f, status) => {
+      const name = path.join(dir,scenario);
+      if (fs.existsSync(name+'.cells.json')) throw Error('Refusing to overwrite scenario: '+name);
       const rect = await page.locator('.xterm-screen').boundingBox();
       profile.pixel_width = Math.ceil(rect.width); profile.pixel_height = Math.ceil(rect.height);
       profile.measured_cell_width = rect.width/profile.columns;
       profile.measured_cell_height = rect.height/profile.rows;
       const environment = sha(canonical(profile));
       const {text, ...grid} = f;
-      const name = path.join(dir,scenario);
       fs.writeFileSync(name+'.cells.json', JSON.stringify({schema_version:1, origin, scenario,
         fixture_sha256:fixtureSha, environment_id:environment,
         producer_commit: origin==='upstream' ? lock.sources.upstream_commit : commit, ...grid}));
@@ -174,6 +197,7 @@ try {
         cells_sha256:sha(fs.readFileSync(name+'.cells.json')),png_sha256:sha(fs.readFileSync(name+'.png')),
         path:path.relative(output,name)});
       lock.profile=profile; json('capture.lock.json',lock);
+      return status;
     };
     try {
       if(args['startup-error'] === 'true' || args['seed-root']) {
@@ -199,7 +223,67 @@ try {
         /MiMo-V2.6-Flash Free · \d/.test(f.text) &&
          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript'), 'completed transcript');
        if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');
-      await capture('session-wide-completed',done,'CAPTURED');
+       const completedStatus = await capture('session-wide-completed',done,'CAPTURED');
+       if(tabClick) {
+         if(completedStatus !== 'CAPTURED') throw Error('Tab interaction requires a stable completed-session capture');
+         const checks = [];
+         const checkFile = path.join(dir,'tab-checks.json');
+         lock.tab_interactions ??= {};
+         lock.tab_interactions[origin] = {status:'IN_PROGRESS',checks};
+         const saveChecks = () => {
+           fs.writeFileSync(checkFile,JSON.stringify(checks,null,2)+'\n');
+           json('capture.lock.json',lock);
+         };
+         const record = (stage, f, predicate, passed, extra={}) => {
+           checks.push({stage,predicate,passed,...tabObserve(f),...extra});
+           saveChecks();
+           if(!passed) throw Error('Tab predicate failed: '+stage);
+         };
+         const readyPredicate = c => c.add.length===1 && c.old.length===1 && c.new_title.length===0 &&
+           c.add[0].x>c.old[0].x && c.old_content && !c.home_prompt &&
+           logs.some(e=>e.kind==='provider_completed' && e.operation==='transcript');
+         let old;
+         try { old=await waitFor(f=>readyPredicate(tabObserve(f)),'painted completed original tab and add control'); }
+         catch(e) { record('completed-before-add',await frame(),'painted completed old tab and +: '+e.message,false); }
+         const before = tabObserve(old);
+         record('completed-before-add',old,'unique painted row-0 + after original tab, completed old transcript, no Home',readyPredicate(before));
+         const click = (stage, point) => {
+           // SGR PTY coordinates are one-based. Original's add/select handlers
+           // activate on release; the bridge consumes JSONL inputs asynchronously.
+           const column=point.x+1, row=point.y+1;
+           const down=`\x1b[<0;${column};${row}M`, up=`\x1b[<0;${column};${row}m`;
+           checks.push({stage:stage+'-click',point,pty_column:column,pty_row:row,
+             down_base64:Buffer.from(down).toString('base64'),up_base64:Buffer.from(up).toString('base64')});
+           saveChecks();
+           send(down,stage+'_mouse_down'); send(up,stage+'_mouse_up');
+         };
+         click('add',{x:before.add[0].x+1,y:0});
+         const addedPredicate = c => c.old.length===1 && c.new_title.length===1 && c.add.length===0 &&
+           c.old[0].x<c.new_title[0].x && c.home_prompt && !c.old_content;
+         let added;
+         try { added=await waitFor(f=>addedPredicate(tabObserve(f)),'Home with retained old tab and + New session'); }
+         catch(e) { record('tab-added',await frame(),'old tab + synthetic New session on Home, old transcript absent: '+e.message,false); }
+         record('tab-added',added,'old tab + synthetic New session on Home, old transcript absent',addedPredicate(tabObserve(added)));
+         if(await capture('tab-added',added,'CAPTURED_TAB_ADDED') !== 'CAPTURED_TAB_ADDED')
+           throw Error('Unstable tab-added frame');
+         const beforeReturn=await frame();
+         const returning=tabObserve(beforeReturn);
+         record('before-return',beforeReturn,'retained old tab uniquely painted on Home',addedPredicate(returning));
+         // Click inside the old title, not the synthetic Home slot. Re-locate
+         // on this side after the asynchronous route transition and screenshot.
+         click('return',returning.old[0]);
+         const returnedPredicate = c => c.old.length===1 && c.new_title.length===0 && c.add.length===1 &&
+           c.add[0].x>c.old[0].x && c.old_content && !c.home_prompt;
+         let returned;
+         try { returned=await waitFor(f=>returnedPredicate(tabObserve(f)),'returned original session transcript'); }
+         catch(e) { record('tab-returned',await frame(),'old transcript restored with original tab selected: '+e.message,false); }
+         record('tab-returned',returned,'old transcript restored with original tab selected',returnedPredicate(tabObserve(returned)));
+         if(await capture('tab-returned',returned,'CAPTURED_TAB_RETURNED') !== 'CAPTURED_TAB_RETURNED')
+           throw Error('Unstable tab-returned frame');
+         lock.tab_interactions[origin].status='PASS';
+         json('capture.lock.json',lock);
+         lock.attempts.push({origin,status:'TAB_INTERACTION_CHECKS_PASS',predicates:checks.filter(c=>c.passed===true).map(c=>c.stage)});
+       }
       if(explorationClick) {
          const checks = [];
          const headerText = '→ Explored — 1 read';
@@ -347,6 +431,7 @@ try {
       lock.attempts.push({origin,status:'EXECUTED',provider_contract:logs.filter(e=>e.kind==='provider').every(e=>e.valid)});
     } catch(e) {
       result=1; lock.attempts.push({origin,status:'FAILED',reason:e.message});
+      if(tabClick && lock.tab_interactions?.[origin]) lock.tab_interactions[origin].status='FAILED';
       await capture('failure-diagnostic',await frame(),'FAILED_STATE');
     } finally {
       if(!child.stdin.destroyed) child.stdin.write(JSON.stringify({kind:'stop'})+'\n');

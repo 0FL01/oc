@@ -34,6 +34,8 @@ const PROMPT_BORDER: border::Set<'static> = border::Set {
 
 /// Upstream fallback when a session has no title (`component/session-tabs.tsx:1561`).
 pub const UNTITLED_SESSION: &str = "Untitled session";
+/// Promoted sessionless Home slot (`context/session-tabs-model.ts:8`).
+const NEW_SESSION_TAB_TITLE: &str = "New session";
 /// Jump-to-bottom affordance (`routes/session/index.tsx:1346`).
 pub const JUMP_TO_LATEST: &str = "Jump to latest ↓";
 /// Interrupt hint while a turn streams (`component/prompt/index.tsx:139-142`).
@@ -173,25 +175,21 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         ),
         area,
     );
-    let mut regions = layout::configured_shell_regions(
-        area,
-        state.chrome.devtools_visible(),
-        state.chrome.vertical_tabs_width,
-    );
-    if state.home {
-        regions.session = Rect {
-            height: area.height.saturating_sub(regions.devtools.height),
-            ..area
-        };
-    } else {
-        render_tabs(
-            frame,
-            theme,
-            regions.tabs,
-            state.session_title.as_deref(),
-            state.chrome.tab_indicators,
-            state.is_busy(),
-        );
+    let regions = shell_regions(state, area);
+    if let Some(strip) = tab_strip(state, area) {
+        if state.tab_presentation().0.is_empty() {
+            render_single_tab(
+                frame,
+                theme,
+                regions.tabs,
+                &strip,
+                state.session_title.as_deref(),
+                state.chrome.tab_indicators,
+                state.is_busy(),
+            );
+        } else {
+            render_deck_tabs(frame, state, theme, regions.tabs, &strip);
+        }
     }
     let main = session_main(state, regions.session);
     if main.width < regions.session.width {
@@ -211,6 +209,51 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     render_devtools(frame, theme, regions.devtools);
     render_toast(frame, state, theme, area);
     crate::dialog::render(frame, state);
+}
+
+/// The same Home row allocation is used by drawing and tab hit-testing.
+fn shell_regions(state: &TuiState, area: Rect) -> layout::ShellRegions {
+    let mut regions = layout::configured_shell_regions(
+        area,
+        state.chrome.devtools_visible(),
+        state.chrome.vertical_tabs_width,
+    );
+    if state.home && state.tab_presentation().0.is_empty() {
+        regions.session = Rect {
+            height: area.height.saturating_sub(regions.devtools.height),
+            ..area
+        };
+    }
+    regions
+}
+
+/// Shared painted rectangles for the strip and nonmodal mouse routing.
+pub(crate) fn tab_strip(state: &TuiState, area: Rect) -> Option<layout::HorizontalTabStrip> {
+    let (tabs, active, can_add) = state.tab_presentation();
+    if state.home && tabs.is_empty() {
+        return None;
+    }
+    let region = shell_regions(state, area).tabs;
+    if region.width == 0 || region.height == 0 {
+        return None;
+    }
+    Some(layout::horizontal_tab_strip(
+        region,
+        if tabs.is_empty() {
+            1
+        } else {
+            tabs.len() + usize::from(state.home)
+        },
+        Some(if state.home {
+            tabs.len()
+        } else if tabs.is_empty() {
+            0
+        } else {
+            active
+        }),
+        0,
+        !tabs.is_empty() && !state.home && can_add,
+    ))
 }
 
 fn session_main(state: &TuiState, area: Rect) -> Rect {
@@ -242,11 +285,7 @@ pub(crate) fn transcript_area(state: &TuiState, area: Rect) -> Rect {
     if state.home {
         return Rect::default();
     }
-    let shell = layout::configured_shell_regions(
-        area,
-        state.chrome.devtools_visible(),
-        state.chrome.vertical_tabs_width,
-    );
+    let shell = shell_regions(state, area);
     session_regions(state, session_main(state, shell.session), area.height).transcript
 }
 
@@ -259,8 +298,30 @@ fn tab_line(
     indicators: TabIndicators,
     busy: bool,
 ) -> Line<'static> {
-    let title = title.unwrap_or(UNTITLED_SESSION);
-    let tab_bg = theme.decrease(theme.background_panel());
+    deck_tab_line(theme, tab_width, title, indicators, busy, 0, true, false)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn deck_tab_line(
+    theme: &Theme,
+    tab_width: u16,
+    title: Option<&str>,
+    indicators: TabIndicators,
+    busy: bool,
+    index: usize,
+    selected: bool,
+    home_slot: bool,
+) -> Line<'static> {
+    let title = if home_slot {
+        NEW_SESSION_TAB_TITLE
+    } else {
+        title.unwrap_or(UNTITLED_SESSION)
+    };
+    let tab_bg = if selected {
+        theme.decrease(theme.background_panel())
+    } else {
+        theme.background()
+    };
     let title_width = tab_width.saturating_sub(3) as usize;
     let overflow = UnicodeWidthStr::width(title) > title_width;
     let mut used = 0;
@@ -279,18 +340,39 @@ fn tab_line(
     // padding cell (`component/session-tabs.tsx:1671-1682`). Status has no
     // idle label; a busy tab uses the first dot-spinner frame even without
     // animations (`TabIndicator`, `spinner-frames.ts`).
-    let number = tint(theme.text(), tab_bg, 0.25);
+    let number = tint(
+        if selected {
+            theme.text()
+        } else {
+            theme.text_muted()
+        },
+        tab_bg,
+        0.25,
+    );
     let blank = Style::default().fg(Color::Rgb(255, 255, 255)).bg(tab_bg);
+    let label = match indicators {
+        _ if home_slot => Some("+".to_string()),
+        TabIndicators::Numbers => Some((index + 1).to_string()),
+        TabIndicators::Status if busy => Some("⠋".to_string()),
+        TabIndicators::Status => None,
+    };
     let mut spans = vec![Span::styled(" ", blank)];
-    match indicators {
-        TabIndicators::Numbers => {
-            spans.push(Span::styled("1", Style::default().fg(number).bg(tab_bg)))
+    if let Some(label) = label {
+        let color = if indicators == TabIndicators::Status && busy && !home_slot {
+            theme.primary()
+        } else {
+            number
+        };
+        if UnicodeWidthStr::width(label.as_str()) > 1 {
+            spans.clear();
         }
-        TabIndicators::Status if busy => spans.push(Span::styled(
-            "⠋",
-            Style::default().fg(theme.primary()).bg(tab_bg),
-        )),
-        TabIndicators::Status => spans.push(Span::styled(" ", blank)),
+        let mut style = Style::default().fg(color).bg(tab_bg);
+        if selected {
+            style = style.add_modifier(Modifier::BOLD);
+        }
+        spans.push(Span::styled(label, style));
+    } else {
+        spans.push(Span::styled(" ", blank));
     }
     spans.push(Span::styled(" ", blank));
     for (index, grapheme) in visible.iter().enumerate() {
@@ -302,13 +384,21 @@ fn tab_line(
         } else {
             0.0
         };
-        spans.push(Span::styled(
-            (*grapheme).to_owned(),
-            Style::default()
-                .fg(tint(theme.text(), tab_bg, opacity))
-                .bg(tab_bg)
-                .add_modifier(Modifier::BOLD),
-        ));
+        let mut style = Style::default()
+            .fg(tint(
+                if selected {
+                    theme.text()
+                } else {
+                    theme.text_muted()
+                },
+                tab_bg,
+                opacity,
+            ))
+            .bg(tab_bg);
+        if selected {
+            style = style.add_modifier(Modifier::BOLD);
+        }
+        spans.push(Span::styled((*grapheme).to_owned(), style));
     }
     if (tab_width as usize) > 3 + used {
         spans.push(Span::styled(
@@ -319,10 +409,77 @@ fn tab_line(
     Line::from(spans)
 }
 
-fn render_tabs(
+fn render_deck_tabs(
+    frame: &mut Frame<'_>,
+    state: &TuiState,
+    theme: &Theme,
+    area: Rect,
+    strip: &layout::HorizontalTabStrip,
+) {
+    if area.height > 1 {
+        frame.render_widget(
+            Block::default().style(Style::default().bg(theme.background_panel())),
+            area,
+        );
+    }
+    let (tabs, active, _) = state.tab_presentation();
+    for marker in [strip.before_marker, strip.after_marker]
+        .into_iter()
+        .flatten()
+    {
+        let hidden = if Some(marker) == strip.before_marker {
+            strip.before
+        } else {
+            strip.after
+        };
+        let text = if Some(marker) == strip.before_marker {
+            format!("‹{hidden}")
+        } else {
+            format!(" {hidden}›")
+        };
+        frame.render_widget(
+            Paragraph::new(text).style(Style::default().fg(theme.text_muted())),
+            marker,
+        );
+    }
+    for tab in &strip.tabs {
+        if tab.rect.width == 0 {
+            continue;
+        }
+        let home_slot = state.home && tab.index == tabs.len();
+        let presentation = tabs.get(tab.index);
+        let selected = if state.home {
+            home_slot
+        } else {
+            tab.index == active
+        };
+        frame.render_widget(
+            Paragraph::new(deck_tab_line(
+                theme,
+                tab.rect.width,
+                presentation.and_then(|p| p.title.as_deref()),
+                state.chrome.tab_indicators,
+                presentation.is_some_and(|p| p.busy),
+                tab.index,
+                selected,
+                home_slot || presentation.is_some_and(|p| p.home),
+            )),
+            tab.rect,
+        );
+    }
+    if let Some(add) = strip.add.filter(|rect| rect.width == 3) {
+        frame.render_widget(
+            Paragraph::new(" + ").style(Style::default().fg(theme.text_muted())),
+            add,
+        );
+    }
+}
+
+fn render_single_tab(
     frame: &mut Frame<'_>,
     theme: &Theme,
     area: Rect,
+    strip: &layout::HorizontalTabStrip,
     title: Option<&str>,
     indicators: TabIndicators,
     busy: bool,
@@ -336,14 +493,25 @@ fn render_tabs(
             area,
         );
     }
-    // The current native route has one real tab and no add-session action.
-    let strip = layout::horizontal_tab_strip(area, 1, Some(0), 0, false);
     if let Some(tab) = strip.tabs.first().filter(|tab| tab.rect.width > 0) {
         frame.render_widget(
             Paragraph::new(tab_line(theme, tab.rect.width, title, indicators, busy)),
             tab.rect,
         );
     }
+}
+
+#[cfg(test)]
+fn render_tabs(
+    frame: &mut Frame<'_>,
+    theme: &Theme,
+    area: Rect,
+    title: Option<&str>,
+    indicators: TabIndicators,
+    busy: bool,
+) {
+    let strip = layout::horizontal_tab_strip(area, 1, Some(0), 0, false);
+    render_single_tab(frame, theme, area, &strip, title, indicators, busy);
 }
 
 fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {
@@ -1121,7 +1289,7 @@ fn text_width(text: &str) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::HOME_EXAMPLES;
+    use crate::app::{HOME_EXAMPLES, TabPresentation};
     use crate::events::KeyAction;
     use oc_core::core_app::{CoreApp, MockProvider};
     use oc_core::domain::SessionId;
@@ -1423,6 +1591,147 @@ mod tests {
         assert_eq!(terminal.backend().buffer()[(1, 0)].symbol(), "1");
     }
 
+    #[tokio::test]
+    async fn retained_strip_paints_real_tabs_busy_states_and_only_available_add() {
+        let mut state = golden_state().await;
+        state.chrome.devtools = Some(false);
+        let tabs = vec![
+            TabPresentation {
+                title: Some("First".into()),
+                home: false,
+                busy: false,
+            },
+            TabPresentation {
+                title: Some("Running".into()),
+                home: false,
+                busy: true,
+            },
+            TabPresentation {
+                title: Some("Last".into()),
+                home: false,
+                busy: false,
+            },
+        ];
+        state.set_tab_strip(tabs.clone(), 1, true);
+        let area = Rect::new(0, 0, 80, 24);
+        let strip = tab_strip(&state, area).unwrap();
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        let first = strip.tabs.iter().find(|t| t.index == 0).unwrap().rect;
+        let running = strip.tabs.iter().find(|t| t.index == 1).unwrap().rect;
+        assert_eq!(buffer[(first.x + 3, 0)].symbol(), "F");
+        assert_eq!(buffer[(first.x + 3, 0)].fg, Theme::dark().text_muted());
+        assert!(!buffer[(first.x + 3, 0)].modifier.contains(Modifier::BOLD));
+        assert_eq!(buffer[(running.x + 1, 0)].symbol(), "⠋");
+        assert_eq!(buffer[(running.x + 1, 0)].fg, Theme::dark().primary());
+        assert_eq!(buffer[(running.x + 3, 0)].symbol(), "R");
+        assert!(buffer[(running.x + 3, 0)].modifier.contains(Modifier::BOLD));
+        let add = strip.add.unwrap();
+        assert_eq!(add.width, 3);
+        assert_eq!(buffer[(add.x, 0)].symbol(), " ");
+        assert_eq!(buffer[(add.x + 1, 0)].symbol(), "+");
+        assert_eq!(buffer[(add.x + 1, 0)].fg, Theme::dark().text_muted());
+        assert_eq!(buffer[(add.x + 2, 0)].symbol(), " ");
+
+        state.chrome.tab_indicators = TabIndicators::Numbers;
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        assert_eq!(
+            terminal.backend().buffer()[(running.x + 1, 0)].symbol(),
+            "2"
+        );
+        assert_eq!(
+            terminal.backend().buffer()[(strip.tabs[2].rect.x + 1, 0)].symbol(),
+            "3"
+        );
+        state.set_tab_strip(tabs, 1, false);
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        assert!(tab_strip(&state, area).unwrap().add.is_none());
+        assert!(!(0..80).any(|x| terminal.backend().buffer()[(x, 0)].symbol() == "+"));
+    }
+
+    #[tokio::test]
+    async fn retained_home_promotes_a_single_new_session_slot_and_consumes_a_row() {
+        let mut state = golden_state().await;
+        state.home = true;
+        state.chrome.devtools = Some(false);
+        assert!(tab_strip(&state, Rect::new(0, 0, 80, 24)).is_none());
+        let baseline = screen(&state, 80, 24);
+        assert!(baseline[0].is_empty());
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: Some("Old".into()),
+                home: false,
+                busy: true,
+            }],
+            0,
+            true,
+        );
+        let area = Rect::new(0, 0, 80, 24);
+        let strip = tab_strip(&state, area).unwrap();
+        assert_eq!(strip.tabs.len(), 2);
+        assert_eq!(strip.tabs[1].index, 1);
+        assert!(strip.add.is_none(), "promoted Home replaces the idle plus");
+        let frame = screen(&state, 80, 24);
+        assert!(
+            frame[0].contains("Old") && frame[0].contains("+ New session"),
+            "{}",
+            frame[0]
+        );
+        assert!(frame.join("\n").contains("Ask anything"));
+        assert_ne!(baseline, frame);
+        assert_eq!(shell_regions(&state, area).session.y, 1);
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_eq!(
+            terminal.backend().buffer()[(strip.tabs[0].rect.x + 1, 0)].symbol(),
+            "⠋"
+        );
+        assert_eq!(
+            terminal.backend().buffer()[(strip.tabs[1].rect.x + 1, 0)].symbol(),
+            "+"
+        );
+        assert!(
+            terminal.backend().buffer()[(strip.tabs[1].rect.x + 1, 0)]
+                .modifier
+                .contains(Modifier::BOLD),
+            "the selected Home indicator is bold like the pinned upstream"
+        );
+        assert!(
+            terminal.backend().buffer()[(strip.tabs[1].rect.x + 3, 0)]
+                .modifier
+                .contains(Modifier::BOLD)
+        );
+    }
+
+    #[tokio::test]
+    async fn narrow_deck_overflow_and_two_digit_numbers_use_painted_rectangles() {
+        let mut state = golden_state().await;
+        state.chrome.tab_indicators = TabIndicators::Numbers;
+        state.set_tab_strip(
+            (0..12)
+                .map(|i| TabPresentation {
+                    title: Some(format!("Tab {i}")),
+                    home: false,
+                    busy: false,
+                })
+                .collect(),
+            10,
+            true,
+        );
+        let area = Rect::new(0, 0, 31, 24);
+        let strip = tab_strip(&state, area).unwrap();
+        assert!(strip.before_marker.is_some() && strip.after_marker.is_some());
+        let active = strip.tabs.iter().find(|t| t.index == 10).unwrap().rect;
+        let mut terminal = Terminal::new(TestBackend::new(31, 24)).unwrap();
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(active.x, 0)].symbol(), "1");
+        assert_eq!(terminal.backend().buffer()[(active.x + 1, 0)].symbol(), "1");
+        assert_eq!(terminal.backend().buffer()[(active.x + 3, 0)].symbol(), "T");
+        assert_eq!(strip.hit_test(strip.before_marker.unwrap().x, 0), None);
+        assert_eq!(strip.hit_test(strip.after_marker.unwrap().x, 0), None);
+    }
+
     #[test]
     fn selected_tab_fades_only_the_last_four_visible_overflow_graphemes() {
         let theme = Theme::dark();
@@ -1458,7 +1767,9 @@ mod tests {
         }
         assert_eq!(buffer[(1, 0)].symbol(), "1");
         assert_eq!(buffer[(1, 0)].fg, tint(theme.text(), tab_bg, 0.25));
-        assert!(!buffer[(1, 0)].modifier.contains(Modifier::BOLD));
+        // Upstream TabIndicator gives the selected label the title's bold
+        // attributes (also true for the synthetic Home `+` indicator).
+        assert!(buffer[(1, 0)].modifier.contains(Modifier::BOLD));
         assert_eq!(buffer[(32, 0)].symbol(), " ");
         assert_ne!(buffer[(32, 0)].bg, tab_bg);
     }

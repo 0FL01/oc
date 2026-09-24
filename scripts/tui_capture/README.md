@@ -160,6 +160,32 @@ grid/PNG/VT capture, with independent grid and PNG comparator reports and exit
 statuses in `capture.lock.json`. Captured states do not imply frame equality:
 only comparator status `EQUAL` establishes equality for its reported mode.
 
+For a paired retained-tab interaction, use a **new** output path and the
+completed real-read/profile fixture:
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --geometry true --sample tools --sidebar hide --agent-profile true \
+  --columns 120 --rows 40 --tab-click true \
+  --output /home/opencode/ai/oc/evidence/tui/NEW-TAB-ATTEMPT
+```
+
+After `session-wide-completed` is stably captured, `--tab-click true` requires
+one visible painted ` + ` after the fixture-titled old tab in **each side's own**
+row-0 styled grid. It clicks the plus (one-based SGR down/up via the real PTY),
+waits for Home with the retained old tab and synthetic `+ New session` title
+while the old answer disappears, then locates and clicks the old title again.
+It waits for the completed old answer and add control to return before saving
+`tab-added` and `tab-returned` `.cells.json`/`.txt`/`.png`/`.vt` per side.
+`tab-checks.json` and `capture.lock.json` record observed coordinates,
+predicates, click bytes, stage failures, and the per-side result; the normal
+grid/PNG comparators record their exit statuses separately. Capture and
+interaction success do not imply pixel equality. Failures keep diagnostic
+frames and a nonzero exit. Existing attempt paths are rejected before launch;
+use a fresh path after any failed run. This is test-only capture tooling.
+
 `--tabs vertical --columns 162` and `--columns 163` check both sides of the
 42-cell rail-adjusted auto-sidebar breakpoint using text **and styled blank
 backgrounds**. `--devtools unset` omits the explicit override; native debug builds

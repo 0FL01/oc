@@ -990,12 +990,149 @@ fn journal_counts(fixture: &Fixture) -> (i64, i64, i64, i64, i64) {
     )
 }
 
+/// One-based xterm SGR coordinates; a complete press/release must reach the
+/// binary across ordinary redraws before the release is interpreted.
+fn click(pty: &mut PtySession, x: u16, y: u16) {
+    pty.send(format!("\x1b[<0;{x};{y}M").as_bytes());
+    std::thread::sleep(Duration::from_millis(120));
+    pty.send(format!("\x1b[<0;{x};{y}m").as_bytes());
+}
+
+#[test]
+fn retained_tab_mouse_add_restores_draft_and_home_submit_binds_one_new_root() {
+    let fixture = Fixture::new();
+    let metrics = fixture.root.path().join("deck-metrics.json");
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &fixture.project_a(),
+        &["tui", "--session", "deck-original"],
+        Some(&metrics),
+    );
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "first tab");
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    pty.send(b"saved draft");
+    wait_screen_row(&pty, "saved draft", DEADLINE);
+
+    // A single 32-cell tab followed by the three-cell ` + ` control.
+    click(&mut pty, 34, 1);
+    wait_screen_row(&pty, "New session", DEADLINE);
+    assert_eq!(journal_counts(&fixture).0, 1, "mouse add is sessionless");
+    pty.send(b"home draft");
+    wait_screen_row(&pty, "home draft", DEADLINE);
+    // Return to the parked original without losing its editor or history.
+    click(&mut pty, 10, 1);
+    wait_screen_row(&pty, "saved draft", DEADLINE);
+    wait_screen_row(&pty, "first tab", DEADLINE);
+    assert_eq!(journal_counts(&fixture).0, 1);
+
+    // /new reopens the parked synthetic Home and its independent draft.
+    pty.send(&[0x7f; 64]);
+    pty.send(b"/new\r");
+    wait_screen_row(&pty, "home draft", DEADLINE);
+    pty.send(b"\r");
+    fixture.wait_requests(2);
+    wait_screen_row(&pty, "echo: home draft", DEADLINE);
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    let started = Instant::now();
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|row| row.contains("esc interrupt") || row.contains("submission pending"))
+    {
+        assert!(started.elapsed() < DEADLINE, "Home turn stayed busy");
+        std::thread::sleep(POLL);
+    }
+    // The Sessions dialog must reuse the parked original rather than append
+    // another view for the same durable ID.
+    pty.send(b"/sessions\r");
+    wait_screen_row(&pty, "deck-original", DEADLINE);
+    // The list starts at the first row; the bullet marks the active session,
+    // not the keyboard cursor.
+    pty.send(b"\r");
+    wait_screen_row(&pty, "first tab", DEADLINE);
+    let started = Instant::now();
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|row| row.contains("Switch session"))
+    {
+        assert!(started.elapsed() < DEADLINE, "Sessions dialog stayed open");
+        std::thread::sleep(POLL);
+    }
+    pty.send(&[0x7f; 64]);
+    pty.send(b"/quit\r");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+    assert_eq!(journal_counts(&fixture).0, 2, "one accepted Home root");
+    let metrics: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(metrics).unwrap()).unwrap();
+    assert_eq!(metrics["session"], "deck-original");
+    assert_eq!(metrics["tab_count"], 2, "no duplicate Sessions tab");
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    assert_eq!(db.read_history("deck-original").unwrap()[0].1, "first tab");
+    let new = db
+        .list_sessions()
+        .unwrap()
+        .into_iter()
+        .find(|id| id != "deck-original")
+        .unwrap();
+    assert_eq!(db.read_history(&new).unwrap()[0].1, "home draft");
+}
+
+#[test]
+fn retained_deck_refuses_add_during_turn_and_keeps_tabs_on_failed_location() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(
+        fixture.clone(),
+        &fixture.project_a(),
+        &["tui", "--session", "deck-busy"],
+        None,
+    );
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "slow stream");
+    fixture.wait_requests(1);
+    click(&mut pty, 34, 1);
+    pty.send(b"/new\r");
+    wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
+    assert_eq!(journal_counts(&fixture).0, 1);
+    assert!(
+        !render_screen(&pty.snapshot()).rows()[0].contains("New session"),
+        "a busy turn cannot leave its tab"
+    );
+    pty.wait_visible("answer:slow stream", DEADLINE);
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    // The refused command remains editable; clear it before the next action.
+    pty.send(&[0x7f; 64]);
+    pty.send(b"draft after turn");
+    wait_screen_row(&pty, "draft after turn", DEADLINE);
+    let bad = fixture.root.path().join("bad-deck-location");
+    std::fs::create_dir(&bad).unwrap();
+    std::fs::write(bad.join("opencode.json"), r#"{"model":"fixture/unknown"}"#).unwrap();
+    pty.send(&[0x7f; 64]);
+    pty.send(format!("/location {}\r", bad.display()).as_bytes());
+    wait_screen_row(&pty, "Location configuration failed", DEADLINE);
+    assert_eq!(journal_counts(&fixture).0, 1);
+    pty.send(&[0x7f; 512]);
+    click(&mut pty, 34, 1);
+    wait_screen_row(&pty, "New session", DEADLINE);
+    assert_eq!(journal_counts(&fixture).0, 1);
+    click(&mut pty, 10, 1);
+    wait_screen_row(&pty, "slow stream", DEADLINE);
+    pty.send(b"/quit\r");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+    assert_eq!(journal_counts(&fixture).0, 1);
+}
+
 #[test]
 fn bare_home_abandon_and_new_do_not_create_a_root() {
     let fixture = Fixture::new();
     let metrics = fixture.root.path().join("home-metrics.json");
     let mut pty = PtySession::spawn(fixture.clone(), &fixture.project_a(), &[], Some(&metrics));
     pty.wait_visible("█▀▀█", DEADLINE);
+    assert!(
+        !render_screen(&pty.snapshot()).rows()[0].contains(READY),
+        "bare Home has no session tab"
+    );
     pty.send(b"/models\r");
     wait_screen_row(&pty, "T42 model", DEADLINE);
     pty.send(b"\x1b");
@@ -1101,7 +1238,9 @@ fn bare_first_accepted_prompt_creates_exactly_one_bound_root_and_turn() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(fixture.clone(), &fixture.project_a(), &[], None);
     pty.wait_visible("█▀▀█", DEADLINE);
+    assert!(!render_screen(&pty.snapshot()).rows()[0].contains(READY));
     let off = submit(&mut pty, "slow stream");
+    wait_screen_row(&pty, READY, DEADLINE);
     let accepted = fixture.wait_requests(1);
     assert_eq!(last_user_text(&accepted[0]).as_deref(), Some("slow stream"));
     // The scripted peer is still sending heartbeats: acceptance has committed

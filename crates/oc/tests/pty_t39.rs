@@ -2936,6 +2936,23 @@ fn s07_visible_tail(pty: &PtySession) -> Vec<String> {
         .collect()
 }
 
+fn s07_stable_tail(pty: &PtySession, minimum: usize) -> Vec<String> {
+    let began = Instant::now();
+    let mut previous = Vec::new();
+    loop {
+        let visible = s07_visible_tail(pty);
+        if visible.len() >= minimum && visible == previous {
+            return visible;
+        }
+        assert!(
+            began.elapsed() < DEADLINE,
+            "current tail did not settle at {minimum} visible rows: {visible:?}"
+        );
+        previous = visible;
+        std::thread::sleep(POLL);
+    }
+}
+
 fn measure_s07(archive: usize) -> S07Run {
     let fixture = Fixture::new();
     let data_dir = fixture.data_dir();
@@ -2971,8 +2988,10 @@ fn measure_s07(archive: usize) -> S07Run {
     pty.resize(120, 40);
     pty.wait_visible_after(off, "shared tail", DEADLINE);
     wait_screen_row(&pty, "shared tail 199", DEADLINE);
-    let viewport = s07_visible_tail(&pty);
-    assert!(!viewport.is_empty(), "no current tail visible");
+    // A substring may appear in an intermediate resize frame before the
+    // transcript fills the viewport. Sample only after the fixed 120x40 tail
+    // (eight visible messages) has settled on both independent processes.
+    let viewport = s07_stable_tail(&pty, 8);
     let pid = pty.child.id();
     let start = Instant::now();
     let baseline = s07_proc_sample(pid);
@@ -3053,8 +3072,7 @@ fn measure_s07(archive: usize) -> S07Run {
     sample();
     pty.send(b"\x1b");
     dismissed(&pty, "Commands");
-    let after_viewport = s07_visible_tail(&pty);
-    assert!(!after_viewport.is_empty(), "no tail after dialog");
+    let after_viewport = s07_stable_tail(&pty, viewport.len());
     let end = sample();
     pty.send(b"/quit\r");
     let (status, output) = pty.wait_exit(DEADLINE);

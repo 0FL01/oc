@@ -104,6 +104,8 @@ pub enum PanelIntent {
     LoadCardOutput { op: String, offset: usize },
     /// Create an empty application session and attach its Home route.
     NewSession,
+    /// Activate a retained real tab by its zero-based deck index.
+    ActivateTab { index: usize },
     /// Select a model, restoring the owner's remembered variant preference.
     SelectModel {
         /// Exact model id.
@@ -140,6 +142,20 @@ pub enum PanelIntent {
         /// Bounded focus instruction (possibly empty).
         focus: String,
     },
+}
+
+/// Bounded, application-supplied presentation for one retained real tab.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TabPresentation {
+    pub title: Option<String>,
+    pub home: bool,
+    pub busy: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TabPress {
+    Add,
+    Tab(usize),
 }
 
 /// One key handling result: optional status note, optional intent for the
@@ -278,6 +294,10 @@ pub struct TuiState {
     pub(crate) select: crate::dialog::SelectList,
     /// Press origin prevents drag-release across the backdrop from dismissing a dialog.
     mouse_down: Option<crate::dialog::DialogHit>,
+    tab_down: Option<TabPress>,
+    tabs: Vec<TabPresentation>,
+    active_tab: usize,
+    can_add_tab: bool,
     /// Only operation IDs whose exploration headers were explicitly opened.
     exploration_expanded: BTreeSet<String>,
     exploration_down: Option<(String, u16, u16)>,
@@ -381,6 +401,10 @@ impl TuiState {
             panel: TuiPanel::None,
             select: Default::default(),
             mouse_down: None,
+            tab_down: None,
+            tabs: Vec::new(),
+            active_tab: 0,
+            can_add_tab: false,
             exploration_expanded: BTreeSet::new(),
             exploration_down: None,
             leader: None,
@@ -444,6 +468,30 @@ impl TuiState {
             .expect("Home has no attached session")
     }
 
+    /// Real tabs, selected deck index and application-owned add capability.
+    /// On Home with retained tabs, the selected synthetic slot is at `tabs.len()`.
+    /// An empty slice means the legacy single-session/stripless-Home view.
+    pub fn tab_presentation(&self) -> (&[TabPresentation], usize, bool) {
+        (
+            &self.tabs,
+            if self.home && !self.tabs.is_empty() {
+                self.tabs.len()
+            } else {
+                self.active_tab
+            },
+            self.can_add_tab,
+        )
+    }
+
+    /// Refresh the retained deck. The binary owns route selection and the add
+    /// action; Home itself becomes a synthetic final slot only in the renderer.
+    pub fn set_tab_strip(&mut self, tabs: Vec<TabPresentation>, active: usize, can_add: bool) {
+        self.tab_down = None;
+        self.tabs = tabs.into_iter().take(16).collect();
+        self.active_tab = active.min(self.tabs.len().saturating_sub(1));
+        self.can_add_tab = can_add && !self.tabs.is_empty();
+    }
+
     pub(crate) fn set_detail_area(&self, area: ratatui::layout::Rect) {
         self.detail_area.set(area);
     }
@@ -477,6 +525,9 @@ impl TuiState {
     /// open must reload from the new generation instead of showing it.
     pub fn reset_workspace(&mut self) {
         self.close_panel();
+        self.tabs.clear();
+        self.active_tab = 0;
+        self.can_add_tab = false;
         self.exploration_expanded.clear();
         self.chrome = Default::default();
         self.parent_id = None;
@@ -867,6 +918,7 @@ impl TuiState {
         self.card_scroll = 0;
         self.card_seen.set(0);
         self.mouse_down = None;
+        self.tab_down = None;
         self.exploration_down = None;
         self.select.reset();
     }
@@ -879,12 +931,26 @@ impl TuiState {
         if self.panel == TuiPanel::None {
             match event.kind {
                 MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
+                    self.tab_down = self.tab_hit(area, event.column, event.row);
                     self.exploration_down = self
                         .exploration_hit(area, event.column, event.row)
                         .map(|op| (op, event.column, event.row));
                 }
                 MouseEventKind::Up(MouseButton::Left) => {
+                    let pressed_tab = self.tab_down.take();
                     let pressed = self.exploration_down.take();
+                    if event.modifiers.is_empty()
+                        && let Some(tab) = pressed_tab
+                        && self.tab_hit(area, event.column, event.row) == Some(tab)
+                    {
+                        return KeyOutcome {
+                            intent: Some(match tab {
+                                TabPress::Add => PanelIntent::NewSession,
+                                TabPress::Tab(index) => PanelIntent::ActivateTab { index },
+                            }),
+                            ..KeyOutcome::default()
+                        };
+                    }
                     if event.modifiers.is_empty()
                         && let Some((op, x, y)) = pressed
                         && (x, y) == (event.column, event.row)
@@ -917,15 +983,20 @@ impl TuiState {
                     }
                 }
                 MouseEventKind::Drag(_)
-                | MouseEventKind::Moved
                 | MouseEventKind::Down(_)
+                | MouseEventKind::Up(_)
                 | MouseEventKind::ScrollUp
-                | MouseEventKind::ScrollDown => self.exploration_down = None,
+                | MouseEventKind::ScrollDown => {
+                    self.exploration_down = None;
+                    self.tab_down = None;
+                }
+                MouseEventKind::Moved => self.exploration_down = None,
                 _ => {}
             }
             return KeyOutcome::default();
         }
         self.exploration_down = None;
+        self.tab_down = None;
         if self.panel == TuiPanel::Cards && self.card_output.is_some() {
             let (rect, _, _) = crate::dialog::card_geometry(area);
             let inside = rect.contains((event.column, event.row).into());
@@ -1019,6 +1090,20 @@ impl TuiState {
             _ => {}
         }
         KeyOutcome::default()
+    }
+
+    fn tab_hit(&self, area: Rect, x: u16, y: u16) -> Option<TabPress> {
+        let strip = crate::shell::tab_strip(self, area)?;
+        if strip
+            .add
+            .is_some_and(|rect| rect.width == 3 && rect.contains((x, y).into()))
+        {
+            return Some(TabPress::Add);
+        }
+        let index = strip.hit_test(x, y)?;
+        // The promoted Home slot is already selected; its click is not an
+        // application action. Only retained real tabs have activation intents.
+        (index < self.tabs.len()).then_some(TabPress::Tab(index))
     }
 
     fn exploration_hit(&self, area: Rect, x: u16, y: u16) -> Option<String> {
@@ -1936,6 +2021,7 @@ impl TuiState {
         }
         self.select.reset();
         self.mouse_down = None;
+        self.tab_down = None;
         self.leader = None;
         let mut outcome = KeyOutcome::default();
         match action {
@@ -2965,7 +3051,7 @@ pub enum PumpOutcome {
 mod tests {
     use super::{
         HOME_EXAMPLES, KeyOutcome, LIVE_PARTS_MAX, MAX_INPUT_BYTES, PanelIntent, PumpOutcome,
-        ScriptDriver, TuiPanel, TuiState, TuiStatus, VIEWPORT_LINES,
+        ScriptDriver, TabPresentation, TuiPanel, TuiState, TuiStatus, VIEWPORT_LINES,
     };
     use crate::events::KeyAction;
     use crate::history::{WINDOW_BYTES, WINDOW_ROWS};
@@ -3007,6 +3093,180 @@ mod tests {
         std::mem::forget(guard);
         app.create_session(sid(name)).await.expect("create");
         TuiState::new(app, sid(name))
+    }
+
+    #[tokio::test]
+    async fn retained_tab_mouse_routes_only_matching_painted_left_clicks() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        use ratatui::layout::Rect;
+
+        let mut state = fresh_state("tab-mouse").await;
+        let area = Rect::new(0, 0, 31, 24);
+        let event = |kind, x, y, modifiers| MouseEvent {
+            kind,
+            column: x,
+            row: y,
+            modifiers,
+        };
+        let left = MouseEventKind::Down(MouseButton::Left);
+        let up = MouseEventKind::Up(MouseButton::Left);
+        let plain = KeyModifiers::NONE;
+        state.set_tab_strip(
+            (0..12)
+                .map(|i| TabPresentation {
+                    title: Some(format!("Tab {i}")),
+                    home: false,
+                    busy: i == 3,
+                })
+                .collect(),
+            10,
+            true,
+        );
+        assert_eq!(state.tab_presentation().0.len(), 12);
+        let strip = crate::shell::tab_strip(&state, area).unwrap();
+        let active = strip.tabs.iter().find(|tab| tab.index == 10).unwrap().rect;
+        let add = strip.add.unwrap();
+        let click = |state: &mut TuiState, x, y| {
+            state.handle_mouse(event(left, x, y, plain), area);
+            state.handle_mouse(event(up, x, y, plain), area).intent
+        };
+        assert_eq!(
+            click(&mut state, active.x, 0),
+            Some(PanelIntent::ActivateTab { index: 10 })
+        );
+        for rect in [strip.before_marker.unwrap(), strip.after_marker.unwrap()] {
+            assert_eq!(click(&mut state, rect.x, 0), None);
+        }
+        assert_eq!(click(&mut state, area.right() - 1, 1), None);
+        assert_eq!(click(&mut state, add.x, 0), Some(PanelIntent::NewSession));
+        assert_eq!(
+            click(&mut state, add.x + 1, 0),
+            Some(PanelIntent::NewSession)
+        );
+        assert_eq!(
+            click(&mut state, add.x + 2, 0),
+            Some(PanelIntent::NewSession)
+        );
+        state.handle_mouse(event(left, active.x, 0, plain), area);
+        assert_eq!(
+            state.handle_mouse(event(up, add.x, 0, plain), area).intent,
+            None
+        );
+        state.handle_mouse(event(left, active.x, 0, plain), area);
+        assert_eq!(
+            state
+                .handle_mouse(event(up, active.x, 0, KeyModifiers::SHIFT), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(event(left, active.x, 0, KeyModifiers::CONTROL), area);
+        assert_eq!(
+            state
+                .handle_mouse(event(up, active.x, 0, plain), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(event(left, active.x, 0, plain), area);
+        state.handle_mouse(
+            event(
+                MouseEventKind::Drag(MouseButton::Left),
+                active.x + 1,
+                0,
+                plain,
+            ),
+            area,
+        );
+        assert_eq!(
+            state
+                .handle_mouse(event(up, active.x, 0, plain), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(event(left, active.x, 0, plain), area);
+        state.handle_mouse(
+            event(MouseEventKind::Down(MouseButton::Right), active.x, 0, plain),
+            area,
+        );
+        assert_eq!(
+            state
+                .handle_mouse(event(up, active.x, 0, plain), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(event(left, active.x, 0, plain), area);
+        state.run_command(crate::commands::CommandAction::OpenCommands);
+        assert_eq!(
+            state
+                .handle_mouse(event(up, active.x, 0, plain), area)
+                .intent,
+            None
+        );
+        state.close_panel();
+        assert_eq!(
+            state
+                .handle_mouse(event(up, active.x, 0, plain), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(event(left, add.x, 0, plain), area);
+        state.reset_workspace();
+        assert_eq!(
+            state.handle_mouse(event(up, add.x, 0, plain), area).intent,
+            None
+        );
+        assert!(state.tab_presentation().0.is_empty());
+    }
+
+    #[tokio::test]
+    async fn home_slot_is_not_an_activation_and_busy_tabs_remain_selectable() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        use ratatui::layout::Rect;
+        let (app, _inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new_home(app);
+        let area = Rect::new(0, 0, 80, 24);
+        let mouse = |kind, x| MouseEvent {
+            kind,
+            column: x,
+            row: 0,
+            modifiers: KeyModifiers::NONE,
+        };
+        let down = MouseEventKind::Down(MouseButton::Left);
+        let up = MouseEventKind::Up(MouseButton::Left);
+        assert!(crate::shell::tab_strip(&state, area).is_none());
+        assert_eq!(state.handle_mouse(mouse(down, 1), area).intent, None);
+        assert_eq!(state.handle_mouse(mouse(up, 1), area).intent, None);
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: Some("Busy".into()),
+                home: false,
+                busy: true,
+            }],
+            0,
+            true,
+        );
+        let strip = crate::shell::tab_strip(&state, area).unwrap();
+        assert_eq!(strip.tabs.len(), 2);
+        assert!(strip.add.is_none());
+        let real = strip.tabs[0].rect;
+        let home = strip.tabs[1].rect;
+        state.handle_mouse(mouse(down, home.x + 1), area);
+        assert_eq!(state.handle_mouse(mouse(up, home.x + 1), area).intent, None);
+        state.handle_mouse(mouse(down, real.x + 1), area);
+        assert_eq!(
+            state.handle_mouse(mouse(up, real.x + 2), area).intent,
+            Some(PanelIntent::ActivateTab { index: 0 })
+        );
+        state.handle_mouse(mouse(down, real.x + 1), area);
+        state.set_tab_strip(
+            vec![TabPresentation {
+                title: None,
+                home: false,
+                busy: false,
+            }],
+            0,
+            false,
+        );
+        assert_eq!(state.handle_mouse(mouse(up, real.x + 1), area).intent, None);
     }
 
     async fn submit_echo(
