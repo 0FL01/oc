@@ -1,0 +1,342 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--autocomplete",
+      "true",
+      "--build-oc",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "6b01bcc5bec847dd916b5b7aab728428419ff8b6\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "d26d7b13fc2bad519c162f6aa573f89f0ae33845\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-adapters/src/application.rs b/crates/oc-adapters/src/application.rs\nindex 00c37a9..1af498d 100644\n--- a/crates/oc-adapters/src/application.rs\n+++ b/crates/oc-adapters/src/application.rs\n@@ -501,6 +501,7 @@ impl Effective {\n             agents,\n             agent_id: self.agent_id.clone(),\n             commands: composition.commands.keys().cloned().collect(),\n+            command_descriptions: composition.command_descriptions.clone(),\n         }\n     }\n }\n@@ -2265,6 +2266,10 @@ fn resolve_submission(\n         return Ok((text, None));\n     };\n     let remainder = command[split..].trim();\n+    if id == \"review\" && composition.builtin_review {\n+        let expanded = crate::runtime::expand_command(template, &[remainder.to_string()])?;\n+        return Ok((expanded, Some(text)));\n+    }\n     let args = remainder\n         .split_whitespace()\n         .map(str::to_string)\n@@ -2273,6 +2278,243 @@ fn resolve_submission(\n     Ok((expanded, Some(text)))\n }\n \n+#[cfg(test)]\n+mod review_tests {\n+    use super::*;\n+    use tokio::io::{AsyncReadExt, AsyncWriteExt};\n+\n+    #[tokio::test]\n+    async fn catalog_descriptions_track_current_location_and_reload() {\n+        let root = tempfile::tempdir().unwrap();\n+        let a = root.path().join(\"a\");\n+        let b = root.path().join(\"b\");\n+        let data = root.path().join(\"data\");\n+        for path in [&a, &b, &data] {\n+            std::fs::create_dir_all(path).unwrap();\n+        }\n+        let mut config = serde_json::json!({\n+            \"model\": \"fixture/m\", \"provider\": {\"fixture\": {\n+                \"npm\": \"@ai-sdk/openai\",\n+                \"options\": {\"baseURL\": \"http://127.0.0.1:9/v1\", \"apiKey\": \"dummy\"},\n+                \"models\": {\"m\": {}}\n+            }}\n+        });\n+        std::fs::write(a.join(\"opencode.json\"), config.to_string()).unwrap();\n+        config[\"command\"] = serde_json::json!({\"review\": {\n+            \"template\": \"local review $ARGUMENTS\", \"description\": \"from B\"\n+        }});\n+        std::fs::write(b.join(\"opencode.json\"), config.to_string()).unwrap();\n+        let env = BTreeMap::from([\n+            (\"HOME\".into(), data.to_string_lossy().into_owned()),\n+            (\"OC_TEST_ALLOW_LOOPBACK\".into(), \"1\".into()),\n+        ]);\n+        let (app, guard, _) = spawn_with_env(&a, &data, env).await.unwrap();\n+        assert_eq!(\n+            app.catalog().await.unwrap().command_descriptions[\"review\"],\n+            \"review changes [commit|branch|pr], defaults to uncommitted\"\n+        );\n+        app.switch_location_home(b.to_string_lossy().into_owned())\n+            .await\n+            .unwrap();\n+        assert_eq!(\n+            app.catalog().await.unwrap().command_descriptions[\"review\"],\n+            \"from B\"\n+        );\n+        config[\"command\"][\"review\"][\"description\"] = \"reloaded\".into();\n+        std::fs::write(b.join(\"opencode.json\"), config.to_string()).unwrap();\n+        app.reload_location().await.unwrap();\n+        assert_eq!(\n+            app.catalog().await.unwrap().command_descriptions[\"review\"],\n+            \"reloaded\"\n+        );\n+        app.switch_location_home(a.to_string_lossy().into_owned())\n+            .await\n+            .unwrap();\n+        assert_eq!(\n+            app.catalog().await.unwrap().command_descriptions[\"review\"],\n+            \"review changes [commit|branch|pr], defaults to uncommitted\"\n+        );\n+        app.shutdown().await.unwrap();\n+        guard.join().await.unwrap();\n+    }\n+\n+    #[test]\n+    fn review_replaces_only_source_placeholders_and_enforces_expansion_cap() {\n+        let input = \"'branch name'  $ARGUMENTS  ${path}  $1\";\n+        let source = include_str!(\"../assets/upstream/v2/review.txt\");\n+        assert_eq!(\n+            crate::runtime::expand_command(source, &[input.into()]).unwrap(),\n+            source.replace(\"$ARGUMENTS\", input)\n+        );\n+        assert!(\n+            crate::runtime::expand_command(\n+                source,\n+                &[\"x\".repeat(crate::runtime::COMMAND_BYTES_CAP)]\n+            )\n+            .is_err()\n+        );\n+    }\n+\n+    #[tokio::test]\n+    async fn workspace_review_override_keeps_positional_expansion() {\n+        let root = tempfile::tempdir().unwrap();\n+        let project = root.path().join(\"project\");\n+        std::fs::create_dir_all(&project).unwrap();\n+        std::fs::write(\n+            project.join(\"opencode.json\"),\n+            serde_json::json!({\n+                \"model\": \"fixture/m\", \"provider\": {\"fixture\": {\n+                    \"options\": {\"baseURL\": \"https://example.invalid/v1\", \"apiKey\": \"dummy\"},\n+                    \"models\": {\"m\": {}}\n+                }},\n+                \"command\": {\"review\": {\"template\": \"local $1; all: $ARGUMENTS\"}}\n+            })\n+            .to_string(),\n+        )\n+        .unwrap();\n+        let env = BTreeMap::from([(\n+            \"XDG_CONFIG_HOME\".into(),\n+            root.path().join(\"config\").to_string_lossy().into_owned(),\n+        )]);\n+        let composition = composition::load_with_env(&project, env).await.unwrap();\n+        assert!(!composition.builtin_review);\n+        assert_eq!(\n+            resolve_submission(&composition, \"/review   one  two \".into()).unwrap(),\n+            (\n+                \"local one; all: one two\".into(),\n+                Some(\"/review   one  two \".into())\n+            )\n+        );\n+        assert_eq!(\n+            resolve_submission(&composition, \"/something else\".into()).unwrap(),\n+            (\"/something else\".into(), None)\n+        );\n+    }\n+\n+    #[tokio::test]\n+    async fn fallback_review_submits_exact_prompt_and_replays_original_invocation() {\n+        let root = tempfile::tempdir().expect(\"fixture\");\n+        let project = root.path().join(\"project\");\n+        let data = root.path().join(\"data\");\n+        std::fs::create_dir_all(&project).expect(\"project\");\n+        std::fs::create_dir_all(&data).expect(\"data\");\n+        let listener = tokio::net::TcpListener::bind(\"127.0.0.1:0\")\n+            .await\n+            .expect(\"fake provider\");\n+        let config = serde_json::json!({\n+            \"model\": \"fixture/m\", \"provider\": {\"fixture\": {\n+                \"npm\": \"@ai-sdk/openai\",\n+                \"options\": {\"baseURL\": format!(\"http://{}/v1\", listener.local_addr().unwrap()),\n+                            \"apiKey\": \"dummy\"},\n+                \"models\": {\"m\": {}}\n+            }}\n+        });\n+        std::fs::write(project.join(\"opencode.json\"), config.to_string()).expect(\"config\");\n+        let env = BTreeMap::from([\n+            (\"HOME\".into(), data.to_string_lossy().into_owned()),\n+            (\"OC_TEST_ALLOW_LOOPBACK\".into(), \"1\".into()),\n+        ]);\n+        let (app, guard, _) = spawn_with_env(&project, &data, env.clone())\n+            .await\n+            .expect(\"spawn\");\n+        assert_eq!(app.catalog().await.expect(\"catalog\").commands, [\"review\"]);\n+        assert_eq!(\n+            app.catalog().await.expect(\"catalog\").command_descriptions[\"review\"],\n+            \"review changes [commit|branch|pr], defaults to uncommitted\"\n+        );\n+        let composed = composition::load_with_env(&project, env.clone())\n+            .await\n+            .expect(\"admitted generation\");\n+        let (default_prompt, default_invocation) =\n+            resolve_submission(&composed, \"/review\".into()).expect(\"default review\");\n+        assert_eq!(default_invocation.as_deref(), Some(\"/review\"));\n+        assert_eq!(\n+            default_prompt,\n+            include_str!(\"../assets/upstream/v2/review.txt\").replace(\"$ARGUMENTS\", \"\")\n+        );\n+        let session = SessionId(\"review-fallback\".into());\n+        app.create_session(session.clone()).await.expect(\"session\");\n+        let original = \"/review   'branch name'  $ARGUMENTS  ${path}   \";\n+        let expected_input = \"'branch name'  $ARGUMENTS  ${path}\";\n+        let server = tokio::spawn(async move {\n+            let (mut stream, _) = listener.accept().await.expect(\"request\");\n+            let mut request = Vec::new();\n+            let mut chunk = [0; 4096];\n+            let (headers_end, content_length) = loop {\n+                let n = stream.read(&mut chunk).await.expect(\"read\");\n+                assert!(n > 0, \"complete request\");\n+                request.extend_from_slice(&chunk[..n]);\n+                if let Some(end) = request.windows(4).position(|w| w == b\"\\r\\n\\r\\n\") {\n+                    let headers = String::from_utf8_lossy(&request[..end]);\n+                    let len = headers\n+                        .lines()\n+                        .find_map(|line| {\n+                            line.to_ascii_lowercase()\n+                                .strip_prefix(\"content-length: \")\n+                                .and_then(|n| n.parse::<usize>().ok())\n+                        })\n+                        .expect(\"body size\");\n+                    if request.len() >= end + 4 + len {\n+                        break (end, len);\n+                    }\n+                }\n+            };\n+            let body: serde_json::Value =\n+                serde_json::from_slice(&request[headers_end + 4..headers_end + 4 + content_length])\n+                    .expect(\"Responses JSON\");\n+            let sse = \"data: {\\\"type\\\":\\\"response.output_text.delta\\\",\\\"delta\\\":\\\"review complete\\\"}\\n\\ndata: {\\\"type\\\":\\\"response.completed\\\",\\\"response\\\":{\\\"status\\\":\\\"completed\\\"}}\\n\\n\";\n+            stream.write_all(format!(\"HTTP/1.1 200 OK\\r\\nContent-Type: text/event-stream\\r\\nContent-Length: {}\\r\\nConnection: close\\r\\n\\r\\n{sse}\", sse.len()).as_bytes()).await.expect(\"reply\");\n+            body\n+        });\n+        let mut events = app.subscribe();\n+        app.submit(session.clone(), original.into())\n+            .await\n+            .expect(\"submit review\");\n+        loop {\n+            match tokio::time::timeout(std::time::Duration::from_secs(10), events.recv())\n+                .await\n+                .expect(\"turn timeout\")\n+                .expect(\"event\")\n+            {\n+                CoreEvent::TurnFinished { session: id, .. } if id == session => break,\n+                CoreEvent::TurnFailed { error, .. } => panic!(\"review failed: {error}\"),\n+                _ => {}\n+            }\n+        }\n+        let request = server.await.expect(\"fake response\");\n+        let expected =\n+            include_str!(\"../assets/upstream/v2/review.txt\").replace(\"$ARGUMENTS\", expected_input);\n+        let actual = request[\"input\"]\n+            .as_array()\n+            .unwrap()\n+            .iter()\n+            .filter(|item| item[\"role\"] == \"user\")\n+            .filter_map(|item| item[\"content\"].as_array())\n+            .flat_map(|parts| parts.iter())\n+            .filter_map(|part| part[\"text\"].as_str())\n+            .collect::<Vec<_>>();\n+        assert_eq!(\n+            actual,\n+            [expected.as_str()],\n+            \"provider receives exact expansion\"\n+        );\n+        assert_eq!(\n+            app.read_history(session.clone()).await.unwrap()[0].text,\n+            original\n+        );\n+        app.shutdown().await.unwrap();\n+        guard.join().await.unwrap();\n+\n+        let (reopened, guard, _) = spawn_with_env(&project, &data, env).await.unwrap();\n+        assert_eq!(\n+            reopened.read_history(session).await.unwrap()[0].text,\n+            original\n+        );\n+        reopened.shutdown().await.unwrap();\n+        guard.join().await.unwrap();\n+    }\n+}\n+\n #[cfg(test)]\n mod file_suggestion_tests {\n     use super::*;\ndiff --git a/crates/oc-adapters/src/composition.rs b/crates/oc-adapters/src/composition.rs\nindex 5813416..1140e4b 100644\n--- a/crates/oc-adapters/src/composition.rs\n+++ b/crates/oc-adapters/src/composition.rs\n@@ -51,6 +51,10 @@ pub struct Composition {\n     pub skill_errors: BTreeMap<String, String>,\n     /// Literal custom command templates.\n     pub commands: BTreeMap<String, String>,\n+    /// Current admitted command descriptions, including the bundled fallback.\n+    pub command_descriptions: BTreeMap<String, String>,\n+    /// The review entry is the bundled fallback, not an admitted workspace definition.\n+    pub builtin_review: bool,\n     /// Exact compiled native modules activated by plugin markers.\n     pub native_modules: BTreeSet<String>,\n     /// Non-fatal definition diagnostics for frontend display.\n@@ -818,11 +822,27 @@ async fn load_stages(\n         .values()\n         .map(|skill| (skill.id.clone(), skill.body.clone()))\n         .collect();\n-    let commands = loaded_defs\n+    let mut commands: BTreeMap<String, String> = loaded_defs\n         .commands\n         .values()\n         .map(|command| (command.id.clone(), command.body.clone()))\n         .collect();\n+    let mut command_descriptions: BTreeMap<String, String> = loaded_defs\n+        .commands\n+        .values()\n+        .map(|command| (command.id.clone(), command.description.clone()))\n+        .collect();\n+    let builtin_review = !commands.contains_key(\"review\");\n+    if builtin_review {\n+        commands.insert(\n+            \"review\".into(),\n+            include_str!(\"../assets/upstream/v2/review.txt\").into(),\n+        );\n+        command_descriptions.insert(\n+            \"review\".into(),\n+            \"review changes [commit|branch|pr], defaults to uncommitted\".into(),\n+        );\n+    }\n     let mut startup_notices = Vec::new();\n     if !loaded_defs.diagnostics.is_empty() {\n         startup_notices.push(StartupNotice::Definitions);\n@@ -934,6 +954,8 @@ async fn load_stages(\n         skills,\n         skill_errors,\n         commands,\n+        command_descriptions,\n+        builtin_review,\n         native_modules,\n         diagnostics,\n         startup_notices,\n@@ -1216,6 +1238,56 @@ mod tests {\n     use std::collections::BTreeMap;\n     use tokio::io::{AsyncReadExt, AsyncWriteExt};\n \n+    #[tokio::test]\n+    async fn bundled_review_is_a_fallback_to_admitted_workspace_definition() {\n+        let dir = tempfile::tempdir().expect(\"fixture\");\n+        let project = dir.path().join(\"project\");\n+        std::fs::create_dir_all(&project).expect(\"project\");\n+        let config = serde_json::json!({\n+            \"model\": \"fixture/main\",\n+            \"provider\": {\"fixture\": {\"options\": {\n+                \"baseURL\": \"https://example.invalid/v1\", \"apiKey\": \"fixture-key\"\n+            }, \"models\": {\"main\": {}}}}\n+        });\n+        std::fs::write(project.join(\"opencode.json\"), config.to_string()).expect(\"config\");\n+        let env = BTreeMap::from([(\n+            \"XDG_CONFIG_HOME\".into(),\n+            dir.path().join(\"config\").to_string_lossy().into_owned(),\n+        )]);\n+        let fallback = load_with_env(&project, env.clone())\n+            .await\n+            .expect(\"fallback\");\n+        assert_eq!(fallback.project, project.canonicalize().expect(\"canonical\"));\n+        assert!(fallback.builtin_review);\n+        assert_eq!(fallback.commands.len(), 1);\n+        assert_eq!(\n+            fallback.commands[\"review\"],\n+            include_str!(\"../assets/upstream/v2/review.txt\")\n+        );\n+        assert_eq!(fallback.command_descriptions.len(), 1);\n+        assert_eq!(\n+            fallback.command_descriptions[\"review\"],\n+            \"review changes [commit|branch|pr], defaults to uncommitted\"\n+        );\n+\n+        let mut override_config = config;\n+        override_config[\"command\"] = serde_json::json!({\"review\": {\n+            \"template\": \"workspace $1 / $ARGUMENTS\",\n+            \"description\": \"workspace review\"\n+        }});\n+        std::fs::write(project.join(\"opencode.json\"), override_config.to_string())\n+            .expect(\"override\");\n+        let overridden = load_with_env(&project, env)\n+            .await\n+            .expect(\"workspace override\");\n+        assert!(!overridden.builtin_review);\n+        assert_eq!(overridden.commands[\"review\"], \"workspace $1 / $ARGUMENTS\");\n+        assert_eq!(\n+            overridden.command_descriptions[\"review\"],\n+            \"workspace review\"\n+        );\n+    }\n+\n     #[tokio::test]\n     async fn tab_indicators_default_ordered_overrides_and_invalid_value() {\n         let dir = tempfile::tempdir().expect(\"fixture\");\ndiff --git a/crates/oc-core/src/queries.rs b/crates/oc-core/src/queries.rs\nindex 5322001..41b9fcd 100644\n--- a/crates/oc-core/src/queries.rs\n+++ b/crates/oc-core/src/queries.rs\n@@ -4,6 +4,8 @@\n //! These are view-model DTOs: counts, ids and bounded previews only. No\n //! storage handles, no transcripts beyond the requested page, no secrets.\n \n+use std::collections::BTreeMap;\n+\n use crate::domain::SessionId;\n use crate::session::Role;\n \n@@ -282,6 +284,8 @@ pub struct CatalogSnapshot {\n     pub agent_id: Option<String>,\n     /// Workspace command ids (templates stay in the application).\n     pub commands: Vec<String>,\n+    /// Descriptions for the admitted commands in this generation; no templates.\n+    pub command_descriptions: BTreeMap<String, String>,\n }\n \n /// Presentation-only settings; no runtime policy or credentials.\ndiff --git a/crates/oc-tui/src/app.rs b/crates/oc-tui/src/app.rs\nindex 82eac94..2bbf68f 100644\n--- a/crates/oc-tui/src/app.rs\n+++ b/crates/oc-tui/src/app.rs\n@@ -449,6 +449,8 @@ pub struct TuiState {\n     pub(crate) dcp: DcpPanelState,\n     /// Workspace command ids known to the application (templates stay there).\n     pub(crate) commands: Vec<String>,\n+    /// Metadata for the current catalog generation only.\n+    command_descriptions: BTreeMap<String, String>,\n     /// Newest tool cards from the runtime (bounded page).\n     pub(crate) cards: Vec<HistoryRow>,\n     card_ops: Vec<String>,\n@@ -553,6 +555,7 @@ impl TuiState {\n             skills_loaded: false,\n             dcp: DcpPanelState::default(),\n             commands: Vec::new(),\n+            command_descriptions: BTreeMap::new(),\n             cards: Vec::new(),\n             card_ops: Vec::new(),\n             cards_cursor: 0,\n@@ -790,6 +793,7 @@ impl TuiState {\n         self.skills_cursor = 0;\n         self.skills_loaded = false;\n         self.commands.clear();\n+        self.command_descriptions.clear();\n         self.cards.clear();\n         self.card_ops.clear();\n         self.card_output = None;\n@@ -1148,7 +1152,8 @@ impl TuiState {\n             return None;\n         }\n         let filter = crate::autocomplete::query(&self.input, self.editor.cursor)?;\n-        let mut options = crate::autocomplete::options(filter, &self.commands);\n+        let mut options =\n+            crate::autocomplete::options(filter, &self.commands, &self.command_descriptions);\n         // The pinned Home route does not register the session-only rename\n         // action. Keep direct `/rename` refusal intact; do not expose it as a\n         // selectable Home suggestion (including for `/ren`).\n@@ -2035,6 +2040,7 @@ impl TuiState {\n         }\n         self.picker = Some(picker);\n         self.commands = snapshot.commands;\n+        self.command_descriptions = snapshot.command_descriptions;\n         self.active_agent = snapshot.agent_id.clone();\n         self.agents = snapshot.agents;\n         self.agents_cursor = snapshot\n@@ -4672,6 +4678,92 @@ mod tests {\n         assert!(state.commands.is_empty(), \"old Location commands are gone\");\n     }\n \n+    #[tokio::test]\n+    async fn review_is_offered_as_a_workspace_command_on_home_and_session() {\n+        let mut catalog = snapshot();\n+        catalog.commands = vec![\"review\".into()];\n+        let description = \"review changes [commit|branch|pr], defaults to uncommitted\";\n+        catalog\n+            .command_descriptions\n+            .insert(\"review\".into(), description.into());\n+        let (app, _, _) = CoreApp::channel(4);\n+        let mut home = TuiState::new_home(app);\n+        home.apply_catalog(catalog.clone());\n+        let mut session = fresh_state(\"review-command\").await;\n+        session.apply_catalog(catalog);\n+        for state in [&mut home, &mut session] {\n+            state.handle_paste(\"/rev\");\n+            let options = state.slash_options().expect(\"slash options\");\n+            assert_eq!(options[0].name, \"review\");\n+            assert_eq!(options[0].description, description);\n+            state.input.clear();\n+            state.editor.clear();\n+            state.handle_paste(\"/ren\");\n+            assert!(\n+                state\n+                    .slash_options()\n+                    .expect(\"/ren options\")\n+                    .iter()\n+                    .any(|option| option.name == \"review\" && option.description == description)\n+            );\n+            assert!(options[0].arguments);\n+            assert!(\n+                options[0].action.is_none(),\n+                \"application owns review execution\"\n+            );\n+            state.input.clear();\n+            state.editor.clear();\n+            state.handle_paste(\"/rev\");\n+            state.handle_key(KeyAction::Tab).await;\n+            assert_eq!(state.input(), \"/review \");\n+            assert!(state.is_workspace_command(state.input()));\n+        }\n+    }\n+\n+    #[tokio::test]\n+    async fn command_descriptions_follow_reload_and_location_without_fallback() {\n+        let mut state = fresh_state(\"description-refresh\").await;\n+        let mut fallback = snapshot();\n+        fallback.chrome.location = Some(\"/A\".into());\n+        fallback.commands = vec![\"review\".into()];\n+        fallback.command_descriptions.insert(\n+            \"review\".into(),\n+            \"review changes [commit|branch|pr], defaults to uncommitted\".into(),\n+        );\n+        state.apply_catalog(fallback);\n+        state.handle_paste(\"/rev\");\n+        assert!(\n+            state.slash_options().unwrap()[0]\n+                .description\n+                .contains(\"uncommitted\")\n+        );\n+\n+        let mut overridden = snapshot();\n+        overridden.chrome.location = Some(\"/A\".into());\n+        overridden.commands = vec![\"review\".into()];\n+        overridden\n+            .command_descriptions\n+            .insert(\"review\".into(), \"workspace review\".into());\n+        state.refresh_configuration(overridden);\n+        assert_eq!(state.input(), \"/rev\");\n+        assert_eq!(\n+            state.slash_options().unwrap()[0].description,\n+            \"workspace review\"\n+        );\n+\n+        let mut other = snapshot();\n+        other.chrome.location = Some(\"/B\".into());\n+        other.commands = vec![\"review\".into()];\n+        // A definition with no description must not inherit the bundled one.\n+        other\n+            .command_descriptions\n+            .insert(\"review\".into(), String::new());\n+        state.reset_workspace();\n+        assert!(state.command_descriptions.is_empty());\n+        state.apply_catalog(other);\n+        assert_eq!(state.slash_options().unwrap()[0].description, \"\");\n+    }\n+\n     #[tokio::test]\n     async fn reload_refresh_invalidates_generation_options_without_erasing_draft() {\n         let mut state = fresh_state(\"reload-view\").await;\n@@ -6837,6 +6929,7 @@ mod tests {\n             ],\n             agent_id: Some(\"x\".to_string()),\n             commands: Vec::new(),\n+            command_descriptions: Default::default(),\n         }\n     }\n \ndiff --git a/crates/oc-tui/src/autocomplete.rs b/crates/oc-tui/src/autocomplete.rs\nindex 57a64dc..afeed4f 100644\n--- a/crates/oc-tui/src/autocomplete.rs\n+++ b/crates/oc-tui/src/autocomplete.rs\n@@ -1,6 +1,8 @@\n //! Inline slash options from the admitted command registry and current catalog.\n //! Pinned reference: `component/prompt/autocomplete.tsx:466-504,520-575,584-626,780-810`.\n \n+use std::collections::BTreeMap;\n+\n use crate::commands::{self, CommandAction};\n use crate::fuzzy::{Query, Target};\n \n@@ -33,7 +35,11 @@ pub(crate) fn mention(text: &str, cursor: usize) -> Option<(usize, &str)> {\n         .then_some((start, query))\n }\n \n-pub(crate) fn options(filter: &str, workspace: &[String]) -> Vec<SlashOption> {\n+pub(crate) fn options(\n+    filter: &str,\n+    workspace: &[String],\n+    descriptions: &BTreeMap<String, String>,\n+) -> Vec<SlashOption> {\n     let mut options: Vec<_> = commands::REGISTRY\n         .iter()\n         .flat_map(|command| {\n@@ -56,7 +62,7 @@ pub(crate) fn options(filter: &str, workspace: &[String]) -> Vec<SlashOption> {\n         if !options.iter().any(|option| option.name == *name) {\n             options.push(SlashOption {\n                 name: name.clone(),\n-                description: String::new(),\n+                description: descriptions.get(name).cloned().unwrap_or_default(),\n                 action: None,\n                 arguments: true,\n             });\ndiff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs\nindex e2bc334..59a47ca 100644\n--- a/crates/oc-tui/src/shell.rs\n+++ b/crates/oc-tui/src/shell.rs\n@@ -1696,6 +1696,7 @@ mod tests {\n             }],\n             agent_id: Some(\"x\".to_string()),\n             commands: Vec::new(),\n+            command_descriptions: Default::default(),\n         }\n     }\n \ndiff --git a/crates/oc-tui/src/views.rs b/crates/oc-tui/src/views.rs\nindex 9402cd2..2855e79 100644\n--- a/crates/oc-tui/src/views.rs\n+++ b/crates/oc-tui/src/views.rs\n@@ -361,6 +361,7 @@ mod tests {\n             }],\n             agent_id: Some(\"x\".to_string()),\n             commands: Vec::new(),\n+            command_descriptions: Default::default(),\n         }\n     }\n \ndiff --git a/crates/oc/src/tui_cmd.rs b/crates/oc/src/tui_cmd.rs\nindex 0e47fe8..f28a012 100644\n--- a/crates/oc/src/tui_cmd.rs\n+++ b/crates/oc/src/tui_cmd.rs\n@@ -2399,6 +2399,7 @@ mod tests {\n             agents: Vec::new(),\n             agent_id: None,\n             commands: Vec::new(),\n+            command_descriptions: Default::default(),\n         }\n     }\n \ndiff --git a/crates/oc/tests/pty_t42.rs b/crates/oc/tests/pty_t42.rs\nindex a83be00..8fa61e2 100644\n--- a/crates/oc/tests/pty_t42.rs\n+++ b/crates/oc/tests/pty_t42.rs\n@@ -242,6 +242,9 @@ fn script(body: &serde_json::Value) -> Script {\n     if prompt == \"slow stream\" {\n         return Script::Slow(\"answer:slow stream\".to_string());\n     }\n+    if prompt.starts_with(\"You are a code reviewer. Your job is to review code changes\") {\n+        return Script::Text(\"answer:review complete\".to_string());\n+    }\n     Script::Text(format!(\"echo: {prompt}\"))\n }\n \n@@ -2730,6 +2733,84 @@ fn bare_home_abandon_and_new_do_not_create_a_root() {\n     assert!(fixture.requests.lock().expect(\"requests\").is_empty());\n }\n \n+#[test]\n+fn bare_home_review_completion_submits_pinned_prompt_and_keeps_invocation_on_same_tab() {\n+    let fixture = Fixture::new();\n+    let project = fixture.project_a();\n+    let mut pty = PtySession::spawn(fixture.clone(), &project, &[], None);\n+    wait_screen_row(&pty, \"Ask anything\", DEADLINE);\n+    assert_eq!(journal_counts(&fixture), (0, 0, 0, 0, 0));\n+\n+    pty.send(b\"/rev\");\n+    wait_screen_row(&pty, \" /review  \", DEADLINE);\n+    wait_screen_row(&pty, \"┃  /rev\", DEADLINE);\n+    pty.send(b\"\\t\");\n+    // Tab only completes the workspace command and its argument separator;\n+    // it must not invoke a local action or create a Home root.\n+    wait_screen_row(&pty, \"┃  /review\", DEADLINE);\n+    assert!(\n+        !render_screen(&pty.snapshot())\n+            .rows()\n+            .iter()\n+            .any(|row| row.contains(\" /review  \")),\n+        \"completion closed the catalog\"\n+    );\n+    assert_eq!(journal_counts(&fixture), (0, 0, 0, 0, 0));\n+    assert!(fixture.requests.lock().unwrap().is_empty());\n+\n+    let arguments = \"'branch name'  $ARGUMENTS  ${path}\";\n+    let first = format!(\"/review   {arguments}\");\n+    pty.send(format!(\"  {arguments}\").as_bytes());\n+    wait_screen_row(&pty, &first, DEADLINE);\n+    pty.send(b\"\\r\");\n+    let expected = include_str!(\"../../oc-adapters/assets/upstream/v2/review.txt\")\n+        .replace(\"$ARGUMENTS\", arguments);\n+    let requests = fixture.wait_requests(1);\n+    assert_eq!(\n+        last_user_text(&requests[0]).as_deref(),\n+        Some(expected.as_str())\n+    );\n+    wait_screen_row(&pty, \"answer:review complete\", DEADLINE);\n+    wait_idle(&pty);\n+    let deck: serde_json::Value =\n+        serde_json::from_str(&live_deck_record(&fixture, &project)).unwrap();\n+    let root = deck[\"active\"].as_str().expect(\"Home accepted real root\");\n+    assert_eq!(deck[\"sessions\"], serde_json::json!([root]));\n+    assert_eq!(journal_counts(&fixture).0, 1);\n+\n+    let second = \"/review compare HEAD~1\";\n+    let off = pty.snapshot().len();\n+    pty.send(format!(\"{second}\\r\").as_bytes());\n+    let requests = fixture.wait_requests(2);\n+    let expected_second = include_str!(\"../../oc-adapters/assets/upstream/v2/review.txt\")\n+        .replace(\"$ARGUMENTS\", \"compare HEAD~1\");\n+    assert_eq!(\n+        last_user_text(&requests[1]).as_deref(),\n+        Some(expected_second.as_str())\n+    );\n+    pty.wait_visible_after(off, \"answer:review complete\", DEADLINE);\n+    wait_idle(&pty);\n+    let current: serde_json::Value =\n+        serde_json::from_str(&live_deck_record(&fixture, &project)).unwrap();\n+    assert_eq!(current, deck, \"second review stays on the same root tab\");\n+    quit(&mut pty);\n+\n+    assert_eq!(journal_counts(&fixture).0, 1);\n+    assert_eq!(journal_counts(&fixture).2, 2);\n+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();\n+    assert_eq!(\n+        db.read_history(root).unwrap(),\n+        vec![\n+            (\"user\".into(), first),\n+            (\"assistant\".into(), \"answer:review complete\".into()),\n+            (\"user\".into(), second.into()),\n+            (\"assistant\".into(), \"answer:review complete\".into()),\n+        ],\n+        \"the journal stores both original slash invocations, not expanded prompts\"\n+    );\n+    assert_eq!(fixture.wait_requests(2).len(), 2, \"two real provider turns\");\n+}\n+\n #[test]\n fn vis25_reload_rebuilds_real_config_on_home_and_session_without_losing_identity() {\n     for attached in [false, true] {\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "crates/oc-adapters/assets/upstream/PROVENANCE.md\u0000crates/oc-adapters/assets/upstream/v2/review.txt\u0000Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)\n   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.30s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"e2c664298943427cfcb23cba064ae115b60292e1c5d10243061c00da793fc7cf\", \"actual_sha256\": \"dbd864a54572d142f0a80c86ab3d2878eef8e24ebc73fd8e1cef26d2ab93d104\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 45, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 21, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"171a87b6019a04e5ddea297941d94e5ea316344e94162cc1a590c4cf7162dd65\", \"actual_sha256\": \"a137695f0573e1f9ab2a51ebc5226544cee9c64cc3bfd3d0a9b28ea0cb2b324c\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2037, \"changed_fraction_diagnostic_only\": 0.0031481824925816025, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/autocomplete-home-trigger.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/autocomplete-home-trigger.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/autocomplete-home-trigger.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-home-trigger\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"be65a7113284b2b2c6ad2a5a6cc9a4fb12f8f75f033365b52b7ca5dab429bd2b\", \"actual_sha256\": \"e58a6cf29371ba382f4a4cbd09220a881cf0914c7573c943f00829190c4edd6f\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 709, \"cursor_differs\": false, \"difference_bbox_inclusive\": [23, 10, 117, 38], \"samples\": [{\"x\": 23, \"y\": 10, \"different_fields\": [\"bg\"]}, {\"x\": 24, \"y\": 10, \"different_fields\": [\"fg\"]}, {\"x\": 31, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 33, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 34, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 35, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 36, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 37, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/autocomplete-home-trigger.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/autocomplete-home-trigger.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/autocomplete-home-trigger.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"47567702f87eda1352167cb8be97abcf8767e852aeb04b40963c7fece1b95e20\", \"actual_sha256\": \"4fe502c21d5dedbb37577f4d4551baa94d60e228133b9fcaf51816f9216154cb\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 20862, \"changed_fraction_diagnostic_only\": 0.032242210682492584, \"difference_bbox_inclusive\": [194, 160, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/autocomplete-home-filtered.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/autocomplete-home-filtered.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/autocomplete-home-filtered.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-home-filtered\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"ca13d11c75f048032c18184ed600654802dfb88003085a987fa15866c964ea29\", \"actual_sha256\": \"ccbd1e9ac6fd5b9f62567291cb55bcea712782a57ba57a272f6294b1bd260fba\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 212, \"cursor_differs\": false, \"difference_bbox_inclusive\": [23, 17, 117, 38], \"samples\": [{\"x\": 23, \"y\": 17, \"different_fields\": [\"bg\"]}, {\"x\": 24, \"y\": 17, \"different_fields\": [\"fg\"]}, {\"x\": 34, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 35, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 36, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 37, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 17, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 17, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/autocomplete-home-filtered.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/autocomplete-home-filtered.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/autocomplete-home-filtered.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"d1e734ce54b3068886a7b2a7e06e198deeabe376e204c5ecc64707197b340ae6\", \"actual_sha256\": \"ecc35d2a3e9b6e7117159a5a81d25e87ba6f003011d3e9c934f0d11245a8f167\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 9771, \"changed_fraction_diagnostic_only\": 0.015101075667655787, \"difference_bbox_inclusive\": [194, 272, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/autocomplete-home-after-tab.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/autocomplete-home-after-tab.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/autocomplete-home-after-tab.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-home-after-tab\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"07bf095c591fb04af45954b3fe6e9f2628865987df13bfd289b1313deb4af439\", \"actual_sha256\": \"e918ae41c278788312aa612328bb87021d87edddd0a942893592b454c01756ca\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 45, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 21, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/autocomplete-home-after-tab.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/autocomplete-home-after-tab.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/autocomplete-home-after-tab.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"5eb4b31eee4720429c65284b878159c928a3a6711f62b170c53480140f10ead4\", \"actual_sha256\": \"03f638b3a7e67ac969ecd4cad70b9072cc4d701a6191874b561a217eb3addf29\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2037, \"changed_fraction_diagnostic_only\": 0.0031481824925816025, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"11ed3a149d9b6cdf7c45017830acb68f5a1bf783c8eab022ae0071b31349a36c\", \"actual_sha256\": \"301c0a7e277ff6caeb8bd8ebe9a9a5ef8a6ea952d7573fe62ace8e934f639833\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"abb3b6f932942c7b00d224ad47a8633b82a060d82adc02541b662644702cc378\", \"actual_sha256\": \"c6d62d742db50b3f16d9904bd9db28dfc08befa024b69dd4d057d0b30b2ae6d8\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 118, \"changed_fraction_diagnostic_only\": 0.00018236894164193868, \"difference_bbox_inclusive\": [320, 163, 335, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/autocomplete-session-trigger.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/autocomplete-session-trigger.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/autocomplete-session-trigger.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-session-trigger\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"33eb93e3ac4a9bd687487059e743f3755fcb2df77c9e7281faf259d739b6f00f\", \"actual_sha256\": \"0bafa23c804310730b4405be75a908490b480609f1b6d81ed5a5a3ab236a0c38\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 1109, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 32], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 23, \"different_fields\": [\"bg\"]}, {\"x\": 3, \"y\": 23, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 12, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 13, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 23, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/autocomplete-session-trigger.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/autocomplete-session-trigger.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/autocomplete-session-trigger.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"f1e41f3753bed9f3d6d996d9f54fb2010127019bb900079ae6086d8fdec1115b\", \"actual_sha256\": \"230e8f5a3444002e4865eafb78e03d91c0ebb3745c409140460a73e7027d6866\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 15149, \"changed_fraction_diagnostic_only\": 0.023412772007912957, \"difference_bbox_inclusive\": [17, 163, 992, 527]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/autocomplete-session-filtered.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/autocomplete-session-filtered.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/autocomplete-session-filtered.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-session-filtered\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"4f8bca7319175d79002a6a8721715f15dc5bce31e3d56cd8cf4996c0c18c465a\", \"actual_sha256\": \"cb2966edf0c626a91a02d80bae6dbcf5793b9b7771e11f4677b043f05fa4b83e\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 807, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 32], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 3, \"y\": 26, \"different_fields\": [\"bg\"]}, {\"x\": 4, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 5, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 6, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 7, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 8, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 9, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 10, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 11, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 12, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 13, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 14, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 15, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 16, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 17, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 18, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 19, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/autocomplete-session-filtered.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/autocomplete-session-filtered.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/autocomplete-session-filtered.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"ad78cef4579de9afae8f0d2dec44664e8cf92a9e20b1e4ff79a5d8acba77b05e\", \"actual_sha256\": \"b15dc58212b80fc1265df8e4d64f7c648200fcbaab835b609b87a1bd31371f7f\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 70019, \"changed_fraction_diagnostic_only\": 0.10821432987141444, \"difference_bbox_inclusive\": [17, 163, 992, 527]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/autocomplete-session-after-tab.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/autocomplete-session-after-tab.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/autocomplete-session-after-tab.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-session-after-tab\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"9ef62422a72bb629b595de674170515cbe445cbb3512d14d17258563c2c6a417\", \"actual_sha256\": \"32e521d8434c34f4f6cf020b35e898cdb48d99dd417cd5ce1c0098eeb03bb741\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/upstream/autocomplete-session-after-tab.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/oc/autocomplete-session-after-tab.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-07/autocomplete-session-after-tab.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"438ba83bb3f0a566620763a5969c8c170dc8fe4c5621705ef2df14102bb11e9b\", \"actual_sha256\": \"e64119a66eae88a11c7c3a561a1bb1b536f3c02ff5e1822e550438543a6eea48\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 118, \"changed_fraction_diagnostic_only\": 0.00018236894164193868, \"difference_bbox_inclusive\": [320, 163, 335, 172]}\n",
+    "stderr": ""
+  }
+]

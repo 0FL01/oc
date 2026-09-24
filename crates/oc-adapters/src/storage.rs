@@ -1182,33 +1182,33 @@ impl Db {
         session: &str,
         floor_seq: i64,
         page: usize,
-    ) -> Result<Vec<String>, StorageError> {
+    ) -> Result<Vec<(String, Option<String>)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let page = (page.min(TOOL_OPS_MAX) as i64).max(1);
         let mut out = Vec::new();
         let mut upper: Option<i64> = None;
         loop {
             let mut stmt = conn.prepare_cached(
-                "SELECT rowid, result FROM turns
+                "SELECT rowid, result, prompt FROM turns
                   WHERE session_id = ?1 AND result IS NOT NULL
                     AND (?2 IS NULL OR rowid < ?2)
                   ORDER BY rowid DESC LIMIT ?3",
             )?;
-            let batch: Vec<(i64, String)> = stmt
+            let batch: Vec<(i64, String, Option<String>)> = stmt
                 .query_map(params![session, upper, page], |row| {
-                    Ok((row.get(0)?, row.get(1)?))
+                    Ok((row.get(0)?, row.get(1)?, row.get(2)?))
                 })?
                 .collect::<Result<Vec<_>, _>>()?;
             let full_page = batch.len() == page as usize;
-            if let Some((rowid, _)) = batch.last() {
+            if let Some((rowid, _, _)) = batch.last() {
                 upper = Some(*rowid);
             }
             let mut oldest = i64::MAX;
-            for (_, result) in batch {
+            for (_, result, prompt) in batch {
                 match anchor_seq(&result) {
-                    Some(seq) if seq > floor_seq => out.push(result),
+                    Some(seq) if seq > floor_seq => out.push((result, prompt)),
                     Some(seq) => oldest = oldest.min(seq),
-                    None => out.push(result),
+                    None => out.push((result, prompt)),
                 }
             }
             if oldest <= floor_seq || !full_page {

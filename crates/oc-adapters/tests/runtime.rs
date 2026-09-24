@@ -1489,11 +1489,14 @@ async fn v04_model_change_projects_public_history_without_foreign_tool_state() {
         ],
         Duration::ZERO,
     );
-    for (model, prompt) in [
-        ("m", "first public input"),
+    for (index, (model, prompt)) in [
+        ("m", "expanded review instructions with original config"),
         ("other", "second public input"),
         ("m", "third public input"),
-    ] {
+    ]
+    .into_iter()
+    .enumerate()
+    {
         let mut turn = params(
             "model-change",
             prompt,
@@ -1502,28 +1505,74 @@ async fn v04_model_change_projects_public_history_without_foreign_tool_state() {
             &NO_CANCEL,
         );
         turn.model_id = model.into();
+        if index == 0 {
+            turn.invocation = Some("/review".into());
+        }
         assert_eq!(
             runtime.run_turn(turn).await.unwrap().status,
             TurnStatus::Completed
         );
     }
+    {
+        let captured = requests.lock().unwrap();
+        assert_eq!(captured.len(), 4);
+        assert!(captured[1]["input"].to_string().contains("old-model-call"));
+        let changed = captured[2]["input"].to_string();
+        assert!(changed.contains("expanded review instructions with original config"));
+        assert!(changed.contains("public original answer"));
+        assert!(!changed.contains("/review"));
+        assert!(!changed.contains("old-model-call") && !changed.contains("function_call"));
+        assert_eq!(captured[2]["model"], "other");
+        assert!(
+            captured[3]["input"].to_string().contains("old-model-call"),
+            "original wire lane retained durably"
+        );
+        assert!(
+            captured[3]["input"]
+                .to_string()
+                .contains("public second answer")
+        );
+    }
+    // Legacy/incomplete log without a usable stored prompt: fall back to the
+    // immutable public invocation rather than expanding current command config.
+    let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    assert_eq!(
+        sql.execute(
+            "UPDATE turns SET prompt = '' WHERE session_id = ?1 AND prompt = ?2",
+            rusqlite::params![
+                "model-change",
+                "expanded review instructions with original config"
+            ]
+        )
+        .unwrap(),
+        1
+    );
+    let mut fallback = params(
+        "model-change",
+        "fourth public input",
+        &harness,
+        provider_of(&base),
+        &NO_CANCEL,
+    );
+    fallback.model_id = "other".into();
+    assert_eq!(
+        runtime.run_turn(fallback).await.unwrap().status,
+        TurnStatus::Completed
+    );
     let requests = requests.lock().unwrap();
-    assert_eq!(requests.len(), 4);
-    assert!(requests[1]["input"].to_string().contains("old-model-call"));
-    let changed = requests[2]["input"].to_string();
-    assert!(changed.contains("first public input") && changed.contains("public original answer"));
-    assert!(!changed.contains("old-model-call") && !changed.contains("function_call"));
-    assert_eq!(requests[2]["model"], "other");
+    assert_eq!(requests.len(), 5);
+    let fallback_input = requests[4]["input"].to_string();
+    assert!(fallback_input.contains("/review"));
+    assert!(!fallback_input.contains("expanded review instructions"));
+    assert!(!fallback_input.contains("old-model-call"));
+    let public = harness.db.read_history("model-change").unwrap();
+    assert_eq!(public.len(), 8);
+    assert_eq!(public[0], ("user".into(), "/review".into()));
     assert!(
-        requests[3]["input"].to_string().contains("old-model-call"),
-        "original wire lane retained durably"
+        !public
+            .iter()
+            .any(|(_, text)| text.contains("expanded review instructions"))
     );
-    assert!(
-        requests[3]["input"]
-            .to_string()
-            .contains("public second answer")
-    );
-    assert_eq!(harness.db.read_history("model-change").unwrap().len(), 6);
 }
 
 fn dcp_nudge_count(request: &serde_json::Value) -> usize {

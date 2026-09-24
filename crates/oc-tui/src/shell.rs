@@ -1696,6 +1696,7 @@ mod tests {
             }],
             agent_id: Some("x".to_string()),
             commands: Vec::new(),
+            command_descriptions: Default::default(),
         }
     }
 

@@ -1,6 +1,8 @@
 //! Inline slash options from the admitted command registry and current catalog.
 //! Pinned reference: `component/prompt/autocomplete.tsx:466-504,520-575,584-626,780-810`.
 
+use std::collections::BTreeMap;
+
 use crate::commands::{self, CommandAction};
 use crate::fuzzy::{Query, Target};
 
@@ -33,7 +35,11 @@ pub(crate) fn mention(text: &str, cursor: usize) -> Option<(usize, &str)> {
         .then_some((start, query))
 }
 
-pub(crate) fn options(filter: &str, workspace: &[String]) -> Vec<SlashOption> {
+pub(crate) fn options(
+    filter: &str,
+    workspace: &[String],
+    descriptions: &BTreeMap<String, String>,
+) -> Vec<SlashOption> {
     let mut options: Vec<_> = commands::REGISTRY
         .iter()
         .flat_map(|command| {
@@ -56,7 +62,7 @@ pub(crate) fn options(filter: &str, workspace: &[String]) -> Vec<SlashOption> {
         if !options.iter().any(|option| option.name == *name) {
             options.push(SlashOption {
                 name: name.clone(),
-                description: String::new(),
+                description: descriptions.get(name).cloned().unwrap_or_default(),
                 action: None,
                 arguments: true,
             });

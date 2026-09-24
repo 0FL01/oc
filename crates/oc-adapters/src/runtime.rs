@@ -2252,12 +2252,13 @@ impl<'a> Runtime<'a> {
         after_seq: i64,
     ) -> Result<Vec<InputItem>, RuntimeError> {
         let mut turns = BTreeMap::new();
+        let mut changed_lane_prompts = BTreeMap::new();
         let mut represented = std::collections::BTreeSet::new();
         let covered_anchors = blocks
             .iter()
             .flat_map(|block| block.members.iter().cloned())
             .collect::<std::collections::BTreeSet<_>>();
-        for raw in self
+        for (raw, prompt) in self
             .db
             .wire_logs_for_window(session, after_seq, WIRE_LOG_PAGE)?
         {
@@ -2279,7 +2280,12 @@ impl<'a> Runtime<'a> {
             }
             if log.model != model || log.agent_digest.as_deref() != agent_digest {
                 // Model or agent behavior changed: start a fresh causality lane
-                // from immutable raw messages, never replay old opaque/tool state.
+                // from public messages, but retain the originally expanded user
+                // prompt for an uncompressed anchor. Never re-expand an invocation
+                // using the current workspace's potentially changed commands.
+                if let Some(prompt) = prompt.filter(|prompt| !prompt.is_empty()) {
+                    changed_lane_prompts.insert(anchor, prompt);
+                }
                 continue;
             }
             if let Some(id) = value["assistant_message"].as_str() {
@@ -2328,6 +2334,13 @@ impl<'a> Runtime<'a> {
                             "history contains an unpaired tool message".to_string(),
                         ));
                     }
+                };
+                let text = if role == InputRole::User {
+                    changed_lane_prompts
+                        .get(id)
+                        .map_or(text.as_str(), String::as_str)
+                } else {
+                    text
                 };
                 input.push(InputItem::message(role, text));
                 if let Some(anchors) = block_members.get(id.as_str()) {

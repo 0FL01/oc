@@ -2399,6 +2399,7 @@ mod tests {
             agents: Vec::new(),
             agent_id: None,
             commands: Vec::new(),
+            command_descriptions: Default::default(),
         }
     }
 

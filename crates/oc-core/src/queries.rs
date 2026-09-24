@@ -4,6 +4,8 @@
 //! These are view-model DTOs: counts, ids and bounded previews only. No
 //! storage handles, no transcripts beyond the requested page, no secrets.
 
+use std::collections::BTreeMap;
+
 use crate::domain::SessionId;
 use crate::session::Role;
 
@@ -280,8 +282,10 @@ pub struct CatalogSnapshot {
     pub agents: Vec<AgentEntry>,
     /// Effective primary agent id, if resolved.
     pub agent_id: Option<String>,
-    /// Workspace command ids (templates stay in the application).
+    /// Admitted command ids (templates stay in the application).
     pub commands: Vec<String>,
+    /// Descriptions for the admitted commands in this generation; no templates.
+    pub command_descriptions: BTreeMap<String, String>,
 }
 
 /// Presentation-only settings; no runtime policy or credentials.

@@ -49,8 +49,12 @@ pub struct Composition {
     pub skills: Vec<(String, String)>,
     /// Invalid skill ids and precise generation diagnostics.
     pub skill_errors: BTreeMap<String, String>,
-    /// Literal custom command templates.
+    /// Literal admitted command templates, including the bundled review fallback.
     pub commands: BTreeMap<String, String>,
+    /// Current admitted command descriptions, including the bundled fallback.
+    pub command_descriptions: BTreeMap<String, String>,
+    /// The review entry is the bundled fallback, not an admitted workspace definition.
+    pub builtin_review: bool,
     /// Exact compiled native modules activated by plugin markers.
     pub native_modules: BTreeSet<String>,
     /// Non-fatal definition diagnostics for frontend display.
@@ -818,11 +822,27 @@ async fn load_stages(
         .values()
         .map(|skill| (skill.id.clone(), skill.body.clone()))
         .collect();
-    let commands = loaded_defs
+    let mut commands: BTreeMap<String, String> = loaded_defs
         .commands
         .values()
         .map(|command| (command.id.clone(), command.body.clone()))
         .collect();
+    let mut command_descriptions: BTreeMap<String, String> = loaded_defs
+        .commands
+        .values()
+        .map(|command| (command.id.clone(), command.description.clone()))
+        .collect();
+    let builtin_review = !commands.contains_key("review");
+    if builtin_review {
+        commands.insert(
+            "review".into(),
+            include_str!("../assets/upstream/v2/review.txt").into(),
+        );
+        command_descriptions.insert(
+            "review".into(),
+            "review changes [commit|branch|pr], defaults to uncommitted".into(),
+        );
+    }
     let mut startup_notices = Vec::new();
     if !loaded_defs.diagnostics.is_empty() {
         startup_notices.push(StartupNotice::Definitions);
@@ -934,6 +954,8 @@ async fn load_stages(
         skills,
         skill_errors,
         commands,
+        command_descriptions,
+        builtin_review,
         native_modules,
         diagnostics,
         startup_notices,
@@ -1215,6 +1237,56 @@ mod tests {
     use oc_core::queries::TabIndicators;
     use std::collections::BTreeMap;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    #[tokio::test]
+    async fn bundled_review_is_a_fallback_to_admitted_workspace_definition() {
+        let dir = tempfile::tempdir().expect("fixture");
+        let project = dir.path().join("project");
+        std::fs::create_dir_all(&project).expect("project");
+        let config = serde_json::json!({
+            "model": "fixture/main",
+            "provider": {"fixture": {"options": {
+                "baseURL": "https://example.invalid/v1", "apiKey": "fixture-key"
+            }, "models": {"main": {}}}}
+        });
+        std::fs::write(project.join("opencode.json"), config.to_string()).expect("config");
+        let env = BTreeMap::from([(
+            "XDG_CONFIG_HOME".into(),
+            dir.path().join("config").to_string_lossy().into_owned(),
+        )]);
+        let fallback = load_with_env(&project, env.clone())
+            .await
+            .expect("fallback");
+        assert_eq!(fallback.project, project.canonicalize().expect("canonical"));
+        assert!(fallback.builtin_review);
+        assert_eq!(fallback.commands.len(), 1);
+        assert_eq!(
+            fallback.commands["review"],
+            include_str!("../assets/upstream/v2/review.txt")
+        );
+        assert_eq!(fallback.command_descriptions.len(), 1);
+        assert_eq!(
+            fallback.command_descriptions["review"],
+            "review changes [commit|branch|pr], defaults to uncommitted"
+        );
+
+        let mut override_config = config;
+        override_config["command"] = serde_json::json!({"review": {
+            "template": "workspace $1 / $ARGUMENTS",
+            "description": "workspace review"
+        }});
+        std::fs::write(project.join("opencode.json"), override_config.to_string())
+            .expect("override");
+        let overridden = load_with_env(&project, env)
+            .await
+            .expect("workspace override");
+        assert!(!overridden.builtin_review);
+        assert_eq!(overridden.commands["review"], "workspace $1 / $ARGUMENTS");
+        assert_eq!(
+            overridden.command_descriptions["review"],
+            "workspace review"
+        );
+    }
 
     #[tokio::test]
     async fn tab_indicators_default_ordered_overrides_and_invalid_value() {

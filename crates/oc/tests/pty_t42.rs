@@ -242,6 +242,9 @@ fn script(body: &serde_json::Value) -> Script {
     if prompt == "slow stream" {
         return Script::Slow("answer:slow stream".to_string());
     }
+    if prompt.starts_with("You are a code reviewer. Your job is to review code changes") {
+        return Script::Text("answer:review complete".to_string());
+    }
     Script::Text(format!("echo: {prompt}"))
 }
 
@@ -2728,6 +2731,84 @@ fn bare_home_abandon_and_new_do_not_create_a_root() {
     assert!(metrics["session"].is_null(), "Home has no fabricated ID");
     assert_eq!(journal_counts(&fixture), (0, 0, 0, 0, 0));
     assert!(fixture.requests.lock().expect("requests").is_empty());
+}
+
+#[test]
+fn bare_home_review_completion_submits_pinned_prompt_and_keeps_invocation_on_same_tab() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let mut pty = PtySession::spawn(fixture.clone(), &project, &[], None);
+    wait_screen_row(&pty, "Ask anything", DEADLINE);
+    assert_eq!(journal_counts(&fixture), (0, 0, 0, 0, 0));
+
+    pty.send(b"/rev");
+    wait_screen_row(&pty, " /review  ", DEADLINE);
+    wait_screen_row(&pty, "┃  /rev", DEADLINE);
+    pty.send(b"\t");
+    // Tab only completes the workspace command and its argument separator;
+    // it must not invoke a local action or create a Home root.
+    wait_screen_row(&pty, "┃  /review", DEADLINE);
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|row| row.contains(" /review  ")),
+        "completion closed the catalog"
+    );
+    assert_eq!(journal_counts(&fixture), (0, 0, 0, 0, 0));
+    assert!(fixture.requests.lock().unwrap().is_empty());
+
+    let arguments = "'branch name'  $ARGUMENTS  ${path}";
+    let first = format!("/review   {arguments}");
+    pty.send(format!("  {arguments}").as_bytes());
+    wait_screen_row(&pty, &first, DEADLINE);
+    pty.send(b"\r");
+    let expected = include_str!("../../oc-adapters/assets/upstream/v2/review.txt")
+        .replace("$ARGUMENTS", arguments);
+    let requests = fixture.wait_requests(1);
+    assert_eq!(
+        last_user_text(&requests[0]).as_deref(),
+        Some(expected.as_str())
+    );
+    wait_screen_row(&pty, "answer:review complete", DEADLINE);
+    wait_idle(&pty);
+    let deck: serde_json::Value =
+        serde_json::from_str(&live_deck_record(&fixture, &project)).unwrap();
+    let root = deck["active"].as_str().expect("Home accepted real root");
+    assert_eq!(deck["sessions"], serde_json::json!([root]));
+    assert_eq!(journal_counts(&fixture).0, 1);
+
+    let second = "/review compare HEAD~1";
+    let off = pty.snapshot().len();
+    pty.send(format!("{second}\r").as_bytes());
+    let requests = fixture.wait_requests(2);
+    let expected_second = include_str!("../../oc-adapters/assets/upstream/v2/review.txt")
+        .replace("$ARGUMENTS", "compare HEAD~1");
+    assert_eq!(
+        last_user_text(&requests[1]).as_deref(),
+        Some(expected_second.as_str())
+    );
+    pty.wait_visible_after(off, "answer:review complete", DEADLINE);
+    wait_idle(&pty);
+    let current: serde_json::Value =
+        serde_json::from_str(&live_deck_record(&fixture, &project)).unwrap();
+    assert_eq!(current, deck, "second review stays on the same root tab");
+    quit(&mut pty);
+
+    assert_eq!(journal_counts(&fixture).0, 1);
+    assert_eq!(journal_counts(&fixture).2, 2);
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    assert_eq!(
+        db.read_history(root).unwrap(),
+        vec![
+            ("user".into(), first),
+            ("assistant".into(), "answer:review complete".into()),
+            ("user".into(), second.into()),
+            ("assistant".into(), "answer:review complete".into()),
+        ],
+        "the journal stores both original slash invocations, not expanded prompts"
+    );
+    assert_eq!(fixture.wait_requests(2).len(), 2, "two real provider turns");
 }
 
 #[test]

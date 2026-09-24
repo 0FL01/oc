@@ -447,8 +447,10 @@ pub struct TuiState {
     skills_loaded: bool,
     /// DCP panel state: snapshot in, request out, transient outcome (UI04).
     pub(crate) dcp: DcpPanelState,
-    /// Workspace command ids known to the application (templates stay there).
+    /// Command ids known to the application (templates stay there).
     pub(crate) commands: Vec<String>,
+    /// Metadata for the current catalog generation only.
+    command_descriptions: BTreeMap<String, String>,
     /// Newest tool cards from the runtime (bounded page).
     pub(crate) cards: Vec<HistoryRow>,
     card_ops: Vec<String>,
@@ -553,6 +555,7 @@ impl TuiState {
             skills_loaded: false,
             dcp: DcpPanelState::default(),
             commands: Vec::new(),
+            command_descriptions: BTreeMap::new(),
             cards: Vec::new(),
             card_ops: Vec::new(),
             cards_cursor: 0,
@@ -790,6 +793,7 @@ impl TuiState {
         self.skills_cursor = 0;
         self.skills_loaded = false;
         self.commands.clear();
+        self.command_descriptions.clear();
         self.cards.clear();
         self.card_ops.clear();
         self.card_output = None;
@@ -1148,7 +1152,8 @@ impl TuiState {
             return None;
         }
         let filter = crate::autocomplete::query(&self.input, self.editor.cursor)?;
-        let mut options = crate::autocomplete::options(filter, &self.commands);
+        let mut options =
+            crate::autocomplete::options(filter, &self.commands, &self.command_descriptions);
         // The pinned Home route does not register the session-only rename
         // action. Keep direct `/rename` refusal intact; do not expose it as a
         // selectable Home suggestion (including for `/ren`).
@@ -2035,6 +2040,7 @@ impl TuiState {
         }
         self.picker = Some(picker);
         self.commands = snapshot.commands;
+        self.command_descriptions = snapshot.command_descriptions;
         self.active_agent = snapshot.agent_id.clone();
         self.agents = snapshot.agents;
         self.agents_cursor = snapshot
@@ -4673,6 +4679,92 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn review_is_offered_as_a_workspace_command_on_home_and_session() {
+        let mut catalog = snapshot();
+        catalog.commands = vec!["review".into()];
+        let description = "review changes [commit|branch|pr], defaults to uncommitted";
+        catalog
+            .command_descriptions
+            .insert("review".into(), description.into());
+        let (app, _, _) = CoreApp::channel(4);
+        let mut home = TuiState::new_home(app);
+        home.apply_catalog(catalog.clone());
+        let mut session = fresh_state("review-command").await;
+        session.apply_catalog(catalog);
+        for state in [&mut home, &mut session] {
+            state.handle_paste("/rev");
+            let options = state.slash_options().expect("slash options");
+            assert_eq!(options[0].name, "review");
+            assert_eq!(options[0].description, description);
+            state.input.clear();
+            state.editor.clear();
+            state.handle_paste("/ren");
+            assert!(
+                state
+                    .slash_options()
+                    .expect("/ren options")
+                    .iter()
+                    .any(|option| option.name == "review" && option.description == description)
+            );
+            assert!(options[0].arguments);
+            assert!(
+                options[0].action.is_none(),
+                "application owns review execution"
+            );
+            state.input.clear();
+            state.editor.clear();
+            state.handle_paste("/rev");
+            state.handle_key(KeyAction::Tab).await;
+            assert_eq!(state.input(), "/review ");
+            assert!(state.is_workspace_command(state.input()));
+        }
+    }
+
+    #[tokio::test]
+    async fn command_descriptions_follow_reload_and_location_without_fallback() {
+        let mut state = fresh_state("description-refresh").await;
+        let mut fallback = snapshot();
+        fallback.chrome.location = Some("/A".into());
+        fallback.commands = vec!["review".into()];
+        fallback.command_descriptions.insert(
+            "review".into(),
+            "review changes [commit|branch|pr], defaults to uncommitted".into(),
+        );
+        state.apply_catalog(fallback);
+        state.handle_paste("/rev");
+        assert!(
+            state.slash_options().unwrap()[0]
+                .description
+                .contains("uncommitted")
+        );
+
+        let mut overridden = snapshot();
+        overridden.chrome.location = Some("/A".into());
+        overridden.commands = vec!["review".into()];
+        overridden
+            .command_descriptions
+            .insert("review".into(), "workspace review".into());
+        state.refresh_configuration(overridden);
+        assert_eq!(state.input(), "/rev");
+        assert_eq!(
+            state.slash_options().unwrap()[0].description,
+            "workspace review"
+        );
+
+        let mut other = snapshot();
+        other.chrome.location = Some("/B".into());
+        other.commands = vec!["review".into()];
+        // A definition with no description must not inherit the bundled one.
+        other
+            .command_descriptions
+            .insert("review".into(), String::new());
+        state.reset_workspace();
+        assert!(state.command_descriptions.is_empty());
+        state.apply_catalog(other);
+        assert_eq!(state.slash_options().unwrap()[0].description, "");
+    }
+
+    #[tokio::test]
     async fn reload_refresh_invalidates_generation_options_without_erasing_draft() {
         let mut state = fresh_state("reload-view").await;
         let mut old = snapshot();
@@ -6837,6 +6929,7 @@ mod tests {
             ],
             agent_id: Some("x".to_string()),
             commands: Vec::new(),
+            command_descriptions: Default::default(),
         }
     }
 

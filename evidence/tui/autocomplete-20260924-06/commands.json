@@ -1,0 +1,342 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--autocomplete",
+      "true",
+      "--build-oc",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "6b01bcc5bec847dd916b5b7aab728428419ff8b6\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "d26d7b13fc2bad519c162f6aa573f89f0ae33845\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-adapters/src/application.rs b/crates/oc-adapters/src/application.rs\nindex 00c37a9..846ab69 100644\n--- a/crates/oc-adapters/src/application.rs\n+++ b/crates/oc-adapters/src/application.rs\n@@ -2265,6 +2265,10 @@ fn resolve_submission(\n         return Ok((text, None));\n     };\n     let remainder = command[split..].trim();\n+    if id == \"review\" && composition.builtin_review {\n+        let expanded = crate::runtime::expand_command(template, &[remainder.to_string()])?;\n+        return Ok((expanded, Some(text)));\n+    }\n     let args = remainder\n         .split_whitespace()\n         .map(str::to_string)\n@@ -2273,6 +2277,184 @@ fn resolve_submission(\n     Ok((expanded, Some(text)))\n }\n \n+#[cfg(test)]\n+mod review_tests {\n+    use super::*;\n+    use tokio::io::{AsyncReadExt, AsyncWriteExt};\n+\n+    #[test]\n+    fn review_replaces_only_source_placeholders_and_enforces_expansion_cap() {\n+        let input = \"'branch name'  $ARGUMENTS  ${path}  $1\";\n+        let source = include_str!(\"../assets/upstream/v2/review.txt\");\n+        assert_eq!(\n+            crate::runtime::expand_command(source, &[input.into()]).unwrap(),\n+            source.replace(\"$ARGUMENTS\", input)\n+        );\n+        assert!(\n+            crate::runtime::expand_command(\n+                source,\n+                &[\"x\".repeat(crate::runtime::COMMAND_BYTES_CAP)]\n+            )\n+            .is_err()\n+        );\n+    }\n+\n+    #[tokio::test]\n+    async fn workspace_review_override_keeps_positional_expansion() {\n+        let root = tempfile::tempdir().unwrap();\n+        let project = root.path().join(\"project\");\n+        std::fs::create_dir_all(&project).unwrap();\n+        std::fs::write(\n+            project.join(\"opencode.json\"),\n+            serde_json::json!({\n+                \"model\": \"fixture/m\", \"provider\": {\"fixture\": {\n+                    \"options\": {\"baseURL\": \"https://example.invalid/v1\", \"apiKey\": \"dummy\"},\n+                    \"models\": {\"m\": {}}\n+                }},\n+                \"command\": {\"review\": {\"template\": \"local $1; all: $ARGUMENTS\"}}\n+            })\n+            .to_string(),\n+        )\n+        .unwrap();\n+        let env = BTreeMap::from([(\n+            \"XDG_CONFIG_HOME\".into(),\n+            root.path().join(\"config\").to_string_lossy().into_owned(),\n+        )]);\n+        let composition = composition::load_with_env(&project, env).await.unwrap();\n+        assert!(!composition.builtin_review);\n+        assert_eq!(\n+            resolve_submission(&composition, \"/review   one  two \".into()).unwrap(),\n+            (\n+                \"local one; all: one two\".into(),\n+                Some(\"/review   one  two \".into())\n+            )\n+        );\n+        assert_eq!(\n+            resolve_submission(&composition, \"/something else\".into()).unwrap(),\n+            (\"/something else\".into(), None)\n+        );\n+    }\n+\n+    #[tokio::test]\n+    async fn fallback_review_submits_exact_prompt_and_replays_original_invocation() {\n+        let root = tempfile::tempdir().expect(\"fixture\");\n+        let project = root.path().join(\"project\");\n+        let data = root.path().join(\"data\");\n+        std::fs::create_dir_all(&project).expect(\"project\");\n+        std::fs::create_dir_all(&data).expect(\"data\");\n+        let listener = tokio::net::TcpListener::bind(\"127.0.0.1:0\")\n+            .await\n+            .expect(\"fake provider\");\n+        let config = serde_json::json!({\n+            \"model\": \"fixture/m\", \"provider\": {\"fixture\": {\n+                \"npm\": \"@ai-sdk/openai\",\n+                \"options\": {\"baseURL\": format!(\"http://{}/v1\", listener.local_addr().unwrap()),\n+                            \"apiKey\": \"dummy\"},\n+                \"models\": {\"m\": {}}\n+            }}\n+        });\n+        std::fs::write(project.join(\"opencode.json\"), config.to_string()).expect(\"config\");\n+        let env = BTreeMap::from([\n+            (\"HOME\".into(), data.to_string_lossy().into_owned()),\n+            (\"OC_TEST_ALLOW_LOOPBACK\".into(), \"1\".into()),\n+        ]);\n+        let (app, guard, _) = spawn_with_env(&project, &data, env.clone())\n+            .await\n+            .expect(\"spawn\");\n+        assert_eq!(app.catalog().await.expect(\"catalog\").commands, [\"review\"]);\n+        let composed = composition::load_with_env(&project, env.clone())\n+            .await\n+            .expect(\"admitted generation\");\n+        let (default_prompt, default_invocation) =\n+            resolve_submission(&composed, \"/review\".into()).expect(\"default review\");\n+        assert_eq!(default_invocation.as_deref(), Some(\"/review\"));\n+        assert_eq!(\n+            default_prompt,\n+            include_str!(\"../assets/upstream/v2/review.txt\").replace(\"$ARGUMENTS\", \"\")\n+        );\n+        let session = SessionId(\"review-fallback\".into());\n+        app.create_session(session.clone()).await.expect(\"session\");\n+        let original = \"/review   'branch name'  $ARGUMENTS  ${path}   \";\n+        let expected_input = \"'branch name'  $ARGUMENTS  ${path}\";\n+        let server = tokio::spawn(async move {\n+            let (mut stream, _) = listener.accept().await.expect(\"request\");\n+            let mut request = Vec::new();\n+            let mut chunk = [0; 4096];\n+            let (headers_end, content_length) = loop {\n+                let n = stream.read(&mut chunk).await.expect(\"read\");\n+                assert!(n > 0, \"complete request\");\n+                request.extend_from_slice(&chunk[..n]);\n+                if let Some(end) = request.windows(4).position(|w| w == b\"\\r\\n\\r\\n\") {\n+                    let headers = String::from_utf8_lossy(&request[..end]);\n+                    let len = headers\n+                        .lines()\n+                        .find_map(|line| {\n+                            line.to_ascii_lowercase()\n+                                .strip_prefix(\"content-length: \")\n+                                .and_then(|n| n.parse::<usize>().ok())\n+                        })\n+                        .expect(\"body size\");\n+                    if request.len() >= end + 4 + len {\n+                        break (end, len);\n+                    }\n+                }\n+            };\n+            let body: serde_json::Value =\n+                serde_json::from_slice(&request[headers_end + 4..headers_end + 4 + content_length])\n+                    .expect(\"Responses JSON\");\n+            let sse = \"data: {\\\"type\\\":\\\"response.output_text.delta\\\",\\\"delta\\\":\\\"review complete\\\"}\\n\\ndata: {\\\"type\\\":\\\"response.completed\\\",\\\"response\\\":{\\\"status\\\":\\\"completed\\\"}}\\n\\n\";\n+            stream.write_all(format!(\"HTTP/1.1 200 OK\\r\\nContent-Type: text/event-stream\\r\\nContent-Length: {}\\r\\nConnection: close\\r\\n\\r\\n{sse}\", sse.len()).as_bytes()).await.expect(\"reply\");\n+            body\n+        });\n+        let mut events = app.subscribe();\n+        app.submit(session.clone(), original.into())\n+            .await\n+            .expect(\"submit review\");\n+        loop {\n+            match tokio::time::timeout(std::time::Duration::from_secs(10), events.recv())\n+                .await\n+                .expect(\"turn timeout\")\n+                .expect(\"event\")\n+            {\n+                CoreEvent::TurnFinished { session: id, .. } if id == session => break,\n+                CoreEvent::TurnFailed { error, .. } => panic!(\"review failed: {error}\"),\n+                _ => {}\n+            }\n+        }\n+        let request = server.await.expect(\"fake response\");\n+        let expected =\n+            include_str!(\"../assets/upstream/v2/review.txt\").replace(\"$ARGUMENTS\", expected_input);\n+        let actual = request[\"input\"]\n+            .as_array()\n+            .unwrap()\n+            .iter()\n+            .filter(|item| item[\"role\"] == \"user\")\n+            .filter_map(|item| item[\"content\"].as_array())\n+            .flat_map(|parts| parts.iter())\n+            .filter_map(|part| part[\"text\"].as_str())\n+            .collect::<Vec<_>>();\n+        assert_eq!(\n+            actual,\n+            [expected.as_str()],\n+            \"provider receives exact expansion\"\n+        );\n+        assert_eq!(\n+            app.read_history(session.clone()).await.unwrap()[0].text,\n+            original\n+        );\n+        app.shutdown().await.unwrap();\n+        guard.join().await.unwrap();\n+\n+        let (reopened, guard, _) = spawn_with_env(&project, &data, env).await.unwrap();\n+        assert_eq!(\n+            reopened.read_history(session).await.unwrap()[0].text,\n+            original\n+        );\n+        reopened.shutdown().await.unwrap();\n+        guard.join().await.unwrap();\n+    }\n+}\n+\n #[cfg(test)]\n mod file_suggestion_tests {\n     use super::*;\ndiff --git a/crates/oc-adapters/src/composition.rs b/crates/oc-adapters/src/composition.rs\nindex 5813416..3526288 100644\n--- a/crates/oc-adapters/src/composition.rs\n+++ b/crates/oc-adapters/src/composition.rs\n@@ -51,6 +51,8 @@ pub struct Composition {\n     pub skill_errors: BTreeMap<String, String>,\n     /// Literal custom command templates.\n     pub commands: BTreeMap<String, String>,\n+    /// The review entry is the bundled fallback, not an admitted workspace definition.\n+    pub builtin_review: bool,\n     /// Exact compiled native modules activated by plugin markers.\n     pub native_modules: BTreeSet<String>,\n     /// Non-fatal definition diagnostics for frontend display.\n@@ -818,11 +820,18 @@ async fn load_stages(\n         .values()\n         .map(|skill| (skill.id.clone(), skill.body.clone()))\n         .collect();\n-    let commands = loaded_defs\n+    let mut commands: BTreeMap<String, String> = loaded_defs\n         .commands\n         .values()\n         .map(|command| (command.id.clone(), command.body.clone()))\n         .collect();\n+    let builtin_review = !commands.contains_key(\"review\");\n+    if builtin_review {\n+        commands.insert(\n+            \"review\".into(),\n+            include_str!(\"../assets/upstream/v2/review.txt\").into(),\n+        );\n+    }\n     let mut startup_notices = Vec::new();\n     if !loaded_defs.diagnostics.is_empty() {\n         startup_notices.push(StartupNotice::Definitions);\n@@ -934,6 +943,7 @@ async fn load_stages(\n         skills,\n         skill_errors,\n         commands,\n+        builtin_review,\n         native_modules,\n         diagnostics,\n         startup_notices,\n@@ -1216,6 +1226,46 @@ mod tests {\n     use std::collections::BTreeMap;\n     use tokio::io::{AsyncReadExt, AsyncWriteExt};\n \n+    #[tokio::test]\n+    async fn bundled_review_is_a_fallback_to_admitted_workspace_definition() {\n+        let dir = tempfile::tempdir().expect(\"fixture\");\n+        let project = dir.path().join(\"project\");\n+        std::fs::create_dir_all(&project).expect(\"project\");\n+        let config = serde_json::json!({\n+            \"model\": \"fixture/main\",\n+            \"provider\": {\"fixture\": {\"options\": {\n+                \"baseURL\": \"https://example.invalid/v1\", \"apiKey\": \"fixture-key\"\n+            }, \"models\": {\"main\": {}}}}\n+        });\n+        std::fs::write(project.join(\"opencode.json\"), config.to_string()).expect(\"config\");\n+        let env = BTreeMap::from([(\n+            \"XDG_CONFIG_HOME\".into(),\n+            dir.path().join(\"config\").to_string_lossy().into_owned(),\n+        )]);\n+        let fallback = load_with_env(&project, env.clone())\n+            .await\n+            .expect(\"fallback\");\n+        assert_eq!(fallback.project, project.canonicalize().expect(\"canonical\"));\n+        assert!(fallback.builtin_review);\n+        assert_eq!(fallback.commands.len(), 1);\n+        assert_eq!(\n+            fallback.commands[\"review\"],\n+            include_str!(\"../assets/upstream/v2/review.txt\")\n+        );\n+\n+        let mut override_config = config;\n+        override_config[\"command\"] = serde_json::json!({\"review\": {\n+            \"template\": \"workspace $1 / $ARGUMENTS\"\n+        }});\n+        std::fs::write(project.join(\"opencode.json\"), override_config.to_string())\n+            .expect(\"override\");\n+        let overridden = load_with_env(&project, env)\n+            .await\n+            .expect(\"workspace override\");\n+        assert!(!overridden.builtin_review);\n+        assert_eq!(overridden.commands[\"review\"], \"workspace $1 / $ARGUMENTS\");\n+    }\n+\n     #[tokio::test]\n     async fn tab_indicators_default_ordered_overrides_and_invalid_value() {\n         let dir = tempfile::tempdir().expect(\"fixture\");\ndiff --git a/crates/oc-tui/src/app.rs b/crates/oc-tui/src/app.rs\nindex 82eac94..83730bf 100644\n--- a/crates/oc-tui/src/app.rs\n+++ b/crates/oc-tui/src/app.rs\n@@ -4672,6 +4672,30 @@ mod tests {\n         assert!(state.commands.is_empty(), \"old Location commands are gone\");\n     }\n \n+    #[tokio::test]\n+    async fn review_is_offered_as_a_workspace_command_on_home_and_session() {\n+        let mut catalog = snapshot();\n+        catalog.commands = vec![\"review\".into()];\n+        let (app, _, _) = CoreApp::channel(4);\n+        let mut home = TuiState::new_home(app);\n+        home.apply_catalog(catalog.clone());\n+        let mut session = fresh_state(\"review-command\").await;\n+        session.apply_catalog(catalog);\n+        for state in [&mut home, &mut session] {\n+            state.handle_paste(\"/rev\");\n+            let options = state.slash_options().expect(\"slash options\");\n+            assert_eq!(options[0].name, \"review\");\n+            assert!(options[0].arguments);\n+            assert!(\n+                options[0].action.is_none(),\n+                \"application owns review execution\"\n+            );\n+            state.handle_key(KeyAction::Tab).await;\n+            assert_eq!(state.input(), \"/review \");\n+            assert!(state.is_workspace_command(state.input()));\n+        }\n+    }\n+\n     #[tokio::test]\n     async fn reload_refresh_invalidates_generation_options_without_erasing_draft() {\n         let mut state = fresh_state(\"reload-view\").await;\ndiff --git a/crates/oc/tests/pty_t42.rs b/crates/oc/tests/pty_t42.rs\nindex a83be00..8fa61e2 100644\n--- a/crates/oc/tests/pty_t42.rs\n+++ b/crates/oc/tests/pty_t42.rs\n@@ -242,6 +242,9 @@ fn script(body: &serde_json::Value) -> Script {\n     if prompt == \"slow stream\" {\n         return Script::Slow(\"answer:slow stream\".to_string());\n     }\n+    if prompt.starts_with(\"You are a code reviewer. Your job is to review code changes\") {\n+        return Script::Text(\"answer:review complete\".to_string());\n+    }\n     Script::Text(format!(\"echo: {prompt}\"))\n }\n \n@@ -2730,6 +2733,84 @@ fn bare_home_abandon_and_new_do_not_create_a_root() {\n     assert!(fixture.requests.lock().expect(\"requests\").is_empty());\n }\n \n+#[test]\n+fn bare_home_review_completion_submits_pinned_prompt_and_keeps_invocation_on_same_tab() {\n+    let fixture = Fixture::new();\n+    let project = fixture.project_a();\n+    let mut pty = PtySession::spawn(fixture.clone(), &project, &[], None);\n+    wait_screen_row(&pty, \"Ask anything\", DEADLINE);\n+    assert_eq!(journal_counts(&fixture), (0, 0, 0, 0, 0));\n+\n+    pty.send(b\"/rev\");\n+    wait_screen_row(&pty, \" /review  \", DEADLINE);\n+    wait_screen_row(&pty, \"┃  /rev\", DEADLINE);\n+    pty.send(b\"\\t\");\n+    // Tab only completes the workspace command and its argument separator;\n+    // it must not invoke a local action or create a Home root.\n+    wait_screen_row(&pty, \"┃  /review\", DEADLINE);\n+    assert!(\n+        !render_screen(&pty.snapshot())\n+            .rows()\n+            .iter()\n+            .any(|row| row.contains(\" /review  \")),\n+        \"completion closed the catalog\"\n+    );\n+    assert_eq!(journal_counts(&fixture), (0, 0, 0, 0, 0));\n+    assert!(fixture.requests.lock().unwrap().is_empty());\n+\n+    let arguments = \"'branch name'  $ARGUMENTS  ${path}\";\n+    let first = format!(\"/review   {arguments}\");\n+    pty.send(format!(\"  {arguments}\").as_bytes());\n+    wait_screen_row(&pty, &first, DEADLINE);\n+    pty.send(b\"\\r\");\n+    let expected = include_str!(\"../../oc-adapters/assets/upstream/v2/review.txt\")\n+        .replace(\"$ARGUMENTS\", arguments);\n+    let requests = fixture.wait_requests(1);\n+    assert_eq!(\n+        last_user_text(&requests[0]).as_deref(),\n+        Some(expected.as_str())\n+    );\n+    wait_screen_row(&pty, \"answer:review complete\", DEADLINE);\n+    wait_idle(&pty);\n+    let deck: serde_json::Value =\n+        serde_json::from_str(&live_deck_record(&fixture, &project)).unwrap();\n+    let root = deck[\"active\"].as_str().expect(\"Home accepted real root\");\n+    assert_eq!(deck[\"sessions\"], serde_json::json!([root]));\n+    assert_eq!(journal_counts(&fixture).0, 1);\n+\n+    let second = \"/review compare HEAD~1\";\n+    let off = pty.snapshot().len();\n+    pty.send(format!(\"{second}\\r\").as_bytes());\n+    let requests = fixture.wait_requests(2);\n+    let expected_second = include_str!(\"../../oc-adapters/assets/upstream/v2/review.txt\")\n+        .replace(\"$ARGUMENTS\", \"compare HEAD~1\");\n+    assert_eq!(\n+        last_user_text(&requests[1]).as_deref(),\n+        Some(expected_second.as_str())\n+    );\n+    pty.wait_visible_after(off, \"answer:review complete\", DEADLINE);\n+    wait_idle(&pty);\n+    let current: serde_json::Value =\n+        serde_json::from_str(&live_deck_record(&fixture, &project)).unwrap();\n+    assert_eq!(current, deck, \"second review stays on the same root tab\");\n+    quit(&mut pty);\n+\n+    assert_eq!(journal_counts(&fixture).0, 1);\n+    assert_eq!(journal_counts(&fixture).2, 2);\n+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();\n+    assert_eq!(\n+        db.read_history(root).unwrap(),\n+        vec![\n+            (\"user\".into(), first),\n+            (\"assistant\".into(), \"answer:review complete\".into()),\n+            (\"user\".into(), second.into()),\n+            (\"assistant\".into(), \"answer:review complete\".into()),\n+        ],\n+        \"the journal stores both original slash invocations, not expanded prompts\"\n+    );\n+    assert_eq!(fixture.wait_requests(2).len(), 2, \"two real provider turns\");\n+}\n+\n #[test]\n fn vis25_reload_rebuilds_real_config_on_home_and_session_without_losing_identity() {\n     for attached in [false, true] {\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "crates/oc-adapters/assets/upstream/PROVENANCE.md\u0000crates/oc-adapters/assets/upstream/v2/review.txt\u0000Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.21s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"f54d5057bd99c2835f38f24121784253656f6c1f81c825072c7ed53fbba352f9\", \"actual_sha256\": \"afde95b2537bb203f92ba05014ea35743abc81d1a23eafbbc4b4b5dff25a02d8\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 46, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 56, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"9cf7b309df8056f4a979d5a8c051ad531a2026266e68d3dca7ed915920794c43\", \"actual_sha256\": \"20fc4005b8560ecc68ed636151a8b61d57d021aba299329789c0003260883398\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1834, \"changed_fraction_diagnostic_only\": 0.00283444609297725, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/autocomplete-home-trigger.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/autocomplete-home-trigger.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/autocomplete-home-trigger.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-home-trigger\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"c38e756c746acd8ff2d03bab0c05e6cad8a85ac5790041f15e4b1652a44ec6bc\", \"actual_sha256\": \"f83d104c593604ca20feeb2a54b5f8fb42fdc04bf61b714529d37c148cd941ca\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 709, \"cursor_differs\": false, \"difference_bbox_inclusive\": [23, 10, 117, 38], \"samples\": [{\"x\": 23, \"y\": 10, \"different_fields\": [\"bg\"]}, {\"x\": 24, \"y\": 10, \"different_fields\": [\"fg\"]}, {\"x\": 31, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 33, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 34, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 35, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 36, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 37, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/autocomplete-home-trigger.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/autocomplete-home-trigger.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/autocomplete-home-trigger.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"8092028a3607c850eb8afa120743d5400c5bd5fd8210c89b36c6baee064c67ce\", \"actual_sha256\": \"9e1d3ccde2e90d74adffa95c37afc0c85d4c587bb423263ed07a8f681c6b1fde\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 20862, \"changed_fraction_diagnostic_only\": 0.032242210682492584, \"difference_bbox_inclusive\": [194, 160, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/autocomplete-home-filtered.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/autocomplete-home-filtered.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/autocomplete-home-filtered.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-home-filtered\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"08358adb99c4e17adb2fc1d55bb3bfb7ffc69e9806100df2c7c11a0e5afa465c\", \"actual_sha256\": \"daba2a22c645c6a229400ebdbed6472178bd715fcc4c5a7dd715b1505713ad7c\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 230, \"cursor_differs\": false, \"difference_bbox_inclusive\": [23, 17, 117, 38], \"samples\": [{\"x\": 23, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 24, \"y\": 17, \"different_fields\": [\"bg\"]}, {\"x\": 25, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 26, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 27, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 28, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 29, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 30, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 31, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 32, \"y\": 17, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 33, \"y\": 17, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 34, \"y\": 17, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 35, \"y\": 17, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 36, \"y\": 17, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 37, \"y\": 17, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 38, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 39, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 40, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 41, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 42, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/autocomplete-home-filtered.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/autocomplete-home-filtered.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/autocomplete-home-filtered.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"3b5e9df3ac07f001e59906e81152d26d3278f400bab2f302a65cb76e310273a3\", \"actual_sha256\": \"8d13cecb65ddb526ca800d449a50de7e557aa48035a8fdda5c0685fdf57a06ec\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 23298, \"changed_fraction_diagnostic_only\": 0.03600704747774481, \"difference_bbox_inclusive\": [194, 272, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/autocomplete-home-after-tab.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/autocomplete-home-after-tab.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/autocomplete-home-after-tab.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-home-after-tab\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"95362c2459c67cb3d24b18e27d5ab336b95097be056f74e8467465acb7b87ca2\", \"actual_sha256\": \"26420979f625adb1af921fb137db70bd7692abd259c83ff55337599c41d57f4b\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 46, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 56, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/autocomplete-home-after-tab.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/autocomplete-home-after-tab.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/autocomplete-home-after-tab.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"fe4bc624cc7d0dcc273a7044e832a3446b2412e1442d1a3ba38dec47e8d13b90\", \"actual_sha256\": \"3118084a0832a7607ad6fb04c2b8e491b65f9c2be97bb485ccda18feba2e2128\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1834, \"changed_fraction_diagnostic_only\": 0.00283444609297725, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"d55240df0a70945464ba4efb63dcaaffca811b306be2a50208c48824ba6af34e\", \"actual_sha256\": \"ce1943607647500b2167f9caeafb76ff63b1406b2cea1c3bdaefd5f2016affd9\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"682627e60dfcb64f8410441aba85ed78459ee9631d8de05932b7c4daa6713b26\", \"actual_sha256\": \"bca6c9c057124b0879fde3f138fc62135db0ec8d529ffe32798572b5a199b1ec\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 139, \"changed_fraction_diagnostic_only\": 0.00021482443125618199, \"difference_bbox_inclusive\": [320, 163, 336, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/autocomplete-session-trigger.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/autocomplete-session-trigger.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/autocomplete-session-trigger.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-session-trigger\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"67007e253ac83c0fc6e4d88052f4d924c43324c0ba0eb8a2b7fc46ab09634983\", \"actual_sha256\": \"dcf58855d98da95f8a93a53e3a6dec68312f1e55f6e2321b9864a6dd275337b6\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 1109, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 32], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 23, \"different_fields\": [\"bg\"]}, {\"x\": 3, \"y\": 23, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 12, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 13, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 23, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 23, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/autocomplete-session-trigger.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/autocomplete-session-trigger.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/autocomplete-session-trigger.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"3f8d9e03a7a72deacbfcd28487ffc9302055da3c324629c0fd65eb8698f1d74e\", \"actual_sha256\": \"5fca8763851acbbd0438e7ddc5656cf6e892c22cbeea3c2025e6ca395d9dad86\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 15170, \"changed_fraction_diagnostic_only\": 0.023445227497527203, \"difference_bbox_inclusive\": [17, 163, 992, 527]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/autocomplete-session-filtered.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/autocomplete-session-filtered.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/autocomplete-session-filtered.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-session-filtered\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"eac7cf22a0357252fe5c3b64c8eeff82d169e733a0dca859c077c6986414b492\", \"actual_sha256\": \"eb305971191493c58612c994be6d98238360fc4f2f154a06e235ce9693f9c2f6\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 809, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 32], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 3, \"y\": 26, \"different_fields\": [\"bg\"]}, {\"x\": 4, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 5, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 6, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 7, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 8, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 9, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 10, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 11, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 12, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 13, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 14, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 15, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 16, \"y\": 26, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 17, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 18, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 19, \"y\": 26, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/autocomplete-session-filtered.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/autocomplete-session-filtered.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/autocomplete-session-filtered.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"adf9f6bfc3490f3adac44e88c14e7da28e9d36ebd17f50faf83e2c92a75d812d\", \"actual_sha256\": \"e1bf361875573c84ed8d26c546a73273a351518e565ee37aecf8e3a690533d3d\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 82942, \"changed_fraction_diagnostic_only\": 0.1281868199802176, \"difference_bbox_inclusive\": [17, 163, 992, 527]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/autocomplete-session-after-tab.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/autocomplete-session-after-tab.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/autocomplete-session-after-tab.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"autocomplete-session-after-tab\", \"fixture_sha256\": \"16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"fd8377a5572bd7280578868cdb068be671733bb02bdd61ed3b87a15af9fd2268\", \"actual_sha256\": \"b9589ebba9a4eab3f9a93fe3b4f552b6ccf81640f883843115f91e7f14b703ae\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"6b01bcc5bec847dd916b5b7aab728428419ff8b6\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/upstream/autocomplete-session-after-tab.png",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/oc/autocomplete-session-after-tab.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/autocomplete-20260924-06/autocomplete-session-after-tab.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"ec6c0c050700148c9da69dc23d0e843fe333c5b0158f477c25abdca6846538af\", \"actual_sha256\": \"e4df29eee3cfafdb1e1d5429522922208e1fcc438c157b03b75af46e7357d424\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 139, \"changed_fraction_diagnostic_only\": 0.00021482443125618199, \"difference_bbox_inclusive\": [320, 163, 336, 172]}\n",
+    "stderr": ""
+  }
+]

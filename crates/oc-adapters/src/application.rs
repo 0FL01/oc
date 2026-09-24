@@ -501,6 +501,7 @@ impl Effective {
             agents,
             agent_id: self.agent_id.clone(),
             commands: composition.commands.keys().cloned().collect(),
+            command_descriptions: composition.command_descriptions.clone(),
         }
     }
 }
@@ -2265,12 +2266,253 @@ fn resolve_submission(
         return Ok((text, None));
     };
     let remainder = command[split..].trim();
+    if id == "review" && composition.builtin_review {
+        let expanded = crate::runtime::expand_command(template, &[remainder.to_string()])?;
+        return Ok((expanded, Some(text)));
+    }
     let args = remainder
         .split_whitespace()
         .map(str::to_string)
         .collect::<Vec<_>>();
     let expanded = crate::runtime::expand_command(template, &args)?;
     Ok((expanded, Some(text)))
+}
+
+#[cfg(test)]
+mod review_tests {
+    use super::*;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    #[tokio::test]
+    async fn catalog_descriptions_track_current_location_and_reload() {
+        let root = tempfile::tempdir().unwrap();
+        let a = root.path().join("a");
+        let b = root.path().join("b");
+        let data = root.path().join("data");
+        for path in [&a, &b, &data] {
+            std::fs::create_dir_all(path).unwrap();
+        }
+        let mut config = serde_json::json!({
+            "model": "fixture/m", "provider": {"fixture": {
+                "npm": "@ai-sdk/openai",
+                "options": {"baseURL": "http://127.0.0.1:9/v1", "apiKey": "dummy"},
+                "models": {"m": {}}
+            }}
+        });
+        std::fs::write(a.join("opencode.json"), config.to_string()).unwrap();
+        config["command"] = serde_json::json!({"review": {
+            "template": "local review $ARGUMENTS", "description": "from B"
+        }});
+        std::fs::write(b.join("opencode.json"), config.to_string()).unwrap();
+        let env = BTreeMap::from([
+            ("HOME".into(), data.to_string_lossy().into_owned()),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]);
+        let (app, guard, _) = spawn_with_env(&a, &data, env).await.unwrap();
+        assert_eq!(
+            app.catalog().await.unwrap().command_descriptions["review"],
+            "review changes [commit|branch|pr], defaults to uncommitted"
+        );
+        app.switch_location_home(b.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        assert_eq!(
+            app.catalog().await.unwrap().command_descriptions["review"],
+            "from B"
+        );
+        config["command"]["review"]["description"] = "reloaded".into();
+        std::fs::write(b.join("opencode.json"), config.to_string()).unwrap();
+        app.reload_location().await.unwrap();
+        assert_eq!(
+            app.catalog().await.unwrap().command_descriptions["review"],
+            "reloaded"
+        );
+        app.switch_location_home(a.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        assert_eq!(
+            app.catalog().await.unwrap().command_descriptions["review"],
+            "review changes [commit|branch|pr], defaults to uncommitted"
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[test]
+    fn review_replaces_only_source_placeholders_and_enforces_expansion_cap() {
+        let input = "'branch name'  $ARGUMENTS  ${path}  $1";
+        let source = include_str!("../assets/upstream/v2/review.txt");
+        assert_eq!(
+            crate::runtime::expand_command(source, &[input.into()]).unwrap(),
+            source.replace("$ARGUMENTS", input)
+        );
+        assert!(
+            crate::runtime::expand_command(
+                source,
+                &["x".repeat(crate::runtime::COMMAND_BYTES_CAP)]
+            )
+            .is_err()
+        );
+    }
+
+    #[tokio::test]
+    async fn workspace_review_override_keeps_positional_expansion() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::write(
+            project.join("opencode.json"),
+            serde_json::json!({
+                "model": "fixture/m", "provider": {"fixture": {
+                    "options": {"baseURL": "https://example.invalid/v1", "apiKey": "dummy"},
+                    "models": {"m": {}}
+                }},
+                "command": {"review": {"template": "local $1; all: $ARGUMENTS"}}
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let env = BTreeMap::from([(
+            "XDG_CONFIG_HOME".into(),
+            root.path().join("config").to_string_lossy().into_owned(),
+        )]);
+        let composition = composition::load_with_env(&project, env).await.unwrap();
+        assert!(!composition.builtin_review);
+        assert_eq!(
+            resolve_submission(&composition, "/review   one  two ".into()).unwrap(),
+            (
+                "local one; all: one two".into(),
+                Some("/review   one  two ".into())
+            )
+        );
+        assert_eq!(
+            resolve_submission(&composition, "/something else".into()).unwrap(),
+            ("/something else".into(), None)
+        );
+    }
+
+    #[tokio::test]
+    async fn fallback_review_submits_exact_prompt_and_replays_original_invocation() {
+        let root = tempfile::tempdir().expect("fixture");
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).expect("project");
+        std::fs::create_dir_all(&data).expect("data");
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("fake provider");
+        let config = serde_json::json!({
+            "model": "fixture/m", "provider": {"fixture": {
+                "npm": "@ai-sdk/openai",
+                "options": {"baseURL": format!("http://{}/v1", listener.local_addr().unwrap()),
+                            "apiKey": "dummy"},
+                "models": {"m": {}}
+            }}
+        });
+        std::fs::write(project.join("opencode.json"), config.to_string()).expect("config");
+        let env = BTreeMap::from([
+            ("HOME".into(), data.to_string_lossy().into_owned()),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]);
+        let (app, guard, _) = spawn_with_env(&project, &data, env.clone())
+            .await
+            .expect("spawn");
+        assert_eq!(app.catalog().await.expect("catalog").commands, ["review"]);
+        assert_eq!(
+            app.catalog().await.expect("catalog").command_descriptions["review"],
+            "review changes [commit|branch|pr], defaults to uncommitted"
+        );
+        let composed = composition::load_with_env(&project, env.clone())
+            .await
+            .expect("admitted generation");
+        let (default_prompt, default_invocation) =
+            resolve_submission(&composed, "/review".into()).expect("default review");
+        assert_eq!(default_invocation.as_deref(), Some("/review"));
+        assert_eq!(
+            default_prompt,
+            include_str!("../assets/upstream/v2/review.txt").replace("$ARGUMENTS", "")
+        );
+        let session = SessionId("review-fallback".into());
+        app.create_session(session.clone()).await.expect("session");
+        let original = "/review   'branch name'  $ARGUMENTS  ${path}   ";
+        let expected_input = "'branch name'  $ARGUMENTS  ${path}";
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.expect("request");
+            let mut request = Vec::new();
+            let mut chunk = [0; 4096];
+            let (headers_end, content_length) = loop {
+                let n = stream.read(&mut chunk).await.expect("read");
+                assert!(n > 0, "complete request");
+                request.extend_from_slice(&chunk[..n]);
+                if let Some(end) = request.windows(4).position(|w| w == b"\r\n\r\n") {
+                    let headers = String::from_utf8_lossy(&request[..end]);
+                    let len = headers
+                        .lines()
+                        .find_map(|line| {
+                            line.to_ascii_lowercase()
+                                .strip_prefix("content-length: ")
+                                .and_then(|n| n.parse::<usize>().ok())
+                        })
+                        .expect("body size");
+                    if request.len() >= end + 4 + len {
+                        break (end, len);
+                    }
+                }
+            };
+            let body: serde_json::Value =
+                serde_json::from_slice(&request[headers_end + 4..headers_end + 4 + content_length])
+                    .expect("Responses JSON");
+            let sse = "data: {\"type\":\"response.output_text.delta\",\"delta\":\"review complete\"}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\"}}\n\n";
+            stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{sse}", sse.len()).as_bytes()).await.expect("reply");
+            body
+        });
+        let mut events = app.subscribe();
+        app.submit(session.clone(), original.into())
+            .await
+            .expect("submit review");
+        loop {
+            match tokio::time::timeout(std::time::Duration::from_secs(10), events.recv())
+                .await
+                .expect("turn timeout")
+                .expect("event")
+            {
+                CoreEvent::TurnFinished { session: id, .. } if id == session => break,
+                CoreEvent::TurnFailed { error, .. } => panic!("review failed: {error}"),
+                _ => {}
+            }
+        }
+        let request = server.await.expect("fake response");
+        let expected =
+            include_str!("../assets/upstream/v2/review.txt").replace("$ARGUMENTS", expected_input);
+        let actual = request["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|item| item["role"] == "user")
+            .filter_map(|item| item["content"].as_array())
+            .flat_map(|parts| parts.iter())
+            .filter_map(|part| part["text"].as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            actual,
+            [expected.as_str()],
+            "provider receives exact expansion"
+        );
+        assert_eq!(
+            app.read_history(session.clone()).await.unwrap()[0].text,
+            original
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+
+        let (reopened, guard, _) = spawn_with_env(&project, &data, env).await.unwrap();
+        assert_eq!(
+            reopened.read_history(session).await.unwrap()[0].text,
+            original
+        );
+        reopened.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
 }
 
 #[cfg(test)]
