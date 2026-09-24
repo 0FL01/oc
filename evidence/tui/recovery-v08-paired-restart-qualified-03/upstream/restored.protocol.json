@@ -1,0 +1,17 @@
+[
+  {
+    "kind": "relaunch",
+    "generation": 1,
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-paired-restart-qualified-03/project"
+  },
+  {
+    "kind": "exit",
+    "generation": 1,
+    "code": 130,
+    "termination": "forced_stop"
+  }
+]

@@ -1,0 +1,1171 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-24T05:19:45.938Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "53bd51ceafeafe89a02dc59db2df3f2ce450ba576c953f529fd830c93032b308",
+    "frontend.js": "422f93bd137f00b2b677e2b5e1f8f31170cccffd9330eab2c66f26528820f6ee",
+    "bridge.py": "8d6bb25f5df70c892b37d8bc67ddd846ce2593282a3180b659376836e815a0c5"
+  },
+  "fixture_sha256": "ee0391f35db979d7217f2aa3f6d5c8949472e2581c302614552bc2aa82d8b548",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "463a2e411404e023ac4bafef1db6424c61973116",
+    "tree": "dadd556be2d43ab451a40775c97322af9d03d280",
+    "dirty_diff_sha256": "82de491178fa3ae91445926b3d6644f2f219fdf13978b73fa31985e605f0187f",
+    "source_manifest_sha256": "5402e7f02cfd0d4225e66579c029b5a74ce6703cd7b9f2a07d9771be410572f4",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "ab4a727f4c47cde5223a71920af6c4dd16a6923b5bfed105e6003dae7353d68a",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "TAB_RESTART_CHECKS_PASS",
+      "selected_on_relaunch": "synthetic_home",
+      "predicates": [
+        "second-real-session",
+        "prequit-old-selected",
+        "graceful-exit",
+        "restored-entry-selection",
+        "restored-old-history",
+        "restored-second-click",
+        "post-capture-no-requests"
+      ],
+      "baseline": {
+        "transcripts": 4,
+        "titles": 2,
+        "invalid": 0
+      },
+      "after": {
+        "transcripts": 4,
+        "titles": 2,
+        "invalid": 0
+      }
+    },
+    {
+      "origin": "upstream",
+      "status": "TAB_INTERACTION_CHECKS_PASS",
+      "predicates": [
+        "completed-before-add",
+        "tab-added"
+      ]
+    },
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "TAB_RESTART_CHECKS_PASS",
+      "selected_on_relaunch": "synthetic_home",
+      "predicates": [
+        "second-real-session",
+        "prequit-old-selected",
+        "graceful-exit",
+        "restored-entry-selection",
+        "restored-old-history",
+        "restored-second-click",
+        "post-capture-no-requests"
+      ],
+      "baseline": {
+        "transcripts": 4,
+        "titles": 2,
+        "invalid": 0
+      },
+      "after": {
+        "transcripts": 4,
+        "titles": 2,
+        "invalid": 0
+      }
+    },
+    {
+      "origin": "oc",
+      "status": "TAB_INTERACTION_CHECKS_PASS",
+      "predicates": [
+        "completed-before-add",
+        "tab-added"
+      ]
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-added",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-added",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-second-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-second-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-prequit-old",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-prequit-old",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-restored-entry",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-restored-entry",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-restored-old",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-restored-old",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-restored-second",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tab-restored-second",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "99319f3f6dd106a60de5bf41f337577bfbf256c4699a8beb1eb9640b7e0f40d6",
+      "png_sha256": "12a606be74ea76ec6079237088f75d2f48e616e60d7e7d1267c30e13c972450d",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "3285b4cd1f37810e1d75d99c0084c9850d1aa26370424b2854d4cbd2ae44c2ce",
+      "png_sha256": "e2aa3caac1fc055063d38ab49b2e3eccbbe88dac97120c664aee6c2b32bc175b",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tab-added",
+      "status": "CAPTURED_TAB_ADDED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "19d8218248e1bfeed4a5dd0c5cf4e228004b8a86f1653ed1c5bf8bcc6eda0e1b",
+      "png_sha256": "ff409c6abe72c9d03a4e78de90499a0c626b3b9032e967c52bc326d86628d01d",
+      "path": "upstream/tab-added"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tab-second-completed",
+      "status": "CAPTURED_SECOND_REAL_SESSION",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "bf4377d5024e18361ea568d515c140734676286df0dec545ecd03a5dba05b0fb",
+      "png_sha256": "a30cab5fd80d1976305be7cd6ae7026ec6342ba656b19e3ddc0d234879fa39fe",
+      "path": "upstream/tab-second-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tab-prequit-old",
+      "status": "CAPTURED_PREQUIT",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "6a608a81d3206673e3ff2318ea7f3316d57ea352824cf0bab3d44f8d953d13d4",
+      "png_sha256": "fcfa419098a269fdeca2a491a23c10e6ffa4d5c73ec2ae44d2be17b4e4aa194a",
+      "path": "upstream/tab-prequit-old"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tab-restored-entry",
+      "status": "CAPTURED_RESTORED_ENTRY",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "e5a9bd6f269b5e664826926a1cdec67b03ae4561582d09cd89e30ba4ed4dac77",
+      "png_sha256": "3c0ae3fdef96a0ea88cdd36189268da6c30a92cf508109170ae353ce86379728",
+      "path": "upstream/tab-restored-entry"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tab-restored-old",
+      "status": "CAPTURED_RESTORED_OLD",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "1f30624938347b3a25de7a048e14a0c5d020b8840b99c4d0dbbaf81be8eddbfc",
+      "png_sha256": "fcfa419098a269fdeca2a491a23c10e6ffa4d5c73ec2ae44d2be17b4e4aa194a",
+      "path": "upstream/tab-restored-old"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tab-restored-second",
+      "status": "CAPTURED_RESTORED_SECOND",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "c0779b3fe333d804624dbe054642b3e7a0ccc2e0ff57a4f234b1e91a2935179d",
+      "png_sha256": "a30cab5fd80d1976305be7cd6ae7026ec6342ba656b19e3ddc0d234879fa39fe",
+      "path": "upstream/tab-restored-second"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "ba069496de6c6fb270eadd39109aa249d138f7c8a51765bc718bd9db49dc8b27",
+      "png_sha256": "732903d5bd0210e91883dd57068215b34c89399e765704cb21be449a6f86c918",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "aae73f3e82478c97460f63c14bc7a2ca39304d1be43d053dbdcd7f1a58cf0473",
+      "png_sha256": "debfad3fb79b32a89402574409138499d1bc2345c72b7b0ee88c556da3c6ba65",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tab-added",
+      "status": "CAPTURED_TAB_ADDED",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "e96e25fbbd1e886c31533385c20c38b7c98ede0be98263d5269bf14694725a85",
+      "png_sha256": "8a62ec174e417a492af2f7ac2c797376ae4857b1a1d4c478069e5297de35e211",
+      "path": "oc/tab-added"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tab-second-completed",
+      "status": "CAPTURED_SECOND_REAL_SESSION",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "63e5db97ed77afe1c2d735aa9329d58b0124fc3574fbd585ae2fadf4259bdf09",
+      "png_sha256": "411ab11aa60151b671acfcafb0125e52a7ffc10e513ccb0b01dee174a6276ec1",
+      "path": "oc/tab-second-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tab-prequit-old",
+      "status": "CAPTURED_PREQUIT",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "8d886279331352e6d2b50631f4bb504bf48ad3826cc9fdfda988e80fa577c82a",
+      "png_sha256": "c463fbf1391a4ce2f9de19810c27c2ee71eba75f319d6ab2ebc31f36aa198e46",
+      "path": "oc/tab-prequit-old"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tab-restored-entry",
+      "status": "CAPTURED_RESTORED_ENTRY",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "61b239092ff4bbfd72641bf53819444f6a40f0c85df53c2187ebaca9e4379270",
+      "png_sha256": "c33498af64b3b1f5ec5a8b30178aec764f5ae1e39f7db213ca2ffdea461ed3d8",
+      "path": "oc/tab-restored-entry"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tab-restored-old",
+      "status": "CAPTURED_RESTORED_OLD",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "24f1b6c82b99a3ec30e02673e6a2a1547e4ad55f57900300d435a3f231aa861a",
+      "png_sha256": "c463fbf1391a4ce2f9de19810c27c2ee71eba75f319d6ab2ebc31f36aa198e46",
+      "path": "oc/tab-restored-old"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tab-restored-second",
+      "status": "CAPTURED_RESTORED_SECOND",
+      "environment_id": "e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be",
+      "cells_sha256": "fb675ab428c76757deafa3b20d59a3e61d7d09ad41c301026d2c0f22ed580dba",
+      "png_sha256": "d6fb0dc64132ca49813becca6e30fdaa6c04e1e2ae7794906cf4d4aa83f9c634",
+      "path": "oc/tab-restored-second"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "pixel_width": 1011,
+    "pixel_height": 640,
+    "measured_cell_width": 8.425,
+    "measured_cell_height": 16
+  },
+  "tab_interactions": {
+    "upstream": {
+      "status": "PASS",
+      "checks": [
+        {
+          "stage": "completed-before-add",
+          "predicate": "unique painted row-0 + after original tab, completed old transcript, no Home",
+          "passed": true,
+          "add": [
+            {
+              "x": 32,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": true,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ас +"
+        },
+        {
+          "stage": "add-click",
+          "point": {
+            "x": 33,
+            "y": 0
+          },
+          "pty_column": 34,
+          "pty_row": 1,
+          "down_base64": "G1s8MDszNDsxTQ==",
+          "up_base64": "G1s8MDszNDsxbQ=="
+        },
+        {
+          "stage": "tab-added",
+          "predicate": "old tab + synthetic New session on Home, old transcript absent",
+          "passed": true,
+          "add": [],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [
+            {
+              "x": 33,
+              "y": 0
+            }
+          ],
+          "old_content": false,
+          "home_prompt": true,
+          "header": "   Какие инструменты доступны ас + New session                ✕"
+        }
+      ]
+    },
+    "oc": {
+      "status": "PASS",
+      "checks": [
+        {
+          "stage": "completed-before-add",
+          "predicate": "unique painted row-0 + after original tab, completed old transcript, no Home",
+          "passed": true,
+          "add": [
+            {
+              "x": 32,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": true,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ас +"
+        },
+        {
+          "stage": "add-click",
+          "point": {
+            "x": 33,
+            "y": 0
+          },
+          "pty_column": 34,
+          "pty_row": 1,
+          "down_base64": "G1s8MDszNDsxTQ==",
+          "up_base64": "G1s8MDszNDsxbQ=="
+        },
+        {
+          "stage": "tab-added",
+          "predicate": "old tab + synthetic New session on Home, old transcript absent",
+          "passed": true,
+          "add": [],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [
+            {
+              "x": 33,
+              "y": 0
+            }
+          ],
+          "old_content": false,
+          "home_prompt": true,
+          "header": "   Какие инструменты доступны ас + New session"
+        }
+      ]
+    }
+  },
+  "tab_restart_interactions": {
+    "upstream": {
+      "status": "PASS",
+      "checks": [
+        {
+          "stage": "second-real-session",
+          "passed": true,
+          "add": [
+            {
+              "x": 64,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": false,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ас   Second fixture session     ✕  +",
+          "second": [
+            {
+              "x": 35,
+              "y": 0
+            }
+          ],
+          "second_content": true,
+          "counts": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "select-old-click",
+          "point": {
+            "x": 3,
+            "y": 0
+          },
+          "down_base64": "G1s8MDs0OzFN",
+          "up_base64": "G1s8MDs0OzFt"
+        },
+        {
+          "stage": "prequit-old-selected",
+          "passed": true,
+          "add": [
+            {
+              "x": 64,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": true,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ✕    Second fixture session        +",
+          "second": [
+            {
+              "x": 35,
+              "y": 0
+            }
+          ],
+          "second_content": false,
+          "counts": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "graceful-exit",
+          "passed": true,
+          "add": [
+            {
+              "x": 64,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": true,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ✕    Second fixture session        +",
+          "second": [
+            {
+              "x": 35,
+              "y": 0
+            }
+          ],
+          "second_content": false,
+          "counts": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          },
+          "exit": {
+            "kind": "exit",
+            "generation": 0,
+            "code": 0,
+            "termination": "natural"
+          },
+          "baseline": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          },
+          "source": "pinned packages/tui/src/config/keybind.ts:48; native crates/oc-tui/src/events.rs"
+        },
+        {
+          "stage": "restored-entry-selection",
+          "passed": true,
+          "observed": "synthetic_home",
+          "add": [],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [
+            {
+              "x": 65,
+              "y": 0
+            }
+          ],
+          "old_content": false,
+          "home_prompt": true,
+          "header": "   Какие инструменты доступны ас   Second fixture session        + New session",
+          "second": [
+            {
+              "x": 35,
+              "y": 0
+            }
+          ],
+          "second_content": false,
+          "baseline": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          },
+          "counts": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "restored-select-old-click",
+          "point": {
+            "x": 3,
+            "y": 0
+          },
+          "down_base64": "G1s8MDs0OzFN",
+          "up_base64": "G1s8MDs0OzFt"
+        },
+        {
+          "stage": "restored-old-history",
+          "passed": true,
+          "add": [
+            {
+              "x": 64,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": true,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ✕    Second fixture session        +",
+          "second": [
+            {
+              "x": 35,
+              "y": 0
+            }
+          ],
+          "second_content": false,
+          "counts": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          },
+          "baseline": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "restored-select-second-click",
+          "point": {
+            "x": 35,
+            "y": 0
+          },
+          "down_base64": "G1s8MDszNjsxTQ==",
+          "up_base64": "G1s8MDszNjsxbQ=="
+        },
+        {
+          "stage": "restored-second-click",
+          "passed": true,
+          "add": [
+            {
+              "x": 64,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": false,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ас   Second fixture session     ✕  +",
+          "second": [
+            {
+              "x": 35,
+              "y": 0
+            }
+          ],
+          "second_content": true,
+          "counts": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          },
+          "baseline": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "post-capture-no-requests",
+          "passed": true,
+          "add": [
+            {
+              "x": 64,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": false,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ас   Second fixture session     ✕  +",
+          "second": [
+            {
+              "x": 35,
+              "y": 0
+            }
+          ],
+          "second_content": true,
+          "counts": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          },
+          "baseline": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          }
+        }
+      ],
+      "selection": "synthetic_home"
+    },
+    "oc": {
+      "status": "PASS",
+      "checks": [
+        {
+          "stage": "second-real-session",
+          "passed": true,
+          "add": [
+            {
+              "x": 64,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": false,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ас   Second fixture session        +",
+          "second": [
+            {
+              "x": 35,
+              "y": 0
+            }
+          ],
+          "second_content": true,
+          "counts": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "select-old-click",
+          "point": {
+            "x": 3,
+            "y": 0
+          },
+          "down_base64": "G1s8MDs0OzFN",
+          "up_base64": "G1s8MDs0OzFt"
+        },
+        {
+          "stage": "prequit-old-selected",
+          "passed": true,
+          "add": [
+            {
+              "x": 64,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": true,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ✕    Second fixture session        +",
+          "second": [
+            {
+              "x": 35,
+              "y": 0
+            }
+          ],
+          "second_content": false,
+          "counts": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "graceful-exit",
+          "passed": true,
+          "add": [
+            {
+              "x": 64,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": true,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ✕    Second fixture session        +",
+          "second": [
+            {
+              "x": 35,
+              "y": 0
+            }
+          ],
+          "second_content": false,
+          "counts": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          },
+          "exit": {
+            "kind": "exit",
+            "generation": 0,
+            "code": 0,
+            "termination": "natural"
+          },
+          "baseline": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          },
+          "source": "pinned packages/tui/src/config/keybind.ts:48; native crates/oc-tui/src/events.rs"
+        },
+        {
+          "stage": "restored-entry-selection",
+          "passed": true,
+          "observed": "synthetic_home",
+          "add": [],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [
+            {
+              "x": 65,
+              "y": 0
+            }
+          ],
+          "old_content": false,
+          "home_prompt": true,
+          "header": "   Какие инструменты доступны ас   Second fixture session        + New session",
+          "second": [
+            {
+              "x": 35,
+              "y": 0
+            }
+          ],
+          "second_content": false,
+          "baseline": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          },
+          "counts": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "restored-select-old-click",
+          "point": {
+            "x": 3,
+            "y": 0
+          },
+          "down_base64": "G1s8MDs0OzFN",
+          "up_base64": "G1s8MDs0OzFt"
+        },
+        {
+          "stage": "restored-old-history",
+          "passed": true,
+          "add": [
+            {
+              "x": 64,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": true,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ✕    Second fixture session        +",
+          "second": [
+            {
+              "x": 35,
+              "y": 0
+            }
+          ],
+          "second_content": false,
+          "counts": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          },
+          "baseline": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "restored-select-second-click",
+          "point": {
+            "x": 35,
+            "y": 0
+          },
+          "down_base64": "G1s8MDszNjsxTQ==",
+          "up_base64": "G1s8MDszNjsxbQ=="
+        },
+        {
+          "stage": "restored-second-click",
+          "passed": true,
+          "add": [
+            {
+              "x": 64,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": false,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ас   Second fixture session     ✕  +",
+          "second": [
+            {
+              "x": 35,
+              "y": 0
+            }
+          ],
+          "second_content": true,
+          "counts": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          },
+          "baseline": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          }
+        },
+        {
+          "stage": "post-capture-no-requests",
+          "passed": true,
+          "add": [
+            {
+              "x": 64,
+              "y": 0
+            }
+          ],
+          "old": [
+            {
+              "x": 3,
+              "y": 0
+            }
+          ],
+          "new_title": [],
+          "old_content": false,
+          "home_prompt": false,
+          "header": "   Какие инструменты доступны ас   Second fixture session     ✕  +",
+          "second": [
+            {
+              "x": 35,
+              "y": 0
+            }
+          ],
+          "second_content": true,
+          "counts": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          },
+          "baseline": {
+            "transcripts": 4,
+            "titles": 2,
+            "invalid": 0
+          }
+        }
+      ],
+      "selection": "synthetic_home"
+    }
+  },
+  "generations": {
+    "upstream": [
+      {
+        "generation": 0,
+        "root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-paired-restart-qualified",
+        "project": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-paired-restart-qualified/project",
+        "home": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-paired-restart-qualified/upstream/home",
+        "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+        "bridge_spec_sha256": "db28f5480bc927df0ee9a3fbd664125d9579917651dd4cac5e458695f86eb23e",
+        "source_manifest_sha256": "5402e7f02cfd0d4225e66579c029b5a74ce6703cd7b9f2a07d9771be410572f4",
+        "raw_vt_sha256": "2db1ef7fa5ecdb81c424733841e860fd58e225c9e1a50b755c03227d90f5cea2",
+        "protocol_sha256": "607cee229f747a98148810fde8d040ed894c489eeb0f97e49387bbdc1568137a",
+        "inputs_sha256": "dd0c019522c4b8cb3d2e292b25285528468a23324e23c6023d7813e996dcd172"
+      },
+      {
+        "generation": 1,
+        "root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-paired-restart-qualified",
+        "project": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-paired-restart-qualified/project",
+        "home": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-paired-restart-qualified/upstream/home",
+        "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+        "bridge_spec_sha256": "db28f5480bc927df0ee9a3fbd664125d9579917651dd4cac5e458695f86eb23e",
+        "source_manifest_sha256": "5402e7f02cfd0d4225e66579c029b5a74ce6703cd7b9f2a07d9771be410572f4",
+        "raw_vt_sha256": "a10e38b9449280984f866e14d0d0bdf6c800ba71562c52aea2633329a9bdd305",
+        "protocol_sha256": "fa1e49d059362117cc5115ff40ba1306a01b15602d669c91cd591e6c2e80e213",
+        "inputs_sha256": "f1e51250ddee5a779b65c4e1fa0cfa09f29ec97972ce98a66072cf4c7a6302a0"
+      }
+    ],
+    "oc": [
+      {
+        "generation": 0,
+        "root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-paired-restart-qualified",
+        "project": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-paired-restart-qualified/project",
+        "home": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-paired-restart-qualified/oc/home",
+        "executable_sha256": "ab4a727f4c47cde5223a71920af6c4dd16a6923b5bfed105e6003dae7353d68a",
+        "bridge_spec_sha256": "373ee81c4b61f713dee25518393626bed4bce15a55182b8cabca79169227f3f1",
+        "source_manifest_sha256": "5402e7f02cfd0d4225e66579c029b5a74ce6703cd7b9f2a07d9771be410572f4",
+        "raw_vt_sha256": "58862fa4042c76f08ae7010666bbeb29dbce6f4120689640931be45eaf6d9e55",
+        "protocol_sha256": "a118f2daab644ae1bee7fb75adf52d7e08206484733fde438f1a1daf8ac7c8a7",
+        "inputs_sha256": "1b6426a7b08c35b38e38b80cfb4af2a0dc0969ad8ccb3e6fab641208aed54aba"
+      },
+      {
+        "generation": 1,
+        "root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-paired-restart-qualified",
+        "project": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-paired-restart-qualified/project",
+        "home": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/recovery-v08-paired-restart-qualified/oc/home",
+        "executable_sha256": "ab4a727f4c47cde5223a71920af6c4dd16a6923b5bfed105e6003dae7353d68a",
+        "bridge_spec_sha256": "373ee81c4b61f713dee25518393626bed4bce15a55182b8cabca79169227f3f1",
+        "source_manifest_sha256": "5402e7f02cfd0d4225e66579c029b5a74ce6703cd7b9f2a07d9771be410572f4",
+        "raw_vt_sha256": "48c9b675fe47e9c250eb6f434450eb4ec8a32d474c3f5dc528404012d9eee15c",
+        "protocol_sha256": "67f9e38a41399ed0000ac28d02c475203f6ea4545dcb1fdbe005f0870af7970e",
+        "inputs_sha256": "8fde739eb78234557406879164cc3f9be3d97563f22b687b84019f07c2d76f6a"
+      }
+    ]
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-24T05:20:51.856Z",
+  "exit_code": 1
+}

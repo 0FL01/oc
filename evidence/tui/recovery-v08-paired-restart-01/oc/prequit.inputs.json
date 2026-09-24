@@ -1,0 +1,47 @@
+[
+  {
+    "at_ms": 1790226433048,
+    "kind": "prompt_paste",
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "at_ms": 1790226433248,
+    "kind": "submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790226438003,
+    "kind": "add_mouse_down",
+    "base64": "G1s8MDszNDsxTQ=="
+  },
+  {
+    "at_ms": 1790226438003,
+    "kind": "add_mouse_up",
+    "base64": "G1s8MDszNDsxbQ=="
+  },
+  {
+    "at_ms": 1790226440720,
+    "kind": "second_prompt_paste",
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "at_ms": 1790226440920,
+    "kind": "second_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790226443990,
+    "kind": "select-old_mouse_down",
+    "base64": "G1s8MDs0OzFN"
+  },
+  {
+    "at_ms": 1790226443990,
+    "kind": "select-old_mouse_up",
+    "base64": "G1s8MDs0OzFt"
+  },
+  {
+    "at_ms": 1790226446677,
+    "kind": "graceful_app_exit_ctrl_d",
+    "base64": "BA=="
+  }
+]

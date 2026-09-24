@@ -1,0 +1,332 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--tab-click",
+      "true",
+      "--tab-restart",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "463a2e411404e023ac4bafef1db6424c61973116\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "dadd556be2d43ab451a40775c97322af9d03d280\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/scripts/tui_capture/bridge.py b/scripts/tui_capture/bridge.py\nindex 59b3b53..7a89abb 100644\n--- a/scripts/tui_capture/bridge.py\n+++ b/scripts/tui_capture/bridge.py\n@@ -41,6 +41,7 @@ elif spec.get('sample') == 'rows':\n catalog = json.loads((fixture / 'model-catalog.json').read_text())\n title = json.loads((fixture / 'scenarios.json').read_text())['base']['title']\n transcript_round = 0\n+title_round = 0\n round_lock = threading.Lock()\n \n \n@@ -49,7 +50,7 @@ class Provider(BaseHTTPRequestHandler):\n         pass\n \n     def do_POST(self):\n-        global transcript_round\n+        global transcript_round, title_round\n         body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))\n         serialized = json.dumps(body, ensure_ascii=False)\n         valid = self.path == '/v1/responses' and body.get('model') == 'fixture-model-1' and body.get('stream') is True\n@@ -59,15 +60,20 @@ class Provider(BaseHTTPRequestHandler):\n                     (not body.get('tools') and body.get('max_output_tokens') == 256 and\n                       'title' in system.lower()))\n         with round_lock:\n-            round_number = transcript_round\n-            if not is_title:\n+            tool_results = [x for x in body.get('input', []) if x.get('type') == 'function_call_output']\n+            round_number = 1 if tool_results else 0\n+            turn_number = transcript_round - 1 if tool_results else transcript_round\n+            if is_title:\n+                title_round += 1\n+                turn_number = title_round - 1\n+            elif not tool_results:\n                 transcript_round += 1\n-        text = title if is_title else answer\n+        text = (title if turn_number == 0 else 'Second fixture session') if is_title else (\n+            answer if turn_number == 0 else 'GEOMETRY-SECOND: tool read completed.')\n         valid = valid and (is_title or prompt in serialized)\n         profile_prompt_present = profile_prompt is not None and profile_prompt in system\n         if profile_id and not is_title:\n             valid = valid and profile_prompt_present\n-        tool_results = [x for x in body.get('input', []) if x.get('type') == 'function_call_output']\n         if spec.get('sample') == 'tools' and not is_title:\n             valid = valid and 'read' in [x.get('name') for x in body.get('tools', [])]\n             if round_number:\n@@ -248,48 +254,75 @@ def session():\n     fcntl.ioctl(0, termios.TIOCSCTTY, 0)\n \n \n-child = subprocess.Popen(argv, stdin=slave, stdout=slave, stderr=slave, cwd=project, env=env, preexec_fn=session)\n-os.close(slave)\n pending = b''\n+generation = 0\n try:\n-    while child.poll() is None:\n-        ready, _, _ = select.select([master, sys.stdin], [], [], .1)\n-        if master in ready:\n+    while True:\n+        if generation:\n+            master, slave = pty.openpty()\n+            fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', spec['rows'], spec['columns'], 0, 0))\n+        child = subprocess.Popen(argv, stdin=slave, stdout=slave,\n+                                 stderr=slave, cwd=project, env=env, preexec_fn=session)\n+        os.close(slave)\n+        forced = False\n+        try:\n+            while child.poll() is None:\n+                ready, _, _ = select.select([master, sys.stdin], [], [], .1)\n+                if master in ready:\n+                    try:\n+                        data = os.read(master, 65536)\n+                    except OSError:\n+                        break\n+                    if data:\n+                        emit({'kind': 'output', 'generation': generation, 'data': base64.b64encode(data).decode()})\n+                if sys.stdin in ready:\n+                    data = os.read(sys.stdin.fileno(), 65536)\n+                    if not data:\n+                        forced = True\n+                        break\n+                    pending += data\n+                    while b'\\n' in pending:\n+                        line, pending = pending.split(b'\\n', 1)\n+                        command = json.loads(line)\n+                        if command['kind'] == 'input':\n+                            os.write(master, base64.b64decode(command['data']))\n+                        elif command['kind'] == 'resize':\n+                            fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', command['rows'], command['columns'], 0, 0))\n+                            os.killpg(child.pid, signal.SIGWINCH)\n+                            emit({'kind': 'resize', 'columns': command['columns'], 'rows': command['rows']})\n+                        elif command['kind'] == 'stop':\n+                            forced = True\n+                    if forced:\n+                        break\n+        finally:\n+            if child.poll() is None:\n+                forced = True\n+                os.killpg(child.pid, signal.SIGTERM)\n             try:\n-                data = os.read(master, 65536)\n-            except OSError:\n-                break\n-            if data:\n-                emit({'kind': 'output', 'data': base64.b64encode(data).decode()})\n-        if sys.stdin in ready:\n-            data = os.read(sys.stdin.fileno(), 65536)\n-            if not data:\n-                break\n-            pending += data\n-            stop = False\n-            while b'\\n' in pending:\n-                line, pending = pending.split(b'\\n', 1)\n-                command = json.loads(line)\n-                if command['kind'] == 'input':\n-                    os.write(master, base64.b64decode(command['data']))\n-                elif command['kind'] == 'resize':\n-                    fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', command['rows'], command['columns'], 0, 0))\n-                    os.killpg(child.pid, signal.SIGWINCH)\n-                    emit({'kind': 'resize', 'columns': command['columns'], 'rows': command['rows']})\n-                elif command['kind'] == 'stop':\n-                    stop = True\n-            if stop:\n-                break\n+                child.wait(timeout=5)\n+            except subprocess.TimeoutExpired:\n+                forced = True\n+                os.killpg(child.pid, signal.SIGKILL)\n+                child.wait()\n+            # Drain the exited PTY before telling the frontend the generation ended.\n+            while select.select([master], [], [], 0)[0]:\n+                try:\n+                    data = os.read(master, 65536)\n+                except OSError:\n+                    break\n+                if not data:\n+                    break\n+                emit({'kind': 'output', 'generation': generation, 'data': base64.b64encode(data).decode()})\n+            os.close(master)\n+            emit({'kind': 'exit', 'generation': generation, 'code': child.returncode,\n+                  'termination': 'forced_stop' if forced else 'natural'})\n+        if forced or not spec.get('tab_restart'):\n+            break\n+        # The same bridge/server/config/project and XDG roots survive the first exit.\n+        command = json.loads(sys.stdin.readline())\n+        if command.get('kind') != 'relaunch' or generation:\n+            break\n+        generation += 1\n+        emit({'kind': 'relaunch', 'generation': generation, 'argv': argv, 'cwd': str(project)})\n finally:\n-    try:\n-        os.killpg(child.pid, signal.SIGTERM)\n-    except ProcessLookupError:\n-        pass\n-    try:\n-        child.wait(timeout=5)\n-    except subprocess.TimeoutExpired:\n-        os.killpg(child.pid, signal.SIGKILL)\n-        child.wait()\n-    os.close(master)\n     server.shutdown()\n-    emit({'kind': 'exit', 'code': child.returncode})\ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex ee67dc6..5fe4f10 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -25,6 +25,11 @@ const tabClose = args['tab-close'] === 'true';\n if (args['tab-close'] !== undefined && !['true','false'].includes(args['tab-close']))\n   throw Error('--tab-close must be true or false');\n if (tabClose && !tabClick) throw Error('--tab-close true requires --tab-click true (paired Reader tools 120x40 profile)');\n+const tabRestart = args['tab-restart'] === 'true';\n+if (args['tab-restart'] !== undefined && !['true','false'].includes(args['tab-restart']))\n+  throw Error('--tab-restart must be true or false');\n+if (tabRestart && (!tabClick || tabClose || explorationClick))\n+  throw Error('--tab-restart true requires --tab-click true without tab-close/exploration-click');\n if (explorationClick && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||\n     Number(args.columns) !== 120 || Number(args.rows) !== 40 || args.matrix === 'true' || args['scroll-resize'] === 'true'))\n   throw Error('--exploration-click true requires --geometry true --sample tools --sidebar hide --columns 120 --rows 40 without matrix/scroll-resize');\n@@ -109,6 +114,9 @@ const tabObserve = f => {\n     home_prompt:f.text.includes('Reader · MiMo-V2.6-Flash Free') && f.text.includes('Ask anything'),\n     header:tabRow(f).trimEnd()};\n };\n+const secondTitle = 'Second fixture session';\n+const restartObserve = f => ({...tabObserve(f), second:visibleMatches(f,secondTitle.slice(0,6)).filter(p=>p.y===0),\n+  second_content:f.text.includes('GEOMETRY-SECOND: tool read completed.')});\n try {\n   browser = await chromium.launch({headless: true, env: cleanEnv});\n   const profile = {frontend: '@xterm/xterm', frontend_version: require('@xterm/xterm/package.json').version,\n@@ -134,7 +142,7 @@ try {\n       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,\n       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',\n       agent_profile: args['agent-profile'] === 'true',\n-      seed_root: args['seed-root'], session: args.session};\n+       seed_root: args['seed-root'], session: args.session, tab_restart: tabRestart};\n     fs.writeFileSync(path.join(dir,'bridge-spec.json'), JSON.stringify(spec, null, 2));\n     lock[origin] = {...lock[origin], executable_path: binary, executable_sha256: hash};\n     const page = await browser.newPage({viewport: {width: 1800, height: 1100}, deviceScaleFactor: 1});\n@@ -144,7 +152,8 @@ try {\n     await page.addScriptTag({path: path.join(tools,'node_modules/@xterm/addon-unicode11/lib/addon-unicode11.js')});\n     await page.addScriptTag({path: path.join(here,'frontend.js')});\n     const child = spawn('/usr/bin/python3', [path.join(here,'bridge.py'), path.join(dir,'bridge-spec.json')], {env: cleanEnv, stdio: ['pipe','pipe','pipe']});\n-    const logs = [], chunks = [], inputs = [];\n+    const logs = [], chunks = [[],[]], inputs = [];\n+    let generation=0;\n     let writeQueue = Promise.resolve(), bridgeExit, bridgeError = '';\n     const closed = new Promise(r => child.once('close',r));\n     child.stderr.on('data', b => { bridgeError += b.toString(); });\n@@ -160,8 +169,9 @@ try {\n       const event = JSON.parse(line);\n       if (event.kind === 'output') {\n         const bytes=Buffer.from(event.data, 'base64');\n-        chunks.push(bytes); fs.appendFileSync(path.join(dir,'raw.vt'),bytes);\n-        writeQueue = writeQueue.then(() => page.evaluate(d => writeTerminal(d), event.data));\n+        const n=event.generation || 0;\n+        chunks[n].push(bytes);\n+        if(n===generation) writeQueue = writeQueue.then(() => page.evaluate(d => writeTerminal(d), event.data));\n       } else { logs.push(event); fs.writeFileSync(path.join(dir,'protocol.json'),JSON.stringify(logs,null,2)+'\\n'); }\n     });\n     const frame = async () => {await writeQueue; return page.evaluate(() => readTerminal());};\n@@ -196,7 +206,7 @@ try {\n         status='UNSTABLE_CAPTURE'; result=1;\n         lock.attempts.push({origin,scenario,status,reason:'VT grid changed during PNG capture'});\n       }\n-      fs.writeFileSync(name+'.vt', Buffer.concat(chunks));\n+      fs.writeFileSync(name+'.vt', Buffer.concat(chunks[generation]));\n       lock.captures.push({origin,scenario,status,environment_id:environment,\n         cells_sha256:sha(fs.readFileSync(name+'.cells.json')),png_sha256:sha(fs.readFileSync(name+'.png')),\n         path:path.relative(output,name)});\n@@ -270,7 +280,85 @@ try {\n          record('tab-added',added,'old tab + synthetic New session on Home, old transcript absent',addedPredicate(tabObserve(added)));\n           if(await capture('tab-added',added,'CAPTURED_TAB_ADDED') !== 'CAPTURED_TAB_ADDED')\n             throw Error('Unstable tab-added frame');\n-          if(tabClose) {\n+           if(tabRestart) {\n+             const checks=[], file=path.join(dir,'tab-restart-checks.json');\n+             const counts=()=>({transcripts:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length,\n+               titles:logs.filter(e=>e.kind==='provider' && e.operation==='title').length,\n+               invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});\n+             lock.tab_restart_interactions ??= {};\n+             lock.tab_restart_interactions[origin]={status:'IN_PROGRESS',checks};\n+             const check=(stage,f,passed,extra={})=>{\n+               checks.push({stage,passed,...restartObserve(f),counts:counts(),...extra});\n+               fs.writeFileSync(file,JSON.stringify(checks,null,2)+'\\n');\n+               json('capture.lock.json',lock);\n+               if(!passed) throw Error('Tab restart predicate failed: '+stage);\n+             };\n+             const pointClick=(stage,p)=>{\n+               const down=`\\x1b[<0;${p.x+1};${p.y+1}M`,up=`\\x1b[<0;${p.x+1};${p.y+1}m`;\n+               checks.push({stage:stage+'-click',point:p,down_base64:Buffer.from(down).toString('base64'),up_base64:Buffer.from(up).toString('base64')});\n+               fs.writeFileSync(file,JSON.stringify(checks,null,2)+'\\n');\n+               send(down,stage+'_mouse_down');send(up,stage+'_mouse_up');\n+             };\n+             send('\\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\\x1b[201~','second_prompt_paste');\n+             await sleep(200);send('\\r','second_submit');\n+             const secondReady=f=>{const c=restartObserve(f);return c.old.length===1 && c.second.length===1 && c.add.length===1 &&\n+               c.old[0].x<c.second[0].x && c.second[0].x<c.add[0].x && c.second_content && !c.old_content &&\n+               counts().transcripts===4 && counts().invalid===0;};\n+             const second=await waitFor(secondReady,'second real read transcript and two ordered tabs');\n+             check('second-real-session',second,secondReady(second));\n+             await capture('tab-second-completed',second,'CAPTURED_SECOND_REAL_SESSION');\n+             pointClick('select-old',restartObserve(await frame()).old[0]);\n+             const oldReady=f=>{const c=restartObserve(f);return c.old.length===1 && c.second.length===1 && c.add.length===1 &&\n+               c.old[0].x<c.second[0].x && c.second[0].x<c.add[0].x && c.old_content && !c.second_content;};\n+             const prequit=await waitFor(oldReady,'old selected with second real tab');\n+             check('prequit-old-selected',prequit,oldReady(prequit));\n+             await capture('tab-prequit-old',prequit,'CAPTURED_PREQUIT');\n+             const baseline=counts();\n+             // app.exit: ctrl+c,ctrl+d,<leader>q (pinned packages/tui/src/config/keybind.ts:48).\n+             // Native app.exit also accepts Ctrl+D at an empty idle composer.\n+             send('\\x04','graceful_app_exit_ctrl_d');\n+             const deadline=Date.now()+15000;\n+             while(!logs.some(e=>e.kind==='exit' && e.generation===0) && Date.now()<deadline) await sleep(100);\n+             const exit=logs.find(e=>e.kind==='exit' && e.generation===0);\n+             check('graceful-exit',prequit,!!exit && exit.code===0 && exit.termination==='natural',\n+               {exit,baseline,source:'pinned packages/tui/src/config/keybind.ts:48; native crates/oc-tui/src/events.rs'});\n+             fs.writeFileSync(path.join(dir,'prequit.raw.vt'),Buffer.concat(chunks[0]));\n+             fs.writeFileSync(path.join(dir,'prequit.protocol.json'),JSON.stringify(logs,null,2)+'\\n');\n+             fs.writeFileSync(path.join(dir,'prequit.inputs.json'),JSON.stringify(inputs,null,2)+'\\n');\n+             generation=1;\n+             await writeQueue;\n+             await page.evaluate(()=>term.reset());\n+             child.stdin.write(JSON.stringify({kind:'relaunch'})+'\\n');\n+             const noRequests=()=>JSON.stringify(counts())===JSON.stringify(baseline);\n+             const restored=await waitFor(f=>{const c=restartObserve(f);return c.old.length===1 && c.second.length===1 &&\n+               c.old[0].x<c.second[0].x && ((oldReady(f)) || (c.new_title.length===1 && c.home_prompt &&\n+                 !c.old_content && !c.second_content)) && noRequests() &&\n+               logs.some(e=>e.kind==='relaunch' && e.generation===1);},\n+               'restored ordered real tabs and observed selection without provider requests');\n+             const selectedOld=oldReady(restored);\n+             checks.push({stage:'restored-entry-selection',passed:selectedOld,observed:selectedOld?'old':'synthetic_home',\n+               ...restartObserve(restored),baseline,counts:counts()});\n+             fs.writeFileSync(file,JSON.stringify(checks,null,2)+'\\n');\n+             lock.tab_restart_interactions[origin].selection=selectedOld?'old':'synthetic_home';\n+             json('capture.lock.json',lock);\n+             await capture('tab-restored-entry',restored,'CAPTURED_RESTORED_ENTRY');\n+             if(!selectedOld) pointClick('restored-select-old',restartObserve(await frame()).old[0]);\n+             const restoredOld=selectedOld?restored:await waitFor(f=>oldReady(f) && noRequests(),\n+               'old history restored by real click without provider requests');\n+             check('restored-old-history',restoredOld,oldReady(restoredOld) && noRequests(),{baseline});\n+             await capture('tab-restored-old',restoredOld,'CAPTURED_RESTORED_OLD');\n+             pointClick('restored-select-second',restartObserve(await frame()).second[0]);\n+             const other=await waitFor(f=>{const c=restartObserve(f);return c.second_content && !c.old_content &&\n+               c.old.length===1 && c.second.length===1 && c.add.length===1 &&\n+               c.old[0].x<c.second[0].x && c.second[0].x<c.add[0].x && JSON.stringify(counts())===JSON.stringify(baseline);},\n+               'restored second history via real click, no provider requests');\n+             check('restored-second-click',other,JSON.stringify(counts())===JSON.stringify(baseline),{baseline});\n+             await capture('tab-restored-second',other,'CAPTURED_RESTORED_SECOND');\n+             lock.tab_restart_interactions[origin].status=selectedOld?'PASS':'DIFFERENT_SELECTION';\n+             json('capture.lock.json',lock);\n+             lock.attempts.push({origin,status:selectedOld?'TAB_RESTART_CHECKS_PASS':'TAB_RESTART_SELECTION_DIFFERENT',\n+               selected_on_relaunch:selectedOld?'old':'synthetic_home',predicates:checks.filter(c=>c.passed).map(c=>c.stage),baseline,after:counts()});\n+           } else if(tabClose) {\n             const closeChecks = [];\n             const counts = () => ({provider_requests:logs.filter(e=>e.kind==='provider').length,\n               provider_completed:logs.filter(e=>e.kind==='provider_completed').length,\n@@ -345,7 +433,7 @@ try {\n             saveClose();\n             lock.attempts.push({origin,status:'TAB_CLOSE_CHECKS_PASS',provider_counts:counts(),\n               predicates:closeChecks.filter(c=>c.passed===true).map(c=>c.stage)});\n-          } else {\n+           } else {\n             const beforeReturn=await frame();\n             const returning=tabObserve(beforeReturn);\n             record('before-return',beforeReturn,'retained old tab uniquely painted on Home',addedPredicate(returning));\n@@ -514,12 +602,14 @@ try {\n       result=1; lock.attempts.push({origin,status:'FAILED',reason:e.message});\n       if(tabClick && lock.tab_interactions?.[origin]) lock.tab_interactions[origin].status='FAILED';\n       if(tabClose && lock.tab_close_interactions?.[origin]) lock.tab_close_interactions[origin].status='FAILED';\n+      if(tabRestart && lock.tab_restart_interactions?.[origin]) lock.tab_restart_interactions[origin].status='FAILED';\n       await capture('failure-diagnostic',await frame(),'FAILED_STATE');\n     } finally {\n       if(!child.stdin.destroyed) child.stdin.write(JSON.stringify({kind:'stop'})+'\\n');\n       await closed;\n       await writeQueue;\n-      fs.writeFileSync(path.join(dir,'raw.vt'),Buffer.concat(chunks));\n+      fs.writeFileSync(path.join(dir,'raw.vt'),Buffer.concat(chunks.flat()));\n+      if(tabRestart) fs.writeFileSync(path.join(dir,'restored.raw.vt'),Buffer.concat(chunks[1]));\n       fs.writeFileSync(path.join(dir,'protocol.json'),JSON.stringify(logs,null,2)+'\\n');\n       fs.writeFileSync(path.join(dir,'inputs.json'),JSON.stringify(inputs,null,2)+'\\n');\n       fs.writeFileSync(path.join(dir,'bridge.stderr.txt'),bridgeError);\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"0a268f861fea2636c8947ebc3081df12ae82da78f360d3ba8cd763af26ce0e9e\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"c54566606bcc0768c8514a7032c0189be0bd990d32b719e2f8104b6e4c271ec6\", \"actual_sha256\": \"11ce26c6ab77d5e39f42271161ade97911dc551d7d4802b8cd96d0a86c07915e\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"463a2e411404e023ac4bafef1db6424c61973116\", \"cells_checked\": 4800, \"different_cells\": 118, \"cursor_differs\": false, \"difference_bbox_inclusive\": [0, 38, 117, 38], \"samples\": [{\"x\": 0, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 1, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 2, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 3, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 5, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 38, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"0adf4f77fcfda0845c0b960b3d9e9d9f988e98ad3d1318c9e9c6556c91913407\", \"actual_sha256\": \"bba43c1b8313f37e478ab14f1871e49d97c050c45dac05448414fa5291a1b9f8\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 304, \"changed_fraction_diagnostic_only\": 0.0004698318496538081, \"difference_bbox_inclusive\": [943, 611, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"0a268f861fea2636c8947ebc3081df12ae82da78f360d3ba8cd763af26ce0e9e\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"417f672ce3998baa6c61d9effa95db2bb5f8cb19e320b9cc693f9ba69a149b12\", \"actual_sha256\": \"8090fabd8518b5e9aeb3026f2b4cdbaaade0f15cbf5975e7d053c9cbc7930a53\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"463a2e411404e023ac4bafef1db6424c61973116\", \"cells_checked\": 4800, \"different_cells\": 206, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 3, 115, 38], \"samples\": [{\"x\": 3, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 5, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 20, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 21, \"y\": 34, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"94e1e31180abc30f45c1f27b94a12b6c2a2598960771c5ef95ff2989606969b7\", \"actual_sha256\": \"96bdb9862aa8becc7ba1054956489fc778f90dafb78ef66601b1f3b20a55e577\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 4818, \"changed_fraction_diagnostic_only\": 0.007446216617210682, \"difference_bbox_inclusive\": [42, 163, 848, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/tab-added.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/tab-added.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/tab-added.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-added\", \"fixture_sha256\": \"0a268f861fea2636c8947ebc3081df12ae82da78f360d3ba8cd763af26ce0e9e\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"ef0d9fbee5599b9a8abdb66b3e8649fc2b37998892e19e2c38a876ae52294bf6\", \"actual_sha256\": \"6fe8596669cbdf15900289a31ba2a96f70156f32fbc5f967fc9256cdcc0a9cc5\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"463a2e411404e023ac4bafef1db6424c61973116\", \"cells_checked\": 4800, \"different_cells\": 119, \"cursor_differs\": false, \"difference_bbox_inclusive\": [0, 0, 117, 38], \"samples\": [{\"x\": 62, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 0, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 1, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 2, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 3, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 5, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 38, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/tab-added.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/tab-added.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/tab-added.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"ff409c6abe72c9d03a4e78de90499a0c626b3b9032e967c52bc326d86628d01d\", \"actual_sha256\": \"8a62ec174e417a492af2f7ac2c797376ae4857b1a1d4c478069e5297de35e211\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 343, \"changed_fraction_diagnostic_only\": 0.0005301063303659743, \"difference_bbox_inclusive\": [522, 5, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/tab-second-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/tab-second-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/tab-second-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-second-completed\", \"fixture_sha256\": \"0a268f861fea2636c8947ebc3081df12ae82da78f360d3ba8cd763af26ce0e9e\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"23642808a78229cb1bbf9d0e7f457213e4c92777f6493a2cecebc848dfbd71c1\", \"actual_sha256\": \"cde24023e2bae7cb952f11f311ab2631ba51050e74088e7e8b0c768d46c44426\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"463a2e411404e023ac4bafef1db6424c61973116\", \"cells_checked\": 4800, \"different_cells\": 211, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 0, 115, 38], \"samples\": [{\"x\": 62, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 3, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 37, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 5, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 34, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/tab-second-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/tab-second-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/tab-second-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"d74923ffd745043010c9e8ce334acc6a149f1d3509bc1d92e8b289e2499746f9\", \"actual_sha256\": \"fe94632f588de5dc472a4e31f5ab072a298ac3a90465e36cb6c2217406d50f79\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 5052, \"changed_fraction_diagnostic_only\": 0.007807863501483679, \"difference_bbox_inclusive\": [42, 5, 848, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/tab-prequit-old.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/tab-prequit-old.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/tab-prequit-old.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-prequit-old\", \"fixture_sha256\": \"0a268f861fea2636c8947ebc3081df12ae82da78f360d3ba8cd763af26ce0e9e\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"201af7eacee5c3af3a273db21656ef388d8fa366eeac69927ba8ccdfe5e54c54\", \"actual_sha256\": \"4d541e27fefe6ab6778c1bc6fbfa01f019e77d9b1e6c3802bf2e3def58205d2c\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"463a2e411404e023ac4bafef1db6424c61973116\", \"cells_checked\": 4800, \"different_cells\": 206, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 3, 115, 38], \"samples\": [{\"x\": 3, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 5, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 20, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 21, \"y\": 34, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/tab-prequit-old.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/tab-prequit-old.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/tab-prequit-old.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"01c20099d31a6d8b5fb639cb9cc10b7a0bfc8b9a17eb808521da282bb964c5ce\", \"actual_sha256\": \"a8bfe587635cdb787594d10585fe439ae67345a7e4f1fa7926e628e96ad8a496\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 4818, \"changed_fraction_diagnostic_only\": 0.007446216617210682, \"difference_bbox_inclusive\": [42, 163, 848, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/tab-restored-entry.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/tab-restored-entry.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/tab-restored-entry.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-restored-entry\", \"fixture_sha256\": \"0a268f861fea2636c8947ebc3081df12ae82da78f360d3ba8cd763af26ce0e9e\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"303a6ac0bcac1d479455bf52ba9fe970bb1bfe3f7333bcd574148421ba935595\", \"actual_sha256\": \"a357c0d3f9bce4695007ca23dcf72e604c8728e14ade18dcaa8ae0a27af2dab5\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"463a2e411404e023ac4bafef1db6424c61973116\", \"cells_checked\": 4800, \"different_cells\": 1793, \"cursor_differs\": true, \"difference_bbox_inclusive\": [0, 0, 117, 38], \"samples\": [{\"x\": 0, \"y\": 0, \"different_fields\": [\"bg\"]}, {\"x\": 1, \"y\": 0, \"different_fields\": [\"bg\"]}, {\"x\": 2, \"y\": 0, \"different_fields\": [\"bg\"]}, {\"x\": 3, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 4, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 5, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 6, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 7, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 8, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 9, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 10, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 11, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 12, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 13, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 14, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 15, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 16, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 17, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 18, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 19, \"y\": 0, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/tab-restored-entry.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/tab-restored-entry.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/tab-restored-entry.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"fe9ff767d04905f755b4ea7495cd2e709d04978200c02da0a1b6093ea95aa029\", \"actual_sha256\": \"9d5454e10c64a8f520eb8cd6aa3fa2f68a49e900817a72c70cc2e46e7cd1b251\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 192361, \"changed_fraction_diagnostic_only\": 0.2972938303659743, \"difference_bbox_inclusive\": [0, 0, 992, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/tab-restored-old.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/tab-restored-old.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/tab-restored-old.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-restored-old\", \"fixture_sha256\": \"0a268f861fea2636c8947ebc3081df12ae82da78f360d3ba8cd763af26ce0e9e\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"aca80dd20a98758b36f8eaeec2713c4a2ec5aa9a31bb6d3645f4829e936d3dbf\", \"actual_sha256\": \"e470bbb7d1f2458df011e20beb0ce32b1a3bc30450afe4272dc45991e527b8c5\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"463a2e411404e023ac4bafef1db6424c61973116\", \"cells_checked\": 4800, \"different_cells\": 212, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 0, 115, 38], \"samples\": [{\"x\": 26, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 27, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 28, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 29, \"y\": 0, \"different_fields\": [\"fg\"]}, {\"x\": 30, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 31, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 3, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 5, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 34, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/tab-restored-old.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/tab-restored-old.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/tab-restored-old.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"01c20099d31a6d8b5fb639cb9cc10b7a0bfc8b9a17eb808521da282bb964c5ce\", \"actual_sha256\": \"9d5454e10c64a8f520eb8cd6aa3fa2f68a49e900817a72c70cc2e46e7cd1b251\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 5085, \"changed_fraction_diagnostic_only\": 0.007858864985163205, \"difference_bbox_inclusive\": [42, 5, 848, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/tab-restored-second.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/tab-restored-second.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/tab-restored-second.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tab-restored-second\", \"fixture_sha256\": \"0a268f861fea2636c8947ebc3081df12ae82da78f360d3ba8cd763af26ce0e9e\", \"environment_id\": \"e3cf33539f0e1d6485c01217ef4f632171a7de480eea7bdd9f9c598ea70f45be\", \"reference_sha256\": \"0e6026e4fe1754615495957264250fbe0d0b13957f3b0375e961f4650221f1e8\", \"actual_sha256\": \"600258137490a57fc996faaf41b2303409e7bf38da2f7ea07c0baf288fe7c1b8\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"463a2e411404e023ac4bafef1db6424c61973116\", \"cells_checked\": 4800, \"different_cells\": 210, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 3, 115, 38], \"samples\": [{\"x\": 3, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 3, \"different_fields\": [\"fg\"]}, {\"x\": 37, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 5, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 34, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 34, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/upstream/tab-restored-second.png",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/oc/tab-restored-second.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/recovery-v08-paired-restart-02/tab-restored-second.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"d74923ffd745043010c9e8ce334acc6a149f1d3509bc1d92e8b289e2499746f9\", \"actual_sha256\": \"7d42c54c8fd5cd6a752ba7fb24296bd95ad6d41d2d55191af5b0d6bba6b630dc\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 5016, \"changed_fraction_diagnostic_only\": 0.007752225519287834, \"difference_bbox_inclusive\": [42, 163, 848, 623]}\n",
+    "stderr": ""
+  }
+]

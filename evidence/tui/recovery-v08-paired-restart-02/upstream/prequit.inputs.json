@@ -1,0 +1,137 @@
+[
+  {
+    "at_ms": 1790226499711,
+    "kind": "terminal_reply",
+    "base64": "G10xMDtyZ2I6ZWVlZS9lZWVlL2VlZWUbXA=="
+  },
+  {
+    "at_ms": 1790226499712,
+    "kind": "terminal_reply",
+    "base64": "G10xMTtyZ2I6MGEwYS8wYTBhLzBhMGEbXA=="
+  },
+  {
+    "at_ms": 1790226499716,
+    "kind": "terminal_reply",
+    "base64": "G1sxOzFS"
+  },
+  {
+    "at_ms": 1790226499716,
+    "kind": "terminal_reply",
+    "base64": "G1s/MTAxNjsyJHk="
+  },
+  {
+    "at_ms": 1790226499717,
+    "kind": "terminal_reply",
+    "base64": "G1s/MjAyNzswJHk="
+  },
+  {
+    "at_ms": 1790226499718,
+    "kind": "terminal_reply",
+    "base64": "G1s/MjAzMTswJHk="
+  },
+  {
+    "at_ms": 1790226499718,
+    "kind": "terminal_reply",
+    "base64": "G1s/MTAwNDsyJHk="
+  },
+  {
+    "at_ms": 1790226499719,
+    "kind": "terminal_reply",
+    "base64": "G1s/MjAwNDsyJHk="
+  },
+  {
+    "at_ms": 1790226499719,
+    "kind": "terminal_reply",
+    "base64": "G1s/MjAyNjsyJHk="
+  },
+  {
+    "at_ms": 1790226499720,
+    "kind": "terminal_reply",
+    "base64": "G1s/MTsyYw=="
+  },
+  {
+    "at_ms": 1790226499720,
+    "kind": "terminal_reply",
+    "base64": "G1sxOzFS"
+  },
+  {
+    "at_ms": 1790226499721,
+    "kind": "terminal_reply",
+    "base64": "G1sxOzFS"
+  },
+  {
+    "at_ms": 1790226499752,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790226499757,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790226499759,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790226499771,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790226499778,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790226499786,
+    "kind": "terminal_reply",
+    "base64": "G1tJ"
+  },
+  {
+    "at_ms": 1790226502233,
+    "kind": "prompt_paste",
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "at_ms": 1790226502436,
+    "kind": "submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790226507072,
+    "kind": "add_mouse_down",
+    "base64": "G1s8MDszNDsxTQ=="
+  },
+  {
+    "at_ms": 1790226507072,
+    "kind": "add_mouse_up",
+    "base64": "G1s8MDszNDsxbQ=="
+  },
+  {
+    "at_ms": 1790226509792,
+    "kind": "second_prompt_paste",
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "at_ms": 1790226509992,
+    "kind": "second_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790226512955,
+    "kind": "select-old_mouse_down",
+    "base64": "G1s8MDs0OzFN"
+  },
+  {
+    "at_ms": 1790226512955,
+    "kind": "select-old_mouse_up",
+    "base64": "G1s8MDs0OzFt"
+  },
+  {
+    "at_ms": 1790226519150,
+    "kind": "graceful_app_exit_ctrl_d",
+    "base64": "BA=="
+  }
+]

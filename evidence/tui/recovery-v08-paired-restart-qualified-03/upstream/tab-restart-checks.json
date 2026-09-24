@@ -1,0 +1,323 @@
+[
+  {
+    "stage": "second-real-session",
+    "passed": true,
+    "add": [
+      {
+        "x": 64,
+        "y": 0
+      }
+    ],
+    "old": [
+      {
+        "x": 3,
+        "y": 0
+      }
+    ],
+    "new_title": [],
+    "old_content": false,
+    "home_prompt": false,
+    "header": "   Какие инструменты доступны ас   Second fixture session     ✕  +",
+    "second": [
+      {
+        "x": 35,
+        "y": 0
+      }
+    ],
+    "second_content": true,
+    "counts": {
+      "transcripts": 4,
+      "titles": 2,
+      "invalid": 0
+    }
+  },
+  {
+    "stage": "select-old-click",
+    "point": {
+      "x": 3,
+      "y": 0
+    },
+    "down_base64": "G1s8MDs0OzFN",
+    "up_base64": "G1s8MDs0OzFt"
+  },
+  {
+    "stage": "prequit-old-selected",
+    "passed": true,
+    "add": [
+      {
+        "x": 64,
+        "y": 0
+      }
+    ],
+    "old": [
+      {
+        "x": 3,
+        "y": 0
+      }
+    ],
+    "new_title": [],
+    "old_content": true,
+    "home_prompt": false,
+    "header": "   Какие инструменты доступны ✕    Second fixture session        +",
+    "second": [
+      {
+        "x": 35,
+        "y": 0
+      }
+    ],
+    "second_content": false,
+    "counts": {
+      "transcripts": 4,
+      "titles": 2,
+      "invalid": 0
+    }
+  },
+  {
+    "stage": "two-completed-sessions",
+    "passed": true,
+    "add": [
+      {
+        "x": 64,
+        "y": 0
+      }
+    ],
+    "old": [
+      {
+        "x": 3,
+        "y": 0
+      }
+    ],
+    "new_title": [],
+    "old_content": true,
+    "home_prompt": false,
+    "header": "   Какие инструменты доступны ✕    Second fixture session        +",
+    "second": [
+      {
+        "x": 35,
+        "y": 0
+      }
+    ],
+    "second_content": false,
+    "counts": {
+      "transcripts": 4,
+      "titles": 2,
+      "invalid": 0
+    },
+    "baseline": {
+      "transcripts": 4,
+      "titles": 2,
+      "invalid": 0
+    }
+  },
+  {
+    "stage": "graceful-exit",
+    "passed": true,
+    "add": [
+      {
+        "x": 64,
+        "y": 0
+      }
+    ],
+    "old": [
+      {
+        "x": 3,
+        "y": 0
+      }
+    ],
+    "new_title": [],
+    "old_content": true,
+    "home_prompt": false,
+    "header": "   Какие инструменты доступны ✕    Second fixture session        +",
+    "second": [
+      {
+        "x": 35,
+        "y": 0
+      }
+    ],
+    "second_content": false,
+    "counts": {
+      "transcripts": 4,
+      "titles": 2,
+      "invalid": 0
+    },
+    "exit": {
+      "kind": "exit",
+      "generation": 0,
+      "code": 0,
+      "termination": "natural"
+    },
+    "baseline": {
+      "transcripts": 4,
+      "titles": 2,
+      "invalid": 0
+    },
+    "source": "pinned packages/tui/src/config/keybind.ts:48; native crates/oc-tui/src/events.rs"
+  },
+  {
+    "stage": "restored-entry-selection",
+    "passed": true,
+    "observed": "synthetic_home",
+    "add": [],
+    "old": [
+      {
+        "x": 3,
+        "y": 0
+      }
+    ],
+    "new_title": [
+      {
+        "x": 65,
+        "y": 0
+      }
+    ],
+    "old_content": false,
+    "home_prompt": true,
+    "header": "   Какие инструменты доступны ас   Second fixture session        + New session",
+    "second": [
+      {
+        "x": 35,
+        "y": 0
+      }
+    ],
+    "second_content": false,
+    "baseline": {
+      "transcripts": 4,
+      "titles": 2,
+      "invalid": 0
+    },
+    "counts": {
+      "transcripts": 4,
+      "titles": 2,
+      "invalid": 0
+    }
+  },
+  {
+    "stage": "restored-select-old-click",
+    "point": {
+      "x": 3,
+      "y": 0
+    },
+    "down_base64": "G1s8MDs0OzFN",
+    "up_base64": "G1s8MDs0OzFt"
+  },
+  {
+    "stage": "restored-old-history",
+    "passed": true,
+    "add": [
+      {
+        "x": 64,
+        "y": 0
+      }
+    ],
+    "old": [
+      {
+        "x": 3,
+        "y": 0
+      }
+    ],
+    "new_title": [],
+    "old_content": true,
+    "home_prompt": false,
+    "header": "   Какие инструменты доступны ✕    Second fixture session        +",
+    "second": [
+      {
+        "x": 35,
+        "y": 0
+      }
+    ],
+    "second_content": false,
+    "counts": {
+      "transcripts": 4,
+      "titles": 2,
+      "invalid": 0
+    },
+    "baseline": {
+      "transcripts": 4,
+      "titles": 2,
+      "invalid": 0
+    }
+  },
+  {
+    "stage": "restored-select-second-click",
+    "point": {
+      "x": 35,
+      "y": 0
+    },
+    "down_base64": "G1s8MDszNjsxTQ==",
+    "up_base64": "G1s8MDszNjsxbQ=="
+  },
+  {
+    "stage": "restored-second-click",
+    "passed": true,
+    "add": [
+      {
+        "x": 64,
+        "y": 0
+      }
+    ],
+    "old": [
+      {
+        "x": 3,
+        "y": 0
+      }
+    ],
+    "new_title": [],
+    "old_content": false,
+    "home_prompt": false,
+    "header": "   Какие инструменты доступны ас   Second fixture session     ✕  +",
+    "second": [
+      {
+        "x": 35,
+        "y": 0
+      }
+    ],
+    "second_content": true,
+    "counts": {
+      "transcripts": 4,
+      "titles": 2,
+      "invalid": 0
+    },
+    "baseline": {
+      "transcripts": 4,
+      "titles": 2,
+      "invalid": 0
+    }
+  },
+  {
+    "stage": "post-capture-no-requests",
+    "passed": true,
+    "add": [
+      {
+        "x": 64,
+        "y": 0
+      }
+    ],
+    "old": [
+      {
+        "x": 3,
+        "y": 0
+      }
+    ],
+    "new_title": [],
+    "old_content": false,
+    "home_prompt": false,
+    "header": "   Какие инструменты доступны ас   Second fixture session     ✕  +",
+    "second": [
+      {
+        "x": 35,
+        "y": 0
+      }
+    ],
+    "second_content": true,
+    "counts": {
+      "transcripts": 4,
+      "titles": 2,
+      "invalid": 0
+    },
+    "baseline": {
+      "transcripts": 4,
+      "titles": 2,
+      "invalid": 0
+    }
+  }
+]
