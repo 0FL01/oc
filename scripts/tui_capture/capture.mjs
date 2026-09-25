@@ -72,6 +72,11 @@ if (args.mention !== undefined && !['true','false'].includes(args.mention))
 const reasoningClick = args['reasoning-click'] === 'true';
 if (args['reasoning-click'] !== undefined && !['true','false'].includes(args['reasoning-click']))
   throw Error('--reasoning-click must be true or false');
+const reasoningReleaseOnly = args['reasoning-release-only'] === 'true';
+if (args['reasoning-release-only'] !== undefined && !['true','false'].includes(args['reasoning-release-only']))
+  throw Error('--reasoning-release-only must be true or false');
+if (reasoningReleaseOnly && !reasoningClick)
+  throw Error('--reasoning-release-only true requires --reasoning-click true (paired Reader reasoning 120x40 profile)');
 const selectionCopy = args['selection-copy'] === 'true';
 if (args['selection-copy'] !== undefined && !['true','false'].includes(args['selection-copy']))
   throw Error('--selection-copy must be true or false');
@@ -91,6 +96,8 @@ if (scanner && !['true','false'].includes(args['scanner-cancel']))
 if (!scanner && args['scanner-cancel'] !== undefined)
   throw Error('--scanner-cancel requires --scanner true');
 const scannerCancel = args['scanner-cancel'] === 'true';
+if (reasoningReleaseOnly && (selectionCopy || toastOverlap || scanner || ctrlC || twoTurn))
+  throw Error('--reasoning-release-only true cannot be combined with other interaction modes');
 if (toastOverlap && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'auto' ||
     args['agent-profile'] !== 'true' || Number(args.columns) !== 121 || Number(args.rows) !== 40 ||
     !args.reference || !args.oc || args['build-oc'] === 'true' || args['refresh-before-capture'] === 'true' ||
@@ -1543,8 +1550,10 @@ try {
               body_visibility:stage==='expand'?o.bodies.length===0:!!bodyBelow(o),
               provider_counts_unchanged:providerStable(),cursor_in_bounds:cursorValid(f)},
               {cell:{x:o.header.x+2,y:o.header.y},pty_column:x,pty_row:y,
-                down_base64:Buffer.from(down).toString('base64'),up_base64:Buffer.from(up).toString('base64')});
-            send(down,`reasoning_${stage}_mouse_down`);
+                input_mode:reasoningReleaseOnly?'release_only':'press_and_release',
+                ...(!reasoningReleaseOnly ? {down_base64:Buffer.from(down).toString('base64')} : {}),
+                up_base64:Buffer.from(up).toString('base64')});
+            if (!reasoningReleaseOnly) send(down,`reasoning_${stage}_mouse_down`);
             send(up,`reasoning_${stage}_mouse_up`);
           };
           record('provider-baseline',done,{completed_session_captured:completedStatus==='CAPTURED',

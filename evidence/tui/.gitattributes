@@ -59,3 +59,5 @@ two-turn-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 two-turn-*/*/*.vt binary
 toast-overlap-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 toast-overlap-*/*/*.vt binary
+reasoning-release-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+reasoning-release-*/*/*.vt binary

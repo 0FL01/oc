@@ -423,6 +423,22 @@ unmasked full-grid and PNG comparators run for all paired stages; a successful
 click does not assert whole-frame equality. A failed attempt remains available
 at its original path; retry only under a fresh name.
 
+To diagnose the pinned original's release-only reasoning handler against the
+native PTY, add `--reasoning-release-only true` to the paired command above and
+choose a different, fresh `--output` path. It requires `--reasoning-click true`
+and the same Reader/reasoning 120×40 profile. This opt-in sends **only** SGR
+left-button UP (`ESC[<0;column;rowm`) at each side's own uniquely painted
+header for both collapsed → expanded and expanded → recollapsed; it sends no
+mouse DOWN. The ordinary `--reasoning-click true` path still sends separate
+press and release events. The same unique-header, public-body visibility,
+opaque-content and unchanged completed transcript/title request checks apply
+to every stage. `reasoning-click-checks.json` records the input mode, target
+and actual release bytes; `inputs.json` records each PTY input. Captured stages
+retain full immutable styled cells/PNG/VT/render data and the existing unmasked
+whole-grid and PNG comparisons. If either side does not transition, its failed
+predicate and `failure-diagnostic` frame remain in the attempt; no interaction
+or VIS15 parity PASS is implied by the other side's successful transition.
+
 `--startup-error true` with only `--oc` captures a real malformed-config native
 preflight error. For supported child routes and real Location query failures,
 `OC_V03_CAPTURE_OUTPUT=/absolute/fresh-attempt-prefix cargo test --locked -p oc

@@ -485,6 +485,9 @@ pub struct TuiState {
         usize,
         usize,
     )>,
+    /// An unfinished press/drag cannot masquerade as a standalone header UP,
+    /// even when scrolling, resizing or an overlay invalidates its hit target.
+    reasoning_pointer_down: bool,
     reasoning_epoch: u64,
     /// Number of evicted frozen parts in this turn; ordinals never shift.
     live_part_offset: usize,
@@ -624,6 +627,7 @@ impl TuiState {
             exploration_down: None,
             reasoning_expanded: BTreeSet::new(),
             reasoning_down: None,
+            reasoning_pointer_down: false,
             reasoning_epoch: 0,
             live_part_offset: 0,
             leader: None,
@@ -1648,6 +1652,14 @@ impl TuiState {
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
         use crate::dialog::DialogHit;
+        let pointer_down = self.reasoning_pointer_down;
+        match event.kind {
+            MouseEventKind::Down(_) | MouseEventKind::Drag(_) => {
+                self.reasoning_pointer_down = true;
+            }
+            MouseEventKind::Up(_) => self.reasoning_pointer_down = false,
+            _ => {}
+        }
         self.last_mouse = (self.panel == TuiPanel::None).then_some((event.column, event.row, area));
         if self.close_hold.as_ref().is_some_and(|hold| {
             hold.area != area
@@ -1763,6 +1775,7 @@ impl TuiState {
                 MouseEventKind::Up(MouseButton::Left) => {
                     let pressed_tab = self.tab_down.take();
                     let pressed = self.exploration_down.take();
+                    let exploration_pressed = pressed.is_some();
                     let reasoning_pressed = self.reasoning_down.take();
                     if event.modifiers.is_empty()
                         && let Some(tab) = pressed_tab
@@ -1815,10 +1828,50 @@ impl TuiState {
                             self.scroll,
                         );
                     }
+                    // The pinned original toggles onMouseUp without a down.
+                    // Admit that path only for a currently painted header; a
+                    // consumed/stale press or selection gesture stays inert.
+                    let release_only = if reasoning_pressed.is_none()
+                        && pressed_tab.is_none()
+                        && !exploration_pressed
+                        && !pointer_down
+                        && event.modifiers.is_empty()
+                    {
+                        let rect = crate::shell::transcript_area(self, area);
+                        let (rows, total, scroll) = self.visible_transcript_at_viewport(
+                            rect.width,
+                            area.width,
+                            rect.height,
+                        );
+                        self.painted_transcript
+                            .borrow()
+                            .as_ref()
+                            .filter(|painted| {
+                                painted.area == rect
+                                    && painted.total == total
+                                    && painted.scroll == scroll
+                                    && painted.rows == rows
+                            })
+                            .and_then(|_| self.reasoning_hit(area, event.column, event.row))
+                            .map(|id| {
+                                (
+                                    id,
+                                    event.column,
+                                    event.row,
+                                    area,
+                                    total,
+                                    scroll,
+                                    self.scroll,
+                                )
+                            })
+                    } else {
+                        None
+                    };
                     if event.modifiers.is_empty()
                         && self.click.is_none_or(|click| click.count == 1)
+                        && matches!(self.selection_text(), Ok(None))
                         && let Some((id, x, y, painted, total, scroll, requested)) =
-                            reasoning_pressed
+                            reasoning_pressed.or(release_only)
                         && painted == area
                         && requested == self.scroll
                         && (x, y) == (event.column, event.row)
@@ -8651,8 +8704,16 @@ mod tests {
         };
         let y = headers(&state, area)[0];
         let x = rect.x + 4;
+        state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), x, y), area);
+        assert!(
+            state.reasoning_expanded.is_empty(),
+            "press alone does not toggle"
+        );
         state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left), x, y), area);
-        assert!(state.reasoning_expanded.is_empty(), "release needs a press");
+        assert_eq!(state.reasoning_expanded.len(), 1);
+        state.click = None;
+        click(&mut state, area, x, y);
+        assert!(state.reasoning_expanded.is_empty());
         state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), x, y), area);
         state.handle_mouse(event(MouseEventKind::Drag(MouseButton::Left), x, y), area);
         state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left), x, y), area);
@@ -8749,6 +8810,168 @@ mod tests {
         state.set_session(sid("reasoning-next"));
         assert!(state.reasoning_expanded.is_empty());
         assert!(state.reasoning_down.is_none());
+    }
+
+    #[tokio::test]
+    async fn reasoning_painted_release_only_toggles_and_preserves_anchor() {
+        use crate::messages::ReasoningIdentity;
+        use crossterm::event::{MouseButton, MouseEventKind};
+        use oc_core::queries::{HistoryTurn, TranscriptPart};
+        let mut state = fresh_state("reasoning-release-only").await;
+        let mut message = msg(9, Role::Assistant, "aggregate");
+        message.turn = Some(HistoryTurn {
+            parts: vec![TranscriptPart::Reasoning {
+                text: "**a thought**\n\nmore thought".into(),
+                duration_ms: None,
+            }],
+            status: "completed".into(),
+            ..Default::default()
+        });
+        state.attach_page(&page(vec![message], 1, false, false));
+        let frame = Rect::new(0, 0, 80, 24);
+        let rect = crate::shell::transcript_area(&state, frame);
+        let x = rect.x + 4;
+        let paint = |state: &TuiState| {
+            let (rows, total, scroll) =
+                state.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
+            let y = rect.y
+                + rows
+                    .iter()
+                    .position(|line| line.plain_text().contains("Thought"))
+                    .unwrap() as u16;
+            state.paint_transcript(rect, &rows, total, scroll);
+            y
+        };
+        let y = paint(&state);
+        let release = selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y);
+        let id = ReasoningIdentity::Durable(9, 0);
+        state.handle_mouse(release, frame);
+        assert!(state.reasoning_expanded.contains(&id));
+        assert_eq!(paint(&state), y, "expanded header stays at its painted row");
+        state.handle_mouse(release, frame);
+        assert!(state.reasoning_expanded.is_empty());
+        assert_eq!(paint(&state), y, "collapsed header returns to the same row");
+
+        state.panel = TuiPanel::Help(None);
+        state.handle_mouse(release, frame);
+        assert!(state.reasoning_expanded.is_empty(), "modal owns release");
+        state.close_panel();
+        paint(&state);
+
+        state.clear_mouse_position();
+        state.handle_mouse(release, frame);
+        assert!(
+            state.reasoning_expanded.is_empty(),
+            "unpainted resize is stale"
+        );
+        paint(&state);
+        state.handle_mouse(release, frame);
+        assert!(
+            state.reasoning_expanded.contains(&id),
+            "fresh resize is live"
+        );
+        paint(&state);
+        state.handle_mouse(selection_mouse(MouseEventKind::ScrollDown, x, y), frame);
+        state.scroll_transcript(false);
+        state.handle_mouse(release, frame);
+        assert!(
+            state.reasoning_expanded.contains(&id),
+            "unpainted wheel is stale"
+        );
+        paint(&state);
+        state.handle_mouse(release, frame);
+        assert!(state.reasoning_expanded.is_empty(), "fresh wheel is live");
+
+        // Repainting does not turn an outstanding pre-resize press into a
+        // standalone release, even when the header stays at the same cell.
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.clear_mouse_position();
+        paint(&state);
+        state.handle_mouse(release, frame);
+        assert!(
+            state.reasoning_expanded.is_empty(),
+            "pre-resize press remains stale after repaint"
+        );
+        state.handle_mouse(release, frame);
+        assert!(state.reasoning_expanded.contains(&id));
+        paint(&state);
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(selection_mouse(MouseEventKind::ScrollDown, x, y), frame);
+        state.scroll_transcript(false);
+        paint(&state);
+        state.handle_mouse(release, frame);
+        assert!(
+            state.reasoning_expanded.contains(&id),
+            "wheel cancels old press"
+        );
+        paint(&state);
+        state.handle_mouse(release, frame);
+        assert!(state.reasoning_expanded.is_empty());
+
+        // A drag back onto its starting cell can end with empty selection.
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), x + 2, y),
+            frame,
+        );
+        state.handle_mouse(release, frame);
+        assert_eq!(state.selection_text(), Ok(None));
+        assert!(state.reasoning_expanded.is_empty());
+
+        // The subsequent release with no press still works after a fresh paint.
+        paint(&state);
+        state.handle_mouse(release, frame);
+        assert!(state.reasoning_expanded.contains(&id));
+    }
+
+    #[tokio::test]
+    async fn reasoning_selected_text_blocks_release_but_new_click_replaces_selection() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        let mut state = fresh_state("reasoning-selected-text").await;
+        let frame = Rect::new(0, 0, 100, 28);
+        state.live_reasoning = "**thinking**".into();
+        let (x, y) = paint_selection_fixture(&mut state, frame, "Thinking");
+        assert!(state.reasoning_hit(frame, x, y).is_some());
+        let down = selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y);
+        let release = selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y);
+        state.handle_mouse(down, frame);
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), x + 4, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x + 4, y),
+            frame,
+        );
+        assert!(matches!(state.selection_text(), Ok(Some(_))));
+        state.handle_mouse(release, frame);
+        assert!(
+            state.reasoning_expanded.is_empty(),
+            "release cannot erase selection"
+        );
+        state.handle_mouse(down, frame);
+        assert_eq!(
+            state.selection_text(),
+            Ok(None),
+            "new down replaces highlight"
+        );
+        state.handle_mouse(release, frame);
+        assert_eq!(state.reasoning_expanded.len(), 1, "new click toggles");
+
+        paint_selection_fixture(&mut state, frame, "Thinking");
+        state.handle_mouse(down, frame);
+        assert!(matches!(state.selection_text(), Ok(Some(_))));
+        state.handle_mouse(release, frame);
+        assert_eq!(state.reasoning_expanded.len(), 1, "selected word owns UP");
     }
 
     #[tokio::test]
@@ -9040,8 +9263,12 @@ mod tests {
             toast.reasoning_hit(area, x, y).is_some(),
             "underlying long header"
         );
+        let (rows, total, scroll) =
+            toast.visible_transcript_at_viewport(rect.width, area.width, rect.height);
+        toast.paint_transcript(rect, &rows, total, scroll);
         toast.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), x, y), area);
         toast.push_note("Overpaint");
+        toast.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), area);
         toast.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), area);
         click(&mut toast, x, y);
         assert!(
@@ -9070,6 +9297,9 @@ mod tests {
                 .unwrap() as u16;
         let x = rect.x + 5;
         assert!(state.reasoning_hit(area, x, y).is_some());
+        let (rows, total, scroll) =
+            state.visible_transcript_at_viewport(rect.width, area.width, rect.height);
+        state.paint_transcript(rect, &rows, total, scroll);
         state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), x, y), area);
         type_text(&mut state, "/").await;
         assert!(state.slash_options().is_some());
@@ -9077,6 +9307,7 @@ mod tests {
             state.transcript_overpainted(area, x, y),
             "slash rect covers painted header"
         );
+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), area);
         state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), area);
         click(&mut state, x, y);
         assert!(state.reasoning_expanded.is_empty());
@@ -9093,6 +9324,7 @@ mod tests {
             "mention rect covers painted header"
         );
         click(&mut state, x, y);
+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), area);
         assert!(state.reasoning_expanded.is_empty());
         state.input.clear();
         state.editor.clear();

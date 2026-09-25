@@ -1,0 +1,248 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--geometry",
+      "true",
+      "--sample",
+      "reasoning",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--reasoning-click",
+      "true",
+      "--reasoning-release-only",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "c396ac8c4a2e55909514080c1dde9e1a51b10c61\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "c115c509917bf9130ec3fcac45127443ad16d274\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/app.rs b/crates/oc-tui/src/app.rs\nindex ce95d23..248d53b 100644\n--- a/crates/oc-tui/src/app.rs\n+++ b/crates/oc-tui/src/app.rs\n@@ -485,6 +485,9 @@ pub struct TuiState {\n         usize,\n         usize,\n     )>,\n+    /// A release after a press, drag, scroll or resize cannot masquerade as\n+    /// an upstream-style header release with no preceding mouse down.\n+    reasoning_release_suppressed: bool,\n     reasoning_epoch: u64,\n     /// Number of evicted frozen parts in this turn; ordinals never shift.\n     live_part_offset: usize,\n@@ -624,6 +627,7 @@ impl TuiState {\n             exploration_down: None,\n             reasoning_expanded: BTreeSet::new(),\n             reasoning_down: None,\n+            reasoning_release_suppressed: false,\n             reasoning_epoch: 0,\n             live_part_offset: 0,\n             leader: None,\n@@ -740,6 +744,7 @@ impl TuiState {\n     /// Clear the recorded SGR coordinate when a resize invalidates its frame.\n     pub fn clear_mouse_position(&mut self) {\n         self.clear_transcript_selection();\n+        self.reasoning_release_suppressed = true;\n         self.last_mouse = None;\n         self.toast_down = false;\n         self.set_toast_hover(false, Instant::now());\n@@ -1648,6 +1653,17 @@ impl TuiState {\n     /// the replacement restores the original prompt draft, selection and caret.\n     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {\n         use crate::dialog::DialogHit;\n+        let selected_on_press = matches!(event.kind, MouseEventKind::Down(MouseButton::Left))\n+            && !matches!(self.selection_text(), Ok(None));\n+        let release_suppressed = self.reasoning_release_suppressed;\n+        match event.kind {\n+            MouseEventKind::Down(_)\n+            | MouseEventKind::Drag(_)\n+            | MouseEventKind::ScrollUp\n+            | MouseEventKind::ScrollDown => self.reasoning_release_suppressed = true,\n+            MouseEventKind::Up(_) => self.reasoning_release_suppressed = false,\n+            _ => {}\n+        }\n         self.last_mouse = (self.panel == TuiPanel::None).then_some((event.column, event.row, area));\n         if self.close_hold.as_ref().is_some_and(|hold| {\n             hold.area != area\n@@ -1741,28 +1757,33 @@ impl TuiState {\n                     self.exploration_down = self\n                         .exploration_hit(area, event.column, event.row)\n                         .map(|op| (op, event.column, event.row));\n-                    self.reasoning_down =\n-                        self.reasoning_hit(area, event.column, event.row).map(|id| {\n-                            let rect = crate::shell::transcript_area(self, area);\n-                            let (_, total, scroll) = self.visible_transcript_at_viewport(\n-                                rect.width,\n-                                area.width,\n-                                rect.height,\n-                            );\n-                            (\n-                                id,\n-                                event.column,\n-                                event.row,\n-                                area,\n-                                total,\n-                                scroll,\n-                                self.scroll,\n-                            )\n-                        });\n+                    self.reasoning_down = (if selected_on_press {\n+                        None\n+                    } else {\n+                        self.reasoning_hit(area, event.column, event.row)\n+                    })\n+                    .map(|id| {\n+                        let rect = crate::shell::transcript_area(self, area);\n+                        let (_, total, scroll) = self.visible_transcript_at_viewport(\n+                            rect.width,\n+                            area.width,\n+                            rect.height,\n+                        );\n+                        (\n+                            id,\n+                            event.column,\n+                            event.row,\n+                            area,\n+                            total,\n+                            scroll,\n+                            self.scroll,\n+                        )\n+                    });\n                 }\n                 MouseEventKind::Up(MouseButton::Left) => {\n                     let pressed_tab = self.tab_down.take();\n                     let pressed = self.exploration_down.take();\n+                    let exploration_pressed = pressed.is_some();\n                     let reasoning_pressed = self.reasoning_down.take();\n                     if event.modifiers.is_empty()\n                         && let Some(tab) = pressed_tab\n@@ -1815,10 +1836,50 @@ impl TuiState {\n                             self.scroll,\n                         );\n                     }\n+                    // The pinned original toggles onMouseUp without a down.\n+                    // Admit that path only for a currently painted header; a\n+                    // consumed/stale press or selection gesture stays inert.\n+                    let release_only = if reasoning_pressed.is_none()\n+                        && pressed_tab.is_none()\n+                        && !exploration_pressed\n+                        && !release_suppressed\n+                        && event.modifiers.is_empty()\n+                    {\n+                        let rect = crate::shell::transcript_area(self, area);\n+                        let (rows, total, scroll) = self.visible_transcript_at_viewport(\n+                            rect.width,\n+                            area.width,\n+                            rect.height,\n+                        );\n+                        self.painted_transcript\n+                            .borrow()\n+                            .as_ref()\n+                            .filter(|painted| {\n+                                painted.area == rect\n+                                    && painted.total == total\n+                                    && painted.scroll == scroll\n+                                    && painted.rows == rows\n+                            })\n+                            .and_then(|_| self.reasoning_hit(area, event.column, event.row))\n+                            .map(|id| {\n+                                (\n+                                    id,\n+                                    event.column,\n+                                    event.row,\n+                                    area,\n+                                    total,\n+                                    scroll,\n+                                    self.scroll,\n+                                )\n+                            })\n+                    } else {\n+                        None\n+                    };\n                     if event.modifiers.is_empty()\n                         && self.click.is_none_or(|click| click.count == 1)\n+                        && matches!(self.selection_text(), Ok(None))\n                         && let Some((id, x, y, painted, total, scroll, requested)) =\n-                            reasoning_pressed\n+                            reasoning_pressed.or(release_only)\n                         && painted == area\n                         && requested == self.scroll\n                         && (x, y) == (event.column, event.row)\n@@ -8651,8 +8712,16 @@ mod tests {\n         };\n         let y = headers(&state, area)[0];\n         let x = rect.x + 4;\n+        state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), x, y), area);\n+        assert!(\n+            state.reasoning_expanded.is_empty(),\n+            \"press alone does not toggle\"\n+        );\n         state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left), x, y), area);\n-        assert!(state.reasoning_expanded.is_empty(), \"release needs a press\");\n+        assert_eq!(state.reasoning_expanded.len(), 1);\n+        state.click = None;\n+        click(&mut state, area, x, y);\n+        assert!(state.reasoning_expanded.is_empty());\n         state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), x, y), area);\n         state.handle_mouse(event(MouseEventKind::Drag(MouseButton::Left), x, y), area);\n         state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left), x, y), area);\n@@ -8751,6 +8820,123 @@ mod tests {\n         assert!(state.reasoning_down.is_none());\n     }\n \n+    #[tokio::test]\n+    async fn reasoning_painted_release_only_toggles_and_preserves_anchor() {\n+        use crate::messages::ReasoningIdentity;\n+        use crossterm::event::{MouseButton, MouseEventKind};\n+        use oc_core::queries::{HistoryTurn, TranscriptPart};\n+        let mut state = fresh_state(\"reasoning-release-only\").await;\n+        let mut message = msg(9, Role::Assistant, \"aggregate\");\n+        message.turn = Some(HistoryTurn {\n+            parts: vec![TranscriptPart::Reasoning {\n+                text: \"**a thought**\\n\\nmore thought\".into(),\n+                duration_ms: None,\n+            }],\n+            status: \"completed\".into(),\n+            ..Default::default()\n+        });\n+        state.attach_page(&page(vec![message], 1, false, false));\n+        let frame = Rect::new(0, 0, 80, 24);\n+        let rect = crate::shell::transcript_area(&state, frame);\n+        let x = rect.x + 4;\n+        let paint = |state: &TuiState| {\n+            let (rows, total, scroll) =\n+                state.visible_transcript_at_viewport(rect.width, frame.width, rect.height);\n+            let y = rect.y\n+                + rows\n+                    .iter()\n+                    .position(|line| line.plain_text().contains(\"Thought\"))\n+                    .unwrap() as u16;\n+            state.paint_transcript(rect, &rows, total, scroll);\n+            y\n+        };\n+        let y = paint(&state);\n+        let release = selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y);\n+        let id = ReasoningIdentity::Durable(9, 0);\n+        state.handle_mouse(release, frame);\n+        assert!(state.reasoning_expanded.contains(&id));\n+        assert_eq!(paint(&state), y, \"expanded header stays at its painted row\");\n+        state.handle_mouse(release, frame);\n+        assert!(state.reasoning_expanded.is_empty());\n+        assert_eq!(paint(&state), y, \"collapsed header returns to the same row\");\n+\n+        state.panel = TuiPanel::Help(None);\n+        state.handle_mouse(release, frame);\n+        assert!(state.reasoning_expanded.is_empty(), \"modal owns release\");\n+        state.close_panel();\n+        paint(&state);\n+\n+        state.clear_mouse_position();\n+        paint(&state);\n+        state.handle_mouse(release, frame);\n+        assert!(\n+            state.reasoning_expanded.is_empty(),\n+            \"resize discards old press\"\n+        );\n+        state.handle_mouse(selection_mouse(MouseEventKind::ScrollDown, x, y), frame);\n+        paint(&state);\n+        state.handle_mouse(release, frame);\n+        assert!(\n+            state.reasoning_expanded.is_empty(),\n+            \"scroll cannot become a click\"\n+        );\n+\n+        // A drag back onto its starting cell can end with empty selection.\n+        state.handle_mouse(\n+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),\n+            frame,\n+        );\n+        state.handle_mouse(\n+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), x + 2, y),\n+            frame,\n+        );\n+        state.handle_mouse(release, frame);\n+        assert_eq!(state.selection_text(), Ok(None));\n+        assert!(state.reasoning_expanded.is_empty());\n+\n+        // The subsequent release with no press still works after a fresh paint.\n+        paint(&state);\n+        state.handle_mouse(release, frame);\n+        assert!(state.reasoning_expanded.contains(&id));\n+    }\n+\n+    #[tokio::test]\n+    async fn reasoning_selected_text_blocks_release_only_and_matched_click() {\n+        use crossterm::event::{MouseButton, MouseEventKind};\n+        let mut state = fresh_state(\"reasoning-selected-text\").await;\n+        let frame = Rect::new(0, 0, 100, 28);\n+        state.live_reasoning = \"**thinking**\".into();\n+        let (x, y) = paint_selection_fixture(&mut state, frame, \"Thinking\");\n+        assert!(state.reasoning_hit(frame, x, y).is_some());\n+        let down = selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y);\n+        let release = selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y);\n+        state.handle_mouse(down, frame);\n+        state.handle_mouse(\n+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), x + 4, y),\n+            frame,\n+        );\n+        state.handle_mouse(\n+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x + 4, y),\n+            frame,\n+        );\n+        assert!(matches!(state.selection_text(), Ok(Some(_))));\n+        state.handle_mouse(release, frame);\n+        assert!(\n+            state.reasoning_expanded.is_empty(),\n+            \"release cannot erase selection\"\n+        );\n+        state.handle_mouse(down, frame);\n+        state.handle_mouse(release, frame);\n+        assert!(\n+            state.reasoning_expanded.is_empty(),\n+            \"old highlight owns the press\"\n+        );\n+        state.click = None;\n+        state.handle_mouse(down, frame);\n+        state.handle_mouse(release, frame);\n+        assert_eq!(state.reasoning_expanded.len(), 1);\n+    }\n+\n     #[tokio::test]\n     async fn redacted_only_durable_reasoning_leaves_no_mouse_target_or_spacer() {\n         use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};\n@@ -9040,9 +9226,13 @@ mod tests {\n             toast.reasoning_hit(area, x, y).is_some(),\n             \"underlying long header\"\n         );\n+        let (rows, total, scroll) =\n+            toast.visible_transcript_at_viewport(rect.width, area.width, rect.height);\n+        toast.paint_transcript(rect, &rows, total, scroll);\n         toast.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), x, y), area);\n         toast.push_note(\"Overpaint\");\n         toast.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), area);\n+        toast.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), area);\n         click(&mut toast, x, y);\n         assert!(\n             toast.reasoning_expanded.is_empty(),\n@@ -9070,6 +9260,9 @@ mod tests {\n                 .unwrap() as u16;\n         let x = rect.x + 5;\n         assert!(state.reasoning_hit(area, x, y).is_some());\n+        let (rows, total, scroll) =\n+            state.visible_transcript_at_viewport(rect.width, area.width, rect.height);\n+        state.paint_transcript(rect, &rows, total, scroll);\n         state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), x, y), area);\n         type_text(&mut state, \"/\").await;\n         assert!(state.slash_options().is_some());\n@@ -9078,6 +9271,7 @@ mod tests {\n             \"slash rect covers painted header\"\n         );\n         state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), area);\n+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), area);\n         click(&mut state, x, y);\n         assert!(state.reasoning_expanded.is_empty());\n         state.input.clear();\n@@ -9093,6 +9287,7 @@ mod tests {\n             \"mention rect covers painted header\"\n         );\n         click(&mut state, x, y);\n+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), area);\n         assert!(state.reasoning_expanded.is_empty());\n         state.input.clear();\n         state.editor.clear();\ndiff --git a/crates/oc/tests/pty_t39.rs b/crates/oc/tests/pty_t39.rs\nindex d449a58..95a4e2d 100644\n--- a/crates/oc/tests/pty_t39.rs\n+++ b/crates/oc/tests/pty_t39.rs\n@@ -1308,6 +1308,11 @@ fn mouse_click(pty: &mut PtySession, x: u16, y: u16) {\n     pty.send(format!(\"\\x1b[<0;{x};{y}M\\x1b[<0;{x};{y}m\").as_bytes());\n }\n \n+/// Native SGR left release with no preceding press.\n+fn mouse_up_only(pty: &mut PtySession, x: u16, y: u16) {\n+    pty.send(format!(\"\\x1b[<0;{x};{y}m\").as_bytes());\n+}\n+\n /// Decode the terminal clipboard destination from *complete* OSC 52 frames.\n /// Never include a frame or its decoded contents in assertion diagnostics.\n fn osc52_clipboard(output: &[u8]) -> Vec<Vec<u8>> {\n@@ -1720,6 +1725,36 @@ fn v06_real_pty_completed_reasoning_header_click_expands_and_collapses() {\n         );\n         std::thread::sleep(POLL);\n     }\n+    // The same completed header also responds to a standalone native SGR UP.\n+    // Resolve each target from the current painted grid after the prior toggle:\n+    // expanded/collapsed layouts need not share a fixed terminal coordinate.\n+    let (x, y) = reasoning_click_header(&pty, \"+ Thought: Click plan\");\n+    mouse_up_only(&mut pty, x, y);\n+    wait_screen_row(&pty, REASONING_CLICK_BODY, DEADLINE);\n+    wait_screen_row(&pty, \"- Thought\", DEADLINE);\n+    assert!(\n+        render_screen(&pty.snapshot())\n+            .rows()\n+            .iter()\n+            .any(|row| row.contains(REASONING_CLICK_ANSWER)),\n+        \"UP-only expansion retains the answer\"\n+    );\n+    let (x, y) = reasoning_click_header(&pty, \"- Thought\");\n+    mouse_up_only(&mut pty, x, y);\n+    let started = Instant::now();\n+    loop {\n+        let rows = render_screen(&pty.snapshot()).rows();\n+        if rows.iter().any(|row| row.contains(\"+ Thought: Click plan\"))\n+            && !rows.iter().any(|row| row.contains(REASONING_CLICK_BODY))\n+        {\n+            break;\n+        }\n+        assert!(\n+            started.elapsed() < DEADLINE,\n+            \"UP-only reasoning did not collapse: {rows:?}\"\n+        );\n+        std::thread::sleep(POLL);\n+    }\n     assert_eq!(fixture.requests.lock().unwrap().len(), requests_before);\n     pty.send(b\"\\x03\");\n     let (status, output) = pty.wait_exit(DEADLINE);\ndiff --git a/scripts/tui_capture/README.md b/scripts/tui_capture/README.md\nindex 6bba14e..4493f60 100644\n--- a/scripts/tui_capture/README.md\n+++ b/scripts/tui_capture/README.md\n@@ -423,6 +423,22 @@ unmasked full-grid and PNG comparators run for all paired stages; a successful\n click does not assert whole-frame equality. A failed attempt remains available\n at its original path; retry only under a fresh name.\n \n+To diagnose the pinned original's release-only reasoning handler against the\n+native PTY, add `--reasoning-release-only true` to the paired command above and\n+choose a different, fresh `--output` path. It requires `--reasoning-click true`\n+and the same Reader/reasoning 120×40 profile. This opt-in sends **only** SGR\n+left-button UP (`ESC[<0;column;rowm`) at each side's own uniquely painted\n+header for both collapsed → expanded and expanded → recollapsed; it sends no\n+mouse DOWN. The ordinary `--reasoning-click true` path still sends separate\n+press and release events. The same unique-header, public-body visibility,\n+opaque-content and unchanged completed transcript/title request checks apply\n+to every stage. `reasoning-click-checks.json` records the input mode, target\n+and actual release bytes; `inputs.json` records each PTY input. Captured stages\n+retain full immutable styled cells/PNG/VT/render data and the existing unmasked\n+whole-grid and PNG comparisons. If either side does not transition, its failed\n+predicate and `failure-diagnostic` frame remain in the attempt; no interaction\n+or VIS15 parity PASS is implied by the other side's successful transition.\n+\n `--startup-error true` with only `--oc` captures a real malformed-config native\n preflight error. For supported child routes and real Location query failures,\n `OC_V03_CAPTURE_OUTPUT=/absolute/fresh-attempt-prefix cargo test --locked -p oc\ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex 4fb5f9b..6c8de5c 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -72,6 +72,11 @@ if (args.mention !== undefined && !['true','false'].includes(args.mention))\n const reasoningClick = args['reasoning-click'] === 'true';\n if (args['reasoning-click'] !== undefined && !['true','false'].includes(args['reasoning-click']))\n   throw Error('--reasoning-click must be true or false');\n+const reasoningReleaseOnly = args['reasoning-release-only'] === 'true';\n+if (args['reasoning-release-only'] !== undefined && !['true','false'].includes(args['reasoning-release-only']))\n+  throw Error('--reasoning-release-only must be true or false');\n+if (reasoningReleaseOnly && !reasoningClick)\n+  throw Error('--reasoning-release-only true requires --reasoning-click true (paired Reader reasoning 120x40 profile)');\n const selectionCopy = args['selection-copy'] === 'true';\n if (args['selection-copy'] !== undefined && !['true','false'].includes(args['selection-copy']))\n   throw Error('--selection-copy must be true or false');\n@@ -91,6 +96,8 @@ if (scanner && !['true','false'].includes(args['scanner-cancel']))\n if (!scanner && args['scanner-cancel'] !== undefined)\n   throw Error('--scanner-cancel requires --scanner true');\n const scannerCancel = args['scanner-cancel'] === 'true';\n+if (reasoningReleaseOnly && (selectionCopy || toastOverlap || scanner || ctrlC || twoTurn))\n+  throw Error('--reasoning-release-only true cannot be combined with other interaction modes');\n if (toastOverlap && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'auto' ||\n     args['agent-profile'] !== 'true' || Number(args.columns) !== 121 || Number(args.rows) !== 40 ||\n     !args.reference || !args.oc || args['build-oc'] === 'true' || args['refresh-before-capture'] === 'true' ||\n@@ -1543,8 +1550,10 @@ try {\n               body_visibility:stage==='expand'?o.bodies.length===0:!!bodyBelow(o),\n               provider_counts_unchanged:providerStable(),cursor_in_bounds:cursorValid(f)},\n               {cell:{x:o.header.x+2,y:o.header.y},pty_column:x,pty_row:y,\n-                down_base64:Buffer.from(down).toString('base64'),up_base64:Buffer.from(up).toString('base64')});\n-            send(down,`reasoning_${stage}_mouse_down`);\n+                input_mode:reasoningReleaseOnly?'release_only':'press_and_release',\n+                ...(!reasoningReleaseOnly ? {down_base64:Buffer.from(down).toString('base64')} : {}),\n+                up_base64:Buffer.from(up).toString('base64')});\n+            if (!reasoningReleaseOnly) send(down,`reasoning_${stage}_mouse_down`);\n             send(up,`reasoning_${stage}_mouse_up`);\n           };\n           record('provider-baseline',done,{completed_session_captured:completedStatus==='CAPTURED',\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/assets/upstream/PROVENANCE.md\u0000crates/oc-adapters/assets/upstream/v2/review.txt\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/scanner.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/clipboard.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"e68f57db442a7030229c8bec512cdf56292c99fcaae5870f7224ef41a960771d\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"3bcf59c0efae59d1dd48e0475916161cffc0701cdf27d09ed39a2b7803b13fe4\", \"actual_sha256\": \"6d79c628f98aec58823f9ad9abee57005adbc0e11051cb58f31e8a911c9e7f60\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"c396ac8c4a2e55909514080c1dde9e1a51b10c61\", \"cells_checked\": 4800, \"different_cells\": 27, \"cursor_differs\": false, \"difference_bbox_inclusive\": [45, 21, 117, 38], \"samples\": [{\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 56, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"fg\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 61, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 62, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 63, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 64, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 65, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 66, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"e9b52e5f469a3626185bd85b68bf2b7daecc526339e5f66c8d56213b75d0fd6e\", \"actual_sha256\": \"bc7cd00e69be716e6d6364f4915fe965970588e5b46e6e7dca33c65195af8f40\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1247, \"changed_fraction_diagnostic_only\": 0.0019272378832838773, \"difference_bbox_inclusive\": [379, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"e68f57db442a7030229c8bec512cdf56292c99fcaae5870f7224ef41a960771d\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"f9f5ab21b3607bf4db46d172713112308659cd92e9ee4fe1aee843c4219e3c3c\", \"actual_sha256\": \"2c1bb733fd8705f2bb303b6e6e4f78f21a4c25367d1b1c13e9dff364bc5c67a9\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"c396ac8c4a2e55909514080c1dde9e1a51b10c61\", \"cells_checked\": 4800, \"different_cells\": 46, \"cursor_differs\": false, \"difference_bbox_inclusive\": [5, 6, 56, 10], \"samples\": [{\"x\": 5, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"a912b7b6bf9ec8633884ea405475afd67af60145c41f54a00bd0c859bd5fdde3\", \"actual_sha256\": \"b5bb1c9c444fd69b672aac288d110c2305552c38796b7900da11df400291d1b7\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1310, \"changed_fraction_diagnostic_only\": 0.002024604352126607, \"difference_bbox_inclusive\": [42, 98, 478, 174]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/upstream/reasoning-collapsed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/oc/reasoning-collapsed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/reasoning-collapsed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"reasoning-collapsed\", \"fixture_sha256\": \"e68f57db442a7030229c8bec512cdf56292c99fcaae5870f7224ef41a960771d\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"1a61d45fb4f5d05d01dfc5de575b900e2ab71a4b4ab443b7d1550b9c2e6b184f\", \"actual_sha256\": \"65d479dbf5ec26aea8382e770f97fe4e6eee1cd756e4ec1c33a77c307b45f22d\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"c396ac8c4a2e55909514080c1dde9e1a51b10c61\", \"cells_checked\": 4800, \"different_cells\": 46, \"cursor_differs\": false, \"difference_bbox_inclusive\": [5, 6, 56, 10], \"samples\": [{\"x\": 5, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/upstream/reasoning-collapsed.png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/oc/reasoning-collapsed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/reasoning-collapsed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"a912b7b6bf9ec8633884ea405475afd67af60145c41f54a00bd0c859bd5fdde3\", \"actual_sha256\": \"b5bb1c9c444fd69b672aac288d110c2305552c38796b7900da11df400291d1b7\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1310, \"changed_fraction_diagnostic_only\": 0.002024604352126607, \"difference_bbox_inclusive\": [42, 98, 478, 174]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/upstream/reasoning-expanded.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/oc/reasoning-expanded.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/reasoning-expanded.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"reasoning-expanded\", \"fixture_sha256\": \"e68f57db442a7030229c8bec512cdf56292c99fcaae5870f7224ef41a960771d\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"871711d07b8cebaf85f95675420fe097534d50974457294a6bc3153f838f1444\", \"actual_sha256\": \"856df6145b43e7cc6b5eaef86bcb42444d7af1397f13662f48d356eb6581b416\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"c396ac8c4a2e55909514080c1dde9e1a51b10c61\", \"cells_checked\": 4800, \"different_cells\": 33, \"cursor_differs\": false, \"difference_bbox_inclusive\": [6, 6, 56, 14], \"samples\": [{\"x\": 6, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 7, \"y\": 8, \"different_fields\": [\"modifiers\"]}, {\"x\": 8, \"y\": 8, \"different_fields\": [\"modifiers\"]}, {\"x\": 9, \"y\": 8, \"different_fields\": [\"modifiers\"]}, {\"x\": 10, \"y\": 8, \"different_fields\": [\"modifiers\"]}, {\"x\": 11, \"y\": 8, \"different_fields\": [\"modifiers\"]}, {\"x\": 12, \"y\": 8, \"different_fields\": [\"modifiers\"]}, {\"x\": 13, \"y\": 8, \"different_fields\": [\"modifiers\"]}, {\"x\": 14, \"y\": 8, \"different_fields\": [\"modifiers\"]}, {\"x\": 15, \"y\": 8, \"different_fields\": [\"modifiers\"]}, {\"x\": 16, \"y\": 8, \"different_fields\": [\"modifiers\"]}, {\"x\": 37, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 14, \"different_fields\": [\"fg\"]}, {\"x\": 42, \"y\": 14, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 43, \"y\": 14, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/upstream/reasoning-expanded.png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/oc/reasoning-expanded.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/reasoning-expanded.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"1d9c7f76e4c0dfd15a84378da59e49ea1b75d33fc6398ec55bec46fde94e9ec5\", \"actual_sha256\": \"ad42ea4c5a8b0db09ddcd273d7d7cb69e0a9d11001b18e7072b2ee1f23915526\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1325, \"changed_fraction_diagnostic_only\": 0.00204778684470821, \"difference_bbox_inclusive\": [60, 99, 478, 238]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/upstream/reasoning-recollapsed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/oc/reasoning-recollapsed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/reasoning-recollapsed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"reasoning-recollapsed\", \"fixture_sha256\": \"e68f57db442a7030229c8bec512cdf56292c99fcaae5870f7224ef41a960771d\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"bffebb7a0f87e6972db813656ae69c544760023c7168192f7a9354287686a6ba\", \"actual_sha256\": \"777370cc0758fa2071189dd6f4caf87ff01fb0a1645282f84f729d9264026d74\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"c396ac8c4a2e55909514080c1dde9e1a51b10c61\", \"cells_checked\": 4800, \"different_cells\": 46, \"cursor_differs\": false, \"difference_bbox_inclusive\": [5, 6, 56, 10], \"samples\": [{\"x\": 5, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/upstream/reasoning-recollapsed.png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/oc/reasoning-recollapsed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-release-20260925-02/reasoning-recollapsed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"27b352750d9b5b5a1fc0a5ed0201105ed9973b2292ac7b6c7f72dd3f0a477c2d\", \"actual_sha256\": \"b5bb1c9c444fd69b672aac288d110c2305552c38796b7900da11df400291d1b7\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1600, \"changed_fraction_diagnostic_only\": 0.002472799208704253, \"difference_bbox_inclusive\": [42, 98, 478, 174]}\n",
+    "stderr": ""
+  }
+]

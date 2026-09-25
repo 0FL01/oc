@@ -1308,6 +1308,11 @@ fn mouse_click(pty: &mut PtySession, x: u16, y: u16) {
     pty.send(format!("\x1b[<0;{x};{y}M\x1b[<0;{x};{y}m").as_bytes());
 }
 
+/// Native SGR left release with no preceding press.
+fn mouse_up_only(pty: &mut PtySession, x: u16, y: u16) {
+    pty.send(format!("\x1b[<0;{x};{y}m").as_bytes());
+}
+
 /// Decode the terminal clipboard destination from *complete* OSC 52 frames.
 /// Never include a frame or its decoded contents in assertion diagnostics.
 fn osc52_clipboard(output: &[u8]) -> Vec<Vec<u8>> {
@@ -1717,6 +1722,36 @@ fn v06_real_pty_completed_reasoning_header_click_expands_and_collapses() {
         assert!(
             started.elapsed() < DEADLINE,
             "reasoning did not collapse: {rows:?}"
+        );
+        std::thread::sleep(POLL);
+    }
+    // The same completed header also responds to a standalone native SGR UP.
+    // Resolve each target from the current painted grid after the prior toggle:
+    // expanded/collapsed layouts need not share a fixed terminal coordinate.
+    let (x, y) = reasoning_click_header(&pty, "+ Thought: Click plan");
+    mouse_up_only(&mut pty, x, y);
+    wait_screen_row(&pty, REASONING_CLICK_BODY, DEADLINE);
+    wait_screen_row(&pty, "- Thought", DEADLINE);
+    assert!(
+        render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|row| row.contains(REASONING_CLICK_ANSWER)),
+        "UP-only expansion retains the answer"
+    );
+    let (x, y) = reasoning_click_header(&pty, "- Thought");
+    mouse_up_only(&mut pty, x, y);
+    let started = Instant::now();
+    loop {
+        let rows = render_screen(&pty.snapshot()).rows();
+        if rows.iter().any(|row| row.contains("+ Thought: Click plan"))
+            && !rows.iter().any(|row| row.contains(REASONING_CLICK_BODY))
+        {
+            break;
+        }
+        assert!(
+            started.elapsed() < DEADLINE,
+            "UP-only reasoning did not collapse: {rows:?}"
         );
         std::thread::sleep(POLL);
     }
