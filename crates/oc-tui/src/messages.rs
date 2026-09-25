@@ -51,6 +51,16 @@ const MAX_CACHED_BYTES: usize = 512 * 1024;
 const MAX_INDEX_BYTES: usize = 2 * 1024 * 1024;
 const LIVE_MARKDOWN_BYTES: usize = 16 * 1024;
 
+#[cfg(test)]
+thread_local! {
+    static INDEXED_TRAVERSALS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+#[cfg(test)]
+pub(crate) fn indexed_traversals() -> usize {
+    INDEXED_TRAVERSALS.get()
+}
+
 struct CachedBlock {
     part: (i64, usize, usize),
     revision: u64,
@@ -1490,6 +1500,8 @@ fn visible_transcript_indexed(
     cache: &RefCell<MarkdownCache>,
     options: ExplorationOptions<'_>,
 ) -> (Vec<Line>, usize, Option<TranscriptHit>) {
+    #[cfg(test)]
+    INDEXED_TRAVERSALS.set(INDEXED_TRAVERSALS.get() + 1);
     let (width, terminal_width) = widths;
     let (height, scroll, live_row) = viewport;
     let mut total = 1usize;
@@ -1895,6 +1907,8 @@ fn reasoning_line(reasoning: &ReasoningBlock, theme: &Theme) -> Line {
         }
     } else if reasoning.toggleable == reasoning.expanded {
         theme.warning()
+    } else if reasoning.toggleable {
+        collapsed_thought_color(theme)
     } else {
         theme.fade(theme.warning(), 0.6)
     };
@@ -1934,6 +1948,63 @@ fn reasoning_line(reasoning: &ReasoningBlock, theme: &Theme) -> Line {
     }
     spans.push(Span::styled(text, style));
     Line::new(spans)
+}
+
+/// OpenTUI composites the header's RGBA(0.6) against the root background at
+/// full precision. Theme::fade quantizes alpha to a byte first, which loses a
+/// channel on this particular header in the pinned dark palette.
+fn collapsed_thought_color(theme: &Theme) -> Color {
+    let (Color::Rgb(r, g, b), Color::Rgb(br, bg, bb)) = (theme.warning(), theme.background())
+    else {
+        return theme.warning();
+    };
+    let tint = |source: u8, background: u8| {
+        (f32::from(source) * 0.6 + f32::from(background) * 0.4).round() as u8
+    };
+    Color::Rgb(tint(r, br), tint(g, bg), tint(b, bb))
+}
+
+/// Verify the already-painted, completed hide-mode header and its clickable
+/// cell. Match the generated span structure and styles, not untrusted text
+/// that happens to spell "+ Thought" in Markdown or a tool result.
+pub(crate) fn collapsed_thought_header(line: &Line, theme: &Theme, x: usize) -> bool {
+    let spans = line.spans();
+    let faded = collapsed_thought_color(theme);
+    if line.style() != Style::default() || spans.len() != 4 {
+        return false;
+    }
+    let label = spans[3].content();
+    let text = line.plain_text();
+    spans[0].content() == " ".repeat(MESSAGE_PADDING)
+        && spans[0].style() == Style::default()
+        && spans[1].content() == "+"
+        && spans[1].style() == Style::default().fg(faded)
+        && spans[2].content() == " ".repeat(INLINE_ICON_WIDTH - 1)
+        && spans[2].style() == Style::default()
+        && spans[3].style() == Style::default().fg(faded)
+        && !label.is_empty()
+        && (label.starts_with("Thought") || "Thought".starts_with(label))
+        && x >= MESSAGE_PADDING
+        && x < UnicodeWidthStr::width(text.trim_end())
+}
+
+/// Recolor only the header's warning spans; keep icon gap, text and clipping.
+pub(crate) fn hover_collapsed_thought(line: &Line, theme: &Theme) -> Line {
+    let faded = collapsed_thought_color(theme);
+    Line::new(
+        line.spans()
+            .iter()
+            .map(|span| {
+                let style = if span.style().fg == Some(faded) {
+                    span.style().fg(theme.warning())
+                } else {
+                    span.style()
+                };
+                Span::styled(span.content(), style)
+            })
+            .collect(),
+    )
+    .with_style(line.style())
 }
 
 fn reasoning_lines(reasoning: &ReasoningBlock, theme: &Theme, width: u16) -> Vec<Line> {
@@ -3467,13 +3538,83 @@ mod tests {
         assert_eq!(buffer[(3, 3)].fg, theme.markdown(MarkdownToken::Text));
     }
 
+    #[test]
+    fn clipped_thought_hit_requires_generated_styles_and_painted_cells() {
+        let theme = Theme::dark();
+        let reasoning = ReasoningBlock {
+            text: "**界界**\n\nbody".into(),
+            duration_ms: None,
+            running: false,
+            expanded: false,
+            toggleable: true,
+            identity: None,
+        };
+        let clipped = clipped_reasoning_header(&reasoning, theme, 11);
+        assert_eq!(clipped.plain_text(), "   + Though");
+        for x in 0..11 {
+            assert_eq!(
+                collapsed_thought_header(&clipped, theme, x),
+                x >= 3,
+                "x={x}"
+            );
+        }
+        assert!(!collapsed_thought_header(&clipped, theme, 11));
+        let full = clipped_reasoning_header(&reasoning, theme, 17);
+        assert_eq!(full.plain_text(), "   + Thought: 界");
+        assert!(
+            !collapsed_thought_header(&full, theme, 16),
+            "wide glyph tail"
+        );
+
+        // Model-controlled text can produce the same bytes, but not the
+        // generated icon/label styles. A partial color match is insufficient.
+        for text in ["+ Thought", "   + Thought", "`+ Thought`", "+ Though"] {
+            for line in markdown_block(text, theme, 11) {
+                assert!(!collapsed_thought_header(&line, theme, 5), "{text:?}");
+            }
+        }
+        let mut tool = exploration_tool("read", "error", false);
+        tool.tool = Some(card_from_row(&ToolOpView {
+            rowid: 1,
+            op: "read".into(),
+            name: "read".into(),
+            state: "error".into(),
+            input: Some(serde_json::json!({"path": "+ Thought"}).to_string()),
+            output: Some("+ Thought".into()),
+            output_bytes: 9,
+            output_truncated: false,
+        }));
+        let tool_lines = transcript(&[tool], theme, 60, 60, |_| theme.text());
+        assert!(
+            tool_lines
+                .iter()
+                .any(|line| line.plain_text().contains("+ Thought"))
+        );
+        for line in tool_lines {
+            assert!(!collapsed_thought_header(&line, theme, 5));
+        }
+        let mut counterfeit = clipped.clone();
+        let mut spans = counterfeit.spans().to_vec();
+        spans[3] = Span::plain(spans[3].content());
+        counterfeit = Line::new(spans);
+        assert!(!collapsed_thought_header(&counterfeit, theme, 5));
+        let mut spans = clipped.spans().to_vec();
+        spans[2] = Span::styled(" ", Style::default().fg(collapsed_thought_color(theme)));
+        assert!(!collapsed_thought_header(&Line::new(spans), theme, 5));
+    }
+
     /// Collapsed reasoning (`routes/session/index.tsx:1765-1815`): a static
     /// spinner header while running, `+ Thought: <title> · <duration>` once
     /// complete; collapsed warning alpha 0.6, open warning.base.
     #[test]
     fn golden_reasoning_running_and_completed() {
         let theme = Theme::dark();
-        let fading = theme.fade(theme.warning(), 0.6);
+        let fading = Color::Rgb(0x97, 0x68, 0x2c);
+        assert_eq!(collapsed_thought_color(theme), fading);
+        assert_eq!(
+            collapsed_thought_color(Theme::light()),
+            Color::Rgb(0xe6, 0xba, 0x7d)
+        );
         let running = HistoryRow {
             reasoning: Some(ReasoningBlock {
                 text: "**Inspecting**\n\nbody".to_string(),
@@ -3528,6 +3669,12 @@ mod tests {
         assert_eq!(buffer[(4, 1)].symbol(), " ");
         assert_eq!(buffer[(4, 1)].fg, Color::Reset);
         assert_eq!(buffer[(5, 1)].fg, fading);
+        assert!(collapsed_thought_header(
+            &transcript(std::slice::from_ref(&completed), theme, 60, 60, |_| theme
+                .text())[1],
+            theme,
+            MESSAGE_PADDING
+        ));
         let mut open = completed.clone();
         open.reasoning.as_mut().unwrap().expanded = true;
         let (rows, buffer) = render(&[open.clone()], 60, 6);
@@ -3546,7 +3693,7 @@ mod tests {
         let (rows, buffer) = render(&[open], 60, 6);
         assert_eq!(rows[1], "   ┃ Thought: 1.5s");
         assert_eq!(buffer[(5, 1)].symbol(), "T");
-        assert_eq!(buffer[(5, 1)].fg, fading);
+        assert_eq!(buffer[(5, 1)].fg, theme.fade(theme.warning(), 0.6));
         // Unknown duration renders `Thought` without an invented `0ms`.
         let no_duration = HistoryRow {
             reasoning: Some(ReasoningBlock {
@@ -3711,7 +3858,7 @@ mod tests {
         });
         let (collapsed, buffer) = render(std::slice::from_ref(&row), 120, 40);
         assert_eq!(collapsed[1], "   + Thought: Inspecting · 5ms");
-        assert_eq!(buffer[(3, 1)].fg, theme.fade(theme.warning(), 0.6));
+        assert_eq!(buffer[(3, 1)].fg, collapsed_thought_color(theme));
         row.reasoning.as_mut().unwrap().expanded = true;
         let (open, buffer) = render(std::slice::from_ref(&row), 120, 40);
         assert_eq!(open[1], "   - Thought · 5ms");

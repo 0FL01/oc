@@ -918,7 +918,7 @@ fn render_transcript(frame: &mut Frame<'_>, state: &TuiState, area: Rect, termin
     let (lines, total, scroll) =
         state.visible_transcript_at_viewport(area.width, terminal_width, area.height);
     state.observe_transcript_viewport(area.width, terminal_width, area.height, total, scroll);
-    let lines = state.paint_transcript(area, &lines, total, scroll);
+    let lines = state.paint_transcript_at(area, &lines, total, scroll, Some(frame.area()));
     let text = crate::styled::Lines::from(lines).into_text();
     frame.render_widget(Paragraph::new(text), area);
 }

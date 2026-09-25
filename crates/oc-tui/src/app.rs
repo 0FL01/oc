@@ -2053,6 +2053,7 @@ impl TuiState {
     /// Snapshot only the rows actually painted. This same bounded set supplies
     /// the rendered highlight and the clipboard; a new frame or resize makes
     /// stale selections unusable until the next valid mouse selection.
+    #[cfg(test)]
     pub(crate) fn paint_transcript(
         &self,
         area: Rect,
@@ -2060,6 +2061,35 @@ impl TuiState {
         total: usize,
         scroll: usize,
     ) -> Vec<Line> {
+        self.paint_transcript_at(area, rows, total, scroll, None)
+    }
+
+    /// The terminal frame is the pointer's owner. The visible rows already
+    /// have the clipped header and styles; drawing must not re-index history.
+    pub(crate) fn paint_transcript_at(
+        &self,
+        area: Rect,
+        rows: &[Line],
+        total: usize,
+        scroll: usize,
+        frame: Option<Rect>,
+    ) -> Vec<Line> {
+        let theme = Theme::dark();
+        let hover_row = frame.and_then(|frame| {
+            let (x, y, owner) = self.last_mouse?;
+            if owner != frame
+                || self.panel != TuiPanel::None
+                || self.thinking_expanded
+                || area != crate::shell::transcript_area(self, frame)
+                || !area.contains((x, y).into())
+                || self.transcript_overpainted(frame, x, y)
+            {
+                return None;
+            }
+            let row = (y - area.y) as usize;
+            crate::messages::collapsed_thought_header(rows.get(row)?, theme, (x - area.x) as usize)
+                .then_some(row)
+        });
         let selected = self.selection.as_ref().filter(|selected| {
             selected.painted.area == area
                 && selected.painted.total == total
@@ -2071,6 +2101,13 @@ impl TuiState {
             .iter()
             .enumerate()
             .map(|(row, line)| {
+                let hovered;
+                let line = if hover_row == Some(row) {
+                    hovered = crate::messages::hover_collapsed_thought(line, theme);
+                    &hovered
+                } else {
+                    line
+                };
                 if let Some(selected) = selected {
                     let (start, end) = selected.bounds();
                     let begin = if row == start.row {
@@ -2088,7 +2125,6 @@ impl TuiState {
                         0
                     };
                     if begin < finish {
-                        let theme = Theme::dark();
                         return line.highlight(begin, finish, theme.text(), theme.background());
                     }
                 }
@@ -8934,6 +8970,167 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn completed_thought_hover_tracks_painted_header_and_release_only_recollapse() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        use oc_core::queries::{HistoryTurn, TranscriptPart};
+        use ratatui::{Terminal, backend::TestBackend};
+
+        let mut state = fresh_state("thought-hover").await;
+        let mut message = msg(9, Role::Assistant, "after thought");
+        message.turn = Some(HistoryTurn {
+            parts: vec![TranscriptPart::Reasoning {
+                text: "**Tracing**\n\nbody".into(),
+                duration_ms: Some(1500),
+            }],
+            status: "completed".into(),
+            ..Default::default()
+        });
+        state.attach_page(&page(vec![message], 1, false, false));
+        let area = Rect::new(0, 0, 80, 24);
+        let rect = crate::shell::transcript_area(&state, area);
+        let (rows, _, _) =
+            state.visible_transcript_at_viewport(rect.width, area.width, rect.height);
+        let y = rect.y
+            + rows
+                .iter()
+                .position(|line| line.plain_text().contains("Thought"))
+                .unwrap() as u16;
+        let x = rect.x + 5;
+        let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+        let mut color = |state: &TuiState| {
+            terminal
+                .draw(|frame| crate::shell::render(frame, state))
+                .unwrap();
+            terminal.backend().buffer()[(x, y)].fg
+        };
+        let faded = ratatui::style::Color::Rgb(0x97, 0x68, 0x2c);
+        let bright = super::Theme::dark().warning();
+        assert_eq!(color(&state), faded, "initial no-hover");
+        state.handle_mouse(selection_mouse(MouseEventKind::Moved, x, y), area);
+        assert_eq!(color(&state), bright);
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+            area,
+        );
+        assert_eq!(color(&state), bright, "expanded");
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+            area,
+        );
+        assert_eq!(
+            color(&state),
+            bright,
+            "recollapsed under stationary pointer"
+        );
+        state.click = None;
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            area,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+            area,
+        );
+        assert_eq!(color(&state), bright, "normal click expands");
+        state.click = None;
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            area,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+            area,
+        );
+        assert_eq!(color(&state), bright, "normal click recollapses");
+        state.handle_mouse(selection_mouse(MouseEventKind::Moved, x, y + 1), area);
+        assert_eq!(color(&state), faded, "non-header row");
+        state.handle_mouse(selection_mouse(MouseEventKind::Moved, x, y), area);
+        state.panel = TuiPanel::Help(None);
+        assert_ne!(color(&state), bright, "modal owns pointer");
+        state.close_panel();
+        state.clear_mouse_position();
+        assert_eq!(color(&state), faded, "resize invalidates pointer");
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Moved, x, y),
+            Rect::new(0, 0, 81, 24),
+        );
+        assert_eq!(color(&state), faded, "old terminal area is not owner");
+        state.handle_mouse(selection_mouse(MouseEventKind::Moved, x, y), area);
+        assert_eq!(color(&state), bright);
+        for i in 0..30 {
+            state
+                .window
+                .push_synthetic("assistant", &format!("later message {i}"), None, None);
+        }
+        assert_ne!(color(&state), bright, "scrolled-off header cannot hover");
+    }
+
+    #[tokio::test]
+    async fn clipped_hover_draw_uses_only_its_visible_indexed_traversal() {
+        use crossterm::event::MouseEventKind;
+        use oc_core::queries::{HistoryTurn, TranscriptPart};
+        use ratatui::{Terminal, backend::TestBackend};
+
+        let mut state = fresh_state("clipped-thought-hover").await;
+        let mut message = msg(9, Role::Assistant, "");
+        message.turn = Some(HistoryTurn {
+            parts: vec![TranscriptPart::Reasoning {
+                text: "**Tracing**\n\nbody".into(),
+                duration_ms: None,
+            }],
+            status: "completed".into(),
+            ..Default::default()
+        });
+        state.attach_page(&page(vec![message], 1, false, false));
+        let frame = (11..140)
+            .map(|width| Rect::new(0, 0, width, 24))
+            .find(|frame| crate::shell::transcript_area(&state, *frame).width == 11)
+            .expect("a terminal width with an 11-cell transcript");
+        let rect = crate::shell::transcript_area(&state, frame);
+        let (rows, _, _) =
+            state.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
+        let row = rows
+            .iter()
+            .position(|line| line.plain_text() == "   + Though")
+            .expect("clipped header is painted");
+        let y = rect.y + row as u16;
+        let x = rect.x + 5;
+        let mut terminal = Terminal::new(TestBackend::new(frame.width, frame.height)).unwrap();
+        let mut draw = |state: &TuiState| {
+            let before = crate::messages::indexed_traversals();
+            terminal
+                .draw(|frame| crate::shell::render(frame, state))
+                .unwrap();
+            (
+                crate::messages::indexed_traversals() - before,
+                terminal.backend().buffer()[(x, y)].fg,
+            )
+        };
+        let faded = ratatui::style::Color::Rgb(0x97, 0x68, 0x2c);
+        let bright = super::Theme::dark().warning();
+        let (normal_work, normal_color) = draw(&state);
+        assert_eq!(normal_work, 1, "one indexed viewport traversal per draw");
+        assert_eq!(normal_color, faded);
+        state.handle_mouse(selection_mouse(MouseEventKind::Moved, x, y), frame);
+        assert_eq!(draw(&state), (normal_work, bright), "clipped hover");
+        assert_eq!(draw(&state), (normal_work, bright), "stationary hover");
+        state.live_text = "streaming frame".into();
+        assert_eq!(
+            draw(&state),
+            (normal_work, bright),
+            "streaming hover keeps the clipped header and re-indexes once"
+        );
+        state.live_text.clear();
+        state.handle_mouse(selection_mouse(MouseEventKind::Moved, rect.x + 2, y), frame);
+        assert_eq!(draw(&state), (normal_work, faded), "padding is not a hit");
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Moved, rect.x + 10, y),
+            frame,
+        );
+        assert_eq!(draw(&state), (normal_work, bright), "last visible cell");
+    }
+
+    #[tokio::test]
     async fn reasoning_selected_text_blocks_release_but_new_click_replaces_selection() {
         use crossterm::event::{MouseButton, MouseEventKind};
         let mut state = fresh_state("reasoning-selected-text").await;
@@ -9269,6 +9466,15 @@ mod tests {
         toast.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), x, y), area);
         toast.push_note("Overpaint");
         toast.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), area);
+        toast.handle_mouse(mouse(MouseEventKind::Moved, x, y), area);
+        let (rows, total, scroll) =
+            toast.visible_transcript_at_viewport(rect.width, area.width, rect.height);
+        let painted = toast.paint_transcript_at(rect, &rows, total, scroll, Some(area));
+        assert_eq!(
+            painted[(y - rect.y) as usize].spans()[1].style().fg,
+            Some(ratatui::style::Color::Rgb(0x97, 0x68, 0x2c)),
+            "toast-owned header does not acquire hover"
+        );
         toast.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), area);
         click(&mut toast, x, y);
         assert!(
