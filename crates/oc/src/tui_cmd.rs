@@ -1809,6 +1809,7 @@ async fn handle_worker_event(
         | CoreEvent::TurnPresentation { session, .. }
         | CoreEvent::TextDelta { session, .. }
         | CoreEvent::ReasoningDelta { session, .. }
+        | CoreEvent::ReasoningItemEnded { session, .. }
         | CoreEvent::ToolCallStarted { session, .. }
         | CoreEvent::ToolCallFinished { session, .. }
         | CoreEvent::TurnUsage { session, .. }
@@ -1827,6 +1828,9 @@ async fn handle_worker_event(
         CoreEvent::TextDelta { turn, delta, .. } => state.apply_delta(&turn, &delta),
         CoreEvent::ReasoningDelta { turn, delta, .. } => {
             state.apply_reasoning_delta(&turn, &delta);
+        }
+        CoreEvent::ReasoningItemEnded { turn, .. } => {
+            state.apply_reasoning_item_ended(&turn);
         }
         CoreEvent::ToolCallStarted {
             turn,
@@ -1998,6 +2002,206 @@ mod tests {
     use oc_core::core_app::WorkerTurnId;
     use oc_core::queries::{AutoAcceptState, HistoryMessage, HistoryPage, ToolOpPage, ToolOpView};
     use oc_core::session::Role;
+
+    #[tokio::test]
+    async fn vis15_finished_turn_immediately_renders_unstreamed_canonical_text_in_part_order() {
+        use oc_core::queries::TranscriptPart;
+        use std::collections::BTreeMap;
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+        use std::sync::Arc;
+        use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        std::fs::create_dir(&project).unwrap();
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        std::fs::write(
+            project.join("opencode.json"),
+            serde_json::json!({
+                "model":"fixture/m", "provider":{"fixture":{"npm":"@ai-sdk/openai",
+                "options":{"baseURL":format!("http://{address}/v1"),"apiKey":"fixture-key"},
+                "models":{"m":{}}}}
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let message = |id: &str, text: &str| {
+            serde_json::json!({
+                "type":"message", "role":"assistant", "id":id, "status":"completed",
+                "content":[{"type":"output_text", "text":text}]
+            })
+        };
+        let first = message("m1", "between");
+        let last = message("m2", "final");
+        let reason = |id: &str| {
+            serde_json::json!({
+                "type":"reasoning", "id":id, "status":"completed",
+                "encrypted_content":format!("private-{id}"), "summary":[]
+            })
+        };
+        let r1 = reason("r1");
+        let r2 = reason("r2");
+        let sse = [
+            serde_json::json!({"type":"response.reasoning_summary_text.delta","delta":"Inspecting"}),
+            serde_json::json!({"type":"response.output_item.done","item":r1}),
+            serde_json::json!({"type":"response.output_text.delta","delta":"between"}),
+            serde_json::json!({"type":"response.output_item.done","output_index":1,"item":first}),
+            serde_json::json!({"type":"response.reasoning_summary_text.delta","delta":"Verifying"}),
+            serde_json::json!({"type":"response.output_item.done","item":r2}),
+            serde_json::json!({"type":"response.output_item.done","output_index":3,"item":last}),
+            serde_json::json!({"type":"response.completed","response":{"status":"completed",
+                "output":[r1,first,r2,last],"usage":{"input_tokens":10,"output_tokens":5}}}),
+        ]
+        .iter()
+        .map(|event| format!("data: {event}\n\n"))
+        .collect::<String>();
+        let requests = Arc::new(AtomicUsize::new(0));
+        let counted = requests.clone();
+        let stop = Arc::new(AtomicBool::new(false));
+        let stopping = stop.clone();
+        let server = std::thread::spawn(move || {
+            listener.set_nonblocking(true).unwrap();
+            let deadline = std::time::Instant::now() + Duration::from_secs(10);
+            let mut served = false;
+            while !stopping.load(Ordering::SeqCst) && std::time::Instant::now() < deadline {
+                match listener.accept() {
+                    Ok((mut socket, _)) => {
+                        counted.fetch_add(1, Ordering::SeqCst);
+                        assert!(!served, "history refresh must not make a provider request");
+                        served = true;
+                        socket
+                            .set_read_timeout(Some(Duration::from_secs(5)))
+                            .unwrap();
+                        let mut bytes = Vec::new();
+                        let mut chunk = [0; 4096];
+                        let end = loop {
+                            let n = socket.read(&mut chunk).unwrap();
+                            assert!(n > 0);
+                            bytes.extend_from_slice(&chunk[..n]);
+                            if let Some(pos) = bytes.windows(4).position(|part| part == b"\r\n\r\n")
+                            {
+                                break pos + 4;
+                            }
+                        };
+                        let headers = String::from_utf8_lossy(&bytes[..end]);
+                        let length: usize = headers
+                            .lines()
+                            .find_map(|line| {
+                                let (name, value) = line.split_once(':')?;
+                                name.eq_ignore_ascii_case("content-length")
+                                    .then(|| value.trim().parse().unwrap())
+                            })
+                            .unwrap();
+                        while bytes.len() < end + length {
+                            let n = socket.read(&mut chunk).unwrap();
+                            assert!(n > 0);
+                            bytes.extend_from_slice(&chunk[..n]);
+                        }
+                        write!(socket, "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{sse}", sse.len()).unwrap();
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                        std::thread::sleep(Duration::from_millis(10));
+                    }
+                    Err(error) => panic!("fake provider: {error}"),
+                }
+            }
+            assert!(served, "no provider request arrived");
+        });
+        let env = BTreeMap::from([
+            ("HOME".into(), root.path().to_string_lossy().to_string()),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]);
+        let (app, guard, _) =
+            oc_adapters::application::spawn_with_env(&project, &root.path().join("data"), env)
+                .await
+                .unwrap();
+        let session = SessionId::new("vis15-complete-text").unwrap();
+        app.create_session(session.clone()).await.unwrap();
+        app.rename_session(session.clone(), "Already titled".into())
+            .await
+            .unwrap();
+        let mut state = TuiState::new(app.clone(), session.clone());
+        let mut rx = app.subscribe();
+        state.handle_paste("show steps");
+        state.handle_key(KeyAction::Enter).await;
+        let mut loop_state = LoopState::default();
+        let mut saw_finished = false;
+        for _ in 0..32 {
+            let event = tokio::time::timeout(Duration::from_secs(10), rx.recv())
+                .await
+                .expect("worker event timeout")
+                .expect("worker event");
+            state.poll_submission();
+            if let CoreEvent::TurnFinished { text, .. } = &event {
+                assert_eq!(text, "betweenfinal");
+                assert!(!state.history().rows().iter().any(|row| row.text == "final"));
+                saw_finished = true;
+            }
+            handle_worker_event(&app, &mut state, &mut loop_state, &session, event)
+                .await
+                .unwrap();
+            if saw_finished {
+                break;
+            }
+        }
+        assert!(saw_finished);
+        assert_eq!(requests.load(Ordering::SeqCst), 1);
+        let page = app
+            .history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
+            .await
+            .unwrap();
+        let parts = &page
+            .rows
+            .iter()
+            .find_map(|row| row.turn.as_ref())
+            .unwrap()
+            .parts;
+        assert!(matches!(&parts[..],
+            [TranscriptPart::Reasoning { text: a, .. }, TranscriptPart::Text(b),
+             TranscriptPart::Reasoning { text: c, .. }, TranscriptPart::Text(d)]
+            if a == "Inspecting" && b == "between" && c == "Verifying" && d == "final"));
+        let rows = state.history().rows();
+        let visible: Vec<_> = rows
+            .iter()
+            .filter_map(|row| {
+                if let Some(reasoning) = &row.reasoning {
+                    Some(reasoning.text.as_str())
+                } else if !row.text.is_empty() && row.role == "assistant" {
+                    Some(row.text.as_str())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        assert_eq!(visible, ["Inspecting", "between", "Verifying", "final"]);
+        let painted: Vec<_> = state
+            .transcript_lines(80, 80)
+            .iter()
+            .map(|line| line.plain_text())
+            .collect();
+        let between = painted
+            .iter()
+            .position(|line| line.contains("between"))
+            .unwrap();
+        let final_text = painted
+            .iter()
+            .position(|line| line.contains("final"))
+            .unwrap();
+        assert!(
+            between < final_text,
+            "completed frame must include both text parts in order: {painted:?}"
+        );
+        assert_eq!(rows.iter().filter(|row| row.text == "final").count(), 1);
+        assert!(!format!("{rows:?}").contains("private-"));
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        // A history-page lookup is local; no second Responses call is needed.
+        assert_eq!(requests.load(Ordering::SeqCst), 1);
+        stop.store(true, Ordering::SeqCst);
+        server.join().unwrap();
+    }
 
     #[test]
     fn sampled_view_metrics_include_parked_routes_and_preserve_peaks() {

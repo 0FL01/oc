@@ -1,0 +1,4829 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-25T16:16:57.787Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "2c4db3711b1d8473aff0e730d704755d5548c5a4ef4cfa2879ce5a14294f17fc",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "e4f089d3f3fe0357f4edd18aa2bb2b4f82279a8f97e4d1b2b7917f2bb387452b"
+  },
+  "fixture_sha256": "bb28efbb85f1ecfbe29f964e0db70cf7244553ac336be05df2ba85611e6487d2",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "90d9945e43eb60b0522f93d163eed55739890e03",
+    "tree": "bc2e84f7b9655e3b051142e2c5478edd3a0f9656",
+    "dirty_diff_sha256": "c8c128d661ec38e9f0ab53b422ef174914611e862f27f2f8e65e0628c8d6c03d",
+    "source_manifest_sha256": "b5a1ea48e24d9271be89edc41a23be75eea1acebb29ed69a3cbf959bce7c347c",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "0a6f04da9ceb699ebcbfbb9efc3831b784e908c14c8c914511c805d93d67c37c",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "REASONING_STEPS_CHECKS_PASS",
+      "provider_counts": {
+        "transcript": 1,
+        "completed_transcript": 1,
+        "title": 1,
+        "completed_title": 1,
+        "invalid": 0,
+        "tool_results": 0
+      }
+    },
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "REASONING_STEPS_CHECKS_PASS",
+      "provider_counts": {
+        "transcript": 1,
+        "completed_transcript": 1,
+        "title": 1,
+        "completed_title": 1,
+        "invalid": 0,
+        "tool_results": 0
+      }
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "reasoning-steps-collapsed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "reasoning-steps-collapsed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "reasoning-steps-expanded",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "reasoning-steps-expanded",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "reasoning-steps-recollapsed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "reasoning-steps-recollapsed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f05218cf0406098523446bcf813b471ad21da914ec52e210d8804acfef757245",
+      "png_sha256": "77d73d054ef4154ee5526a1ddbc02d77ee8a4a6341b42c9151951ef996380aec",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "aa8272356c069b9caecd1b449e9a53a6c353ae893a47f00150ac38d990f7eff2",
+      "png_sha256": "74d9c962d223cb941b47e752c8bea47dcde7c8983c8b478b3b246a06d0f44210",
+      "render_sha256": "31f31f7967a9b188338e122ceec9ca19a46a316b78492e4ee12ffd5204ba486e",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "reasoning-steps-collapsed",
+      "status": "CAPTURED_REASONING_STEPS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "85743707e3663de0cbe1c5041d8af38df9b58c2c68c45d5dbfa992791a096618",
+      "png_sha256": "74d9c962d223cb941b47e752c8bea47dcde7c8983c8b478b3b246a06d0f44210",
+      "render_sha256": "1809d82f4144fba06b7005a5b7b5bcc4896315c326fc148e8edea42e961154dd",
+      "path": "upstream/reasoning-steps-collapsed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "reasoning-steps-expanded",
+      "status": "CAPTURED_REASONING_STEPS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ec2fd0ff75e6e7e12b6f53421b1ee46eb45677038766e1b79b6e58c9fb9efae7",
+      "png_sha256": "62ff3cd8a313ca4a836989d6aa885c2471e751e7d27af66f6f7dc282817b152b",
+      "render_sha256": "c5a3380c2662ba3e76f3cfcc98612299cbce07706b6a3a1bfb4be22334bfb783",
+      "path": "upstream/reasoning-steps-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "reasoning-steps-recollapsed",
+      "status": "CAPTURED_REASONING_STEPS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "227b0955265ba452a4b6a71ef1f88d83ba04475d2bc033735dc53bbd3cc9c45e",
+      "png_sha256": "3328bfcbe786b0f8a7caaf811750e1c6293bf19c0d9c6e260e05b50c33c27b16",
+      "render_sha256": "62fcb14f2aabfe1969626dabb148088965f23331056f6f7cb2e1cf5a3384916e",
+      "path": "upstream/reasoning-steps-recollapsed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "aae19b77387ee54428b2d078954b7af705c20a336131e5896e87f3ad91015fd7",
+      "png_sha256": "d68d137b484856e1fbba4325b0c3c2dd35153cf4149968107a0d93a8f5700ec7",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c34537b91b56694a108bf117d05d65814367917e121c1247f1d6adc97a6c7528",
+      "png_sha256": "10b02e4810fa7d825134208e19c1e816b5e0a1ed2b9cb7b38c8d2d2e5eafe92e",
+      "render_sha256": "bbcb61aa1a235504674a1c080c5988494874fc609d68d829d07af90a21840b16",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "reasoning-steps-collapsed",
+      "status": "CAPTURED_REASONING_STEPS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2c70910000e7299ed279af339cb9a750fe64f53c8245ebbdde766134a342e63b",
+      "png_sha256": "10b02e4810fa7d825134208e19c1e816b5e0a1ed2b9cb7b38c8d2d2e5eafe92e",
+      "render_sha256": "0436b4ae8ac1a62c75f876537a2910a100dea5dffc7b7aee065706ef8fa633d0",
+      "path": "oc/reasoning-steps-collapsed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "reasoning-steps-expanded",
+      "status": "CAPTURED_REASONING_STEPS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "a39a8e66038f6fa3893fdfa2f796e6805631708ab79d7e4496b08f514851dffb",
+      "png_sha256": "7bd84eaf5bd0a87b68ee596383f0094548fa9820d3c567428345a0908053125c",
+      "render_sha256": "1b1d04ada1d5a12e265c02f2680a6ea58ebdf3482c4338194f9835a000d875b5",
+      "path": "oc/reasoning-steps-expanded"
+    },
+    {
+      "origin": "oc",
+      "scenario": "reasoning-steps-recollapsed",
+      "status": "CAPTURED_REASONING_STEPS",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "059e3f07b57d22dcfce31217e0629a0cc3224439fbcf259cdfbc5d9d3c03fb61",
+      "png_sha256": "44d995341e28f7d01b079b753ce34f24000b32776a6f08fb3259dca378c396da",
+      "render_sha256": "dc487b8a0aa3374a5be1ec73a408c5a871fa3f8725c0e2c7ddd2cbe5a0f745fd",
+      "path": "oc/reasoning-steps-recollapsed"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "reasoning_steps": {
+    "upstream": {
+      "status": "PASS",
+      "baseline": {
+        "transcript": 1,
+        "completed_transcript": 1,
+        "title": 1,
+        "completed_title": 1,
+        "invalid": 0,
+        "tool_results": 0
+      },
+      "checks": [
+        {
+          "stage": "provider-baseline",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "+ Thought: Verifying · 2 steps",
+                "state": "collapsed",
+                "title": "Verifying",
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "+",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": ":",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "V",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "r",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "f",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "y",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "n",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [],
+              []
+            ],
+            "title_positions": [
+              [],
+              [
+                {
+                  "x": 16,
+                  "y": 6
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "755302b3cd05149ebdf19e111f54acbb3cd09db8ed8148f82c998aa3e6ebdbc3"
+          },
+          "predicates": {
+            "stable_completed_capture": true,
+            "one_completed_transcript": true,
+            "one_completed_title": true,
+            "no_invalid": true,
+            "no_tool": true,
+            "answer_visible": true
+          }
+        },
+        {
+          "stage": "collapsed-capture",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "+ Thought: Verifying · 2 steps",
+                "state": "collapsed",
+                "title": "Verifying",
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "+",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": ":",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "V",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "r",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "f",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "y",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "n",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [],
+              []
+            ],
+            "title_positions": [
+              [],
+              [
+                {
+                  "x": 16,
+                  "y": 6
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "755302b3cd05149ebdf19e111f54acbb3cd09db8ed8148f82c998aa3e6ebdbc3"
+          },
+          "predicates": {
+            "stable_capture": true
+          }
+        },
+        {
+          "stage": "collapsed",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "+ Thought: Verifying · 2 steps",
+                "state": "collapsed",
+                "title": "Verifying",
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "+",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": ":",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "V",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "r",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "f",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "y",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "n",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [],
+              []
+            ],
+            "title_positions": [
+              [],
+              [
+                {
+                  "x": 16,
+                  "y": 6
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "755302b3cd05149ebdf19e111f54acbb3cd09db8ed8148f82c998aa3e6ebdbc3"
+          },
+          "predicates": {
+            "one_group": true,
+            "header_state": true,
+            "two_steps": true,
+            "header_title": true,
+            "distinct_bodies": true,
+            "titles_visible": true,
+            "answer_visible": true,
+            "opaque_absent": true,
+            "provider_unchanged": true
+          }
+        },
+        {
+          "stage": "expand-before-click",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "+ Thought: Verifying · 2 steps",
+                "state": "collapsed",
+                "title": "Verifying",
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "+",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": ":",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "V",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "r",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "f",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "y",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "n",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [],
+              []
+            ],
+            "title_positions": [
+              [],
+              [
+                {
+                  "x": 16,
+                  "y": 6
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "755302b3cd05149ebdf19e111f54acbb3cd09db8ed8148f82c998aa3e6ebdbc3"
+          },
+          "predicates": {
+            "one_group": true,
+            "expected_header": true,
+            "provider_unchanged": true
+          }
+        },
+        {
+          "stage": "expand-input",
+          "cell": {
+            "x": 7,
+            "y": 6
+          },
+          "pty_column": 8,
+          "pty_row": 7,
+          "down_base64": "G1s8MDs4OzdN",
+          "up_base64": "G1s8MDs4Ozdt"
+        },
+        {
+          "stage": "expanded",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "- Thought · 2 steps",
+                "state": "expanded",
+                "title": null,
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "-",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [
+                {
+                  "x": 7,
+                  "y": 10
+                }
+              ],
+              [
+                {
+                  "x": 7,
+                  "y": 14
+                }
+              ]
+            ],
+            "title_positions": [
+              [
+                {
+                  "x": 7,
+                  "y": 8
+                }
+              ],
+              [
+                {
+                  "x": 7,
+                  "y": 12
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 16
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "16f71fa4d373b2371820899e0715cc391bbb51800a06612eafd5bf3403497b06"
+          },
+          "predicates": {
+            "one_group": true,
+            "header_state": true,
+            "two_steps": true,
+            "header_title": true,
+            "distinct_bodies": true,
+            "titles_visible": true,
+            "answer_visible": true,
+            "opaque_absent": true,
+            "provider_unchanged": true
+          }
+        },
+        {
+          "stage": "expanded-capture",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "- Thought · 2 steps",
+                "state": "expanded",
+                "title": null,
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "-",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [
+                {
+                  "x": 7,
+                  "y": 10
+                }
+              ],
+              [
+                {
+                  "x": 7,
+                  "y": 14
+                }
+              ]
+            ],
+            "title_positions": [
+              [
+                {
+                  "x": 7,
+                  "y": 8
+                }
+              ],
+              [
+                {
+                  "x": 7,
+                  "y": 12
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 16
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "16f71fa4d373b2371820899e0715cc391bbb51800a06612eafd5bf3403497b06"
+          },
+          "predicates": {
+            "stable_capture": true
+          }
+        },
+        {
+          "stage": "recollapse-before-click",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "- Thought · 2 steps",
+                "state": "expanded",
+                "title": null,
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "-",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [
+                {
+                  "x": 7,
+                  "y": 10
+                }
+              ],
+              [
+                {
+                  "x": 7,
+                  "y": 14
+                }
+              ]
+            ],
+            "title_positions": [
+              [
+                {
+                  "x": 7,
+                  "y": 8
+                }
+              ],
+              [
+                {
+                  "x": 7,
+                  "y": 12
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 16
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "16f71fa4d373b2371820899e0715cc391bbb51800a06612eafd5bf3403497b06"
+          },
+          "predicates": {
+            "one_group": true,
+            "expected_header": true,
+            "provider_unchanged": true
+          }
+        },
+        {
+          "stage": "recollapse-input",
+          "cell": {
+            "x": 7,
+            "y": 6
+          },
+          "pty_column": 8,
+          "pty_row": 7,
+          "down_base64": "G1s8MDs4OzdN",
+          "up_base64": "G1s8MDs4Ozdt"
+        },
+        {
+          "stage": "recollapsed",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "+ Thought: Verifying · 2 steps",
+                "state": "collapsed",
+                "title": "Verifying",
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "+",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": ":",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "V",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "r",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "f",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "y",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "n",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [],
+              []
+            ],
+            "title_positions": [
+              [],
+              [
+                {
+                  "x": 16,
+                  "y": 6
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "3b387eec5472fe75fd05ab2dc5783b653c7a6e73a65f3f5b9d526542e27726a4"
+          },
+          "predicates": {
+            "one_group": true,
+            "header_state": true,
+            "two_steps": true,
+            "header_title": true,
+            "distinct_bodies": true,
+            "titles_visible": true,
+            "answer_visible": true,
+            "opaque_absent": true,
+            "provider_unchanged": true
+          }
+        },
+        {
+          "stage": "recollapsed-capture",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "+ Thought: Verifying · 2 steps",
+                "state": "collapsed",
+                "title": "Verifying",
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "+",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": ":",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "V",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "r",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "f",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "y",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "n",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [],
+              []
+            ],
+            "title_positions": [
+              [],
+              [
+                {
+                  "x": 16,
+                  "y": 6
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "3b387eec5472fe75fd05ab2dc5783b653c7a6e73a65f3f5b9d526542e27726a4"
+          },
+          "predicates": {
+            "stable_capture": true
+          }
+        }
+      ]
+    },
+    "oc": {
+      "status": "PASS",
+      "baseline": {
+        "transcript": 1,
+        "completed_transcript": 1,
+        "title": 1,
+        "completed_title": 1,
+        "invalid": 0,
+        "tool_results": 0
+      },
+      "checks": [
+        {
+          "stage": "provider-baseline",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "+ Thought: Verifying · 2 steps",
+                "state": "collapsed",
+                "title": "Verifying",
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "+",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": ":",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "V",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "r",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "f",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "y",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "n",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [],
+              []
+            ],
+            "title_positions": [
+              [],
+              [
+                {
+                  "x": 16,
+                  "y": 6
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "818b2603f7dd80fe97e0a2413193d4531afdb79e8607338c5205ae620b34cb89"
+          },
+          "predicates": {
+            "stable_completed_capture": true,
+            "one_completed_transcript": true,
+            "one_completed_title": true,
+            "no_invalid": true,
+            "no_tool": true,
+            "answer_visible": true
+          }
+        },
+        {
+          "stage": "collapsed-capture",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "+ Thought: Verifying · 2 steps",
+                "state": "collapsed",
+                "title": "Verifying",
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "+",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": ":",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "V",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "r",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "f",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "y",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "n",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [],
+              []
+            ],
+            "title_positions": [
+              [],
+              [
+                {
+                  "x": 16,
+                  "y": 6
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "818b2603f7dd80fe97e0a2413193d4531afdb79e8607338c5205ae620b34cb89"
+          },
+          "predicates": {
+            "stable_capture": true
+          }
+        },
+        {
+          "stage": "collapsed",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "+ Thought: Verifying · 2 steps",
+                "state": "collapsed",
+                "title": "Verifying",
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "+",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": ":",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "V",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "r",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "f",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "y",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "n",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [],
+              []
+            ],
+            "title_positions": [
+              [],
+              [
+                {
+                  "x": 16,
+                  "y": 6
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "818b2603f7dd80fe97e0a2413193d4531afdb79e8607338c5205ae620b34cb89"
+          },
+          "predicates": {
+            "one_group": true,
+            "header_state": true,
+            "two_steps": true,
+            "header_title": true,
+            "distinct_bodies": true,
+            "titles_visible": true,
+            "answer_visible": true,
+            "opaque_absent": true,
+            "provider_unchanged": true
+          }
+        },
+        {
+          "stage": "expand-before-click",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "+ Thought: Verifying · 2 steps",
+                "state": "collapsed",
+                "title": "Verifying",
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "+",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": ":",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "V",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "r",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "f",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "y",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "n",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#97682c",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [],
+              []
+            ],
+            "title_positions": [
+              [],
+              [
+                {
+                  "x": 16,
+                  "y": 6
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "818b2603f7dd80fe97e0a2413193d4531afdb79e8607338c5205ae620b34cb89"
+          },
+          "predicates": {
+            "one_group": true,
+            "expected_header": true,
+            "provider_unchanged": true
+          }
+        },
+        {
+          "stage": "expand-input",
+          "cell": {
+            "x": 7,
+            "y": 6
+          },
+          "pty_column": 8,
+          "pty_row": 7,
+          "down_base64": "G1s8MDs4OzdN",
+          "up_base64": "G1s8MDs4Ozdt"
+        },
+        {
+          "stage": "expanded",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "- Thought · 2 steps",
+                "state": "expanded",
+                "title": null,
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "-",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [
+                {
+                  "x": 7,
+                  "y": 10
+                }
+              ],
+              [
+                {
+                  "x": 7,
+                  "y": 14
+                }
+              ]
+            ],
+            "title_positions": [
+              [
+                {
+                  "x": 7,
+                  "y": 8
+                }
+              ],
+              [
+                {
+                  "x": 7,
+                  "y": 12
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 16
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "65fcca551cc2525d87c9c630dbeb2a45173ccffdd32a33360af88613ca29cf04"
+          },
+          "predicates": {
+            "one_group": true,
+            "header_state": true,
+            "two_steps": true,
+            "header_title": true,
+            "distinct_bodies": true,
+            "titles_visible": true,
+            "answer_visible": true,
+            "opaque_absent": true,
+            "provider_unchanged": true
+          }
+        },
+        {
+          "stage": "expanded-capture",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "- Thought · 2 steps",
+                "state": "expanded",
+                "title": null,
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "-",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [
+                {
+                  "x": 7,
+                  "y": 10
+                }
+              ],
+              [
+                {
+                  "x": 7,
+                  "y": 14
+                }
+              ]
+            ],
+            "title_positions": [
+              [
+                {
+                  "x": 7,
+                  "y": 8
+                }
+              ],
+              [
+                {
+                  "x": 7,
+                  "y": 12
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 16
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "65fcca551cc2525d87c9c630dbeb2a45173ccffdd32a33360af88613ca29cf04"
+          },
+          "predicates": {
+            "stable_capture": true
+          }
+        },
+        {
+          "stage": "recollapse-before-click",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "- Thought · 2 steps",
+                "state": "expanded",
+                "title": null,
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "-",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [
+                {
+                  "x": 7,
+                  "y": 10
+                }
+              ],
+              [
+                {
+                  "x": 7,
+                  "y": 14
+                }
+              ]
+            ],
+            "title_positions": [
+              [
+                {
+                  "x": 7,
+                  "y": 8
+                }
+              ],
+              [
+                {
+                  "x": 7,
+                  "y": 12
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 16
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "65fcca551cc2525d87c9c630dbeb2a45173ccffdd32a33360af88613ca29cf04"
+          },
+          "predicates": {
+            "one_group": true,
+            "expected_header": true,
+            "provider_unchanged": true
+          }
+        },
+        {
+          "stage": "recollapse-input",
+          "cell": {
+            "x": 7,
+            "y": 6
+          },
+          "pty_column": 8,
+          "pty_row": 7,
+          "down_base64": "G1s8MDs4OzdN",
+          "up_base64": "G1s8MDs4Ozdt"
+        },
+        {
+          "stage": "recollapsed",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "+ Thought: Verifying · 2 steps",
+                "state": "collapsed",
+                "title": "Verifying",
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "+",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": ":",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "V",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "r",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "f",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "y",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "n",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [],
+              []
+            ],
+            "title_positions": [
+              [],
+              [
+                {
+                  "x": 16,
+                  "y": 6
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "7c5df8fc8a8632c88d2b6432379089342d739ebab6f300c45148ed930e24be1f"
+          },
+          "predicates": {
+            "one_group": true,
+            "header_state": true,
+            "two_steps": true,
+            "header_title": true,
+            "distinct_bodies": true,
+            "titles_visible": true,
+            "answer_visible": true,
+            "opaque_absent": true,
+            "provider_unchanged": true
+          }
+        },
+        {
+          "stage": "recollapsed-capture",
+          "observed": {
+            "headers": [
+              {
+                "x": 5,
+                "y": 6,
+                "text": "+ Thought: Verifying · 2 steps",
+                "state": "collapsed",
+                "title": "Verifying",
+                "steps": 2,
+                "cells": [
+                  {
+                    "symbol": "+",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#ffffff",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "T",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "o",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "u",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "h",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": ":",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "V",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "r",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "f",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "y",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "i",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "n",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "g",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "·",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "2",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": " ",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "t",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "e",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "p",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  },
+                  {
+                    "symbol": "s",
+                    "fg": "#f5a742",
+                    "bg": "#0a0a0a",
+                    "width": 1,
+                    "modifiers": []
+                  }
+                ]
+              }
+            ],
+            "body_positions": [
+              [],
+              []
+            ],
+            "title_positions": [
+              [],
+              [
+                {
+                  "x": 16,
+                  "y": 6
+                }
+              ]
+            ],
+            "answer_positions": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "opaque_absent": true,
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "completed_transcript": 1,
+              "title": 1,
+              "completed_title": 1,
+              "invalid": 0,
+              "tool_results": 0
+            },
+            "grid_sha256": "7c5df8fc8a8632c88d2b6432379089342d739ebab6f300c45148ed930e24be1f"
+          },
+          "predicates": {
+            "stable_capture": true
+          }
+        }
+      ]
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Reasoning click states are captured; whole-frame parity still depends on paired grid/PNG comparator results",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-25T16:17:43.091Z",
+  "exit_code": 1
+}

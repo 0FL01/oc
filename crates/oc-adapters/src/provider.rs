@@ -205,6 +205,16 @@ pub struct ToolDef {
 pub enum StreamItem {
     /// Incremental model text.
     TextDelta(String),
+    /// Position of an assistant message output item; only its identity and
+    /// index are forwarded, never its content or opaque fields.
+    MessageBoundary {
+        /// Canonical output item id, when supplied.
+        item_id: String,
+        /// Position in the completed Responses output, when supplied.
+        output_index: Option<u64>,
+        /// Whether this is the end (rather than the start) of the item.
+        done: bool,
+    },
     /// A function-call item was announced (`output_item.added`).
     ToolCallStarted {
         /// Item id the following argument deltas attach to.
@@ -594,6 +604,13 @@ fn map_event(value: &serde_json::Value) -> Option<StreamItem> {
         }
         Some("response.output_item.added") => {
             let item = value.get("item")?;
+            if item["type"] == "message" && item["role"] == "assistant" {
+                return Some(StreamItem::MessageBoundary {
+                    item_id: item["id"].as_str().unwrap_or("").to_owned(),
+                    output_index: value["output_index"].as_u64(),
+                    done: false,
+                });
+            }
             if item.get("type").and_then(|t| t.as_str()) != Some("function_call") {
                 return None;
             }
@@ -634,6 +651,13 @@ fn map_event(value: &serde_json::Value) -> Option<StreamItem> {
                         .to_string(),
                     payload: item.clone(),
                 }),
+                Some("message") if item["role"] == "assistant" => {
+                    Some(StreamItem::MessageBoundary {
+                        item_id: item["id"].as_str().unwrap_or("").to_owned(),
+                        output_index: value["output_index"].as_u64(),
+                        done: true,
+                    })
+                }
                 _ => None,
             }
         }
@@ -1450,6 +1474,46 @@ mod tests {
         assert_eq!(seen[0].headers["user-agent"], crate::USER_AGENT);
         assert!(!format!("{config:?}").contains("private-extra-value"));
         drop(seen);
+        server.shutdown();
+    }
+
+    #[tokio::test]
+    async fn sequential_reasoning_done_items_preserve_order_and_opaque_payload() {
+        use super::stream_input_observed;
+        let items = vec![
+            serde_json::json!({"type":"reasoning", "id":"rs_1", "encrypted_content":"private-1"}),
+            serde_json::json!({"type":"reasoning", "id":"rs_2", "encrypted_content":"private-2"}),
+        ];
+        let output = items.clone();
+        let server = TestServer::spawn(Arc::new(move |_| Action {
+            status: "200 OK", headers: vec![], chunks: vec![
+                (event(serde_json::json!({"type":"response.reasoning_summary_text.delta","delta":"First"})), 0),
+                (event(serde_json::json!({"type":"response.output_item.done","item":items[0]})), 0),
+                (event(serde_json::json!({"type":"response.reasoning_summary_text.delta","delta":"Second"})), 0),
+                (event(serde_json::json!({"type":"response.output_item.done","item":items[1]})), 0),
+                (event(serde_json::json!({"type":"response.completed","response":{"status":"completed","output":output}})), 0),
+            ], abort_after: None,
+        })).await;
+        let mut seen = Vec::new();
+        let generation = stream_input_observed(
+            &test_config(&server.base),
+            "m",
+            None,
+            &[],
+            &[],
+            500,
+            &NO_CANCEL,
+            &mut |item| seen.push(item.clone()),
+        )
+        .await
+        .unwrap();
+        assert_eq!(seen, generation.items);
+        assert!(
+            matches!(&seen[..], [StreamItem::ReasoningDelta(a), StreamItem::OpaqueItem { item_id: first, payload: one }, StreamItem::ReasoningDelta(b), StreamItem::OpaqueItem { item_id: second, payload: two }]
+            if a == "First" && b == "Second" && first == "rs_1" && second == "rs_2"
+                && one["encrypted_content"] == "private-1" && two["encrypted_content"] == "private-2")
+        );
+        assert_eq!(generation.output.len(), 2);
         server.shutdown();
     }
 

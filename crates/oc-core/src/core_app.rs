@@ -164,6 +164,13 @@ pub enum CoreEvent {
         /// Reasoning text chunk.
         delta: String,
     },
+    /// A public reasoning item ended. Carries no provider continuation data.
+    ReasoningItemEnded {
+        /// Session that owns the turn.
+        session: SessionId,
+        /// Active turn id.
+        turn: WorkerTurnId,
+    },
     /// Terminal provider usage for the turn (only when the provider reported
     /// it; never synthesized).
     TurnUsage {
@@ -1433,6 +1440,7 @@ mod tests {
                 CoreEvent::TurnStarted { .. }
                 | CoreEvent::TurnPresentation { .. }
                 | CoreEvent::ReasoningDelta { .. }
+                | CoreEvent::ReasoningItemEnded { .. }
                 | CoreEvent::TurnUsage { .. }
                 | CoreEvent::ToolCallStarted { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}
@@ -1727,6 +1735,7 @@ mod tests {
                 | CoreEvent::TurnPresentation { .. }
                 | CoreEvent::TurnStarted { .. }
                 | CoreEvent::ReasoningDelta { .. }
+                | CoreEvent::ReasoningItemEnded { .. }
                 | CoreEvent::TurnUsage { .. }
                 | CoreEvent::ToolCallStarted { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}

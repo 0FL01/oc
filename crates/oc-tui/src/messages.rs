@@ -21,6 +21,7 @@
 use pulldown_cmark::{CodeBlockKind, Event, Options, Parser, Tag, TagEnd};
 use ratatui::style::{Color, Modifier, Style};
 use std::{
+    borrow::Cow,
     cell::RefCell,
     collections::VecDeque,
     hash::{Hash, Hasher},
@@ -50,10 +51,14 @@ const MAX_MARKDOWN_ROWS: usize = 512;
 const MAX_CACHED_BYTES: usize = 512 * 1024;
 const MAX_INDEX_BYTES: usize = 2 * 1024 * 1024;
 const LIVE_MARKDOWN_BYTES: usize = 16 * 1024;
+// One indexed frame can include every history row, every retained live part,
+// and the still-open live row. A smaller LRU thrashes during the count pass.
+const MAX_REASONING_HEIGHTS: usize = crate::history::WINDOW_ROWS + crate::app::LIVE_PARTS_MAX + 1;
 
 #[cfg(test)]
 thread_local! {
     static INDEXED_TRAVERSALS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static REASONING_BODY_RENDERS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 #[cfg(test)]
@@ -78,6 +83,13 @@ struct IndexedPart {
     width: u16,
     pages: Vec<SourcePage>,
     bytes: usize,
+}
+
+struct ReasoningHeight {
+    part: (i64, usize),
+    revision: u64,
+    width: u16,
+    height: usize,
 }
 
 #[derive(Clone)]
@@ -116,6 +128,7 @@ pub(crate) struct MarkdownCache {
     bytes: usize,
     indexes: VecDeque<IndexedPart>,
     index_bytes: usize,
+    reasoning_heights: VecDeque<ReasoningHeight>,
     #[cfg(test)]
     parses: usize,
     #[cfg(test)]
@@ -123,6 +136,60 @@ pub(crate) struct MarkdownCache {
 }
 
 impl MarkdownCache {
+    fn reasoning_height(
+        &mut self,
+        part: (i64, usize),
+        reasoning: &ReasoningBlock,
+        theme: &Theme,
+        width: u16,
+    ) -> usize {
+        let content = reasoning_content(reasoning);
+        let mut end = content.len().min(LIVE_MARKDOWN_BYTES);
+        while !content.is_char_boundary(end) {
+            end -= 1;
+        }
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        content[..end].hash(&mut hasher);
+        content.len().hash(&mut hasher);
+        let revision = hasher.finish();
+        if let Some(position) = self.reasoning_heights.iter().position(|entry| {
+            entry.part == part && entry.revision == revision && entry.width == width
+        }) {
+            let entry = self
+                .reasoning_heights
+                .remove(position)
+                .expect("height index");
+            let height = entry.height;
+            self.reasoning_heights.push_back(entry);
+            return height;
+        }
+        // Measure with the same bounded Markdown renderer as the painted body.
+        // Estimates drift for tables, fences and wide glyphs when hidden groups
+        // never enter the viewport; retain only the exact height, not the lines.
+        let height = reasoning_group_body(reasoning, theme, width).len();
+        self.set_reasoning_height(part, revision, width, height);
+        height
+    }
+
+    fn set_reasoning_height(
+        &mut self,
+        part: (i64, usize),
+        revision: u64,
+        width: u16,
+        height: usize,
+    ) {
+        self.reasoning_heights.retain(|entry| entry.part != part);
+        self.reasoning_heights.push_back(ReasoningHeight {
+            part,
+            revision,
+            width,
+            height,
+        });
+        if self.reasoning_heights.len() > MAX_REASONING_HEIGHTS {
+            self.reasoning_heights.pop_front();
+        }
+    }
+
     fn pages(&mut self, part: (i64, usize), text: &str, width: u16) -> Vec<SourcePage> {
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
         text.hash(&mut hasher);
@@ -290,7 +357,9 @@ impl MarkdownCache {
     }
 
     pub(crate) fn retained_bytes(&self) -> usize {
-        self.bytes + self.index_bytes()
+        self.bytes
+            + self.index_bytes()
+            + self.reasoning_heights.capacity() * std::mem::size_of::<ReasoningHeight>()
     }
 }
 
@@ -426,7 +495,18 @@ pub(crate) fn transcript_with_expansion(
     expanded: &impl Fn(&str) -> bool,
 ) -> Vec<Line> {
     let mut out = Vec::new();
+    let mut grouped_until = 0;
     for (index, row) in rows.iter().enumerate() {
+        if index < grouped_until {
+            continue;
+        }
+        if let Some(group) = reasoning_group(rows, index) {
+            grouped_until = index + group.members.len();
+            visit_reasoning_group(&group, theme, width, index, cache, |_, render| {
+                out.extend(render())
+            });
+            continue;
+        }
         if let Some(group) = exploration_entry(rows, index, theme) {
             if group.is_empty() {
                 continue;
@@ -454,6 +534,165 @@ pub(crate) fn transcript_with_expansion(
         }
     }
     out
+}
+
+/// The upstream grouping path is ["reasoning"] only for adjacent part entries.
+/// An assistant footer, text, tool or user row terminates the group, even if
+/// it shares the same turn. Show mode uses the per-part ReasoningPart fallback.
+pub(crate) fn reasoning_group_member(row: &HistoryRow) -> bool {
+    row.role == "assistant"
+        && row.text.is_empty()
+        && row.meta.is_none()
+        && row.tool.is_none()
+        && row.reasoning.as_ref().is_some_and(|r| r.toggleable)
+}
+
+pub(crate) fn visible_reasoning(row: &HistoryRow) -> bool {
+    row.reasoning
+        .as_ref()
+        .is_some_and(|r| !reasoning_content(r).is_empty())
+}
+
+struct ReasoningGroup<'a> {
+    members: &'a [HistoryRow],
+    steps: usize,
+    title: String,
+    duration_ms: Option<u64>,
+    running: bool,
+}
+
+fn reasoning_group(rows: &[HistoryRow], index: usize) -> Option<ReasoningGroup<'_>> {
+    if !reasoning_group_member(rows.get(index)?)
+        || index > 0 && reasoning_group_member(&rows[index - 1])
+    {
+        return None;
+    }
+    let count = rows[index..]
+        .iter()
+        .take_while(|row| reasoning_group_member(row))
+        .count();
+    let members = &rows[index..index + count];
+    let steps = members.iter().filter(|row| visible_reasoning(row)).count();
+    if steps == 0 || count < 2 {
+        return None;
+    }
+    let mut duration_ms = None::<u64>;
+    let mut title = String::new();
+    let mut running = false;
+    let closed_by_next = rows.get(index + count).is_some_and(|next| {
+        next.meta
+            .as_ref()
+            .is_none_or(|meta| meta.status.as_deref() != Some("started"))
+    });
+    for row in members {
+        let reasoning = row.reasoning.as_ref().expect("group member");
+        // An unresolved/redacted part is absent from the painted refs but is
+        // still a child of the upstream group for completion purposes.
+        running |= reasoning.running;
+        if !visible_reasoning(row) {
+            continue;
+        }
+        if let Some(ms) = reasoning.duration_ms.filter(|ms| *ms > 0) {
+            duration_ms = Some(duration_ms.unwrap_or(0).saturating_add(ms));
+        }
+        let content = reasoning_content(reasoning);
+        let next = reasoning_title(&content);
+        if !next.is_empty() {
+            title = next.to_string();
+        } else if !reasoning.running || closed_by_next {
+            // Upstream latest memo clears a previous title when an untitled
+            // last visible part (or its message) completes.
+            title.clear();
+        }
+    }
+    // A following text/tool/footer closes the group even if an individual
+    // reasoning part never received its own completion event.
+    running &= !closed_by_next;
+    Some(ReasoningGroup {
+        members,
+        steps,
+        title,
+        duration_ms,
+        running,
+    })
+}
+
+fn visit_reasoning_group(
+    group: &ReasoningGroup<'_>,
+    theme: &Theme,
+    width: u16,
+    first_index: usize,
+    cache: Option<&RefCell<MarkdownCache>>,
+    mut emit: impl FnMut(usize, &mut dyn FnMut() -> Vec<Line>),
+) {
+    let lines = vec![Line::plain(""), reasoning_group_header(group, theme, width)];
+    emit(2, &mut || lines.clone());
+    if group.first().expanded {
+        for (ordinal, row) in group.members.iter().enumerate() {
+            if !visible_reasoning(row) {
+                continue;
+            }
+            let part = row.reasoning.as_ref().expect("group member");
+            let key = (row.seq, first_index + ordinal);
+            let height = if let Some(cache) = cache {
+                cache.borrow_mut().reasoning_height(key, part, theme, width)
+            } else {
+                0
+            };
+            let mut render = || reasoning_group_body(part, theme, width);
+            if cache.is_some() {
+                emit(height, &mut render);
+            } else {
+                let body = render();
+                emit(body.len(), &mut || body.clone());
+            }
+        }
+    }
+}
+
+fn reasoning_group_body(part: &ReasoningBlock, theme: &Theme, width: u16) -> Vec<Line> {
+    let mut expanded = part.clone();
+    expanded.expanded = true;
+    reasoning_lines(&expanded, theme, width)
+        .into_iter()
+        .skip(2)
+        .collect()
+}
+
+impl ReasoningGroup<'_> {
+    fn first(&self) -> &ReasoningBlock {
+        self.members
+            .iter()
+            .find(|row| visible_reasoning(row))
+            .and_then(|row| row.reasoning.as_ref())
+            .expect("group has visible reasoning")
+    }
+}
+
+fn reasoning_group_header(group: &ReasoningGroup<'_>, theme: &Theme, width: u16) -> Line {
+    let mut header = group.first().clone();
+    header.text = format!("**{}**", group.title);
+    header.duration_ms = group.duration_ms;
+    header.running = group.running;
+    if group.running {
+        return clipped_reasoning_header(&header, theme, width);
+    }
+    let base = if header.expanded || group.title.is_empty() {
+        "Thought".to_string()
+    } else {
+        format!("Thought: {}", group.title)
+    };
+    let mut label = base;
+    if group.steps > 1 {
+        label.push_str(&format!(" · {} steps", group.steps));
+    }
+    if let Some(duration) = group.duration_ms.map(Locale::duration) {
+        label.push_str(&format!(" · {duration}"));
+    }
+    let mut spans = reasoning_line(&header, theme).spans().to_vec();
+    let style = spans.last().expect("header label").style();
+    *spans.last_mut().expect("header label") = Span::styled(label, style);
+    clipped_line(sanitize_line(Line::new(spans)), width)
 }
 
 /// Upstream groups adjacent read/glob/grep parts in their first-seen order
@@ -1505,7 +1744,18 @@ fn visible_transcript_indexed(
     let (width, terminal_width) = widths;
     let (height, scroll, live_row) = viewport;
     let mut total = 1usize;
+    let mut grouped_until = 0;
     for (index, row) in rows.iter().enumerate() {
+        if index < grouped_until {
+            continue;
+        }
+        if let Some(group) = reasoning_group(rows, index) {
+            grouped_until = index + group.members.len();
+            visit_reasoning_group(&group, theme, width, index, Some(cache), |height, _| {
+                total += height
+            });
+            continue;
+        }
         if let Some(group) = exploration_entry(rows, index, theme) {
             let is_expanded = !group.is_empty()
                 && (options.expanded)(&row.tool.as_ref().expect("group has tool").op);
@@ -1562,9 +1812,44 @@ fn visible_transcript_indexed(
     let mut position = 1;
     let mut height_changed = false;
     let mut hit = None;
+    let mut grouped_until = 0;
     for (index, row) in rows.iter().enumerate() {
         if position >= end {
             break;
+        }
+        if index < grouped_until {
+            continue;
+        }
+        if let Some(group) = reasoning_group(rows, index) {
+            grouped_until = index + group.members.len();
+            if let Some((x, y)) = options.point
+                && let Some(id) = group.first().identity
+                && position + 1 == start + y
+                && position + 1 < end
+            {
+                let header = reasoning_group_header(&group, theme, width);
+                let text = header.plain_text();
+                if x >= MESSAGE_PADDING && x < UnicodeWidthStr::width(text.trim_end()) {
+                    hit = Some(TranscriptHit::Reasoning(id));
+                }
+            }
+            visit_reasoning_group(
+                &group,
+                theme,
+                width,
+                index,
+                Some(cache),
+                |height, render| {
+                    if position < end && position + height > start {
+                        let lines = render();
+                        height_changed |= lines.len() != height;
+                        add_visible_lines(lines, width, (start, end), &mut position, &mut visible);
+                    } else {
+                        position += height;
+                    }
+                },
+            );
+            continue;
         }
         if let Some(group) = exploration_entry(rows, index, theme) {
             let is_expanded = !group.is_empty()
@@ -2019,6 +2304,8 @@ fn reasoning_lines(reasoning: &ReasoningBlock, theme: &Theme, width: u16) -> Vec
         clipped_reasoning_header(reasoning, theme, width),
     ];
     if reasoning.expanded {
+        #[cfg(test)]
+        REASONING_BODY_RENDERS.set(REASONING_BODY_RENDERS.get() + 1);
         lines.push(Line::plain(""));
         let mut end = content.len().min(LIVE_MARKDOWN_BYTES);
         while !content.is_char_boundary(end) {
@@ -2066,8 +2353,12 @@ fn reasoning_lines(reasoning: &ReasoningBlock, theme: &Theme, width: u16) -> Vec
     lines
 }
 
-fn reasoning_content(reasoning: &ReasoningBlock) -> String {
-    reasoning.text.replace("[REDACTED]", "").trim().to_string()
+fn reasoning_content(reasoning: &ReasoningBlock) -> Cow<'_, str> {
+    if reasoning.text.contains("[REDACTED]") {
+        Cow::Owned(reasoning.text.replace("[REDACTED]", "").trim().to_string())
+    } else {
+        Cow::Borrowed(reasoning.text.trim())
+    }
 }
 
 /// OpenTUI's completed header uses `wrapMode="none"`: retain only complete
@@ -2949,6 +3240,661 @@ mod tests {
     }
 
     #[test]
+    fn adjacent_reasoning_group_matches_full_indexed_and_click_bounds() {
+        let theme = Theme::dark();
+        let cache = RefCell::new(MarkdownCache::default());
+        let make = |seq, ordinal, text: &str, duration_ms, running, expanded| {
+            let mut row = assistant("");
+            row.seq = seq;
+            row.reasoning = Some(ReasoningBlock {
+                text: text.into(),
+                duration_ms,
+                running,
+                expanded,
+                toggleable: true,
+                identity: Some(ReasoningIdentity::Durable(seq, ordinal)),
+            });
+            row
+        };
+        for (running, expanded) in [(false, false), (false, true), (true, false), (true, true)] {
+            let mut rows = vec![
+                make(
+                    42,
+                    0,
+                    "**Inspecting**\n\nfirst body",
+                    Some(5),
+                    false,
+                    expanded,
+                ),
+                make(
+                    42,
+                    1,
+                    "**Verifying**\n\nsecond body",
+                    Some(7),
+                    running,
+                    expanded,
+                ),
+                assistant("answer"),
+            ];
+            rows[2].seq = 42;
+            for width in [12, 40, 80] {
+                let full = transcript(&rows, theme, width, width, |_| Color::Reset);
+                let expected = if expanded {
+                    "- Thought · 2 steps · 12ms"
+                } else {
+                    "+ Thought: Verifying · 2 steps · 12ms"
+                };
+                if width == 80 {
+                    assert!(full[1].plain_text().contains(expected));
+                }
+                let plain: Vec<_> = full.iter().map(Line::plain_text).collect();
+                assert_eq!(
+                    plain
+                        .iter()
+                        .filter(|s| s.contains("Thou") || s.contains("Think"))
+                        .count(),
+                    1
+                );
+                if width == 80 {
+                    assert_eq!(
+                        plain.iter().filter(|s| s.contains("first body")).count(),
+                        usize::from(expanded)
+                    );
+                    assert_eq!(
+                        plain.iter().filter(|s| s.contains("second body")).count(),
+                        usize::from(expanded)
+                    );
+                }
+                let mut indexed_full = vec![Line::plain("")];
+                indexed_full.extend(full.iter().cloned());
+                for height in [2, 5, indexed_full.len() + 3] {
+                    for scroll in [0, 2, indexed_full.len() / 2, indexed_full.len()] {
+                        let (visible, total) = visible_transcript_expanded(
+                            &rows,
+                            theme,
+                            (width, width),
+                            (height, scroll, None),
+                            |_| Color::Reset,
+                            &cache,
+                            &|_| false,
+                        );
+                        assert_eq!(total, indexed_full.len());
+                        let end = total - scroll.min(total.saturating_sub(height));
+                        let start = end.saturating_sub(height);
+                        assert_eq!(
+                            visible.iter().map(Line::plain_text).collect::<Vec<_>>(),
+                            indexed_full[start..end]
+                                .iter()
+                                .map(Line::plain_text)
+                                .collect::<Vec<_>>(),
+                            "width={width} height={height} scroll={scroll}"
+                        );
+                    }
+                }
+                let id = Some(ReasoningIdentity::Durable(42, 0));
+                assert_eq!(
+                    reasoning_header_at(
+                        &rows,
+                        theme,
+                        (width, width),
+                        (indexed_full.len(), 0, None),
+                        |_| Color::Reset,
+                        &cache,
+                        (&|_| false, (3, 2))
+                    ),
+                    id
+                );
+                assert_eq!(
+                    reasoning_header_at(
+                        &rows,
+                        theme,
+                        (width, width),
+                        (indexed_full.len(), 0, None),
+                        |_| Color::Reset,
+                        &cache,
+                        (&|_| false, (2, 2))
+                    ),
+                    None
+                );
+                if width == 80 {
+                    assert_eq!(
+                        reasoning_header_at(
+                            &rows,
+                            theme,
+                            (width, width),
+                            (indexed_full.len(), 0, None),
+                            |_| Color::Reset,
+                            &cache,
+                            (&|_| false, ((width - 1) as usize, 2))
+                        ),
+                        None
+                    );
+                }
+            }
+        }
+        let mut rows = vec![
+            make(42, 0, "**First**\n\nA", Some(u64::MAX), false, false),
+            make(42, 1, "**Last**\n\nB", Some(u64::MAX), false, false),
+        ];
+        let saturated = transcript(&rows, theme, 80, 80, |_| Color::Reset)[1].plain_text();
+        assert!(saturated.contains("Thought: Last · 2 steps · "));
+        rows[0].reasoning.as_mut().unwrap().duration_ms = None;
+        rows[1].reasoning.as_mut().unwrap().duration_ms = None;
+        rows[1].reasoning.as_mut().unwrap().text = "untitled body".into();
+        assert_eq!(
+            transcript(&rows, theme, 80, 80, |_| Color::Reset)[1].plain_text(),
+            "   + Thought · 2 steps",
+            "the completed untitled last part clears the earlier title"
+        );
+        for row in &mut rows {
+            let reasoning = row.reasoning.as_mut().unwrap();
+            reasoning.toggleable = false;
+            reasoning.expanded = true;
+        }
+        let show: Vec<_> = transcript(&rows, theme, 80, 80, |_| Color::Reset)
+            .iter()
+            .map(Line::plain_text)
+            .collect();
+        assert_eq!(show.iter().filter(|s| s.contains("┃ Thought")).count(), 2);
+        assert!(!show.iter().any(|s| s.contains("steps")));
+        for row in &mut rows {
+            let reasoning = row.reasoning.as_mut().unwrap();
+            reasoning.toggleable = true;
+            reasoning.expanded = false;
+        }
+        rows.insert(1, make(42, 3, "[REDACTED]", None, false, false));
+        let bridged = transcript(&rows, theme, 80, 80, |_| Color::Reset);
+        assert_eq!(bridged[1].plain_text(), "   + Thought · 2 steps");
+        assert_eq!(bridged.len(), 2, "empty middle part adds no spacer or body");
+        let (indexed, total) = visible_transcript_expanded(
+            &rows,
+            theme,
+            (80, 80),
+            (10, 0, None),
+            |_| Color::Reset,
+            &cache,
+            &|_| false,
+        );
+        assert_eq!(total, 3);
+        assert_eq!(indexed[2].plain_text(), bridged[1].plain_text());
+        assert_eq!(
+            reasoning_header_at(
+                &rows,
+                theme,
+                (80, 80),
+                (10, 0, None),
+                |_| Color::Reset,
+                &cache,
+                (&|_| false, (4, 2))
+            ),
+            Some(ReasoningIdentity::Durable(42, 0))
+        );
+        rows.remove(1);
+        for separator in [
+            assistant("text"),
+            HistoryRow {
+                role: "user".into(),
+                ..assistant("user")
+            },
+            HistoryRow {
+                meta: Some(AssistantMeta {
+                    model: Some("model".into()),
+                    ..Default::default()
+                }),
+                ..assistant("")
+            },
+            HistoryRow {
+                role: "tool".into(),
+                ..assistant("tool")
+            },
+        ] {
+            rows.insert(1, separator);
+            let plain: Vec<_> = transcript(&rows, theme, 80, 80, |_| Color::Reset)
+                .iter()
+                .map(Line::plain_text)
+                .collect();
+            assert_eq!(plain.iter().filter(|s| s.contains("+ Thought")).count(), 2);
+            assert!(!plain.iter().any(|s| s.contains("2 steps")));
+            rows.remove(1);
+        }
+    }
+
+    #[test]
+    fn expanded_adjacent_reasoning_caps_each_body_without_losing_the_following_text() {
+        let theme = Theme::dark();
+        let cache = RefCell::new(MarkdownCache::default());
+        let make = |seq, marker: &str| {
+            let mut row = assistant("");
+            row.seq = seq;
+            row.reasoning = Some(ReasoningBlock {
+                text: format!("{marker}\n{}", "word ".repeat(5000)),
+                duration_ms: None,
+                running: false,
+                expanded: true,
+                toggleable: true,
+                identity: Some(ReasoningIdentity::Durable(seq, 0)),
+            });
+            row
+        };
+        let rows = [
+            make(31, "first sentinel"),
+            make(32, "second sentinel"),
+            assistant("answer sentinel"),
+        ];
+        let full: Vec<_> = transcript(&rows, theme, 40, 40, |_| Color::Reset)
+            .iter()
+            .map(Line::plain_text)
+            .collect();
+        assert_eq!(
+            full.iter().filter(|s| s.contains("first sentinel")).count(),
+            1
+        );
+        assert_eq!(
+            full.iter()
+                .filter(|s| s.contains("second sentinel"))
+                .count(),
+            1
+        );
+        assert_eq!(
+            full.iter()
+                .filter(|s| s.contains("reasoning preview limited"))
+                .count(),
+            2
+        );
+        let (tail, total) = visible_transcript_expanded(
+            &rows,
+            theme,
+            (40, 40),
+            (5, 0, None),
+            |_| Color::Reset,
+            &cache,
+            &|_| false,
+        );
+        assert_eq!(total, full.len() + 1);
+        assert!(
+            tail.iter()
+                .any(|line| line.plain_text().contains("answer sentinel"))
+        );
+        assert!(cache.borrow().retained_bytes() <= MAX_CACHED_BYTES + MAX_INDEX_BYTES);
+    }
+
+    #[test]
+    fn hidden_running_reasoning_keeps_adjacent_group_open_without_showing_a_redacted_step() {
+        let theme = Theme::dark();
+        let cache = RefCell::new(MarkdownCache::default());
+        let make = |text: &str, running| {
+            let mut row = assistant("");
+            row.reasoning = Some(ReasoningBlock {
+                text: text.into(),
+                duration_ms: None,
+                running,
+                expanded: false,
+                toggleable: true,
+                identity: Some(ReasoningIdentity::Durable(12, 0)),
+            });
+            row
+        };
+        let mut rows = vec![
+            make("**Inspecting**\n\nfirst", false),
+            make("**Verifying**\n\nsecond", false),
+            make("[REDACTED]", true),
+        ];
+        let header =
+            |rows: &[HistoryRow]| transcript(rows, theme, 80, 80, |_| Color::Reset)[1].plain_text();
+        assert_eq!(header(&rows), "   ⋯ Thinking: Verifying");
+        let (visible, _) = visible_transcript_expanded(
+            &rows,
+            theme,
+            (80, 80),
+            (10, 0, None),
+            |_| Color::Reset,
+            &cache,
+            &|_| false,
+        );
+        assert_eq!(visible[2].plain_text(), header(&rows));
+        let mut started_footer = assistant("");
+        started_footer.meta = Some(AssistantMeta {
+            status: Some("started".into()),
+            ..Default::default()
+        });
+        rows.push(started_footer);
+        assert_eq!(header(&rows), "   ⋯ Thinking: Verifying");
+        rows.pop();
+        rows[2].reasoning.as_mut().unwrap().running = false;
+        assert_eq!(header(&rows), "   + Thought: Verifying · 2 steps");
+        rows[2].reasoning.as_mut().unwrap().running = true;
+        rows[1].reasoning.as_mut().unwrap().text = "untitled last body".into();
+        assert_eq!(header(&rows), "   ⋯ Thinking");
+        rows.push(assistant("answer"));
+        assert_eq!(header(&rows), "   + Thought · 2 steps");
+        rows.remove(1);
+        rows.pop();
+        assert_eq!(header(&rows), "   ⋯ Thinking: Inspecting");
+        rows[1].reasoning.as_mut().unwrap().running = false;
+        assert_eq!(header(&rows), "   + Thought: Inspecting");
+    }
+
+    #[test]
+    fn offscreen_expanded_reasoning_is_measured_once_per_cache_miss() {
+        let theme = Theme::dark();
+        let cache = RefCell::new(MarkdownCache::default());
+        let mut rows = Vec::new();
+        for group in 0..4 {
+            for ordinal in 0..2 {
+                let mut row = assistant("");
+                row.seq = group;
+                row.reasoning = Some(ReasoningBlock {
+                    text: format!("**Group {group}**\n\n{}", "word ".repeat(1300)),
+                    duration_ms: Some(10),
+                    running: false,
+                    expanded: true,
+                    toggleable: true,
+                    identity: Some(ReasoningIdentity::Durable(group, ordinal)),
+                });
+                rows.push(row);
+            }
+            rows.push(assistant("answer"));
+        }
+        rows.push(assistant("trailing answer"));
+        REASONING_BODY_RENDERS.set(0);
+        let expected = rows.iter().filter(|row| row.reasoning.is_some()).count();
+        for _ in 0..3 {
+            let (tail, total) = visible_transcript_expanded(
+                &rows,
+                theme,
+                (40, 40),
+                (3, 0, None),
+                |_| Color::Reset,
+                &cache,
+                &|_| false,
+            );
+            assert!(total > 100);
+            assert!(tail.iter().any(|line| line.plain_text().contains("answer")));
+            assert_eq!(REASONING_BODY_RENDERS.get(), expected);
+        }
+        let (_, total) = visible_transcript_expanded(
+            &rows,
+            theme,
+            (40, 40),
+            (6, usize::MAX, None),
+            |_| Color::Reset,
+            &cache,
+            &|_| false,
+        );
+        assert!(total > 100);
+        assert!(REASONING_BODY_RENDERS.get() > 0);
+        let painted = REASONING_BODY_RENDERS.get();
+        visible_transcript_expanded(
+            &rows,
+            theme,
+            (40, 40),
+            (3, 0, None),
+            |_| Color::Reset,
+            &cache,
+            &|_| false,
+        );
+        assert_eq!(REASONING_BODY_RENDERS.get(), painted);
+        assert!(cache.borrow().reasoning_heights.len() <= MAX_REASONING_HEIGHTS);
+    }
+
+    #[test]
+    fn reachable_reasoning_parts_keep_heights_across_frames_and_bounded_tabs() {
+        let theme = Theme::dark();
+        let cache = RefCell::new(MarkdownCache::default());
+        let mut rows = Vec::new();
+        // Full history + retained live parts + one open row, all in one group.
+        for index in 0..MAX_REASONING_HEIGHTS {
+            let mut row = assistant("");
+            row.seq = index as i64;
+            row.reasoning = Some(ReasoningBlock {
+                text: format!("**Step {index}**\n\nbody {index}"),
+                duration_ms: None,
+                running: false,
+                expanded: true,
+                toggleable: true,
+                identity: Some(ReasoningIdentity::Durable(row.seq, 0)),
+            });
+            rows.push(row);
+        }
+        assert!(rows.len() > 240);
+        rows.push(assistant("final answer"));
+        let mut full = vec![Line::plain("")];
+        full.extend(transcript(&rows, theme, 50, 50, |_| Color::Reset));
+        let full: Vec<_> = full.iter().map(Line::plain_text).collect();
+
+        REASONING_BODY_RENDERS.set(0);
+        for frame in 0..2 {
+            let (tail, total) = visible_transcript_expanded(
+                &rows,
+                theme,
+                (50, 50),
+                (1, 0, None),
+                |_| Color::Reset,
+                &cache,
+                &|_| false,
+            );
+            assert_eq!(total, full.len());
+            assert_eq!(
+                tail.iter().map(Line::plain_text).collect::<Vec<_>>(),
+                full[full.len() - 1..]
+            );
+            // Scrolling to the group header must preserve both the indexed
+            // viewport slice and the click target on every frame.
+            let (top, top_total) = visible_transcript_expanded(
+                &rows,
+                theme,
+                (50, 50),
+                (3, usize::MAX, None),
+                |_| Color::Reset,
+                &cache,
+                &|_| false,
+            );
+            assert_eq!(top_total, full.len());
+            assert_eq!(
+                top.iter().map(Line::plain_text).collect::<Vec<_>>(),
+                full[..3]
+            );
+            assert_eq!(
+                reasoning_header_at(
+                    &rows,
+                    theme,
+                    (50, 50),
+                    (3, usize::MAX, None),
+                    |_| Color::Reset,
+                    &cache,
+                    (&|_| false, (3, 2))
+                ),
+                Some(ReasoningIdentity::Durable(0, 0))
+            );
+            assert_eq!(
+                REASONING_BODY_RENDERS.get(),
+                MAX_REASONING_HEIGHTS,
+                "unchanged frame {frame} must reuse every measured height"
+            );
+            assert_eq!(
+                cache.borrow().reasoning_heights.len(),
+                MAX_REASONING_HEIGHTS
+            );
+        }
+
+        rows[crate::history::WINDOW_ROWS]
+            .reasoning
+            .as_mut()
+            .unwrap()
+            .text
+            .push('!');
+        visible_transcript_expanded(
+            &rows,
+            theme,
+            (50, 50),
+            (1, 0, None),
+            |_| Color::Reset,
+            &cache,
+            &|_| false,
+        );
+        assert_eq!(REASONING_BODY_RENDERS.get(), MAX_REASONING_HEIGHTS + 1);
+        assert_eq!(
+            cache.borrow().reasoning_heights.len(),
+            MAX_REASONING_HEIGHTS
+        );
+
+        // Simulate visiting other tabs and widths in the same cache. Revisions
+        // replace their part rather than accumulating alongside old entries.
+        for tab in 1..=3 {
+            for index in 0..MAX_REASONING_HEIGHTS {
+                let mut cache = cache.borrow_mut();
+                let part = (tab as i64 * 10_000 + index as i64, index);
+                cache.set_reasoning_height(part, 1, 50, 4);
+                cache.set_reasoning_height(part, 2, 40, 5);
+                assert!(cache.reasoning_heights.len() <= MAX_REASONING_HEIGHTS);
+            }
+        }
+        let cache = cache.borrow();
+        assert_eq!(cache.reasoning_heights.len(), MAX_REASONING_HEIGHTS);
+        assert_eq!(
+            cache.retained_bytes(),
+            cache.bytes
+                + cache.index_bytes()
+                + cache.reasoning_heights.capacity() * std::mem::size_of::<ReasoningHeight>()
+        );
+    }
+
+    #[test]
+    fn offscreen_markdown_group_keeps_exact_slices_and_click_after_table_and_fence() {
+        let theme = Theme::dark();
+        let cache = RefCell::new(MarkdownCache::default());
+        let make = |seq, ordinal, text: &str| {
+            let mut row = assistant("");
+            row.seq = seq;
+            row.reasoning = Some(ReasoningBlock {
+                text: text.into(),
+                duration_ms: None,
+                running: false,
+                expanded: true,
+                toggleable: true,
+                identity: Some(ReasoningIdentity::Durable(seq, ordinal)),
+            });
+            row
+        };
+        let mut rows = vec![
+            make(
+                10,
+                0,
+                "**Table**\n\n| Name | Detail |\n| --- | --- |\n| 東京🧪 | wide Unicode wraps into many cells |\n| alpha | several words across the narrow column |",
+            ),
+            make(
+                10,
+                1,
+                "**Fence**\n\n```rust\nlet 名前 = \"🦀🦀🦀🦀🦀\";\nprintln!(\"{名前}\");\n```",
+            ),
+            assistant("between groups"),
+            make(20, 0, "**Later**\n\na short step"),
+            make(20, 1, "**Done**\n\nlast step"),
+            assistant("trailing answer"),
+        ];
+        // The group state comes from its first part; later parts need not
+        // carry the same expanded flag in the durable projection.
+        rows[1].reasoning.as_mut().unwrap().expanded = false;
+        REASONING_BODY_RENDERS.set(0);
+        for width in [18, 27] {
+            let mut full = vec![Line::plain("")];
+            full.extend(transcript(&rows, theme, width, width, |_| Color::Reset));
+            let full: Vec<String> = full.iter().map(Line::plain_text).collect();
+            let second_header = full
+                .iter()
+                .enumerate()
+                .filter(|(_, line)| line.contains("Thought"))
+                .nth(1)
+                .expect("later group header")
+                .0;
+            let height = 2;
+            let scroll_to_header = full.len() - (second_header + 1);
+            let start = second_header + 1 - height;
+            assert!(
+                start
+                    > full
+                        .iter()
+                        .position(|line| line.contains("between groups"))
+                        .unwrap()
+            );
+            let renders_before = REASONING_BODY_RENDERS.get();
+            // First indexed encounter measures even the bodies above this viewport.
+            let (visible, total) = visible_transcript_expanded(
+                &rows,
+                theme,
+                (width, width),
+                (height, scroll_to_header, None),
+                |_| Color::Reset,
+                &cache,
+                &|_| false,
+            );
+            assert_eq!(total, full.len(), "width={width}");
+            assert_eq!(
+                visible.iter().map(Line::plain_text).collect::<Vec<_>>(),
+                full[start..second_header + 1],
+                "width={width} header viewport"
+            );
+            assert_eq!(REASONING_BODY_RENDERS.get() - renders_before, 4);
+            for _ in 0..2 {
+                assert_eq!(
+                    reasoning_header_at(
+                        &rows,
+                        theme,
+                        (width, width),
+                        (height, scroll_to_header, None),
+                        |_| Color::Reset,
+                        &cache,
+                        (&|_| false, (3, height - 1))
+                    ),
+                    Some(ReasoningIdentity::Durable(20, 0))
+                );
+                assert_eq!(REASONING_BODY_RENDERS.get() - renders_before, 4);
+            }
+            for (viewport_height, scroll) in [
+                (4, 0),
+                (5, full.len() / 2),
+                (6, full.len()),
+                (full.len(), 0),
+            ] {
+                let (visible, total) = visible_transcript_expanded(
+                    &rows,
+                    theme,
+                    (width, width),
+                    (viewport_height, scroll, None),
+                    |_| Color::Reset,
+                    &cache,
+                    &|_| false,
+                );
+                let end = full.len() - scroll.min(full.len().saturating_sub(viewport_height));
+                let start = end.saturating_sub(viewport_height);
+                assert_eq!(total, full.len(), "width={width} scroll={scroll}");
+                assert_eq!(
+                    visible.iter().map(Line::plain_text).collect::<Vec<_>>(),
+                    full[start..end],
+                    "width={width} scroll={scroll}"
+                );
+            }
+        }
+        rows[0]
+            .reasoning
+            .as_mut()
+            .unwrap()
+            .text
+            .push_str("\n\nrevision changed");
+        let before = REASONING_BODY_RENDERS.get();
+        visible_transcript_expanded(
+            &rows,
+            theme,
+            (27, 27),
+            (1, 0, None),
+            |_| Color::Reset,
+            &cache,
+            &|_| false,
+        );
+        assert_eq!(REASONING_BODY_RENDERS.get() - before, 1);
+    }
+
+    #[test]
     fn reasoning_index_hits_only_clipped_painted_cells_at_scroll() {
         let theme = Theme::dark();
         let cache = RefCell::new(MarkdownCache::default());
@@ -2967,7 +3913,9 @@ mod tests {
         };
         let rows = vec![
             make(0, "**A long wrapped title**\n\nbody", false),
+            assistant("between"),
             make(2, "second", false),
+            assistant("between again"),
             make(3, "streaming", true),
         ];
         let hit = |width, height, scroll, x, y| {
@@ -3041,7 +3989,7 @@ mod tests {
         );
         assert_eq!(hit(12, 4, 0, 3, 2), None, "off-screen first header");
 
-        let mut show = rows[1].clone();
+        let mut show = rows[2].clone();
         show.reasoning.as_mut().unwrap().toggleable = false;
         show.reasoning.as_mut().unwrap().expanded = true;
         assert_eq!(

@@ -1245,9 +1245,32 @@ impl<'a> Runtime<'a> {
     pub async fn run_turn_with_tool_events(
         &self,
         params: TurnParams<'_>,
+        accepted: impl FnMut(&str) + Send,
+        text_delta: impl FnMut(&str, &str) + Send,
+        reasoning_delta: impl FnMut(&str, &str) + Send,
+        tool_event: impl FnMut(&str, &ToolCallEvent) + Send,
+    ) -> Result<TurnReport, RuntimeError> {
+        self.run_turn_with_reasoning_items(
+            params,
+            accepted,
+            text_delta,
+            reasoning_delta,
+            |_| {},
+            tool_event,
+        )
+        .await
+    }
+
+    /// Also forwards the end of each public reasoning output item, without its
+    /// opaque continuation payload or provider id.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn run_turn_with_reasoning_items(
+        &self,
+        params: TurnParams<'_>,
         mut accepted: impl FnMut(&str) + Send,
         mut text_delta: impl FnMut(&str, &str) + Send,
         mut reasoning_delta: impl FnMut(&str, &str) + Send,
+        mut reasoning_item_ended: impl FnMut(&str) + Send,
         mut tool_event: impl FnMut(&str, &ToolCallEvent) + Send,
     ) -> Result<TurnReport, RuntimeError> {
         let started = std::time::Instant::now();
@@ -1268,6 +1291,7 @@ impl<'a> Runtime<'a> {
                 &mut accepted,
                 &mut text_delta,
                 &mut reasoning_delta,
+                &mut reasoning_item_ended,
                 &mut tool_event,
             )
             .await;
@@ -1298,9 +1322,33 @@ impl<'a> Runtime<'a> {
         &self,
         params: TurnParams<'_>,
         initial_selection: Option<(&str, &str)>,
+        accepted: impl FnMut(&str) + Send,
+        text_delta: impl FnMut(&str, &str) + Send,
+        reasoning_delta: impl FnMut(&str, &str) + Send,
+        tool_event: impl FnMut(&str, &ToolCallEvent) + Send,
+    ) -> Result<TurnReport, RuntimeError> {
+        self.run_fresh_turn_with_reasoning_items(
+            params,
+            initial_selection,
+            accepted,
+            text_delta,
+            reasoning_delta,
+            |_| {},
+            tool_event,
+        )
+        .await
+    }
+
+    /// Fresh-root equivalent of [`Runtime::run_turn_with_reasoning_items`].
+    #[allow(clippy::too_many_arguments)]
+    pub async fn run_fresh_turn_with_reasoning_items(
+        &self,
+        params: TurnParams<'_>,
+        initial_selection: Option<(&str, &str)>,
         mut accepted: impl FnMut(&str) + Send,
         mut text_delta: impl FnMut(&str, &str) + Send,
         mut reasoning_delta: impl FnMut(&str, &str) + Send,
+        mut reasoning_item_ended: impl FnMut(&str) + Send,
         mut tool_event: impl FnMut(&str, &ToolCallEvent) + Send,
     ) -> Result<TurnReport, RuntimeError> {
         let started = std::time::Instant::now();
@@ -1321,6 +1369,7 @@ impl<'a> Runtime<'a> {
                 &mut accepted,
                 &mut text_delta,
                 &mut reasoning_delta,
+                &mut reasoning_item_ended,
                 &mut tool_event,
             )
             .await;
@@ -1529,6 +1578,7 @@ impl<'a> Runtime<'a> {
         accepted: &mut (dyn FnMut(&str) + Send),
         text_delta: &mut (dyn FnMut(&str, &str) + Send),
         reasoning_delta: &mut (dyn FnMut(&str, &str) + Send),
+        reasoning_item_ended: &mut (dyn FnMut(&str) + Send),
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
     ) -> Result<TurnReport, RuntimeError> {
         let published = self.current.read().expect("generation lock").clone();
@@ -1550,6 +1600,7 @@ impl<'a> Runtime<'a> {
                 accepted,
                 text_delta,
                 reasoning_delta,
+                reasoning_item_ended,
                 tool_event,
                 &budget,
             )
@@ -1570,6 +1621,7 @@ impl<'a> Runtime<'a> {
         accepted: &mut (dyn FnMut(&str) + Send),
         text_delta: &mut (dyn FnMut(&str, &str) + Send),
         reasoning_delta: &mut (dyn FnMut(&str, &str) + Send),
+        reasoning_item_ended: &mut (dyn FnMut(&str) + Send),
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
         budget: &models::AdmissionBudget,
     ) -> Result<TurnReport, RuntimeError> {
@@ -1848,6 +1900,18 @@ impl<'a> Runtime<'a> {
                 return Ok(report);
             }
             let stream_started = std::time::Instant::now();
+            let mut reasoning_started: Option<std::time::Instant> = None;
+            let mut reasoning_closed = false;
+            // Stream slots are private until canonical output supplies input
+            // references. Their positions preserve text between reasoning items.
+            struct TextSlot {
+                part: usize,
+                item_id: String,
+                output_index: Option<u64>,
+            }
+            let mut text_slots: Vec<TextSlot> = Vec::new();
+            let mut active_text: Option<usize> = None;
+            let mut reasoning_anchors: Vec<(usize, String)> = Vec::new();
             let generation = match crate::provider::stream_input_observed(
                 &params.provider,
                 &selection.id,
@@ -1857,20 +1921,73 @@ impl<'a> Runtime<'a> {
                 budget.output,
                 params.cancel,
                 &mut |item| match item {
-                    crate::provider::StreamItem::TextDelta(delta) => text_delta(&turn_id, delta),
-                    crate::provider::StreamItem::ReasoningDelta(delta) => {
+                    crate::provider::StreamItem::TextDelta(delta) => {
+                        if !delta.is_empty() && active_text.is_none() {
+                            active_text = Some(text_slots.len());
+                            text_slots.push(TextSlot {
+                                part: turn_log.display_parts.len(),
+                                item_id: String::new(),
+                                output_index: None,
+                            });
+                            turn_log.display_parts.push(serde_json::json!({"pending_text":true}));
+                        }
+                        text_delta(&turn_id, delta);
+                    }
+                    crate::provider::StreamItem::MessageBoundary { item_id, output_index, done } => {
+                        let slot = active_text.filter(|&index| {
+                            let current = &text_slots[index];
+                            (item_id.is_empty() || current.item_id.is_empty() || current.item_id == *item_id)
+                                && (output_index.is_none() || current.output_index.is_none() || current.output_index == *output_index)
+                        }).or_else(|| {
+                            text_slots.iter().position(|slot| {
+                                (!item_id.is_empty() && slot.item_id == *item_id)
+                                    || (output_index.is_some() && slot.output_index == *output_index)
+                            })
+                        });
+                        let slot = slot.unwrap_or_else(|| {
+                            let index = text_slots.len();
+                            text_slots.push(TextSlot {
+                                part: turn_log.display_parts.len(),
+                                item_id: String::new(),
+                                output_index: None,
+                            });
+                            turn_log.display_parts.push(serde_json::json!({"pending_text":true}));
+                            index
+                        });
+                        if !item_id.is_empty() { text_slots[slot].item_id.clone_from(item_id); }
+                        if output_index.is_some() { text_slots[slot].output_index = *output_index; }
+                        active_text = (!done).then_some(slot);
+                    }
+                    crate::provider::StreamItem::ReasoningDelta(delta) if !delta.is_empty() => {
+                        active_text = None;
+                        reasoning_started.get_or_insert_with(std::time::Instant::now);
                         if let Some(last) = turn_log.display_parts.last_mut()
                             && let Some(text) = last.get("reasoning").and_then(|v| v.as_str())
+                            && !reasoning_closed
                         {
                             let mut text = text.to_string();
                             if text.len() + delta.len() > 16 * 1024 { last["truncated"] = true.into(); }
                             if text.len() < 16 * 1024 { text.push_str(delta); }
                             last["reasoning"] = truncate(&text, 16 * 1024).into();
-                            last["duration_ms"] = streamed_ms(stream_started.elapsed()).into();
                         } else {
-                            turn_log.display_parts.push(serde_json::json!({"reasoning":truncate(delta, 16 * 1024), "duration_ms":streamed_ms(stream_started.elapsed()), "truncated":delta.len()>16*1024}));
+                            turn_log.display_parts.push(serde_json::json!({"reasoning":truncate(delta, 16 * 1024), "truncated":delta.len()>16*1024}));
                         }
+                        reasoning_closed = false;
                         reasoning_delta(&turn_id, delta);
+                    }
+                    crate::provider::StreamItem::OpaqueItem { item_id, payload }
+                        if !item_id.is_empty() && payload.get("type").and_then(|v| v.as_str()) == Some("reasoning")
+                            && reasoning_started.is_some() => {
+                        let part = turn_log.display_parts.len().saturating_sub(1);
+                        if let Some(last) = turn_log.display_parts.last_mut()
+                            && last.get("reasoning").is_some()
+                            && !reasoning_closed
+                        {
+                            last["duration_ms"] = streamed_ms(reasoning_started.take().expect("active reasoning").elapsed()).into();
+                            reasoning_anchors.push((part, item_id.clone()));
+                            reasoning_closed = true;
+                            reasoning_item_ended(&turn_id);
+                        }
                     }
                     _ => {}
                 },
@@ -1882,6 +1999,7 @@ impl<'a> Runtime<'a> {
                     generation
                 }
                 Err(error) => {
+                    turn_log.display_parts.retain(|part| part.get("pending_text").is_none());
                     streamed += stream_started.elapsed();
                     let status = if params.cancel.load(Ordering::Relaxed) {
                         TurnStatus::Cancelled
@@ -1916,7 +2034,23 @@ impl<'a> Runtime<'a> {
             for item in &generation.items {
                 turn_log.ingest(item);
             }
-            text.push_str(&generation.text);
+            // Completed structured messages are authoritative even when a
+            // proxy omitted output_text.delta (or only streamed one of several
+            // message items). Never derive public text from reasoning payloads.
+            let canonical_text: String = generation
+                .output
+                .iter()
+                .filter(|item| item["type"] == "message" && item["role"] == "assistant")
+                .filter_map(|item| item["content"].as_array())
+                .flat_map(|content| content.iter())
+                .filter(|part| part["type"] == "output_text")
+                .filter_map(|part| part["text"].as_str())
+                .collect();
+            text.push_str(if canonical_text.is_empty() {
+                &generation.text
+            } else {
+                &canonical_text
+            });
             // A generation's measured context remains useful for display when
             // another round omitted usage and the billed turn total is unknown.
             if let Some(reported) = generation.usage {
@@ -1950,6 +2084,9 @@ impl<'a> Runtime<'a> {
             let units = match assemble_calls(&call_items) {
                 Ok(units) => units,
                 Err(error) => {
+                    turn_log
+                        .display_parts
+                        .retain(|part| part.get("pending_text").is_none());
                     calls.push(CallRecord {
                         name: "unknown".to_string(),
                         state: "failed".to_string(),
@@ -1978,23 +2115,139 @@ impl<'a> Runtime<'a> {
                 .output
                 .iter()
                 .any(|value| value["type"] == "message");
-            for output in generation.output {
+            let generation_output_positions = generation
+                .output
+                .iter()
+                .enumerate()
+                .filter_map(|(index, output)| {
+                    output["id"].as_str().map(|id| (index, id.to_owned()))
+                })
+                .collect::<Vec<_>>();
+            // Assembly is ordered by the canonical function_call items. Match
+            // both provider identities before using an output position; absent
+            // or ambiguous identities retain the append-at-intent fallback.
+            let call_positions = units
+                .iter()
+                .map(|unit| {
+                    let id = match unit {
+                        Assembled::Call(call) => &call.id,
+                        Assembled::Failed(failure) => &failure.id,
+                    };
+                    if id.is_empty() {
+                        return None;
+                    }
+                    let mut matches = generation.output.iter().enumerate().filter(|(_, item)| {
+                        item["type"] == "function_call"
+                            && item["id"]
+                                .as_str()
+                                .is_some_and(|item_id| !item_id.is_empty())
+                            && item["call_id"].as_str() == Some(id.as_str())
+                    });
+                    let (index, _) = matches.next()?;
+                    matches.next().is_none().then_some(index)
+                })
+                .collect::<Vec<_>>();
+            let mut messages = Vec::new();
+            for (index, output) in generation.output.into_iter().enumerate() {
                 if output["type"] == "message" && output["role"] == "assistant" {
-                    turn_log
-                        .display_parts
-                        .push(serde_json::json!({"message":turn_log.input.len()}));
+                    messages.push((
+                        index,
+                        output["id"].as_str().unwrap_or("").to_owned(),
+                        turn_log.input.len(),
+                    ));
                 }
                 turn_log.input.push(InputItem::ProviderOutput(output));
             }
             // Text-only synthetic peers may omit canonical messages. This is plain
             // assistant text, never reconstruction of reasoning or function calls.
             if !generation.text.is_empty() && !has_message {
-                turn_log
-                    .display_parts
-                    .push(serde_json::json!({"message":turn_log.input.len()}));
+                messages.push((usize::MAX, String::new(), turn_log.input.len()));
                 turn_log
                     .input
                     .push(InputItem::message(InputRole::Assistant, &generation.text));
+            }
+            let mut assigned = vec![false; messages.len()];
+            let mut positioned = reasoning_anchors
+                .iter()
+                .filter_map(|(part, id)| {
+                    generation_output_positions
+                        .iter()
+                        .find(|(_, output_id)| output_id == id)
+                        .map(|(index, _)| (*index, *part))
+                })
+                .collect::<Vec<_>>();
+            // Claim observed identities first: an earlier anonymous slot must
+            // not steal the message belonging to a later identified slot.
+            for slot in text_slots
+                .iter()
+                .filter(|slot| slot.output_index.is_some() || !slot.item_id.is_empty())
+            {
+                let mut matches = messages.iter().enumerate().filter(|(i, (index, id, _))| {
+                    !assigned[*i]
+                        && (slot
+                            .output_index
+                            .is_some_and(|position| position == *index as u64)
+                            || (!slot.item_id.is_empty() && slot.item_id == *id))
+                });
+                if let Some((i, _)) = matches.next()
+                    && matches.next().is_none()
+                {
+                    assigned[i] = true;
+                    positioned.push((messages[i].0, slot.part));
+                    turn_log.display_parts[slot.part] =
+                        serde_json::json!({"message":messages[i].2});
+                }
+            }
+            // Without an identity, a stream slot only identifies a message if
+            // there is exactly one remaining. Otherwise remove the placeholder
+            // and insert the canonical messages against reasoning anchors below.
+            for slot in text_slots
+                .iter()
+                .filter(|slot| slot.output_index.is_none() && slot.item_id.is_empty())
+            {
+                let mut candidates = assigned.iter().enumerate().filter(|(_, used)| !**used);
+                if let Some((i, _)) = candidates.next()
+                    && candidates.next().is_none()
+                {
+                    assigned[i] = true;
+                    positioned.push((messages[i].0, slot.part));
+                    turn_log.display_parts[slot.part] =
+                        serde_json::json!({"message":messages[i].2});
+                }
+            }
+            let removed = text_slots
+                .iter()
+                .filter(|slot| {
+                    turn_log.display_parts[slot.part]
+                        .get("pending_text")
+                        .is_some()
+                })
+                .map(|slot| slot.part)
+                .collect::<Vec<_>>();
+            for (_, part) in &mut positioned {
+                *part -= removed.iter().filter(|removed| **removed < *part).count();
+            }
+            turn_log
+                .display_parts
+                .retain(|part| part.get("pending_text").is_none());
+            for (i, (index, _, input_index)) in messages.into_iter().enumerate() {
+                if !assigned[i] {
+                    let position = positioned
+                        .iter()
+                        .filter(|(other, _)| *other > index)
+                        .map(|(_, part)| *part)
+                        .min()
+                        .unwrap_or(turn_log.display_parts.len());
+                    turn_log
+                        .display_parts
+                        .insert(position, serde_json::json!({"message":input_index}));
+                    for (_, part) in &mut positioned {
+                        if *part >= position {
+                            *part += 1;
+                        }
+                    }
+                    positioned.push((index, position));
+                }
             }
             self.db
                 .checkpoint_turn(&turn_id, &turn_log.to_json().to_string())?;
@@ -2009,6 +2262,8 @@ impl<'a> Runtime<'a> {
                     params.cancel,
                     rounds,
                     &mut turn_log,
+                    &mut positioned,
+                    &call_positions,
                     &state_key,
                     &mut tool_projection,
                     tool_event,
@@ -2159,6 +2414,7 @@ impl<'a> Runtime<'a> {
             &mut |_: &str| {},
             &mut |_: &str, _: &str| {},
             &mut |_: &str, _: &str| {},
+            &mut |_: &str| {},
             &mut |_: &str, _: &ToolCallEvent| {},
         )
         .await
@@ -2391,6 +2647,8 @@ impl<'a> Runtime<'a> {
         cancel: &AtomicBool,
         round: u32,
         turn_log: &mut TurnLog,
+        positioned: &mut Vec<(usize, usize)>,
+        call_positions: &[Option<usize>],
         nudge_key: &str,
         tool_projection: &mut crate::storage::DcpToolProjection,
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
@@ -2443,7 +2701,26 @@ impl<'a> Runtime<'a> {
                 _ => None,
             };
             // Fail closed. No built-in or MCP dispatch can precede this commit.
-            turn_log.display_parts.push(serde_json::json!({"tool":op}));
+            let position = call_positions[i]
+                .and_then(|index| {
+                    positioned
+                        .iter()
+                        .filter(|(other, _)| *other > index)
+                        .map(|(_, part)| *part)
+                        .min()
+                })
+                .unwrap_or(turn_log.display_parts.len());
+            turn_log
+                .display_parts
+                .insert(position, serde_json::json!({"tool":op}));
+            for (_, part) in positioned.iter_mut() {
+                if *part >= position {
+                    *part += 1;
+                }
+            }
+            if let Some(index) = call_positions[i] {
+                positioned.push((index, position));
+            }
             self.db.record_turn_tool_intent(
                 &op,
                 session,

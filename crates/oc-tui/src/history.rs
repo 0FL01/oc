@@ -267,7 +267,13 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         meta: None,
         tool: None,
     };
+    // A preview notice is not a durable part. Keep adjacent reasoning refs
+    // adjacent for grouping, then show every notice before the next part.
+    let mut reasoning_notices = Vec::new();
     for (index, part) in turn.parts.iter().enumerate() {
+        if !matches!(part, TranscriptPart::Reasoning { .. }) {
+            rows.append(&mut reasoning_notices);
+        }
         let mut part_row = empty_row();
         match part {
             TranscriptPart::Text(text) => part_row.text = text.clone(),
@@ -275,7 +281,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
                 part_row.reasoning = Some(ReasoningBlock {
                     text: text.clone(),
                     duration_ms: *duration_ms,
-                    running: turn.status == "started",
+                    running: turn.status == "started" && duration_ms.is_none(),
                     expanded: false,
                     toggleable: true,
                     identity: Some(ReasoningIdentity::Durable(row.seq, index)),
@@ -300,9 +306,14 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
             } else {
                 "[Part preview truncated]".into()
             };
-            rows.push(notice);
+            if matches!(part, TranscriptPart::Reasoning { .. }) {
+                reasoning_notices.push(notice);
+            } else {
+                rows.push(notice);
+            }
         }
     }
+    rows.append(&mut reasoning_notices);
     let mut footer = empty_row();
     if turn.omitted_parts > 0 {
         let mut notice = empty_row();
@@ -508,6 +519,386 @@ mod tests {
             assert_eq!(meta.status.as_deref(), Some(status));
             assert_eq!(meta.agent_color_index, Some(3));
         }
+    }
+
+    #[test]
+    fn started_turn_with_two_completed_reasoning_parts_replays_as_completed_group() {
+        use oc_core::queries::{HistoryTurn, TranscriptPart};
+        use ratatui::style::Color;
+
+        let mut message = row(12, Role::Assistant, "");
+        message.turn = Some(HistoryTurn {
+            status: "started".into(),
+            parts: vec![
+                TranscriptPart::Reasoning {
+                    text: "**Inspecting**\n\nfirst".into(),
+                    duration_ms: Some(5),
+                },
+                TranscriptPart::Reasoning {
+                    text: "**Verifying**\n\nsecond".into(),
+                    duration_ms: Some(7),
+                },
+            ],
+            ..Default::default()
+        });
+        let rows = super::rows_from_page(&message);
+        assert_eq!(rows.len(), 3, "adjacent parts and a started footer");
+        assert!(
+            rows[..2]
+                .iter()
+                .all(|row| !row.reasoning.as_ref().unwrap().running)
+        );
+        assert_eq!(
+            rows[2].meta.as_ref().unwrap().status.as_deref(),
+            Some("started")
+        );
+        let lines = crate::messages::transcript(&rows, crate::theme::Theme::dark(), 80, 80, |_| {
+            Color::Reset
+        });
+        assert!(lines.iter().any(|line| {
+            line.plain_text()
+                .contains("Thought: Verifying · 2 steps · 12ms")
+        }));
+        assert!(
+            !lines
+                .iter()
+                .any(|line| line.plain_text().contains("Thinking"))
+        );
+    }
+
+    #[test]
+    fn started_turn_with_open_reasoning_part_replays_as_running_group() {
+        use oc_core::queries::{HistoryTurn, TranscriptPart};
+        use ratatui::style::Color;
+
+        let mut message = row(13, Role::Assistant, "");
+        message.turn = Some(HistoryTurn {
+            status: "started".into(),
+            parts: vec![
+                TranscriptPart::Reasoning {
+                    text: "**Inspecting**\n\nfirst".into(),
+                    duration_ms: Some(5),
+                },
+                TranscriptPart::Reasoning {
+                    text: "**Verifying**\n\nstill open".into(),
+                    duration_ms: None,
+                },
+            ],
+            ..Default::default()
+        });
+        let rows = super::rows_from_page(&message);
+        assert_eq!(rows[0].reasoning.as_ref().unwrap().duration_ms, Some(5));
+        assert!(!rows[0].reasoning.as_ref().unwrap().running);
+        assert_eq!(rows[1].reasoning.as_ref().unwrap().duration_ms, None);
+        assert!(rows[1].reasoning.as_ref().unwrap().running);
+        let lines = crate::messages::transcript(&rows, crate::theme::Theme::dark(), 80, 80, |_| {
+            Color::Reset
+        });
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.plain_text().contains("Thinking: Verifying"))
+        );
+
+        for status in ["failed", "incomplete", "cancelled"] {
+            message.turn.as_mut().unwrap().status = status.into();
+            let rows = super::rows_from_page(&message);
+            assert!(
+                rows[..2]
+                    .iter()
+                    .all(|row| !row.reasoning.as_ref().unwrap().running)
+            );
+            assert_eq!(rows[1].reasoning.as_ref().unwrap().duration_ms, None);
+        }
+    }
+
+    #[test]
+    fn truncated_reasoning_preview_keeps_adjacent_steps_and_indexed_click() {
+        use crate::messages::{MarkdownCache, ReasoningIdentity};
+        use oc_core::queries::{HistoryTurn, PartState, TranscriptPart};
+        use ratatui::style::Color;
+        use std::cell::RefCell;
+
+        // The stored preview is already bounded: never reconstruct omitted
+        // content from a part-state flag or substitute a notice for a part.
+        let prefix = "**Inspecting**\n\nfirst body\n\n";
+        let original = format!(
+            "{prefix}{}hidden marker",
+            "x".repeat(16 * 1024 - prefix.len())
+        );
+        let first = original[..16 * 1024].to_string();
+        assert!(original.len() > 16 * 1024);
+        let mut message = row(42, Role::Assistant, "aggregate must not be replayed");
+        message.turn = Some(HistoryTurn {
+            status: "completed".into(),
+            parts: vec![
+                TranscriptPart::Reasoning {
+                    text: first.clone(),
+                    duration_ms: Some(5),
+                },
+                TranscriptPart::Reasoning {
+                    text: "**Verifying**\n\nsecond body".into(),
+                    duration_ms: Some(7),
+                },
+                TranscriptPart::Text("answer".into()),
+            ],
+            part_states: vec![
+                PartState {
+                    truncated: true,
+                    ..Default::default()
+                },
+                PartState::default(),
+                PartState::default(),
+            ],
+            ..Default::default()
+        });
+        let mut window = HistoryWindow::new();
+        window.reset(&page(
+            vec![message, row(43, Role::User, "next prompt")],
+            2,
+            false,
+            false,
+        ));
+        let rows = window.rows();
+        assert_eq!(rows.len(), 6);
+        assert!(window.retained_bytes() <= WINDOW_BYTES);
+        assert_eq!(rows[0].reasoning.as_ref().unwrap().text, first);
+        assert_eq!(rows[0].reasoning.as_ref().unwrap().text.len(), 16 * 1024);
+        assert_eq!(
+            rows[0].reasoning.as_ref().unwrap().identity,
+            Some(ReasoningIdentity::Durable(42, 0))
+        );
+        assert_eq!(
+            rows[1].reasoning.as_ref().unwrap().identity,
+            Some(ReasoningIdentity::Durable(42, 1))
+        );
+        assert_eq!(rows[2].text, "[Part preview truncated]");
+        assert_eq!(rows[3].text, "answer");
+        assert!(rows[4].meta.is_some());
+        assert_eq!(rows[5].role, "user");
+        let theme = crate::theme::Theme::dark();
+        let plain = |rows: &[super::HistoryRow]| {
+            crate::messages::transcript(rows, theme, 80, 80, |_| Color::Reset)
+                .iter()
+                .map(|line| line.plain_text())
+                .collect::<Vec<_>>()
+        };
+        let collapsed = plain(rows);
+        assert_eq!(
+            collapsed
+                .iter()
+                .filter(|line| line.contains("· 2 steps"))
+                .count(),
+            1
+        );
+        assert!(
+            collapsed
+                .iter()
+                .any(|line| line.contains("Thought: Verifying · 2 steps · 12ms"))
+        );
+        assert!(
+            !collapsed
+                .iter()
+                .any(|line| line.contains("first body") || line.contains("second body"))
+        );
+        assert!(
+            collapsed
+                .iter()
+                .any(|line| line.contains("[Part preview truncated]"))
+        );
+        assert!(
+            !collapsed
+                .iter()
+                .any(|line| line.contains("aggregate must not be replayed")
+                    || line.contains("hidden marker"))
+        );
+
+        let cache = RefCell::new(MarkdownCache::default());
+        let (indexed, total) = crate::messages::visible_transcript_expanded(
+            rows,
+            theme,
+            (80, 80),
+            (40, 0, None),
+            |_| Color::Reset,
+            &cache,
+            &|_| false,
+        );
+        assert!(total >= indexed.len());
+        assert_eq!(
+            crate::messages::reasoning_header_at(
+                rows,
+                theme,
+                (80, 80),
+                (total, 0, None),
+                |_| Color::Reset,
+                &cache,
+                (&|_| false, (3, 2)),
+            ),
+            Some(ReasoningIdentity::Durable(42, 0)),
+        );
+        let mut expanded_rows = rows.to_vec();
+        expanded_rows[0].reasoning.as_mut().unwrap().expanded = true;
+        let expanded = plain(&expanded_rows);
+        for expected in [
+            "first body",
+            "second body",
+            "[Part preview truncated]",
+            "answer",
+            "next prompt",
+        ] {
+            assert!(
+                expanded.iter().any(|line| line.contains(expected)),
+                "missing {expected}"
+            );
+        }
+        assert!(!expanded.iter().any(|line| line.contains("hidden marker")));
+        assert_eq!(
+            expanded
+                .iter()
+                .filter(|line| line.contains("· 2 steps"))
+                .count(),
+            1
+        );
+        let (visible, total) = crate::messages::visible_transcript_expanded(
+            &expanded_rows,
+            theme,
+            (80, 80),
+            (expanded.len() + 1, 0, None),
+            |_| Color::Reset,
+            &cache,
+            &|_| false,
+        );
+        assert_eq!(total, visible.len());
+        assert_eq!(
+            crate::messages::reasoning_header_at(
+                &expanded_rows,
+                theme,
+                (80, 80),
+                (total, 0, None),
+                |_| Color::Reset,
+                &cache,
+                (&|_| false, (3, 2)),
+            ),
+            Some(ReasoningIdentity::Durable(42, 0)),
+        );
+        for expected in ["first body", "second body", "[Part preview truncated]"] {
+            assert!(
+                visible
+                    .iter()
+                    .any(|line| line.plain_text().contains(expected)),
+                "indexed replay missing {expected}"
+            );
+        }
+    }
+
+    #[test]
+    fn reasoning_notices_flush_before_text_tool_and_footer_without_hiding_other_notices() {
+        use crate::messages::ReasoningIdentity;
+        use oc_core::queries::{HistoryTurn, PartState, TranscriptPart};
+        use ratatui::style::Color;
+
+        let reason = |text: &str| TranscriptPart::Reasoning {
+            text: text.into(),
+            duration_ms: Some(1),
+        };
+        let mut message = row(7, Role::Assistant, "");
+        message.turn = Some(HistoryTurn {
+            parts: vec![
+                reason("**One**\n\nbody 1"),
+                reason("**Two**\n\nbody 2"),
+                TranscriptPart::Tool(ToolOpView {
+                    rowid: 0,
+                    op: "op-1".into(),
+                    name: "bash".into(),
+                    state: "completed".into(),
+                    input: None,
+                    output: None,
+                    output_bytes: 0,
+                    output_truncated: false,
+                }),
+                reason("**Three**\n\nbody 3"),
+                TranscriptPart::Text("separator".into()),
+                reason("**Four**\n\nbody 4"),
+            ],
+            part_states: vec![
+                PartState {
+                    truncated: true,
+                    ..Default::default()
+                },
+                PartState {
+                    truncated: true,
+                    ..Default::default()
+                },
+                PartState {
+                    truncated: true,
+                    input_omitted: true,
+                    ..Default::default()
+                },
+                PartState {
+                    truncated: true,
+                    ..Default::default()
+                },
+                PartState {
+                    truncated: true,
+                    ..Default::default()
+                },
+                PartState {
+                    truncated: true,
+                    ..Default::default()
+                },
+            ],
+            omitted_parts: 2,
+            ..Default::default()
+        });
+        let rows = super::rows_from_page(&message);
+        assert_eq!(rows.len(), 14);
+        assert_eq!(
+            rows[0].reasoning.as_ref().unwrap().identity,
+            Some(ReasoningIdentity::Durable(7, 0))
+        );
+        assert_eq!(
+            rows[1].reasoning.as_ref().unwrap().identity,
+            Some(ReasoningIdentity::Durable(7, 1))
+        );
+        assert_eq!(rows[2].text, "[Part preview truncated]");
+        assert_eq!(rows[3].text, "[Part preview truncated]");
+        assert_eq!(rows[4].tool.as_ref().unwrap().op, "op-1");
+        assert_eq!(
+            rows[5].text,
+            "[Tool input omitted from preview; operation op-1 retained; see /cards]"
+        );
+        assert_eq!(
+            rows[6].reasoning.as_ref().unwrap().identity,
+            Some(ReasoningIdentity::Durable(7, 3))
+        );
+        assert_eq!(rows[7].text, "[Part preview truncated]");
+        assert_eq!(rows[8].text, "separator");
+        assert_eq!(rows[9].text, "[Part preview truncated]");
+        assert_eq!(
+            rows[10].reasoning.as_ref().unwrap().identity,
+            Some(ReasoningIdentity::Durable(7, 5))
+        );
+        assert_eq!(rows[11].text, "[Part preview truncated]");
+        assert!(rows[12].text.contains("2 parts omitted"));
+        assert!(rows[13].meta.is_some());
+        let lines = crate::messages::transcript(&rows, crate::theme::Theme::dark(), 80, 80, |_| {
+            Color::Reset
+        });
+        let plain: Vec<_> = lines.iter().map(|line| line.plain_text()).collect();
+        assert_eq!(
+            plain
+                .iter()
+                .filter(|line| line.contains("· 2 steps"))
+                .count(),
+            1
+        );
+        assert!(
+            plain
+                .iter()
+                .any(|line| line.contains("Thought: Two · 2 steps"))
+        );
+        assert!(plain.iter().any(|line| line.contains("Thought: Three")));
+        assert!(plain.iter().any(|line| line.contains("Thought: Four")));
     }
 
     #[test]

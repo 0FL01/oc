@@ -439,6 +439,44 @@ whole-grid and PNG comparisons. If either side does not transition, its failed
 predicate and `failure-diagnostic` frame remain in the attempt; no interaction
 or VIS15 parity PASS is implied by the other side's successful transition.
 
+For the independent **two adjacent public reasoning items** VIS15 probe, use
+both real executables, a fresh attempt path, and the Reader 120×40 profile:
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc \
+  --geometry true --sample reasoning-steps --sidebar hide --agent-profile true \
+  --columns 120 --rows 40 --reasoning-steps true \
+  --output /home/opencode/ai/oc/evidence/tui/reasoning-steps-NEW-ATTEMPT
+```
+
+This test-only opt-in is exclusive with other interaction, resize, variant and
+seed modes. The fixture serves one completed Responses output: two sequential
+reasoning items with separate IDs and output indices, each with a public
+summary part, delta, part.done and item.done, then a short assistant message and
+response.completed. The first item is `**Inspecting**` /
+`First public step marker.`; the second is `**Verifying**` /
+`Second public step marker.`. Opaque
+encrypted content is never an expected visible body. Each side must actually
+issue one valid completed transcript and one valid completed title request,
+without a tool round-trip or invalid request; request hashes and safe contract
+facts are in `protocol.json`. The pinned original groups adjacent reasoning
+parts into one completed `+ Thought: Verifying · 2 steps`; expansion paints
+both distinct titles and bodies in order (pinned
+`opencode/packages/tui/src/routes/session/grouping/session.ts` and
+`opencode/packages/tui/src/routes/session/index.tsx`). The runner records the **actual**
+per-side painted header, step number, styles/cells, marker positions, provider
+counts and real one-based SGR click bytes in `reasoning-steps-checks.json` and
+`inputs.json`. It captures `home`, `reasoning-steps-collapsed`,
+`reasoning-steps-expanded` and `reasoning-steps-recollapsed` as full styled
+grids, PNG, VT and render geometry, comparing every
+available paired stage unmasked in grid and PNG modes. If the native groups
+differently, its collapsed and `failure-diagnostic` frames and failed predicates
+are kept; no missing expansion is manufactured or reported as PASS. A successful
+per-side interaction alone does not establish whole-frame equality. This
+command uses existing binaries and does not invoke Cargo.
+
 `--startup-error true` with only `--oc` captures a real malformed-config native
 preflight error. For supported child routes and real Location query failures,
 `OC_V03_CAPTURE_OUTPUT=/absolute/fresh-attempt-prefix cargo test --locked -p oc

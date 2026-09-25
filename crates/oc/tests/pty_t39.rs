@@ -40,6 +40,11 @@ const S07_ANSWER: &str = "```rust\nfn s07_probe() {\n    let S07_STREAM_FRAGMENT
 const REASONING_CLICK_PROMPT: &str = "pty reasoning header click";
 const REASONING_CLICK_BODY: &str = "PTY_REASONING_CLICK_BODY_7819";
 const REASONING_CLICK_ANSWER: &str = "PTY_REASONING_CLICK_FINAL_3826";
+const REASONING_STEPS_PROMPT: &str = "pty adjacent reasoning steps";
+const REASONING_STEPS_FIRST: &str = "**Inspecting**\n\nPTY_STEPS_FIRST_BODY_6148";
+const REASONING_STEPS_SECOND: &str = "**Verifying**\n\nPTY_STEPS_SECOND_BODY_7349";
+const REASONING_STEPS_ANSWER: &str = "PTY_STEPS_FINAL_1625";
+const REASONING_STEPS_OPAQUE: &str = "PTY_STEPS_ENCRYPTED_NEVER_RENDER_8972";
 
 /// Scripted native Responses peer plus isolated HOME/config.
 struct Fixture {
@@ -221,6 +226,7 @@ enum Script {
     S07Read,
     S07Markdown,
     ReasoningClick,
+    ReasoningSteps,
     Compress(String),
 }
 
@@ -263,6 +269,9 @@ fn script(body: &serde_json::Value) -> Script {
     }
     if prompt == REASONING_CLICK_PROMPT {
         return Script::ReasoningClick;
+    }
+    if prompt == REASONING_STEPS_PROMPT {
+        return Script::ReasoningSteps;
     }
     Script::Text(format!("echo: {prompt}"))
 }
@@ -444,6 +453,44 @@ fn respond(
             socket.flush()?;
             finish_text(socket, REASONING_CLICK_ANSWER)
         }
+        Script::ReasoningSteps => {
+            let mut output = Vec::new();
+            for (id, summary) in [
+                ("rs_pty_first", REASONING_STEPS_FIRST),
+                ("rs_pty_second", REASONING_STEPS_SECOND),
+            ] {
+                let delta = serde_json::json!({
+                    "type": "response.reasoning_summary_text.delta", "delta": summary
+                });
+                let item = serde_json::json!({
+                    "type": "reasoning", "id": id, "status": "completed",
+                    "encrypted_content": REASONING_STEPS_OPAQUE, "summary": []
+                });
+                let done = serde_json::json!({"type": "response.output_item.done", "item": item});
+                write!(socket, "data: {delta}\n\ndata: {done}\n\n")?;
+                socket.flush()?;
+                output.push(item);
+            }
+            let answer = serde_json::json!({
+                "type": "message", "id": "msg_pty_steps", "role": "assistant",
+                "status": "completed", "content": [{"type": "output_text", "text": REASONING_STEPS_ANSWER}]
+            });
+            let delta = serde_json::json!({
+                "type": "response.output_text.delta", "delta": REASONING_STEPS_ANSWER
+            });
+            let done = serde_json::json!({
+                "type": "response.output_item.done", "output_index": 2, "item": answer
+            });
+            output.push(answer);
+            let completed = serde_json::json!({
+                "type": "response.completed", "response": {"status": "completed", "output": output}
+            });
+            write!(
+                socket,
+                "data: {delta}\n\ndata: {done}\n\ndata: {completed}\n\n"
+            )?;
+            socket.flush()
+        }
         Script::Slow(_) => unreachable!("handled above"),
         Script::Vis28Held => unreachable!("handled above"),
     }
@@ -529,7 +576,17 @@ struct PtySession {
 
 impl PtySession {
     fn spawn(fixture: Arc<Fixture>, session: &str, metrics: Option<&Path>) -> Self {
-        let (master, slave) = openpty_pair(80, 24);
+        Self::spawn_sized(fixture, session, metrics, 80, 24)
+    }
+
+    fn spawn_sized(
+        fixture: Arc<Fixture>,
+        session: &str,
+        metrics: Option<&Path>,
+        cols: u16,
+        rows: u16,
+    ) -> Self {
+        let (master, slave) = openpty_pair(cols, rows);
         let mut cmd = fixture.command();
         cmd.arg("tui")
             .args(["--session", session])
@@ -1768,6 +1825,157 @@ fn v06_real_pty_completed_reasoning_header_click_expands_and_collapses() {
         ],
         "reasoning toggles leave the original durable answer unchanged"
     );
+}
+
+/// VIS15: the *real binary* must group adjacent durable reasoning items, not
+/// merely render one item twice or reconstruct a group from a screenshot.
+fn assert_reasoning_steps_collapsed(pty: &PtySession) {
+    wait_screen_row(pty, "+ Thought: Verifying · 2 steps", DEADLINE);
+    wait_screen_absent(pty, "PTY_STEPS_FIRST_BODY_6148");
+    wait_screen_absent(pty, "PTY_STEPS_SECOND_BODY_7349");
+    let rows = render_screen(&pty.snapshot()).rows();
+    assert_eq!(
+        rows.iter().filter(|row| row.contains("+ Thought")).count(),
+        1,
+        "exactly one collapsed reasoning header: {rows:?}"
+    );
+    assert!(rows.iter().any(|row| row.contains(REASONING_STEPS_ANSWER)));
+    assert!(!contains(
+        &pty.snapshot(),
+        REASONING_STEPS_OPAQUE.as_bytes()
+    ));
+}
+
+fn assert_reasoning_steps_expanded(pty: &PtySession) {
+    wait_screen_row(pty, "PTY_STEPS_SECOND_BODY_7349", DEADLINE);
+    let rows = render_screen(&pty.snapshot()).rows();
+    let first = rows
+        .iter()
+        .position(|row| row.contains("PTY_STEPS_FIRST_BODY_6148"))
+        .unwrap_or_else(|| panic!("first public body missing: {rows:?}"));
+    let second = rows
+        .iter()
+        .position(|row| row.contains("PTY_STEPS_SECOND_BODY_7349"))
+        .unwrap();
+    assert!(first < second, "public reasoning item order: {rows:?}");
+    assert!(rows.iter().any(|row| row.contains("- Thought · 2 steps")));
+    assert!(rows.iter().any(|row| row.contains(REASONING_STEPS_ANSWER)));
+    assert!(!contains(
+        &pty.snapshot(),
+        REASONING_STEPS_OPAQUE.as_bytes()
+    ));
+}
+
+fn toggle_reasoning_steps(pty: &mut PtySession, expanded: bool) {
+    let header = if expanded {
+        "+ Thought: Verifying · 2 steps"
+    } else {
+        "- Thought · 2 steps"
+    };
+    let (x, y) = reasoning_click_header(pty, header);
+    mouse_click(pty, x, y);
+    if expanded {
+        assert_reasoning_steps_expanded(pty);
+    } else {
+        assert_reasoning_steps_collapsed(pty);
+    }
+}
+
+#[test]
+fn vis15_real_pty_adjacent_reasoning_parts_group_and_replay_after_restart() {
+    let fixture = Fixture::new();
+    let session = "vis15-adjacent-reasoning";
+    let mut pty = PtySession::spawn_sized(fixture.clone(), session, None, 120, 40);
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, REASONING_STEPS_PROMPT);
+    assert_eq!(
+        last_user_text(&fixture.wait_requests(1)[0]).as_deref(),
+        Some(REASONING_STEPS_PROMPT)
+    );
+    wait_screen_row(&pty, REASONING_STEPS_ANSWER, DEADLINE);
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    wait_idle(&pty);
+    assert_reasoning_steps_collapsed(&pty);
+    let requests_before = fixture.requests.lock().unwrap().len();
+    toggle_reasoning_steps(&mut pty, true);
+    // Select-copy mode treats a quick second click as a multi-click selection.
+    std::thread::sleep(Duration::from_millis(510));
+    toggle_reasoning_steps(&mut pty, false);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests_before);
+
+    pty.send(b"/quit\r");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+    assert!(!contains(&output, REASONING_STEPS_OPAQUE.as_bytes()));
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests_before);
+
+    // Assert the committed journal, not just the answer projection or screen.
+    let db = oc_adapters::storage::Db::open(pty.data_dir()).expect("durable db");
+    assert_eq!(
+        db.read_history(session).unwrap(),
+        [
+            ("user".into(), REASONING_STEPS_PROMPT.into()),
+            ("assistant".into(), REASONING_STEPS_ANSWER.into())
+        ]
+    );
+    let conn = rusqlite::Connection::open(pty.data_dir().join("oc.sqlite")).unwrap();
+    let turns: i64 = conn
+        .query_row(
+            "SELECT count(*) FROM turns WHERE session_id=?1",
+            [session],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(turns, 1, "one accepted turn across both launches");
+    let (turn_status, journal): (String, String) = conn
+        .query_row(
+            "SELECT status, result FROM turns WHERE session_id=?1",
+            [session],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("exactly one durable turn");
+    assert_eq!(turn_status, "completed");
+    let journal: serde_json::Value = serde_json::from_str(&journal).unwrap();
+    let parts = journal["display_parts"].as_array().expect("public parts");
+    assert_eq!(parts.len(), 3, "two distinct reasoning parts and answer");
+    assert_eq!(parts[0]["reasoning"], REASONING_STEPS_FIRST);
+    assert_eq!(parts[1]["reasoning"], REASONING_STEPS_SECOND);
+    assert!(parts[2]["message"].is_number(), "answer is a message part");
+    assert!(
+        !parts
+            .iter()
+            .any(|part| part.to_string().contains(REASONING_STEPS_OPAQUE)),
+        "encrypted continuation must not enter public parts"
+    );
+    let input = journal["input"].as_array().expect("durable wire items");
+    let answer_index = parts[2]["message"].as_u64().unwrap() as usize;
+    assert_eq!(
+        input[answer_index]["content"][0]["text"],
+        REASONING_STEPS_ANSWER
+    );
+    let encrypted: Vec<_> = input
+        .iter()
+        .filter(|item| item["encrypted_content"] == REASONING_STEPS_OPAQUE)
+        .collect();
+    assert_eq!(encrypted.len(), 2, "separate opaque reasoning items");
+    assert_eq!(encrypted[0]["id"], "rs_pty_first");
+    assert_eq!(encrypted[1]["id"], "rs_pty_second");
+    drop(conn);
+    drop(db);
+
+    let mut reopened = PtySession::spawn_sized(fixture.clone(), session, None, 120, 40);
+    wait_screen_row(&reopened, REASONING_STEPS_ANSWER, DEADLINE);
+    assert_reasoning_steps_collapsed(&reopened);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests_before);
+    toggle_reasoning_steps(&mut reopened, true);
+    std::thread::sleep(Duration::from_millis(510));
+    toggle_reasoning_steps(&mut reopened, false);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests_before);
+    reopened.send(b"/quit\r");
+    let (status, output) = reopened.wait_exit(DEADLINE);
+    assert!(status.success() && reopened.restored() && contains(&output, ALT_LEAVE));
+    assert!(!contains(&output, REASONING_STEPS_OPAQUE.as_bytes()));
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests_before);
 }
 
 fn wait_cursor(pty: &PtySession, wanted: (usize, usize)) {

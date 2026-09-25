@@ -50,6 +50,38 @@ fn sse_reasoning(text: &str) -> String {
     )
 }
 
+fn sse_reasoning_done(id: &str, secret: &str) -> String {
+    format!(
+        "data: {}\n\n",
+        serde_json::json!({"type":"response.output_item.done", "item":{
+            "type":"reasoning", "id":id, "encrypted_content":secret, "summary":[], "status":"completed"
+        }})
+    )
+}
+
+fn sse_completed_output(output: Vec<serde_json::Value>) -> String {
+    format!(
+        "data: {}\n\n",
+        serde_json::json!({"type":"response.completed", "response":{
+            "status":"completed", "output":output, "usage":{"input_tokens":10,"output_tokens":5}
+        }})
+    )
+}
+
+fn sse_message_done(index: u64, message: &serde_json::Value) -> String {
+    format!(
+        "data: {}\n\n",
+        serde_json::json!({"type":"response.output_item.done", "output_index":index, "item":message})
+    )
+}
+
+fn sse_message_done_by_id(message: &serde_json::Value) -> String {
+    format!(
+        "data: {}\n\n",
+        serde_json::json!({"type":"response.output_item.done", "item":message})
+    )
+}
+
 fn sse_tool_call(call_id: &str, name: &str, args: &serde_json::Value) -> String {
     let item_id = format!("fc_{call_id}");
     let added = serde_json::json!({"type": "response.output_item.added", "item": {
@@ -4211,6 +4243,645 @@ async fn dto_reasoning_deltas_and_usage_reach_the_event_callbacks() {
 }
 
 #[tokio::test]
+async fn two_reasoning_output_items_keep_public_parts_and_opaque_continuation_separate() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("reasoning-items").unwrap();
+    let items: Vec<_> = [("rs_1", "encrypted-first"), ("rs_2", "encrypted-second")]
+        .into_iter()
+        .map(|(id, encrypted_content)| {
+            serde_json::json!({
+                "type":"reasoning", "id":id, "encrypted_content":encrypted_content,
+                "summary":[], "status":"completed"
+            })
+        })
+        .collect();
+    let message = serde_json::json!({"type":"message", "role":"assistant", "id":"msg_1",
+        "status":"completed", "content":[{"type":"output_text", "text":"between"}]});
+    let final_message = serde_json::json!({"type":"message", "role":"assistant", "id":"msg_2",
+        "status":"completed", "content":[{"type":"output_text", "text":"final"}]});
+    let (base, hits, requests) = Fake::start_recording(
+        vec![
+            sse_reasoning("Inspecting")
+                + &sse_reasoning_done("rs_1", "encrypted-first")
+                + &sse_delta("between")
+                + &sse_message_done_by_id(&message)
+                + &sse_reasoning("Verifying")
+                + &sse_reasoning_done("rs_2", "encrypted-second")
+                + &sse_message_done(3, &final_message)
+                + &sse_completed_output(vec![
+                    items[0].clone(),
+                    message,
+                    items[1].clone(),
+                    final_message,
+                ]),
+            sse_delta("next") + &sse_completed(),
+        ],
+        Duration::from_millis(20),
+    );
+    let public = Arc::new(Mutex::new(Vec::new()));
+    let deltas = public.clone();
+    let ends = public.clone();
+    let texts = public.clone();
+    let report = runtime
+        .run_turn_with_reasoning_items(
+            params(
+                "reasoning-items",
+                "first",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ),
+            |_| {},
+            move |_, delta| texts.lock().unwrap().push(format!("text:{delta}")),
+            move |_, delta| deltas.lock().unwrap().push(delta.to_owned()),
+            move |_| ends.lock().unwrap().push("<ended>".into()),
+            |_, _| {},
+        )
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(
+        *public.lock().unwrap(),
+        [
+            "Inspecting",
+            "<ended>",
+            "text:between",
+            "Verifying",
+            "<ended>"
+        ]
+    );
+    assert_eq!(report.text, "betweenfinal");
+    assert_eq!(report.usage, Some((10, 5)));
+    let (_, stored) = harness.db.turn_result(&report.turn_id).unwrap();
+    let stored: serde_json::Value = serde_json::from_str(&stored.unwrap()).unwrap();
+    assert_eq!(stored["display_parts"][0]["reasoning"], "Inspecting");
+    assert_eq!(
+        stored["display_parts"][1]["message"], 2,
+        "text slot matched by item id without an output index"
+    );
+    assert_eq!(stored["display_parts"][2]["reasoning"], "Verifying");
+    assert_eq!(stored["display_parts"][3]["message"], 4);
+    assert_eq!(stored["display_parts"].as_array().unwrap().len(), 4);
+    assert!(
+        report.streamed_ms >= 20,
+        "fake delayed the whole generation"
+    );
+    for part in [&stored["display_parts"][0], &stored["display_parts"][2]] {
+        assert!(
+            part["duration_ms"].as_u64().unwrap() < report.streamed_ms,
+            "each item starts with its own public delta, not the generation request"
+        );
+    }
+    assert!(!stored["display_parts"].to_string().contains("encrypted-"));
+    assert!(!stored["display_parts"].to_string().contains("pending_text"));
+    assert_eq!(stored["input"][2]["content"][0]["text"], "between");
+    assert_eq!(stored["input"][4]["content"][0]["text"], "final");
+    assert_eq!(stored["input"][1]["encrypted_content"], "encrypted-first");
+    assert_eq!(stored["input"][3]["encrypted_content"], "encrypted-second");
+    let next = runtime
+        .run_turn(params(
+            "reasoning-items",
+            "second",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(next.status, TurnStatus::Completed);
+    assert_eq!(*hits.lock().unwrap(), 2);
+    let requests = requests.lock().unwrap();
+    let replay = requests[1]["input"].as_array().unwrap();
+    for item in &items {
+        assert!(
+            replay.contains(item),
+            "opaque continuation must survive replay"
+        );
+    }
+    assert!(
+        replay
+            .iter()
+            .any(|item| item["id"] == "msg_1" && item["content"][0]["text"] == "between")
+    );
+    assert!(
+        replay
+            .iter()
+            .any(|item| item["id"] == "msg_2" && item["content"][0]["text"] == "final")
+    );
+}
+
+#[tokio::test]
+async fn only_done_reasoning_items_have_duration_on_failed_cancelled_or_incomplete_streams() {
+    let failed = "data: {\"type\":\"response.failed\",\"response\":{\"status\":\"failed\"}}\n\n";
+    let incomplete =
+        "data: {\"type\":\"response.incomplete\",\"response\":{\"status\":\"incomplete\"}}\n\n";
+    for (terminal, expected, stored_status, cancel_after_second) in [
+        (failed, TurnStatus::Failed, "failed", false),
+        (incomplete, TurnStatus::Incomplete, "incomplete", false),
+        ("", TurnStatus::Incomplete, "incomplete", false),
+        ("", TurnStatus::Cancelled, "cancelled", true),
+    ] {
+        let (harness, generation) = make_harness(allow_all());
+        let runtime = runtime_of(&harness, generation, Vec::new());
+        runtime.create_session("unfinished-reasoning").unwrap();
+        let (base, hits) = Fake::start(
+            vec![
+                sse_reasoning("First")
+                    + &sse_reasoning_done("rs_1", "private-first")
+                    + &sse_reasoning("Second")
+                    + &sse_reasoning(" half")
+                    + terminal,
+            ],
+            Duration::ZERO,
+        );
+        let cancel = AtomicBool::new(false);
+        let mut observed = String::new();
+        let mut ended = 0;
+        let report = runtime
+            .run_turn_with_reasoning_items(
+                params(
+                    "unfinished-reasoning",
+                    "keep the user turn",
+                    &harness,
+                    provider_of(&base),
+                    &cancel,
+                ),
+                |_| {},
+                |_, _| {},
+                |_, delta| {
+                    observed.push_str(delta);
+                    if cancel_after_second && delta == " half" {
+                        cancel.store(true, Ordering::Relaxed);
+                    }
+                },
+                |_| ended += 1,
+                |_, _| {},
+            )
+            .await
+            .unwrap();
+        assert_eq!(observed, "FirstSecond half", "fixture must open r2");
+        assert_eq!(ended, 1, "only r1 sent output_item.done");
+        assert_eq!(report.status, expected);
+        assert!(report.calls.is_empty());
+        assert!(
+            harness
+                .db
+                .list_tool_ops("unfinished-reasoning")
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(*hits.lock().unwrap(), 1, "no retry or tool generation");
+        let (status, stored) = harness.db.turn_result(&report.turn_id).unwrap();
+        assert_eq!(status, stored_status);
+        let stored: serde_json::Value = serde_json::from_str(&stored.unwrap()).unwrap();
+        let parts = stored["display_parts"].as_array().unwrap();
+        assert_eq!(parts.len(), 2, "no synthesized assistant or tool part");
+        assert_eq!(parts[0]["reasoning"], "First");
+        assert!(parts[0]["duration_ms"].as_u64().is_some());
+        assert_eq!(parts[1]["reasoning"], "Second half");
+        assert!(parts[1].get("duration_ms").is_none(), "r2 never ended");
+        assert!(!stored.to_string().contains("private-first"));
+        assert!(!stored.to_string().contains("pending_text"));
+        assert_eq!(
+            harness.db.read_history("unfinished-reasoning").unwrap(),
+            [("user".into(), "keep the user turn".into())]
+        );
+    }
+}
+
+#[tokio::test]
+async fn successful_generation_without_reasoning_item_done_leaves_open_part_untimed() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("open-reasoning-success").unwrap();
+    let first = serde_json::json!({"type":"reasoning", "id":"rs_1",
+        "encrypted_content":"private-first", "summary":[], "status":"completed"});
+    let message = serde_json::json!({"type":"message", "role":"assistant", "id":"msg_1",
+        "status":"completed", "content":[{"type":"output_text", "text":"answer"}]});
+    let (base, hits) = Fake::start(
+        vec![
+            sse_reasoning("First")
+                + &sse_reasoning_done("rs_1", "private-first")
+                + &sse_reasoning("Second")
+                + &sse_completed_output(vec![first.clone(), message]),
+        ],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "open-reasoning-success",
+            "question",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(report.text, "answer");
+    assert!(report.calls.is_empty());
+    assert!(
+        harness
+            .db
+            .list_tool_ops("open-reasoning-success")
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(*hits.lock().unwrap(), 1);
+    let (_, stored) = harness.db.turn_result(&report.turn_id).unwrap();
+    let stored: serde_json::Value = serde_json::from_str(&stored.unwrap()).unwrap();
+    let parts = stored["display_parts"].as_array().unwrap();
+    assert_eq!(parts[0]["reasoning"], "First");
+    assert!(parts[0]["duration_ms"].as_u64().is_some());
+    assert_eq!(parts[1]["reasoning"], "Second");
+    assert!(parts[1].get("duration_ms").is_none());
+    assert_eq!(parts[2]["message"], 2);
+    assert_eq!(parts.len(), 3);
+    assert_eq!(
+        stored["input"][1], first,
+        "only completed opaque item is replayable"
+    );
+    assert!(
+        !stored["display_parts"]
+            .to_string()
+            .contains("private-first")
+    );
+    assert_eq!(
+        harness.db.read_history("open-reasoning-success").unwrap(),
+        [
+            ("user".into(), "question".into()),
+            ("assistant".into(), "answer".into()),
+        ]
+    );
+}
+
+#[tokio::test]
+async fn legacy_reasoning_done_without_item_id_keeps_one_public_part() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("legacy-reasoning").unwrap();
+    let (base, _) = Fake::start(
+        vec![
+            sse_reasoning("First")
+                + &sse_reasoning_done("", "private")
+                + &sse_reasoning("Second")
+                + &sse_delta("answer")
+                + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let mut ended = 0;
+    let report = runtime
+        .run_turn_with_reasoning_items(
+            params(
+                "legacy-reasoning",
+                "hi",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ),
+            |_| {},
+            |_, _| {},
+            |_, _| {},
+            |_| ended += 1,
+            |_, _| {},
+        )
+        .await
+        .unwrap();
+    assert_eq!(ended, 0);
+    let (_, stored) = harness.db.turn_result(&report.turn_id).unwrap();
+    let stored: serde_json::Value = serde_json::from_str(&stored.unwrap()).unwrap();
+    assert_eq!(stored["display_parts"][0]["reasoning"], "FirstSecond");
+    assert_eq!(stored["display_parts"].as_array().unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn completed_message_without_delta_or_item_events_stays_between_reasoning_items() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("canonical-order").unwrap();
+    let first = serde_json::json!({"type":"reasoning","id":"r1","status":"completed","encrypted_content":"private-1"});
+    let second = serde_json::json!({"type":"reasoning","id":"r2","status":"completed","encrypted_content":"private-2"});
+    let middle = serde_json::json!({"type":"message","id":"m1","role":"assistant","status":"completed","content":[{"type":"output_text","text":"middle"}]});
+    let (base, _) = Fake::start(
+        vec![
+            sse_reasoning("First")
+                + &sse_reasoning_done("r1", "private-1")
+                + &sse_reasoning("Second")
+                + &sse_reasoning_done("r2", "private-2")
+                + &sse_completed_output(vec![first, middle, second]),
+        ],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "canonical-order",
+            "hi",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(report.text, "middle");
+    let (_, stored) = harness.db.turn_result(&report.turn_id).unwrap();
+    let stored: serde_json::Value = serde_json::from_str(&stored.unwrap()).unwrap();
+    assert_eq!(stored["display_parts"].as_array().unwrap().len(), 3);
+    assert_eq!(stored["display_parts"][0]["reasoning"], "First");
+    assert_eq!(stored["display_parts"][1]["message"], 2);
+    assert_eq!(stored["display_parts"][2]["reasoning"], "Second");
+    assert!(!stored["display_parts"].to_string().contains("private-"));
+}
+
+#[tokio::test]
+async fn canonical_tool_cards_keep_output_order_and_durable_read_pairing_after_restart() {
+    for before_text in [false, true] {
+        let (mut harness, generation) = make_harness(allow_all());
+        std::fs::write(
+            harness._project.path().join("fixture.txt"),
+            "fixture contents\n",
+        )
+        .unwrap();
+        let runtime = runtime_of(&harness, generation.clone(), Vec::new());
+        runtime.create_session("ordered-tools").unwrap();
+        let call = serde_json::json!({"type":"function_call", "id":"fc_ordered",
+            "call_id":"ordered", "name":"read", "arguments":"{\"path\":\"fixture.txt\"}",
+            "status":"completed"});
+        let first = serde_json::json!({"type":"message", "id":"msg_first", "role":"assistant",
+            "status":"completed", "content":[{"type":"output_text", "text":"before"}]});
+        let second = serde_json::json!({"type":"message", "id":"msg_second", "role":"assistant",
+            "status":"completed", "content":[{"type":"output_text", "text":"after"}]});
+        let reasoning = serde_json::json!({"type":"reasoning", "id":"rs_ordered",
+            "encrypted_content":"private-ordered", "status":"completed"});
+        let (stream, output) = if before_text {
+            (
+                sse_reasoning("Checking")
+                    + &sse_reasoning_done("rs_ordered", "private-ordered")
+                    + &sse_message_done(1, &first)
+                    + &sse_tool_call(
+                        "ordered",
+                        "read",
+                        &serde_json::json!({"path":"fixture.txt"}),
+                    )
+                    + &sse_message_done(3, &second),
+                vec![reasoning, first, call, second],
+            )
+        } else {
+            (
+                sse_tool_call(
+                    "ordered",
+                    "read",
+                    &serde_json::json!({"path":"fixture.txt"}),
+                ) + &sse_message_done(1, &first),
+                vec![call, first],
+            )
+        };
+        let (base, hits, requests) = Fake::start_recording(
+            vec![
+                stream + &sse_completed_output(output.clone()),
+                sse_delta("done") + &sse_completed(),
+                sse_delta("after restart") + &sse_completed(),
+            ],
+            Duration::ZERO,
+        );
+        let report = runtime
+            .run_turn(params(
+                "ordered-tools",
+                "inspect",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(report.status, TurnStatus::Completed);
+        assert_eq!(report.rounds, 2);
+        assert_eq!(report.calls.len(), 1);
+        assert_eq!(report.calls[0].state, "completed");
+        assert_eq!(
+            report.text,
+            if before_text {
+                "beforeafterdone"
+            } else {
+                "beforedone"
+            }
+        );
+        let ops = harness.db.list_tool_ops("ordered-tools").unwrap();
+        assert_eq!(ops.len(), 1);
+        assert_eq!(ops[0].state, "completed");
+        let (_, raw) = harness.db.turn_result(&report.turn_id).unwrap();
+        let stored: serde_json::Value = serde_json::from_str(&raw.unwrap()).unwrap();
+        let parts = stored["display_parts"].as_array().unwrap();
+        let markers = parts
+            .iter()
+            .map(|part| {
+                if part.get("reasoning").is_some() {
+                    "reasoning"
+                } else if part.get("tool").is_some() {
+                    "tool"
+                } else {
+                    "message"
+                }
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            markers,
+            if before_text {
+                vec!["reasoning", "message", "tool", "message", "message"]
+            } else {
+                vec!["tool", "message", "message"]
+            }
+        );
+        let card = parts
+            .iter()
+            .find(|part| part.get("tool").is_some())
+            .unwrap();
+        assert_eq!(card["tool"], ops[0].op);
+        let messages = parts
+            .iter()
+            .filter_map(|part| part["message"].as_u64())
+            .map(|index| {
+                stored["input"][index as usize]["content"][0]["text"]
+                    .as_str()
+                    .unwrap()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            messages,
+            if before_text {
+                vec!["before", "after", "done"]
+            } else {
+                vec!["before", "done"]
+            }
+        );
+        assert!(
+            !stored["display_parts"]
+                .to_string()
+                .contains("private-ordered")
+        );
+        assert!(!stored["display_parts"].to_string().contains("pending_text"));
+        assert_eq!(
+            harness.db.read_history("ordered-tools").unwrap(),
+            [
+                ("user".into(), "inspect".into()),
+                ("assistant".into(), report.text.clone())
+            ]
+        );
+        for (offset, item) in output.iter().enumerate() {
+            assert_eq!(stored["input"][offset + 1], *item);
+        }
+        let paired = &stored["input"][output.len() + 1];
+        assert_eq!(paired["type"], "function_call_output");
+        assert_eq!(paired["call_id"], "ordered");
+        assert!(
+            paired["output"]
+                .as_str()
+                .unwrap()
+                .contains("fixture contents")
+        );
+        assert_eq!(*hits.lock().unwrap(), 2);
+        {
+            let requests_before = requests.lock().unwrap();
+            let second_input = requests_before[1]["input"].as_array().unwrap();
+            assert_eq!(
+                &second_input[second_input.len() - output.len() - 1..second_input.len() - 1],
+                output
+            );
+            assert_eq!(
+                function_output(&requests_before[1], "ordered"),
+                paired["output"].as_str()
+            );
+        }
+
+        drop(runtime);
+        drop(harness.db);
+        harness.db = Db::open(harness._data.path()).unwrap();
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(
+                &harness.db.turn_result(&report.turn_id).unwrap().1.unwrap()
+            )
+            .unwrap(),
+            stored
+        );
+        let runtime = runtime_of(&harness, generation, Vec::new());
+        runtime.open_session("ordered-tools").unwrap();
+        let resumed = runtime
+            .run_turn(params(
+                "ordered-tools",
+                "continue",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(resumed.status, TurnStatus::Completed);
+        assert!(resumed.calls.is_empty());
+        assert_eq!(harness.db.list_tool_ops("ordered-tools").unwrap().len(), 1);
+        assert_eq!(*hits.lock().unwrap(), 3);
+        let requests = requests.lock().unwrap();
+        let replay = requests[2]["input"].as_array().unwrap();
+        for item in &output {
+            assert_eq!(
+                replay.iter().filter(|candidate| *candidate == item).count(),
+                1
+            );
+        }
+        assert_eq!(
+            function_output(&requests[2], "ordered"),
+            paired["output"].as_str()
+        );
+        assert_eq!(
+            harness.db.read_history("ordered-tools").unwrap(),
+            [
+                ("user".into(), "inspect".into()),
+                ("assistant".into(), report.text),
+                ("user".into(), "continue".into()),
+                ("assistant".into(), "after restart".into()),
+            ]
+        );
+    }
+}
+
+#[tokio::test]
+async fn unidentifiable_calls_append_only_at_intent_and_duplicate_call_ids_fail_closed() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("unidentified-tool").unwrap();
+    let call = serde_json::json!({"type":"function_call", "call_id":"read-one",
+        "name":"read", "arguments":"{\"path\":\"fixture.txt\"}"});
+    let message = serde_json::json!({"type":"message", "id":"msg_one", "role":"assistant",
+        "content":[{"type":"output_text", "text":"hello"}]});
+    std::fs::write(harness._project.path().join("fixture.txt"), "present").unwrap();
+    let (base, hits) = Fake::start(
+        vec![sse_completed_output(vec![call.clone(), message.clone()])],
+        Duration::ZERO,
+    );
+    let mut request = params(
+        "unidentified-tool",
+        "read",
+        &harness,
+        provider_of(&base),
+        &NO_CANCEL,
+    );
+    request.max_rounds = 1;
+    let report = runtime.run_turn(request).await.unwrap();
+    assert_eq!(report.status, TurnStatus::Incomplete);
+    assert_eq!(report.rounds, 1);
+    assert_eq!(report.calls.len(), 1);
+    assert_eq!(report.calls[0].state, "completed");
+    assert_eq!(*hits.lock().unwrap(), 1);
+    let (_, raw) = harness.db.turn_result(&report.turn_id).unwrap();
+    let stored: serde_json::Value = serde_json::from_str(&raw.unwrap()).unwrap();
+    let parts = stored["display_parts"].as_array().unwrap();
+    assert_eq!(parts.len(), 2);
+    assert_eq!(parts[0]["message"], 2);
+    assert_eq!(
+        parts[1]["tool"],
+        harness.db.list_tool_ops("unidentified-tool").unwrap()[0].op
+    );
+    assert_eq!(stored["input"][1], call);
+    assert_eq!(stored["input"][2], message);
+    assert_eq!(stored["input"][3]["call_id"], "read-one");
+
+    runtime.create_session("duplicate-tool").unwrap();
+    let duplicate = serde_json::json!({"type":"function_call", "id":"fc_second",
+        "call_id":"read-one", "name":"read", "arguments":"{\"path\":\"fixture.txt\"}"});
+    let (base, hits) = Fake::start(
+        vec![sse_completed_output(vec![
+            stored["input"][1].clone(),
+            duplicate,
+        ])],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "duplicate-tool",
+            "read",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Failed);
+    assert_eq!(report.rounds, 1);
+    assert_eq!(*hits.lock().unwrap(), 1);
+    assert!(
+        harness
+            .db
+            .list_tool_ops("duplicate-tool")
+            .unwrap()
+            .is_empty()
+    );
+    let (_, raw) = harness.db.turn_result(&report.turn_id).unwrap();
+    let stored: serde_json::Value = serde_json::from_str(&raw.unwrap()).unwrap();
+    assert!(stored["display_parts"].as_array().unwrap().is_empty());
+}
+
+#[tokio::test]
 async fn provider_context_usage_survives_missing_round_usage_and_restart() {
     let (harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation, Vec::new());
@@ -4644,6 +5315,7 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             CoreEvent::TurnStarted { .. }
             | CoreEvent::TurnPresentation { .. }
+            | CoreEvent::ReasoningItemEnded { .. }
             | CoreEvent::TextDelta { .. }
             | CoreEvent::ToolCallStarted { .. }
             | CoreEvent::ToolCallFinished { .. }
@@ -4664,6 +5336,134 @@ async fn dto_application_events_surface_reasoning_and_usage() {
     assert!(duration_ms >= 20, "turn duration is measured");
     app.shutdown().await.expect("shutdown");
     guard.join().await.expect("join");
+}
+
+#[tokio::test]
+async fn anonymous_text_after_second_reasoning_keeps_unstreamed_first_message_on_restart() {
+    use oc_adapters::application;
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+    use oc_core::queries::TranscriptPart;
+
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    let (base, _) = Fake::start(
+        vec![
+            sse_reasoning("Inspecting")
+                + &sse_reasoning_done("rs_1", "private-1")
+                + &sse_reasoning("Verifying")
+                + &sse_reasoning_done("rs_2", "private-2")
+                + &sse_delta("final")
+                + &sse_completed_output(vec![
+                    serde_json::json!({"type":"reasoning","id":"rs_1","encrypted_content":"private-1","status":"completed"}),
+                    serde_json::json!({"type":"message","role":"assistant","id":"m1","status":"completed","content":[{"type":"output_text","text":"between"}]}),
+                    serde_json::json!({"type":"reasoning","id":"rs_2","encrypted_content":"private-2","status":"completed"}),
+                    serde_json::json!({"type":"message","role":"assistant","id":"m2","status":"completed","content":[{"type":"output_text","text":"final"}]}),
+                ]),
+            sse_delta("Title") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    std::fs::write(
+        project.path().join("opencode.json"),
+        serde_json::json!({
+            "model":"fixture/m", "provider":{"fixture":{"npm":"@ai-sdk/openai",
+            "options":{"baseURL":base,"apiKey":"test-key"}, "models":{"m":{}}}}
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let env = BTreeMap::from([
+        ("HOME".into(), home.path().to_string_lossy().to_string()),
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+    ]);
+    let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env)
+        .await
+        .unwrap();
+    let session = SessionId::new("two-items-app").unwrap();
+    app.create_session(session.clone()).await.unwrap();
+    let mut rx = app.subscribe();
+    let turn = app.submit(session.clone(), "first".into()).await.unwrap();
+    let mut events = Vec::new();
+    loop {
+        let event = tokio::time::timeout(Duration::from_secs(10), rx.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        let finished = matches!(&event, CoreEvent::TurnFinished { turn: id, .. } if id == &turn);
+        match event {
+            CoreEvent::ReasoningDelta {
+                turn: id, delta, ..
+            } if id == turn => events.push(delta),
+            CoreEvent::TextDelta {
+                turn: id, delta, ..
+            } if id == turn => events.push(format!("text:{delta}")),
+            CoreEvent::ReasoningItemEnded { turn: id, .. } if id == turn => {
+                events.push("<ended>".into())
+            }
+            CoreEvent::TurnFailed { error, .. } => panic!("turn failed: {error}"),
+            _ => {}
+        }
+        if finished {
+            break;
+        }
+    }
+    assert_eq!(
+        events,
+        [
+            "Inspecting",
+            "<ended>",
+            "Verifying",
+            "<ended>",
+            "text:final"
+        ]
+    );
+    let page = app
+        .history_page(session.clone(), None, None, 10)
+        .await
+        .unwrap();
+    let assistant = page
+        .rows
+        .iter()
+        .find(|message| message.turn.as_ref().is_some_and(|t| t.id == turn.0))
+        .unwrap();
+    let parts = &assistant.turn.as_ref().unwrap().parts;
+    assert!(
+        matches!(&parts[..], [TranscriptPart::Reasoning { text: first, .. }, TranscriptPart::Text(between), TranscriptPart::Reasoning { text: second, .. }, TranscriptPart::Text(answer)]
+        if first == "Inspecting" && between == "between" && second == "Verifying" && answer == "final")
+    );
+    assert_eq!(parts.len(), 4);
+    assert_eq!(assistant.text, "betweenfinal");
+    assert!(!format!("{page:?}").contains("private-"));
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    let (app, guard, _) = application::spawn_with_env(
+        project.path(),
+        data.path(),
+        BTreeMap::from([
+            ("HOME".into(), home.path().to_string_lossy().to_string()),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]),
+    )
+    .await
+    .unwrap();
+    let replay = app.history_page(session, None, None, 10).await.unwrap();
+    assert_eq!(
+        replay
+            .rows
+            .iter()
+            .find(|row| row.turn.as_ref().is_some_and(|t| t.id == turn.0))
+            .unwrap()
+            .turn
+            .as_ref()
+            .unwrap()
+            .parts,
+        *parts
+    );
+    assert!(!format!("{replay:?}").contains("private-"));
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
 }
 
 /// TUI tool cards are built from real runtime state: one `apply_patch` call
@@ -4841,6 +5641,7 @@ async fn dto_application_events_surface_tool_calls() {
             CoreEvent::TurnStarted { .. }
             | CoreEvent::TextDelta { .. }
             | CoreEvent::ReasoningDelta { .. }
+            | CoreEvent::ReasoningItemEnded { .. }
             | CoreEvent::TurnUsage { .. }
             | CoreEvent::TurnInterrupted { .. } => {}
         }

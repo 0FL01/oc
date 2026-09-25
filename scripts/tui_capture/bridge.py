@@ -37,6 +37,8 @@ if spec.get('sample') == 'short':
     answer = 'GEOMETRY-SHORT: one short answer.'
 elif spec.get('sample') == 'reasoning':
     answer = 'GEOMETRY-SHORT: public reasoning completed.'
+elif spec.get('sample') == 'reasoning-steps':
+    answer = 'GEOMETRY-SHORT: two public reasoning steps completed.'
 elif spec.get('sample') == 'tools':
     answer = 'GEOMETRY-SHORT: tool read completed.'
 elif spec.get('sample') == 'rows':
@@ -93,6 +95,8 @@ class Provider(BaseHTTPRequestHandler):
             if round_number:
                 calls = [x for x in tool_results if x.get('call_id') == ('call_fixture_read_2' if spec.get('two_turn') and second else 'call_fixture_read')]
                 valid = valid and len(calls) == 1 and 'fixture-content' in str(calls[0].get('output', ''))
+        if spec.get('sample') == 'reasoning-steps' and not is_title:
+            valid = valid and not tool_results and turn_number == 0 and round_number == 0
         record = {'kind': 'provider', 'path': self.path, 'model': body.get('model'),
                    'stream': body.get('stream'), 'prompt_present': expected_prompt in serialized,
                    'profile_prompt_present': profile_prompt_present,
@@ -123,6 +127,7 @@ class Provider(BaseHTTPRequestHandler):
         events = [
             {'type': 'response.created', 'response': response},
         ]
+        reasoning_items = []
         if spec.get('sample') == 'reasoning' and not is_title:
             public = '**Inspecting**\n\nPublic summary only.'
             events += [
@@ -136,6 +141,26 @@ class Provider(BaseHTTPRequestHandler):
                  'item': {'type': 'reasoning', 'id': 'rs_fixture', 'summary': [{'type': 'summary_text', 'text': public}],
                           'encrypted_content': 'opaque-fixture-must-not-display'}},
             ]
+        if spec.get('sample') == 'reasoning-steps' and not is_title:
+            for index, (reasoning_id, public) in enumerate([
+                    ('rs_fixture_step_1', '**Inspecting**\n\nFirst public step marker.'),
+                    ('rs_fixture_step_2', '**Verifying**\n\nSecond public step marker.')]):
+                part = {'type': 'summary_text', 'text': public}
+                reasoning = {'type': 'reasoning', 'id': reasoning_id, 'status': 'completed',
+                             'summary': [part], 'encrypted_content': 'opaque-fixture-must-not-display'}
+                reasoning_items.append(reasoning)
+                events += [
+                    {'type': 'response.output_item.added', 'output_index': index,
+                     'item': {'type': 'reasoning', 'id': reasoning_id, 'status': 'in_progress', 'summary': []}},
+                    {'type': 'response.reasoning_summary_part.added', 'item_id': reasoning_id,
+                     'output_index': index, 'summary_index': 0, 'part': {'type': 'summary_text', 'text': ''}},
+                    {'type': 'response.reasoning_summary_text.delta', 'item_id': reasoning_id,
+                     'output_index': index, 'summary_index': 0, 'delta': public},
+                ]
+                events.append({'type': 'response.reasoning_summary_part.done', 'item_id': reasoning_id,
+                               'output_index': index, 'summary_index': 0, 'part': part})
+                events.append({'type': 'response.output_item.done', 'output_index': index, 'item': reasoning})
+        message_index = len(reasoning_items)
         if item['type'] == 'function_call':
             events += [
                 {'type': 'response.output_item.added', 'output_index': 0,
@@ -147,18 +172,18 @@ class Provider(BaseHTTPRequestHandler):
             ]
         else:
           events += [
-            {'type': 'response.output_item.added', 'output_index': 0,
+            {'type': 'response.output_item.added', 'output_index': message_index,
              'item': {**item, 'status': 'in_progress', 'content': []}},
-            {'type': 'response.content_part.added', 'item_id': item['id'], 'output_index': 0,
+            {'type': 'response.content_part.added', 'item_id': item['id'], 'output_index': message_index,
              'content_index': 0, 'part': {'type': 'output_text', 'text': '', 'annotations': []}},
-            {'type': 'response.output_text.delta', 'item_id': item['id'], 'output_index': 0,
+            {'type': 'response.output_text.delta', 'item_id': item['id'], 'output_index': message_index,
              'content_index': 0, 'delta': text},
-            {'type': 'response.output_text.done', 'item_id': item['id'], 'output_index': 0,
+            {'type': 'response.output_text.done', 'item_id': item['id'], 'output_index': message_index,
              'content_index': 0, 'text': text},
-            {'type': 'response.content_part.done', 'item_id': item['id'], 'output_index': 0,
+            {'type': 'response.content_part.done', 'item_id': item['id'], 'output_index': message_index,
              'content_index': 0, 'part': item['content'][0]},
-            {'type': 'response.output_item.done', 'output_index': 0, 'item': item},
-            {'type': 'response.completed', 'response': {**response, 'status': 'completed', 'output': [item],
+            {'type': 'response.output_item.done', 'output_index': message_index, 'item': item},
+            {'type': 'response.completed', 'response': {**response, 'status': 'completed', 'output': [*reasoning_items, item],
              'usage': {'input_tokens': 6000, 'output_tokens': 763, 'total_tokens': 6763,
                        'input_tokens_details': {'cached_tokens': 0},
                        'output_tokens_details': {'reasoning_tokens': 0}}}},

@@ -1,0 +1,639 @@
+{
+  "baseline": {
+    "transcript": 1,
+    "completed_transcript": 1,
+    "title": 1,
+    "completed_title": 1,
+    "invalid": 0,
+    "tool_results": 0
+  },
+  "checks": [
+    {
+      "stage": "provider-baseline",
+      "observed": {
+        "headers": [
+          {
+            "x": 5,
+            "y": 6,
+            "text": "+ Thought: Inspecting",
+            "state": "collapsed",
+            "title": "Inspecting",
+            "steps": null,
+            "cells": [
+              {
+                "symbol": "+",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "T",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "o",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "u",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "g",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "t",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": ":",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "I",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "n",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "s",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "p",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "e",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "c",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "t",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "i",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "n",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "g",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              }
+            ]
+          }
+        ],
+        "body_positions": [
+          [],
+          []
+        ],
+        "title_positions": [
+          [
+            {
+              "x": 16,
+              "y": 6
+            }
+          ],
+          []
+        ],
+        "answer_positions": [
+          {
+            "x": 5,
+            "y": 8
+          }
+        ],
+        "opaque_absent": true,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "transcript": 1,
+          "completed_transcript": 1,
+          "title": 1,
+          "completed_title": 1,
+          "invalid": 0,
+          "tool_results": 0
+        },
+        "grid_sha256": "fc47749201ff57470dd39c7208043a0ba24066b888e12715058a57d518061cdf"
+      },
+      "predicates": {
+        "stable_completed_capture": true,
+        "one_completed_transcript": true,
+        "one_completed_title": true,
+        "no_invalid": true,
+        "no_tool": true,
+        "answer_visible": true
+      }
+    },
+    {
+      "stage": "collapsed-capture",
+      "observed": {
+        "headers": [
+          {
+            "x": 5,
+            "y": 6,
+            "text": "+ Thought: Inspecting",
+            "state": "collapsed",
+            "title": "Inspecting",
+            "steps": null,
+            "cells": [
+              {
+                "symbol": "+",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "T",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "o",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "u",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "g",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "t",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": ":",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "I",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "n",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "s",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "p",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "e",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "c",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "t",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "i",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "n",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "g",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              }
+            ]
+          }
+        ],
+        "body_positions": [
+          [],
+          []
+        ],
+        "title_positions": [
+          [
+            {
+              "x": 16,
+              "y": 6
+            }
+          ],
+          []
+        ],
+        "answer_positions": [
+          {
+            "x": 5,
+            "y": 8
+          }
+        ],
+        "opaque_absent": true,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "transcript": 1,
+          "completed_transcript": 1,
+          "title": 1,
+          "completed_title": 1,
+          "invalid": 0,
+          "tool_results": 0
+        },
+        "grid_sha256": "fc47749201ff57470dd39c7208043a0ba24066b888e12715058a57d518061cdf"
+      },
+      "predicates": {
+        "stable_capture": true
+      }
+    },
+    {
+      "stage": "collapsed",
+      "observed": {
+        "headers": [
+          {
+            "x": 5,
+            "y": 6,
+            "text": "+ Thought: Inspecting",
+            "state": "collapsed",
+            "title": "Inspecting",
+            "steps": null,
+            "cells": [
+              {
+                "symbol": "+",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#ffffff",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "T",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "o",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "u",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "g",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "t",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": ":",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": " ",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "I",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "n",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "s",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "p",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "e",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "c",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "t",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "i",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "n",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "g",
+                "fg": "#97682c",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              }
+            ]
+          }
+        ],
+        "body_positions": [
+          [],
+          []
+        ],
+        "title_positions": [
+          [
+            {
+              "x": 16,
+              "y": 6
+            }
+          ],
+          []
+        ],
+        "answer_positions": [
+          {
+            "x": 5,
+            "y": 8
+          }
+        ],
+        "opaque_absent": true,
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "transcript": 1,
+          "completed_transcript": 1,
+          "title": 1,
+          "completed_title": 1,
+          "invalid": 0,
+          "tool_results": 0
+        },
+        "grid_sha256": "fc47749201ff57470dd39c7208043a0ba24066b888e12715058a57d518061cdf"
+      },
+      "predicates": {
+        "one_group": true,
+        "header_state": true,
+        "two_steps": false,
+        "header_title": false,
+        "distinct_bodies": true,
+        "titles_visible": false,
+        "answer_visible": true,
+        "opaque_absent": true,
+        "provider_unchanged": true
+      }
+    }
+  ],
+  "provider_counts": {
+    "transcript": 1,
+    "completed_transcript": 1,
+    "title": 1,
+    "completed_title": 1,
+    "invalid": 0,
+    "tool_results": 0
+  }
+}

@@ -65,3 +65,5 @@ reasoning-static-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 reasoning-static-*/*/*.vt binary
 reasoning-hover-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 reasoning-hover-*/*/*.vt binary
+reasoning-steps-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+reasoning-steps-*/*/*.vt binary

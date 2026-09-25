@@ -1960,6 +1960,12 @@ async fn worker(
                                 delta: delta.to_string(),
                             });
                         };
+                        let on_reasoning_end = |id: &str| {
+                            let _ = events.send(CoreEvent::ReasoningItemEnded {
+                                session: session.clone(),
+                                turn: WorkerTurnId(id.to_string()),
+                            });
+                        };
                         let on_tool = |id: &str, event: &ToolCallEvent| {
                             let turn = WorkerTurnId(id.to_string());
                             let _ = events.send(match event {
@@ -2000,7 +2006,7 @@ async fn worker(
                         };
                         let mut report = if is_fresh {
                             runtime
-                                .run_fresh_turn_with_tool_events(
+                                .run_fresh_turn_with_reasoning_items(
                                     params,
                                     initial_selection
                                         .as_ref()
@@ -2008,16 +2014,18 @@ async fn worker(
                                     on_accept,
                                     on_text,
                                     on_reasoning,
+                                    on_reasoning_end,
                                     on_tool,
                                 )
                                 .await?
                         } else {
                             runtime
-                                .run_turn_with_tool_events(
+                                .run_turn_with_reasoning_items(
                                     params,
                                     on_accept,
                                     on_text,
                                     on_reasoning,
+                                    on_reasoning_end,
                                     on_tool,
                                 )
                                 .await?

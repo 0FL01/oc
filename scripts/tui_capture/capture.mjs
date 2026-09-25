@@ -72,6 +72,9 @@ if (args.mention !== undefined && !['true','false'].includes(args.mention))
 const reasoningClick = args['reasoning-click'] === 'true';
 if (args['reasoning-click'] !== undefined && !['true','false'].includes(args['reasoning-click']))
   throw Error('--reasoning-click must be true or false');
+const reasoningSteps = args['reasoning-steps'] === 'true';
+if (args['reasoning-steps'] !== undefined && !['true','false'].includes(args['reasoning-steps']))
+  throw Error('--reasoning-steps must be true or false');
 const reasoningReleaseOnly = args['reasoning-release-only'] === 'true';
 if (args['reasoning-release-only'] !== undefined && !['true','false'].includes(args['reasoning-release-only']))
   throw Error('--reasoning-release-only must be true or false');
@@ -96,6 +99,17 @@ if (scanner && !['true','false'].includes(args['scanner-cancel']))
 if (!scanner && args['scanner-cancel'] !== undefined)
   throw Error('--scanner-cancel requires --scanner true');
 const scannerCancel = args['scanner-cancel'] === 'true';
+if (reasoningSteps && (args.geometry !== 'true' || args.sample !== 'reasoning-steps' || args.sidebar !== 'hide' ||
+    args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
+    !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
+    args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] || args.session ||
+    args.tabs === 'vertical' || explorationClick || tabClick || tabClose || tabCloseKey || tabRestart ||
+    renameSession || regenerateTitle || sidebarPalette || autocomplete || autocompleteKeys ||
+    autocompleteKeysRename || autocompleteKeysMove || mention || reasoningClick || reasoningReleaseOnly ||
+    selectionCopy || toastOverlap || scanner || ctrlC || twoTurn))
+  throw Error('--reasoning-steps true requires only paired Reader/reasoning-steps 120x40 --geometry true --sidebar hide --agent-profile true');
+if (args.sample === 'reasoning-steps' && !reasoningSteps)
+  throw Error('--sample reasoning-steps requires --reasoning-steps true');
 if (reasoningReleaseOnly && (selectionCopy || toastOverlap || scanner || ctrlC || twoTurn))
   throw Error('--reasoning-release-only true cannot be combined with other interaction modes');
 if (toastOverlap && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'auto' ||
@@ -1175,11 +1189,11 @@ try {
        } else {
        send('\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\x1b[201~','prompt_paste');
       await sleep(200); send('\r','submit');
-       const marker = ['short','reasoning','tools'].includes(args.sample) ? 'GEOMETRY-SHORT' : ['rows','rows-reflow'].includes(args.sample) ? 'ROW-089' : 'Через Code Mode';
+       const marker = ['short','reasoning','reasoning-steps','tools'].includes(args.sample) ? 'GEOMETRY-SHORT' : ['rows','rows-reflow'].includes(args.sample) ? 'ROW-089' : 'Через Code Mode';
        let done = await waitFor(f => f.text.includes(marker) &&
         /MiMo-V2.6-Flash Free · \d/.test(f.text) &&
          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript') &&
-         (!(reasoningClick || selectionCopy || toastOverlap) || logs.some(e=>e.kind==='provider_completed' && e.operation==='title')), 'completed transcript');
+         (!(reasoningClick || reasoningSteps || selectionCopy || toastOverlap) || logs.some(e=>e.kind==='provider_completed' && e.operation==='title')), 'completed transcript');
        if(twoTurn) done=await waitFor(f=>f.text.includes('GEOMETRY-SHORT: tool read completed.') &&
           /Reader · MiMo-V2.6-Flash Free · \d/.test(f.text) &&
           logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length===2 &&
@@ -1575,6 +1589,109 @@ try {
           save();
           lock.attempts.push({origin,status:'REASONING_CLICK_CHECKS_PASS',provider_counts:counts(),
             predicates:checks.filter(c=>c.predicates).map(c=>({stage:c.stage,...c.predicates}))});
+        }
+        if(reasoningSteps) {
+          const checks=[];
+          const counts=()=>({transcript:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length,
+            completed_transcript:logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length,
+            title:logs.filter(e=>e.kind==='provider' && e.operation==='title').length,
+            completed_title:logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length,
+            invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length,
+            tool_results:logs.filter(e=>e.kind==='provider' && e.operation==='transcript' && e.tool_result_count>0).length});
+          const baseline=counts();
+          const unchanged=()=>canonical(counts())===canonical(baseline);
+          lock.reasoning_steps ??= {};
+          lock.reasoning_steps[origin]={status:'IN_PROGRESS',baseline,checks};
+          const save=()=>{
+            fs.writeFileSync(path.join(dir,'reasoning-steps-checks.json'),JSON.stringify({baseline,checks,provider_counts:counts()},null,2)+'\n');
+            json('capture.lock.json',lock);
+          };
+          const markers=['First public step marker.','Second public step marker.'];
+          const answer='GEOMETRY-SHORT: two public reasoning steps completed.';
+          const observe=f=>{
+            const headers=f.cells.flatMap((row,y)=>{
+              const line=row.map(c=>c.symbol).join('');
+              return [...line.matchAll(/([+-]) Thought(?:: ([^·]*?))?(?: · (\d+) steps)?(?= · (?!\d+ steps)| {2,}|$)/g)]
+                .map(match=>({x:visibleMatches(f,match[0]).find(p=>p.y===y)?.x ?? null,
+                  y,text:match[0].trimEnd(),state:match[1]==='+'?'collapsed':'expanded',
+                  title:match[2]?.trim() ?? null,steps:match[3]===undefined?null:Number(match[3]),
+                  cells:row.slice(match.index,match.index+[...match[0]].length)}));
+            });
+            return {headers,body_positions:markers.map(marker=>visibleMatches(f,marker)),
+              title_positions:['Inspecting','Verifying'].map(title=>visibleMatches(f,title)),
+              answer_positions:visibleMatches(f,answer),opaque_absent:!f.text.includes('opaque-fixture-must-not-display'),
+              cursor:f.cursor,provider_counts:counts(),grid_sha256:sha(JSON.stringify(f))};
+          };
+          const record=(stage,f,predicates,details={})=>{
+            checks.push({stage,observed:observe(f),predicates,...details});save();
+            if(Object.values(predicates).some(value=>value!==true))
+              throw Error('Reasoning steps predicate failed: '+stage);
+          };
+          const state=(f,kind)=>{
+            const o=observe(f), h=o.headers[0];
+            return o.headers.length===1 && h.x!==null && h.state===kind && h.steps===2 &&
+              h.cells.every(c=>c.width===1) && o.answer_positions.length===1 && o.opaque_absent &&
+              (kind==='collapsed' ? o.body_positions.every(p=>p.length===0) :
+                o.body_positions.every(p=>p.length===1 && p[0].y>h.y) &&
+                o.body_positions[0][0].y<o.body_positions[1][0].y) && unchanged();
+          };
+          const awaitState=async(stage,kind)=>{
+            try {return await waitFor(f=>state(f,kind),`reasoning steps ${stage}`,12000);}
+            catch(e) {
+              checks.push({stage:stage+'-failed',observed:observe(await frame()),
+                predicates:{state_reached:false},reason:e.message});save();throw e;
+            }
+          };
+          const check=(stage,f,kind)=>{
+            const o=observe(f), h=o.headers[0];
+            record(stage,f,{one_group:o.headers.length===1,header_state:h?.state===kind,
+              two_steps:h?.steps===2,header_title:kind==='collapsed'?h?.title==='Verifying':h?.title===null,
+              distinct_bodies:kind==='collapsed'?o.body_positions.every(p=>p.length===0):
+                o.body_positions.every(p=>p.length===1 && p[0].y>h?.y) &&
+                  o.body_positions[0][0].y<o.body_positions[1][0].y,
+              titles_visible:kind==='collapsed'?o.title_positions[0].length===0:
+                o.title_positions.every(p=>p.length===1 && p[0].y>h?.y) &&
+                  o.title_positions[0][0].y<o.title_positions[1][0].y,
+              answer_visible:o.answer_positions.length===1,opaque_absent:o.opaque_absent,
+              provider_unchanged:unchanged()});
+          };
+          const shot=async(stage,f)=>{
+            const status=await capture(`reasoning-steps-${stage}`,f,'CAPTURED_REASONING_STEPS');
+            record(stage+'-capture',await frame(),{stable_capture:status==='CAPTURED_REASONING_STEPS'});
+          };
+          const click=(stage,f)=>{
+            const o=observe(f),h=o.headers[0];
+            record(stage+'-before-click',f,{one_group:o.headers.length===1,
+              expected_header:h?.state===(stage==='expand'?'collapsed':'expanded'),
+              provider_unchanged:unchanged()});
+            // One-based SGR coordinates for the painted 'T' of this side's sole header.
+            const x=h.x+3,y=h.y+1,down=`\x1b[<0;${x};${y}M`,up=`\x1b[<0;${x};${y}m`;
+            checks.push({stage:stage+'-input',cell:{x:x-1,y:y-1},pty_column:x,pty_row:y,
+              down_base64:Buffer.from(down).toString('base64'),up_base64:Buffer.from(up).toString('base64')});save();
+            send(down,`reasoning_steps_${stage}_mouse_down`);
+            send(up,`reasoning_steps_${stage}_mouse_up`);
+          };
+          record('provider-baseline',done,{stable_completed_capture:completedStatus==='CAPTURED',
+            one_completed_transcript:baseline.transcript===1 && baseline.completed_transcript===1,
+            one_completed_title:baseline.title===1 && baseline.completed_title===1,
+            no_invalid:baseline.invalid===0,no_tool:baseline.tool_results===0,
+            answer_visible:observe(done).answer_positions.length===1});
+          // Save the actual collapsed frame before requiring a two-step header: a
+          // native one-step merge is a failed observation, never a fabricated click.
+          const collapsed=await waitFor(f=>observe(f).answer_positions.length===1 && unchanged(),
+            'completed two-item reasoning answer');
+          await shot('collapsed',collapsed);
+          check('collapsed',collapsed,'collapsed');
+          click('expand',await awaitState('before-expand-click','collapsed'));
+          const expanded=await awaitState('expanded','expanded');
+          check('expanded',expanded,'expanded');
+          await shot('expanded',expanded);
+          click('recollapse',await awaitState('before-recollapse-click','expanded'));
+          const recollapsed=await awaitState('recollapsed','collapsed');
+          check('recollapsed',recollapsed,'collapsed');
+          await shot('recollapsed',recollapsed);
+          lock.reasoning_steps[origin].status='PASS';save();
+          lock.attempts.push({origin,status:'REASONING_STEPS_CHECKS_PASS',provider_counts:counts()});
         }
         if(autocomplete) {
          await probeAutocomplete('session');
@@ -2309,6 +2426,7 @@ try {
         if(ctrlC && lock.ctrl_c?.[origin]) lock.ctrl_c[origin].status='FAILED';
           if(mention && lock.mention?.[origin]) lock.mention[origin].status='FAILED';
           if(reasoningClick && lock.reasoning_click?.[origin]) lock.reasoning_click[origin].status='FAILED';
+           if(reasoningSteps && lock.reasoning_steps?.[origin]) lock.reasoning_steps[origin].status='FAILED';
            if(selectionCopy && lock.selection_copy?.[origin]) lock.selection_copy[origin].status='FAILED';
             if(toastOverlap && lock.toast_overlap?.[origin]) lock.toast_overlap[origin].status='FAILED';
            if(scanner && lock.scanner?.[origin]) lock.scanner[origin].status='FAILED';
@@ -2349,7 +2467,7 @@ try {
     stable_state_predicate: 'Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response',
     requested_settings: profile.settings,
     unresolved: ['Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs',
-      ...(reasoningClick ? ['Reasoning click states are captured; whole-frame parity still depends on paired grid/PNG comparator results'] :
+      ...(reasoningClick || reasoningSteps ? ['Reasoning click states are captured; whole-frame parity still depends on paired grid/PNG comparator results'] :
         ['Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed']),
       'Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns',
       'Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings',

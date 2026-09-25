@@ -2758,12 +2758,22 @@ impl TuiState {
                 agent:None,agent_color_index:None,chips:Vec::new(),reasoning:None,meta:None,tool:None,
             });
         }
+        let mut group_first = None;
         for row in &mut rows {
+            let adjacent = crate::messages::reasoning_group_member(row);
+            if !adjacent {
+                group_first = None;
+            }
+            let visible = crate::messages::visible_reasoning(row);
             if let Some(reasoning) = &mut row.reasoning {
+                let id = reasoning.identity;
+                let first = if adjacent && visible {
+                    *group_first.get_or_insert(id)
+                } else {
+                    id
+                };
                 reasoning.expanded = self.thinking_expanded
-                    || reasoning
-                        .identity
-                        .is_some_and(|id| self.reasoning_expanded.contains(&id));
+                    || first.is_some_and(|id| self.reasoning_expanded.contains(&id));
                 reasoning.toggleable = !self.thinking_expanded;
             }
         }
@@ -4563,6 +4573,10 @@ impl TuiState {
         if Some(turn) != self.active_turn.as_ref() {
             return;
         }
+        if self.live_reasoning.is_empty() && !self.live_text.is_empty() {
+            self.freeze_text();
+            self.enforce_parts();
+        }
         if self.reasoning_started.is_none() {
             self.reasoning_started = Some(Instant::now());
         }
@@ -4571,6 +4585,17 @@ impl TuiState {
             self.live_reasoning
                 .push_str(crate::truncate_utf8(delta, room));
         }
+    }
+
+    /// Close one active public reasoning item before the next output item.
+    /// Duplicates and boundaries without public text do not create rows.
+    pub fn apply_reasoning_item_ended(&mut self, turn: &WorkerTurnId) {
+        if Some(turn) != self.active_turn.as_ref() || self.live_reasoning.is_empty() {
+            return;
+        }
+        self.reasoning_finished = Some(Instant::now());
+        self.freeze_reasoning();
+        self.enforce_parts();
     }
 
     /// Adopt explicit checkpoint identities and pinned presentation only for
@@ -4621,6 +4646,9 @@ impl TuiState {
         }
         let meta = self.finish_meta(false, duration_ms);
         self.reset_scanner();
+        if !self.live_reasoning.is_empty() && self.reasoning_finished.is_none() {
+            self.reasoning_finished = Some(Instant::now());
+        }
         let reasoning = self.take_reasoning();
         self.active_turn = None;
         self.status = TuiStatus::Idle;
@@ -4767,13 +4795,14 @@ impl TuiState {
             (Some(started), Some(finished)) => {
                 Some(finished.saturating_duration_since(started).as_millis() as u64)
             }
-            (Some(started), None) => Some(started.elapsed().as_millis() as u64),
-            (None, _) => None,
+            _ => None,
         };
         self.live_parts.push(LivePart::Reasoning {
             text: std::mem::take(&mut self.live_reasoning),
             duration_ms,
         });
+        self.reasoning_started = None;
+        self.reasoning_finished = None;
     }
 
     /// Apply a recorded tool-call intent: freeze the open segments, then
@@ -4781,6 +4810,9 @@ impl TuiState {
     pub fn apply_tool_started(&mut self, turn: &WorkerTurnId, op: &str, name: &str, input: &str) {
         if Some(turn) != self.active_turn.as_ref() {
             return;
+        }
+        if !self.live_reasoning.is_empty() && self.reasoning_finished.is_none() {
+            self.reasoning_finished = Some(Instant::now());
         }
         self.freeze_reasoning();
         self.freeze_text();
@@ -4911,8 +4943,7 @@ impl TuiState {
             (Some(started), Some(finished)) => {
                 Some(finished.saturating_duration_since(started).as_millis() as u64)
             }
-            (Some(started), None) => Some(started.elapsed().as_millis() as u64),
-            (None, _) => None,
+            _ => None,
         };
         Some(ReasoningBlock {
             text: std::mem::take(&mut self.live_reasoning),
@@ -5206,6 +5237,9 @@ impl ScriptDriver {
                 }
                 Ok(Ok(CoreEvent::ReasoningDelta { turn, delta, .. })) => {
                     state.apply_reasoning_delta(&turn, &delta);
+                }
+                Ok(Ok(CoreEvent::ReasoningItemEnded { turn, .. })) => {
+                    state.apply_reasoning_item_ended(&turn);
                 }
                 Ok(Ok(CoreEvent::ToolCallStarted {
                     turn,
@@ -8693,6 +8727,124 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn adjacent_reasoning_click_opens_and_recloses_one_group_across_live_boundary() {
+        use crate::messages::ReasoningIdentity;
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        use oc_core::queries::{HistoryTurn, TranscriptPart};
+        let mut state = fresh_state("reasoning-adjacent-click").await;
+        let mut message = msg(9, Role::Assistant, "answer");
+        message.turn = Some(HistoryTurn {
+            parts: vec![
+                TranscriptPart::Reasoning {
+                    text: "**Inspecting**\n\nfirst body".into(),
+                    duration_ms: Some(5),
+                },
+                TranscriptPart::Reasoning {
+                    text: "**Verifying**\n\nsecond body".into(),
+                    duration_ms: Some(7),
+                },
+                TranscriptPart::Text("answer".into()),
+            ],
+            status: "completed".into(),
+            ..Default::default()
+        });
+        state.attach_page(&page(vec![message], 1, false, false));
+        let area = ratatui::layout::Rect::new(0, 0, 80, 24);
+        let rect = crate::shell::transcript_area(&state, area);
+        let header = |state: &TuiState| {
+            state
+                .visible_transcript(rect.width, area.width, rect.height)
+                .0
+                .iter()
+                .position(|line| line.plain_text().contains("Thought"))
+                .unwrap() as u16
+                + rect.y
+        };
+        let click = |state: &mut TuiState, y| {
+            for kind in [
+                MouseEventKind::Down(MouseButton::Left),
+                MouseEventKind::Up(MouseButton::Left),
+            ] {
+                state.handle_mouse(
+                    MouseEvent {
+                        kind,
+                        column: rect.x + 4,
+                        row: y,
+                        modifiers: KeyModifiers::NONE,
+                    },
+                    area,
+                );
+            }
+        };
+        let y = header(&state);
+        assert!(state.transcript_lines(80, 80).iter().any(|line| {
+            line.plain_text()
+                .contains("Thought: Verifying · 2 steps · 12ms")
+        }));
+        click(&mut state, y);
+        assert_eq!(
+            state.reasoning_expanded.iter().copied().collect::<Vec<_>>(),
+            [ReasoningIdentity::Durable(9, 0)]
+        );
+        let lines: Vec<_> = state
+            .transcript_lines(80, 80)
+            .iter()
+            .map(|line| line.plain_text())
+            .collect();
+        assert!(
+            lines
+                .iter()
+                .any(|s| s.contains("- Thought · 2 steps · 12ms"))
+        );
+        assert!(lines.iter().any(|s| s.contains("first body")));
+        assert!(lines.iter().any(|s| s.contains("second body")));
+        state.click = None;
+        let y = header(&state);
+        click(&mut state, y);
+        assert!(state.reasoning_expanded.is_empty());
+        let first = ReasoningIdentity::Durable(9, 0);
+        state.reasoning_expanded.insert(first);
+        state.prepend_page(&page(vec![msg(8, Role::User, "earlier")], 9, false, true));
+        state.append_page(&page(vec![msg(10, Role::User, "later")], 10, true, false));
+        assert!(state.reasoning_expanded.contains(&first));
+        assert!(
+            state
+                .transcript_lines(80, 80)
+                .iter()
+                .any(|line| line.plain_text().contains("- Thought · 2 steps"))
+        );
+        state.reasoning_expanded.clear();
+        let turn = WorkerTurnId("live-group".into());
+        state.active_turn = Some(turn.clone());
+        state.apply_reasoning_delta(&turn, "**Live one**\n\nbody one");
+        state.apply_reasoning_item_ended(&turn);
+        state.apply_reasoning_delta(&turn, "**Live two**\n\nbody two");
+        let live = state.transcript_lines(80, 80);
+        assert!(
+            live.iter()
+                .any(|line| line.plain_text().contains("Thinking: Live two"))
+        );
+        let id = ReasoningIdentity::Live(state.reasoning_epoch, state.live_part_offset);
+        state.reasoning_expanded.insert(id);
+        let live = state.transcript_lines(80, 80);
+        assert!(
+            live.iter()
+                .any(|line| line.plain_text().contains("body one"))
+        );
+        assert!(
+            live.iter()
+                .any(|line| line.plain_text().contains("body two"))
+        );
+        state.apply_reasoning_item_ended(&turn);
+        assert!(
+            state
+                .transcript_lines(80, 80)
+                .iter()
+                .any(|line| line.plain_text().contains("2 steps"))
+        );
+    }
+
+    #[tokio::test]
     async fn reasoning_click_is_independent_across_same_seq_parts_and_owned_by_viewport() {
         use crate::messages::ReasoningIdentity;
         use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -9319,6 +9471,92 @@ mod tests {
         state.reasoning_expanded.insert(last);
         state.reset_workspace();
         assert!(state.reasoning_expanded.is_empty());
+    }
+
+    #[tokio::test]
+    async fn sequential_public_reasoning_items_freeze_as_separate_live_and_interrupted_rows() {
+        let mut state = fresh_state("reasoning-items-live").await;
+        let turn = WorkerTurnId("active".into());
+        let stale = WorkerTurnId("stale".into());
+        state.active_turn = Some(turn.clone());
+        state.apply_reasoning_item_ended(&turn);
+        assert!(
+            state.live_parts.is_empty(),
+            "no empty part on early boundary"
+        );
+        state.apply_reasoning_delta(&turn, "Inspecting");
+        state.apply_reasoning_item_ended(&stale);
+        assert_eq!(state.live_reasoning, "Inspecting");
+        state.apply_reasoning_item_ended(&turn);
+        state.apply_reasoning_item_ended(&turn);
+        assert_eq!(state.live_parts.len(), 1, "duplicate boundary has no part");
+        state.apply_reasoning_delta(&turn, "Verifying");
+        let live = state.transcript_rows();
+        let parts: Vec<_> = live
+            .iter()
+            .filter_map(|row| row.reasoning.as_ref())
+            .collect();
+        assert_eq!(parts.len(), 2);
+        assert_eq!(parts[0].text, "Inspecting");
+        assert!(!parts[0].running);
+        assert!(parts[0].duration_ms.is_some());
+        assert_eq!(parts[1].text, "Verifying");
+        assert!(parts[1].running);
+        state.apply_reasoning_item_ended(&turn);
+        state.apply_delta(&turn, "answer");
+        let live = state.transcript_rows();
+        assert_eq!(live.iter().filter(|row| row.reasoning.is_some()).count(), 2);
+        assert_eq!(live.last().unwrap().text, "answer");
+        state.apply_interrupted(&turn, "answer", 42);
+        let rows = state.transcript_rows();
+        assert_eq!(rows.iter().filter(|row| row.reasoning.is_some()).count(), 2);
+        assert!(
+            rows.iter()
+                .any(|row| row.meta.as_ref().is_some_and(|meta| meta.interrupted))
+        );
+        state.apply_reasoning_item_ended(&turn);
+        assert_eq!(
+            state.transcript_rows().len(),
+            rows.len(),
+            "stale turn ignored"
+        );
+
+        let mut failed = fresh_state("reasoning-items-failed").await;
+        failed.active_turn = Some(turn.clone());
+        failed.apply_reasoning_delta(&turn, "Inspecting");
+        failed.apply_reasoning_item_ended(&turn);
+        failed.apply_reasoning_delta(&turn, "Verifying");
+        failed.apply_failed(&turn, &CoreError::Application("safe failure".into()));
+        let rows = failed.transcript_rows();
+        assert_eq!(rows.iter().filter(|row| row.reasoning.is_some()).count(), 2);
+        assert!(rows.iter().any(|row| {
+            row.meta
+                .as_ref()
+                .is_some_and(|meta| meta.status.as_deref() == Some("failed"))
+        }));
+        assert!(rows.iter().any(|row| row.text.contains("safe failure")));
+    }
+
+    #[tokio::test]
+    async fn failed_and_interrupted_open_reasoning_do_not_display_an_elapsed_duration() {
+        let turn = WorkerTurnId("open-reasoning".into());
+        for interrupted in [false, true] {
+            let mut state = fresh_state("reasoning-open-terminal").await;
+            state.active_turn = Some(turn.clone());
+            state.apply_reasoning_delta(&turn, "**Inspecting**\n\nstill open");
+            state.reasoning_started = Some(Instant::now() - Duration::from_millis(2500));
+            if interrupted {
+                state.apply_interrupted(&turn, "", 3000);
+            } else {
+                state.apply_failed(&turn, &CoreError::Application("failed".into()));
+            }
+            let reasoning = state
+                .transcript_rows()
+                .into_iter()
+                .find_map(|row| row.reasoning)
+                .expect("visible partial reasoning");
+            assert_eq!(reasoning.duration_ms, None);
+        }
     }
 
     #[tokio::test]
