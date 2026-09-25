@@ -1,0 +1,2725 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-25T13:17:29.793Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "2fe3e77894a76310fa2e35305fc171c30a24bd691a90d0c4acb24459925904eb",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "ed32d6383ace210a7d086b6299525cffec595aa911a547a443e52261499cfdd6"
+  },
+  "fixture_sha256": "e68f57db442a7030229c8bec512cdf56292c99fcaae5870f7224ef41a960771d",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "10b514e886e9ae258ae23ecfc271a66f03ca4f20",
+    "tree": "409fe9918d786150bf0ee62b636daefcd4b8c39f",
+    "dirty_diff_sha256": "c31660ea5cd849d0a86e30ff8340fe980ec839bc2a02b13594afb799641bb310",
+    "source_manifest_sha256": "8d40704fd73548c97137aeb9f3e31a3f8b81a44662947e06976aceaececd2d8e",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "5ffabad227fbd8f4118e13807330663f6e48108e14ac7ea806c52c0fb6d342a6",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "REASONING_CLICK_CHECKS_PASS",
+      "provider_counts": {
+        "transcript": 1,
+        "title": 1,
+        "completed_transcript": 1,
+        "completed_title": 1,
+        "invalid": 0
+      },
+      "predicates": [
+        {
+          "stage": "provider-baseline",
+          "completed_session_captured": true,
+          "one_completed_transcript": true,
+          "one_completed_title": true,
+          "no_invalid_requests": true
+        },
+        {
+          "stage": "collapsed",
+          "unique_painted_header": true,
+          "expected_header": true,
+          "styled_header": true,
+          "body_visibility": true,
+          "provider_counts_unchanged": true,
+          "cursor_in_bounds": true,
+          "completed_answer_visible": true,
+          "opaque_content_absent": true
+        },
+        {
+          "stage": "collapsed-capture",
+          "stable_capture": true
+        },
+        {
+          "stage": "expand-click",
+          "unique_painted_header": true,
+          "expected_header": true,
+          "body_visibility": true,
+          "provider_counts_unchanged": true,
+          "cursor_in_bounds": true
+        },
+        {
+          "stage": "expanded",
+          "unique_painted_header": true,
+          "expected_header": true,
+          "styled_header": true,
+          "body_visibility": true,
+          "provider_counts_unchanged": true,
+          "cursor_in_bounds": true,
+          "completed_answer_visible": true,
+          "opaque_content_absent": true
+        },
+        {
+          "stage": "expanded-capture",
+          "stable_capture": true
+        },
+        {
+          "stage": "recollapse-click",
+          "unique_painted_header": true,
+          "expected_header": true,
+          "body_visibility": true,
+          "provider_counts_unchanged": true,
+          "cursor_in_bounds": true
+        },
+        {
+          "stage": "recollapsed",
+          "unique_painted_header": true,
+          "expected_header": true,
+          "styled_header": true,
+          "body_visibility": true,
+          "provider_counts_unchanged": true,
+          "cursor_in_bounds": true,
+          "completed_answer_visible": true,
+          "opaque_content_absent": true
+        },
+        {
+          "stage": "recollapsed-capture",
+          "stable_capture": true
+        }
+      ]
+    },
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "REASONING_CLICK_CHECKS_PASS",
+      "provider_counts": {
+        "transcript": 1,
+        "title": 1,
+        "completed_transcript": 1,
+        "completed_title": 1,
+        "invalid": 0
+      },
+      "predicates": [
+        {
+          "stage": "provider-baseline",
+          "completed_session_captured": true,
+          "one_completed_transcript": true,
+          "one_completed_title": true,
+          "no_invalid_requests": true
+        },
+        {
+          "stage": "collapsed",
+          "unique_painted_header": true,
+          "expected_header": true,
+          "styled_header": true,
+          "body_visibility": true,
+          "provider_counts_unchanged": true,
+          "cursor_in_bounds": true,
+          "completed_answer_visible": true,
+          "opaque_content_absent": true
+        },
+        {
+          "stage": "collapsed-capture",
+          "stable_capture": true
+        },
+        {
+          "stage": "expand-click",
+          "unique_painted_header": true,
+          "expected_header": true,
+          "body_visibility": true,
+          "provider_counts_unchanged": true,
+          "cursor_in_bounds": true
+        },
+        {
+          "stage": "expanded",
+          "unique_painted_header": true,
+          "expected_header": true,
+          "styled_header": true,
+          "body_visibility": true,
+          "provider_counts_unchanged": true,
+          "cursor_in_bounds": true,
+          "completed_answer_visible": true,
+          "opaque_content_absent": true
+        },
+        {
+          "stage": "expanded-capture",
+          "stable_capture": true
+        },
+        {
+          "stage": "recollapse-click",
+          "unique_painted_header": true,
+          "expected_header": true,
+          "body_visibility": true,
+          "provider_counts_unchanged": true,
+          "cursor_in_bounds": true
+        },
+        {
+          "stage": "recollapsed",
+          "unique_painted_header": true,
+          "expected_header": true,
+          "styled_header": true,
+          "body_visibility": true,
+          "provider_counts_unchanged": true,
+          "cursor_in_bounds": true,
+          "completed_answer_visible": true,
+          "opaque_content_absent": true
+        },
+        {
+          "stage": "recollapsed-capture",
+          "stable_capture": true
+        }
+      ]
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "reasoning-collapsed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "reasoning-collapsed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "reasoning-expanded",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "reasoning-expanded",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "reasoning-recollapsed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "reasoning-recollapsed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "17e452ee49a960e430069aaed2e5e544d9d0a65cd6624cc109e7f7f2c7c963f3",
+      "png_sha256": "ce8edc8280d501ad0475dee48222f3fc834dce91209b17c8adf5018ebedabb9e",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "550adef576f84bd61935491e4cb547fc9038ae7e3064ada221e57f6ed6e312c5",
+      "png_sha256": "eccd57c84809c941225a8bbbdee49e1802691b651b354d4eddd20dce9a723994",
+      "render_sha256": "31f31f7967a9b188338e122ceec9ca19a46a316b78492e4ee12ffd5204ba486e",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "reasoning-collapsed",
+      "status": "CAPTURED_REASONING_CLICK",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "bcabc40b595a8c3d4ddcc503be84c4e64eb94569133929624830ff1a9c4f6f38",
+      "png_sha256": "eccd57c84809c941225a8bbbdee49e1802691b651b354d4eddd20dce9a723994",
+      "render_sha256": "0cb5ff7fbd00d53ad68e247be506154ad5f1e524c9640c0b64c0f0fc79455f9b",
+      "path": "upstream/reasoning-collapsed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "reasoning-expanded",
+      "status": "CAPTURED_REASONING_CLICK",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f91e69f50b0af0abcb0a6c496dd69d5cf8bd9cbd21aa35001877a39943d8bf1f",
+      "png_sha256": "89b1bd53d60b23b9e5d21935f698b815f13d66fa1e06014a00b51915fb35fda4",
+      "render_sha256": "f26a056b98ada3798c7ec58cb5974c69f880002025c30075e8190c2cc3b7fcbf",
+      "path": "upstream/reasoning-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "reasoning-recollapsed",
+      "status": "CAPTURED_REASONING_CLICK",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "7c52aa0b47912810eee0194d01f9e00eccff51536c8721efa776904e1d7ddbf0",
+      "png_sha256": "4d086893b68e1afc6f05610db02abc287a4d3742cf9e0cf537a05654ed2d0ab0",
+      "render_sha256": "720030906dabf513bdce561c30d453930e9747a78eb8413cc34da53bc7d53f54",
+      "path": "upstream/reasoning-recollapsed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "289cb860d4641e634ad4b56ee8435a279b8d07a1e82b1e3065dbfce8e4e67413",
+      "png_sha256": "c6257df2e0818797774fee47438b8d1470b7fc96a2f291c73c52f15953c67109",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "6f6ad7217414c2ba0151a0699d2d5c35f1a4d33a5fb12f15ca2ae1bab1dc9143",
+      "png_sha256": "ae47bff569d94864ac11ecf52861015e202ea7d21f40a7264b16c081ee9b2b19",
+      "render_sha256": "bbcb61aa1a235504674a1c080c5988494874fc609d68d829d07af90a21840b16",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "reasoning-collapsed",
+      "status": "CAPTURED_REASONING_CLICK",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "82bfee55da0a33c05774fc959654c4f72158a6b4a5250092879e1abaea2e8e89",
+      "png_sha256": "ae47bff569d94864ac11ecf52861015e202ea7d21f40a7264b16c081ee9b2b19",
+      "render_sha256": "a8e325c6e41eb0cb67f798b79fd14c8a5650f234d3e7d9e18f019cb12929530e",
+      "path": "oc/reasoning-collapsed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "reasoning-expanded",
+      "status": "CAPTURED_REASONING_CLICK",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "37e0b73dca835585025d3ed3da319da13e519aa36bf0e35c8cd9a1b82e227d83",
+      "png_sha256": "883ca50952460eb94c5e7c8ed0940c8305e8a35cc93cbef4a419888ee7840122",
+      "render_sha256": "7540797fb6163c8e945a4a9e8636626f7e644825c81c979315e616cd6dc64137",
+      "path": "oc/reasoning-expanded"
+    },
+    {
+      "origin": "oc",
+      "scenario": "reasoning-recollapsed",
+      "status": "CAPTURED_REASONING_CLICK",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d37cca611e4fc28ba5ef10a87d85b01228b43b6f25508ed980c5952be48cac13",
+      "png_sha256": "ae47bff569d94864ac11ecf52861015e202ea7d21f40a7264b16c081ee9b2b19",
+      "render_sha256": "bbec2cd050f4dc976dbfe67bea33e3cb5f4164b7cb6cf5d4fdcbf03f41dfc1ce",
+      "path": "oc/reasoning-recollapsed"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "reasoning_click": {
+    "upstream": {
+      "status": "PASS",
+      "baseline": {
+        "transcript": 1,
+        "title": 1,
+        "completed_transcript": 1,
+        "completed_title": 1,
+        "invalid": 0
+      },
+      "checks": [
+        {
+          "stage": "provider-baseline",
+          "observed": {
+            "collapsed": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "expanded": [],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "collapsed"
+            },
+            "header_style": {
+              "fg": [
+                "#97682c",
+                "#ffffff",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "96bf84e8a3627f39cee2ac18c47cfd114a44730576d177a684b8c13a176afb95"
+          },
+          "predicates": {
+            "completed_session_captured": true,
+            "one_completed_transcript": true,
+            "one_completed_title": true,
+            "no_invalid_requests": true
+          }
+        },
+        {
+          "stage": "collapsed",
+          "observed": {
+            "collapsed": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "expanded": [],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "collapsed"
+            },
+            "header_style": {
+              "fg": [
+                "#97682c",
+                "#ffffff",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "96bf84e8a3627f39cee2ac18c47cfd114a44730576d177a684b8c13a176afb95"
+          },
+          "predicates": {
+            "unique_painted_header": true,
+            "expected_header": true,
+            "styled_header": true,
+            "body_visibility": true,
+            "provider_counts_unchanged": true,
+            "cursor_in_bounds": true,
+            "completed_answer_visible": true,
+            "opaque_content_absent": true
+          }
+        },
+        {
+          "stage": "collapsed-capture",
+          "observed": {
+            "collapsed": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "expanded": [],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "collapsed"
+            },
+            "header_style": {
+              "fg": [
+                "#97682c",
+                "#ffffff",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "96bf84e8a3627f39cee2ac18c47cfd114a44730576d177a684b8c13a176afb95"
+          },
+          "predicates": {
+            "stable_capture": true
+          }
+        },
+        {
+          "stage": "expand-click",
+          "observed": {
+            "collapsed": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "expanded": [],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "collapsed"
+            },
+            "header_style": {
+              "fg": [
+                "#97682c",
+                "#ffffff",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c",
+                "#97682c"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "96bf84e8a3627f39cee2ac18c47cfd114a44730576d177a684b8c13a176afb95"
+          },
+          "predicates": {
+            "unique_painted_header": true,
+            "expected_header": true,
+            "body_visibility": true,
+            "provider_counts_unchanged": true,
+            "cursor_in_bounds": true
+          },
+          "cell": {
+            "x": 7,
+            "y": 6
+          },
+          "pty_column": 8,
+          "pty_row": 7,
+          "input_mode": "release_only",
+          "up_base64": "G1s8MDs4Ozdt"
+        },
+        {
+          "stage": "expanded",
+          "observed": {
+            "collapsed": [],
+            "expanded": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [
+              {
+                "x": 7,
+                "y": 10
+              }
+            ],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "expanded"
+            },
+            "header_style": {
+              "fg": [
+                "#f5a742",
+                "#ffffff",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "7a4750b257791bf3dfbf817c0e4e71804c24cdf24621f709acdec2ac5470efe8"
+          },
+          "predicates": {
+            "unique_painted_header": true,
+            "expected_header": true,
+            "styled_header": true,
+            "body_visibility": true,
+            "provider_counts_unchanged": true,
+            "cursor_in_bounds": true,
+            "completed_answer_visible": true,
+            "opaque_content_absent": true
+          }
+        },
+        {
+          "stage": "expanded-capture",
+          "observed": {
+            "collapsed": [],
+            "expanded": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [
+              {
+                "x": 7,
+                "y": 10
+              }
+            ],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "expanded"
+            },
+            "header_style": {
+              "fg": [
+                "#f5a742",
+                "#ffffff",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "7a4750b257791bf3dfbf817c0e4e71804c24cdf24621f709acdec2ac5470efe8"
+          },
+          "predicates": {
+            "stable_capture": true
+          }
+        },
+        {
+          "stage": "recollapse-click",
+          "observed": {
+            "collapsed": [],
+            "expanded": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [
+              {
+                "x": 7,
+                "y": 10
+              }
+            ],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "expanded"
+            },
+            "header_style": {
+              "fg": [
+                "#f5a742",
+                "#ffffff",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "7a4750b257791bf3dfbf817c0e4e71804c24cdf24621f709acdec2ac5470efe8"
+          },
+          "predicates": {
+            "unique_painted_header": true,
+            "expected_header": true,
+            "body_visibility": true,
+            "provider_counts_unchanged": true,
+            "cursor_in_bounds": true
+          },
+          "cell": {
+            "x": 7,
+            "y": 6
+          },
+          "pty_column": 8,
+          "pty_row": 7,
+          "input_mode": "release_only",
+          "up_base64": "G1s8MDs4Ozdt"
+        },
+        {
+          "stage": "recollapsed",
+          "observed": {
+            "collapsed": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "expanded": [],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "collapsed"
+            },
+            "header_style": {
+              "fg": [
+                "#f5a742",
+                "#ffffff",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "2ecf6695c5be0b539f80f2941078b2ab3cdb832f980ae487c16753fa74c52044"
+          },
+          "predicates": {
+            "unique_painted_header": true,
+            "expected_header": true,
+            "styled_header": true,
+            "body_visibility": true,
+            "provider_counts_unchanged": true,
+            "cursor_in_bounds": true,
+            "completed_answer_visible": true,
+            "opaque_content_absent": true
+          }
+        },
+        {
+          "stage": "recollapsed-capture",
+          "observed": {
+            "collapsed": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "expanded": [],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "collapsed"
+            },
+            "header_style": {
+              "fg": [
+                "#f5a742",
+                "#ffffff",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "2ecf6695c5be0b539f80f2941078b2ab3cdb832f980ae487c16753fa74c52044"
+          },
+          "predicates": {
+            "stable_capture": true
+          }
+        }
+      ]
+    },
+    "oc": {
+      "status": "PASS",
+      "baseline": {
+        "transcript": 1,
+        "title": 1,
+        "completed_transcript": 1,
+        "completed_title": 1,
+        "invalid": 0
+      },
+      "checks": [
+        {
+          "stage": "provider-baseline",
+          "observed": {
+            "collapsed": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "expanded": [],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "collapsed"
+            },
+            "header_style": {
+              "fg": [
+                "#97682b",
+                "#ffffff",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "4e2bac45fad17b1d01e3820586baad486bec0e796a6bca22c46bebf3240e33f0"
+          },
+          "predicates": {
+            "completed_session_captured": true,
+            "one_completed_transcript": true,
+            "one_completed_title": true,
+            "no_invalid_requests": true
+          }
+        },
+        {
+          "stage": "collapsed",
+          "observed": {
+            "collapsed": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "expanded": [],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "collapsed"
+            },
+            "header_style": {
+              "fg": [
+                "#97682b",
+                "#ffffff",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "4e2bac45fad17b1d01e3820586baad486bec0e796a6bca22c46bebf3240e33f0"
+          },
+          "predicates": {
+            "unique_painted_header": true,
+            "expected_header": true,
+            "styled_header": true,
+            "body_visibility": true,
+            "provider_counts_unchanged": true,
+            "cursor_in_bounds": true,
+            "completed_answer_visible": true,
+            "opaque_content_absent": true
+          }
+        },
+        {
+          "stage": "collapsed-capture",
+          "observed": {
+            "collapsed": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "expanded": [],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "collapsed"
+            },
+            "header_style": {
+              "fg": [
+                "#97682b",
+                "#ffffff",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "4e2bac45fad17b1d01e3820586baad486bec0e796a6bca22c46bebf3240e33f0"
+          },
+          "predicates": {
+            "stable_capture": true
+          }
+        },
+        {
+          "stage": "expand-click",
+          "observed": {
+            "collapsed": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "expanded": [],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "collapsed"
+            },
+            "header_style": {
+              "fg": [
+                "#97682b",
+                "#ffffff",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "4e2bac45fad17b1d01e3820586baad486bec0e796a6bca22c46bebf3240e33f0"
+          },
+          "predicates": {
+            "unique_painted_header": true,
+            "expected_header": true,
+            "body_visibility": true,
+            "provider_counts_unchanged": true,
+            "cursor_in_bounds": true
+          },
+          "cell": {
+            "x": 7,
+            "y": 6
+          },
+          "pty_column": 8,
+          "pty_row": 7,
+          "input_mode": "release_only",
+          "up_base64": "G1s8MDs4Ozdt"
+        },
+        {
+          "stage": "expanded",
+          "observed": {
+            "collapsed": [],
+            "expanded": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [
+              {
+                "x": 7,
+                "y": 10
+              }
+            ],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "expanded"
+            },
+            "header_style": {
+              "fg": [
+                "#f5a742",
+                "#ffffff",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "d09c68764a17a3b8a0147f9948c2fa87ae09596802117fea428bb78f3ecfb495"
+          },
+          "predicates": {
+            "unique_painted_header": true,
+            "expected_header": true,
+            "styled_header": true,
+            "body_visibility": true,
+            "provider_counts_unchanged": true,
+            "cursor_in_bounds": true,
+            "completed_answer_visible": true,
+            "opaque_content_absent": true
+          }
+        },
+        {
+          "stage": "expanded-capture",
+          "observed": {
+            "collapsed": [],
+            "expanded": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [
+              {
+                "x": 7,
+                "y": 10
+              }
+            ],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "expanded"
+            },
+            "header_style": {
+              "fg": [
+                "#f5a742",
+                "#ffffff",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "d09c68764a17a3b8a0147f9948c2fa87ae09596802117fea428bb78f3ecfb495"
+          },
+          "predicates": {
+            "stable_capture": true
+          }
+        },
+        {
+          "stage": "recollapse-click",
+          "observed": {
+            "collapsed": [],
+            "expanded": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [
+              {
+                "x": 7,
+                "y": 10
+              }
+            ],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "expanded"
+            },
+            "header_style": {
+              "fg": [
+                "#f5a742",
+                "#ffffff",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742",
+                "#f5a742"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "d09c68764a17a3b8a0147f9948c2fa87ae09596802117fea428bb78f3ecfb495"
+          },
+          "predicates": {
+            "unique_painted_header": true,
+            "expected_header": true,
+            "body_visibility": true,
+            "provider_counts_unchanged": true,
+            "cursor_in_bounds": true
+          },
+          "cell": {
+            "x": 7,
+            "y": 6
+          },
+          "pty_column": 8,
+          "pty_row": 7,
+          "input_mode": "release_only",
+          "up_base64": "G1s8MDs4Ozdt"
+        },
+        {
+          "stage": "recollapsed",
+          "observed": {
+            "collapsed": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "expanded": [],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "collapsed"
+            },
+            "header_style": {
+              "fg": [
+                "#97682b",
+                "#ffffff",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "4e2bac45fad17b1d01e3820586baad486bec0e796a6bca22c46bebf3240e33f0"
+          },
+          "predicates": {
+            "unique_painted_header": true,
+            "expected_header": true,
+            "styled_header": true,
+            "body_visibility": true,
+            "provider_counts_unchanged": true,
+            "cursor_in_bounds": true,
+            "completed_answer_visible": true,
+            "opaque_content_absent": true
+          }
+        },
+        {
+          "stage": "recollapsed-capture",
+          "observed": {
+            "collapsed": [
+              {
+                "x": 5,
+                "y": 6
+              }
+            ],
+            "expanded": [],
+            "fragments": [
+              {
+                "x": 7,
+                "y": 6
+              }
+            ],
+            "bodies": [],
+            "header": {
+              "x": 5,
+              "y": 6,
+              "state": "collapsed"
+            },
+            "header_style": {
+              "fg": [
+                "#97682b",
+                "#ffffff",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b",
+                "#97682b"
+              ],
+              "bg": [
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a",
+                "#0a0a0a"
+              ],
+              "modifiers": [
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+              ],
+              "widths": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ]
+            },
+            "cursor": {
+              "x": 5,
+              "y": 34,
+              "visible": true,
+              "shape": "block"
+            },
+            "provider_counts": {
+              "transcript": 1,
+              "title": 1,
+              "completed_transcript": 1,
+              "completed_title": 1,
+              "invalid": 0
+            },
+            "grid_sha256": "4e2bac45fad17b1d01e3820586baad486bec0e796a6bca22c46bebf3240e33f0"
+          },
+          "predicates": {
+            "stable_capture": true
+          }
+        }
+      ]
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Reasoning click states are captured; whole-frame parity still depends on paired grid/PNG comparator results",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-25T13:18:14.629Z",
+  "exit_code": 1
+}

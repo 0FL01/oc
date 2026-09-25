@@ -1,0 +1,260 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "reasoning",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--reasoning-click",
+      "true",
+      "--reasoning-release-only",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "10b514e886e9ae258ae23ecfc271a66f03ca4f20\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "409fe9918d786150bf0ee62b636daefcd4b8c39f\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/messages.rs b/crates/oc-tui/src/messages.rs\nindex e73decf..d7920a8 100644\n--- a/crates/oc-tui/src/messages.rs\n+++ b/crates/oc-tui/src/messages.rs\n@@ -1910,13 +1910,10 @@ fn reasoning_line(reasoning: &ReasoningBlock, theme: &Theme) -> Line {\n     }\n     if reasoning.toggleable {\n         spans.push(Span::styled(\n-            format!(\n-                \"{:<width$}\",\n-                if reasoning.expanded { \"-\" } else { \"+\" },\n-                width = INLINE_ICON_WIDTH\n-            ),\n+            if reasoning.expanded { \"-\" } else { \"+\" },\n             style,\n         ));\n+        spans.push(Span::plain(\" \".repeat(INLINE_ICON_WIDTH - 1)));\n     }\n     let mut text = String::from(\"Thought\");\n     let duration = reasoning\n@@ -2411,10 +2408,11 @@ fn markdown_at_width_with_columns(\n                     } else {\n                         stack.last().copied().unwrap_or(MarkdownToken::Text)\n                     };\n-                    spans.push(Span::styled(\n-                        safe_text(&value),\n-                        Style::default().fg(theme.markdown(token)),\n-                    ));\n+                    let mut style = Style::default().fg(theme.markdown(token));\n+                    if stack.contains(&MarkdownToken::Strong) {\n+                        style = style.add_modifier(Modifier::BOLD);\n+                    }\n+                    spans.push(Span::styled(safe_text(&value), style));\n                 }\n             }\n             Event::Code(value) => spans.push(Span::styled(\n@@ -3527,17 +3525,23 @@ mod tests {\n         );\n         assert_eq!(buffer[(3, 1)].symbol(), \"+\");\n         assert_eq!(buffer[(3, 1)].fg, fading);\n+        assert_eq!(buffer[(4, 1)].symbol(), \" \");\n+        assert_eq!(buffer[(4, 1)].fg, Color::Reset);\n         assert_eq!(buffer[(5, 1)].fg, fading);\n         let mut open = completed.clone();\n         open.reasoning.as_mut().unwrap().expanded = true;\n         let (rows, buffer) = render(&[open.clone()], 60, 6);\n         assert_eq!(buffer[(3, 1)].symbol(), \"-\");\n         assert_eq!(buffer[(3, 1)].fg, theme.warning());\n+        assert_eq!(buffer[(4, 1)].symbol(), \" \");\n+        assert_eq!(buffer[(4, 1)].fg, Color::Reset);\n         assert_eq!(buffer[(5, 1)].symbol(), \"T\");\n         assert_eq!(rows[1], \"   - Thought · 1.5s\");\n         assert_eq!(rows[3], \"   ┃ Inspecting\");\n         assert_eq!(buffer[(3, 3)].fg, theme.decrease(theme.background_raised()));\n         assert_eq!(buffer[(5, 3)].fg, theme.text_muted());\n+        assert!(buffer[(5, 3)].modifier.contains(Modifier::BOLD));\n+        assert!(!buffer[(5, 5)].modifier.contains(Modifier::BOLD));\n         open.reasoning.as_mut().unwrap().toggleable = false;\n         let (rows, buffer) = render(&[open], 60, 6);\n         assert_eq!(rows[1], \"   ┃ Thought: 1.5s\");\n@@ -3934,6 +3938,33 @@ mod tests {\n         assert!(!lines.iter().any(|line| line.plain_text().contains(\"---\")));\n     }\n \n+    #[test]\n+    fn strong_markdown_keeps_nested_tokens_bold_and_their_own_colors() {\n+        let theme = Theme::dark();\n+        let (rows, buffer) = render(\n+            &[assistant(\n+                \"plain **bold [link](https://x) and *inner* `code`** tail\",\n+            )],\n+            80,\n+            4,\n+        );\n+        assert_eq!(rows[1], \"   plain bold link and inner code tail\");\n+        for (x, token) in [\n+            (9, MarkdownToken::Strong),\n+            (14, MarkdownToken::LinkText),\n+            (23, MarkdownToken::Emphasis),\n+        ] {\n+            assert!(buffer[(x, 1)].modifier.contains(Modifier::BOLD), \"x={x}\");\n+            assert_eq!(buffer[(x, 1)].fg, theme.markdown(token), \"x={x}\");\n+        }\n+        for x in [3, 34] {\n+            assert!(!buffer[(x, 1)].modifier.contains(Modifier::BOLD), \"x={x}\");\n+            assert_eq!(buffer[(x, 1)].fg, theme.markdown(MarkdownToken::Text));\n+        }\n+        assert_eq!(buffer[(29, 1)].fg, theme.markdown(MarkdownToken::Code));\n+        assert!(!buffer[(29, 1)].modifier.contains(Modifier::BOLD));\n+    }\n+\n     #[test]\n     fn v06a_table_fixture_escaped_pipes_unicode_and_bounded_wrap() {\n         let fixture = include_str!(\"../../../tui-recovery/fixtures/transcript.md\");\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/assets/upstream/PROVENANCE.md\u0000crates/oc-adapters/assets/upstream/v2/review.txt\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/scanner.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/clipboard.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)\n   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.25s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"e68f57db442a7030229c8bec512cdf56292c99fcaae5870f7224ef41a960771d\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"17e452ee49a960e430069aaed2e5e544d9d0a65cd6624cc109e7f7f2c7c963f3\", \"actual_sha256\": \"289cb860d4641e634ad4b56ee8435a279b8d07a1e82b1e3065dbfce8e4e67413\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"10b514e886e9ae258ae23ecfc271a66f03ca4f20\", \"cells_checked\": 4800, \"different_cells\": 45, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 21, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"ce8edc8280d501ad0475dee48222f3fc834dce91209b17c8adf5018ebedabb9e\", \"actual_sha256\": \"c6257df2e0818797774fee47438b8d1470b7fc96a2f291c73c52f15953c67109\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2037, \"changed_fraction_diagnostic_only\": 0.0031481824925816025, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"e68f57db442a7030229c8bec512cdf56292c99fcaae5870f7224ef41a960771d\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"550adef576f84bd61935491e4cb547fc9038ae7e3064ada221e57f6ed6e312c5\", \"actual_sha256\": \"6f6ad7217414c2ba0151a0699d2d5c35f1a4d33a5fb12f15ca2ae1bab1dc9143\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"10b514e886e9ae258ae23ecfc271a66f03ca4f20\", \"cells_checked\": 4800, \"different_cells\": 48, \"cursor_differs\": false, \"difference_bbox_inclusive\": [5, 6, 56, 10], \"samples\": [{\"x\": 5, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"eccd57c84809c941225a8bbbdee49e1802691b651b354d4eddd20dce9a723994\", \"actual_sha256\": \"ae47bff569d94864ac11ecf52861015e202ea7d21f40a7264b16c081ee9b2b19\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1450, \"changed_fraction_diagnostic_only\": 0.0022409742828882295, \"difference_bbox_inclusive\": [42, 98, 478, 174]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/upstream/reasoning-collapsed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/oc/reasoning-collapsed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/reasoning-collapsed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"reasoning-collapsed\", \"fixture_sha256\": \"e68f57db442a7030229c8bec512cdf56292c99fcaae5870f7224ef41a960771d\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"bcabc40b595a8c3d4ddcc503be84c4e64eb94569133929624830ff1a9c4f6f38\", \"actual_sha256\": \"82bfee55da0a33c05774fc959654c4f72158a6b4a5250092879e1abaea2e8e89\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"10b514e886e9ae258ae23ecfc271a66f03ca4f20\", \"cells_checked\": 4800, \"different_cells\": 48, \"cursor_differs\": false, \"difference_bbox_inclusive\": [5, 6, 56, 10], \"samples\": [{\"x\": 5, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/upstream/reasoning-collapsed.png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/oc/reasoning-collapsed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/reasoning-collapsed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"eccd57c84809c941225a8bbbdee49e1802691b651b354d4eddd20dce9a723994\", \"actual_sha256\": \"ae47bff569d94864ac11ecf52861015e202ea7d21f40a7264b16c081ee9b2b19\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1450, \"changed_fraction_diagnostic_only\": 0.0022409742828882295, \"difference_bbox_inclusive\": [42, 98, 478, 174]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/upstream/reasoning-expanded.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/oc/reasoning-expanded.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/reasoning-expanded.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"reasoning-expanded\", \"fixture_sha256\": \"e68f57db442a7030229c8bec512cdf56292c99fcaae5870f7224ef41a960771d\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"f91e69f50b0af0abcb0a6c496dd69d5cf8bd9cbd21aa35001877a39943d8bf1f\", \"actual_sha256\": \"37e0b73dca835585025d3ed3da319da13e519aa36bf0e35c8cd9a1b82e227d83\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"10b514e886e9ae258ae23ecfc271a66f03ca4f20\", \"cells_checked\": 4800, \"different_cells\": 25, \"cursor_differs\": false, \"difference_bbox_inclusive\": [17, 6, 56, 14], \"samples\": [{\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 37, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 14, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 14, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 14, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 14, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 14, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 14, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 14, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 14, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 14, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 14, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 14, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/upstream/reasoning-expanded.png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/oc/reasoning-expanded.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/reasoning-expanded.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"89b1bd53d60b23b9e5d21935f698b815f13d66fa1e06014a00b51915fb35fda4\", \"actual_sha256\": \"883ca50952460eb94c5e7c8ed0940c8305e8a35cc93cbef4a419888ee7840122\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 998, \"changed_fraction_diagnostic_only\": 0.001542408506429278, \"difference_bbox_inclusive\": [143, 99, 478, 238]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/upstream/reasoning-recollapsed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/oc/reasoning-recollapsed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/reasoning-recollapsed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"reasoning-recollapsed\", \"fixture_sha256\": \"e68f57db442a7030229c8bec512cdf56292c99fcaae5870f7224ef41a960771d\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"7c52aa0b47912810eee0194d01f9e00eccff51536c8721efa776904e1d7ddbf0\", \"actual_sha256\": \"d37cca611e4fc28ba5ef10a87d85b01228b43b6f25508ed980c5952be48cac13\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"10b514e886e9ae258ae23ecfc271a66f03ca4f20\", \"cells_checked\": 4800, \"different_cells\": 48, \"cursor_differs\": false, \"difference_bbox_inclusive\": [5, 6, 56, 10], \"samples\": [{\"x\": 5, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 7, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 8, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 11, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 12, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 13, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"fg\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/upstream/reasoning-recollapsed.png",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/oc/reasoning-recollapsed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/reasoning-static-20260925-01/reasoning-recollapsed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"4d086893b68e1afc6f05610db02abc287a4d3742cf9e0cf537a05654ed2d0ab0\", \"actual_sha256\": \"ae47bff569d94864ac11ecf52861015e202ea7d21f40a7264b16c081ee9b2b19\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1738, \"changed_fraction_diagnostic_only\": 0.002686078140454995, \"difference_bbox_inclusive\": [42, 98, 478, 174]}\n",
+    "stderr": ""
+  }
+]

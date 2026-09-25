@@ -1910,13 +1910,10 @@ fn reasoning_line(reasoning: &ReasoningBlock, theme: &Theme) -> Line {
     }
     if reasoning.toggleable {
         spans.push(Span::styled(
-            format!(
-                "{:<width$}",
-                if reasoning.expanded { "-" } else { "+" },
-                width = INLINE_ICON_WIDTH
-            ),
+            if reasoning.expanded { "-" } else { "+" },
             style,
         ));
+        spans.push(Span::plain(" ".repeat(INLINE_ICON_WIDTH - 1)));
     }
     let mut text = String::from("Thought");
     let duration = reasoning
@@ -2411,10 +2408,11 @@ fn markdown_at_width_with_columns(
                     } else {
                         stack.last().copied().unwrap_or(MarkdownToken::Text)
                     };
-                    spans.push(Span::styled(
-                        safe_text(&value),
-                        Style::default().fg(theme.markdown(token)),
-                    ));
+                    let mut style = Style::default().fg(theme.markdown(token));
+                    if stack.contains(&MarkdownToken::Strong) {
+                        style = style.add_modifier(Modifier::BOLD);
+                    }
+                    spans.push(Span::styled(safe_text(&value), style));
                 }
             }
             Event::Code(value) => spans.push(Span::styled(
@@ -3527,17 +3525,23 @@ mod tests {
         );
         assert_eq!(buffer[(3, 1)].symbol(), "+");
         assert_eq!(buffer[(3, 1)].fg, fading);
+        assert_eq!(buffer[(4, 1)].symbol(), " ");
+        assert_eq!(buffer[(4, 1)].fg, Color::Reset);
         assert_eq!(buffer[(5, 1)].fg, fading);
         let mut open = completed.clone();
         open.reasoning.as_mut().unwrap().expanded = true;
         let (rows, buffer) = render(&[open.clone()], 60, 6);
         assert_eq!(buffer[(3, 1)].symbol(), "-");
         assert_eq!(buffer[(3, 1)].fg, theme.warning());
+        assert_eq!(buffer[(4, 1)].symbol(), " ");
+        assert_eq!(buffer[(4, 1)].fg, Color::Reset);
         assert_eq!(buffer[(5, 1)].symbol(), "T");
         assert_eq!(rows[1], "   - Thought · 1.5s");
         assert_eq!(rows[3], "   ┃ Inspecting");
         assert_eq!(buffer[(3, 3)].fg, theme.decrease(theme.background_raised()));
         assert_eq!(buffer[(5, 3)].fg, theme.text_muted());
+        assert!(buffer[(5, 3)].modifier.contains(Modifier::BOLD));
+        assert!(!buffer[(5, 5)].modifier.contains(Modifier::BOLD));
         open.reasoning.as_mut().unwrap().toggleable = false;
         let (rows, buffer) = render(&[open], 60, 6);
         assert_eq!(rows[1], "   ┃ Thought: 1.5s");
@@ -3932,6 +3936,33 @@ mod tests {
                 .any(|line| line.plain_text().contains("1") && line.plain_text().contains("2"))
         );
         assert!(!lines.iter().any(|line| line.plain_text().contains("---")));
+    }
+
+    #[test]
+    fn strong_markdown_keeps_nested_tokens_bold_and_their_own_colors() {
+        let theme = Theme::dark();
+        let (rows, buffer) = render(
+            &[assistant(
+                "plain **bold [link](https://x) and *inner* `code`** tail",
+            )],
+            80,
+            4,
+        );
+        assert_eq!(rows[1], "   plain bold link and inner code tail");
+        for (x, token) in [
+            (9, MarkdownToken::Strong),
+            (14, MarkdownToken::LinkText),
+            (23, MarkdownToken::Emphasis),
+        ] {
+            assert!(buffer[(x, 1)].modifier.contains(Modifier::BOLD), "x={x}");
+            assert_eq!(buffer[(x, 1)].fg, theme.markdown(token), "x={x}");
+        }
+        for x in [3, 34] {
+            assert!(!buffer[(x, 1)].modifier.contains(Modifier::BOLD), "x={x}");
+            assert_eq!(buffer[(x, 1)].fg, theme.markdown(MarkdownToken::Text));
+        }
+        assert_eq!(buffer[(29, 1)].fg, theme.markdown(MarkdownToken::Code));
+        assert!(!buffer[(29, 1)].modifier.contains(Modifier::BOLD));
     }
 
     #[test]
