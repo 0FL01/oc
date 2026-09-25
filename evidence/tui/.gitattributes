@@ -69,3 +69,5 @@ reasoning-steps-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 reasoning-steps-*/*/*.vt binary
 models-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 models-*/*/*.vt binary
+home-visibility-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+home-visibility-*/*/*.vt binary

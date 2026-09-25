@@ -1,0 +1,487 @@
+{
+  "schema_version": 1,
+  "origin": "oc",
+  "scenario": "failure-diagnostic",
+  "environment_id": "0fe60d92efedba88f58bd45448e3280f33d230363b8dd8468bd894d31f0d48df",
+  "terminal_refresh_from_buffer": false,
+  "paint_wait_request_animation_frames": 2,
+  "before": {
+    "device_pixel_ratio": 1,
+    "viewport": {
+      "width": 1800,
+      "height": 1100,
+      "document_client_width": 1800,
+      "document_client_height": 1100
+    },
+    "screen_rect": {
+      "x": 0,
+      "y": 0,
+      "width": 362,
+      "height": 384,
+      "right": 362,
+      "bottom": 384
+    },
+    "measured_cell_width": 8.418604651162791,
+    "measured_cell_height": 16,
+    "columns": 43,
+    "rows": 24,
+    "layers": {
+      ".xterm": {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 362,
+          "height": 384,
+          "right": 362,
+          "bottom": 384
+        },
+        "layout": {
+          "client_width": 362,
+          "client_height": 384,
+          "offset_width": 362,
+          "offset_height": 384,
+          "scroll_width": 362,
+          "scroll_height": 384
+        },
+        "css": {
+          "width": "362px",
+          "height": "384px",
+          "background_color": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "position": "relative",
+          "transform": "none",
+          "overflow_x": "visible",
+          "overflow_y": "visible",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      ".xterm-viewport": {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 362,
+          "height": 384,
+          "right": 362,
+          "bottom": 384
+        },
+        "layout": {
+          "client_width": 362,
+          "client_height": 384,
+          "offset_width": 362,
+          "offset_height": 384,
+          "scroll_width": 362,
+          "scroll_height": 384
+        },
+        "css": {
+          "width": "362px",
+          "height": "384px",
+          "background_color": "rgb(0, 0, 0)",
+          "opacity": "1",
+          "position": "absolute",
+          "transform": "none",
+          "overflow_x": "auto",
+          "overflow_y": "scroll",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      ".xterm-screen": {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 362,
+          "height": 384,
+          "right": 362,
+          "bottom": 384
+        },
+        "layout": {
+          "client_width": 362,
+          "client_height": 384,
+          "offset_width": 362,
+          "offset_height": 384,
+          "scroll_width": 362,
+          "scroll_height": 384
+        },
+        "css": {
+          "width": "362px",
+          "height": "384px",
+          "background_color": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "position": "relative",
+          "transform": "none",
+          "overflow_x": "visible",
+          "overflow_y": "visible",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      ".xterm-text-layer": null,
+      ".xterm-rows": {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 362,
+          "height": 384,
+          "right": 362,
+          "bottom": 384
+        },
+        "layout": {
+          "client_width": 362,
+          "client_height": 384,
+          "offset_width": 362,
+          "offset_height": 384,
+          "scroll_width": 362,
+          "scroll_height": 384
+        },
+        "css": {
+          "width": "362px",
+          "height": "384px",
+          "background_color": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "position": "static",
+          "transform": "none",
+          "overflow_x": "visible",
+          "overflow_y": "visible",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      ".xterm-cursor-layer": null,
+      ".xterm-selection-layer": null
+    },
+    "canvases": [],
+    "dom_rows": {
+      "element_count": 24,
+      "last_rows": [
+        {
+          "row_index": 22,
+          "rect": {
+            "x": 0,
+            "y": 352,
+            "width": 362,
+            "height": 16,
+            "right": 362,
+            "bottom": 368
+          },
+          "css": {
+            "width": "362px",
+            "position": "static",
+            "color": "rgb(238, 238, 238)",
+            "background_color": "rgba(0, 0, 0, 0)"
+          },
+          "element_child_count": 1,
+          "last_element_children": [
+            {
+              "child_index": 0,
+              "rect": {
+                "x": 0,
+                "y": 352,
+                "width": 361.625,
+                "height": 16,
+                "right": 361.625,
+                "bottom": 368
+              },
+              "css": {
+                "width": "361.625px",
+                "position": "static",
+                "color": "rgb(255, 255, 255)",
+                "background_color": "rgb(10, 10, 10)"
+              }
+            }
+          ]
+        },
+        {
+          "row_index": 23,
+          "rect": {
+            "x": 0,
+            "y": 368,
+            "width": 362,
+            "height": 16,
+            "right": 362,
+            "bottom": 384
+          },
+          "css": {
+            "width": "362px",
+            "position": "static",
+            "color": "rgb(238, 238, 238)",
+            "background_color": "rgba(0, 0, 0, 0)"
+          },
+          "element_child_count": 1,
+          "last_element_children": [
+            {
+              "child_index": 0,
+              "rect": {
+                "x": 0,
+                "y": 368,
+                "width": 361.625,
+                "height": 16,
+                "right": 361.625,
+                "bottom": 384
+              },
+              "css": {
+                "width": "361.625px",
+                "position": "static",
+                "color": "rgb(255, 255, 255)",
+                "background_color": "rgb(10, 10, 10)"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "after": {
+    "device_pixel_ratio": 1,
+    "viewport": {
+      "width": 1800,
+      "height": 1100,
+      "document_client_width": 1800,
+      "document_client_height": 1100
+    },
+    "screen_rect": {
+      "x": 0,
+      "y": 0,
+      "width": 362,
+      "height": 384,
+      "right": 362,
+      "bottom": 384
+    },
+    "measured_cell_width": 8.418604651162791,
+    "measured_cell_height": 16,
+    "columns": 43,
+    "rows": 24,
+    "layers": {
+      ".xterm": {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 362,
+          "height": 384,
+          "right": 362,
+          "bottom": 384
+        },
+        "layout": {
+          "client_width": 362,
+          "client_height": 384,
+          "offset_width": 362,
+          "offset_height": 384,
+          "scroll_width": 362,
+          "scroll_height": 384
+        },
+        "css": {
+          "width": "362px",
+          "height": "384px",
+          "background_color": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "position": "relative",
+          "transform": "none",
+          "overflow_x": "visible",
+          "overflow_y": "visible",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      ".xterm-viewport": {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 362,
+          "height": 384,
+          "right": 362,
+          "bottom": 384
+        },
+        "layout": {
+          "client_width": 362,
+          "client_height": 384,
+          "offset_width": 362,
+          "offset_height": 384,
+          "scroll_width": 362,
+          "scroll_height": 384
+        },
+        "css": {
+          "width": "362px",
+          "height": "384px",
+          "background_color": "rgb(0, 0, 0)",
+          "opacity": "1",
+          "position": "absolute",
+          "transform": "none",
+          "overflow_x": "auto",
+          "overflow_y": "scroll",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      ".xterm-screen": {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 362,
+          "height": 384,
+          "right": 362,
+          "bottom": 384
+        },
+        "layout": {
+          "client_width": 362,
+          "client_height": 384,
+          "offset_width": 362,
+          "offset_height": 384,
+          "scroll_width": 362,
+          "scroll_height": 384
+        },
+        "css": {
+          "width": "362px",
+          "height": "384px",
+          "background_color": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "position": "relative",
+          "transform": "none",
+          "overflow_x": "visible",
+          "overflow_y": "visible",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      ".xterm-text-layer": null,
+      ".xterm-rows": {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 362,
+          "height": 384,
+          "right": 362,
+          "bottom": 384
+        },
+        "layout": {
+          "client_width": 362,
+          "client_height": 384,
+          "offset_width": 362,
+          "offset_height": 384,
+          "scroll_width": 362,
+          "scroll_height": 384
+        },
+        "css": {
+          "width": "362px",
+          "height": "384px",
+          "background_color": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "position": "static",
+          "transform": "none",
+          "overflow_x": "visible",
+          "overflow_y": "visible",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      ".xterm-cursor-layer": null,
+      ".xterm-selection-layer": null
+    },
+    "canvases": [],
+    "dom_rows": {
+      "element_count": 24,
+      "last_rows": [
+        {
+          "row_index": 22,
+          "rect": {
+            "x": 0,
+            "y": 352,
+            "width": 362,
+            "height": 16,
+            "right": 362,
+            "bottom": 368
+          },
+          "css": {
+            "width": "362px",
+            "position": "static",
+            "color": "rgb(238, 238, 238)",
+            "background_color": "rgba(0, 0, 0, 0)"
+          },
+          "element_child_count": 1,
+          "last_element_children": [
+            {
+              "child_index": 0,
+              "rect": {
+                "x": 0,
+                "y": 352,
+                "width": 361.625,
+                "height": 16,
+                "right": 361.625,
+                "bottom": 368
+              },
+              "css": {
+                "width": "361.625px",
+                "position": "static",
+                "color": "rgb(255, 255, 255)",
+                "background_color": "rgb(10, 10, 10)"
+              }
+            }
+          ]
+        },
+        {
+          "row_index": 23,
+          "rect": {
+            "x": 0,
+            "y": 368,
+            "width": 362,
+            "height": 16,
+            "right": 362,
+            "bottom": 384
+          },
+          "css": {
+            "width": "362px",
+            "position": "static",
+            "color": "rgb(238, 238, 238)",
+            "background_color": "rgba(0, 0, 0, 0)"
+          },
+          "element_child_count": 1,
+          "last_element_children": [
+            {
+              "child_index": 0,
+              "rect": {
+                "x": 0,
+                "y": 368,
+                "width": 361.625,
+                "height": 16,
+                "right": 361.625,
+                "bottom": 384
+              },
+              "css": {
+                "width": "361.625px",
+                "position": "static",
+                "color": "rgb(255, 255, 255)",
+                "background_color": "rgb(10, 10, 10)"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "layout_changed_during_screenshot": false,
+  "screenshot": {
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "width": 362,
+      "height": 384
+    },
+    "png_width": 362,
+    "png_height": 384
+  }
+}

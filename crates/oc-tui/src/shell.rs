@@ -730,9 +730,17 @@ fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rec
     let h = input_height + 3;
     let logo = home_logo(theme, area.width, area.height);
     let logo_height = logo.len() as u16;
-    // Home's two equal flex spacers surround a 3-row top spacer, logo,
-    // 2-row gap and the prompt/footer; home footer keeps its final 2 rows.
-    let y = area.y + area.height.saturating_sub(h + logo_height + 9) / 2 + 3;
+    // Home's two flex spacers surround the top spacer, logo, prompt and
+    // footer. The pinned footer mounts at 44 columns, but its version content
+    // starts at 64; with no other footer items this leaves one less occupied
+    // row at 44..63 (home.tsx and feature-plugins/home/footer.tsx).
+    let empty_footer = area.height >= 16 && (44..64).contains(&area.width);
+    let y = area.y
+        + area
+            .height
+            .saturating_sub(h + logo_height + 9 - u16::from(empty_footer))
+            / 2
+        + 3;
     let logo_width = logo.iter().map(Line::width).max().unwrap_or(0) as u16;
     frame.render_widget(
         Paragraph::new(logo),
@@ -773,7 +781,10 @@ fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rec
     render_footer(frame, state, theme, footer, area.width);
     render_slash(frame, state, theme, body);
     render_mentions(frame, state, theme, body);
-    if area.height >= 2 {
+    // The pinned Home footer exists at 44x12 but its version slot is shown
+    // only at widths >= 64 (`homeFooterVisibility`). Keep the real package
+    // version at wider sizes instead of substituting the reference identity.
+    if area.height >= 12 && area.width >= 64 {
         let version = env!("CARGO_PKG_VERSION");
         let row_width = area.width.saturating_sub(2);
         let version_width = version.len() as u16;
@@ -2474,6 +2485,54 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn home_version_slot_matches_pinned_width_and_height_breakpoints() {
+        let mut state = golden_state().await;
+        state.home = true;
+        state.chrome.devtools = Some(false);
+        let version = env!("CARGO_PKG_VERSION");
+        for (width, height, visible) in [
+            (43, 24, false),
+            (44, 24, false),
+            (63, 24, false),
+            (64, 11, false),
+            (64, 12, true),
+            (64, 24, true),
+            (120, 40, true),
+        ] {
+            let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+            terminal.draw(|frame| render(frame, &state)).unwrap();
+            let buffer = terminal.backend().buffer();
+            let version_row = height - 2;
+            let version_x = width - 2 - version.len() as u16;
+            let actual = (version_x..version_x + version.len() as u16)
+                .map(|x| buffer[(x, version_row)].symbol())
+                .collect::<String>();
+            if visible {
+                assert_eq!(actual, version, "Home {width}x{height}");
+            } else {
+                assert_ne!(actual, version, "Home {width}x{height}");
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn empty_narrow_home_footer_keeps_original_logo_and_prompt_rows() {
+        let mut state = golden_state().await;
+        state.home = true;
+        state.chrome.devtools = Some(false);
+        for (width, logo_y, prompt_y) in [(44, 8, 14), (63, 8, 14), (64, 7, 13), (120, 15, 21)] {
+            let rows = screen(&state, width, if width == 120 { 40 } else { 24 });
+            let locate = |needle: &str| rows.iter().position(|row| row.contains(needle));
+            assert_eq!(locate("█▀▀█ █▀▀█"), Some(logo_y), "Home width {width}");
+            assert_eq!(
+                locate("Ask anything…"),
+                Some(prompt_y),
+                "Home width {width}"
+            );
+        }
+    }
+
+    #[tokio::test]
     async fn home_hint_is_hidden_when_typing_and_session_has_no_hint() {
         let mut state = golden_state().await;
         state.home = true;
@@ -4108,6 +4167,88 @@ mod tests {
         );
         assert_eq!(frame[12], "     All done.", "{frame:?}");
         assert_eq!(frame[14], "     X · a · 1.5s · 50.0 tok/s", "{frame:?}");
+    }
+
+    #[tokio::test]
+    async fn completed_footer_stays_one_row_and_clips_at_content_edge() {
+        use oc_core::queries::HistoryTurn;
+
+        let mut state = golden_state().await;
+        state.chrome.devtools = Some(false);
+        let mut completed = msg(2, Role::Assistant, "short answer");
+        completed.turn = Some(HistoryTurn {
+            id: "footer-geometry".into(),
+            agent: Some("reader".into()),
+            model_label: "MiMo-V2.6-Flash Free".into(),
+            duration_ms: Some(125),
+            status: "completed".into(),
+            ..Default::default()
+        });
+        for (width, duration) in [(44, "125ms"), (63, "1.5s")] {
+            completed.turn.as_mut().unwrap().duration_ms =
+                Some(if width == 44 { 125 } else { 1500 });
+            completed.turn.as_mut().unwrap().usage = (width == 63).then_some((20, 15));
+            completed.turn.as_mut().unwrap().streamed_ms = (width == 63).then_some(100);
+            state.attach_page(&page(vec![
+                msg(1, Role::User, "question"),
+                completed.clone(),
+            ]));
+            let rows = screen(&state, width, 24);
+            let footer = rows.iter().find(|row| row.contains("Reader ·")).unwrap();
+            assert!(
+                footer.contains(&format!("Reader · MiMo-V2.6-Flash Free · {duration}")),
+                "{width}x24: {rows:?}"
+            );
+            if width == 63 {
+                assert!(footer.contains(" · 150.0 tok/s"), "{rows:?}");
+            }
+            assert_eq!(rows.iter().filter(|row| row.contains(duration)).count(), 1);
+        }
+
+        // A too-narrow terminal clips at its real edge, without adding a
+        // continuation row that would change sticky paging or hit positions.
+        let narrow = screen(&state, 38, 24);
+        assert!(narrow.iter().any(|row| row.contains("Reader · MiMo")));
+        assert!(!narrow.iter().any(|row| row.contains("1.5s")));
+        let (short_lines, short_total, _) = state.visible_transcript_at_viewport(35, 38, 16);
+        assert_eq!(
+            short_lines
+                .iter()
+                .filter(|line| line.plain_text().contains("Reader ·"))
+                .count(),
+            1
+        );
+        completed.turn.as_mut().unwrap().duration_ms = None;
+        state.attach_page(&page(vec![
+            msg(1, Role::User, "question"),
+            completed.clone(),
+        ]));
+        let (_, without_duration_total, _) = state.visible_transcript_at_viewport(35, 38, 16);
+        assert_eq!(short_total, without_duration_total, "footer keeps one row");
+
+        let baseline = screen(&state, 121, 24);
+        let mut long = completed;
+        long.turn.as_mut().unwrap().model_label = "very-long-model".repeat(20);
+        state.attach_page(&page(vec![msg(1, Role::User, "question"), long]));
+        let wide = screen(&state, 121, 24);
+        let main = session_main(
+            &state,
+            shell_regions(&state, Rect::new(0, 0, 121, 24)).session,
+        );
+        assert!(
+            wide.iter()
+                .any(|row| row.contains("Reader · very-long-model"))
+        );
+        for (short, long) in baseline.iter().zip(&wide) {
+            assert_eq!(
+                short
+                    .chars()
+                    .skip(main.right() as usize)
+                    .collect::<String>(),
+                long.chars().skip(main.right() as usize).collect::<String>(),
+                "footer must not overwrite sidebar"
+            );
+        }
     }
 
     /// Interrupted turns keep the partial answer and mark the footer

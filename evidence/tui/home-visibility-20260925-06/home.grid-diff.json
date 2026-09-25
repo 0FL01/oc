@@ -1,0 +1,17 @@
+{
+  "kind": "grid",
+  "status": "PASS",
+  "scope": "frame equality only; capture provenance is not attested",
+  "scenario": "home",
+  "fixture_sha256": "c6fdd68bfd32c7f5216208db84d632fb2dc8f496379bfc7d8b3b1fa006a30e1e",
+  "environment_id": "ee11e858348ef0b0e5f9f773b8ddba7bc2c62d30a5ba50c9acfe9d3706410c1f",
+  "reference_sha256": "d93f5f337a4c1c2b92a6f333f8e1d48157b99e773ee6349a73f66a83c3736b52",
+  "actual_sha256": "c0ed7cf8ab4547c349fd016fbbbf5835b0967433f6bd748d3ea5132a57685a3b",
+  "reference_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "actual_commit": "f40986df3f68295c6a34c94a3fb4ac7cb0cbffa5",
+  "cells_checked": 1512,
+  "different_cells": 0,
+  "cursor_differs": false,
+  "difference_bbox_inclusive": null,
+  "samples": []
+}

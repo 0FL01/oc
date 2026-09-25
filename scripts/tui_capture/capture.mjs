@@ -1204,8 +1204,9 @@ try {
        send('\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\x1b[201~','prompt_paste');
       await sleep(200); send('\r','submit');
        const marker = ['short','reasoning','reasoning-steps','tools'].includes(args.sample) ? 'GEOMETRY-SHORT' : ['rows','rows-reflow'].includes(args.sample) ? 'ROW-089' : 'Через Code Mode';
-       let done = await waitFor(f => f.text.includes(marker) &&
-        /MiMo-V2.6-Flash Free · \d/.test(f.text) &&
+        let done = await waitFor(f => f.text.includes(marker) &&
+         (Number(args.columns) < 64 ? f.text.includes('Reader · MiMo-V2.6-Flash Free') :
+           /MiMo-V2.6-Flash Free · \d/.test(f.text)) &&
          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript') &&
           (!(reasoningClick || reasoningSteps || selectionCopy || toastOverlap || modelsInteraction) || logs.some(e=>e.kind==='provider_completed' && e.operation==='title')), 'completed transcript');
        if(twoTurn) done=await waitFor(f=>f.text.includes('GEOMETRY-SHORT: tool read completed.') &&

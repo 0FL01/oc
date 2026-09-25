@@ -915,7 +915,7 @@ fn visit_row_blocks(
             (width, terminal_width),
             agent_color,
             cache,
-            |_, render| emit(render()),
+            |_, _, render| emit(render()),
         );
         return;
     }
@@ -937,16 +937,16 @@ fn visit_assistant_indexed(
     widths: (u16, u16),
     agent_color: &impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
-    mut emit: impl FnMut(usize, &mut dyn FnMut() -> Vec<Line>),
+    mut emit: impl FnMut(usize, bool, &mut dyn FnMut() -> Vec<Line>),
 ) {
     let (index, live) = identity;
     let (width, terminal_width) = widths;
     if let Some(reasoning) = &row.reasoning {
         let lines = reasoning_lines(reasoning, theme, width);
-        emit(lines.len(), &mut || lines.clone());
+        emit(lines.len(), false, &mut || lines.clone());
     }
     if !row.text.trim().is_empty() {
-        emit(1, &mut || vec![Line::plain("")]);
+        emit(1, false, &mut || vec![Line::plain("")]);
         if live && row.text.len() > LIVE_MARKDOWN_BYTES {
             let mut end = LIVE_MARKDOWN_BYTES;
             while !row.text.is_char_boundary(end) {
@@ -956,7 +956,7 @@ fn visit_assistant_indexed(
             // The live preview stays bounded; a completed part is indexed in
             // full and can be scrolled, including the region past this limit.
             let height = estimated_lines(preview, width) + 1;
-            emit(height, &mut || {
+            emit(height, false, &mut || {
                 let mut lines =
                     cache
                         .borrow_mut()
@@ -968,7 +968,7 @@ fn visit_assistant_indexed(
             let pages = cache.borrow_mut().pages((row.seq, index), &row.text, width);
             for (number, page) in pages.into_iter().enumerate() {
                 let height = page.height;
-                emit(height, &mut || {
+                emit(height, false, &mut || {
                     let mut source = String::new();
                     if let Some((start, end)) = page.table_header {
                         source.push_str(&row.text[start..end]);
@@ -1069,7 +1069,7 @@ fn visit_assistant_indexed(
             agent_color,
         )
     {
-        emit(2, &mut || {
+        emit(2, true, &mut || {
             vec![Line::plain(""), sanitize_line(footer.clone())]
         });
     }
@@ -1783,7 +1783,7 @@ fn visible_transcript_indexed(
                 (width, terminal_width),
                 &agent_color,
                 cache,
-                |height, _| total += height,
+                |height, _, _| total += height,
             );
         } else {
             visit_row_blocks(
@@ -1843,7 +1843,13 @@ fn visible_transcript_indexed(
                     if position < end && position + height > start {
                         let lines = render();
                         height_changed |= lines.len() != height;
-                        add_visible_lines(lines, width, (start, end), &mut position, &mut visible);
+                        add_visible_lines(
+                            lines,
+                            Some(width),
+                            (start, end),
+                            &mut position,
+                            &mut visible,
+                        );
                     } else {
                         position += height;
                     }
@@ -1880,7 +1886,13 @@ fn visible_transcript_indexed(
                     }
                 }
             }
-            add_visible_lines(group, width, (start, end), &mut position, &mut visible);
+            add_visible_lines(
+                group,
+                Some(width),
+                (start, end),
+                &mut position,
+                &mut visible,
+            );
             if is_expanded {
                 for member in rows[index..]
                     .iter()
@@ -1888,7 +1900,7 @@ fn visible_transcript_indexed(
                 {
                     add_visible_lines(
                         vec![exploration_member(member, theme)],
-                        width,
+                        Some(width),
                         (start, end),
                         &mut position,
                         &mut visible,
@@ -1923,11 +1935,20 @@ fn visible_transcript_indexed(
                 (width, terminal_width),
                 &agent_color,
                 cache,
-                |height, render| {
+                |height, footer, render| {
                     if position < end && position + height > start {
                         let lines = render();
                         height_changed |= lines.len() != height;
-                        add_visible_lines(lines, width, (start, end), &mut position, &mut visible);
+                        // Upstream keeps the footer on one row even when it
+                        // exceeds the padded content box. The painter clips
+                        // that row at the session column edge.
+                        add_visible_lines(
+                            lines,
+                            (!footer).then_some(width),
+                            (start, end),
+                            &mut position,
+                            &mut visible,
+                        );
                     } else {
                         position += height;
                     }
@@ -1941,7 +1962,15 @@ fn visible_transcript_indexed(
                 (width, terminal_width),
                 &agent_color,
                 cache,
-                |lines| add_visible_lines(lines, width, (start, end), &mut position, &mut visible),
+                |lines| {
+                    add_visible_lines(
+                        lines,
+                        Some(width),
+                        (start, end),
+                        &mut position,
+                        &mut visible,
+                    )
+                },
             );
         }
     }
@@ -1964,14 +1993,18 @@ fn visible_transcript_indexed(
 
 fn add_visible_lines(
     lines: Vec<Line>,
-    width: u16,
+    width: Option<u16>,
     viewport: (usize, usize),
     position: &mut usize,
     visible: &mut Vec<Line>,
 ) {
     let (start, end) = viewport;
     for line in lines {
-        let wrapped = styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS);
+        let wrapped = if let Some(width) = width {
+            styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS)
+        } else {
+            vec![line]
+        };
         let next = *position + wrapped.len();
         if *position < end && next > start {
             visible.extend(

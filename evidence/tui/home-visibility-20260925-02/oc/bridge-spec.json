@@ -1,0 +1,19 @@
+{
+  "binary": "/home/opencode/ai/oc/target/debug/oc",
+  "origin": "oc",
+  "columns": 44,
+  "rows": 24,
+  "isolated_root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/home-visibility-20260925-02",
+  "fixture": "/home/opencode/ai/oc/tui-recovery/fixtures",
+  "sample": "short",
+  "sidebar": "hide",
+  "devtools": false,
+  "tabs": "horizontal",
+  "variants": false,
+  "startup_error": false,
+  "agent_profile": true,
+  "tab_restart": false,
+  "regenerate_title": false,
+  "two_turn": false,
+  "models_interaction": false
+}
