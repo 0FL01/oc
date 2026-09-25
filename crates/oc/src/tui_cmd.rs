@@ -1306,9 +1306,7 @@ async fn apply_intent_with_origin(
         }
         PanelIntent::SelectModel { id } => {
             let snapshot = selection(app, state, SelectionAction::Model(id)).await?;
-            let note = format!("model: {}", snapshot.model_id);
             state.model_choice_applied(snapshot);
-            state.push_note(&note);
         }
         PanelIntent::ChooseModel { variant, .. } => {
             let snapshot = selection(app, state, SelectionAction::Variant(variant)).await?;
@@ -2870,6 +2868,69 @@ mod tests {
             commands: Vec::new(),
             command_descriptions: Default::default(),
         }
+    }
+
+    #[tokio::test]
+    async fn selecting_model_updates_metadata_without_selection_toast() {
+        use oc_core::queries::ModelEntry;
+
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let session = SessionId::new("model-selection").unwrap();
+        let mut state = TuiState::new(app.clone(), session.clone());
+        let mut selected = catalog();
+        selected.models = ["first", "second"]
+            .into_iter()
+            .map(|id| ModelEntry {
+                id: id.into(),
+                display_name: id.into(),
+                provider_name: "fixture".into(),
+                price: None,
+                variants: Vec::new(),
+                context: 0,
+                context_known: false,
+                output: 0,
+                output_known: false,
+            })
+            .collect();
+        selected.model_id = "first".into();
+        state.apply_catalog(selected.clone());
+        assert_eq!(state.active_model_label(), Some(("first".into(), None)));
+        assert_eq!(state.note(), None);
+
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::SessionSelection {
+                session: owner,
+                home,
+                action,
+                ack,
+            }) = inbox.recv().await
+            else {
+                panic!("model selection must reach owner")
+            };
+            assert_eq!(owner, session);
+            assert!(!home);
+            assert_eq!(action, SelectionAction::Model("second".into()));
+            selected.model_id = "second".into();
+            ack.send(Ok(selected)).unwrap();
+            assert!(
+                inbox.try_recv().is_err(),
+                "selection needs no extra owner action"
+            );
+        });
+
+        apply_intent(
+            &app,
+            &mut state,
+            &mut LoopState::default(),
+            PanelIntent::SelectModel {
+                id: "second".into(),
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.active_model_label(), Some(("second".into(), None)));
+        assert_eq!(state.note(), None);
+        worker.await.unwrap();
     }
 
     fn append_tab(app: &CoreApp, deck: &mut LoopState, state: &mut TuiState, id: &str) {

@@ -1,0 +1,31 @@
+# Models selection feedback follow-up — 2026-09-25
+
+**Paired interaction PASS on both sides; full-frame comparisons DIFFERENT.** This report records the new immutable `models-20260925-06/` attempt alongside `models-20260925-04/`. Earlier attempts `-01`–`-05` remain preserved and documented in `models-interaction-report.md`; this follow-up does not replace their results or establish VIS09/T44 parity.
+
+## Capture and observed behavior
+
+`models-20260925-06/commands.json` records `--build-oc true`, `--models-interaction true`, `--geometry true`, `--sample tools`, `--sidebar hide`, `--agent-profile true`, **120×40** and runner exit **1** (frame differences). The capture's `cargo build --locked` exited 0. `capture.lock.json` identifies pinned upstream v2.0.12 commit `2670273ff17da96f85c5826ced57aa1b368754fa` and native **dirty HEAD** `4c345c55247c5b224d8c3aadf87ebc79474c0cba` (dirty diff SHA-256 `7f22712ff0084802e52aacabc63a1a8ad060b1c3ab6c9cc28e9f88602c4467c8`, source manifest SHA-256 `9f18e865bcbc2dbe2dc28fe69c2cb6b5aa9cacfca0c55c9476e2dd2b610be5f0`, built executable SHA-256 `1998a913e49fbe1fcdd18539bbe76a61cfc8ff7d3112afdc58b66dffee81f78e`). This is source-built capture provenance, **not a clean final code SHA**. Both sides share fixture SHA-256 `c83225fa0b228cf3eacc6c1b6576b8a3d1cdaea9d33d38464d3c24c20c1025ac` and environment ID `edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc`; the terminal profile uses xterm.js 6.0.0, Unicode 11, DejaVu Sans Mono 14, dark `opencode` theme and real application elapsed time without masking.
+
+Both `upstream/models-interaction-checks.json` and `oc/models-interaction-checks.json`, corroborated by the lock, report `MODELS_INTERACTION_PASS` and `provider_contract=true`: **4/4 completed transcript requests plus 1/1 completed title request, zero invalid per side**. The first turn uses `fixture-model-1`; both same-session second turns use selected `fixture-scroll-11`, execute another `read` and preserve the first answer and title. No provider request occurs during dialog navigation or selection; `no_named_variant=true` is not a variant-switch test. Initial and scrolled 14 model rows, focus and offscreen current-marker policy match in the per-side checks; the original alone has the real `View all integrations` action.
+
+Native `crates/oc/src/tui_cmd.rs` was changed in the dirty build to remove the premature `model: fixture-scroll-11` selection-time toast after owner ACK, while retaining the updated composer model metadata. Pinned `opencode/packages/tui/src/component/dialog-model.tsx:126–139` updates the local model selection and closes or replaces the dialog without a toast. In the `-06` `models-selected.txt` pair, both sides show `Reader · ZZ Scroll 11 OpenCode Zen` in the composer and **no selection-time notice**. The upstream `Switched model to ZZ Scroll 11` is instead visible as a durable transcript row in the **second-turn** capture, between the old and new turns (`upstream/models-second-turn.txt:13`), while native has no such row (`oc/models-second-turn.txt`). Upstream's durable `session.model.selected` projection produces `model-switched` (`opencode/packages/core/src/session/message-updater.ts:104–115`); in this paired flow the row arrives with the next prompt commit, not with dialog selection. Removing a selection-time toast does not supply that missing durable next-turn row; restoring a notice on selection would misstate the timing.
+
+## Unmasked full-frame comparison
+
+Each `-06` `*.grid-diff.json` checks **4,800 styled cells**, each `*.png-diff.json` checks **647,040 decoded RGBA pixels** (1011×640). Every one of seven grid and seven PNG reports is `FAIL` / lock `DIFFERENT`, comparator exit 1; no regional match is counted as full-frame equality. Counts below are taken from each new comparator JSON:
+
+| Frame | Different styled cells | Different pixels | Observed difference |
+| --- | ---: | ---: | --- |
+| `home` | 45 | 2,037 | Home text/status differs; grid bbox `x=41–117, y=21–38`. |
+| `session-wide-completed` | 5 | 277 | Real first-turn elapsed digits; grid bbox `x=37–41, y=10`. |
+| `models-initial` | 88 | 9,141 | Original-only integration action, grid bbox `x=30–89, y=30–31`. |
+| `models-scrolled` | 88 | 9,141 | Original-only integration action, grid bbox `x=30–89, y=30–31`. |
+| `models-filtered` | 88 | 9,141 | Original-only integration action, grid bbox `x=30–89, y=17–18`. |
+| `models-selected` | **5** | **277** | Only real first-turn elapsed digits remain (`91ms` original, `177ms` native); grid bbox `x=37–41, y=10`. |
+| `models-second-turn` | 576 | 67,324 | Original-only durable model-switch row, shifted turn rows and real elapsed differences (`107ms` versus `193ms` for the second turn); grid bbox `x=2–117, y=10–22`. |
+
+At the same 120×40 fixture, `models-20260925-04/models-selected.grid-diff.json` reported **101** different styled cells and its PNG report **12,933** different pixels, including the selection-time native toast; `-06` reports **5** and **277**, confined to actual elapsed digits at `x=37–41, y=10`. Different captures have different actual elapsed times, so this is a diagnostic comparison, not a frozen-clock pixel claim. The genuine integration action and the missing next-turn durable model-switch row remain unresolved; the full VIS09/T44 gate is still open.
+
+## Verification
+
+The first full workspace gate attempt failed **three legacy PTY assertions** expecting the removed selection-time toast; these were corrected to require the actual prompt model/variant metadata. A targeted `pty_t39` run passed **25/26**, with its unrelated intermittent V05 cursor-timing test failing; the unchanged V05 test passed in isolation. The next serialized full gate passed with **zero test failures**: workspace fmt, `CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 TMPDIR=/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924 cargo test --locked --workspace --no-fail-fast`, workspace all-target Clippy `-D warnings`, locked build, docs/progress, Node/Python syntax and diff checks. Full output: `/home/opencode/.local/share/opencode/tool-output/tool_0d9c21719001zd5VBDZQ4zxQ7V` (first failed run: `tool_0d9b97266001rluFMMo5NsVTtC`). This development gate does not attest full-frame parity or the final clean code SHA.

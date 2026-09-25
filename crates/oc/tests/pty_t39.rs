@@ -3214,7 +3214,9 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
     pty.send(b"\x10Switch model variant\r");
     wait_screen_row(&pty, "Select variant", DEADLINE);
     pty.send(b"fast\r");
-    wait_screen_row(&pty, "model: modal-29", DEADLINE);
+    // Selection updates the real prompt metadata; upstream does not emit a
+    // selection-time toast or durable switch row before the next submission.
+    wait_screen_row(&pty, "Modal 29 fixture · fast", DEADLINE);
     dismissed(&pty, "Select variant");
     wait_screen_row(&pty, "draft-kept", DEADLINE);
     pty.send(b"\r");
@@ -3342,7 +3344,7 @@ fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle
     pty.send(b"T39 alt\r");
     wait_screen_row(&pty, "Select variant", DEADLINE);
     pty.send(b"fast\r");
-    wait_screen_row(&pty, "model: alt-model", DEADLINE);
+    wait_screen_row(&pty, "T39 alt fixture · fast", DEADLINE);
     let off = submit(&mut pty, "original session");
     pty.wait_visible_after(off, "echo: original session", DEADLINE);
     let routes: &[&[u8]] = &[b"/new\r", b"/clear\r", b"\x18n", b"\x10New session\r"];
@@ -3699,7 +3701,7 @@ fn aud29_pty_panels_change_runtime_state() {
     pty.send(b"\r");
     wait_screen_row(&pty, "Select variant", DEADLINE);
     pty.send(b"fast\r");
-    pty.wait_visible("model: alt-model", DEADLINE);
+    wait_screen_row(&pty, "T39 alt fixture · fast", DEADLINE);
 
     let off = submit(&mut pty, "hello model");
     pty.wait_visible_after(off, "echo: hello model", DEADLINE);

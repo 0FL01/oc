@@ -1,0 +1,314 @@
+[
+  {
+    "argv": [
+      "/usr/local/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--models-interaction",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "4c345c55247c5b224d8c3aadf87ebc79474c0cba\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "d6947e4c0fc00b730d188a046b811d2c0a3cca21\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc/src/tui_cmd.rs b/crates/oc/src/tui_cmd.rs\nindex ca35d44..b8122ce 100644\n--- a/crates/oc/src/tui_cmd.rs\n+++ b/crates/oc/src/tui_cmd.rs\n@@ -1306,9 +1306,7 @@ async fn apply_intent_with_origin(\n         }\n         PanelIntent::SelectModel { id } => {\n             let snapshot = selection(app, state, SelectionAction::Model(id)).await?;\n-            let note = format!(\"model: {}\", snapshot.model_id);\n             state.model_choice_applied(snapshot);\n-            state.push_note(&note);\n         }\n         PanelIntent::ChooseModel { variant, .. } => {\n             let snapshot = selection(app, state, SelectionAction::Variant(variant)).await?;\n@@ -2872,6 +2870,69 @@ mod tests {\n         }\n     }\n \n+    #[tokio::test]\n+    async fn selecting_model_updates_metadata_without_selection_toast() {\n+        use oc_core::queries::ModelEntry;\n+\n+        let (app, mut inbox, _) = CoreApp::channel(4);\n+        let session = SessionId::new(\"model-selection\").unwrap();\n+        let mut state = TuiState::new(app.clone(), session.clone());\n+        let mut selected = catalog();\n+        selected.models = [\"first\", \"second\"]\n+            .into_iter()\n+            .map(|id| ModelEntry {\n+                id: id.into(),\n+                display_name: id.into(),\n+                provider_name: \"fixture\".into(),\n+                price: None,\n+                variants: Vec::new(),\n+                context: 0,\n+                context_known: false,\n+                output: 0,\n+                output_known: false,\n+            })\n+            .collect();\n+        selected.model_id = \"first\".into();\n+        state.apply_catalog(selected.clone());\n+        assert_eq!(state.active_model_label(), Some((\"first\".into(), None)));\n+        assert_eq!(state.note(), None);\n+\n+        let worker = tokio::spawn(async move {\n+            let Some(InboxMsg::SessionSelection {\n+                session: owner,\n+                home,\n+                action,\n+                ack,\n+            }) = inbox.recv().await\n+            else {\n+                panic!(\"model selection must reach owner\")\n+            };\n+            assert_eq!(owner, session);\n+            assert!(!home);\n+            assert_eq!(action, SelectionAction::Model(\"second\".into()));\n+            selected.model_id = \"second\".into();\n+            ack.send(Ok(selected)).unwrap();\n+            assert!(\n+                inbox.try_recv().is_err(),\n+                \"selection needs no extra owner action\"\n+            );\n+        });\n+\n+        apply_intent(\n+            &app,\n+            &mut state,\n+            &mut LoopState::default(),\n+            PanelIntent::SelectModel {\n+                id: \"second\".into(),\n+            },\n+        )\n+        .await\n+        .unwrap();\n+        assert_eq!(state.active_model_label(), Some((\"second\".into(), None)));\n+        assert_eq!(state.note(), None);\n+        worker.await.unwrap();\n+    }\n+\n     fn append_tab(app: &CoreApp, deck: &mut LoopState, state: &mut TuiState, id: &str) {\n         let old = deck.active_tab.expect(\"active real tab\");\n         deck.tabs[old] = Some(std::mem::replace(\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/assets/upstream/PROVENANCE.md\u0000crates/oc-adapters/assets/upstream/v2/review.txt\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/scanner.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/clipboard.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.76s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"c83225fa0b228cf3eacc6c1b6576b8a3d1cdaea9d33d38464d3c24c20c1025ac\", \"environment_id\": \"edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc\", \"reference_sha256\": \"be0886f5f40ba7ae158a8b60aa8464ff6db169aae7a0356bdb14aa106835d9d6\", \"actual_sha256\": \"735b614a625d26336fb5fdafe2055c99b0d47b0190266d2262bf9d3c068a8166\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"4c345c55247c5b224d8c3aadf87ebc79474c0cba\", \"cells_checked\": 4800, \"different_cells\": 45, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 21, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"bf4c4a9fa769876b66fd78520ab24ada10204e826c95d33d679605ea3b497a76\", \"actual_sha256\": \"67d2e92066f596ab9cefd80d71079821f4e0ffcc573fe07fe9f7732ddb155fdb\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2037, \"changed_fraction_diagnostic_only\": 0.0031481824925816025, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"c83225fa0b228cf3eacc6c1b6576b8a3d1cdaea9d33d38464d3c24c20c1025ac\", \"environment_id\": \"edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc\", \"reference_sha256\": \"d1d0cbfed4f4148821e510032df7e4d1e684f0cbf449cafcf974361093ae05ad\", \"actual_sha256\": \"e27f3cd716b2538ee4dead358baa95366b336e286cf3cbf20eb22b545f052cb8\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"4c345c55247c5b224d8c3aadf87ebc79474c0cba\", \"cells_checked\": 4800, \"different_cells\": 5, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 10, 41, 10], \"samples\": [{\"x\": 37, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"aa0c27cf4c5f8af292300cc6a2ed4da4d001489daeee5d4c257628185b615d16\", \"actual_sha256\": \"05cc0194cdda07ac1767833769481fd65df672478e040c74ec91a3b2d3264d3e\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 277, \"changed_fraction_diagnostic_only\": 0.00042810336300692383, \"difference_bbox_inclusive\": [312, 163, 351, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/upstream/models-initial.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/oc/models-initial.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/models-initial.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"models-initial\", \"fixture_sha256\": \"c83225fa0b228cf3eacc6c1b6576b8a3d1cdaea9d33d38464d3c24c20c1025ac\", \"environment_id\": \"edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc\", \"reference_sha256\": \"148d19b6bd6d6c1786813e21d7f1a485f0b3a0b5ecd5f2b0e1f11a656e823a9d\", \"actual_sha256\": \"f878863eb0194f6c22a6eebffcf61e50cbdd032ed28332184b3486bdb3c7bb2b\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"4c345c55247c5b224d8c3aadf87ebc79474c0cba\", \"cells_checked\": 4800, \"different_cells\": 88, \"cursor_differs\": false, \"difference_bbox_inclusive\": [30, 30, 89, 31], \"samples\": [{\"x\": 34, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 35, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 36, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 37, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 38, \"y\": 30, \"different_fields\": [\"fg\"]}, {\"x\": 39, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 40, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 41, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 30, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 45, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 52, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/upstream/models-initial.png",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/oc/models-initial.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/models-initial.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"85270a8b7fd2cee9915d1929dfe3d9f0fc5311fcdeb4044036af944aea592f4e\", \"actual_sha256\": \"c8909e00bb9831767e017a4c96a777b27af01240357ba498064022913089456c\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 9141, \"changed_fraction_diagnostic_only\": 0.014127410979228486, \"difference_bbox_inclusive\": [253, 208, 757, 511]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/upstream/models-scrolled.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/oc/models-scrolled.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/models-scrolled.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"models-scrolled\", \"fixture_sha256\": \"c83225fa0b228cf3eacc6c1b6576b8a3d1cdaea9d33d38464d3c24c20c1025ac\", \"environment_id\": \"edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc\", \"reference_sha256\": \"9b875078a64ae2a738f97d2228110ae503b77bcd173c6852576e8393320d4039\", \"actual_sha256\": \"0a45ddaeee0ec77fc849fe813cd70f9090fef4a1ea3a1abc99a82c896cfe269c\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"4c345c55247c5b224d8c3aadf87ebc79474c0cba\", \"cells_checked\": 4800, \"different_cells\": 88, \"cursor_differs\": false, \"difference_bbox_inclusive\": [30, 30, 89, 31], \"samples\": [{\"x\": 34, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 35, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 36, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 37, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 38, \"y\": 30, \"different_fields\": [\"fg\"]}, {\"x\": 39, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 40, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 41, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 30, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 45, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 52, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 30, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/upstream/models-scrolled.png",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/oc/models-scrolled.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/models-scrolled.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"0678732558ed350f7617c352fae5d191e0286164d616f38948e0e6a06b991934\", \"actual_sha256\": \"ab4a7b06ef0004ef0d38bbc37511393202d6d74d46316d6273743f4bb5ca9627\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 9141, \"changed_fraction_diagnostic_only\": 0.014127410979228486, \"difference_bbox_inclusive\": [253, 208, 757, 511]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/upstream/models-filtered.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/oc/models-filtered.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/models-filtered.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"models-filtered\", \"fixture_sha256\": \"c83225fa0b228cf3eacc6c1b6576b8a3d1cdaea9d33d38464d3c24c20c1025ac\", \"environment_id\": \"edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc\", \"reference_sha256\": \"287b8751a483e0ef1e101987a9c4f3c656fe6dbfa0bf6f80524a7f51c541bd85\", \"actual_sha256\": \"dabd69a7a63bb9be5b5637a93c023fa9ade4fea994bc3fdff02d0e301fdf4c0c\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"4c345c55247c5b224d8c3aadf87ebc79474c0cba\", \"cells_checked\": 4800, \"different_cells\": 88, \"cursor_differs\": false, \"difference_bbox_inclusive\": [30, 17, 89, 18], \"samples\": [{\"x\": 34, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 35, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 36, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 37, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 38, \"y\": 17, \"different_fields\": [\"fg\"]}, {\"x\": 39, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 40, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 41, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 42, \"y\": 17, \"different_fields\": [\"fg\"]}, {\"x\": 43, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 45, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 52, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 17, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/upstream/models-filtered.png",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/oc/models-filtered.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/models-filtered.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"135571d8d820eca7ef9745c4beb59e0dba19b663c788b263bd9d920093079dfe\", \"actual_sha256\": \"02cb17d9aa419c5dd5921760a8e256f3da8ca2f7b30381b1838d5e0285103e83\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 9141, \"changed_fraction_diagnostic_only\": 0.014127410979228486, \"difference_bbox_inclusive\": [253, 208, 757, 303]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/upstream/models-selected.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/oc/models-selected.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/models-selected.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"models-selected\", \"fixture_sha256\": \"c83225fa0b228cf3eacc6c1b6576b8a3d1cdaea9d33d38464d3c24c20c1025ac\", \"environment_id\": \"edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc\", \"reference_sha256\": \"9387a9a715e71e79efff458197a8995c49d438a87265efe12d769afb2fd79171\", \"actual_sha256\": \"f26c277855e02afb72dc0ec75fba1086613b06717d62820b747302fbab464cbb\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"4c345c55247c5b224d8c3aadf87ebc79474c0cba\", \"cells_checked\": 4800, \"different_cells\": 5, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 10, 41, 10], \"samples\": [{\"x\": 37, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/upstream/models-selected.png",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/oc/models-selected.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/models-selected.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"9172f3265248799a9f84876a9e9b53764ad040f97a5829d23194e38c7b4c39c9\", \"actual_sha256\": \"ea47a4fb905e8e9f671efc45bd161d28a5f455c1ba61a40a59d79d09fc4d328f\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 277, \"changed_fraction_diagnostic_only\": 0.00042810336300692383, \"difference_bbox_inclusive\": [312, 163, 351, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/upstream/models-second-turn.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/oc/models-second-turn.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/models-second-turn.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"models-second-turn\", \"fixture_sha256\": \"c83225fa0b228cf3eacc6c1b6576b8a3d1cdaea9d33d38464d3c24c20c1025ac\", \"environment_id\": \"edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc\", \"reference_sha256\": \"6c2c7df36ec17d2f958bded565a934e626eed747bcc7773b7a8449ee3fa2736c\", \"actual_sha256\": \"3eb6ab80b63ff9e3346cfd6a2db516f32dbf985d0d0d9f8a8d66e0a445cc00b5\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"4c345c55247c5b224d8c3aadf87ebc79474c0cba\", \"cells_checked\": 4800, \"different_cells\": 576, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 22], \"samples\": [{\"x\": 37, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 10, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 2, \"y\": 12, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 3, \"y\": 12, \"different_fields\": [\"bg\"]}, {\"x\": 4, \"y\": 12, \"different_fields\": [\"bg\"]}, {\"x\": 5, \"y\": 12, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 6, \"y\": 12, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 7, \"y\": 12, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 8, \"y\": 12, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 9, \"y\": 12, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 10, \"y\": 12, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 11, \"y\": 12, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 12, \"y\": 12, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 13, \"y\": 12, \"different_fields\": [\"fg\", \"bg\"]}, {\"x\": 14, \"y\": 12, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 15, \"y\": 12, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 16, \"y\": 12, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/upstream/models-second-turn.png",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/oc/models-second-turn.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/models-20260925-06/models-second-turn.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"ec350a168b53df7f4bf8c3e316fdd109d2f940c9eed406f1708e410a69437b20\", \"actual_sha256\": \"5c8d701a3194dbbe66622449eef68c05fb22f5ef7ced6959033ee14b0e31d9b4\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 67324, \"changed_fraction_diagnostic_only\": 0.10404920870425322, \"difference_bbox_inclusive\": [17, 163, 992, 364]}\n",
+    "stderr": ""
+  }
+]
