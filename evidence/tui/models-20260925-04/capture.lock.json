@@ -1,0 +1,1947 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-25T17:09:34.977Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "6367e5c943cb28fab9fd445b0f971f78ebaf8744cfc1f0cbafb8cf80f138797c",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "b17abde5d053fa31f4f4708c81c1740b89580792df7d2efa9f9c647ed42154e5"
+  },
+  "fixture_sha256": "c83225fa0b228cf3eacc6c1b6576b8a3d1cdaea9d33d38464d3c24c20c1025ac",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "a4e712d271fea7e4e11e0b86381fa50020a74d3d",
+    "tree": "44f014f906178a3671dc61c883ada12cf73aef54",
+    "dirty_diff_sha256": "bfe05c77e36e36bde4ff3bdce25a21e3c1b7dbf15b94422bb1656e31b63ddf1d",
+    "source_manifest_sha256": "8054292c1e1939c67d1f95075d8cff3913d41868b343173150085a2aa0715fe3",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "9a658cb6c7a47345726d76832177a052b03a6e9b5f6692d6e1d30aeb3b6e6b28",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "MODELS_INTERACTION_PASS",
+      "provider_counts": {
+        "transcript": 4,
+        "completed_transcript": 4,
+        "title": 1,
+        "completed_title": 1,
+        "invalid": 0
+      },
+      "selected_model": "fixture-scroll-11",
+      "predicates": {
+        "same_session_title": true,
+        "first_turn_original_model": true,
+        "second_turn_selected_model": true,
+        "second_read_result": true,
+        "no_named_variant": true,
+        "complete_counts": true,
+        "stable_capture": true
+      }
+    },
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "MODELS_INTERACTION_PASS",
+      "provider_counts": {
+        "transcript": 4,
+        "completed_transcript": 4,
+        "title": 1,
+        "completed_title": 1,
+        "invalid": 0
+      },
+      "selected_model": "fixture-scroll-11",
+      "predicates": {
+        "same_session_title": true,
+        "first_turn_original_model": true,
+        "second_turn_selected_model": true,
+        "second_read_result": true,
+        "no_named_variant": true,
+        "complete_counts": true,
+        "stable_capture": true
+      }
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "models-initial",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "models-initial",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "models-scrolled",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "models-scrolled",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "models-filtered",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "models-filtered",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "models-selected",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "models-selected",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "models-second-turn",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "models-second-turn",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc",
+      "cells_sha256": "9428a415f1674dcde6435f190da120532bedd9879ec9bbfd6f92756bc38f5d0e",
+      "png_sha256": "978f59d41769f87c2ba50ad4c65431fa57cdd7785811ebb6d2659929cb8cb239",
+      "render_sha256": "b2ab51187a2a6e2bff9810719f7ffdaf15ced757160f22f7111d0a59af8d116c",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc",
+      "cells_sha256": "5a6eea5953293f354b9d8c49022eb34b444d5c9a846dde41b71a14665e523b87",
+      "png_sha256": "4b24f01009e26c02164e15612886eca0d4dbb005a333aa1d5eddf1e9bf7d3fa4",
+      "render_sha256": "c523e69f178390b1dac84b05f117fe4c765df2eee4c4f49a272507ffe4e8621b",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "models-initial",
+      "status": "CAPTURED_MODELS_INTERACTION",
+      "environment_id": "edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc",
+      "cells_sha256": "89a79fd77fb2294d9b6b65580b303aeccbe28e9b00161cee7edb542a326f05f2",
+      "png_sha256": "e2d7ff58321f6e4a68bbb8d924a38a48227b4343ee9327287aa7c06c0d1886cf",
+      "render_sha256": "0c70895e94173d3ce9a6f7f0c1de38bb2bda95385626599f6c3cbab8f253539d",
+      "path": "upstream/models-initial"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "models-scrolled",
+      "status": "CAPTURED_MODELS_INTERACTION",
+      "environment_id": "edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc",
+      "cells_sha256": "6c991de6b3d9608cdba7f65eb48aa2c59ae1a966ca5647e55f0964cd05f92bac",
+      "png_sha256": "0d78de39387e696fca2fdde19a847d680f6e8ff676e4c9df3b3884f14bda019f",
+      "render_sha256": "b018e1f270385ed9ee9bcd9a3ee875a1a5770e63e120307d528861ea1bce820c",
+      "path": "upstream/models-scrolled"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "models-filtered",
+      "status": "CAPTURED_MODELS_INTERACTION",
+      "environment_id": "edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc",
+      "cells_sha256": "d1170d8562680e9c9660e29440415bcb56ba282ab91e8801b0af012bfbc00974",
+      "png_sha256": "cd8977761642489f0973e1e5cc055356846bd4266f7ce04a691c406a520ed3a6",
+      "render_sha256": "ef6ed1d570fd4449f0fc519c6bf321e9f789f5ee50b129663784a7f5a5cea90d",
+      "path": "upstream/models-filtered"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "models-selected",
+      "status": "CAPTURED_MODELS_INTERACTION",
+      "environment_id": "edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc",
+      "cells_sha256": "82c0fbb996c500060d011b8d83453eaee877ca8c445bac565f4205ca302a0a63",
+      "png_sha256": "a40e95ae1f0e5ba863505d7ae3800a1d6077e0e0fc6b035cb29ba0a991580501",
+      "render_sha256": "768db5894715d76964aad2edf12830d44b0d01c6ac2be7bee63c69b4427d58d2",
+      "path": "upstream/models-selected"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "models-second-turn",
+      "status": "CAPTURED_MODELS_SECOND_TURN",
+      "environment_id": "edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc",
+      "cells_sha256": "e61004be19c7e20e7342155f70fab333b9d8a0821d3cb30d1e761bad7eaea817",
+      "png_sha256": "51419e46a89b311dd9d9da03938036a4c735f638a832f9fba61ab8e8e32a1ca7",
+      "render_sha256": "43df75474552679311e4ba876987c146dfa9df8fcc440f8d111a7590c07df966",
+      "path": "upstream/models-second-turn"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc",
+      "cells_sha256": "4c9ce473f144035ff7087ad8655aaf523a5f5d06109939093dadc414893af80c",
+      "png_sha256": "553a7ebfa99f1c317a5e67bac0427f92f70680fc4fb23564ea21a5e56d315fda",
+      "render_sha256": "ba25980d2d20788b9abc65f720cf9ae2750de4152cf9b22479c20dab2e2bcde1",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc",
+      "cells_sha256": "d4ed94a02d89fb72c8f2dbccf6ee855bd4c1e051fdae939a1743210cf1a01ed4",
+      "png_sha256": "36212d3240e0e413711cc1349aebc5da25b79b13a4708e51b152979b60e5ecce",
+      "render_sha256": "43f03cc49032eb41b142485841e5b8e6eedbc753096ca0bda91ea1d38291a847",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "models-initial",
+      "status": "CAPTURED_MODELS_INTERACTION",
+      "environment_id": "edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc",
+      "cells_sha256": "7dc15bddf588fc7ff7c6585d72cf28a436ba77c28eeafd9763a2442f2569e3ac",
+      "png_sha256": "a7ed1bad201609a86fec939d751cda055f9f5a5ca88217ed97c0119c63efb5f8",
+      "render_sha256": "6b5c405bb954460ffc84ecde52fe72286900177b338d4bc5599aa2e227e6afcb",
+      "path": "oc/models-initial"
+    },
+    {
+      "origin": "oc",
+      "scenario": "models-scrolled",
+      "status": "CAPTURED_MODELS_INTERACTION",
+      "environment_id": "edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc",
+      "cells_sha256": "c1eaa614ebf9f899b7cc426c116c894b6f10e1c5cfc3ec3934c90658d781d8f5",
+      "png_sha256": "21571ab2e66230534cbdfcef2aa23568fd1b9f05ff7896af5b074a1dfeb4658e",
+      "render_sha256": "66135600bd6929ae83b96c71646827a20781077189e93bc301127a4994795eae",
+      "path": "oc/models-scrolled"
+    },
+    {
+      "origin": "oc",
+      "scenario": "models-filtered",
+      "status": "CAPTURED_MODELS_INTERACTION",
+      "environment_id": "edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc",
+      "cells_sha256": "9c53c360ca2b2b11990a52fffc26f85a452f658d6b7b3b958005719c5e8c95db",
+      "png_sha256": "a4ee31e709d1f23a7fe4e5388249152c17e018c4697f5c65fd68d12d3edc00f6",
+      "render_sha256": "f75f3dc08bddeaf8208d3c871bc6ce94d6713dc8be797d6ba7719852c86e6b58",
+      "path": "oc/models-filtered"
+    },
+    {
+      "origin": "oc",
+      "scenario": "models-selected",
+      "status": "CAPTURED_MODELS_INTERACTION",
+      "environment_id": "edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc",
+      "cells_sha256": "e1ff5176d6577d111c1fb51afe8f240d378c891bbdcb079547a3f3249cd48ebe",
+      "png_sha256": "969b557f8e4e34b000e802ee4ab3608f9b99a5fdd762fdee8aac05540aa2d64b",
+      "render_sha256": "5cce64a6b2f2562633954d9568c4046c4f117f1013c97d2e4980a29786adad25",
+      "path": "oc/models-selected"
+    },
+    {
+      "origin": "oc",
+      "scenario": "models-second-turn",
+      "status": "CAPTURED_MODELS_SECOND_TURN",
+      "environment_id": "edd489131c5c831e7992c354ccc570c61c1996dd9abf3c1478ebd872024f2ecc",
+      "cells_sha256": "34d30bf05bc891b5dbb3c0f158c7f915968e14aceab534c84a873b04de3e0e40",
+      "png_sha256": "292a1efa78c01e42c2c59cac05b2db0a9e334ca50b3014596143494938ba3fb3",
+      "render_sha256": "baab978222b689bd0d0213f2bb7d71881460bb1c3417180441f084ff3af964c6",
+      "path": "oc/models-second-turn"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false",
+      "models_interaction": true,
+      "catalog_extension": "fixture-scroll-00..11"
+    }
+  },
+  "models_interaction": {
+    "upstream": {
+      "status": "PASS",
+      "baseline": {
+        "transcript": 2,
+        "completed_transcript": 2,
+        "title": 1,
+        "completed_title": 1,
+        "invalid": 0
+      },
+      "chosen_id": "fixture-scroll-11",
+      "checks": [
+        {
+          "stage": "first-turn",
+          "painted_models": [],
+          "current_marker": [],
+          "query": [],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "stable_first_capture": true,
+            "completed_read_and_title": true,
+            "first_answer_visible": true
+          },
+          "grid_sha256": "c0e00144e6c22969c557ee463e819922eaa8ce8f2fdb330351def695125f0363"
+        },
+        {
+          "stage": "initial",
+          "painted_models": [
+            {
+              "name": "Big Pickle",
+              "x": 34,
+              "y": 15,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            },
+            {
+              "name": "Ling 3.0 Flash Free",
+              "x": 34,
+              "y": 16,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "MiMo V2.5 Free",
+              "x": 34,
+              "y": 17,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "MiMo-V2.6-Flash Free",
+              "x": 34,
+              "y": 18,
+              "fg": "#fab283",
+              "bg": "#141414"
+            },
+            {
+              "name": "Muse Spark 1.2 Free",
+              "x": 34,
+              "y": 19,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Muse Spark 1.3 Free",
+              "x": 34,
+              "y": 20,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Nemotron 3 Ultra Free",
+              "x": 34,
+              "y": 21,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Nemotron 3.5 Lightning Free",
+              "x": 34,
+              "y": 22,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 00",
+              "x": 34,
+              "y": 23,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 01",
+              "x": 34,
+              "y": 24,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 02",
+              "x": 34,
+              "y": 25,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 03",
+              "x": 34,
+              "y": 26,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 04",
+              "x": 34,
+              "y": 27,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 05",
+              "x": 34,
+              "y": 28,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            }
+          ],
+          "current_marker": [
+            {
+              "x": 32,
+              "y": 18
+            }
+          ],
+          "query": [],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "first_fourteen_expected_models_painted": true,
+            "current_model_marked": true,
+            "first_option_visible": true,
+            "focused_not_current": true,
+            "distinct_focus_background": true,
+            "no_provider_request": true
+          },
+          "visible_model_count": 14,
+          "integration_action": [
+            {
+              "x": 34,
+              "y": 30
+            }
+          ],
+          "integration_action_visible": true,
+          "grid_sha256": "c2415215be903fd8b4d85bd113ce0f3f49cb51e7235e083ea1f2f437de002374"
+        },
+        {
+          "stage": "initial-capture",
+          "painted_models": [
+            {
+              "name": "Big Pickle",
+              "x": 34,
+              "y": 15,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            },
+            {
+              "name": "Ling 3.0 Flash Free",
+              "x": 34,
+              "y": 16,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "MiMo V2.5 Free",
+              "x": 34,
+              "y": 17,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "MiMo-V2.6-Flash Free",
+              "x": 34,
+              "y": 18,
+              "fg": "#fab283",
+              "bg": "#141414"
+            },
+            {
+              "name": "Muse Spark 1.2 Free",
+              "x": 34,
+              "y": 19,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Muse Spark 1.3 Free",
+              "x": 34,
+              "y": 20,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Nemotron 3 Ultra Free",
+              "x": 34,
+              "y": 21,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Nemotron 3.5 Lightning Free",
+              "x": 34,
+              "y": 22,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 00",
+              "x": 34,
+              "y": 23,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 01",
+              "x": 34,
+              "y": 24,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 02",
+              "x": 34,
+              "y": 25,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 03",
+              "x": 34,
+              "y": 26,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 04",
+              "x": 34,
+              "y": 27,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 05",
+              "x": 34,
+              "y": 28,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            }
+          ],
+          "current_marker": [
+            {
+              "x": 32,
+              "y": 18
+            }
+          ],
+          "query": [],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "stable_capture": true,
+            "no_request_before_next_turn": true
+          },
+          "grid_sha256": "c2415215be903fd8b4d85bd113ce0f3f49cb51e7235e083ea1f2f437de002374"
+        },
+        {
+          "stage": "scrolled",
+          "painted_models": [
+            {
+              "name": "Nemotron 3 Ultra Free",
+              "x": 34,
+              "y": 15,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Nemotron 3.5 Lightning Free",
+              "x": 34,
+              "y": 16,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 00",
+              "x": 34,
+              "y": 17,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 01",
+              "x": 34,
+              "y": 18,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 02",
+              "x": 34,
+              "y": 19,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 03",
+              "x": 34,
+              "y": 20,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 04",
+              "x": 34,
+              "y": 21,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 05",
+              "x": 34,
+              "y": 22,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 06",
+              "x": 34,
+              "y": 23,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 07",
+              "x": 34,
+              "y": 24,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 08",
+              "x": 34,
+              "y": 25,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            },
+            {
+              "name": "ZZ Scroll 09",
+              "x": 34,
+              "y": 26,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 10",
+              "x": 34,
+              "y": 27,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 11",
+              "x": 34,
+              "y": 28,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            }
+          ],
+          "current_marker": [],
+          "query": [
+            {
+              "x": 34,
+              "y": 28
+            }
+          ],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "new_model_visible": true,
+            "first_model_scrolled_off": true,
+            "new_model_focused": true,
+            "visible_marker_on_current_model": true,
+            "no_provider_request": true
+          },
+          "observations": {
+            "offscreen_current_marker_absent": true,
+            "current_model_visible": false,
+            "current_marker_on_current_model": false
+          },
+          "grid_sha256": "c238af494a5fe43084c0aa1127d065ebec07bcb103ea5ea789fd6866c2380938"
+        },
+        {
+          "stage": "scrolled-capture",
+          "painted_models": [
+            {
+              "name": "Nemotron 3 Ultra Free",
+              "x": 34,
+              "y": 15,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Nemotron 3.5 Lightning Free",
+              "x": 34,
+              "y": 16,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 00",
+              "x": 34,
+              "y": 17,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 01",
+              "x": 34,
+              "y": 18,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 02",
+              "x": 34,
+              "y": 19,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 03",
+              "x": 34,
+              "y": 20,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 04",
+              "x": 34,
+              "y": 21,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 05",
+              "x": 34,
+              "y": 22,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 06",
+              "x": 34,
+              "y": 23,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 07",
+              "x": 34,
+              "y": 24,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 08",
+              "x": 34,
+              "y": 25,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            },
+            {
+              "name": "ZZ Scroll 09",
+              "x": 34,
+              "y": 26,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 10",
+              "x": 34,
+              "y": 27,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 11",
+              "x": 34,
+              "y": 28,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            }
+          ],
+          "current_marker": [],
+          "query": [
+            {
+              "x": 34,
+              "y": 28
+            }
+          ],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "stable_capture": true,
+            "no_request_before_next_turn": true
+          },
+          "grid_sha256": "c238af494a5fe43084c0aa1127d065ebec07bcb103ea5ea789fd6866c2380938"
+        },
+        {
+          "stage": "filtered",
+          "painted_models": [
+            {
+              "name": "ZZ Scroll 11",
+              "x": 34,
+              "y": 15,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          ],
+          "current_marker": [],
+          "query": [
+            {
+              "x": 34,
+              "y": 13
+            },
+            {
+              "x": 34,
+              "y": 15
+            }
+          ],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "query_and_option_painted": true,
+            "filtered_target_focused": true,
+            "target_distinct_from_current": true,
+            "no_provider_request": true
+          },
+          "target_rows": [
+            {
+              "x": 34,
+              "y": 13
+            },
+            {
+              "x": 34,
+              "y": 15
+            }
+          ],
+          "current_marker_visible": false,
+          "grid_sha256": "08f2492ee567b464edf903c3cf6e9d80c1d0817ae3ef0971d245ba17b4073372"
+        },
+        {
+          "stage": "filtered-capture",
+          "painted_models": [
+            {
+              "name": "ZZ Scroll 11",
+              "x": 34,
+              "y": 15,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          ],
+          "current_marker": [],
+          "query": [
+            {
+              "x": 34,
+              "y": 13
+            },
+            {
+              "x": 34,
+              "y": 15
+            }
+          ],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "stable_capture": true,
+            "no_request_before_next_turn": true
+          },
+          "grid_sha256": "08f2492ee567b464edf903c3cf6e9d80c1d0817ae3ef0971d245ba17b4073372"
+        },
+        {
+          "stage": "selected",
+          "painted_models": [],
+          "current_marker": [],
+          "query": [
+            {
+              "x": 14,
+              "y": 36
+            }
+          ],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "dialog_closed": true,
+            "new_model_in_composer": true,
+            "old_answer_preserved": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "ea02032bd5c5254fdca2a39521d879e855b3ff4de7580b4807e6031d63e1336d"
+        },
+        {
+          "stage": "selected-capture",
+          "painted_models": [],
+          "current_marker": [],
+          "query": [
+            {
+              "x": 14,
+              "y": 36
+            }
+          ],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "stable_capture": true,
+            "no_request_before_next_turn": true
+          },
+          "grid_sha256": "ea02032bd5c5254fdca2a39521d879e855b3ff4de7580b4807e6031d63e1336d"
+        },
+        {
+          "stage": "second-turn",
+          "predicates": {
+            "same_session_title": true,
+            "first_turn_original_model": true,
+            "second_turn_selected_model": true,
+            "second_read_result": true,
+            "no_named_variant": true,
+            "complete_counts": true,
+            "stable_capture": true
+          },
+          "requests": [
+            {
+              "model": "fixture-model-1",
+              "operation": "title",
+              "turn_number": 0,
+              "round_number": 0,
+              "valid": true,
+              "request_sha256": "32d55cccbe629e9f50d1a16a40c1810ccf4ddd51bb89511d385eb7b6b770e659",
+              "request_top_level_keys": [
+                "include",
+                "input",
+                "instructions",
+                "model",
+                "prompt_cache_key",
+                "store",
+                "stream"
+              ]
+            },
+            {
+              "model": "fixture-model-1",
+              "operation": "transcript",
+              "turn_number": 0,
+              "round_number": 0,
+              "valid": true,
+              "request_sha256": "c28c92c28dedc66aebb6b4c0683e9cc4630d725f0a48e19dfbdd867f1cc80846",
+              "request_top_level_keys": [
+                "include",
+                "input",
+                "instructions",
+                "model",
+                "prompt_cache_key",
+                "store",
+                "stream",
+                "tools"
+              ]
+            },
+            {
+              "model": "fixture-model-1",
+              "operation": "transcript",
+              "turn_number": 0,
+              "round_number": 1,
+              "valid": true,
+              "request_sha256": "773c78d9345a8e025a32c0fdbfb868274e260293e7c6cb0ccd4f3899f97d4258",
+              "request_top_level_keys": [
+                "include",
+                "input",
+                "instructions",
+                "model",
+                "prompt_cache_key",
+                "store",
+                "stream",
+                "tools"
+              ]
+            },
+            {
+              "model": "fixture-scroll-11",
+              "operation": "transcript",
+              "turn_number": 1,
+              "round_number": 0,
+              "valid": true,
+              "request_sha256": "d0b5ba1989bbe03526d5c784e613853288e666fb14afb9692319f13417fad187",
+              "request_top_level_keys": [
+                "include",
+                "input",
+                "instructions",
+                "model",
+                "prompt_cache_key",
+                "store",
+                "stream",
+                "tools"
+              ]
+            },
+            {
+              "model": "fixture-scroll-11",
+              "operation": "transcript",
+              "turn_number": 1,
+              "round_number": 1,
+              "valid": true,
+              "request_sha256": "fa4bd087f01f99f1ef71b2532ef7579afd2a57e2321055983ae3f45b250b64fb",
+              "request_top_level_keys": [
+                "include",
+                "input",
+                "instructions",
+                "model",
+                "prompt_cache_key",
+                "store",
+                "stream",
+                "tools"
+              ]
+            }
+          ],
+          "provider_counts": {
+            "transcript": 4,
+            "completed_transcript": 4,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        }
+      ]
+    },
+    "oc": {
+      "status": "PASS",
+      "baseline": {
+        "transcript": 2,
+        "completed_transcript": 2,
+        "title": 1,
+        "completed_title": 1,
+        "invalid": 0
+      },
+      "chosen_id": "fixture-scroll-11",
+      "checks": [
+        {
+          "stage": "first-turn",
+          "painted_models": [],
+          "current_marker": [],
+          "query": [],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "stable_first_capture": true,
+            "completed_read_and_title": true,
+            "first_answer_visible": true
+          },
+          "grid_sha256": "48e7b5b24aff91dd6f4bc4f02c481bc86e9ec7de86cef5023e7ba249536778f8"
+        },
+        {
+          "stage": "initial",
+          "painted_models": [
+            {
+              "name": "Big Pickle",
+              "x": 34,
+              "y": 15,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            },
+            {
+              "name": "Ling 3.0 Flash Free",
+              "x": 34,
+              "y": 16,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "MiMo V2.5 Free",
+              "x": 34,
+              "y": 17,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "MiMo-V2.6-Flash Free",
+              "x": 34,
+              "y": 18,
+              "fg": "#fab283",
+              "bg": "#141414"
+            },
+            {
+              "name": "Muse Spark 1.2 Free",
+              "x": 34,
+              "y": 19,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Muse Spark 1.3 Free",
+              "x": 34,
+              "y": 20,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Nemotron 3 Ultra Free",
+              "x": 34,
+              "y": 21,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Nemotron 3.5 Lightning Free",
+              "x": 34,
+              "y": 22,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 00",
+              "x": 34,
+              "y": 23,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 01",
+              "x": 34,
+              "y": 24,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 02",
+              "x": 34,
+              "y": 25,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 03",
+              "x": 34,
+              "y": 26,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 04",
+              "x": 34,
+              "y": 27,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 05",
+              "x": 34,
+              "y": 28,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            }
+          ],
+          "current_marker": [
+            {
+              "x": 32,
+              "y": 18
+            }
+          ],
+          "query": [],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "first_fourteen_expected_models_painted": true,
+            "current_model_marked": true,
+            "first_option_visible": true,
+            "focused_not_current": true,
+            "distinct_focus_background": true,
+            "no_provider_request": true
+          },
+          "visible_model_count": 14,
+          "integration_action": [],
+          "integration_action_visible": false,
+          "grid_sha256": "a74571adb5091116901fb26d69dc31d27c444f0d7af9724c414916801e676f0e"
+        },
+        {
+          "stage": "initial-capture",
+          "painted_models": [
+            {
+              "name": "Big Pickle",
+              "x": 34,
+              "y": 15,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            },
+            {
+              "name": "Ling 3.0 Flash Free",
+              "x": 34,
+              "y": 16,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "MiMo V2.5 Free",
+              "x": 34,
+              "y": 17,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "MiMo-V2.6-Flash Free",
+              "x": 34,
+              "y": 18,
+              "fg": "#fab283",
+              "bg": "#141414"
+            },
+            {
+              "name": "Muse Spark 1.2 Free",
+              "x": 34,
+              "y": 19,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Muse Spark 1.3 Free",
+              "x": 34,
+              "y": 20,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Nemotron 3 Ultra Free",
+              "x": 34,
+              "y": 21,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Nemotron 3.5 Lightning Free",
+              "x": 34,
+              "y": 22,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 00",
+              "x": 34,
+              "y": 23,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 01",
+              "x": 34,
+              "y": 24,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 02",
+              "x": 34,
+              "y": 25,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 03",
+              "x": 34,
+              "y": 26,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 04",
+              "x": 34,
+              "y": 27,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 05",
+              "x": 34,
+              "y": 28,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            }
+          ],
+          "current_marker": [
+            {
+              "x": 32,
+              "y": 18
+            }
+          ],
+          "query": [],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "stable_capture": true,
+            "no_request_before_next_turn": true
+          },
+          "grid_sha256": "a74571adb5091116901fb26d69dc31d27c444f0d7af9724c414916801e676f0e"
+        },
+        {
+          "stage": "scrolled",
+          "painted_models": [
+            {
+              "name": "Nemotron 3 Ultra Free",
+              "x": 34,
+              "y": 15,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Nemotron 3.5 Lightning Free",
+              "x": 34,
+              "y": 16,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 00",
+              "x": 34,
+              "y": 17,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 01",
+              "x": 34,
+              "y": 18,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 02",
+              "x": 34,
+              "y": 19,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 03",
+              "x": 34,
+              "y": 20,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 04",
+              "x": 34,
+              "y": 21,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 05",
+              "x": 34,
+              "y": 22,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 06",
+              "x": 34,
+              "y": 23,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 07",
+              "x": 34,
+              "y": 24,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 08",
+              "x": 34,
+              "y": 25,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            },
+            {
+              "name": "ZZ Scroll 09",
+              "x": 34,
+              "y": 26,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 10",
+              "x": 34,
+              "y": 27,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 11",
+              "x": 34,
+              "y": 28,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            }
+          ],
+          "current_marker": [],
+          "query": [
+            {
+              "x": 34,
+              "y": 28
+            }
+          ],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "new_model_visible": true,
+            "first_model_scrolled_off": true,
+            "new_model_focused": true,
+            "visible_marker_on_current_model": true,
+            "no_provider_request": true
+          },
+          "observations": {
+            "offscreen_current_marker_absent": true,
+            "current_model_visible": false,
+            "current_marker_on_current_model": false
+          },
+          "grid_sha256": "8df4eecb269039e07229414e02af94f100b198be8eedd86b4d7cd1ab1854d743"
+        },
+        {
+          "stage": "scrolled-capture",
+          "painted_models": [
+            {
+              "name": "Nemotron 3 Ultra Free",
+              "x": 34,
+              "y": 15,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "Nemotron 3.5 Lightning Free",
+              "x": 34,
+              "y": 16,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 00",
+              "x": 34,
+              "y": 17,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 01",
+              "x": 34,
+              "y": 18,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 02",
+              "x": 34,
+              "y": 19,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 03",
+              "x": 34,
+              "y": 20,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 04",
+              "x": 34,
+              "y": 21,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 05",
+              "x": 34,
+              "y": 22,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 06",
+              "x": 34,
+              "y": 23,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 07",
+              "x": 34,
+              "y": 24,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 08",
+              "x": 34,
+              "y": 25,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            },
+            {
+              "name": "ZZ Scroll 09",
+              "x": 34,
+              "y": 26,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 10",
+              "x": 34,
+              "y": 27,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            },
+            {
+              "name": "ZZ Scroll 11",
+              "x": 34,
+              "y": 28,
+              "fg": "#eeeeee",
+              "bg": "#141414"
+            }
+          ],
+          "current_marker": [],
+          "query": [
+            {
+              "x": 34,
+              "y": 28
+            }
+          ],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "stable_capture": true,
+            "no_request_before_next_turn": true
+          },
+          "grid_sha256": "8df4eecb269039e07229414e02af94f100b198be8eedd86b4d7cd1ab1854d743"
+        },
+        {
+          "stage": "filtered",
+          "painted_models": [
+            {
+              "name": "ZZ Scroll 11",
+              "x": 34,
+              "y": 15,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          ],
+          "current_marker": [],
+          "query": [
+            {
+              "x": 34,
+              "y": 13
+            },
+            {
+              "x": 34,
+              "y": 15
+            }
+          ],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "query_and_option_painted": true,
+            "filtered_target_focused": true,
+            "target_distinct_from_current": true,
+            "no_provider_request": true
+          },
+          "target_rows": [
+            {
+              "x": 34,
+              "y": 13
+            },
+            {
+              "x": 34,
+              "y": 15
+            }
+          ],
+          "current_marker_visible": false,
+          "grid_sha256": "b467d15df4c9c233a1455e9e0ec2e70a78738c092d375271a45719c5f66b26be"
+        },
+        {
+          "stage": "filtered-capture",
+          "painted_models": [
+            {
+              "name": "ZZ Scroll 11",
+              "x": 34,
+              "y": 15,
+              "fg": "#0a0a0a",
+              "bg": "#fab283"
+            }
+          ],
+          "current_marker": [],
+          "query": [
+            {
+              "x": 34,
+              "y": 13
+            },
+            {
+              "x": 34,
+              "y": 15
+            }
+          ],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "stable_capture": true,
+            "no_request_before_next_turn": true
+          },
+          "grid_sha256": "b467d15df4c9c233a1455e9e0ec2e70a78738c092d375271a45719c5f66b26be"
+        },
+        {
+          "stage": "selected",
+          "painted_models": [],
+          "current_marker": [],
+          "query": [
+            {
+              "x": 14,
+              "y": 36
+            }
+          ],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "dialog_closed": true,
+            "new_model_in_composer": true,
+            "old_answer_preserved": true,
+            "no_provider_request": true
+          },
+          "grid_sha256": "7d7675b1a490f2b3b3002fe135777e10bad279a67165ed56a2177914608355e8"
+        },
+        {
+          "stage": "selected-capture",
+          "painted_models": [],
+          "current_marker": [],
+          "query": [
+            {
+              "x": 14,
+              "y": 36
+            }
+          ],
+          "provider_counts": {
+            "transcript": 2,
+            "completed_transcript": 2,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          },
+          "predicates": {
+            "stable_capture": true,
+            "no_request_before_next_turn": true
+          },
+          "grid_sha256": "7d7675b1a490f2b3b3002fe135777e10bad279a67165ed56a2177914608355e8"
+        },
+        {
+          "stage": "second-turn",
+          "predicates": {
+            "same_session_title": true,
+            "first_turn_original_model": true,
+            "second_turn_selected_model": true,
+            "second_read_result": true,
+            "no_named_variant": true,
+            "complete_counts": true,
+            "stable_capture": true
+          },
+          "requests": [
+            {
+              "model": "fixture-model-1",
+              "operation": "transcript",
+              "turn_number": 0,
+              "round_number": 0,
+              "valid": true,
+              "request_sha256": "b8e65a57785ce9f0f93eed8a338afa43f2740d34c54c9ad6e41198f6a328eabf",
+              "request_top_level_keys": [
+                "include",
+                "input",
+                "max_output_tokens",
+                "model",
+                "store",
+                "stream",
+                "tools"
+              ]
+            },
+            {
+              "model": "fixture-model-1",
+              "operation": "transcript",
+              "turn_number": 0,
+              "round_number": 1,
+              "valid": true,
+              "request_sha256": "975197c17de7de35271ea501f3204f7bab00729a8831236b8b778777ece93444",
+              "request_top_level_keys": [
+                "include",
+                "input",
+                "max_output_tokens",
+                "model",
+                "store",
+                "stream",
+                "tools"
+              ]
+            },
+            {
+              "model": "fixture-model-1",
+              "operation": "title",
+              "turn_number": 0,
+              "round_number": 0,
+              "valid": true,
+              "request_sha256": "e6fb62626c1d7483f8766b184a42a19add201ad8bb6911c8202c0b536daff04c",
+              "request_top_level_keys": [
+                "include",
+                "input",
+                "max_output_tokens",
+                "model",
+                "store",
+                "stream",
+                "tools"
+              ]
+            },
+            {
+              "model": "fixture-scroll-11",
+              "operation": "transcript",
+              "turn_number": 1,
+              "round_number": 0,
+              "valid": true,
+              "request_sha256": "28bebc293094b79d36b2f8ba3b1846ae0014ba7a61963b2ea2d618a44279c60a",
+              "request_top_level_keys": [
+                "include",
+                "input",
+                "max_output_tokens",
+                "model",
+                "store",
+                "stream",
+                "tools"
+              ]
+            },
+            {
+              "model": "fixture-scroll-11",
+              "operation": "transcript",
+              "turn_number": 1,
+              "round_number": 1,
+              "valid": true,
+              "request_sha256": "315d7e19e429e7f250d5d8538f3a1c8d0b4006699ec92d7013627c809793e097",
+              "request_top_level_keys": [
+                "include",
+                "input",
+                "max_output_tokens",
+                "model",
+                "store",
+                "stream",
+                "tools"
+              ]
+            }
+          ],
+          "provider_counts": {
+            "transcript": 4,
+            "completed_transcript": 4,
+            "title": 1,
+            "completed_title": 1,
+            "invalid": 0
+          }
+        }
+      ]
+    },
+    "scroll_policy_comparison": {
+      "upstream": {
+        "offscreen_current_marker_absent": true,
+        "current_model_visible": false,
+        "current_marker_on_current_model": false
+      },
+      "native": {
+        "offscreen_current_marker_absent": true,
+        "current_model_visible": false,
+        "current_marker_on_current_model": false
+      },
+      "same": true
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false",
+      "models_interaction": true,
+      "catalog_extension": "fixture-scroll-00..11"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-25T17:11:42.177Z",
+  "exit_code": 1
+}

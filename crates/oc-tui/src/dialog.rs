@@ -104,6 +104,7 @@ pub struct SelectList {
     pub cursor: usize,
     offset: Cell<usize>,
     follow_cursor: Cell<bool>,
+    center_cursor: Cell<bool>,
     cache: RefCell<Option<FilterCache>>,
 }
 
@@ -233,10 +234,12 @@ impl SelectList {
         self.cursor = 0;
         self.offset.set(0);
         self.follow_cursor.set(true);
+        self.center_cursor.set(false);
     }
 
     pub fn follow_selection(&self) {
         self.follow_cursor.set(true);
+        self.center_cursor.set(true);
     }
 
     fn geometry(
@@ -290,6 +293,7 @@ impl SelectList {
         self.offset
             .set(geo.offset.saturating_add_signed(delta).min(max));
         self.follow_cursor.set(false);
+        self.center_cursor.set(false);
     }
 
     pub fn hit(
@@ -354,7 +358,13 @@ impl SelectList {
         if self.follow_cursor.get()
             && let Some(row) = geo.rows.iter().position(|item| *item == Some(self.cursor))
         {
-            if row < geo.offset {
+            if self.center_cursor.replace(false) {
+                // Keyboard moveTo(..., true) targets the middle of the OpenTUI
+                // scrollbox, then clamps to its last possible first row.
+                geo.offset = row
+                    .saturating_sub(geo.list_height / 2)
+                    .min(geo.rows.len().saturating_sub(geo.list_height));
+            } else if row < geo.offset {
                 geo.offset = row;
             } else if row >= geo.offset + geo.list_height {
                 geo.offset = row + 1 - geo.list_height;

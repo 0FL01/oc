@@ -8466,6 +8466,87 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn vis09_keyboard_model_focus_centers_clamped_viewport_without_moving_current() {
+        use crate::commands::CommandAction;
+        use crossterm::event::{KeyModifiers, MouseEvent, MouseEventKind};
+        use ratatui::{Terminal, backend::TestBackend, layout::Rect};
+
+        let mut state = fresh_state("vis09-model-scroll").await;
+        let mut catalog = snapshot();
+        let model = catalog.models[0].clone();
+        catalog.models = (0..20)
+            .map(|i| {
+                let mut entry = model.clone();
+                entry.id = format!("m{i:02}");
+                entry.display_name = format!("Model {i:02}");
+                entry
+            })
+            .collect();
+        catalog.model_id = "m03".into();
+        state.apply_catalog(catalog);
+        state.run_command(CommandAction::OpenModelPicker);
+        let area = Rect::new(0, 0, 120, 40);
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        let row = |terminal: &Terminal<TestBackend>, y| -> String {
+            (34..42)
+                .map(|x| terminal.backend().buffer()[(x, y)].symbol().to_string())
+                .collect()
+        };
+        terminal
+            .draw(|frame| crate::dialog::render(frame, &state))
+            .unwrap();
+        assert_eq!(state.select.cursor, 0);
+        assert_eq!(row(&terminal, 15), "Model 00");
+        assert_eq!(row(&terminal, 18), "Model 03");
+        assert_eq!(terminal.backend().buffer()[(32, 18)].symbol(), "●");
+
+        for _ in 0..16 {
+            state.handle_panel_key(KeyAction::Down);
+            terminal
+                .draw(|frame| crate::dialog::render(frame, &state))
+                .unwrap();
+        }
+        assert_eq!(state.select.cursor, 16);
+        assert_eq!(state.picker_selection().unwrap().0, "m16");
+        assert_eq!(row(&terminal, 15), "Model 06");
+        assert_eq!(row(&terminal, 25), "Model 16");
+        assert_eq!(terminal.backend().buffer()[(32, 25)].symbol(), " ");
+        assert_eq!(
+            terminal.backend().buffer()[(32, 25)].bg,
+            crate::theme::Theme::dark()
+                .color("background.action.primary.$focused")
+                .unwrap()
+        );
+        assert!(
+            (15..29).all(|y| terminal.backend().buffer()[(32, y)].symbol() != "●"),
+            "the current model m03 is above the keyboard-centered viewport"
+        );
+
+        state.handle_mouse(
+            MouseEvent {
+                kind: MouseEventKind::ScrollUp,
+                column: 35,
+                row: 15,
+                modifiers: KeyModifiers::NONE,
+            },
+            area,
+        );
+        terminal
+            .draw(|frame| crate::dialog::render(frame, &state))
+            .unwrap();
+        assert_eq!(row(&terminal, 15), "Model 03");
+        assert_eq!(state.select.cursor, 16);
+
+        state.handle_paste("Model 00");
+        terminal
+            .draw(|frame| crate::dialog::render(frame, &state))
+            .unwrap();
+        assert_eq!(state.modal_options().len(), 1);
+        assert_eq!(state.select.cursor, 0);
+        assert_eq!(row(&terminal, 15), "Model 00");
+    }
+
+    #[tokio::test]
     async fn v04_mouse_scroll_hover_and_drag_release_keep_modal_owner() {
         use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
         use ratatui::layout::Rect;

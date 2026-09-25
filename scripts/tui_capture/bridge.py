@@ -29,7 +29,8 @@ spec = json.loads(Path(sys.argv[1]).read_text())
 root = Path(spec['isolated_root'])
 fixture = Path(spec['fixture'])
 prompt = (fixture / 'input.txt').read_text().strip()
-second_prompt = 'Second same-session spacing check?'
+second_prompt = ('Second same-session model check?' if spec.get('models_interaction')
+                 else 'Second same-session spacing check?')
 profile_id = 'Reader' if spec.get('agent_profile') else None
 profile_prompt = 'You are the isolated T44 paired reader.' if profile_id else None
 answer = (fixture / 'transcript.md').read_text().strip()
@@ -47,6 +48,13 @@ elif spec.get('sample') == 'rows-reflow':
     answer = '```text\n' + '\n'.join(
         f'ROW-{i:03}' + (' ' + 'x' * 90 if i <= 40 else '') for i in range(90)) + '\n```'
 catalog = json.loads((fixture / 'model-catalog.json').read_text())
+selected_model = 'fixture-scroll-11' if spec.get('models_interaction') else 'fixture-model-1'
+if spec.get('models_interaction'):
+    # Identical test-only configured catalog on both sides; the normal eight
+    # fixture entries and every other mode retain their original input.
+    template = catalog['models'][0]
+    catalog['models'].extend({**template, 'id': f'fixture-scroll-{i:02}',
+                              'name': f'ZZ Scroll {i:02}'} for i in range(12))
 title = json.loads((fixture / 'scenarios.json').read_text())['base']['title']
 transcript_round = 0
 title_round = 0
@@ -61,15 +69,18 @@ class Provider(BaseHTTPRequestHandler):
         global transcript_round, title_round
         body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
         serialized = json.dumps(body, ensure_ascii=False)
-        valid = self.path == '/v1/responses' and body.get('model') == 'fixture-model-1' and body.get('stream') is True
+        valid = self.path == '/v1/responses' and body.get('stream') is True
         # Title requests are real upstream auxiliary operations, not another transcript.
         system = str(body.get('instructions', '')) + json.dumps([x for x in body.get('input', []) if x.get('role') in ('system', 'developer')], ensure_ascii=False)
         is_title = ('You are a title generator. You output ONLY a thread title.' in system or
-                    (not body.get('tools') and body.get('max_output_tokens') == 256 and
-                      'title' in system.lower()))
+                     (not body.get('tools') and body.get('max_output_tokens') == 256 and
+                       'title' in system.lower()))
+        valid = valid and body.get('model') == (selected_model if spec.get('models_interaction') and
+                                                second_prompt in serialized and not is_title
+                                                else 'fixture-model-1')
         with round_lock:
             tool_results = [x for x in body.get('input', []) if x.get('type') == 'function_call_output']
-            if spec.get('two_turn') and second_prompt in serialized and not is_title:
+            if (spec.get('two_turn') or spec.get('models_interaction')) and second_prompt in serialized and not is_title:
                 turn_number = 1
                 round_number = int(any(x.get('call_id') == 'call_fixture_read_2' for x in tool_results))
             else:
@@ -80,12 +91,12 @@ class Provider(BaseHTTPRequestHandler):
                 turn_number = title_round - 1
             elif not tool_results:
                 transcript_round += 1
-        second = (spec.get('tab_restart') or spec.get('two_turn')) and turn_number > 0
+        second = (spec.get('tab_restart') or spec.get('two_turn') or spec.get('models_interaction')) and turn_number > 0
         text = (('Regenerated fixture title' if spec.get('regenerate_title') and title_round == 2 else
                  'Second fixture session' if second else title) if is_title else
-                 ('GEOMETRY-TURN-TWO: tool read completed.' if spec.get('two_turn') and second else
+                  ('GEOMETRY-TURN-TWO: tool read completed.' if (spec.get('two_turn') or spec.get('models_interaction')) and second else
                   'GEOMETRY-SECOND: tool read completed.' if second else answer))
-        expected_prompt = second_prompt if spec.get('two_turn') and second and not is_title else prompt
+        expected_prompt = second_prompt if (spec.get('two_turn') or spec.get('models_interaction')) and second and not is_title else prompt
         valid = valid and (is_title or expected_prompt in serialized)
         profile_prompt_present = profile_prompt is not None and profile_prompt in system
         if profile_id and not is_title:
@@ -93,7 +104,7 @@ class Provider(BaseHTTPRequestHandler):
         if spec.get('sample') == 'tools' and not is_title:
             valid = valid and 'read' in [x.get('name') for x in body.get('tools', [])]
             if round_number:
-                calls = [x for x in tool_results if x.get('call_id') == ('call_fixture_read_2' if spec.get('two_turn') and second else 'call_fixture_read')]
+                calls = [x for x in tool_results if x.get('call_id') == ('call_fixture_read_2' if (spec.get('two_turn') or spec.get('models_interaction')) and second else 'call_fixture_read')]
                 valid = valid and len(calls) == 1 and 'fixture-content' in str(calls[0].get('output', ''))
         if spec.get('sample') == 'reasoning-steps' and not is_title:
             valid = valid and not tool_results and turn_number == 0 and round_number == 0
@@ -112,17 +123,17 @@ class Provider(BaseHTTPRequestHandler):
             self.send_error(400, 'fixture contract rejected')
             return
         if spec.get('sample') == 'tools' and not is_title and round_number == 0:
-            item = {'id': 'fc_fixture_2' if spec.get('two_turn') and second else 'fc_fixture',
+            item = {'id': 'fc_fixture_2' if (spec.get('two_turn') or spec.get('models_interaction')) and second else 'fc_fixture',
                     'type': 'function_call', 'status': 'completed',
-                    'call_id': 'call_fixture_read_2' if spec.get('two_turn') and second else 'call_fixture_read', 'name': 'read',
+                    'call_id': 'call_fixture_read_2' if (spec.get('two_turn') or spec.get('models_interaction')) and second else 'call_fixture_read', 'name': 'read',
                     'arguments': json.dumps({'path': 'fixture-note.txt'})}
             text = ''
         else:
-            item = {'id': 'msg_fixture_2' if spec.get('two_turn') and second else 'msg_fixture',
+            item = {'id': 'msg_fixture_2' if (spec.get('two_turn') or spec.get('models_interaction')) and second else 'msg_fixture',
                     'type': 'message', 'role': 'assistant', 'status': 'completed',
                  'content': [{'type': 'output_text', 'text': text, 'annotations': []}]}
-        response = {'id': 'resp_fixture_2' if spec.get('two_turn') and second else 'resp_fixture', 'object': 'response', 'created_at': 1700000000,
-                    'model': 'fixture-model-1', 'status': 'in_progress', 'output': [],
+        response = {'id': 'resp_fixture_2' if (spec.get('two_turn') or spec.get('models_interaction')) and second else 'resp_fixture', 'object': 'response', 'created_at': 1700000000,
+                    'model': body.get('model'), 'status': 'in_progress', 'output': [],
                     'error': None, 'incomplete_details': None}
         events = [
             {'type': 'response.created', 'response': response},

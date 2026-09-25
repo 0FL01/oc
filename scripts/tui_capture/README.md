@@ -839,6 +839,54 @@ remain in the full grid and a mismatch there is `DIFFERENT`, even when the foote
 matches exactly. Existing output directories are
 rejected, even after failure. Animation-off alone cannot qualify VIS28.
 
+## VIS09 actual Models navigation and selected-model wire check
+
+Run against the pinned v2.0.12 executable and a source-built native
+binary, with a new immutable attempt directory (120×40; `--columns 160
+--rows 48` is also supported):
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --geometry true --sample tools --sidebar hide --agent-profile true \
+  --columns 120 --rows 40 --models-interaction true \
+  --output /home/opencode/ai/oc/evidence/tui/models-NEW-ATTEMPT
+```
+
+This opt-in excludes other interaction/variant/resize/seed modes. Both sides
+receive the same eight normal models plus twelve
+configured `ZZ Scroll 00`–`ZZ Scroll 11` entries, only in this mode. The
+fixture's Responses server checks the actual first model for the first real
+`read` round-trip and the selected `fixture-scroll-11` model for **both**
+second-turn requests, including the returned read content. There is no named
+variant in this catalog; the request-key observation is recorded separately.
+The normal fixture and existing capture modes keep their original catalog.
+
+After one completed Reader read and title, the runner opens the real Models
+dialog with Ctrl+X, `m`, captures its first styled grid and PNG, records the
+current-model marker and the independently styled initial focus, then sends
+16 real Down keys. It requires a newly configured model to appear and the
+first option to scroll away before capturing `models-scrolled`. It types
+`ZZ Scroll 11`, captures the query and painted matching option as
+`models-filtered`, presses Return, captures the resulting same-session
+composer as `models-selected`, and submits `Second same-session model check?`.
+Whether the current-model marker remains visible after scrolling is recorded
+per side and compared as a scroll-policy observation, not a prerequisite for
+filtering or selection. A visible marker must still label the original model; the
+filtered target must be distinct from the current-model marker even if that
+marker remains painted elsewhere in the dialog.
+`models-second-turn` requires the original answer, new answer, retained tab
+and raw valid completed provider requests on the selected model. Every
+stage is saved as complete `.cells.json`, `.png`, `.vt`, `.render.json`, `.txt`;
+`models-interaction-checks.json`, `inputs.json`, `protocol.json` and
+`capture.lock.json` record painted rows/styles, request hashes/model IDs,
+actual inputs, predicates and failures. Existing whole-frame grid and PNG
+comparators run unmasked on each paired capture and exit 1 on differences.
+`View all integrations` is recorded as the upstream action when painted;
+no integration action is fabricated. Per-side interaction PASS does not
+assert VIS09 parity, nor does an existing binary attest its source commit.
+
 ## V04 variant and search follow-up
 
 `--variants true --sample short` adds the explicit fixture in

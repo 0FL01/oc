@@ -1,0 +1,245 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/models-20260925-05/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/models-20260925-05/upstream/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/models-20260925-05/upstream/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/models-20260925-05/upstream/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/models-20260925-05/upstream/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/models-20260925-05/upstream/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/models-20260925-05/upstream/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"share\": \"disabled\", \"update\": \"disable\", \"plugins\": [\"-opencode.models.dev\"], \"providers\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"package\": \"@opencode/ai/providers/openai/responses\", \"settings\": {\"baseURL\": \"http://127.0.0.1:33485/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-scroll-00\": {\"name\": \"ZZ Scroll 00\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-scroll-01\": {\"name\": \"ZZ Scroll 01\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-scroll-02\": {\"name\": \"ZZ Scroll 02\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-scroll-03\": {\"name\": \"ZZ Scroll 03\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-scroll-04\": {\"name\": \"ZZ Scroll 04\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-scroll-05\": {\"name\": \"ZZ Scroll 05\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-scroll-06\": {\"name\": \"ZZ Scroll 06\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-scroll-07\": {\"name\": \"ZZ Scroll 07\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-scroll-08\": {\"name\": \"ZZ Scroll 08\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-scroll-09\": {\"name\": \"ZZ Scroll 09\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-scroll-10\": {\"name\": \"ZZ Scroll 10\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-scroll-11\": {\"name\": \"ZZ Scroll 11\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}, \"default_agent\": \"Reader\", \"agents\": {\"Reader\": {\"mode\": \"primary\", \"system\": \"You are the isolated T44 paired reader.\", \"color\": \"#5c9cf5\"}}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "opencode v2.0.12",
+    "version_exit": 0
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": false,
+    "operation": "title",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "d4abcd11f136d78bec0fddb7568d039e9c347cdb6f924fc78eb799cbe3c159f8",
+    "registered_tools": [],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title",
+    "response_text_sha256": "1d813e919dac6b6dd2b09b29e81ca7d93d503f841030b3118759525fd000beaa"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "08c3b1ca56a755f24699533a9bc0a14ab6cc5f09919743ac54187e248d62d392",
+    "registered_tools": [
+      "edit",
+      "glob",
+      "grep",
+      "question",
+      "read",
+      "shell",
+      "skill",
+      "subagent",
+      "webfetch",
+      "websearch",
+      "write",
+      "execute"
+    ],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 1,
+    "request_sha256": "27506c2d76459f9ea852c77783a0429ae7f6b8a0bdfe0665dddcf43e7125a7fc",
+    "registered_tools": [
+      "edit",
+      "glob",
+      "grep",
+      "question",
+      "read",
+      "shell",
+      "skill",
+      "subagent",
+      "webfetch",
+      "websearch",
+      "write",
+      "execute"
+    ],
+    "tool_result_count": 1,
+    "fixture_content_returned": true,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "d2062528403049a5858c8cb370d245ad89d5d4a81074d3d1a56a6d1ddfaa035e"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-scroll-11",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 1,
+    "round_number": 0,
+    "request_sha256": "5b8cdd377f5c1617d67beae74a6998a6d6f67dcbca1bdffdf8bc4381e63cbe86",
+    "registered_tools": [
+      "edit",
+      "glob",
+      "grep",
+      "question",
+      "read",
+      "shell",
+      "skill",
+      "subagent",
+      "webfetch",
+      "websearch",
+      "write",
+      "execute"
+    ],
+    "tool_result_count": 1,
+    "fixture_content_returned": true,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-scroll-11",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 1,
+    "round_number": 1,
+    "request_sha256": "13da3764cf50b136ea15be36cfd28dbade9d790731a0ffeea55511a5a935e0fa",
+    "registered_tools": [
+      "edit",
+      "glob",
+      "grep",
+      "question",
+      "read",
+      "shell",
+      "skill",
+      "subagent",
+      "webfetch",
+      "websearch",
+      "write",
+      "execute"
+    ],
+    "tool_result_count": 2,
+    "fixture_content_returned": true,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "0e53ae07d3c6783ea462d199dd0d6867f1a4d0922830336ed4b4bf283953cdc6"
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": 130,
+    "termination": "forced_stop"
+  }
+]

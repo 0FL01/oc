@@ -56,6 +56,9 @@ if (args['ctrl-c'] !== undefined && !['true','false'].includes(args['ctrl-c']))
 const twoTurn = args['two-turn'] === 'true';
 if (args['two-turn'] !== undefined && !['true','false'].includes(args['two-turn']))
   throw Error('--two-turn must be true or false');
+const modelsInteraction = args['models-interaction'] === 'true';
+if (args['models-interaction'] !== undefined && !['true','false'].includes(args['models-interaction']))
+  throw Error('--models-interaction must be true or false');
 const autocompleteKeysRename = args['autocomplete-keys-rename'] === 'true';
 if (args['autocomplete-keys-rename'] !== undefined && !['true','false'].includes(args['autocomplete-keys-rename']))
   throw Error('--autocomplete-keys-rename must be true or false');
@@ -99,6 +102,15 @@ if (scanner && !['true','false'].includes(args['scanner-cancel']))
 if (!scanner && args['scanner-cancel'] !== undefined)
   throw Error('--scanner-cancel requires --scanner true');
 const scannerCancel = args['scanner-cancel'] === 'true';
+if (modelsInteraction && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
+    args['agent-profile'] !== 'true' || ![120,160].includes(Number(args.columns)) ||
+    Number(args.rows)!== (Number(args.columns)===120 ? 40 : 48) || !args.reference || !args.oc ||
+    args.matrix === 'true' || args.variants === 'true' || args['scroll-resize'] === 'true' ||
+    args['startup-error'] === 'true' || args['seed-root'] || args.session || args.tabs === 'vertical' ||
+    [explorationClick,tabClick,tabClose,tabCloseKey,tabRestart,renameSession,regenerateTitle,
+      sidebarPalette,autocomplete,autocompleteKeys,ctrlC,twoTurn,mention,reasoningClick,
+      reasoningSteps,reasoningReleaseOnly,selectionCopy,toastOverlap,scanner].some(Boolean)))
+  throw Error('--models-interaction true requires only paired Reader/tools 120x40 or 160x48 --geometry true --sidebar hide --agent-profile true');
 if (reasoningSteps && (args.geometry !== 'true' || args.sample !== 'reasoning-steps' || args.sidebar !== 'hide' ||
     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
@@ -200,7 +212,8 @@ const canonical = value => JSON.stringify(value, (_, v) => v && typeof v === 'ob
 const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.stringify(value, null, 2) + '\n');
 const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
-const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true', protocol: sha(fs.readFileSync(path.join(here,'bridge.py')))}));
+const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
+  models_interaction:modelsInteraction, protocol: sha(fs.readFileSync(path.join(here,'bridge.py')))}));
 const commands = [];
 commands.push({argv:[process.execPath,...process.argv.slice(1)],role:'capture runner invocation',exit_code:null});
 const execute = (argv, options={}) => {
@@ -284,7 +297,8 @@ try {
     settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',
       clock_policy: 'real application wall clock; fixed provider created_at; no masking or clock claim',
         animations: scanner ? scannerAnimation : 'original supported animations=false; completed states only; terminal cursorBlink=false',
-       ...(scanner ? {scanner_cancel:scannerCancel} : {})}};
+       ...(scanner ? {scanner_cancel:scannerCancel} : {}),
+       ...(modelsInteraction ? {models_interaction:true,catalog_extension:'fixture-scroll-00..11'} : {})}};
   for (const origin of ['upstream','oc']) {
     profile.columns = Number(args.columns || 160); profile.rows = Number(args.rows || 48);
     const binary = args[origin === 'upstream' ? 'reference' : 'oc'];
@@ -299,7 +313,7 @@ try {
       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
       agent_profile: args['agent-profile'] === 'true',
        seed_root: args['seed-root'], session: args.session, tab_restart: tabRestart || renameSession,
-        regenerate_title: regenerateTitle, two_turn:twoTurn,
+         regenerate_title: regenerateTitle, two_turn:twoTurn, models_interaction:modelsInteraction,
         ...(scanner ? {scanner:true, animations:scannerAnimation} : {})};
     fs.writeFileSync(path.join(dir,'bridge-spec.json'), JSON.stringify(spec, null, 2));
     lock[origin] = {...lock[origin], executable_path: binary, executable_sha256: hash};
@@ -1193,14 +1207,146 @@ try {
        let done = await waitFor(f => f.text.includes(marker) &&
         /MiMo-V2.6-Flash Free · \d/.test(f.text) &&
          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript') &&
-         (!(reasoningClick || reasoningSteps || selectionCopy || toastOverlap) || logs.some(e=>e.kind==='provider_completed' && e.operation==='title')), 'completed transcript');
+          (!(reasoningClick || reasoningSteps || selectionCopy || toastOverlap || modelsInteraction) || logs.some(e=>e.kind==='provider_completed' && e.operation==='title')), 'completed transcript');
        if(twoTurn) done=await waitFor(f=>f.text.includes('GEOMETRY-SHORT: tool read completed.') &&
           /Reader · MiMo-V2.6-Flash Free · \d/.test(f.text) &&
           logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length===2 &&
           logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length===1,
           'first same-session read, answer and title');
        if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');
-       const completedStatus = await capture('session-wide-completed',done,'CAPTURED');
+        const completedStatus = await capture('session-wide-completed',done,'CAPTURED');
+        if(modelsInteraction) {
+          const names=['Big Pickle','Ling 3.0 Flash Free','MiMo V2.5 Free','MiMo-V2.6-Flash Free',
+            'Muse Spark 1.2 Free','Muse Spark 1.3 Free','Nemotron 3 Ultra Free',
+            'Nemotron 3.5 Lightning Free',...Array.from({length:12},(_,i)=>`ZZ Scroll ${String(i).padStart(2,'0')}`)];
+          const chosen='ZZ Scroll 11', chosenID='fixture-scroll-11';
+          const counts=()=>({transcript:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length,
+            completed_transcript:logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length,
+            title:logs.filter(e=>e.kind==='provider' && e.operation==='title').length,
+            completed_title:logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length,
+            invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});
+          const baseline=counts();
+          const unchanged=()=>canonical(counts())===canonical(baseline);
+          const row=(f,name)=>{
+            const title=visibleMatches(f,'Select model')[0];
+            return title ? visibleMatches(f,name).filter(p=>p.y>title.y+3 && p.y<f.rows-5) : [];
+          };
+          const painted=(f)=>names.flatMap(name=>row(f,name).map(p=>({name,...p,
+            fg:f.cells[p.y][p.x].fg,bg:f.cells[p.y][p.x].bg})));
+          const checks=[];
+          lock.models_interaction ??= {};
+          lock.models_interaction[origin]={status:'IN_PROGRESS',baseline,chosen_id:chosenID,checks};
+          const save=()=>{
+            fs.writeFileSync(path.join(dir,'models-interaction-checks.json'),JSON.stringify({baseline,checks},null,2)+'\n');
+            json('capture.lock.json',lock);
+          };
+          const check=(stage,f,predicates,details={})=>{
+            checks.push({stage,painted_models:painted(f),current_marker:row(f,'●'),
+              query:visibleMatches(f,chosen),provider_counts:counts(),predicates,...details,
+              grid_sha256:sha(JSON.stringify(f))});
+            save();
+            if(Object.values(predicates).some(v=>v!==true)) throw Error('Models interaction predicate failed: '+stage);
+          };
+          const shot=async(stage,f)=>{
+            const status=await capture('models-'+stage,f,'CAPTURED_MODELS_INTERACTION');
+            check(stage+'-capture',await frame(),{stable_capture:status==='CAPTURED_MODELS_INTERACTION',
+              no_request_before_next_turn:unchanged()});
+          };
+          check('first-turn',done,{stable_first_capture:completedStatus==='CAPTURED',
+            completed_read_and_title:baseline.transcript===2 && baseline.completed_transcript===2 &&
+              baseline.title===1 && baseline.completed_title===1 && baseline.invalid===0,
+            first_answer_visible:done.text.includes('GEOMETRY-SHORT: tool read completed.')});
+          send('\x18','models_open_ctrl_x'); await sleep(100);send('m','models_open_m');
+          const opened=await waitFor(f=>f.text.includes('Select model') && row(f,names[0]).length===1 &&
+            row(f,'●').length===1 && unchanged(),'Models initial grid',12000);
+          const initial=painted(opened);
+          const initialFocus=initial.find(p=>p.name===names[0]);
+          const expectedVisible=Math.min(names.length,Math.floor(opened.rows/2)-6);
+          check('initial',opened,{expected_models_painted:initial.length===expectedVisible &&
+              initial.every((p,i)=>p.name===names[i]),
+            current_model_marked:row(opened,'●')[0]?.y===row(opened,'MiMo-V2.6-Flash Free')[0]?.y,
+            first_option_visible:!!initialFocus,focused_not_current:initialFocus?.y!==row(opened,'●')[0]?.y,
+            distinct_focus_background:initialFocus!==undefined && initial.some(p=>p.bg!==initialFocus.bg),
+            no_provider_request:unchanged()}, {visible_model_count:initial.length,
+              integration_action:visibleMatches(opened,'View all integrations'),
+              integration_action_visible:opened.text.includes('View all integrations')});
+          await shot('initial',opened);
+          // Pinned DialogModel focusCurrent=false. Walk 16 real Down events,
+          // across the eight original fixture entries and beyond the viewport.
+          let previous=opened;
+          for(let i=1;i<=16;i++) {
+            send('\x1b[B',`models_down_${i}`);
+            const before=sha(JSON.stringify(previous));
+            previous=await waitFor(f=>f.text.includes('Select model') &&
+              sha(JSON.stringify(f))!==before && unchanged(),`Models Down ${i}`,12000);
+          }
+          const scrolled=previous;
+          const scrolledMarker=row(scrolled,'●');
+          const scrolledCurrent=row(scrolled,'MiMo-V2.6-Flash Free');
+          check('scrolled',scrolled,{new_model_visible:row(scrolled,'ZZ Scroll 08').length===1,
+            first_model_scrolled_off:row(scrolled,names[0]).length===0,
+            new_model_focused:painted(scrolled).find(p=>p.name==='ZZ Scroll 08')?.bg===initialFocus.bg,
+            visible_marker_on_current_model:scrolledMarker.length===0 || (scrolledMarker.length===1 &&
+              scrolledCurrent.some(p=>p.y===scrolledMarker[0].y)),
+            no_provider_request:unchanged()}, {observations:{offscreen_current_marker_absent:scrolledMarker.length===0,
+              current_model_visible:scrolledCurrent.length===1,
+              current_marker_on_current_model:scrolledMarker.length===1 &&
+                scrolledCurrent.some(p=>p.y===scrolledMarker[0].y)}});
+          await shot('scrolled',scrolled);
+          send(chosen,'models_filter_query');
+          const filtered=await waitFor(f=>f.text.includes('Select model') &&
+            row(f,chosen).length===1 && visibleMatches(f,chosen).length>=2 && unchanged(),
+            'Models filtered query',12000);
+          const targetRows=visibleMatches(filtered,chosen);
+          const targetOption=painted(filtered).filter(p=>p.name===chosen);
+          check('filtered',filtered,{query_and_option_painted:targetRows.length>=2 && targetOption.length===1,
+            filtered_target_focused:targetOption[0]?.bg===initialFocus.bg,
+            target_distinct_from_current:!row(filtered,'●').some(p=>p.y===targetOption[0]?.y),
+            no_provider_request:unchanged()}, {target_rows:targetRows,
+              current_marker_visible:row(filtered,'●').length>0});
+          await shot('filtered',filtered);
+          send('\r','models_select_filtered_return');
+          const selected=await waitFor(f=>!f.text.includes('Select model') &&
+            f.text.includes('Reader · ZZ Scroll 11') &&
+            f.text.includes('GEOMETRY-SHORT: tool read completed.') && unchanged(),
+            'selected model in same session',12000);
+          check('selected',selected,{dialog_closed:!selected.text.includes('Select model'),
+            new_model_in_composer:selected.text.includes('Reader · ZZ Scroll 11'),
+            old_answer_preserved:selected.text.includes('GEOMETRY-SHORT: tool read completed.'),
+            no_provider_request:unchanged()});
+          await shot('selected',selected);
+          const secondPrompt='Second same-session model check?';
+          send('\x1b[200~'+secondPrompt+'\x1b[201~','models_second_prompt_paste');
+          await waitFor(f=>f.text.includes(secondPrompt) && unchanged(),'Models second draft',12000);
+          send('\r','models_second_turn_submit');
+          const finished=await waitFor(f=>f.text.includes('GEOMETRY-TURN-TWO: tool read completed.') &&
+            f.text.includes('GEOMETRY-SHORT: tool read completed.') &&
+            /Reader · ZZ Scroll 11 · \d/.test(f.text) && counts().transcript===4 &&
+            counts().completed_transcript===4 && counts().title===1 &&
+            counts().completed_title===1 && counts().invalid===0,'Models second real read',20000);
+          const requests=logs.filter(e=>e.kind==='provider');
+          const after=counts();
+          const predicates={same_session_title:visibleMatches(finished,oldTitlePrefix).some(p=>p.y===0),
+            first_turn_original_model:requests.filter(e=>e.operation==='transcript' && e.turn_number===0).length===2 &&
+              requests.filter(e=>e.operation==='transcript' && e.turn_number===0).every(e=>e.model==='fixture-model-1' && e.valid),
+            second_turn_selected_model:requests.filter(e=>e.operation==='transcript' && e.turn_number===1).length===2 &&
+              requests.filter(e=>e.operation==='transcript' && e.turn_number===1).every(e=>e.model===chosenID && e.valid),
+            second_read_result:requests.some(e=>e.turn_number===1 && e.round_number===1 && e.fixture_content_returned),
+            no_named_variant:requests.filter(e=>e.turn_number===1 && e.operation==='transcript')
+              .every(e=>!e.request_top_level_keys.includes('variant')),
+            complete_counts:after.transcript===4 && after.completed_transcript===4 &&
+              after.title===1 && after.completed_title===1 && after.invalid===0};
+          const finalStatus=await capture('models-second-turn',finished,'CAPTURED_MODELS_SECOND_TURN');
+          checks.push({stage:'second-turn',predicates:{...predicates,stable_capture:finalStatus==='CAPTURED_MODELS_SECOND_TURN'},
+            requests:requests.map(e=>({model:e.model,operation:e.operation,turn_number:e.turn_number,
+              round_number:e.round_number,valid:e.valid,request_sha256:e.request_sha256,
+              request_top_level_keys:e.request_top_level_keys})),provider_counts:after});
+          save();
+          if(Object.values(checks.at(-1).predicates).some(v=>v!==true)) throw Error('Models second-turn provider predicate failed');
+          lock.models_interaction[origin].status='PASS';save();
+          lock.attempts.push({origin,status:'MODELS_INTERACTION_PASS',provider_counts:after,
+            selected_model:chosenID,predicates:checks.at(-1).predicates});
+        }
        if(twoTurn) {
           const checks=[];
           lock.two_turn ??= {};
@@ -2421,6 +2567,7 @@ try {
        if(tabRestart && lock.tab_restart_interactions?.[origin]) lock.tab_restart_interactions[origin].status='FAILED';
         if(renameSession && lock.rename_interactions?.[origin]) lock.rename_interactions[origin].status='FAILED';
         if(sidebarPalette && lock.sidebar_palette?.[origin]) lock.sidebar_palette[origin].status='FAILED';
+        if(modelsInteraction && lock.models_interaction?.[origin]) lock.models_interaction[origin].status='FAILED';
         if(autocomplete && lock.autocomplete?.[origin]) lock.autocomplete[origin].status='FAILED';
         if(autocompleteKeys && lock.autocomplete_keys?.[origin]) lock.autocomplete_keys[origin].status='FAILED';
         if(ctrlC && lock.ctrl_c?.[origin]) lock.ctrl_c[origin].status='FAILED';
@@ -2460,6 +2607,12 @@ try {
       lock[origin].version=logs.find(e=>e.kind==='launch')?.version;
       await page.close();
     }
+  }
+  if(modelsInteraction) {
+    const upstream=lock.models_interaction?.upstream?.checks.find(c=>c.stage==='scrolled')?.observations;
+    const native=lock.models_interaction?.oc?.checks.find(c=>c.stage==='scrolled')?.observations;
+    if(upstream && native) lock.models_interaction.scroll_policy_comparison={upstream,native,
+      same:canonical(upstream)===canonical(native)};
   }
   lock.profile=profile;
   lock.qualification = {
