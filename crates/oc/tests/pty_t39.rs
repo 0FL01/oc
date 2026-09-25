@@ -34,6 +34,8 @@ const ALT_MODEL: &str = "alt-model";
 const AGENT_PROMPT: &str = "You are the T39 fixture agent.";
 const COMPRESS_PREFIX: &str = "Manual context compression request";
 const S07_PROMPT: &str = "s07 progressive markdown";
+const S07_NOTE: &str = "S07_NOTE_READ_CONFIRMED\n";
+const S07_REASONING: &str = "S07 public reasoning before the read.";
 const S07_ANSWER: &str = "```rust\nfn s07_probe() {\n    let S07_STREAM_FRAGMENT_42 = 42;\n    let S07_STREAM_DONE_43 = S07_STREAM_FRAGMENT_42 + 1;\n}\n```";
 
 /// Scripted native Responses peer plus isolated HOME/config.
@@ -198,16 +200,20 @@ impl Drop for Fixture {
     }
 }
 
-/// One scripted peer answer: text, or a `compress` function call.
+/// One scripted peer response, including bounded multi-round tool fixtures.
 enum Script {
     Text(String),
     Slow(String),
+    S07Read,
     S07Markdown,
     Compress(String),
 }
 
 fn script(body: &serde_json::Value) -> Script {
     if has_function_call_output(body) {
+        if last_user_text(body).as_deref() == Some(S07_PROMPT) {
+            return Script::S07Markdown;
+        }
         return Script::Text("answer:compressed".to_string());
     }
     let prompt = last_user_text(body).unwrap_or_default();
@@ -235,7 +241,7 @@ fn script(body: &serde_json::Value) -> Script {
         return Script::Slow("answer:slow stream".to_string());
     }
     if prompt == S07_PROMPT {
-        return Script::S07Markdown;
+        return Script::S07Read;
     }
     Script::Text(format!("echo: {prompt}"))
 }
@@ -352,6 +358,13 @@ fn respond(
     match script {
         Script::Text(answer) => finish_text(socket, answer),
         Script::Compress(arguments) => finish_call(socket, "compress", arguments),
+        Script::S07Read => {
+            let reasoning = serde_json::json!({"type": "response.reasoning_summary_text.delta",
+                "delta": S07_REASONING});
+            write!(socket, "data: {reasoning}\n\n")?;
+            socket.flush()?;
+            finish_call(socket, "read", r#"{"path":"s07-note.txt"}"#)
+        }
         Script::S07Markdown => {
             // Flush an open fence over several real SSE events. The test must
             // observe its unique partial code row before releasing completion.
@@ -2895,6 +2908,12 @@ fn s07_pty_equal_view_archive_resource_samples() {
         "recovered viewport differs"
     );
     assert_eq!(small.request, large.request, "Responses requests differ");
+    assert_eq!(small.requests.len(), 2, "small: two provider responses");
+    assert_eq!(large.requests.len(), 2, "large: two provider responses");
+    assert_eq!(
+        small.requests, large.requests,
+        "full Responses request vectors differ"
+    );
     assert_eq!(
         small.request["input"]
             .as_array()
@@ -2928,6 +2947,45 @@ fn s07_pty_equal_view_archive_resource_samples() {
             run.active_view
         );
         assert_eq!(last_user_text(&run.request).as_deref(), Some(S07_PROMPT));
+        assert_eq!(
+            last_user_text(&run.requests[1]).as_deref(),
+            Some(S07_PROMPT)
+        );
+        let outputs = run.requests[1]["input"]
+            .as_array()
+            .expect("tool output input");
+        let read_outputs: Vec<_> = outputs
+            .iter()
+            .filter(|item| item["type"] == "function_call_output" && item["call_id"] == "call_t39")
+            .collect();
+        assert_eq!(read_outputs.len(), 1, "{label}: exactly one read result");
+        assert!(
+            read_outputs[0]["output"]
+                .as_str()
+                .is_some_and(|text| text == S07_NOTE.trim_end()),
+            "{label}: read must return the seeded file: {read_outputs:?}"
+        );
+        assert_eq!(
+            run.tool_ops.len(),
+            2,
+            "{label}: seeded bash and one real read"
+        );
+        assert!(
+            run.tool_ops
+                .iter()
+                .any(|(name, state, output)| name == "read"
+                    && state == "completed"
+                    && output.contains(S07_NOTE.trim_end())),
+            "{label}: real read outcome absent: {:?}",
+            run.tool_ops
+        );
+        assert!(
+            run.tool_ops
+                .iter()
+                .all(|(name, _, _)| name == "read" || name == "bash"),
+            "{label}: unexpected tool execution: {:?}",
+            run.tool_ops
+        );
         assert_eq!(run.request["stream"], true);
         assert_eq!(run.request["model"], MODEL);
         let metrics = &run.metrics;
@@ -2982,8 +3040,11 @@ fn s07_pty_equal_view_archive_resource_samples() {
             "{label}: live reasoning after exit"
         );
         assert_eq!(live_parts_current, 0, "{label}: live parts after exit");
-        assert!(live_reasoning_peak >= live_reasoning_current);
-        assert!(live_parts_peak >= live_parts_current);
+        assert!(live_reasoning_peak > 0, "{label}: reasoning never sampled");
+        assert!(
+            live_parts_peak > 0,
+            "{label}: frozen reasoning/tool parts never sampled"
+        );
         // Each retained route has a 512 KiB styled-block cache and a 2 MiB
         // source-page index; account for the active state plus parked tabs.
         let route_count = metrics["tab_count"].as_u64().expect("tab count") + 1;
@@ -3029,6 +3090,8 @@ struct S07Run {
     active_view: Vec<String>,
     active_cursor: (usize, usize),
     request: serde_json::Value,
+    requests: Vec<serde_json::Value>,
+    tool_ops: Vec<(String, String, String)>,
     peak_rss_kb: u64,
     peak_pss_kb: u64,
     peak_hwm_kb: u64,
@@ -3158,12 +3221,15 @@ fn measure_s07(archive: usize) -> S07Run {
         serde_json::from_slice(&std::fs::read(&config).expect("S07 config")).expect("config JSON");
     settings["provider"]["fixture"]["models"][MODEL]["limit"]["context"] =
         serde_json::json!(262_144);
+    settings["permissions"]["read"] = serde_json::json!("allow");
     // The two provider requests have identical active context. DCP's anchors
     // contain durable message ids, which legitimately differ across archives.
     settings["dcp"]["enabled"] = serde_json::json!(false);
     std::fs::write(&config, settings.to_string()).expect("S07 model context");
     let data_dir = fixture.data_dir();
     let project = fixture.root.path().join("project");
+    let note = project.join("s07-note.txt");
+    std::fs::write(&note, S07_NOTE).expect("seed S07 read file");
     let session = "s-s07";
     seed_session(&data_dir, &project, session, archive);
     let db = oc_adapters::storage::Db::open(&data_dir).expect("db");
@@ -3300,32 +3366,16 @@ fn measure_s07(archive: usize) -> S07Run {
     // Submit the same real Responses turn in both processes. The fake peer
     // holds completion until the open fenced code is visibly rendered here.
     let stream_from = submit(&mut pty, S07_PROMPT);
-    let requests = {
-        let began = Instant::now();
-        loop {
-            let requests: Vec<_> = fixture
-                .requests
-                .lock()
-                .expect("requests")
-                .iter()
-                .filter(|r| !title::is_title(r))
-                .cloned()
-                .collect();
-            if !requests.is_empty() {
-                break requests;
-            }
-            assert!(
-                began.elapsed() < DEADLINE,
-                "S07 provider request absent; screen: {:?}",
-                render_screen(&pty.snapshot()).rows()
-            );
-            std::thread::sleep(POLL);
-        }
-    };
-    assert_eq!(requests.len(), 1, "exactly one S07 provider turn");
+    let requests = fixture.wait_requests(2);
+    assert_eq!(
+        requests.len(),
+        2,
+        "read must finish before streamed response"
+    );
     let request = requests[0].clone();
     assert_eq!(last_user_text(&request).as_deref(), Some(S07_PROMPT));
     assert_eq!(request["stream"], true);
+    assert!(has_function_call_output(&requests[1]));
     pty.wait_visible_after(stream_from, "S07_STREAM_FRAGMENT_42", DEADLINE);
     wait_screen_row(&pty, "S07_STREAM_FRAGMENT_42", DEADLINE);
     let partial = render_screen(&pty.snapshot()).rows();
@@ -3364,8 +3414,12 @@ fn measure_s07(archive: usize) -> S07Run {
             .iter()
             .filter(|request| !title::is_title(request))
             .count(),
-        1,
-        "exactly one S07 provider request after shutdown"
+        2,
+        "exactly two S07 provider requests after shutdown"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&note).expect("read file intact"),
+        S07_NOTE
     );
     let history = persisted(pty.data_dir(), session);
     assert_eq!(history.len(), archive + 202, "archive remains durable");
@@ -3414,6 +3468,13 @@ fn measure_s07(archive: usize) -> S07Run {
     assert_eq!(max_children, 0, "unexpected child processes");
     let metrics: serde_json::Value =
         serde_json::from_slice(&std::fs::read(path).expect("metrics file")).expect("metrics JSON");
+    let tool_db = oc_adapters::storage::Db::open(pty.data_dir()).expect("tool db");
+    let tool_ops = tool_db
+        .list_tool_ops(session)
+        .expect("tool operations")
+        .into_iter()
+        .map(|op| (op.name, op.state, op.output.unwrap_or_default()))
+        .collect();
     S07Run {
         archive: archive as u64,
         viewport,
@@ -3421,6 +3482,8 @@ fn measure_s07(archive: usize) -> S07Run {
         active_view,
         active_cursor,
         request,
+        requests,
+        tool_ops,
         peak_rss_kb,
         peak_pss_kb,
         peak_hwm_kb,
