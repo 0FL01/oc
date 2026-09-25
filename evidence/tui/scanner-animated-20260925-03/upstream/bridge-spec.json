@@ -1,0 +1,19 @@
+{
+  "binary": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+  "origin": "upstream",
+  "columns": 120,
+  "rows": 40,
+  "isolated_root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/scanner-animated-20260925-03",
+  "fixture": "/home/opencode/ai/oc/tui-recovery/fixtures",
+  "sample": "tools",
+  "sidebar": "hide",
+  "devtools": false,
+  "tabs": "horizontal",
+  "variants": false,
+  "startup_error": false,
+  "agent_profile": true,
+  "tab_restart": false,
+  "regenerate_title": false,
+  "scanner": true,
+  "animations": true
+}

@@ -246,6 +246,7 @@ fn make_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generati
         .collect(),
     };
     let generation = Generation {
+        animations: None,
         providers: BTreeMap::new(),
         mcp: BTreeMap::new(),
         permissions,
@@ -2571,6 +2572,7 @@ for line in sys.stdin:
 
     runtime
         .reload(Generation {
+            animations: None,
             providers: BTreeMap::new(),
             mcp: BTreeMap::new(),
             permissions: allow_all(),
@@ -3240,6 +3242,7 @@ async fn reload_applies_new_policy_and_guards_active_turn() {
     // Reload between turns publishes id 2 with read allowed.
     let id = runtime
         .reload(Generation {
+            animations: None,
             providers: BTreeMap::new(),
             mcp: BTreeMap::new(),
             permissions: [("read".to_string(), Permission::Allow)]
@@ -3274,6 +3277,7 @@ async fn reload_applies_new_policy_and_guards_active_turn() {
             tokio::time::sleep(Duration::from_millis(300)).await;
             runtime
                 .reload(Generation {
+                    animations: None,
                     providers: BTreeMap::new(),
                     mcp: BTreeMap::new(),
                     permissions: BTreeMap::new(),

@@ -895,6 +895,7 @@ async fn load_stages(
     let mut tui_chrome = oc_core::queries::TuiChrome {
         location: Some(project.to_string_lossy().into_owned()),
         terminal_copy,
+        animations: generation.animations,
         build_channel: if cfg!(debug_assertions) {
             oc_core::queries::TuiBuildChannel::Local
         } else {

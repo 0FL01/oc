@@ -1,0 +1,256 @@
+{
+  "animation": true,
+  "observations": [
+    {
+      "elapsed_ms": 528,
+      "at": "2026-09-25T09:25:39.340Z",
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "■",
+            "fg": "#5c9cf5",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        0
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "3f172299595ca2f79aa7d5801878b30f4ce31893c446b0dacaa72278e4420204"
+    },
+    {
+      "elapsed_ms": 785,
+      "at": "2026-09-25T09:25:39.597Z",
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "fg": "#3b6297",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "fg": "#3b6297",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "fg": "#2d486e",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "fg": "#3f69a3",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "fg": "#61a2e7",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "fg": "#5c9cf5",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "91121f63dad0b9c96522d48f5e03feb3d2402c1f76a6fe35b121626e4a5683ca"
+    },
+    {
+      "elapsed_ms": 1048,
+      "at": "2026-09-25T09:25:39.860Z",
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "fg": "#284061",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "fg": "#284061",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "fg": "#284061",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "fg": "#284061",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "fg": "#284061",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "fg": "#284061",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "fg": "#284061",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "width": 1,
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        7
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "7c0367f3adad86586b874ba3fafede7e46049086cbd5bfa30462dda6efcb21d8"
+    }
+  ],
+  "stages": {},
+  "predicates": {},
+  "release": {
+    "at": "2026-09-25T09:25:43.102Z",
+    "elapsed_ms": 4290
+  }
+}

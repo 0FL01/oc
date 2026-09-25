@@ -69,6 +69,26 @@ if (args['reasoning-click'] !== undefined && !['true','false'].includes(args['re
 const selectionCopy = args['selection-copy'] === 'true';
 if (args['selection-copy'] !== undefined && !['true','false'].includes(args['selection-copy']))
   throw Error('--selection-copy must be true or false');
+const scanner = args.scanner === 'true';
+if (args.scanner !== undefined && !['true','false'].includes(args.scanner))
+  throw Error('--scanner must be true or false');
+if (scanner && !['true','false'].includes(args['scanner-animation']))
+  throw Error('--scanner true requires --scanner-animation true or false');
+if (!scanner && args['scanner-animation'] !== undefined)
+  throw Error('--scanner-animation requires --scanner true');
+const scannerAnimation = args['scanner-animation'] === 'true';
+if (scanner && !['true','false'].includes(args['scanner-cancel']))
+  throw Error('--scanner true requires --scanner-cancel true or false');
+if (!scanner && args['scanner-cancel'] !== undefined)
+  throw Error('--scanner-cancel requires --scanner true');
+const scannerCancel = args['scanner-cancel'] === 'true';
+if (scanner && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
+    args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
+    !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
+    args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
+    args.tabs === 'vertical' || explorationClick || tabClick || renameSession || sidebarPalette ||
+    regenerateTitle || autocomplete || autocompleteKeys || mention || reasoningClick || selectionCopy))
+  throw Error('--scanner true requires paired Reader/tools 120x40, --geometry true --sidebar hide --agent-profile true and no other interaction/resize modes');
 if (selectionCopy && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
@@ -210,7 +230,8 @@ try {
     unicode_width_policy: '@xterm/addon-unicode11 0.9.0 (Unicode 11)',
     settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',
       clock_policy: 'real application wall clock; fixed provider created_at; no masking or clock claim',
-      animations: 'original supported animations=false; completed states only; terminal cursorBlink=false'}};
+        animations: scanner ? scannerAnimation : 'original supported animations=false; completed states only; terminal cursorBlink=false',
+       ...(scanner ? {scanner_cancel:scannerCancel} : {})}};
   for (const origin of ['upstream','oc']) {
     profile.columns = Number(args.columns || 160); profile.rows = Number(args.rows || 48);
     const binary = args[origin === 'upstream' ? 'reference' : 'oc'];
@@ -225,7 +246,7 @@ try {
       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
       agent_profile: args['agent-profile'] === 'true',
        seed_root: args['seed-root'], session: args.session, tab_restart: tabRestart || renameSession,
-       regenerate_title: regenerateTitle};
+        regenerate_title: regenerateTitle, ...(scanner ? {scanner:true, animations:scannerAnimation} : {})};
     fs.writeFileSync(path.join(dir,'bridge-spec.json'), JSON.stringify(spec, null, 2));
     lock[origin] = {...lock[origin], executable_path: binary, executable_sha256: hash};
     const page = await browser.newPage({viewport: {width: 1800, height: 1100}, deviceScaleFactor: 1});
@@ -274,40 +295,52 @@ try {
       }
       throw Error('Timed out waiting for '+label);
     };
-    const capture = async (scenario, f, status) => {
+     const capture = async (scenario, f, status, scannerSignature) => {
       const name = path.join(dir,scenario);
-      if (fs.existsSync(name+'.cells.json')) throw Error('Refusing to overwrite scenario: '+name);
+      if ((scanner && ['.cells.json','.txt','.png','.render.json','.vt'].some(ext=>fs.existsSync(name+ext))) ||
+          fs.existsSync(name+'.cells.json')) throw Error('Refusing to overwrite scenario: '+name);
       // Repaint the same VT buffer on both sides to distinguish a stale xterm
       // DOM row left behind by resize from a real application cell mismatch.
       // This never changes the buffer, input sequence, or comparator regions.
       const refreshed = args['refresh-before-capture'] === 'true';
       if (refreshed) await page.evaluate(() => term.refresh(0,term.rows-1));
       // The grid can settle before Chromium paints resized canvas/text layers.
-      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-      const paintWaitFrames = 2;
-      const before = await page.evaluate(() => readCaptureGeometry());
-      const rect = await page.locator('.xterm-screen').boundingBox();
-      if (!rect) throw Error('Missing .xterm-screen screenshot bounds');
-      const clip = {x:rect.x,y:rect.y,width:Math.ceil(rect.width),height:Math.ceil(rect.height)};
-      // Profile records requested shared inputs only. Measured CSS/PNG facts are
-      // per-side observations and must not alter the paired environment ID.
-      const environment = sha(canonical(profile));
+       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+       const paintWaitFrames = 2;
+       const rect = await page.locator('.xterm-screen').boundingBox();
+       if (!rect) throw Error('Missing .xterm-screen screenshot bounds');
+       const clip = {x:rect.x,y:rect.y,width:Math.ceil(rect.width),height:Math.ceil(rect.height)};
+       // For scanner stages the child has acknowledged SIGSTOP. Verify the
+       // complete styled grid before and after painting, never select a later
+       // animation phase to satisfy a previously observed one.
+       if(scannerSignature && scannerSignature.read(f)!==scannerSignature.expected)
+         throw Error('Scanner phase changed before '+scenario+' screenshot');
+       if(scannerSignature && sha(JSON.stringify(await frame()))!==sha(JSON.stringify(f)))
+         throw Error('Paused scanner grid changed before '+scenario+' screenshot');
+       const before=await page.evaluate(() => readCaptureGeometry());
+       const png=await page.screenshot({path:name+'.png', clip});
+       const after=await page.evaluate(() => readCaptureGeometry());
+       const afterFrame=await frame();
+       // Profile records requested shared inputs only. Measured CSS/PNG facts are
+       // per-side observations and must not alter the paired environment ID.
+       const environment = sha(canonical(profile));
       const {text, ...grid} = f;
       fs.writeFileSync(name+'.cells.json', JSON.stringify({schema_version:1, origin, scenario,
         fixture_sha256:fixtureSha, environment_id:environment,
         producer_commit: origin==='upstream' ? lock.sources.upstream_commit : commit, ...grid}));
       fs.writeFileSync(name+'.txt', text+'\n');
-      const png = await page.screenshot({path:name+'.png', clip});
-      const after = await page.evaluate(() => readCaptureGeometry());
-      const render = {schema_version:1, origin, scenario, environment_id:environment,
-        terminal_refresh_from_buffer:refreshed,
-        paint_wait_request_animation_frames:paintWaitFrames, before, after,
+       const render = {schema_version:1, origin, scenario, environment_id:environment,
+         terminal_refresh_from_buffer:refreshed,
+         paint_wait_request_animation_frames:paintWaitFrames,
+         ...(scannerSignature ? {paused_scanner_signature:scannerSignature.expected,
+           paused_grid_stable:sha(JSON.stringify(afterFrame))===sha(JSON.stringify(f))} : {}), before, after,
         layout_changed_during_screenshot:canonical(before)!==canonical(after),
         screenshot: {clip, png_width:png.readUInt32BE(16), png_height:png.readUInt32BE(20)}};
       fs.writeFileSync(name+'.render.json',JSON.stringify(render,null,2)+'\n');
-      if(sha(JSON.stringify(await frame())) !== sha(JSON.stringify(f))) {
-        status='UNSTABLE_CAPTURE'; result=1;
-        lock.attempts.push({origin,scenario,status,reason:'VT grid changed during PNG capture'});
+       if(sha(JSON.stringify(afterFrame)) !== sha(JSON.stringify(f)) ||
+           (scannerSignature && scannerSignature.read(afterFrame)!==scannerSignature.expected)) {
+          status='UNSTABLE_CAPTURE'; result=1;
+          lock.attempts.push({origin,scenario,status,reason:'VT grid changed during PNG capture'});
       }
       fs.writeFileSync(name+'.vt', Buffer.concat(chunks[generation]));
       lock.captures.push({origin,scenario,status,environment_id:environment,
@@ -597,7 +630,403 @@ try {
         lock.mention[origin]={status:'IN_PROGRESS',checks:mentionChecks};
         await probeMention('home');
       }
-      send('\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\x1b[201~','prompt_paste');
+       if(scanner) {
+         const stages = scannerAnimation ? ['forward','end-hold','reverse','start-hold'] : ['fallback'];
+          const observations=[], checks={animation:scannerAnimation, cancel:scannerCancel,
+            observations, pause_attempts:[], stages:{}, predicates:{}, release:null};
+         lock.scanner ??= {};
+         lock.scanner[origin]={status:'IN_PROGRESS',checks};
+         const save=()=>{fs.writeFileSync(path.join(dir,'scanner-checks.json'),JSON.stringify(checks,null,2)+'\n');json('capture.lock.json',lock);};
+         // Locate the painted interrupt hint independently on each side. The
+         // adjacent block run is read from VT styled cells, not a timer/DOM.
+           const observe=f=>{
+            const direct=visibleMatches(f,'esc interrupt');
+            const again=visibleMatches(f,'esc again to interrupt');
+            const hints=direct.length ? direct : again;
+            if(hints.length!==1) return {hints,run_count:0,fallback:[],phase:null};
+           const {x,y}=hints[0], row=f.cells[y];
+           const cells=row.slice(x-9,x-1);
+           const run=cells.length===8 && row[x-1]?.symbol===' ' &&
+             cells.every(c=>c.width===1 && (c.symbol==='■' || c.symbol==='⬝')) ? {x:x-9,y,cells} : null;
+           const active=run ? run.cells.flatMap((c,i)=>c.symbol==='■'?[i]:[]) : [];
+           const fallback=visibleMatches(f,'[⋯]').filter(p=>p.y===y && p.x===x-4);
+              return {hints,hint_text:direct.length?'esc interrupt':'esc again to interrupt',run,run_count:run?1:0,
+             active,first:active[0]??null,last:active.at(-1)??null,fallback,
+              signature:run?sha(JSON.stringify(run.cells)):null};
+          };
+          const phaseCells=(f,o)=>o.run?.cells ?? (o.fallback.length===1 ?
+            f.cells[o.fallback[0].y].slice(o.fallback[0].x,o.fallback[0].x+3) : null);
+          const indicatorAbsent=f=>observe(f).hints.length===0 &&
+            !f.cells.slice(-3).some(row=>row.some(c=>c.symbol==='■' || c.symbol==='⬝')) &&
+            visibleMatches(f,'[⋯]').length===0;
+          const glyphs=cells=>cells?.map(c=>c.symbol).join('') ?? null;
+          const colorDistance=(left,right)=>left.reduce((sum,c,i)=>sum+
+            ['fg','bg'].reduce((n,key)=>n+[1,3,5].reduce((rgb,p)=>rgb+
+              Math.abs(parseInt(c[key].slice(p,p+2),16)-parseInt(right[i][key].slice(p,p+2),16)),0),0),0);
+          const referenceStages=lock.scanner?.upstream?.checks.stages;
+          // The footer probe builds cells in a different property order from
+          // readTerminal; hash the same styled fields in the probe's order.
+          const referenceSignatures=origin==='oc' && scannerAnimation ? Object.fromEntries(
+            stages.filter(stage=>referenceStages?.[stage]?.indicator_cells).map(stage=>[
+              stage,sha(JSON.stringify(referenceStages[stage].indicator_cells.map(
+                ({symbol,width,fg,bg,modifiers})=>({symbol,width,fg,bg,modifiers}))))])) : {};
+          // Poll the real xterm VT footer cheaply while the child runs. A full
+          // 120x40 styled read costs several 40ms animation frames; after ACK,
+          // the capture still reads and compares the *entire* styled grid.
+          const runningProbe=async()=>{
+            await writeQueue;
+            return page.evaluate(()=>{
+              const buffer=term.buffer.active, colors=term._core._themeService.colors;
+              const cells=Array.from({length:term.rows},()=>[]);
+              for(let y=Math.max(0,term.rows-3);y<term.rows;y++) {
+                const line=buffer.getLine(buffer.viewportY+y);
+                const row=Array.from({length:term.cols},(_,x)=>{
+                  const c=line.getCell(x);
+                  return {symbol:c.getChars() || (c.getWidth()===0?'':' '),width:c.getWidth()};
+                });
+                cells[y]=row;
+                const symbols=row.map(c=>c.symbol).join('');
+                const hint=symbols.includes('esc interrupt')?'esc interrupt':'esc again to interrupt';
+                const x=symbols.indexOf(hint);
+                if(x<9 || symbols.indexOf(hint,x+1)!==-1) continue;
+                const color=(c,fg)=>{
+                  const value=fg?c.getFgColor():c.getBgColor();
+                  const rgb=(fg?c.isFgRGB():c.isBgRGB())?value:
+                    (fg?c.isFgPalette():c.isBgPalette())?colors.ansi[value].rgba>>>8:
+                    (fg?colors.foreground:colors.background).rgba>>>8;
+                  return '#'+rgb.toString(16).padStart(6,'0');
+                };
+                const modifiers=[['isBold','bold'],['isDim','dim'],['isItalic','italic'],
+                  ['isUnderline','underlined'],['isBlink','slow_blink'],['isInverse','reversed'],
+                  ['isInvisible','hidden'],['isStrikethrough','crossed_out']];
+                for(let i=x-9;i<x-1;i++) {
+                  const c=line.getCell(i);
+                  row[i]={...row[i],fg:color(c,true),bg:color(c,false),
+                    modifiers:modifiers.filter(([method])=>c[method]()).map(([,name])=>name).sort()};
+                }
+              }
+              return {cells};
+            });
+          };
+         const counts=()=>({requests:logs.filter(e=>e.kind==='provider').length,
+           completed:logs.filter(e=>e.kind==='provider_completed').length,
+           invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});
+         const promptText=fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim();
+         send('\x1b[200~'+promptText+'\x1b[201~','scanner_prompt_paste');
+         await sleep(200);send('\r','scanner_submit');
+          const started=Date.now();
+          // The timer belongs to the HTTP handler, not the paused application.
+           const deadline=started+(scannerAnimation?35000:8000);
+           const candidateWindows={};
+           const candidates={};
+            let lastSignature=null, direction='forward', endBlank=false, endFade=false, startBlank=false, endMovingColor=null;
+           let seenEndFade=false, seenStartFade=false, cycle=0;
+          let requestId=0;
+          const control=async kind=>{
+            if(child.stdin.destroyed || bridgeExit!==undefined) throw Error('Scanner bridge unavailable for '+kind);
+            const id=++requestId;
+            child.stdin.write(JSON.stringify({kind,request_id:id})+'\n');
+            const ackKind=kind==='pause_scanner'?'scanner_pause_ack':'scanner_resume_ack';
+            const limit=Date.now()+4000;
+            while(Date.now()<limit) {
+              const ack=logs.find(e=>e.kind===ackKind && e.request_id===id && e.generation===generation);
+              if(ack) {
+                if(ack.error || ack.paused!==(kind==='pause_scanner')) throw Error('Scanner '+kind+' rejected: '+JSON.stringify(ack));
+                return ack;
+              }
+              if(bridgeExit!==undefined) throw Error('Bridge exited waiting for '+ackKind);
+              await sleep(10);
+            }
+            throw Error('Timed out waiting for '+ackKind+' '+id);
+          };
+          const forwardPositions=new Set(), reversePositions=new Set(), endColors=new Set(), startColors=new Set();
+           const brightness=c=>/^#[0-9a-f]{6}$/i.test(c?.fg ?? '') ?
+             [1,3,5].reduce((sum,i)=>sum+parseInt(c.fg.slice(i,i+2),16),0) : null;
+           const uniformDots=o=>o.run && o.active.length===0 &&
+             o.run.cells.every(c=>c.fg===o.run.cells[0].fg && /^#[0-9a-f]{6}$/i.test(c.fg));
+           const endTrail=o=>o.run && o.first>0 && o.last===7 &&
+             brightness(o.run.cells[o.first])<brightness(o.run.cells[7]);
+           const reverseTrail=o=>o.run && o.first>0 && o.last===7 &&
+             brightness(o.run.cells[o.first])>brightness(o.run.cells[7]);
+           const forwardTrail=o=>o.run && o.first===0 && o.last>=1 && o.last<=6 &&
+             brightness(o.run.cells[0])<brightness(o.run.cells[o.last]);
+           // Moving edges have opposite color gradients. The identical all-dot
+           // glyph rows are distinguished by their observed preceding edge and
+           // the continuing fade, not by position in a wall-clock schedule.
+           const stageMatches=(stage,o)=>o.hints.length===1 && (stage==='fallback' ?
+             o.run_count===0 && o.fallback.length===1 : o.run_count===1 && (
+               stage==='forward' ? forwardTrail(o) :
+               stage==='end-hold' ? (endTrail(o) && o.run.cells[7].fg!==endMovingColor ||
+                 uniformDots(o) && endMovingColor!==null &&
+                 brightness(o.run.cells[0])<=brightness({fg:[...endColors].at(-1) ?? endMovingColor})) :
+               stage==='reverse' ? reverseTrail(o) && o.first<=6 :
+               stage==='start-hold' ? uniformDots(o) && startColors.size>=2 &&
+                 brightness(o.run.cells[0])<=brightness({fg:[...startColors].at(-1)}) : false));
+          try {
+            while(Date.now()<deadline && stages.some(stage=>!checks.stages[stage])) {
+               const f=await runningProbe(), o=observe(f);
+             if(o.hints.length===1 && (o.signature || o.fallback.length===1) &&
+                 (o.signature ?? 'fallback')!==lastSignature) {
+               lastSignature=o.signature ?? 'fallback';
+               const sample={elapsed_ms:Date.now()-started,at:new Date().toISOString(),cycle,
+                 hint:o.hints[0],run:o.run,active:o.active,fallback:o.fallback,
+                 provider_counts:counts(),signature:o.signature};
+               observations.push(sample);
+                const prior=direction;
+                if(scannerAnimation && o.run) {
+                  if(direction==='forward') {
+                    if(o.first===0 && o.last!==null && o.last<7) forwardPositions.add(o.last);
+                    if(o.last===7) {direction='end';endMovingColor=o.run.cells[7].fg;}
+                  } else if(direction==='end') {
+                    if(uniformDots(o)) {endBlank=true;endColors.add(o.run.cells[0].fg);}
+                    if(endTrail(o) && o.run.cells[7].fg!==endMovingColor) {
+                      endFade=true;endColors.add(o.run.cells[7].fg);
+                    }
+                    if(endBlank || endFade) seenEndFade=true;
+                    // The short end hold can lie entirely between two costly
+                    // browser samples. A reversed *color gradient* is still a
+                    // real observed transition, even if no blank was sampled.
+                    if((endBlank || endFade) && reverseTrail(o)) direction='reverse';
+                  } else if(direction==='reverse') {
+                    if(o.first>0 && o.last===7) reversePositions.add(o.first);
+                    if(o.first===0 || (o.first===1 && o.last<7)) direction='start';
+                  } else if(direction==='start') {
+                    if(uniformDots(o)) {
+                      startBlank=true;startColors.add(o.run.cells[0].fg);
+                      if(startColors.size>=2) seenStartFade=true;
+                    }
+                    if(forwardTrail(o)) {
+                      cycle++;direction='forward';endBlank=false;endFade=false;startBlank=false;
+                      endMovingColor=null;endColors.clear();startColors.clear();
+                      forwardPositions.add(o.last);
+                    }
+                  }
+                 }
+                sample.cycle=cycle;sample.transition={from:prior,to:direction};
+                 // Classify original holds after their moving edge; native
+                 // matching may instead use the exact reference signature.
+              const expectedStage=stages.find(s=>!checks.stages[s]);
+              const reference=origin==='oc' ? referenceStages?.[expectedStage]?.indicator_cells : null;
+              const candidateCells=phaseCells(f,o);
+              // A native exact styled-cell signature is enough to request a
+              // pause now: the 40ms start hold may be gone before two distinct
+              // start colors are sampled. Stage order and progression evidence
+              // are still checked independently below.
+              const exactLive=origin==='oc' && o.run_count===1 &&
+                o.signature===referenceSignatures[expectedStage];
+               const stage=exactLive || (origin==='upstream' || reference) &&
+                 (!scannerAnimation || direction===({forward:'forward','end-hold':'end',reverse:'reverse','start-hold':'start'}[expectedStage])) &&
+                  stageMatches(expectedStage,o) && (!reference || glyphs(candidateCells)===glyphs(reference)) ? expectedStage : null;
+                 if(stage && !checks.stages[stage]) {
+                  const attempt={stage, observed:sample, requested_at:new Date().toISOString()};
+                  checks.pause_attempts.push(attempt);
+                  try {
+                    attempt.pause_ack=await control('pause_scanner');
+                    const stable=await frame(), actual=observe(stable);
+                    const actualCells=phaseCells(stable,actual);
+                    attempt.paused={at:new Date().toISOString(),observed:actual,
+                      grid_sha256:sha(JSON.stringify(stable))};save();
+                    const exactPaused=reference && actual.hints.length===1 && actual.run_count===1 &&
+                      canonical(actualCells)===canonical(reference);
+                    const same=exactLive && exactPaused || stageMatches(stage,actual) &&
+                      (!reference || glyphs(actualCells)===glyphs(reference));
+                    attempt.paused.matches_requested_stage=Boolean(same);save();
+                    if(same) {
+                      // The paused *actual* phase supplies the exact signature;
+                      // ACK latency is allowed to change the live candidate.
+                      const signature={expected:actual.signature ?? 'fallback',
+                        read:v=>observe(v).signature ?? (observe(v).fallback.length===1?'fallback':null)};
+                      const peers=candidates[stage] ??= [];
+                      const exact=reference && (exactPaused || canonical(actualCells)===canonical(reference));
+                      // The comparator requires matching scenario fields. Save
+                      // the first accepted paused match under its final name;
+                      // never rename or rewrite a completed candidate capture.
+                      const scenario='scanner-'+stage+(reference && !exact ? '-candidate-'+(peers.length+1) : '');
+                      attempt.capture_name=scenario;
+                      attempt.phase_match=reference ? exact?'EXACT_INDICATOR':'CANDIDATE' : 'REFERENCE';
+                      const status=await capture(scenario,stable,'CAPTURED_SCANNER',
+                        signature);
+                      attempt.status=status;
+                      const candidate={status,scenario,sample,paused:attempt.paused,
+                        indicator_cells:actualCells,
+                        color_distance:reference ? colorDistance(reference,actualCells) : 0};
+                      peers.push(candidate);
+                      if(!reference || exact) {
+                        checks.stages[stage]={...candidate,phase_match:reference?'EXACT_INDICATOR':'REFERENCE'};
+                      } else candidateWindows[stage] ??= Date.now();
+                      save();
+                    } else attempt.status='DIFFERENT_PHASE_AT_PAUSE';
+                  } catch(e) {
+                    attempt.status='FAILED';attempt.error=e.message;save();
+                    throw e;
+                  } finally {
+                    // Also send resume when pause ACK is lost: the bridge may
+                    // have stopped the child before the IPC event was observed.
+                    if(child.stdin.destroyed || bridgeExit!==undefined) {
+                      attempt.resume='BRIDGE_EXITED';
+                    } else {
+                      try {attempt.resume_ack=await control('resume_scanner');}
+                      catch(e) {attempt.resume_error=e.message;throw e;}
+                    }
+                    save();
+                   }
+                 } else if(origin==='upstream' && (prior!==direction || observations.length%10===0)) {
+                   save();
+                 }
+               }
+               if(origin==='oc') {
+                 const pending=stages.find(s=>!checks.stages[s]);
+                 // Diagnostics from a few inexact pauses must not close the
+                 // next native stage while an exact reference can still occur
+                 // within the existing deadline.
+                 if(pending && !referenceSignatures[pending] && candidates[pending]?.length &&
+                     (candidates[pending].length>=3 || Date.now()-candidateWindows[pending]>=2000)) {
+                  const best=candidates[pending].reduce((a,b)=>b.color_distance<a.color_distance?b:a);
+                  checks.stages[pending]={...best,phase_match:'UNMATCHED_PHASE',
+                    candidates_observed:candidates[pending].length};
+                  save();
+                }
+              }
+              if(bridgeExit!==undefined) throw Error('Bridge exited while scanner running: '+bridgeExit);
+             await sleep(12);
+           }
+               for(const stage of stages) {
+                 if(origin==='oc' && !checks.stages[stage] && candidates[stage]?.length) {
+                   const best=candidates[stage].reduce((a,b)=>b.color_distance<a.color_distance?b:a);
+                   checks.stages[stage]={...best,phase_match:'UNMATCHED_PHASE',
+                     candidates_observed:candidates[stage].length};
+                 }
+                 if(!checks.stages[stage]) checks.stages[stage]={status:'UNMATCHED_PHASE',
+                   reason:origin==='oc' ? referenceStages?.[stage]?.indicator_cells ?
+                     'No paused native frame with original glyph pattern' : 'No original paused reference frame' :
+                     'No paused stage frame'};
+              }
+               checks.predicates={all_phases_observed:stages.every(stage=>checks.stages[stage]?.status==='CAPTURED_SCANNER' &&
+                 (origin==='upstream' || checks.stages[stage].phase_match==='EXACT_INDICATOR')),
+              ...(scannerAnimation ? {forward_progression:forwardPositions.size>=1,
+                end_fade_observed:seenEndFade,
+                reverse_progression:reversePositions.size>=1,
+                start_fade_observed:seenStartFade} : {}),
+             provider_held:logs.some(e=>e.kind==='scanner_held'),
+              no_early_completion:!logs.some(e=>e.kind==='scanner_resumed'),
+              valid_running_requests:counts().invalid===0};
+             save();
+             if(scannerCancel) {
+               const held=()=>logs.some(e=>e.kind==='scanner_held') && !logs.some(e=>
+                 e.kind==='scanner_resumed' || e.kind==='provider_completed' && e.operation==='transcript');
+               checks.interruption={escapes:[],armed_hint:null,status:'IN_PROGRESS'};
+               const armed=observe(await runningProbe());
+               checks.interruption.armed_hint=armed;
+               checks.interruption.armed_counts=counts();save();
+               if(!held() || armed.hints.length!==1 ||
+                   (scannerAnimation ? armed.run_count!==1 : armed.fallback.length!==1))
+                 throw Error('Scanner interrupt not armed with painted hint and held provider');
+               let interrupted;
+               const escapeDeadline=Date.now()+5000;
+               for(let i=1;i<=3 && !interrupted && Date.now()<escapeDeadline;i++) {
+                 const before=observe(await runningProbe());
+                 if(!held() || before.hints.length!==1 ||
+                     (scannerAnimation ? before.run_count!==1 : before.fallback.length!==1))
+                   throw Error('Scanner no longer armed before Escape '+i);
+                 const escape={number:i,at:new Date().toISOString(),held_before:held(),
+                   before,counts_before:counts(),checks:[]};
+                 checks.interruption.escapes.push(escape);
+                 send('\x1b','scanner_interrupt_escape_'+i);save();
+                 const checkUntil=Math.min(escapeDeadline,Date.now()+1100);
+                 let absent=0;
+                 while(Date.now()<checkUntil) {
+                   const f=await frame(), observed=observe(f);
+                   const gone=indicatorAbsent(f);
+                   escape.checks.push({at:new Date().toISOString(),hint:observed.hints,
+                     hint_text:observed.hint_text ?? null,
+                     indicator_absent:gone,provider_counts:counts(),held:held()});
+                   if(gone && ++absent>=2) {interrupted=f;break;}
+                   if(!gone) absent=0;
+                   if(bridgeExit!==undefined || !held()) break;
+                   await sleep(100);
+                 }
+                 escape.counts_after=counts();escape.canceled=Boolean(interrupted);save();
+               }
+               if(!interrupted) {
+                 checks.interruption.status='NO_CANCEL_AFTER_ESCAPES';
+                 checks.interruption.provider_counts=counts();save();
+                 throw Error('Scanner did not cancel after '+checks.interruption.escapes.length+' Escapes within five seconds');
+               }
+               // The idle tab title can keep animating independently of the
+               // canceled footer. Freeze the real PTY before the full-grid PNG.
+               let interruptedStatus;
+               try {
+                 checks.interruption.pause_ack=await control('pause_scanner');
+                 interrupted=await frame();
+                 if(!indicatorAbsent(interrupted) || !held())
+                   throw Error('Scanner interruption changed before paused capture');
+                 interruptedStatus=await capture('scanner-interrupted',interrupted,'CAPTURED_SCANNER_INTERRUPTED');
+               } finally {
+                 if(!child.stdin.destroyed && bridgeExit===undefined)
+                   checks.interruption.resume_ack=await control('resume_scanner');
+                 save();
+               }
+               checks.predicates={...checks.predicates,held_at_escape:checks.interruption.escapes.every(e=>e.held_before),
+                 running_indicator_disappeared:indicatorAbsent(interrupted),
+                 durable_input_visible:interrupted.text.includes(promptText),
+                 interrupted_capture:interruptedStatus==='CAPTURED_SCANNER_INTERRUPTED',
+                 no_completed_read:!interrupted.text.includes('GEOMETRY-SHORT: tool read completed.'),
+                 no_completed_transcript:!logs.some(e=>e.kind==='provider_completed' && e.operation==='transcript')};
+               Object.assign(checks.interruption,{status:'CANCELED',at:new Date().toISOString(),
+                 provider_counts:counts(),grid_sha256:sha(JSON.stringify(interrupted)),indicator:observe(interrupted)});
+               save();
+             }
+         } finally {
+            // The server has a 60s timeout as a second bound; release even if
+           // phase detection fails, so no handler holds bridge shutdown open.
+            if(!child.stdin.destroyed) child.stdin.write(JSON.stringify({kind:'release_scanner'})+'\n');
+            checks.release={at:new Date().toISOString(),elapsed_ms:Date.now()-started};save();
+          }
+          if(scannerCancel) {
+             const after=await waitFor(f=>logs.some(e=>e.kind==='scanner_resumed') &&
+               logs.some(e=>(e.kind==='provider_disconnected' || e.kind==='provider_completed') &&
+                 e.operation==='transcript') &&
+               !f.text.includes('esc interrupt'),'scanner canceled provider released',12000);
+             const prior=observations.find(s=>s.hint)?.hint;
+            checks.predicates={...checks.predicates,
+              release_acknowledged:logs.some(e=>e.kind==='scanner_release_requested'),
+              server_released:logs.some(e=>e.kind==='scanner_resumed' && e.released),
+              provider_request_terminated:logs.some(e=>e.kind==='provider_disconnected' && e.operation==='transcript') ||
+                logs.some(e=>e.kind==='provider_completed' && e.operation==='transcript'),
+              no_post_cancel_answer:!after.text.includes('GEOMETRY-SHORT: tool read completed.'),
+              durable_input_after_release:after.text.includes(promptText),
+              no_hidden_spinner:!!prior && indicatorAbsent(after),
+              no_extra_transcript_requests:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length===1 &&
+                counts().invalid===0};
+            checks.interruption.after_release_counts=counts();save();
+          } else {
+          const completed=await waitFor(f=>f.text.includes('GEOMETRY-SHORT: tool read completed.') &&
+           logs.some(e=>e.kind==='scanner_resumed' && e.released) &&
+           logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length===2 &&
+           logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length===1 &&
+           /MiMo-V2.6-Flash Free · \d/.test(f.text),'scanner released completed read',12000);
+         const completedStatus=await capture('scanner-completed',completed,'CAPTURED_SCANNER_COMPLETED');
+         const gone=observe(completed);
+         const previous=observations.find(s=>s.hint)?.hint;
+         const footer=previous ? completed.cells[previous.y] : [];
+         const indicatorGone=gone.hints.length===0 && !footer.some(c=>c.symbol==='■' || c.symbol==='⬝') &&
+           visibleMatches(completed,'[⋯]').filter(p=>p.y===previous?.y).length===0;
+         checks.predicates={...checks.predicates,release_acknowledged:logs.some(e=>e.kind==='scanner_release_requested'),
+           server_released:logs.some(e=>e.kind==='scanner_resumed' && e.released),
+           running_indicator_disappeared:indicatorGone,
+           completed_read_visible:completed.text.includes('GEOMETRY-SHORT: tool read completed.'),
+           completed_capture:completedStatus==='CAPTURED_SCANNER_COMPLETED',
+            valid_provider_roundtrip:counts().invalid===0 && counts().requests===3 && counts().completed===3};
+          save();
+          }
+         const passed=Object.values(checks.predicates).every(Boolean);
+          lock.scanner[origin].status=passed?'PASS':
+            stages.some(stage=>checks.stages[stage]?.status==='UNMATCHED_PHASE' ||
+              checks.stages[stage]?.phase_match==='UNMATCHED_PHASE') ? 'UNMATCHED_PHASE':'FAILED_OBSERVATION';
+         lock.attempts.push({origin,status:'SCANNER_'+lock.scanner[origin].status,predicates:checks.predicates});
+         if(!passed) result=1;
+       } else {
+       send('\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\x1b[201~','prompt_paste');
       await sleep(200); send('\r','submit');
        const marker = ['short','reasoning','tools'].includes(args.sample) ? 'GEOMETRY-SHORT' : ['rows','rows-reflow'].includes(args.sample) ? 'ROW-089' : 'Через Code Mode';
        const done = await waitFor(f => f.text.includes(marker) &&
@@ -1530,7 +1959,8 @@ try {
         catch(e) {await capture('variants-over-session',await frame(),'FAILED_STATE'); lock.attempts.push({origin,scenario:'variants-over-session',status:'FAILED',reason:e.message}); result=1;}
       }
       }
-      lock.attempts.push({origin,status:'EXECUTED',provider_contract:logs.filter(e=>e.kind==='provider').every(e=>e.valid)});
+       }
+       lock.attempts.push({origin,status:'EXECUTED',provider_contract:logs.filter(e=>e.kind==='provider').every(e=>e.valid)});
     } catch(e) {
       result=1; lock.attempts.push({origin,status:'FAILED',reason:e.message});
       if(tabClick && lock.tab_interactions?.[origin]) lock.tab_interactions[origin].status='FAILED';
@@ -1543,9 +1973,12 @@ try {
         if(autocompleteKeys && lock.autocomplete_keys?.[origin]) lock.autocomplete_keys[origin].status='FAILED';
           if(mention && lock.mention?.[origin]) lock.mention[origin].status='FAILED';
           if(reasoningClick && lock.reasoning_click?.[origin]) lock.reasoning_click[origin].status='FAILED';
-          if(selectionCopy && lock.selection_copy?.[origin]) lock.selection_copy[origin].status='FAILED';
+           if(selectionCopy && lock.selection_copy?.[origin]) lock.selection_copy[origin].status='FAILED';
+           if(scanner && lock.scanner?.[origin]) lock.scanner[origin].status='FAILED';
       await capture('failure-diagnostic',await frame(),'FAILED_STATE');
     } finally {
+      if(scanner && !child.stdin.destroyed)
+        child.stdin.write(JSON.stringify({kind:'release_scanner'})+'\n');
       if(!child.stdin.destroyed) child.stdin.write(JSON.stringify({kind:'stop'})+'\n');
       await closed;
       await writeQueue;
@@ -1585,14 +2018,26 @@ try {
       'Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states'],
     mcp_error_and_stall: 'NOT_RUN (V00 three-screen capture only)'
   };
-  for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))] : ['session-wide-completed','commands-over-session','models-over-session', ...(args.variants === 'true' ? ['variants-over-session'] : [])]) {
+  for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))]
+    .filter(s=>!scanner || !s.includes('-candidate-')) : ['session-wide-completed','commands-over-session','models-over-session', ...(args.variants === 'true' ? ['variants-over-session'] : [])]) {
     for (const mode of ['grid','png']) {
       const ext=mode==='grid'?'cells.json':'png';
-      const ref=path.join(output,'upstream',scenario+'.'+ext), actual=path.join(output,'oc',scenario+'.'+ext);
+      const stage=scanner && scenario.startsWith('scanner-') ? scenario.slice('scanner-'.length) : null;
+      const paired=stage && lock.scanner?.oc?.checks.stages[stage];
+      if(stage && paired?.status==='UNMATCHED_PHASE') {
+        lock.attempts.push({scenario,mode,status:'UNMATCHED_PHASE',reason:paired.reason});result=1;continue;
+      }
+      const ref=path.join(output,'upstream',scenario+'.'+ext);
+      const actual=path.join(output,'oc',(paired?.scenario ?? scenario)+'.'+ext);
+      if(paired?.phase_match==='EXACT_INDICATOR' && paired.scenario!==scenario)
+        throw Error('Accepted scanner phase must have canonical scenario: '+scenario);
       if (!fs.existsSync(ref)||!fs.existsSync(actual)) {lock.attempts.push({scenario,mode,status:'BLOCKED',reason:'Missing actual capture'});result=1;continue;}
       const r=execute(['/usr/bin/python3',path.join(repo,'tui-recovery/scripts/compare_frames.py'),mode,ref,actual,'--report',path.join(output,scenario+'.'+mode+'-diff.json')]);
-      lock.attempts.push({scenario,mode,status:r.status===0?'EQUAL':r.status===1?'DIFFERENT':'INVALID',exit_code:r.status});
-      if(r.status!==0)result=1;
+      lock.attempts.push({scenario,mode,status:paired?.phase_match==='UNMATCHED_PHASE' ? 'UNMATCHED_PHASE' :
+        r.status===0?'EQUAL':r.status===1?'DIFFERENT':'INVALID',
+        ...(paired?.phase_match==='UNMATCHED_PHASE' ? {grid_or_png_result:r.status===0?'EQUAL':r.status===1?'DIFFERENT':'INVALID'} : {}),
+        ...(paired?.scenario ? {native_capture:paired.scenario,phase_match:paired.phase_match} : {}),exit_code:r.status});
+      if(r.status!==0 || paired?.phase_match==='UNMATCHED_PHASE')result=1;
     }
   }
 } catch(e) {lock.attempts.push({status:'BLOCKED',reason:e.stack});result=2;}

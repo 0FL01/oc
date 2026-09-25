@@ -16,6 +16,8 @@ import sys
 import termios
 import threading
 
+scanner_release = threading.Event()
+
 
 def emit(value):
     with output_lock:
@@ -152,13 +154,27 @@ class Provider(BaseHTTPRequestHandler):
                        'output_tokens_details': {'reasoning_tokens': 0}}}},
           ]
         payload = ''.join('event: ' + e['type'] + '\ndata: ' + json.dumps({**e, 'sequence_number': i}, ensure_ascii=False) + '\n\n'
-                          for i, e in enumerate(events)).encode()
+                           for i, e in enumerate(events)).encode()
+        scanner_hold = spec.get('scanner') and not is_title and round_number == 0 and turn_number == 0
+        prefix = ('event: response.created\ndata: ' + json.dumps({**events[0], 'sequence_number': 0}) + '\n\n').encode()
         self.send_response(200)
         self.send_header('Content-Type', 'text/event-stream')
         self.send_header('Content-Length', str(len(payload)))
         self.end_headers()
-        self.wfile.write(payload)
-        self.wfile.flush()
+        try:
+            if scanner_hold:
+                self.wfile.write(prefix)
+                self.wfile.flush()
+                emit({'kind': 'scanner_held', 'timeout_seconds': 60})
+                released = scanner_release.wait(60)
+                emit({'kind': 'scanner_resumed', 'released': released})
+                self.wfile.write(payload[len(prefix):])
+            else:
+                self.wfile.write(payload)
+            self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError):
+            emit({'kind': 'provider_disconnected', 'operation': record['operation']})
+            return
         emit({'kind': 'provider_completed', 'operation': record['operation'],
               'response_text_sha256': hashlib.sha256(text.encode()).hexdigest()})
 
@@ -192,7 +208,7 @@ if spec['origin'] == 'upstream':
         config['default_agent'] = profile_id
         config['agents'] = {profile_id: {'mode': 'primary', 'system': profile_prompt,
                                          'color': '#5c9cf5'}}
-    cli_config = {'theme': {'name': 'opencode', 'mode': 'dark'}, 'animations': False,
+    cli_config = {'theme': {'name': 'opencode', 'mode': 'dark'}, 'animations': spec.get('animations', False),
                    'session': {'sidebar': spec.get('sidebar', 'auto'), 'tps': False},
                    'tabs': {'layout': spec.get('tabs', 'horizontal')},
                   'attention': {'notifications': False, 'sound': False},
@@ -202,6 +218,8 @@ else:
     config = {'model': 'fixture/fixture-model-1', 'provider': {'fixture': {
         'name': catalog['provider']['name'], 'npm': '@ai-sdk/openai', 'options': settings, 'models': models}},
         'permissions': {'read': 'allow'}}
+    if spec.get('scanner'):
+        config['animations'] = spec['animations']
     if profile_id:
         # Native inline definitions use singular `agent` and `prompt`.
         config['default_agent'] = profile_id
@@ -270,6 +288,7 @@ try:
                                  stderr=slave, cwd=project, env=env, preexec_fn=session)
         os.close(slave)
         forced = False
+        scanner_paused = False
         try:
             while child.poll() is None:
                 ready, _, _ = select.select([master, sys.stdin], [], [], .1)
@@ -297,9 +316,50 @@ try:
                             emit({'kind': 'resize', 'columns': command['columns'], 'rows': command['rows']})
                         elif command['kind'] == 'stop':
                             forced = True
+                        elif command['kind'] == 'release_scanner' and spec.get('scanner'):
+                            scanner_release.set()
+                            emit({'kind': 'scanner_release_requested'})
+                        elif command['kind'] in ('pause_scanner', 'resume_scanner') and spec.get('scanner'):
+                            pause = command['kind'] == 'pause_scanner'
+                            try:
+                                if pause and child.poll() is None and not scanner_paused:
+                                    os.killpg(child.pid, signal.SIGSTOP)
+                                    scanner_paused = True
+                                elif not pause and scanner_paused:
+                                    os.killpg(child.pid, signal.SIGCONT)
+                                    scanner_paused = False
+                                if pause and scanner_paused:
+                                    # Flush all PTY bytes written before SIGSTOP before ACK;
+                                    # the frontend must apply them before its paused resample.
+                                    while select.select([master], [], [], 0)[0]:
+                                        try:
+                                            drained = os.read(master, 65536)
+                                        except OSError:
+                                            break
+                                        if not drained:
+                                            break
+                                        emit({'kind': 'output', 'generation': generation,
+                                              'data': base64.b64encode(drained).decode()})
+                                emit({'kind': 'scanner_pause_ack' if pause else 'scanner_resume_ack',
+                                      'request_id': command['request_id'], 'paused': scanner_paused,
+                                      'generation': generation})
+                            except ProcessLookupError:
+                                scanner_paused = False
+                                emit({'kind': 'scanner_pause_ack' if pause else 'scanner_resume_ack',
+                                      'request_id': command['request_id'], 'paused': False,
+                                      'generation': generation, 'error': 'child exited'})
                     if forced:
                         break
         finally:
+            # SIGSTOP also stops graceful termination; never wait/kill a paused
+            # process group. This runs on stop, stdin EOF, exception and PTY EIO.
+            if scanner_paused:
+                try:
+                    os.killpg(child.pid, signal.SIGCONT)
+                except ProcessLookupError:
+                    pass
+                scanner_paused = False
+                emit({'kind': 'scanner_cleanup_resumed', 'generation': generation})
             # The PTY master can report EIO just before waitpid observes a
             # normal app.exit. Give that exit a bounded chance to complete;
             # otherwise a graceful quit is misclassified as forced teardown.
@@ -338,4 +398,6 @@ try:
         generation += 1
         emit({'kind': 'relaunch', 'generation': generation, 'argv': argv, 'cwd': str(project)})
 finally:
+    scanner_release.set()
     server.shutdown()
+    server.server_close()

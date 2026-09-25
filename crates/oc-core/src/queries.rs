@@ -305,6 +305,8 @@ pub struct TuiChrome {
     pub tab_indicators: TabIndicators,
     /// Explicit terminal.copy selection; absence uses the UI's platform default.
     pub terminal_copy: Option<TerminalCopyMode>,
+    /// Explicit config.animations; absence enables interface animations.
+    pub animations: Option<bool>,
 }
 
 /// Mouse text selection/copy behavior from the effective Location config.
@@ -341,6 +343,11 @@ impl TuiChrome {
     pub fn devtools_visible(&self) -> bool {
         self.devtools
             .unwrap_or(self.build_channel == TuiBuildChannel::Local)
+    }
+
+    /// Match upstream `config.animations ?? true`.
+    pub fn animations_enabled(&self) -> bool {
+        self.animations.unwrap_or(true)
     }
 }
 

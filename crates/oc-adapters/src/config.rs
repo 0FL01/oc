@@ -173,6 +173,8 @@ fn default_true() -> bool {
 /// Effective immutable generation (T07 subset).
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Generation {
+    /// Explicit animation preference from the ordered config sources.
+    pub animations: Option<bool>,
     /// Providers by id in sorted order.
     pub providers: BTreeMap<String, ProviderEntry>,
     /// MCP entries by id in sorted order.
@@ -511,6 +513,8 @@ fn assemble_with_reader(
     let mut permission_rules = crate::permissions::PermissionRules::default();
     let mut terminal_copy_source = None;
     let mut terminal_copy = None;
+    let mut animations_source = None;
+    let mut animations = None;
 
     for source in sources {
         let value = parse_jsonc(&source.text, &source.path)?;
@@ -522,6 +526,13 @@ fn assemble_with_reader(
         if let Some(mode) = terminal_copy_value(obj)? {
             terminal_copy_source = Some(source.path.clone());
             terminal_copy = Some(mode);
+        }
+        if let Some(value) = obj.get("animations") {
+            animations = Some(value.as_bool().ok_or_else(|| ConfigError::Invalid {
+                field: "animations".to_string(),
+                reason: "must be a boolean".to_string(),
+            })?);
+            animations_source = Some(source.path.clone());
         }
 
         if let Some(prov) = obj.get("provider") {
@@ -652,9 +663,13 @@ fn assemble_with_reader(
     if let Some(path) = terminal_copy_source {
         provenance.insert("terminal.copy".to_string(), path);
     }
+    if let Some(path) = animations_source {
+        provenance.insert("animations".to_string(), path);
+    }
 
     Ok((
         Generation {
+            animations,
             providers: out_providers,
             mcp: out_mcp,
             permissions: out_perm,
@@ -1211,6 +1226,78 @@ pub fn parse_native_profile(text: &str) -> Result<NativeProfile, ConfigError> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn animations_are_strictly_validated_per_source_with_winning_provenance() {
+        let source = |path: &str, text: &str| super::Source {
+            path: path.into(),
+            text: text.into(),
+            trusted: true,
+        };
+        let global = source(
+            "global/opencode.json",
+            r#"{"animations":false,"terminal":{"copy":"manual"}}"#,
+        );
+        let project = source(
+            "project/opencode.jsonc",
+            "{ // project wins\n \"animations\": true, \"terminal\": {\"copy\": \"select\"},}",
+        );
+        let (generation, copy) = super::assemble_with_reader(
+            &[global.clone(), project],
+            &Default::default(),
+            None,
+            &|_, _| unreachable!("no file substitutions"),
+        )
+        .unwrap();
+        assert_eq!(generation.animations, Some(true));
+        assert_eq!(
+            generation.provenance["animations"],
+            "project/opencode.jsonc"
+        );
+        assert_eq!(copy, Some(oc_core::queries::TerminalCopyMode::Select));
+        assert_eq!(
+            generation.provenance["terminal.copy"],
+            "project/opencode.jsonc"
+        );
+
+        let (generation, copy) = super::assemble_with_reader(
+            &[global, source("project/opencode.json", "{}")],
+            &Default::default(),
+            None,
+            &|_, _| unreachable!("no file substitutions"),
+        )
+        .unwrap();
+        assert_eq!(generation.animations, Some(false));
+        assert_eq!(generation.provenance["animations"], "global/opencode.json");
+        assert_eq!(copy, Some(oc_core::queries::TerminalCopyMode::Manual));
+        let generation =
+            super::assemble(&[source("empty", "{}")], &Default::default(), None).unwrap();
+        assert_eq!(generation.animations, None);
+        assert!(!generation.provenance.contains_key("animations"));
+        assert!(!generation.provenance.contains_key("terminal.copy"));
+
+        for invalid in ["null", "0", "{}", r#""false""#, r#""sensitive-fixture""#] {
+            let invalid_source = source("invalid", &format!("{{\"animations\":{invalid}}}"));
+            for sources in [
+                vec![invalid_source.clone()],
+                vec![
+                    invalid_source.clone(),
+                    source("later", r#"{"animations":true}"#),
+                ],
+                vec![source("earlier", r#"{"animations":false}"#), invalid_source],
+            ] {
+                let error = super::assemble(&sources, &Default::default(), None).unwrap_err();
+                assert_eq!(
+                    error,
+                    super::ConfigError::Invalid {
+                        field: "animations".into(),
+                        reason: "must be a boolean".into(),
+                    }
+                );
+                assert!(!error.to_string().contains("sensitive-fixture"));
+            }
+        }
+    }
+
     #[test]
     fn terminal_copy_is_validated_in_each_source_with_winning_provenance() {
         use oc_core::queries::TerminalCopyMode;

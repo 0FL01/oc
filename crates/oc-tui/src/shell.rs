@@ -1405,6 +1405,37 @@ fn render_footer(
     );
 }
 
+/// Keep the shrinkable left footer slot within its cell budget without
+/// splitting a styled span's last visible grapheme.
+fn clip_footer_spans(spans: Vec<Span<'static>>, width: usize) -> Vec<Span<'static>> {
+    let mut remaining = width;
+    let mut clipped = Vec::new();
+    for span in spans {
+        if remaining == 0 {
+            break;
+        }
+        if span.width() <= remaining {
+            remaining -= span.width();
+            clipped.push(span);
+            continue;
+        }
+        let mut end = 0;
+        for (start, grapheme) in span.content.grapheme_indices(true) {
+            let cells = UnicodeWidthStr::width(grapheme);
+            if cells > remaining {
+                break;
+            }
+            remaining -= cells;
+            end = start + grapheme.len();
+        }
+        if end > 0 {
+            clipped.push(Span::styled(span.content[..end].to_string(), span.style));
+        }
+        break;
+    }
+    clipped
+}
+
 fn footer_line(
     state: &TuiState,
     theme: &Theme,
@@ -1459,6 +1490,20 @@ fn footer_line(
         (layout_width as usize).saturating_sub(hints.width() + usize::from(hints_visible) * 2);
     let mut spans: Vec<Span<'static>> = Vec::new();
     if state.status() == &TuiStatus::Streaming {
+        spans.push(Span::raw(" ")); // prompt/index.tsx:1887 marginLeft=1
+        if state.chrome.animations == Some(false) {
+            spans.push(Span::styled("[⋯]", muted));
+        } else {
+            let color = state
+                .active_agent()
+                .map_or(theme.border(), |agent| state.agent_color(Some(agent)));
+            spans.extend(crate::scanner::spans(
+                state.scanner_frame(),
+                color,
+                theme.background(),
+            ));
+        }
+        spans.push(Span::raw(" ")); // running row gap=1
         let (key, label) = ESC_INTERRUPT;
         spans.push(Span::styled(key, Style::default().fg(theme.text())));
         spans.push(Span::styled(label, Style::default().fg(theme.text_muted())));
@@ -1469,6 +1514,11 @@ fn footer_line(
         ));
     } else if let Some(location) = &state.chrome.location {
         spans.push(Span::styled(compact_path(location, left_width), muted));
+    }
+    if state.status() == &TuiStatus::Streaming {
+        // In prompt/index.tsx the running slot has flexShrink and minWidth=0;
+        // the shortcuts keep their width when the row is narrow.
+        spans = clip_footer_spans(spans, left_width);
     }
     let mut line = Line::from(spans);
     // The hints breakpoint reads the terminal width, the alignment the row
@@ -3452,6 +3502,189 @@ mod tests {
         format!("{}{text}", " ".repeat(width.saturating_sub(text.len())))
     }
 
+    #[test]
+    fn footer_clipping_preserves_styled_graphemes_and_cell_budget() {
+        let first = Style::default().fg(Color::Red);
+        let second = Style::default().fg(Color::Blue);
+        let source = || {
+            vec![
+                Span::styled("a\u{301}界", first),
+                Span::styled("👩\u{200d}💻z", second),
+            ]
+        };
+        let clipped = clip_footer_spans(source(), 4);
+        assert_eq!(Line::from(clipped.clone()).width(), 3);
+        assert_eq!(clipped.len(), 1, "a wide grapheme cannot use the last cell");
+        assert_eq!(clipped[0].content, "a\u{301}界");
+        assert_eq!(clipped[0].style, first);
+        let clipped = clip_footer_spans(source(), 5);
+        assert_eq!(Line::from(clipped.clone()).width(), 5);
+        assert_eq!(clipped[1].content, "👩\u{200d}💻");
+        assert_eq!(clipped[1].style, second);
+        assert!(clip_footer_spans(source(), 0).is_empty());
+    }
+
+    #[tokio::test]
+    async fn vis28_narrow_running_footer_keeps_right_hints_and_dynamic_usage() {
+        let mut state = golden_state().await;
+        let turn = oc_core::core_app::WorkerTurnId("footer-clip".into());
+        state.begin_compress_turn(turn.clone());
+        state.close_panel();
+        let hints = "shift+tab agents  ctrl+p commands";
+        for animations in [true, false] {
+            state.chrome.animations = Some(animations);
+            for (width, height) in [(43, 24), (44, 24), (80, 24), (120, 40)] {
+                let rows = screen(&state, width, height);
+                let y = if height == 24 { 21 } else { 37 };
+                let row = &rows[y];
+                let indicator = if animations {
+                    "■⬝⬝⬝⬝⬝⬝⬝"
+                } else {
+                    "[⋯]"
+                };
+                let running = format!("   {indicator} esc interrupt");
+                if width == 43 {
+                    assert!(
+                        row.starts_with(&format!("  {indicator} esc interrupt")),
+                        "{width} {animations}: {row}"
+                    );
+                    assert!(!row.contains("ctrl+p"));
+                } else if width == 44 {
+                    let clipped = if animations {
+                        "   ■⬝⬝⬝"
+                    } else {
+                        "   [⋯] "
+                    };
+                    assert_eq!(row, &format!("{clipped}  {hints}"));
+                } else {
+                    assert_eq!(
+                        row,
+                        &format!(
+                            "{running}{}",
+                            right_aligned(
+                                hints,
+                                (width - 2) as usize - UnicodeWidthStr::width(running.as_str())
+                            )
+                        )
+                    );
+                }
+                assert!(UnicodeWidthStr::width(row.as_str()) <= width as usize);
+
+                if width >= 44 {
+                    let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+                    terminal.draw(|frame| render(frame, &state)).unwrap();
+                    let buffer = terminal.backend().buffer();
+                    let hint_x = width - 2 - hints.len() as u16;
+                    assert_eq!(buffer[(hint_x, y as u16)].symbol(), "s");
+                    assert_eq!(buffer[(width - 3, y as u16)].symbol(), "s");
+                    assert_eq!(buffer[(hint_x + 18, y as u16)].fg, Theme::dark().text());
+                }
+            }
+        }
+
+        state.apply_usage(&turn, 300, 20, 100);
+        for width in [44, 80, 160] {
+            let height = if width == 160 { 48 } else { 24 };
+            let area = Rect::new(0, 0, width, height);
+            let footer = session_regions(
+                &state,
+                session_main(&state, shell_regions(&state, area).session),
+                width,
+            )
+            .footer;
+            let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+            terminal.draw(|frame| render(frame, &state)).unwrap();
+            let usage = "320 (32%)";
+            let suffix = if width == 44 {
+                usage.to_string()
+            } else {
+                format!("{usage}  ctrl+p commands")
+            };
+            let start = footer.right() - suffix.len() as u16;
+            let buffer = terminal.backend().buffer();
+            assert_eq!(buffer[(start, footer.y)].symbol(), "3", "width={width}");
+            assert_eq!(
+                buffer[(footer.right() - 1, footer.y)].symbol(),
+                if width == 44 { ")" } else { "s" }
+            );
+            let line = footer_line(&state, Theme::dark(), footer.width, width);
+            assert!(line.width() <= footer.width as usize);
+            assert!(line.to_string().ends_with(&suffix));
+        }
+        state.apply_finished(&turn, "", 0);
+        let mut idle_state = golden_state().await;
+        idle_state.chrome.location = Some("/workspace/project".into());
+        let idle = screen(&idle_state, 44, 24);
+        assert!(idle[21].contains("ctrl+p commands"));
+        assert!(idle[21].starts_with("  /…/p"), "{}", idle[21]);
+        assert!(screen(&idle_state, 80, 24)[21].contains("/workspace/project"));
+    }
+
+    #[tokio::test]
+    async fn vis28_footer_scanner_tracks_agent_and_stays_below_metadata() {
+        use std::time::{Duration, Instant};
+
+        let theme = Theme::dark();
+        let mut state = golden_state().await;
+        let mut snapshot = catalog();
+        snapshot.agents[0].color_index = 3;
+        state.apply_catalog(snapshot);
+        let turn = oc_core::core_app::WorkerTurnId("scanner-turn".into());
+        let idle = screen(&state, 80, 24);
+        assert!(!idle.join("\n").contains("■"));
+        state.begin_compress_turn(turn.clone());
+        state.close_panel();
+        let now = Instant::now();
+        assert!(!state.tick_scanner(now));
+        let start = screen(&state, 80, 24);
+        assert!(
+            start[21].starts_with("   ■⬝⬝⬝⬝⬝⬝⬝ esc interrupt"),
+            "{start:?}"
+        );
+        assert_eq!(start[20], idle[20], "agent/model row must not shift");
+        assert!(!state.tick_scanner(now + Duration::from_millis(39)));
+        assert!(state.tick_scanner(now + Duration::from_millis(40)));
+        let next = screen(&state, 80, 24);
+        assert!(
+            next[21].starts_with("   ■■⬝⬝⬝⬝⬝⬝ esc interrupt"),
+            "{next:?}"
+        );
+        assert_eq!(next[20], start[20]);
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        assert_eq!(
+            terminal.backend().buffer()[(4, 21)].fg,
+            theme.categorical_agents()[3]
+        );
+
+        state.chrome.animations = Some(false);
+        let still = state.scanner_frame();
+        assert!(!state.tick_scanner(now + Duration::from_secs(2)));
+        assert_eq!(state.scanner_frame(), still);
+        let off = screen(&state, 80, 24);
+        assert!(off[21].starts_with("   [⋯] esc interrupt"), "{off:?}");
+        assert_eq!(off[20], start[20]);
+        state.apply_finished(&turn, "", 0);
+        assert!(!screen(&state, 80, 24)[21].contains("[⋯]"));
+        assert!(!screen(&state, 80, 24)[21].contains("esc interrupt"));
+        let cancelled = oc_core::core_app::WorkerTurnId("cancelled".into());
+        state.begin_compress_turn(cancelled.clone());
+        state.close_panel();
+        state.apply_interrupted(&cancelled, "", 0);
+        assert!(!screen(&state, 80, 24)[21].contains("[⋯]"));
+
+        // No selected agent: use the theme's border.base rather than a label
+        // lookup or the first categorical agent color.
+        let mut snapshot = catalog();
+        snapshot.agent_id = None;
+        state.apply_catalog(snapshot);
+        state.chrome.animations = Some(true);
+        state.begin_compress_turn(oc_core::core_app::WorkerTurnId("second".into()));
+        state.close_panel();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(3, 21)].fg, theme.border());
+    }
+
     #[tokio::test]
     async fn v02_auto_marker_is_session_capability_not_agent_rules() {
         use oc_core::queries::AutoAcceptState;
@@ -3820,9 +4053,11 @@ mod tests {
         assert_eq!(buffer[(51, 1)].fg, theme.warning());
         assert_eq!(buffer[(54, 2)].bg, theme.background_raised_high());
         assert_eq!(buffer[(54, 2)].fg, theme.text());
-        // Footer: `esc interrupt` while streaming (`esc` base, word muted).
-        assert_eq!(buffer[(2, 21)].fg, theme.text());
-        assert_eq!(buffer[(6, 21)].fg, theme.text_muted());
+        // Footer: margin + eight cells + gap then `esc interrupt`.
+        assert_eq!(buffer[(3, 21)].symbol(), "■");
+        assert_eq!(buffer[(3, 21)].fg, state.agent_color(state.active_agent()));
+        assert_eq!(buffer[(12, 21)].fg, theme.text());
+        assert_eq!(buffer[(16, 21)].fg, theme.text_muted());
 
         // The DCP notice replaces the interrupt hint once the turn is idle.
         state.apply_finished(&turn, "done", 0);

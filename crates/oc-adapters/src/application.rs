@@ -2285,7 +2285,7 @@ mod review_tests {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     #[tokio::test]
-    async fn terminal_copy_follows_global_location_switch_and_reload() {
+    async fn terminal_copy_and_animations_follow_global_location_switch_and_reload() {
         let root = tempfile::tempdir().unwrap();
         let global = root.path().join("global");
         let a = root.path().join("a");
@@ -2303,12 +2303,12 @@ mod review_tests {
         std::fs::write(global.join("opencode.json"), model.to_string()).unwrap();
         std::fs::write(
             global.join("opencode.jsonc"),
-            r#"{"terminal":{"copy":"manual"}}"#,
+            r#"{"terminal":{"copy":"manual"},"animations":false}"#,
         )
         .unwrap();
         std::fs::write(
             b.join("opencode.jsonc"),
-            r#"{"terminal":{"copy":"select"}}"#,
+            r#"{"terminal":{"copy":"select"},"animations":true}"#,
         )
         .unwrap();
         let env = BTreeMap::from([(
@@ -2318,6 +2318,26 @@ mod review_tests {
         let (app, guard, _) = spawn_with_env(&a, &data, env).await.unwrap();
         let initial = app.catalog().await.unwrap();
         assert_eq!(initial.chrome.terminal_copy, Some(TerminalCopyMode::Manual));
+        assert_eq!(initial.chrome.animations, Some(false));
+
+        std::fs::write(b.join("opencode.jsonc"), r#"{"animations":"invalid"}"#).unwrap();
+        let failure = app
+            .switch_location_home(b.to_string_lossy().into_owned())
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            failure,
+            CoreError::LocationSwitch {
+                category: LocationSwitchFailure::Configuration,
+                ..
+            }
+        ));
+        assert_eq!(app.catalog().await.unwrap(), initial);
+        std::fs::write(
+            b.join("opencode.jsonc"),
+            r#"{"terminal":{"copy":"select"},"animations":true}"#,
+        )
+        .unwrap();
         let switched = app
             .switch_location_home(b.to_string_lossy().into_owned())
             .await
@@ -2330,10 +2350,23 @@ mod review_tests {
             app.catalog().await.unwrap().chrome.terminal_copy,
             switched.catalog.chrome.terminal_copy
         );
+        assert_eq!(switched.catalog.chrome.animations, Some(true));
+        assert_eq!(app.catalog().await.unwrap().chrome.animations, Some(true));
+
+        std::fs::write(b.join("opencode.jsonc"), r#"{"animations":null}"#).unwrap();
+        let failure = app.reload_location().await.unwrap_err();
+        assert!(matches!(
+            failure,
+            CoreError::LocationSwitch {
+                category: LocationSwitchFailure::Configuration,
+                ..
+            }
+        ));
+        assert_eq!(app.catalog().await.unwrap(), switched.catalog);
 
         std::fs::write(
             b.join("opencode.jsonc"),
-            r#"{"terminal":{"copy":"sensitive-fixture"}}"#,
+            r#"{"terminal":{"copy":"sensitive-fixture"},"animations":true}"#,
         )
         .unwrap();
         let failure = app.reload_location().await.unwrap_err();
@@ -2342,6 +2375,7 @@ mod review_tests {
             app.catalog().await.unwrap().chrome.terminal_copy,
             Some(TerminalCopyMode::Select)
         );
+        assert_eq!(app.catalog().await.unwrap().chrome.animations, Some(true));
 
         std::fs::write(b.join("opencode.jsonc"), "{}").unwrap();
         let reloaded = app.reload_location().await.unwrap();
@@ -2350,6 +2384,7 @@ mod review_tests {
             reloaded.catalog.chrome.terminal_copy,
             Some(TerminalCopyMode::Manual)
         );
+        assert_eq!(reloaded.catalog.chrome.animations, Some(false));
         assert_eq!(
             app.catalog().await.unwrap().chrome.terminal_copy,
             reloaded.catalog.chrome.terminal_copy
@@ -2362,10 +2397,13 @@ mod review_tests {
             returned.catalog.chrome.terminal_copy,
             Some(TerminalCopyMode::Manual)
         );
+        assert_eq!(returned.catalog.chrome.animations, Some(false));
 
         std::fs::write(global.join("opencode.jsonc"), "{}").unwrap();
         let unconfigured = app.reload_location().await.unwrap();
         assert_eq!(unconfigured.catalog.chrome.terminal_copy, None);
+        assert_eq!(unconfigured.catalog.chrome.animations, None);
+        assert!(unconfigured.catalog.chrome.animations_enabled());
         app.shutdown().await.unwrap();
         guard.join().await.unwrap();
     }

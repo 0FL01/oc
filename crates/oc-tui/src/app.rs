@@ -459,6 +459,8 @@ pub struct TuiState {
     app: CoreApp,
     session: Option<SessionId>,
     status: TuiStatus,
+    scanner_frame: usize,
+    scanner_at: Option<Instant>,
     panel: TuiPanel,
     pub(crate) select: crate::dialog::SelectList,
     /// Press origin prevents drag-release across the backdrop from dismissing a dialog.
@@ -606,6 +608,8 @@ impl TuiState {
             app,
             session,
             status: TuiStatus::Idle,
+            scanner_frame: 0,
+            scanner_at: None,
             panel: TuiPanel::None,
             select: Default::default(),
             mouse_down: None,
@@ -975,6 +979,7 @@ impl TuiState {
     }
 
     fn invalidate_submission(&mut self) {
+        self.reset_scanner();
         self.live_part_states.clear();
         self.live_agent_color_index = None;
         self.live_terminal_status = None;
@@ -993,6 +998,41 @@ impl TuiState {
     /// Current status.
     pub fn status(&self) -> &TuiStatus {
         &self.status
+    }
+
+    fn reset_scanner(&mut self) {
+        self.scanner_frame = 0;
+        self.scanner_at = None;
+    }
+
+    /// Advance the running prompt scanner from a caller-supplied monotonic clock.
+    /// The event loop calls this alongside its other view ticks, per view. Returns
+    /// whether a frame changed and a redraw is useful; the first tick starts at 0.
+    pub fn tick_scanner(&mut self, now: Instant) -> bool {
+        if self.status != TuiStatus::Streaming || self.chrome.animations == Some(false) {
+            return false;
+        }
+        let Some(at) = self.scanner_at else {
+            self.scanner_at = Some(now);
+            return false;
+        };
+        let elapsed = now.saturating_duration_since(at).as_millis();
+        let steps = elapsed / u128::from(crate::scanner::FRAME_MS);
+        if steps == 0 {
+            return false;
+        }
+        let previous = self.scanner_frame;
+        self.scanner_frame = (self.scanner_frame
+            + (steps % crate::scanner::FRAMES as u128) as usize)
+            % crate::scanner::FRAMES;
+        self.scanner_at = now.checked_sub(Duration::from_millis(
+            (elapsed % u128::from(crate::scanner::FRAME_MS)) as u64,
+        ));
+        self.scanner_frame != previous
+    }
+
+    pub(crate) fn scanner_frame(&self) -> usize {
+        self.scanner_frame
     }
 
     /// Open panel, if any.
@@ -3073,6 +3113,7 @@ impl TuiState {
 
     /// The accepted compress turn starts streaming: status, turn, DCP panel.
     pub fn begin_compress_turn(&mut self, turn: WorkerTurnId) {
+        self.reset_scanner();
         self.live_preview_truncated = false;
         self.live_part_states.clear();
         self.live_terminal_status = None;
@@ -3808,6 +3849,7 @@ impl TuiState {
                 self.active_turn = Some(turn);
                 self.reasoning_epoch = self.reasoning_epoch.wrapping_add(1);
                 if !exiting {
+                    self.reset_scanner();
                     self.status = TuiStatus::Streaming;
                 }
                 self.scroll = 0;
@@ -4450,6 +4492,7 @@ impl TuiState {
             return;
         }
         let meta = self.finish_meta(false, duration_ms);
+        self.reset_scanner();
         let reasoning = self.take_reasoning();
         self.active_turn = None;
         self.status = TuiStatus::Idle;
@@ -4488,6 +4531,7 @@ impl TuiState {
             return;
         }
         let meta = self.finish_meta(true, duration_ms);
+        self.reset_scanner();
         let reasoning = self.take_reasoning();
         self.active_turn = None;
         self.status = TuiStatus::Cancelled;
@@ -4525,6 +4569,7 @@ impl TuiState {
             return;
         }
         let mut meta = self.finish_meta(false, 0);
+        self.reset_scanner();
         if meta.status.is_none() {
             meta.status = Some("failed".into());
         }
@@ -5162,6 +5207,39 @@ mod tests {
         std::mem::forget(guard);
         app.create_session(sid(name)).await.expect("create");
         TuiState::new(app, sid(name))
+    }
+
+    #[tokio::test]
+    async fn vis28_scanner_clock_rolls_over_and_resets_for_each_running_transition() {
+        let mut state = fresh_state("scanner-clock").await;
+        let at = Instant::now();
+        assert!(!state.tick_scanner(at));
+        let first = WorkerTurnId("first".into());
+        state.begin_compress_turn(first.clone());
+        assert!(!state.tick_scanner(at));
+        assert!(!state.tick_scanner(at + Duration::from_millis(39)));
+        assert_eq!(state.scanner_frame(), 0);
+        assert!(state.tick_scanner(at + Duration::from_millis(41)));
+        assert_eq!(state.scanner_frame(), 1);
+        assert!(!state.tick_scanner(at + Duration::from_millis(79)));
+        assert!(state.tick_scanner(at + Duration::from_millis(80)));
+        assert_eq!(state.scanner_frame(), 2);
+        assert!(state.tick_scanner(at + Duration::from_millis(53 * 40)));
+        assert_eq!(state.scanner_frame(), 53);
+        assert!(state.tick_scanner(at + Duration::from_millis(54 * 40)));
+        assert_eq!(state.scanner_frame(), 0);
+        state.apply_interrupted(&first, "partial", 1);
+        assert_eq!(state.scanner_frame(), 0);
+        assert!(!state.tick_scanner(at + Duration::from_secs(20)));
+
+        let second = WorkerTurnId("second".into());
+        state.begin_compress_turn(second.clone());
+        assert!(!state.tick_scanner(at + Duration::from_secs(20)));
+        assert!(state.tick_scanner(at + Duration::from_secs(20) + Duration::from_millis(40)));
+        assert_eq!(state.scanner_frame(), 1);
+        state.apply_finished(&second, "done", 0);
+        assert_eq!(state.scanner_frame(), 0);
+        assert!(!state.tick_scanner(at + Duration::from_secs(30)));
     }
 
     #[tokio::test]

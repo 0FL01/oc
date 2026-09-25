@@ -559,6 +559,125 @@ comparators run for both stages. Any differing frame or failed predicate keeps
 exit code 1; interaction feedback does not imply pixel parity. Existing output
 paths are refused, including failed attempts.
 
+## VIS28 paired temporal running-footer diagnostic
+
+Run the pinned original and an **already built** native binary with a fresh
+immutable output path for each setting (do not pass `--build-oc true`):
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc \
+  --geometry true --sample tools --sidebar hide --agent-profile true \
+  --columns 120 --rows 40 --scanner true --scanner-animation true --scanner-cancel false \
+  --output /home/opencode/ai/oc/evidence/tui/scanner-animated-NEW-ATTEMPT
+
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc \
+  --geometry true --sample tools --sidebar hide --agent-profile true \
+  --columns 120 --rows 40 --scanner true --scanner-animation false --scanner-cancel false \
+  --output /home/opencode/ai/oc/evidence/tui/scanner-fallback-NEW-ATTEMPT
+```
+
+`--scanner true` requires explicit `--scanner-animation true|false` and
+`--scanner-cancel true|false`. For interruption, use either command above with
+`--scanner-cancel true` and a **new** output path, e.g.
+`scanner-animated-cancel-NEW-ATTEMPT` or `scanner-fallback-cancel-NEW-ATTEMPT`.
+The mode requires the
+paired Reader/tools 120×40 profile above, without other interaction, matrix,
+resize or seed modes. Both isolated configs receive the same explicit animation
+value (original CLI config and native product config). Ordinary modes retain
+their previous animation settings and fast-completing fixture. In this mode the
+bridge streams a real `response.created` event on the **first** transcript
+request, holds the remainder of that HTTP Responses stream open for at most
+60 seconds, and records the held/release/resume events. The runner releases it
+explicitly even if observation fails; the genuine read-tool roundtrip and title
+then finish when cancel is false. For cancel true, the runner sends real PTY
+Escape **while the first stream is still held**. It verifies the actual painted
+`esc interrupt` hint on each side before sending input (and its painted
+`esc again to interrupt` prompt after an upstream Escape). The pinned original
+uses an interrupt counter and a five-second reset window; the runner allows
+up to three Escapes within that window, based on observed running state.
+The native may cancel after one. After each Escape the
+runner checks actual frames for the indicator disappearing while the HTTP
+stream remains held, records every input/check and raw provider counts, and
+sends no further Escape once canceled (an idle Escape could exit the app).
+If still running after three Escapes it fails and releases the stream. After the
+footer disappears it pauses the owned PTY child for the screenshot, so an
+independently animating tab cannot make the interrupted full-grid capture unstable.
+It captures
+`scanner-interrupted` with full grid/PNG, checks the painted indicator disappears, the submitted
+prompt remains visible, and no read completion or second transcript request occurs. After
+releasing the held handler it checks the HTTP handler terminates (completed
+write or disconnect is recorded), the answer remains absent and no indicator
+reappears. Cancellation does not require completed read/title counts. A bridge
+stop also releases the handler. This is a bounded fake
+provider, not a permanently stalled server or synthetic terminal frame.
+
+Each side independently finds its painted `esc interrupt` hint and reads the
+adjacent eight VT styled cells. Running polls read only the real xterm footer
+rows (including all eight styled indicator cells); each paused screenshot still
+records the full unmasked styled grid. The animated route observes changing block
+symbols and foreground colors, detects forward travel, end fading (the brief
+all-dot interval may fall between browser samples), reverse travel by its
+opposite color gradient, and start fading in that **observed order**;
+it never selects a frame by elapsed wall-clock time. Upon each candidate the
+runner explicitly asks the bridge to SIGSTOP the owned child process group,
+waits for an ACK (after draining prior PTY output), and resamples the painted
+phase. ACK latency may advance the exact frame: an independently classified
+paused frame is captured only if it still belongs to the requested stage.
+The paused frame's own exact styled signature and complete grid must remain
+unchanged through the PNG. Other phases are recorded as failed pause attempts;
+the runner continues across observed cycles in stage order and always requests SIGCONT in a finally
+block, and the bridge resumes before wait/termination even on stop/EOF/errors.
+The HTTP fixture keeps running independently of PTY suspension; neither side's
+TUI state or fixture is fabricated. It retains timestamped running samples,
+pause/ACK/resample/restore observations (including full indicator cells), stage
+predicates and provider counts in `scanner-checks.json`, plus `scanner-forward`, `scanner-end-hold`,
+`scanner-reverse`, `scanner-start-hold` and `scanner-completed` full styled grids,
+PNG/render geometry, PTY bytes and input/protocol records. The animation-off
+route requires a painted `[⋯]` beside the hint and captures `scanner-fallback`
+and `scanner-completed`. The footer must disappear after the explicit release
+and completed read. Screenshot capture checks the paused indicator and *whole
+styled grid* before/after PNG; a changed grid is `UNSTABLE_CAPTURE`, never
+silently equated. The scanner probe has a 35-second observation window (8
+seconds for animation-off), then releases the stream. A provider-side 60-second
+timeout bounds interruption of the runner. Sparse browser samples can miss
+transitions; end fading must have a changed lead color or uniformly colored
+all-dot row, while start fading requires two distinct observed all-dot colors
+after reverse. A uniform all-dot row by itself cannot label either hold.
+For animation-on stages, the original's **paused** eight styled cells establish
+each reference glyph pattern and colors. Native pauses only candidates with
+the same glyph pattern. A non-exact candidate is saved under a unique immutable
+`scanner-<stage>-candidate-N` name, including its entire unmasked grid/PNG;
+the first exact styled-cell match is captured directly as canonical
+`scanner-<stage>` on the paused PTY, with the same scenario field as the reference.
+Existing canonical artifacts are never overwritten, and completed candidate files
+are never renamed or edited to pass comparison. Pause attempts retain capture name
+and phase match metadata. Within the existing probe deadline the closest RGB
+candidate is selected if no exact match appears; an exact match wins immediately.
+`scanner-checks.json` records the
+reference cells, native candidate cells, RGB distance and selected scenario;
+`capture.lock.json` links each stage comparison to that selected file. Different
+glyph patterns cannot be called the same phase: if none is obtained the stage
+is `UNMATCHED_PHASE`, with no stage comparator or PASS. A nearest-color frame
+with different styled cells also reports `UNMATCHED_PHASE` rather than PASS;
+its full-grid and PNG diagnostic comparators still run and record their own
+results. The same rule applies to the fallback `[⋯]` cells.
+Missing stages and timeouts are failures retained in the attempt,
+not substituted by elapsed-time matching.
+
+The existing comparator runs **both full unmasked styled-grid and PNG** diffs
+for every matched stage present on both sides; compare matched glyph candidates,
+not only phase names or unsynchronized wall clocks of sequential PTYs. Real elapsed/status digits and
+all other cells are included. Passing the per-side motion/fallback predicates
+does not establish pixel parity: inspect `capture.lock.json` comparator exit
+codes and stage diff reports separately. Independently animated tab cells at y=0
+remain in the full grid and a mismatch there is `DIFFERENT`, even when the footer
+matches exactly. Existing output directories are
+rejected, even after failure. Animation-off alone cannot qualify VIS28.
+
 ## V04 variant and search follow-up
 
 `--variants true --sample short` adds the explicit fixture in

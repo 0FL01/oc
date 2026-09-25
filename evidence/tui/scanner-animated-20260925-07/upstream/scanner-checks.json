@@ -1,0 +1,3991 @@
+{
+  "animation": true,
+  "cancel": false,
+  "observations": [
+    {
+      "elapsed_ms": 388,
+      "at": "2026-09-25T10:38:15.226Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#61a2e7",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#5c9cf5",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1e2d42",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1e2d42",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1e2d42",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1e2d42",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1e2d42",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1e2d42",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        0,
+        1
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "94443e3693eacf756b5973c0d8c398ecda5c67d15e6ec55b07c95b7a61032366",
+      "transition": {
+        "from": "forward",
+        "to": "forward"
+      }
+    },
+    {
+      "elapsed_ms": 1329,
+      "at": "2026-09-25T10:38:16.167Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#2d486e",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#3f69a3",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#61a2e7",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#5c9cf5",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#283f5f",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#283f5f",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#283f5f",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#283f5f",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "4323b51258ed69f9f803271eb33ae0cf4bb7bdd83a59492e997cdd7dd7e1c267",
+      "transition": {
+        "from": "forward",
+        "to": "forward"
+      }
+    },
+    {
+      "elapsed_ms": 1402,
+      "at": "2026-09-25T10:38:16.240Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#2d486e",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#3f69a3",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#61a2e7",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#5c9cf5",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#31507a",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#31507a",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "8fd77cd2477dd5c78631e0c2077efb309f4c2e20d00c1cdd3734b21ab072534f",
+      "transition": {
+        "from": "forward",
+        "to": "forward"
+      }
+    },
+    {
+      "elapsed_ms": 1450,
+      "at": "2026-09-25T10:38:16.288Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#365989",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#2d486e",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#3f69a3",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#61a2e7",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#5c9cf5",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#365989",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "9ffd87eb6d89c8717b2f782d7fd8c8973dc8e623ae15ebf1c621167da9f01766",
+      "transition": {
+        "from": "forward",
+        "to": "forward"
+      }
+    },
+    {
+      "elapsed_ms": 1474,
+      "at": "2026-09-25T10:38:16.312Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#3b6297",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#3b6297",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#2d486e",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#3f69a3",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#61a2e7",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#5c9cf5",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "cbad8728228b255596479e45fa53e8361ad5631bee8b58dff0ab0778e32b7f5f",
+      "transition": {
+        "from": "forward",
+        "to": "end"
+      }
+    },
+    {
+      "elapsed_ms": 1597,
+      "at": "2026-09-25T10:38:16.435Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#375b8c",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#375b8c",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#375b8c",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#2d486e",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#3f69a3",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#61a2e7",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "1c239ad3803027c3783c1489719127b771828ca1b670b1497c4fcbfcd8e3818a",
+      "transition": {
+        "from": "end",
+        "to": "end"
+      }
+    },
+    {
+      "elapsed_ms": 2430,
+      "at": "2026-09-25T10:38:17.268Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#304d76",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#304d76",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#304d76",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#304d76",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#304d76",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#2d486e",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        5,
+        6,
+        7
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "c6bf41eff2003c8f0b94741b3362355191a96927540341e820e2555a906258fe",
+      "transition": {
+        "from": "end",
+        "to": "end"
+      }
+    },
+    {
+      "elapsed_ms": 2454,
+      "at": "2026-09-25T10:38:17.292Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#2c466b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#2c466b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#2c466b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#2c466b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#2c466b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#2c466b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        6,
+        7
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "5067f4000991110439c82b722b59c61cdf3658cd60d426e7c761995be69102da",
+      "transition": {
+        "from": "end",
+        "to": "end"
+      }
+    },
+    {
+      "elapsed_ms": 2522,
+      "at": "2026-09-25T10:38:17.360Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#284061",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#284061",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#284061",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#284061",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#284061",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#284061",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#284061",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        7
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "d86bfa14a708fb0e9562ff12b356792844f1a223079b2d76acab17dba6c02bfb",
+      "transition": {
+        "from": "end",
+        "to": "end"
+      }
+    },
+    {
+      "elapsed_ms": 2549,
+      "at": "2026-09-25T10:38:17.387Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#243956",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#243956",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#243956",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#243956",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#243956",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#243956",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#243956",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#243956",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "62101c63a44033b90d01282f3c6a4f6ca5f15da84b98f224b38d52c08c669abb",
+      "transition": {
+        "from": "end",
+        "to": "end"
+      }
+    },
+    {
+      "elapsed_ms": 2575,
+      "at": "2026-09-25T10:38:17.413Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "9bdda40ef37a3c2d795df5b08748ae67f4d18bc39e60a77f3ef71fec488c3906",
+      "transition": {
+        "from": "end",
+        "to": "end"
+      }
+    },
+    {
+      "elapsed_ms": 2642,
+      "at": "2026-09-25T10:38:17.480Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1d2b3f",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1d2b3f",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1d2b3f",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1d2b3f",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1d2b3f",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1d2b3f",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1d2b3f",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1d2b3f",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "ad97a569bba3fee2991a7207c3530a58ecb3225d6896bf99607edd62605bbc9d",
+      "transition": {
+        "from": "end",
+        "to": "end"
+      }
+    },
+    {
+      "elapsed_ms": 2671,
+      "at": "2026-09-25T10:38:17.509Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#5c9cf5",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#61a2e7",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        6,
+        7
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "5e236a0bbdc5da0e4f7eaa36830fcc74f6089f8f2a27d98403461312c8582f6b",
+      "transition": {
+        "from": "end",
+        "to": "reverse"
+      }
+    },
+    {
+      "elapsed_ms": 3610,
+      "at": "2026-09-25T10:38:18.448Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1f2f45",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1f2f45",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1f2f45",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1f2f45",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#1f2f45",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#5c9cf5",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#61a2e7",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#3f69a3",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        5,
+        6,
+        7
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "3f3ee947ee29027e3598a26e3be13757fc9b322ef0a1a5d08d61c89eee253278",
+      "transition": {
+        "from": "reverse",
+        "to": "reverse"
+      }
+    },
+    {
+      "elapsed_ms": 3653,
+      "at": "2026-09-25T10:38:18.491Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#243956",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#243956",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#243956",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#243956",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#5c9cf5",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#61a2e7",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#3f69a3",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#2d486e",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "24b263b58844536c885d57000bc6e065636c08bf9ad75f14e81af05cd1b3c5c0",
+      "transition": {
+        "from": "reverse",
+        "to": "reverse"
+      }
+    },
+    {
+      "elapsed_ms": 3685,
+      "at": "2026-09-25T10:38:18.523Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#2a4365",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#2a4365",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#2a4365",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#5c9cf5",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#61a2e7",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#3f69a3",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#2d486e",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "1d67af246311c274c019eac9142f46a612b33349593b75f4b9ab3e2d2db47173",
+      "transition": {
+        "from": "reverse",
+        "to": "reverse"
+      }
+    },
+    {
+      "elapsed_ms": 3743,
+      "at": "2026-09-25T10:38:18.581Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#304d76",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#304d76",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#5c9cf5",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#61a2e7",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#3f69a3",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#2d486e",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "b4c48e96e2c6ec694c956a5218a3273a8ac7b09e85b1bc6a12079a9bea8063dd",
+      "transition": {
+        "from": "reverse",
+        "to": "reverse"
+      }
+    },
+    {
+      "elapsed_ms": 3773,
+      "at": "2026-09-25T10:38:18.611Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#355786",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#5c9cf5",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#61a2e7",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#3f69a3",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#2d486e",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#355786",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "dbcbd27b0f84a917e01a2ef43141195213c62d5c88d3d073eac772524092752e",
+      "transition": {
+        "from": "reverse",
+        "to": "start"
+      }
+    },
+    {
+      "elapsed_ms": 3800,
+      "at": "2026-09-25T10:38:18.638Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#5c9cf5",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#61a2e7",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#3f69a3",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#2d486e",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#3b6297",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#3b6297",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "3034b300a21e56b14907e4e0684ed37a87a321499530083397e71afbe433e741",
+      "transition": {
+        "from": "start",
+        "to": "start"
+      }
+    },
+    {
+      "elapsed_ms": 3888,
+      "at": "2026-09-25T10:38:18.726Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#61a2e7",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#3f69a3",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#2d486e",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#3a5f93",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#3a5f93",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#3a5f93",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "bdfc9ab80e14221495d9e8c3b0b47f68152fb89ec9bbdfe984bd40bd731c999e",
+      "transition": {
+        "from": "start",
+        "to": "start"
+      }
+    },
+    {
+      "elapsed_ms": 3914,
+      "at": "2026-09-25T10:38:18.752Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#3f69a3",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#2d486e",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#395e91",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#395e91",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#395e91",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#395e91",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "eb839a7a0143644e61a9481d2c5ff5d06ec6829d5f977a5081e8ebe8ce1473ce",
+      "transition": {
+        "from": "start",
+        "to": "start"
+      }
+    },
+    {
+      "elapsed_ms": 3972,
+      "at": "2026-09-25T10:38:18.810Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#2d486e",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#385b8d",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#385b8d",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#385b8d",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#385b8d",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#385b8d",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        0,
+        1,
+        2
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "f63d8111bd7c595ad2587125f9c4f16e18f2c87a77aae7a7aa5b4a228a74cc9c",
+      "transition": {
+        "from": "start",
+        "to": "start"
+      }
+    },
+    {
+      "elapsed_ms": 3999,
+      "at": "2026-09-25T10:38:18.837Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#21324b",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#375a8a",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#375a8a",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#375a8a",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#375a8a",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#375a8a",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#375a8a",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        0,
+        1
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "274bbb1bc307697f7e760a6f512083b9890700c068f3d1914154b7fdc18e1d96",
+      "transition": {
+        "from": "start",
+        "to": "start"
+      }
+    },
+    {
+      "elapsed_ms": 4050,
+      "at": "2026-09-25T10:38:18.888Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "■",
+            "width": 1,
+            "fg": "#192434",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#355786",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#355786",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#355786",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#355786",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#355786",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#355786",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#355786",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [
+        0
+      ],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "52b05fae094fd3403e2c639c58e331d5503b6edcc83f495e2a7990dbd393f2a3",
+      "transition": {
+        "from": "start",
+        "to": "start"
+      }
+    },
+    {
+      "elapsed_ms": 4106,
+      "at": "2026-09-25T10:38:18.944Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#345684",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#345684",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#345684",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#345684",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#345684",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#345684",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#345684",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#345684",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "d66f187ed06bd7bbd8d9c1dcc49311dbecc3dffd1577d3bba7e2454fcedbbecc",
+      "transition": {
+        "from": "start",
+        "to": "start"
+      }
+    },
+    {
+      "elapsed_ms": 4127,
+      "at": "2026-09-25T10:38:18.965Z",
+      "cycle": 0,
+      "hint": {
+        "x": 12,
+        "y": 38
+      },
+      "run": {
+        "x": 3,
+        "y": 38,
+        "cells": [
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#335380",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#335380",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#335380",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#335380",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#335380",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#335380",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#335380",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          },
+          {
+            "symbol": "⬝",
+            "width": 1,
+            "fg": "#335380",
+            "bg": "#0a0a0a",
+            "modifiers": []
+          }
+        ]
+      },
+      "active": [],
+      "fallback": [],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": "734e390c66cd71e953156eead0bc5f1ed5c16909b7bcaf167131b9b2fc632bb0",
+      "transition": {
+        "from": "start",
+        "to": "start"
+      }
+    }
+  ],
+  "pause_attempts": [
+    {
+      "stage": "forward",
+      "observed": {
+        "elapsed_ms": 388,
+        "at": "2026-09-25T10:38:15.226Z",
+        "cycle": 0,
+        "hint": {
+          "x": 12,
+          "y": 38
+        },
+        "run": {
+          "x": 3,
+          "y": 38,
+          "cells": [
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#61a2e7",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#5c9cf5",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#1e2d42",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#1e2d42",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#1e2d42",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#1e2d42",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#1e2d42",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#1e2d42",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            }
+          ]
+        },
+        "active": [
+          0,
+          1
+        ],
+        "fallback": [],
+        "provider_counts": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "signature": "94443e3693eacf756b5973c0d8c398ecda5c67d15e6ec55b07c95b7a61032366",
+        "transition": {
+          "from": "forward",
+          "to": "forward"
+        }
+      },
+      "requested_at": "2026-09-25T10:38:15.227Z",
+      "pause_ack": {
+        "kind": "scanner_pause_ack",
+        "request_id": 1,
+        "paused": true,
+        "generation": 0
+      },
+      "paused": {
+        "at": "2026-09-25T10:38:15.504Z",
+        "observed": {
+          "hints": [
+            {
+              "x": 12,
+              "y": 38
+            }
+          ],
+          "hint_text": "esc interrupt",
+          "run": {
+            "x": 3,
+            "y": 38,
+            "cells": [
+              {
+                "symbol": "■",
+                "fg": "#3f69a3",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#61a2e7",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#5c9cf5",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#233651",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#233651",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#233651",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#233651",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#233651",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              }
+            ]
+          },
+          "run_count": 1,
+          "active": [
+            0,
+            1,
+            2
+          ],
+          "first": 0,
+          "last": 2,
+          "fallback": [],
+          "signature": "48b006438fb23d9b9d68e6a5062e38c9e2475e06ff405f0bcce4df6cc096f5a9"
+        },
+        "grid_sha256": "8c93f962ab30ba136c4bd7cba8beb2deed7616fda20514df80a8a2bbe3b7c39d",
+        "matches_requested_stage": true
+      },
+      "capture_name": "scanner-forward",
+      "phase_match": "REFERENCE",
+      "status": "CAPTURED_SCANNER",
+      "resume_ack": {
+        "kind": "scanner_resume_ack",
+        "request_id": 2,
+        "paused": false,
+        "generation": 0
+      }
+    },
+    {
+      "stage": "end-hold",
+      "observed": {
+        "elapsed_ms": 1597,
+        "at": "2026-09-25T10:38:16.435Z",
+        "cycle": 0,
+        "hint": {
+          "x": 12,
+          "y": 38
+        },
+        "run": {
+          "x": 3,
+          "y": 38,
+          "cells": [
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#375b8c",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#375b8c",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#375b8c",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#192434",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#21324b",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#2d486e",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#3f69a3",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#61a2e7",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            }
+          ]
+        },
+        "active": [
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "fallback": [],
+        "provider_counts": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "signature": "1c239ad3803027c3783c1489719127b771828ca1b670b1497c4fcbfcd8e3818a",
+        "transition": {
+          "from": "end",
+          "to": "end"
+        }
+      },
+      "requested_at": "2026-09-25T10:38:16.435Z",
+      "pause_ack": {
+        "kind": "scanner_pause_ack",
+        "request_id": 3,
+        "paused": true,
+        "generation": 0
+      },
+      "paused": {
+        "at": "2026-09-25T10:38:16.663Z",
+        "observed": {
+          "hints": [
+            {
+              "x": 12,
+              "y": 38
+            }
+          ],
+          "hint_text": "esc interrupt",
+          "run": {
+            "x": 3,
+            "y": 38,
+            "cells": [
+              {
+                "symbol": "⬝",
+                "fg": "#335481",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335481",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335481",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335481",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#192434",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#21324b",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#2d486e",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#3f69a3",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              }
+            ]
+          },
+          "run_count": 1,
+          "active": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "first": 4,
+          "last": 7,
+          "fallback": [],
+          "signature": "734964626be40014e062c038d069c5455a6d558db9ef2925b66e1a122cbf19f8"
+        },
+        "grid_sha256": "933c06e4139bb0590c7d9c58d28047ac7e879ef25ffc4f0deecc89394efa53ac",
+        "matches_requested_stage": true
+      },
+      "capture_name": "scanner-end-hold",
+      "phase_match": "REFERENCE",
+      "status": "CAPTURED_SCANNER",
+      "resume_ack": {
+        "kind": "scanner_resume_ack",
+        "request_id": 4,
+        "paused": false,
+        "generation": 0
+      }
+    },
+    {
+      "stage": "reverse",
+      "observed": {
+        "elapsed_ms": 2671,
+        "at": "2026-09-25T10:38:17.509Z",
+        "cycle": 0,
+        "hint": {
+          "x": 12,
+          "y": 38
+        },
+        "run": {
+          "x": 3,
+          "y": 38,
+          "cells": [
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#192434",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#192434",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#192434",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#192434",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#192434",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#192434",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#5c9cf5",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#61a2e7",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            }
+          ]
+        },
+        "active": [
+          6,
+          7
+        ],
+        "fallback": [],
+        "provider_counts": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "signature": "5e236a0bbdc5da0e4f7eaa36830fcc74f6089f8f2a27d98403461312c8582f6b",
+        "transition": {
+          "from": "end",
+          "to": "reverse"
+        }
+      },
+      "requested_at": "2026-09-25T10:38:17.509Z",
+      "pause_ack": {
+        "kind": "scanner_pause_ack",
+        "request_id": 5,
+        "paused": true,
+        "generation": 0
+      },
+      "paused": {
+        "at": "2026-09-25T10:38:17.773Z",
+        "observed": {
+          "hints": [
+            {
+              "x": 12,
+              "y": 38
+            }
+          ],
+          "hint_text": "esc interrupt",
+          "run": {
+            "x": 3,
+            "y": 38,
+            "cells": [
+              {
+                "symbol": "⬝",
+                "fg": "#192434",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#192434",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#192434",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#192434",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#192434",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#192434",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#5c9cf5",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#61a2e7",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              }
+            ]
+          },
+          "run_count": 1,
+          "active": [
+            6,
+            7
+          ],
+          "first": 6,
+          "last": 7,
+          "fallback": [],
+          "signature": "fdbb0c0b2cb9de69a6c8dec725c3fa9ac46acac94ee532b4d5e24667a52bfe22"
+        },
+        "grid_sha256": "443de96513f37369687788cd016be5642b8e16976d242190aa486b8cc384b69f",
+        "matches_requested_stage": true
+      },
+      "capture_name": "scanner-reverse",
+      "phase_match": "REFERENCE",
+      "status": "CAPTURED_SCANNER",
+      "resume_ack": {
+        "kind": "scanner_resume_ack",
+        "request_id": 6,
+        "paused": false,
+        "generation": 0
+      }
+    },
+    {
+      "stage": "start-hold",
+      "observed": {
+        "elapsed_ms": 4127,
+        "at": "2026-09-25T10:38:18.965Z",
+        "cycle": 0,
+        "hint": {
+          "x": 12,
+          "y": 38
+        },
+        "run": {
+          "x": 3,
+          "y": 38,
+          "cells": [
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            }
+          ]
+        },
+        "active": [],
+        "fallback": [],
+        "provider_counts": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "signature": "734e390c66cd71e953156eead0bc5f1ed5c16909b7bcaf167131b9b2fc632bb0",
+        "transition": {
+          "from": "start",
+          "to": "start"
+        }
+      },
+      "requested_at": "2026-09-25T10:38:18.965Z",
+      "pause_ack": {
+        "kind": "scanner_pause_ack",
+        "request_id": 7,
+        "paused": true,
+        "generation": 0
+      },
+      "paused": {
+        "at": "2026-09-25T10:38:19.199Z",
+        "observed": {
+          "hints": [
+            {
+              "x": 12,
+              "y": 38
+            }
+          ],
+          "hint_text": "esc interrupt",
+          "run": {
+            "x": 3,
+            "y": 38,
+            "cells": [
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              }
+            ]
+          },
+          "run_count": 1,
+          "active": [],
+          "first": null,
+          "last": null,
+          "fallback": [],
+          "signature": "588c6820b3c3a08b16c58f6b7c7709098548c43cabc45c8d822cba268a7f9746"
+        },
+        "grid_sha256": "425a5d2c58b4d36cedd12874bf9b0caf28d1b8e5d2820063d9f78d5d9bd76f2f",
+        "matches_requested_stage": true
+      },
+      "capture_name": "scanner-start-hold",
+      "phase_match": "REFERENCE",
+      "status": "CAPTURED_SCANNER",
+      "resume_ack": {
+        "kind": "scanner_resume_ack",
+        "request_id": 8,
+        "paused": false,
+        "generation": 0
+      }
+    }
+  ],
+  "stages": {
+    "forward": {
+      "status": "CAPTURED_SCANNER",
+      "scenario": "scanner-forward",
+      "sample": {
+        "elapsed_ms": 388,
+        "at": "2026-09-25T10:38:15.226Z",
+        "cycle": 0,
+        "hint": {
+          "x": 12,
+          "y": 38
+        },
+        "run": {
+          "x": 3,
+          "y": 38,
+          "cells": [
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#61a2e7",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#5c9cf5",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#1e2d42",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#1e2d42",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#1e2d42",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#1e2d42",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#1e2d42",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#1e2d42",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            }
+          ]
+        },
+        "active": [
+          0,
+          1
+        ],
+        "fallback": [],
+        "provider_counts": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "signature": "94443e3693eacf756b5973c0d8c398ecda5c67d15e6ec55b07c95b7a61032366",
+        "transition": {
+          "from": "forward",
+          "to": "forward"
+        }
+      },
+      "paused": {
+        "at": "2026-09-25T10:38:15.504Z",
+        "observed": {
+          "hints": [
+            {
+              "x": 12,
+              "y": 38
+            }
+          ],
+          "hint_text": "esc interrupt",
+          "run": {
+            "x": 3,
+            "y": 38,
+            "cells": [
+              {
+                "symbol": "■",
+                "fg": "#3f69a3",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#61a2e7",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#5c9cf5",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#233651",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#233651",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#233651",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#233651",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#233651",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              }
+            ]
+          },
+          "run_count": 1,
+          "active": [
+            0,
+            1,
+            2
+          ],
+          "first": 0,
+          "last": 2,
+          "fallback": [],
+          "signature": "48b006438fb23d9b9d68e6a5062e38c9e2475e06ff405f0bcce4df6cc096f5a9"
+        },
+        "grid_sha256": "8c93f962ab30ba136c4bd7cba8beb2deed7616fda20514df80a8a2bbe3b7c39d",
+        "matches_requested_stage": true
+      },
+      "indicator_cells": [
+        {
+          "symbol": "■",
+          "fg": "#3f69a3",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "■",
+          "fg": "#61a2e7",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "■",
+          "fg": "#5c9cf5",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#233651",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#233651",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#233651",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#233651",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#233651",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        }
+      ],
+      "color_distance": 0,
+      "phase_match": "REFERENCE"
+    },
+    "end-hold": {
+      "status": "CAPTURED_SCANNER",
+      "scenario": "scanner-end-hold",
+      "sample": {
+        "elapsed_ms": 1597,
+        "at": "2026-09-25T10:38:16.435Z",
+        "cycle": 0,
+        "hint": {
+          "x": 12,
+          "y": 38
+        },
+        "run": {
+          "x": 3,
+          "y": 38,
+          "cells": [
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#375b8c",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#375b8c",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#375b8c",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#192434",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#21324b",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#2d486e",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#3f69a3",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#61a2e7",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            }
+          ]
+        },
+        "active": [
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "fallback": [],
+        "provider_counts": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "signature": "1c239ad3803027c3783c1489719127b771828ca1b670b1497c4fcbfcd8e3818a",
+        "transition": {
+          "from": "end",
+          "to": "end"
+        }
+      },
+      "paused": {
+        "at": "2026-09-25T10:38:16.663Z",
+        "observed": {
+          "hints": [
+            {
+              "x": 12,
+              "y": 38
+            }
+          ],
+          "hint_text": "esc interrupt",
+          "run": {
+            "x": 3,
+            "y": 38,
+            "cells": [
+              {
+                "symbol": "⬝",
+                "fg": "#335481",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335481",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335481",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335481",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#192434",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#21324b",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#2d486e",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#3f69a3",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              }
+            ]
+          },
+          "run_count": 1,
+          "active": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "first": 4,
+          "last": 7,
+          "fallback": [],
+          "signature": "734964626be40014e062c038d069c5455a6d558db9ef2925b66e1a122cbf19f8"
+        },
+        "grid_sha256": "933c06e4139bb0590c7d9c58d28047ac7e879ef25ffc4f0deecc89394efa53ac",
+        "matches_requested_stage": true
+      },
+      "indicator_cells": [
+        {
+          "symbol": "⬝",
+          "fg": "#335481",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#335481",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#335481",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#335481",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "■",
+          "fg": "#192434",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "■",
+          "fg": "#21324b",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "■",
+          "fg": "#2d486e",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "■",
+          "fg": "#3f69a3",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        }
+      ],
+      "color_distance": 0,
+      "phase_match": "REFERENCE"
+    },
+    "reverse": {
+      "status": "CAPTURED_SCANNER",
+      "scenario": "scanner-reverse",
+      "sample": {
+        "elapsed_ms": 2671,
+        "at": "2026-09-25T10:38:17.509Z",
+        "cycle": 0,
+        "hint": {
+          "x": 12,
+          "y": 38
+        },
+        "run": {
+          "x": 3,
+          "y": 38,
+          "cells": [
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#192434",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#192434",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#192434",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#192434",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#192434",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#192434",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#5c9cf5",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "■",
+              "width": 1,
+              "fg": "#61a2e7",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            }
+          ]
+        },
+        "active": [
+          6,
+          7
+        ],
+        "fallback": [],
+        "provider_counts": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "signature": "5e236a0bbdc5da0e4f7eaa36830fcc74f6089f8f2a27d98403461312c8582f6b",
+        "transition": {
+          "from": "end",
+          "to": "reverse"
+        }
+      },
+      "paused": {
+        "at": "2026-09-25T10:38:17.773Z",
+        "observed": {
+          "hints": [
+            {
+              "x": 12,
+              "y": 38
+            }
+          ],
+          "hint_text": "esc interrupt",
+          "run": {
+            "x": 3,
+            "y": 38,
+            "cells": [
+              {
+                "symbol": "⬝",
+                "fg": "#192434",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#192434",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#192434",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#192434",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#192434",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#192434",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#5c9cf5",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "■",
+                "fg": "#61a2e7",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              }
+            ]
+          },
+          "run_count": 1,
+          "active": [
+            6,
+            7
+          ],
+          "first": 6,
+          "last": 7,
+          "fallback": [],
+          "signature": "fdbb0c0b2cb9de69a6c8dec725c3fa9ac46acac94ee532b4d5e24667a52bfe22"
+        },
+        "grid_sha256": "443de96513f37369687788cd016be5642b8e16976d242190aa486b8cc384b69f",
+        "matches_requested_stage": true
+      },
+      "indicator_cells": [
+        {
+          "symbol": "⬝",
+          "fg": "#192434",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#192434",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#192434",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#192434",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#192434",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#192434",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "■",
+          "fg": "#5c9cf5",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "■",
+          "fg": "#61a2e7",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        }
+      ],
+      "color_distance": 0,
+      "phase_match": "REFERENCE"
+    },
+    "start-hold": {
+      "status": "CAPTURED_SCANNER",
+      "scenario": "scanner-start-hold",
+      "sample": {
+        "elapsed_ms": 4127,
+        "at": "2026-09-25T10:38:18.965Z",
+        "cycle": 0,
+        "hint": {
+          "x": 12,
+          "y": 38
+        },
+        "run": {
+          "x": 3,
+          "y": 38,
+          "cells": [
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "symbol": "⬝",
+              "width": 1,
+              "fg": "#335380",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            }
+          ]
+        },
+        "active": [],
+        "fallback": [],
+        "provider_counts": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "signature": "734e390c66cd71e953156eead0bc5f1ed5c16909b7bcaf167131b9b2fc632bb0",
+        "transition": {
+          "from": "start",
+          "to": "start"
+        }
+      },
+      "paused": {
+        "at": "2026-09-25T10:38:19.199Z",
+        "observed": {
+          "hints": [
+            {
+              "x": 12,
+              "y": 38
+            }
+          ],
+          "hint_text": "esc interrupt",
+          "run": {
+            "x": 3,
+            "y": 38,
+            "cells": [
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⬝",
+                "fg": "#335380",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              }
+            ]
+          },
+          "run_count": 1,
+          "active": [],
+          "first": null,
+          "last": null,
+          "fallback": [],
+          "signature": "588c6820b3c3a08b16c58f6b7c7709098548c43cabc45c8d822cba268a7f9746"
+        },
+        "grid_sha256": "425a5d2c58b4d36cedd12874bf9b0caf28d1b8e5d2820063d9f78d5d9bd76f2f",
+        "matches_requested_stage": true
+      },
+      "indicator_cells": [
+        {
+          "symbol": "⬝",
+          "fg": "#335380",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#335380",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#335380",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#335380",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#335380",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#335380",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#335380",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⬝",
+          "fg": "#335380",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        }
+      ],
+      "color_distance": 0,
+      "phase_match": "REFERENCE"
+    }
+  },
+  "predicates": {
+    "all_phases_observed": true,
+    "forward_progression": true,
+    "end_fade_observed": true,
+    "reverse_progression": true,
+    "start_fade_observed": true,
+    "provider_held": true,
+    "no_early_completion": true,
+    "valid_running_requests": true,
+    "release_acknowledged": true,
+    "server_released": true,
+    "running_indicator_disappeared": true,
+    "completed_read_visible": true,
+    "completed_capture": true,
+    "valid_provider_roundtrip": true
+  },
+  "release": {
+    "at": "2026-09-25T10:38:19.811Z",
+    "elapsed_ms": 4973
+  }
+}

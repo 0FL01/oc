@@ -18,6 +18,7 @@ pub mod history;
 pub mod layout;
 pub mod messages;
 pub mod picker;
+mod scanner;
 pub mod shell;
 pub mod smoke;
 pub mod styled;

@@ -1,0 +1,207 @@
+{
+  "animation": false,
+  "cancel": false,
+  "observations": [
+    {
+      "elapsed_ms": 305,
+      "at": "2026-09-25T10:42:40.284Z",
+      "cycle": 0,
+      "hint": {
+        "x": 7,
+        "y": 38
+      },
+      "run": null,
+      "active": [],
+      "fallback": [
+        {
+          "x": 3,
+          "y": 38
+        }
+      ],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": null,
+      "transition": {
+        "from": "forward",
+        "to": "forward"
+      }
+    }
+  ],
+  "pause_attempts": [
+    {
+      "stage": "fallback",
+      "observed": {
+        "elapsed_ms": 305,
+        "at": "2026-09-25T10:42:40.284Z",
+        "cycle": 0,
+        "hint": {
+          "x": 7,
+          "y": 38
+        },
+        "run": null,
+        "active": [],
+        "fallback": [
+          {
+            "x": 3,
+            "y": 38
+          }
+        ],
+        "provider_counts": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "signature": null,
+        "transition": {
+          "from": "forward",
+          "to": "forward"
+        }
+      },
+      "requested_at": "2026-09-25T10:42:40.285Z",
+      "pause_ack": {
+        "kind": "scanner_pause_ack",
+        "request_id": 1,
+        "paused": true,
+        "generation": 0
+      },
+      "paused": {
+        "at": "2026-09-25T10:42:40.541Z",
+        "observed": {
+          "hints": [
+            {
+              "x": 7,
+              "y": 38
+            }
+          ],
+          "hint_text": "esc interrupt",
+          "run": null,
+          "run_count": 0,
+          "active": [],
+          "first": null,
+          "last": null,
+          "fallback": [
+            {
+              "x": 3,
+              "y": 38
+            }
+          ],
+          "signature": null
+        },
+        "grid_sha256": "1d9d3c346dcf1387038f59603cfceebe37f79fd57711cbe8b30a60117332ab15",
+        "matches_requested_stage": true
+      },
+      "capture_name": "scanner-fallback",
+      "phase_match": "REFERENCE",
+      "status": "CAPTURED_SCANNER",
+      "resume_ack": {
+        "kind": "scanner_resume_ack",
+        "request_id": 2,
+        "paused": false,
+        "generation": 0
+      }
+    }
+  ],
+  "stages": {
+    "fallback": {
+      "status": "CAPTURED_SCANNER",
+      "scenario": "scanner-fallback",
+      "sample": {
+        "elapsed_ms": 305,
+        "at": "2026-09-25T10:42:40.284Z",
+        "cycle": 0,
+        "hint": {
+          "x": 7,
+          "y": 38
+        },
+        "run": null,
+        "active": [],
+        "fallback": [
+          {
+            "x": 3,
+            "y": 38
+          }
+        ],
+        "provider_counts": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "signature": null,
+        "transition": {
+          "from": "forward",
+          "to": "forward"
+        }
+      },
+      "paused": {
+        "at": "2026-09-25T10:42:40.541Z",
+        "observed": {
+          "hints": [
+            {
+              "x": 7,
+              "y": 38
+            }
+          ],
+          "hint_text": "esc interrupt",
+          "run": null,
+          "run_count": 0,
+          "active": [],
+          "first": null,
+          "last": null,
+          "fallback": [
+            {
+              "x": 3,
+              "y": 38
+            }
+          ],
+          "signature": null
+        },
+        "grid_sha256": "1d9d3c346dcf1387038f59603cfceebe37f79fd57711cbe8b30a60117332ab15",
+        "matches_requested_stage": true
+      },
+      "indicator_cells": [
+        {
+          "symbol": "[",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⋯",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "]",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        }
+      ],
+      "color_distance": 0,
+      "phase_match": "REFERENCE"
+    }
+  },
+  "predicates": {
+    "all_phases_observed": true,
+    "provider_held": true,
+    "no_early_completion": true,
+    "valid_running_requests": true,
+    "release_acknowledged": true,
+    "server_released": true,
+    "running_indicator_disappeared": true,
+    "completed_read_visible": true,
+    "completed_capture": true,
+    "valid_provider_roundtrip": true
+  },
+  "release": {
+    "at": "2026-09-25T10:42:41.099Z",
+    "elapsed_ms": 1120
+  }
+}

@@ -555,6 +555,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
             }
             loop_state.sync_tabs(&mut state);
         }
+        // Reconciliation may have just accepted the first running turn. Arm
+        // its clock before the first painted frame, rather than one poll late.
+        state.tick_scanner(Instant::now());
         let draw_start = frame_metrics.as_ref().map(|_| Instant::now());
         terminal
             .draw(|frame| render_frame(frame, &state))
@@ -574,7 +577,13 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
         // char bursts and one-event-per-frame would take a minute for a
         // large paste. The drain is bounded so a flooding input cannot
         // starve the worker drain below.
-        if event::poll(Duration::from_millis(50)).map_err(|e| format!("input: {e}"))? {
+        let poll_interval =
+            if *state.status() == TuiStatus::Streaming && state.chrome.animations != Some(false) {
+                Duration::from_millis(40)
+            } else {
+                Duration::from_millis(50)
+            };
+        if event::poll(poll_interval).map_err(|e| format!("input: {e}"))? {
             for _ in 0..MAX_KEYS_PER_FRAME {
                 if !event::poll(Duration::ZERO).map_err(|e| format!("input: {e}"))? {
                     break;

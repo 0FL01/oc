@@ -204,6 +204,7 @@ fn make_harness() -> (Harness, Generation) {
     let generation = Generation {
         providers: BTreeMap::new(),
         mcp: BTreeMap::new(),
+        animations: None,
         permissions: allow_all(),
         permission_rules: Default::default(),
         provenance: BTreeMap::new(),
@@ -502,6 +503,7 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
         )]
         .into_iter()
         .collect(),
+        animations: None,
         permissions: allow_all(),
         permission_rules: Default::default(),
         provenance: BTreeMap::new(),

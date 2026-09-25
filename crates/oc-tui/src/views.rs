@@ -516,9 +516,11 @@ mod tests {
         assert_eq!(buffer[(41, 1)].fg, theme.warning());
         assert_eq!(buffer[(44, 2)].bg, theme.background_raised_high());
         assert_eq!(buffer[(44, 2)].fg, theme.text());
-        // Prompt footer: `esc` in base text, `interrupt` muted.
-        assert_eq!(buffer[(2, 22)].fg, theme.text());
-        assert_eq!(buffer[(6, 22)].fg, theme.text_muted());
+        // The running scanner occupies eight cells and a gap before the
+        // interrupt hint; the hint keeps its original semantic colors.
+        assert_eq!(buffer[(12, 22)].symbol(), "e");
+        assert_eq!(buffer[(12, 22)].fg, theme.text());
+        assert_eq!(buffer[(16, 22)].fg, theme.text_muted());
 
         // A paused/streaming scroll shows the upstream jump affordance in the
         // status row (`routes/session/index.tsx:1344-1348`).

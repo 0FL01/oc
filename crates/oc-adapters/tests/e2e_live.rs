@@ -137,6 +137,7 @@ async fn live_workflow_harness() {
         &db,
         "work",
         oc_adapters::config::Generation {
+            animations: None,
             providers: BTreeMap::new(),
             mcp: BTreeMap::new(),
             permissions: permissions.clone(),
@@ -276,6 +277,7 @@ async fn live_workflow_harness() {
         &db,
         "work",
         oc_adapters::config::Generation {
+            animations: None,
             providers: BTreeMap::new(),
             mcp: BTreeMap::new(),
             permissions,

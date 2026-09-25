@@ -48,6 +48,7 @@ struct Fixture {
     hold_title: Arc<AtomicBool>,
     title_closed: Arc<AtomicBool>,
     s07_continue: Arc<AtomicBool>,
+    vis28_continue: Arc<AtomicBool>,
     stop: Arc<AtomicBool>,
     server: Option<std::thread::JoinHandle<()>>,
 }
@@ -104,6 +105,8 @@ impl Fixture {
         let stopping = stop.clone();
         let s07_continue = Arc::new(AtomicBool::new(false));
         let continue_stream = s07_continue.clone();
+        let vis28_continue = Arc::new(AtomicBool::new(false));
+        let release_scanner = vis28_continue.clone();
         let server = std::thread::spawn(move || {
             while !stopping.load(Ordering::Relaxed) {
                 match listener.accept() {
@@ -126,7 +129,13 @@ impl Fixture {
                             continue;
                         }
                         let scripted = script(&body);
-                        let _ = respond(&mut socket, &scripted, &stopping, &continue_stream);
+                        let _ = respond(
+                            &mut socket,
+                            &scripted,
+                            &stopping,
+                            &continue_stream,
+                            &release_scanner,
+                        );
                     }
                     Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                         std::thread::sleep(POLL);
@@ -141,6 +150,7 @@ impl Fixture {
             hold_title,
             title_closed,
             s07_continue,
+            vis28_continue,
             stop,
             server: Some(server),
         })
@@ -207,6 +217,7 @@ impl Drop for Fixture {
 enum Script {
     Text(String),
     Slow(String),
+    Vis28Held,
     S07Read,
     S07Markdown,
     ReasoningClick,
@@ -243,6 +254,9 @@ fn script(body: &serde_json::Value) -> Script {
     }
     if prompt == "slow stream" {
         return Script::Slow("answer:slow stream".to_string());
+    }
+    if prompt == "vis28 held stream" {
+        return Script::Vis28Held;
     }
     if prompt == S07_PROMPT {
         return Script::S07Read;
@@ -344,6 +358,7 @@ fn respond(
     script: &Script,
     stop: &AtomicBool,
     s07_continue: &AtomicBool,
+    vis28_continue: &AtomicBool,
 ) -> std::io::Result<()> {
     write!(
         socket,
@@ -361,6 +376,20 @@ fn respond(
             std::thread::sleep(Duration::from_millis(50));
         }
         return finish_text(socket, answer);
+    }
+    if let Script::Vis28Held = script {
+        // Heartbeats keep the real Responses stream open across a complete
+        // scanner cycle. Only the test (or Esc disconnect) releases it.
+        while !vis28_continue.load(Ordering::Relaxed) && !stop.load(Ordering::Relaxed) {
+            socket.write_all(b": heartbeat\n\n")?;
+            socket.flush()?;
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        return if stop.load(Ordering::Relaxed) {
+            Ok(())
+        } else {
+            finish_text(socket, "answer:vis28 completed")
+        };
     }
     match script {
         Script::Text(answer) => finish_text(socket, answer),
@@ -416,6 +445,7 @@ fn respond(
             finish_text(socket, REASONING_CLICK_ANSWER)
         }
         Script::Slow(_) => unreachable!("handled above"),
+        Script::Vis28Held => unreachable!("handled above"),
     }
 }
 
@@ -934,6 +964,268 @@ fn wait_idle(pty: &PtySession) {
         assert!(start.elapsed() < DEADLINE, "turn did not become idle");
         std::thread::sleep(POLL);
     }
+}
+
+/// Reconstruct just the scanner's painted foreground, including ratatui
+/// cell-diff updates (unchanged cells keep their previous SGR color).
+fn vis28_painted_color(output: &[u8], target: (usize, usize)) -> Option<(u8, u8, u8)> {
+    let text = String::from_utf8_lossy(output);
+    let mut chars = text.chars().peekable();
+    let (mut row, mut col) = (0usize, 0usize);
+    let mut saved = (0usize, 0usize);
+    let mut fg = None;
+    let mut painted = None;
+    while let Some(ch) = chars.next() {
+        if ch == '\x1b' {
+            match chars.next() {
+                Some('[') => {
+                    let mut params = String::new();
+                    let final_ = loop {
+                        match chars.next() {
+                            Some(c) if ('@'..='~').contains(&c) => break c,
+                            Some(c) => params.push(c),
+                            None => return painted,
+                        }
+                    };
+                    let nums: Vec<usize> = params
+                        .trim_start_matches('?')
+                        .split(';')
+                        .filter_map(|part| part.parse().ok())
+                        .collect();
+                    let n = nums.first().copied().unwrap_or(1).max(1);
+                    match final_ {
+                        'H' | 'f' => {
+                            row = n - 1;
+                            col = nums.get(1).copied().unwrap_or(1).max(1) - 1;
+                        }
+                        'A' => row = row.saturating_sub(n),
+                        'B' => row += n,
+                        'C' => col += n,
+                        'D' => col = col.saturating_sub(n),
+                        's' => saved = (row, col),
+                        'u' => (row, col) = saved,
+                        'J' if params.starts_with('2') => painted = None,
+                        'K' if row == target.0 && col <= target.1 => painted = None,
+                        'm' => {
+                            if nums.is_empty() || nums.contains(&0) || nums.contains(&39) {
+                                fg = None;
+                            }
+                            for rgb in nums.windows(5) {
+                                if rgb[0..2] == [38, 2] {
+                                    fg = Some((rgb[2] as u8, rgb[3] as u8, rgb[4] as u8));
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                Some(']') => {
+                    while let Some(c) = chars.next() {
+                        if c == '\x07' || (c == '\x1b' && chars.next() == Some('\\')) {
+                            break;
+                        }
+                    }
+                }
+                _ => {}
+            }
+        } else {
+            match ch {
+                '\r' => col = 0,
+                '\n' => row += 1,
+                _ => {
+                    if (row, col) == target {
+                        painted = fg;
+                    }
+                    col += 1;
+                }
+            }
+        }
+    }
+    painted
+}
+
+type Vis28Paint = (String, Option<(u8, u8, u8)>);
+
+fn vis28_scanner(pty: &PtySession, animated: bool) -> Option<Vis28Paint> {
+    let output = pty.snapshot();
+    let rows = render_screen(&output).rows();
+    let (y, row) = rows
+        .iter()
+        .enumerate()
+        .find(|(_, row)| row.contains("esc interrupt"))?;
+    let hint = row[..row.find("esc interrupt")?].chars().count();
+    let width = if animated { 8 } else { 3 };
+    let x = hint.checked_sub(width + 1)?;
+    let glyphs: String = row.chars().skip(x).take(width).collect();
+    assert!(
+        y > 0 && !rows[y - 1].trim().is_empty(),
+        "scanner must sit below painted prompt metadata: {rows:?}"
+    );
+    if animated {
+        assert_eq!(glyphs.chars().count(), 8, "eight painted cells: {row:?}");
+        assert!(
+            glyphs.chars().all(|c| c == '■' || c == '⬝'),
+            "scanner glyphs: {row:?}"
+        );
+    }
+    Some((glyphs, vis28_painted_color(&output, (y, x))))
+}
+
+fn vis28_wait_gone(pty: &PtySession) {
+    let start = Instant::now();
+    while render_screen(&pty.snapshot()).rows().iter().any(|row| {
+        row.contains("esc interrupt")
+            || row.contains("[⋯]")
+            || row.contains('■')
+            || row.contains('⬝')
+    }) {
+        assert!(start.elapsed() < DEADLINE, "running footer did not clear");
+        std::thread::sleep(POLL);
+    }
+}
+
+#[test]
+fn vis28_real_pty_scanner_cycles_then_esc_cancels_and_static_fallback_completes() {
+    let fixture = Fixture::new();
+    let session = "vis28-animated";
+    let mut pty = PtySession::spawn(fixture.clone(), session, None);
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "vis28 held stream");
+    assert_eq!(
+        last_user_text(&fixture.wait_requests(1)[0]).as_deref(),
+        Some("vis28 held stream")
+    );
+    wait_screen_row(&pty, "esc interrupt", DEADLINE);
+    let initial_rows = render_screen(&pty.snapshot()).rows();
+    let footer_y = initial_rows
+        .iter()
+        .position(|row| row.contains("esc interrupt"))
+        .expect("painted running footer");
+    let metadata = initial_rows[footer_y - 1].clone();
+    assert!(
+        !metadata.trim().is_empty(),
+        "painted prompt metadata: {initial_rows:?}"
+    );
+    let mut samples = Vec::new();
+    let began = Instant::now();
+    // 54 * 40 ms nominal cycle; multiple cycles and a 6s cap tolerate PTY
+    // reader/scheduler jitter without requiring exact frame timestamps.
+    while began.elapsed() < Duration::from_secs(6) {
+        if let Some(sample) = vis28_scanner(&pty, true) {
+            samples.push(sample);
+        }
+        std::thread::sleep(Duration::from_millis(40));
+    }
+    assert!(
+        render_screen(&pty.snapshot()).rows().get(footer_y - 1) == Some(&metadata),
+        "agent/model metadata shifted during animation"
+    );
+    assert!(
+        !fixture.vis28_continue.load(Ordering::Relaxed),
+        "stream was released early"
+    );
+    let frames: Vec<_> = samples.iter().map(|(glyphs, _)| glyphs.as_str()).collect();
+    // Require movement within each sweep, rather than exact intermediate
+    // frame IDs: a 40ms PTY sample may legitimately skip a renderer tick.
+    let mut phase = 0;
+    let (mut forward, mut reverse) = (
+        std::collections::BTreeSet::new(),
+        std::collections::BTreeSet::new(),
+    );
+    for frame in &frames {
+        let prefix = frame.chars().take_while(|ch| *ch == '■').count();
+        let suffix = frame.chars().rev().take_while(|ch| *ch == '■').count();
+        match phase {
+            0 if (1..=6).contains(&prefix) => {
+                forward.insert(prefix);
+            }
+            0 if *frame == "⬝⬝⬝⬝⬝⬝⬝⬝" => {
+                if forward.len() >= 3 && forward.iter().any(|n| *n >= 4) {
+                    phase = 1; // end hold after observable forward motion
+                } else {
+                    forward.clear();
+                }
+            }
+            1 if (2..=6).contains(&suffix) => {
+                reverse.insert(suffix);
+            }
+            1 if *frame == "⬝⬝⬝⬝⬝⬝⬝⬝" && reverse.len() >= 3 && reverse.iter().any(|n| *n >= 4) =>
+            {
+                phase = 2; // start hold after observable reverse motion
+                break;
+            }
+            _ => {}
+        }
+    }
+    assert!(
+        phase == 2,
+        "missing observed forward/end-hold/reverse/start-hold cycle; distinct frames: {:?}",
+        frames
+            .iter()
+            .copied()
+            .collect::<std::collections::BTreeSet<_>>()
+    );
+    let fading = samples.windows(2).any(|pair| {
+        pair[0].0 == "⬝⬝⬝⬝⬝⬝⬝⬝"
+            && pair[1].0 == pair[0].0
+            && pair[0].1.is_some()
+            && pair[1].1.is_some()
+            && pair[0].1 != pair[1].1
+    });
+    assert!(
+        fading,
+        "stationary hold must visibly fade in painted SGR colors"
+    );
+    pty.send(b"\x1b");
+    vis28_wait_gone(&pty);
+    fixture.vis28_continue.store(true, Ordering::Relaxed);
+    pty.send(b"/quit\r");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+    assert_eq!(
+        persisted(pty.data_dir(), session),
+        [("user".into(), "vis28 held stream".into())],
+        "cancelled turn must remain durable without fabricated answer"
+    );
+
+    // A fresh process reads the project's animations:false setting.
+    std::fs::write(
+        fixture.root.path().join("project/opencode.json"),
+        r#"{"animations":false}"#,
+    )
+    .expect("static config");
+    fixture.vis28_continue.store(false, Ordering::Relaxed);
+    let session = "vis28-static";
+    let mut static_pty = PtySession::spawn(fixture.clone(), session, None);
+    static_pty.wait_visible(READY, DEADLINE);
+    submit(&mut static_pty, "vis28 held stream");
+    fixture.wait_requests(2);
+    wait_screen_row(&static_pty, "esc interrupt", DEADLINE);
+    let began = Instant::now();
+    while began.elapsed() < Duration::from_millis(350) {
+        let (glyphs, _) = vis28_scanner(&static_pty, false).expect("running static footer");
+        assert_eq!(glyphs, "[⋯]", "animation-disabled fixture");
+        assert!(
+            !render_screen(&static_pty.snapshot())
+                .rows()
+                .iter()
+                .any(|row| row.contains('■') || row.contains('⬝'))
+        );
+        std::thread::sleep(Duration::from_millis(40));
+    }
+    fixture.vis28_continue.store(true, Ordering::Relaxed);
+    wait_screen_row(&static_pty, "answer:vis28 completed", DEADLINE);
+    vis28_wait_gone(&static_pty);
+    static_pty.send(b"/quit\r");
+    let (status, output) = static_pty.wait_exit(DEADLINE);
+    assert!(status.success() && static_pty.restored() && contains(&output, ALT_LEAVE));
+    assert_eq!(
+        persisted(static_pty.data_dir(), session),
+        [
+            ("user".into(), "vis28 held stream".into()),
+            ("assistant".into(), "answer:vis28 completed".into())
+        ]
+    );
 }
 
 fn persisted(data_dir: &Path, session: &str) -> Vec<(String, String)> {
