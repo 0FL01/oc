@@ -14,7 +14,7 @@ pub enum KeyAction {
     Commands,
     /// Begin the configured upstream default leader chord.
     Leader,
-    /// Ctrl+C: clear search or dismiss a modal; exit at the root.
+    /// Ctrl+C: focused overlay/dialog handles it first; root clears or exits when empty.
     Interrupt,
     /// Open the native agent selector.
     Agents,
@@ -89,7 +89,8 @@ pub enum UiEvent {
 /// Map a Crossterm key event to an action.
 ///
 /// `Esc` cancels a stream (or quits when idle — resolved by `TuiState`);
-/// Root Ctrl+C exits; Ctrl+D deletes at the editor or exits at an empty root.
+/// Root Ctrl+C clears a nonempty draft or exits when empty; Ctrl+D deletes
+/// at the editor or exits at an empty root.
 pub fn map_key(event: KeyEvent) -> Option<KeyAction> {
     if event.kind == KeyEventKind::Release {
         return None;

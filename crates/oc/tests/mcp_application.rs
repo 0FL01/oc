@@ -1565,6 +1565,47 @@ impl PtyProcess {
             std::thread::sleep(POLL);
         }
     }
+
+    // Ctrl+C belongs to the focused root editor here: it clears a nonempty
+    // draft without cancelling/accepting it, then exits only on empty input.
+    // Use one deadline for both keys so pending-shutdown's 2s bound is intact.
+    fn clear_draft_then_exit(&mut self, draft: &str, deadline: Instant) -> ExitStatus {
+        while !self.screen().iter().any(|row| row.contains(draft)) {
+            assert!(
+                Instant::now() < deadline,
+                "draft not visible before Ctrl+C: {draft:?}"
+            );
+            std::thread::sleep(POLL);
+        }
+        assert!(self.child.try_wait().expect("poll TUI").is_none());
+        self.raw(b"\x03");
+        while self.screen().iter().any(|row| row.contains(draft)) {
+            assert!(
+                self.child.try_wait().expect("poll TUI").is_none(),
+                "nonempty Ctrl+C exited instead of clearing draft"
+            );
+            assert!(
+                Instant::now() < deadline,
+                "Ctrl+C did not clear draft: {draft:?}"
+            );
+            std::thread::sleep(POLL);
+        }
+        assert!(
+            self.child.try_wait().expect("poll TUI").is_none(),
+            "nonempty Ctrl+C exited instead of leaving the child alive"
+        );
+        self.raw(b"\x03");
+        loop {
+            if let Some(status) = self.child.try_wait().expect("poll TUI") {
+                return status;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "pending shutdown exceeded deadline"
+            );
+            std::thread::sleep(POLL);
+        }
+    }
 }
 
 impl Drop for PtyProcess {
@@ -2133,8 +2174,14 @@ for line in sys.stdin:
         .query_row("SELECT count(*) FROM messages", [], |row| row.get(0))
         .unwrap();
     assert_eq!(messages, 0, "late turn reached transcript");
-    tui.raw(b"\x03");
-    assert!(tui.wait_exit().success());
+    assert!(
+        tui.clear_draft_then_exit(draft, Instant::now() + TIMEOUT)
+            .success()
+    );
+    assert!(
+        responses.requests().is_empty(),
+        "clearing draft submitted a turn"
+    );
 }
 
 #[test]
@@ -2397,12 +2444,21 @@ for line in sys.stdin:
     if unicode_edit {
         quitting.raw(b"\x18"); // unresolved leader must not consume Ctrl+C
     }
-    quitting.raw(b"\x03");
-    while quitting.child.try_wait().unwrap().is_none() {
-        assert!(Instant::now() < deadline, "pending shutdown exceeded 2s");
-        std::thread::sleep(POLL);
+    if manual_compress {
+        // The DCP panel owns Ctrl+C here; preserve its existing exit route.
+        quitting.raw(b"\x03");
+        while quitting.child.try_wait().unwrap().is_none() {
+            assert!(Instant::now() < deadline, "pending shutdown exceeded 2s");
+            std::thread::sleep(POLL);
+        }
+        assert!(quitting.wait_exit().success());
+    } else {
+        assert!(
+            quitting
+                .clear_draft_then_exit("quit before acceptance", deadline)
+                .success()
+        );
     }
-    assert!(quitting.wait_exit().success());
     assert!(!release.exists());
     assert_eq!(responses.requests().len(), 2);
     let turns: i64 = db
@@ -2657,8 +2713,14 @@ fn v01_remote_pending_cancel_closes_request_before_fake_release() {
     }
     assert_eq!(mcp.records().len(), 1, "no hidden retry");
     assert!(responses.requests().is_empty());
-    tui.raw(b"\x03");
-    assert!(tui.wait_exit().success());
+    assert!(
+        tui.clear_draft_then_exit("remote draft", Instant::now() + TIMEOUT)
+            .success()
+    );
+    assert!(
+        responses.requests().is_empty(),
+        "clearing draft submitted a turn"
+    );
     let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
     let turns: i64 = db
         .query_row("SELECT count(*) FROM turns", [], |r| r.get(0))
@@ -2750,8 +2812,11 @@ fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retry() {
         1,
         "remote still owns first operation; retry must not overlap"
     );
-    tui.raw(b"\x03");
-    assert!(tui.wait_exit().success());
+    assert!(
+        tui.clear_draft_then_exit("explicit retry", Instant::now() + TIMEOUT)
+            .success()
+    );
+    assert_eq!(responses.requests().len(), first_provider_requests);
 }
 
 #[test]
@@ -2994,8 +3059,11 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
             location.display()
         );
     }
-    tui.raw(b"\x03");
-    assert!(tui.wait_exit().success());
+    assert!(
+        tui.clear_draft_then_exit("retry again in B", Instant::now() + TIMEOUT)
+            .success()
+    );
+    assert_eq!(responses.requests().len(), first_requests);
 }
 
 #[test]
@@ -3041,11 +3109,13 @@ fn v07b_remote_cancel_notification_failure_is_safe_and_poisoned() {
         !output.contains("PRIVATE_CANCEL_FAILURE"),
         "server body leaked into terminal"
     );
-    tui.raw(b"\x03");
+    let first_requests = responses.requests().len();
     assert!(
-        !tui.wait_exit().success(),
+        !tui.clear_draft_then_exit("explicit retry", Instant::now() + TIMEOUT)
+            .success(),
         "cleanup failure was reported as clean shutdown"
     );
+    assert_eq!(responses.requests().len(), first_requests);
 }
 
 #[test]
@@ -3128,8 +3198,11 @@ fn v07b_remote_unverified_result(tool: &str) {
         !output.contains("PRIVATE_RESULT_BODY"),
         "unsupported response content leaked"
     );
-    tui.raw(b"\x03");
-    assert!(tui.wait_exit().success());
+    assert!(
+        tui.clear_draft_then_exit("explicit retry", Instant::now() + TIMEOUT)
+            .success()
+    );
+    assert_eq!(responses.requests().len(), first_requests);
 }
 
 #[test]

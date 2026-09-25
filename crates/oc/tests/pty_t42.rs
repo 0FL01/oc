@@ -1672,10 +1672,29 @@ fn immediate_ctrl_c_after_first_home_submit_restores_committed_root_on_restart()
     let path = fixture.root.path().join("quit-first-turn-metrics.json");
     let mut pty = PtySession::spawn(fixture.clone(), &project, &[], None);
     wait_screen_row(&pty, "Ask anything", DEADLINE);
-    // One PTY write keeps Quit adjacent to the first Enter. The channel unit
-    // test controls the exact receipt order; here the real owner must persist
-    // the accepted route before restoring the terminal and shutting down.
-    pty.send(b"quit first turn\r\x03");
+    // Keep the first Enter and an unsent draft in one PTY write. The channel
+    // unit test controls the exact receipt order; the focused prompt must be
+    // visibly nonempty before Ctrl+C, regardless of the async owner ACK.
+    pty.send(b"quit first turn\runsent first-turn draft");
+    wait_screen_row(&pty, "unsent first-turn draft", DEADLINE);
+    pty.send(b"\x03");
+    wait_prompt_cleared(&pty, "unsent first-turn draft");
+    assert!(
+        pty.child.try_wait().unwrap().is_none(),
+        "first Ctrl+C clears, not exits"
+    );
+    let accepted = fixture.wait_requests(1);
+    assert_eq!(accepted.len(), 1, "clear must not submit the unsent draft");
+    assert_eq!(
+        last_user_text(&accepted[0]).as_deref(),
+        Some("quit first turn")
+    );
+    assert_eq!(
+        journal_counts(&fixture).0,
+        1,
+        "accepted root survives clear"
+    );
+    pty.send(b"\x03"); // empty root exits after the accepted first turn
     let (status, output) = pty.wait_exit(DEADLINE);
     assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
     let saved: serde_json::Value =
@@ -1685,6 +1704,11 @@ fn immediate_ctrl_c_after_first_home_submit_restores_committed_root_on_restart()
     assert_eq!(saved["sessions"], serde_json::json!([root]));
     assert_eq!(journal_counts(&fixture).0, 1);
     let requests = fixture.requests.lock().unwrap().len();
+    assert_eq!(
+        fixture.wait_requests(1).len(),
+        1,
+        "no extra provider turn on exit"
+    );
 
     let mut reopened = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
     wait_screen_row(&reopened, "Ask anything", DEADLINE);
@@ -1843,7 +1867,29 @@ fn explicit_child_is_standalone_read_only_and_preserves_saved_home() {
     wait_screen_row(&child, "read-only history", DEADLINE);
     child.send(b"should not submit\r");
     wait_screen_row(&child, "read-only history", DEADLINE);
+    wait_screen_row(&child, "should not submit", DEADLINE);
     child.send(b"\x03");
+    wait_prompt_cleared(&child, "should not submit");
+    assert!(
+        child.child.try_wait().unwrap().is_none(),
+        "first Ctrl+C clears, not exits"
+    );
+    assert_eq!(
+        journal_counts(&fixture),
+        counts,
+        "read-only child remains durable"
+    );
+    assert_eq!(
+        fixture.requests.lock().unwrap().len(),
+        requests,
+        "clear sends no request"
+    );
+    assert_eq!(
+        live_deck_record(&fixture, &project),
+        saved,
+        "child preserves saved Home"
+    );
+    child.send(b"\x03"); // empty child prompt exits
     let (status, output) = child.wait_exit(DEADLINE);
     assert!(status.success() && child.restored() && contains(&output, ALT_LEAVE));
     assert_eq!(metrics(&path)["session"], "child-view");

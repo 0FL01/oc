@@ -723,10 +723,12 @@ async fn sync_mention(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState)
 }
 
 async fn poll_and_sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
-    let fresh = deck.active_tab.is_none() && state.attached_session().is_none();
     state.poll_submission();
+    // A key can poll the acceptance before this loop does. The deck, rather
+    // than the view, records whether that accepted Home was already saved.
+    let fresh = deck.active_tab.is_none() && state.attached_session().is_some();
     deck.sync_tabs(state);
-    if fresh && state.attached_session().is_some() {
+    if fresh {
         deck.save(app, state).await;
     }
 }
@@ -2292,6 +2294,94 @@ mod tests {
                 assert_eq!(worker.await.unwrap(), usize::from(accepted));
             }
         }
+    }
+
+    #[tokio::test]
+    async fn key_consumed_home_receipt_is_saved_once_by_poll_before_exit() {
+        for accepted in [true, false] {
+            let (app, mut inbox, _) = CoreApp::channel(8);
+            let mut state = TuiState::new_home(app.clone());
+            let mut deck = LoopState {
+                location: Some("/fixture".into()),
+                ..Default::default()
+            };
+            state.handle_paste("first prompt");
+            state.handle_key(KeyAction::Enter).await;
+            let Some(InboxMsg::SubmitFresh { session, ack, .. }) = inbox.recv().await else {
+                panic!("one fresh submission")
+            };
+            state.handle_paste("unsent draft");
+            ack.send(if accepted {
+                Ok(WorkerTurnId("first-turn".into()))
+            } else {
+                Err(CoreError::Application("rejected".into()))
+            })
+            .unwrap();
+            // Ctrl+C polls the receipt before the next frame's poll_and_sync.
+            state.handle_key(KeyAction::Interrupt).await;
+            assert_eq!(state.input(), "");
+            assert_eq!(
+                state.status(),
+                if accepted {
+                    &TuiStatus::Streaming
+                } else {
+                    &TuiStatus::Idle
+                }
+            );
+            assert_eq!(state.attached_session(), accepted.then_some(&session));
+            assert!(deck.active_tab.is_none(), "no deck sync on the key");
+
+            let worker = tokio::spawn(async move {
+                let mut saves = 0;
+                loop {
+                    match inbox.recv().await.expect("owner must shut down") {
+                        InboxMsg::SaveTabDeck { deck, ack } => {
+                            assert!(accepted && saves == 0, "only one accepted-root save");
+                            assert_eq!(deck.location, "/fixture");
+                            assert_eq!(deck.sessions, vec![session.clone()]);
+                            assert_eq!(deck.active, Some(session.clone()));
+                            saves += 1;
+                            ack.send(Ok(TabDeckSnapshot {
+                                revision: Some("saved".into()),
+                                ..deck
+                            }))
+                            .unwrap();
+                        }
+                        InboxMsg::Shutdown => break,
+                        _ => panic!("no replay or unexpected owner work"),
+                    }
+                }
+                saves
+            });
+            poll_and_sync(&app, &mut state, &mut deck).await;
+            assert_eq!(deck.tabs.len(), usize::from(accepted));
+            assert_eq!(deck.revision.as_deref(), accepted.then_some("saved"));
+            poll_and_sync(&app, &mut state, &mut deck).await;
+            state.handle_key(KeyAction::Interrupt).await;
+            assert_eq!(state.status(), &TuiStatus::Quit);
+            reconcile_exit(&app, &mut state, &mut deck).await.unwrap();
+            app.shutdown().await.unwrap();
+            assert_eq!(worker.await.unwrap(), usize::from(accepted));
+        }
+
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new_home(app.clone());
+        let mut deck = LoopState {
+            location: Some("/fixture".into()),
+            ..Default::default()
+        };
+        state.handle_paste("first prompt");
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::SubmitFresh { ack, .. }) = inbox.recv().await else {
+            panic!("one pending fresh submission")
+        };
+        state.handle_paste("unsent draft");
+        state.handle_key(KeyAction::Interrupt).await;
+        poll_and_sync(&app, &mut state, &mut deck).await;
+        assert!(state.attached_session().is_none());
+        assert!(deck.active_tab.is_none());
+        assert!(inbox.try_recv().is_err(), "pending root cannot save");
+        drop(ack);
     }
 
     #[tokio::test]

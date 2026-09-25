@@ -886,6 +886,22 @@ fn wait_screen_row(pty: &PtySession, needle: &str, timeout: Duration) {
     }
 }
 
+/// Wait until the rendered draft marker has disappeared (cell-diff aware).
+fn wait_screen_absent(pty: &PtySession, needle: &str) {
+    let start = Instant::now();
+    loop {
+        let rows = render_screen(&pty.snapshot()).rows();
+        if !rows.iter().any(|row| row.contains(needle)) {
+            return;
+        }
+        assert!(
+            start.elapsed() < DEADLINE,
+            "draft was not cleared: {rows:?}"
+        );
+        std::thread::sleep(POLL);
+    }
+}
+
 fn contains(haystack: &[u8], needle: &[u8]) -> bool {
     haystack.len() >= needle.len() && haystack.windows(needle.len()).any(|w| w == needle)
 }
@@ -1796,7 +1812,24 @@ fn v07_raw_modifiers_release_and_modal_interrupt_keep_exact_draft() {
         1,
         "release must not start another provider request"
     );
-    pty.send(b"\x03"); // Ctrl+C in editor exits without submitting the draft
+    pty.send(b"\x03"); // Ctrl+C clears the nonempty focused editor
+    wait_screen_absent(&pty, "unsent");
+    assert!(
+        pty.child.try_wait().unwrap().is_none(),
+        "clear must not exit"
+    );
+    assert_eq!(
+        fixture
+            .requests
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|r| !title::is_title(r))
+            .count(),
+        1,
+        "clear must not submit the discarded draft"
+    );
+    pty.send(b"\x03"); // empty root exits and restores the terminal
     let (status, output) = pty.wait_exit(DEADLINE);
     assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
     assert_eq!(
@@ -1925,9 +1958,36 @@ fn v05_raw_unicode_multiline_focus_and_one_durable_submit() {
     }
     pty.send(b"\x1b[B");
     wait_screen_row(&pty, "unfinished", DEADLINE);
-    pty.send(b"\x03");
+    pty.send(b"\x03"); // first Ctrl+C clears the restored unfinished draft
+    wait_screen_absent(&pty, "unfinished");
+    assert!(
+        pty.child.try_wait().unwrap().is_none(),
+        "clear must not exit"
+    );
+    assert_eq!(
+        fixture
+            .requests
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|r| !title::is_title(r))
+            .count(),
+        1,
+        "clear must not submit the restored draft"
+    );
+    pty.send(b"\x03"); // empty root exits
     let (status, out) = pty.wait_exit(DEADLINE);
     assert!(status.success() && pty.restored() && contains(&out, ALT_LEAVE));
+    assert_eq!(
+        fixture
+            .requests
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|r| !title::is_title(r))
+            .count(),
+        1
+    );
     let rows = persisted(pty.data_dir(), "v05-unicode");
     assert_eq!(
         rows.iter().filter(|(role, _)| role == "user").count(),
@@ -1951,10 +2011,19 @@ fn v05_raw_capped_bracket_paste_is_visible_and_not_submitted() {
     pty.send(&vec![b'x'; size + 13]);
     pty.send(b"\x1b[201~");
     pty.wait_visible("paste truncated: 13 bytes dropped", DEADLINE);
+    wait_screen_row(&pty, "[Pasted ~1 lines]", DEADLINE);
     assert!(fixture.requests.lock().unwrap().is_empty());
-    pty.send(b"\x03");
+    pty.send(b"\x03"); // clears the oversized draft, not the process
+    wait_screen_absent(&pty, "[Pasted ~1 lines]");
+    assert!(
+        pty.child.try_wait().unwrap().is_none(),
+        "clear must not exit"
+    );
+    assert!(fixture.requests.lock().unwrap().is_empty());
+    pty.send(b"\x03"); // empty root exits and restores terminal state
     let (status, out) = pty.wait_exit(DEADLINE);
     assert!(status.success() && pty.restored() && contains(&out, ALT_LEAVE));
+    assert!(fixture.requests.lock().unwrap().is_empty());
     assert!(persisted(pty.data_dir(), "v05-paste").is_empty());
 }
 
@@ -2164,8 +2233,16 @@ fn v05_review_wheel_scroll_does_not_move_multiline_editor_caret() {
     }
     wait_cursor(&pty, caret);
     assert!(fixture.requests.lock().unwrap().is_empty());
+    pty.send(b"\x03"); // clears multiline draft after the wheel movement
+    wait_screen_absent(&pty, "строка");
+    assert!(
+        pty.child.try_wait().unwrap().is_none(),
+        "clear must not exit"
+    );
+    assert!(fixture.requests.lock().unwrap().is_empty());
     pty.send(b"\x03");
     assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+    assert!(fixture.requests.lock().unwrap().is_empty());
     assert_eq!(persisted(pty.data_dir(), "v05-wheel").len(), 70);
 }
 

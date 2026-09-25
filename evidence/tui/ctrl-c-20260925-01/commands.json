@@ -1,0 +1,342 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--ctrl-c",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "cc2a6173d139bb640df7eda8d571fbef75fd9a51\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "462435ca8ab3d7cb1cd34b22aba574e67b16dd05\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/app.rs b/crates/oc-tui/src/app.rs\nindex 55cfe86..ce95d23 100644\n--- a/crates/oc-tui/src/app.rs\n+++ b/crates/oc-tui/src/app.rs\n@@ -3376,6 +3376,20 @@ impl TuiState {\n                     self.slash_dismissed = Some(self.input_revision);\n                     return KeyOutcome::default();\n                 }\n+                KeyAction::Interrupt => {\n+                    // autocomplete.tsx:744-759: prompt.clear hides the command\n+                    // menu and removes only the trigger-to-caret token.\n+                    let caret = self.editor.cursor;\n+                    self.editor.move_to(0, false);\n+                    self.editor.move_to(caret, true);\n+                    if self.editor.delete(&mut self.input, true, false) {\n+                        self.input_revision += 1;\n+                    }\n+                    self.slash_selected = 0;\n+                    self.slash_dismissed = Some(self.input_revision);\n+                    self.leader = None;\n+                    return KeyOutcome::default();\n+                }\n                 _ => {}\n             }\n         }\n@@ -3402,12 +3416,19 @@ impl TuiState {\n                     self.mention_dismissed = self.mention_request();\n                     return KeyOutcome::default();\n                 }\n+                KeyAction::Interrupt => {\n+                    // Reference autocomplete hides without deleting @query.\n+                    self.mention_dismissed = self.mention_request();\n+                    self.leader = None;\n+                    return KeyOutcome::default();\n+                }\n                 _ => {}\n             }\n         } else if let Some(request) = self.mention_request() {\n             match action {\n-                KeyAction::Cancel => {\n+                KeyAction::Cancel | KeyAction::Interrupt => {\n                     self.mention_dismissed = Some(request);\n+                    self.leader = None;\n                     return KeyOutcome::default();\n                 }\n                 KeyAction::Up | KeyAction::Down | KeyAction::Commands | KeyAction::Tab => {\n@@ -3583,7 +3604,16 @@ impl TuiState {\n                 KeyOutcome::default()\n             }\n             KeyAction::Interrupt => {\n-                self.status = TuiStatus::Quit;\n+                if self.input.is_empty() {\n+                    self.status = TuiStatus::Quit;\n+                } else {\n+                    self.input.clear();\n+                    self.editor.clear();\n+                    self.input_revision += 1;\n+                    self.slash_selected = 0;\n+                    self.slash_dismissed = None;\n+                    self.clear_mentions();\n+                }\n                 KeyOutcome::default()\n             }\n             KeyAction::Cancel => {\n@@ -4167,7 +4197,7 @@ impl TuiState {\n     }\n \n     fn handle_rename_key(&mut self, action: KeyAction) -> KeyOutcome {\n-        if action == KeyAction::Cancel || action == KeyAction::Interrupt {\n+        if action == KeyAction::Cancel {\n             if self.rename_pending.is_none() {\n                 self.close_panel();\n             }\n@@ -4176,6 +4206,15 @@ impl TuiState {\n         if self.rename_pending.is_some() {\n             return KeyOutcome::default();\n         }\n+        if action == KeyAction::Interrupt {\n+            if self.rename_input.is_empty() {\n+                self.close_panel();\n+            } else {\n+                self.rename_input.clear();\n+                self.rename_editor.clear();\n+            }\n+            return KeyOutcome::default();\n+        }\n         match action {\n             KeyAction::Enter => {\n                 if let Some(reason) =\n@@ -6042,6 +6081,38 @@ mod tests {\n         );\n     }\n \n+    #[tokio::test]\n+    async fn ctrl_c_clears_focused_rename_prefill_before_dismissing_dialog() {\n+        let mut state = fresh_state(\"rename-interrupt\").await;\n+        state.session_title = Some(\"Existing title\".into());\n+        type_text(&mut state, \"untouched prompt\").await;\n+        state.handle_key(KeyAction::Rename).await;\n+        assert_eq!(state.rename_title(), Some(\"Existing title\"));\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(state.rename_title(), Some(\"\"));\n+        assert_eq!(state.rename_cursor(), 0);\n+        assert_eq!(state.input(), \"untouched prompt\");\n+        assert_eq!(state.status(), &TuiStatus::Idle);\n+        state.handle_key(KeyAction::Undo).await;\n+        assert_eq!(\n+            state.rename_title(),\n+            Some(\"\"),\n+            \"old prefill must not return\"\n+        );\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(state.panel(), &TuiPanel::None);\n+        assert_eq!(state.session_title.as_deref(), Some(\"Existing title\"));\n+        assert_eq!(state.input(), \"untouched prompt\");\n+\n+        state.handle_key(KeyAction::Rename).await;\n+        state.handle_key(KeyAction::Cancel).await;\n+        assert_eq!(\n+            state.panel(),\n+            &TuiPanel::None,\n+            \"Esc still closes immediately\"\n+        );\n+    }\n+\n     #[tokio::test]\n     async fn rename_oversized_prefill_never_submits_a_prefix_and_can_be_replaced() {\n         let mut state = fresh_state(\"rename-generated\").await;\n@@ -7666,6 +7737,140 @@ mod tests {\n         assert_eq!(state.status(), &TuiStatus::Quit);\n     }\n \n+    #[tokio::test]\n+    async fn ctrl_c_clears_slash_draft_and_editor_history_before_empty_exit() {\n+        let mut state = fresh_state(\"interrupt-slash\").await;\n+        state.attach_page(&page(\n+            vec![msg(1, Role::User, \"stored prompt\")],\n+            1,\n+            false,\n+            false,\n+        ));\n+        type_text(&mut state, \"/side\").await;\n+        assert!(state.slash_options().is_some());\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(state.status(), &TuiStatus::Idle);\n+        assert_eq!(state.input(), \"\");\n+        assert!(state.slash_options().is_none());\n+        assert_eq!(state.editor.cursor, 0);\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(state.status(), &TuiStatus::Quit);\n+\n+        let mut state = fresh_state(\"interrupt-draft\").await;\n+        state.attach_page(&page(\n+            vec![msg(1, Role::User, \"stored prompt\")],\n+            1,\n+            false,\n+            false,\n+        ));\n+        type_text(&mut state, \"plain draft\").await;\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(state.input(), \"\");\n+        state.handle_key(KeyAction::Undo).await;\n+        assert_eq!(state.input(), \"\", \"root clear must not be undoable\");\n+        state.handle_key(KeyAction::Up).await;\n+        assert_eq!(\n+            state.input(),\n+            \"stored prompt\",\n+            \"durable history remains available\"\n+        );\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(state.input(), \"\");\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(state.status(), &TuiStatus::Quit);\n+    }\n+\n+    #[tokio::test]\n+    async fn ctrl_c_dismisses_slash_token_but_preserves_text_after_caret() {\n+        let mut state = fresh_state(\"interrupt-slash-suffix\").await;\n+        state.handle_paste(\"/side suffix\");\n+        for _ in 0..7 {\n+            state.handle_key(KeyAction::Left).await;\n+        }\n+        assert_eq!(state.editor.cursor, 5);\n+        assert!(state.slash_options().is_some());\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(state.status(), &TuiStatus::Idle);\n+        assert_eq!(state.input(), \" suffix\");\n+        assert_eq!(state.editor.cursor, 0);\n+        assert!(state.slash_options().is_none());\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(state.input(), \"\");\n+        assert_eq!(state.status(), &TuiStatus::Idle);\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(state.status(), &TuiStatus::Quit);\n+    }\n+\n+    #[tokio::test]\n+    async fn ctrl_c_clears_mention_and_multiline_chip_without_reusing_stale_suggestions() {\n+        let mut state = fresh_state(\"interrupt-mention\").await;\n+        state.chrome.location = Some(\"/A\".into());\n+        state.handle_paste(\"@sr\");\n+        let stale = state.mention_request().expect(\"mention query\");\n+        assert!(\n+            state.apply_file_suggestions(stale.clone(), file_result(\"/A\", 1, &[\"src/main.rs\"]))\n+        );\n+        assert!(state.mention_options().is_some());\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(state.status(), &TuiStatus::Idle);\n+        assert_eq!(state.input(), \"@sr\", \"first Ctrl+C only hides references\");\n+        assert!(state.mention_options().is_none());\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(state.status(), &TuiStatus::Idle);\n+        assert_eq!(state.input(), \"\");\n+        state.handle_paste(\"@sr\");\n+        assert!(!state.apply_file_suggestions(stale, file_result(\"/A\", 1, &[\"stale.rs\"])));\n+        assert!(state.mention_options().is_none());\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(\n+            state.input(),\n+            \"@sr\",\n+            \"unloaded mention still owns dismissal\"\n+        );\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(state.input(), \"\");\n+\n+        state.handle_paste(\"one\\ntwo\\nthree\");\n+        assert_eq!(state.prompt_layout(80).0[0].text, \"[Pasted ~3 lines] \");\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(state.status(), &TuiStatus::Idle);\n+        assert_eq!(state.input(), \"\");\n+        assert_eq!(state.editor.cursor, 0);\n+        state.handle_key(KeyAction::Undo).await;\n+        assert_eq!(\n+            state.input(),\n+            \"\",\n+            \"paste undo must not restore cleared text\"\n+        );\n+        state.handle_key(KeyAction::Char('x')).await;\n+        assert_eq!(state.prompt_layout(80).0[0].text, \"x\");\n+    }\n+\n+    #[tokio::test]\n+    async fn ctrl_c_clears_pending_draft_without_cancelling_accepted_turn() {\n+        use oc_core::core_app::InboxMsg;\n+        let (app, mut inbox, _) = CoreApp::channel(4);\n+        let mut state = TuiState::new(app, sid(\"interrupt-pending\"));\n+        type_text(&mut state, \"submitted\").await;\n+        state.handle_key(KeyAction::Enter).await;\n+        let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {\n+            panic!(\"submission\")\n+        };\n+        state.handle_key(KeyAction::Interrupt).await;\n+        assert_eq!(state.status(), &TuiStatus::PendingSubmission);\n+        assert_eq!(state.input(), \"\");\n+        assert!(\n+            inbox.try_recv().is_err(),\n+            \"interrupt must not enqueue cancellation\"\n+        );\n+        ack.send(Ok(WorkerTurnId(\"accepted\".into()))).unwrap();\n+        state.poll_submission();\n+        assert_eq!(state.active_turn(), Some(&WorkerTurnId(\"accepted\".into())));\n+        assert_eq!(state.history().rows()[0].text, \"submitted\");\n+        assert_eq!(state.input(), \"\");\n+        assert_eq!(state.status(), &TuiStatus::Streaming);\n+    }\n+\n     #[tokio::test]\n     async fn v05_review_shift_edges_select_entire_multiline_buffer() {\n         let mut state = fresh_state(\"buffer-edges\").await;\ndiff --git a/crates/oc-tui/src/events.rs b/crates/oc-tui/src/events.rs\nindex 094d58c..608fbf1 100644\n--- a/crates/oc-tui/src/events.rs\n+++ b/crates/oc-tui/src/events.rs\n@@ -14,7 +14,7 @@ pub enum KeyAction {\n     Commands,\n     /// Begin the configured upstream default leader chord.\n     Leader,\n-    /// Ctrl+C: clear search or dismiss a modal; exit at the root.\n+    /// Ctrl+C: focused overlay/dialog handles it first; root clears or exits when empty.\n     Interrupt,\n     /// Open the native agent selector.\n     Agents,\n@@ -89,7 +89,8 @@ pub enum UiEvent {\n /// Map a Crossterm key event to an action.\n ///\n /// `Esc` cancels a stream (or quits when idle — resolved by `TuiState`);\n-/// Root Ctrl+C exits; Ctrl+D deletes at the editor or exits at an empty root.\n+/// Root Ctrl+C clears a nonempty draft or exits when empty; Ctrl+D deletes\n+/// at the editor or exits at an empty root.\n pub fn map_key(event: KeyEvent) -> Option<KeyAction> {\n     if event.kind == KeyEventKind::Release {\n         return None;\ndiff --git a/crates/oc/tests/pty_t39.rs b/crates/oc/tests/pty_t39.rs\nindex f6ec33e..d449a58 100644\n--- a/crates/oc/tests/pty_t39.rs\n+++ b/crates/oc/tests/pty_t39.rs\n@@ -886,6 +886,22 @@ fn wait_screen_row(pty: &PtySession, needle: &str, timeout: Duration) {\n     }\n }\n \n+/// Wait until the rendered draft marker has disappeared (cell-diff aware).\n+fn wait_screen_absent(pty: &PtySession, needle: &str) {\n+    let start = Instant::now();\n+    loop {\n+        let rows = render_screen(&pty.snapshot()).rows();\n+        if !rows.iter().any(|row| row.contains(needle)) {\n+            return;\n+        }\n+        assert!(\n+            start.elapsed() < DEADLINE,\n+            \"draft was not cleared: {rows:?}\"\n+        );\n+        std::thread::sleep(POLL);\n+    }\n+}\n+\n fn contains(haystack: &[u8], needle: &[u8]) -> bool {\n     haystack.len() >= needle.len() && haystack.windows(needle.len()).any(|w| w == needle)\n }\n@@ -1796,7 +1812,24 @@ fn v07_raw_modifiers_release_and_modal_interrupt_keep_exact_draft() {\n         1,\n         \"release must not start another provider request\"\n     );\n-    pty.send(b\"\\x03\"); // Ctrl+C in editor exits without submitting the draft\n+    pty.send(b\"\\x03\"); // Ctrl+C clears the nonempty focused editor\n+    wait_screen_absent(&pty, \"unsent\");\n+    assert!(\n+        pty.child.try_wait().unwrap().is_none(),\n+        \"clear must not exit\"\n+    );\n+    assert_eq!(\n+        fixture\n+            .requests\n+            .lock()\n+            .unwrap()\n+            .iter()\n+            .filter(|r| !title::is_title(r))\n+            .count(),\n+        1,\n+        \"clear must not submit the discarded draft\"\n+    );\n+    pty.send(b\"\\x03\"); // empty root exits and restores the terminal\n     let (status, output) = pty.wait_exit(DEADLINE);\n     assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));\n     assert_eq!(\n@@ -1925,9 +1958,36 @@ fn v05_raw_unicode_multiline_focus_and_one_durable_submit() {\n     }\n     pty.send(b\"\\x1b[B\");\n     wait_screen_row(&pty, \"unfinished\", DEADLINE);\n-    pty.send(b\"\\x03\");\n+    pty.send(b\"\\x03\"); // first Ctrl+C clears the restored unfinished draft\n+    wait_screen_absent(&pty, \"unfinished\");\n+    assert!(\n+        pty.child.try_wait().unwrap().is_none(),\n+        \"clear must not exit\"\n+    );\n+    assert_eq!(\n+        fixture\n+            .requests\n+            .lock()\n+            .unwrap()\n+            .iter()\n+            .filter(|r| !title::is_title(r))\n+            .count(),\n+        1,\n+        \"clear must not submit the restored draft\"\n+    );\n+    pty.send(b\"\\x03\"); // empty root exits\n     let (status, out) = pty.wait_exit(DEADLINE);\n     assert!(status.success() && pty.restored() && contains(&out, ALT_LEAVE));\n+    assert_eq!(\n+        fixture\n+            .requests\n+            .lock()\n+            .unwrap()\n+            .iter()\n+            .filter(|r| !title::is_title(r))\n+            .count(),\n+        1\n+    );\n     let rows = persisted(pty.data_dir(), \"v05-unicode\");\n     assert_eq!(\n         rows.iter().filter(|(role, _)| role == \"user\").count(),\n@@ -1951,10 +2011,19 @@ fn v05_raw_capped_bracket_paste_is_visible_and_not_submitted() {\n     pty.send(&vec![b'x'; size + 13]);\n     pty.send(b\"\\x1b[201~\");\n     pty.wait_visible(\"paste truncated: 13 bytes dropped\", DEADLINE);\n+    wait_screen_row(&pty, \"[Pasted ~1 lines]\", DEADLINE);\n     assert!(fixture.requests.lock().unwrap().is_empty());\n-    pty.send(b\"\\x03\");\n+    pty.send(b\"\\x03\"); // clears the oversized draft, not the process\n+    wait_screen_absent(&pty, \"[Pasted ~1 lines]\");\n+    assert!(\n+        pty.child.try_wait().unwrap().is_none(),\n+        \"clear must not exit\"\n+    );\n+    assert!(fixture.requests.lock().unwrap().is_empty());\n+    pty.send(b\"\\x03\"); // empty root exits and restores terminal state\n     let (status, out) = pty.wait_exit(DEADLINE);\n     assert!(status.success() && pty.restored() && contains(&out, ALT_LEAVE));\n+    assert!(fixture.requests.lock().unwrap().is_empty());\n     assert!(persisted(pty.data_dir(), \"v05-paste\").is_empty());\n }\n \n@@ -2164,8 +2233,16 @@ fn v05_review_wheel_scroll_does_not_move_multiline_editor_caret() {\n     }\n     wait_cursor(&pty, caret);\n     assert!(fixture.requests.lock().unwrap().is_empty());\n+    pty.send(b\"\\x03\"); // clears multiline draft after the wheel movement\n+    wait_screen_absent(&pty, \"строка\");\n+    assert!(\n+        pty.child.try_wait().unwrap().is_none(),\n+        \"clear must not exit\"\n+    );\n+    assert!(fixture.requests.lock().unwrap().is_empty());\n     pty.send(b\"\\x03\");\n     assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());\n+    assert!(fixture.requests.lock().unwrap().is_empty());\n     assert_eq!(persisted(pty.data_dir(), \"v05-wheel\").len(), 70);\n }\n \ndiff --git a/scripts/tui_capture/README.md b/scripts/tui_capture/README.md\nindex 57235f9..e00f5cd 100644\n--- a/scripts/tui_capture/README.md\n+++ b/scripts/tui_capture/README.md\n@@ -485,6 +485,40 @@ are observations, not asserted equal; neither frames nor upstream inputs are\n masked or synthesized. A failed predicate is a failed diagnostic, and a passed\n interaction does not claim full-frame parity.\n \n+For the independent R5/V05 **Ctrl+C** probe, use a fresh output directory and\n+the same paired Reader/tools 120×40 profile, replacing `--autocomplete-keys true`\n+with `--ctrl-c true` (exclusive with other interaction/resize/variant modes):\n+\n+```sh\n+node scripts/tui_capture/capture.mjs \\\n+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \\\n+  --oc /home/opencode/ai/oc/target/debug/oc \\\n+  --geometry true --sample tools --sidebar hide --agent-profile true \\\n+  --columns 120 --rows 40 --ctrl-c true \\\n+  --output /home/opencode/ai/oc/evidence/tui/ctrl-c-NEW-ATTEMPT\n+```\n+\n+Each real PTY receives a visible literal draft prefix and a bracketed three-line\n+paste on Home; `ctrl-c-home-draft-before` and `ctrl-c-home-root-cleared` capture\n+the painted prefix/chip before Ctrl+C and the empty prompt after it. Only then\n+does the runner submit the normal fixture prompt for the real read/title session.\n+On that completed session it repeats the multiline draft, opens Commands with\n+Ctrl+P, types a query and sends Ctrl+C to the focused modal. The resulting\n+query-clear **or** dismissal must preserve the root draft; if still open, Escape\n+closes the modal. A second root Ctrl+C clears the draft without terminating the\n+PTY; a third, on the empty root prompt, must produce the bridge's natural exit\n+event with code 0 and actual post-key VT alternate-screen-leave/cursor-show\n+bytes. The probe never presses Enter on its draft or modal query.\n+`ctrl-c-{home,session}-draft-before`,\n+`ctrl-c-session-modal-query-before`, `ctrl-c-session-modal-after` and\n+`ctrl-c-{home,session}-root-cleared` retain full unmasked styled cells/PNG/VT;\n+`ctrl-c-checks.json`, `inputs.json` and `protocol.json` retain actual input bytes,\n+observed modal outcome, provider baseline/current counts and natural exit event.\n+Each paired frame goes through the existing unmasked full-grid and PNG comparators;\n+their exit 1 remains DIFFERENT even when both interaction probes pass. Failed\n+attempt directories remain immutable. Supply a rebuilt native binary to test\n+native changes; this invocation does not run Cargo.\n+\n ## VIS26 file-mention diagnostic\n \n Once the native binary has been rebuilt with VIS26, run both pinned executables\ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex 005adb3..e45efe8 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -50,6 +50,9 @@ if (args.autocomplete !== undefined && !['true','false'].includes(args.autocompl\n const autocompleteKeys = args['autocomplete-keys'] === 'true';\n if (args['autocomplete-keys'] !== undefined && !['true','false'].includes(args['autocomplete-keys']))\n   throw Error('--autocomplete-keys must be true or false');\n+const ctrlC = args['ctrl-c'] === 'true';\n+if (args['ctrl-c'] !== undefined && !['true','false'].includes(args['ctrl-c']))\n+  throw Error('--ctrl-c must be true or false');\n const autocompleteKeysRename = args['autocomplete-keys-rename'] === 'true';\n if (args['autocomplete-keys-rename'] !== undefined && !['true','false'].includes(args['autocomplete-keys-rename']))\n   throw Error('--autocomplete-keys-rename must be true or false');\n@@ -82,6 +85,13 @@ if (scanner && !['true','false'].includes(args['scanner-cancel']))\n if (!scanner && args['scanner-cancel'] !== undefined)\n   throw Error('--scanner-cancel requires --scanner true');\n const scannerCancel = args['scanner-cancel'] === 'true';\n+if (ctrlC && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||\n+    args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||\n+    !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||\n+    args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||\n+    args.tabs === 'vertical' || explorationClick || tabClick || renameSession || sidebarPalette ||\n+    regenerateTitle || autocomplete || autocompleteKeys || mention || reasoningClick || selectionCopy || scanner))\n+  throw Error('--ctrl-c true requires paired Reader/tools 120x40, --geometry true --sidebar hide --agent-profile true and no other interaction/resize modes');\n if (scanner && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||\n     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||\n     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||\n@@ -371,6 +381,112 @@ try {\n       const providerCounts=()=>({requests:logs.filter(e=>e.kind==='provider').length,\n         completed:logs.filter(e=>e.kind==='provider_completed').length,\n         invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});\n+      const ctrlCChecks=[];\n+      const probeCtrlC=async route=>{\n+        const baseline=providerCounts();\n+        const prefix=`interrupt-draft-${route}-`;\n+        const chip='[Pasted ~3 lines]';\n+        const observe=f=>{\n+          const row=f.cells[f.cursor.y]?.map(c=>c.symbol).join('') ?? '';\n+          const start=row.indexOf('┃  ');\n+          return {prefix:visibleMatches(f,prefix),chip:visibleMatches(f,chip),\n+            draft_start:start<0?null:start+3,draft:start<0?null:row.slice(start+3).trimEnd(),\n+            commands:visibleMatches(f,'Commands'),modal_query:visibleMatches(f,'ctrlcmodal'),\n+            cursor:f.cursor,provider_counts:providerCounts(),bridge_exit:bridgeExit,\n+            exit_events:logs.filter(e=>e.kind==='exit')};\n+        };\n+        const empty=o=>o.draft_start!==null && o.cursor.x===o.draft_start &&\n+          (o.draft==='' || o.draft.startsWith('Ask anything…'));\n+        const unchanged=()=>canonical(providerCounts())===canonical(baseline);\n+        lock.ctrl_c ??= {};\n+        lock.ctrl_c[origin] ??= {status:'IN_PROGRESS',checks:ctrlCChecks};\n+        const save=()=>{\n+          fs.writeFileSync(path.join(dir,'ctrl-c-checks.json'),JSON.stringify({checks:ctrlCChecks},null,2)+'\\n');\n+          json('capture.lock.json',lock);\n+        };\n+        const record=(stage,f,predicates,extra={})=>{\n+          ctrlCChecks.push({route,stage,baseline,observed:observe(f),predicates,...extra,\n+            grid_sha256:sha(JSON.stringify(f))});\n+          save();\n+          if(Object.values(predicates).some(v=>v!==true)) throw Error('Ctrl+C predicate failed: '+route+' '+stage);\n+        };\n+        const shot=async(stage,f)=>{\n+          const status=await capture(`ctrl-c-${route}-${stage}`,f,'CAPTURED_CTRL_C');\n+          record(stage+'-capture',await frame(),{stable_capture:status==='CAPTURED_CTRL_C',\n+            no_provider_request:unchanged()});\n+        };\n+        // The literal prefix makes the draft visible even when the pasted\n+        // three-line payload is rendered as a compact paste chip.\n+        send(prefix,`ctrl_c_${route}_draft_prefix`);\n+        send('\\x1b[200~line-one\\nline-two\\nline-three\\x1b[201~',`ctrl_c_${route}_multiline_paste`);\n+        const before=await waitFor(f=>{const o=observe(f);\n+          return o.prefix.length===1 && o.chip.length===1 && unchanged() && bridgeExit===undefined;\n+        },`ctrl-c ${route} multiline draft`,12000);\n+        record('draft-before',before,{prefix_visible:observe(before).prefix.length===1,\n+          multiline_chip_visible:observe(before).chip.length===1,pty_alive:bridgeExit===undefined,\n+          no_provider_request:unchanged()});\n+        await shot('draft-before',before);\n+        if(route==='session') {\n+          send('\\x10','ctrl_c_session_commands_open');\n+          const opened=await waitFor(f=>observe(f).commands.length===1 && observe(f).prefix.length===1,\n+            'Commands over retained root draft',12000);\n+          record('modal-open',opened,{commands_open:observe(opened).commands.length===1,\n+            root_draft_retained:observe(opened).prefix.length===1,no_provider_request:unchanged()});\n+          send('ctrlcmodal','ctrl_c_session_modal_query');\n+          const queried=await waitFor(f=>{const o=observe(f);\n+            return o.commands.length===1 && o.modal_query.length===1 && o.prefix.length===1 && unchanged();\n+          },'focused Commands query',12000);\n+          record('modal-query-before',queried,{commands_open:true,query_visible:true,\n+            root_draft_retained:true,no_provider_request:unchanged()});\n+          await shot('modal-query-before',queried);\n+          send('\\x03','ctrl_c_session_modal_interrupt');\n+          const afterModal=await waitFor(f=>{const o=observe(f);\n+            return o.prefix.length===1 && o.modal_query.length===0 && unchanged() && bridgeExit===undefined;\n+          },'modal Ctrl+C cleared query or closed modal',12000);\n+          const modalOpen=observe(afterModal).commands.length===1;\n+          record('modal-after',afterModal,{query_absent:observe(afterModal).modal_query.length===0,\n+            root_draft_retained:observe(afterModal).prefix.length===1,pty_alive:bridgeExit===undefined,\n+            no_provider_request:unchanged()},{modal_outcome:modalOpen?'query_cleared':'dismissed'});\n+          await shot('modal-after',afterModal);\n+          if(modalOpen) {\n+            send('\\x1b','ctrl_c_session_modal_escape');\n+            const dismissed=await waitFor(f=>observe(f).commands.length===0 && observe(f).prefix.length===1 && unchanged(),\n+              'dismiss Commands without clearing root draft',12000);\n+            record('modal-dismissed',dismissed,{commands_closed:true,root_draft_retained:true,\n+              no_provider_request:unchanged()});\n+          }\n+        }\n+        const justBefore=await frame();\n+        record('before-root-interrupt',justBefore,{root_draft_visible:observe(justBefore).prefix.length===1,\n+          multiline_chip_visible:observe(justBefore).chip.length===1,\n+          modal_closed:observe(justBefore).commands.length===0,no_provider_request:unchanged(),\n+          pty_alive:bridgeExit===undefined});\n+        send('\\x03',`ctrl_c_${route}_root_nonempty`);\n+        const cleared=await waitFor(f=>{const o=observe(f);\n+          return o.prefix.length===0 && o.chip.length===0 && o.commands.length===0 &&\n+            empty(o) && unchanged() && bridgeExit===undefined;\n+        },`ctrl-c ${route} cleared root draft`,12000);\n+        record('root-cleared',cleared,{draft_prefix_absent:observe(cleared).prefix.length===0,\n+          multiline_chip_absent:observe(cleared).chip.length===0,\n+          empty_prompt_visible:empty(observe(cleared)),\n+          pty_alive:bridgeExit===undefined,no_provider_request:unchanged()});\n+        await shot('root-cleared',cleared);\n+        if(route==='session') {\n+          const beforeExitBytes=Buffer.concat(chunks[generation]).length;\n+          send('\\x03','ctrl_c_session_root_empty_exit');\n+          const deadline=Date.now()+15000;\n+          while(!logs.some(e=>e.kind==='exit' && e.generation===0) && Date.now()<deadline) await sleep(100);\n+          const exit=logs.find(e=>e.kind==='exit' && e.generation===0);\n+          const exitBytes=Buffer.concat(chunks[generation]).subarray(beforeExitBytes).toString('latin1');\n+          const alternateScreenLeft=/\\x1b\\[\\?(?:1049|1047|47)l/.test(exitBytes);\n+          const cursorRestored=/\\x1b\\[\\?25h/.test(exitBytes);\n+          record('empty-root-exit',cleared,{natural_exit:exit?.termination==='natural',\n+            zero_exit_code:exit?.code===0,alternate_screen_left:alternateScreenLeft,\n+            cursor_restored:cursorRestored,no_provider_request:unchanged()},\n+          {exit,exit_vt_sha256:sha(Buffer.from(exitBytes,'latin1')),\n+            exit_vt_byte_length:Buffer.byteLength(exitBytes,'latin1')});\n+        }\n+      };\n       const autocompleteObserve=f=>{\n         const rows=f.cells.map(row=>row.map(c=>c.symbol).join(''));\n         const draftRow=rows[f.cursor.y] || '';\n@@ -625,6 +741,7 @@ try {\n         lock.autocomplete_keys[origin]={status:'IN_PROGRESS',checks:autocompleteKeysChecks};\n         await probeAutocompleteKeys('home');\n       }\n+      if(ctrlC) await probeCtrlC('home');\n       if(mention) {\n         lock.mention ??= {};\n         lock.mention[origin]={status:'IN_PROGRESS',checks:mentionChecks};\n@@ -1268,6 +1385,19 @@ try {\n          lock.attempts.push({origin,status:'AUTOCOMPLETE_KEYS_CHECKS_PASS',\n            predicates:autocompleteKeysChecks.map(c=>({route:c.route,stage:c.stage,...c.predicates}))});\n        }\n+        if(ctrlC) {\n+          await waitFor(f=>f.text.includes('GEOMETRY-SHORT: tool read completed.') &&\n+            logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length===1,\n+          'completed read and title before Ctrl+C session probe');\n+          const baseline=providerCounts();\n+          if(completedStatus!=='CAPTURED' || baseline.requests!==3 || baseline.completed!==3 || baseline.invalid!==0)\n+            throw Error('Ctrl+C session requires stable completed read/title and valid provider baseline');\n+          await probeCtrlC('session');\n+          lock.ctrl_c[origin].status='PASS';\n+          json('capture.lock.json',lock);\n+          lock.attempts.push({origin,status:'CTRL_C_CHECKS_PASS',\n+            predicates:ctrlCChecks.map(c=>({route:c.route,stage:c.stage,...c.predicates}))});\n+        }\n         if(mention) {\n           await probeMention('session');\n           lock.mention[origin].status='RECORDED';\n@@ -1971,6 +2101,7 @@ try {\n         if(sidebarPalette && lock.sidebar_palette?.[origin]) lock.sidebar_palette[origin].status='FAILED';\n         if(autocomplete && lock.autocomplete?.[origin]) lock.autocomplete[origin].status='FAILED';\n         if(autocompleteKeys && lock.autocomplete_keys?.[origin]) lock.autocomplete_keys[origin].status='FAILED';\n+        if(ctrlC && lock.ctrl_c?.[origin]) lock.ctrl_c[origin].status='FAILED';\n           if(mention && lock.mention?.[origin]) lock.mention[origin].status='FAILED';\n           if(reasoningClick && lock.reasoning_click?.[origin]) lock.reasoning_click[origin].status='FAILED';\n            if(selectionCopy && lock.selection_copy?.[origin]) lock.selection_copy[origin].status='FAILED';\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/assets/upstream/PROVENANCE.md\u0000crates/oc-adapters/assets/upstream/v2/review.txt\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/scanner.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/clipboard.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "   Compiling oc-tui v0.1.0 (/home/opencode/ai/oc/crates/oc-tui)\n   Compiling oc v0.1.0 (/home/opencode/ai/oc/crates/oc)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.62s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"3dce22b803ba229615462b8c3f89aabe19b9697baabcf9849d3d697fcbf63759\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"1a673d10a1f1358e3fe4dfb2e0cbafda341b967fe7882b41f70419c939b672ff\", \"actual_sha256\": \"c409decf1972240b43f8ab4e7a14711c04db3e5324a66e82d4c8bc1b43f4b5bc\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cc2a6173d139bb640df7eda8d571fbef75fd9a51\", \"cells_checked\": 4800, \"different_cells\": 45, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 21, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"cba2c3e399ce247e20aedd2124f46c807bd604eba97992c2d5ca228381accfd8\", \"actual_sha256\": \"24109ac7459b8cc25c2f9ffd527bec5112d600322cc0220d531334737b671696\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2037, \"changed_fraction_diagnostic_only\": 0.0031481824925816025, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/ctrl-c-home-draft-before.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/ctrl-c-home-draft-before.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/ctrl-c-home-draft-before.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"ctrl-c-home-draft-before\", \"fixture_sha256\": \"3dce22b803ba229615462b8c3f89aabe19b9697baabcf9849d3d697fcbf63759\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"d32ead18a1da07816785f6514cdd492a9c8adecb632b64773842e7989542eb13\", \"actual_sha256\": \"37d4eaf29faaefea49c576af4bdb5310937eae23cf82216d4ed5dc57daf0a1d1\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cc2a6173d139bb640df7eda8d571fbef75fd9a51\", \"cells_checked\": 4800, \"different_cells\": 23, \"cursor_differs\": false, \"difference_bbox_inclusive\": [47, 21, 117, 38], \"samples\": [{\"x\": 47, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 56, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 61, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 62, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 63, \"y\": 21, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/ctrl-c-home-draft-before.png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/ctrl-c-home-draft-before.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/ctrl-c-home-draft-before.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"d6f2100352db02b5a1aeb96d578923178fff0860635118cef080d5eac8bbdd0c\", \"actual_sha256\": \"9019a572219371b4fd17e496aabbe975deb3abb9058e64c298f4aedc6ee3c490\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2586, \"changed_fraction_diagnostic_only\": 0.00399666172106825, \"difference_bbox_inclusive\": [396, 336, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/ctrl-c-home-root-cleared.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/ctrl-c-home-root-cleared.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/ctrl-c-home-root-cleared.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"ctrl-c-home-root-cleared\", \"fixture_sha256\": \"3dce22b803ba229615462b8c3f89aabe19b9697baabcf9849d3d697fcbf63759\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"32fd1698a6fbde78b6f10104131ee633dee9f2d459da2b4cfdc3d730f247c92a\", \"actual_sha256\": \"b4815e54920f5247459e1786c99da6c8070940313eba40f388b485aa7cbe153a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cc2a6173d139bb640df7eda8d571fbef75fd9a51\", \"cells_checked\": 4800, \"different_cells\": 45, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 21, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/ctrl-c-home-root-cleared.png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/ctrl-c-home-root-cleared.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/ctrl-c-home-root-cleared.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"cba2c3e399ce247e20aedd2124f46c807bd604eba97992c2d5ca228381accfd8\", \"actual_sha256\": \"24109ac7459b8cc25c2f9ffd527bec5112d600322cc0220d531334737b671696\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2037, \"changed_fraction_diagnostic_only\": 0.0031481824925816025, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"3dce22b803ba229615462b8c3f89aabe19b9697baabcf9849d3d697fcbf63759\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"f510a4dcb22a0a52360e29975bfdec0b195f208ff78aee646cd5cbd580dda323\", \"actual_sha256\": \"0157f2c2b71a11521625ee8dc5b7003c42af9f7a6e51091e622b43900bfb291a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cc2a6173d139bb640df7eda8d571fbef75fd9a51\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"6d676f296e9e228a70403082ade3ce5450b4bad37729e201056a3fcc9b893bb4\", \"actual_sha256\": \"cfaed822d3ee31213fd97802f5f4e1a883ce030d900e94e4a65ef009cc2d46d8\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 134, \"changed_fraction_diagnostic_only\": 0.00020709693372898122, \"difference_bbox_inclusive\": [320, 163, 336, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/ctrl-c-session-draft-before.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/ctrl-c-session-draft-before.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/ctrl-c-session-draft-before.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"ctrl-c-session-draft-before\", \"fixture_sha256\": \"3dce22b803ba229615462b8c3f89aabe19b9697baabcf9849d3d697fcbf63759\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"800800d8ea601a3496a8531c257d941237ae98d90e6fb103527396b255f7e8d5\", \"actual_sha256\": \"d3bcd12c34055dd3551acf11c16214b675facbc2d8e309951e93be381b99959d\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cc2a6173d139bb640df7eda8d571fbef75fd9a51\", \"cells_checked\": 4800, \"different_cells\": 19, \"cursor_differs\": false, \"difference_bbox_inclusive\": [29, 10, 45, 34], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 30, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 31, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 32, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 33, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 34, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 35, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 36, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 37, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 38, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 39, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 40, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 41, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 42, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 43, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 44, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 45, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/ctrl-c-session-draft-before.png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/ctrl-c-session-draft-before.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/ctrl-c-session-draft-before.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c5a5c3f87900eda513829d0a29dafe41ebd9b2c0e2af643351399c0a92a04321\", \"actual_sha256\": \"bae60358e860137ec7fadc6dc11243721fcd8113009383260cb2216da98734b1\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2422, \"changed_fraction_diagnostic_only\": 0.0037431998021760634, \"difference_bbox_inclusive\": [244, 163, 386, 559]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/ctrl-c-session-modal-query-before.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/ctrl-c-session-modal-query-before.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/ctrl-c-session-modal-query-before.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"ctrl-c-session-modal-query-before\", \"fixture_sha256\": \"3dce22b803ba229615462b8c3f89aabe19b9697baabcf9849d3d697fcbf63759\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"4201cbc0d1a184dc123b7caec2f1d7f2ec3a1724af73ebb1110304b04cfe0b2f\", \"actual_sha256\": \"166d7b754ccd5090ccaf719d8181787059baa1e1f895abba79b00ae16674c145\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cc2a6173d139bb640df7eda8d571fbef75fd9a51\", \"cells_checked\": 4800, \"different_cells\": 17, \"cursor_differs\": false, \"difference_bbox_inclusive\": [29, 34, 45, 34], \"samples\": [{\"x\": 29, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 30, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 31, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 32, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 33, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 34, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 35, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 36, \"y\": 34, \"different_fields\": [\"bg\"]}, {\"x\": 37, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 38, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 39, \"y\": 34, \"different_fields\": [\"bg\"]}, {\"x\": 40, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 41, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 42, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 43, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 44, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}, {\"x\": 45, \"y\": 34, \"different_fields\": [\"fg\", \"bg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/ctrl-c-session-modal-query-before.png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/ctrl-c-session-modal-query-before.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/ctrl-c-session-modal-query-before.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"418361ecc0fc093486bb8a38a89df4706aeebee896b657e3169528b3e6925e0e\", \"actual_sha256\": \"af9080f02183ace49cbe49d80657625d0a33309c6c7d28bd4bf71c6a339c49b1\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2432, \"changed_fraction_diagnostic_only\": 0.003758654797230465, \"difference_bbox_inclusive\": [244, 208, 386, 559]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/ctrl-c-session-modal-after.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/ctrl-c-session-modal-after.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/ctrl-c-session-modal-after.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"ctrl-c-session-modal-after\", \"fixture_sha256\": \"3dce22b803ba229615462b8c3f89aabe19b9697baabcf9849d3d697fcbf63759\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"70ddc525474f619ee81d3e97e81eba88a6b24f79131066d10dc6d6b735449c1c\", \"actual_sha256\": \"73f72762e5d48f3dcc9861dae261313b9e806cfcda28d48955cc1620d25779bc\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cc2a6173d139bb640df7eda8d571fbef75fd9a51\", \"cells_checked\": 4800, \"different_cells\": 174, \"cursor_differs\": false, \"difference_bbox_inclusive\": [29, 19, 85, 34], \"samples\": [{\"x\": 34, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 35, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 36, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 37, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 38, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 39, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 40, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 41, \"y\": 19, \"different_fields\": [\"fg\"]}, {\"x\": 42, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 43, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 44, \"y\": 19, \"different_fields\": [\"fg\"]}, {\"x\": 45, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 46, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 47, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 48, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 49, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 50, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 51, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 52, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 53, \"y\": 19, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/ctrl-c-session-modal-after.png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/ctrl-c-session-modal-after.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/ctrl-c-session-modal-after.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"962c30e45c82d98294477ead239b153ca1819fbb01139f97da15514b87a71271\", \"actual_sha256\": \"bed0e9daf45087c6c4c72e8a53c861ab8566adb779e45c67b8d9949fbec0e2f2\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 9233, \"changed_fraction_diagnostic_only\": 0.014269596933728982, \"difference_bbox_inclusive\": [244, 208, 757, 559]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/ctrl-c-session-root-cleared.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/ctrl-c-session-root-cleared.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/ctrl-c-session-root-cleared.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"ctrl-c-session-root-cleared\", \"fixture_sha256\": \"3dce22b803ba229615462b8c3f89aabe19b9697baabcf9849d3d697fcbf63759\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"d6dd9a87e45cdcab949d5ce456b2202473e914cd8321d28a785b1d243ea2857a\", \"actual_sha256\": \"e0e3b3bb4af9f8b36a827f08fe8ef5c7c28496cfafb37f36051dad8223e0fdf2\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"cc2a6173d139bb640df7eda8d571fbef75fd9a51\", \"cells_checked\": 4800, \"different_cells\": 2, \"cursor_differs\": false, \"difference_bbox_inclusive\": [38, 10, 39, 10], \"samples\": [{\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/upstream/ctrl-c-session-root-cleared.png",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/oc/ctrl-c-session-root-cleared.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/ctrl-c-20260925-01/ctrl-c-session-root-cleared.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"6d676f296e9e228a70403082ade3ce5450b4bad37729e201056a3fcc9b893bb4\", \"actual_sha256\": \"cfaed822d3ee31213fd97802f5f4e1a883ce030d900e94e4a65ef009cc2d46d8\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 134, \"changed_fraction_diagnostic_only\": 0.00020709693372898122, \"difference_bbox_inclusive\": [320, 163, 336, 172]}\n",
+    "stderr": ""
+  }
+]

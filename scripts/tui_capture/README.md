@@ -485,6 +485,40 @@ are observations, not asserted equal; neither frames nor upstream inputs are
 masked or synthesized. A failed predicate is a failed diagnostic, and a passed
 interaction does not claim full-frame parity.
 
+For the independent R5/V05 **Ctrl+C** probe, use a fresh output directory and
+the same paired Reader/tools 120×40 profile, replacing `--autocomplete-keys true`
+with `--ctrl-c true` (exclusive with other interaction/resize/variant modes):
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc \
+  --geometry true --sample tools --sidebar hide --agent-profile true \
+  --columns 120 --rows 40 --ctrl-c true \
+  --output /home/opencode/ai/oc/evidence/tui/ctrl-c-NEW-ATTEMPT
+```
+
+Each real PTY receives a visible literal draft prefix and a bracketed three-line
+paste on Home; `ctrl-c-home-draft-before` and `ctrl-c-home-root-cleared` capture
+the painted prefix/chip before Ctrl+C and the empty prompt after it. Only then
+does the runner submit the normal fixture prompt for the real read/title session.
+On that completed session it repeats the multiline draft, opens Commands with
+Ctrl+P, types a query and sends Ctrl+C to the focused modal. The resulting
+query-clear **or** dismissal must preserve the root draft; if still open, Escape
+closes the modal. A second root Ctrl+C clears the draft without terminating the
+PTY; a third, on the empty root prompt, must produce the bridge's natural exit
+event with code 0 and actual post-key VT alternate-screen-leave/cursor-show
+bytes. The probe never presses Enter on its draft or modal query.
+`ctrl-c-{home,session}-draft-before`,
+`ctrl-c-session-modal-query-before`, `ctrl-c-session-modal-after` and
+`ctrl-c-{home,session}-root-cleared` retain full unmasked styled cells/PNG/VT;
+`ctrl-c-checks.json`, `inputs.json` and `protocol.json` retain actual input bytes,
+observed modal outcome, provider baseline/current counts and natural exit event.
+Each paired frame goes through the existing unmasked full-grid and PNG comparators;
+their exit 1 remains DIFFERENT even when both interaction probes pass. Failed
+attempt directories remain immutable. Supply a rebuilt native binary to test
+native changes; this invocation does not run Cargo.
+
 ## VIS26 file-mention diagnostic
 
 Once the native binary has been rebuilt with VIS26, run both pinned executables

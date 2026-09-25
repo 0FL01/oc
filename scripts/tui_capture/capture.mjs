@@ -50,6 +50,9 @@ if (args.autocomplete !== undefined && !['true','false'].includes(args.autocompl
 const autocompleteKeys = args['autocomplete-keys'] === 'true';
 if (args['autocomplete-keys'] !== undefined && !['true','false'].includes(args['autocomplete-keys']))
   throw Error('--autocomplete-keys must be true or false');
+const ctrlC = args['ctrl-c'] === 'true';
+if (args['ctrl-c'] !== undefined && !['true','false'].includes(args['ctrl-c']))
+  throw Error('--ctrl-c must be true or false');
 const autocompleteKeysRename = args['autocomplete-keys-rename'] === 'true';
 if (args['autocomplete-keys-rename'] !== undefined && !['true','false'].includes(args['autocomplete-keys-rename']))
   throw Error('--autocomplete-keys-rename must be true or false');
@@ -82,6 +85,13 @@ if (scanner && !['true','false'].includes(args['scanner-cancel']))
 if (!scanner && args['scanner-cancel'] !== undefined)
   throw Error('--scanner-cancel requires --scanner true');
 const scannerCancel = args['scanner-cancel'] === 'true';
+if (ctrlC && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
+    args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
+    !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
+    args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
+    args.tabs === 'vertical' || explorationClick || tabClick || renameSession || sidebarPalette ||
+    regenerateTitle || autocomplete || autocompleteKeys || mention || reasoningClick || selectionCopy || scanner))
+  throw Error('--ctrl-c true requires paired Reader/tools 120x40, --geometry true --sidebar hide --agent-profile true and no other interaction/resize modes');
 if (scanner && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
@@ -371,6 +381,112 @@ try {
       const providerCounts=()=>({requests:logs.filter(e=>e.kind==='provider').length,
         completed:logs.filter(e=>e.kind==='provider_completed').length,
         invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});
+      const ctrlCChecks=[];
+      const probeCtrlC=async route=>{
+        const baseline=providerCounts();
+        const prefix=`interrupt-draft-${route}-`;
+        const chip='[Pasted ~3 lines]';
+        const observe=f=>{
+          const row=f.cells[f.cursor.y]?.map(c=>c.symbol).join('') ?? '';
+          const start=row.indexOf('┃  ');
+          return {prefix:visibleMatches(f,prefix),chip:visibleMatches(f,chip),
+            draft_start:start<0?null:start+3,draft:start<0?null:row.slice(start+3).trimEnd(),
+            commands:visibleMatches(f,'Commands'),modal_query:visibleMatches(f,'ctrlcmodal'),
+            cursor:f.cursor,provider_counts:providerCounts(),bridge_exit:bridgeExit,
+            exit_events:logs.filter(e=>e.kind==='exit')};
+        };
+        const empty=o=>o.draft_start!==null && o.cursor.x===o.draft_start &&
+          (o.draft==='' || o.draft.startsWith('Ask anything…'));
+        const unchanged=()=>canonical(providerCounts())===canonical(baseline);
+        lock.ctrl_c ??= {};
+        lock.ctrl_c[origin] ??= {status:'IN_PROGRESS',checks:ctrlCChecks};
+        const save=()=>{
+          fs.writeFileSync(path.join(dir,'ctrl-c-checks.json'),JSON.stringify({checks:ctrlCChecks},null,2)+'\n');
+          json('capture.lock.json',lock);
+        };
+        const record=(stage,f,predicates,extra={})=>{
+          ctrlCChecks.push({route,stage,baseline,observed:observe(f),predicates,...extra,
+            grid_sha256:sha(JSON.stringify(f))});
+          save();
+          if(Object.values(predicates).some(v=>v!==true)) throw Error('Ctrl+C predicate failed: '+route+' '+stage);
+        };
+        const shot=async(stage,f)=>{
+          const status=await capture(`ctrl-c-${route}-${stage}`,f,'CAPTURED_CTRL_C');
+          record(stage+'-capture',await frame(),{stable_capture:status==='CAPTURED_CTRL_C',
+            no_provider_request:unchanged()});
+        };
+        // The literal prefix makes the draft visible even when the pasted
+        // three-line payload is rendered as a compact paste chip.
+        send(prefix,`ctrl_c_${route}_draft_prefix`);
+        send('\x1b[200~line-one\nline-two\nline-three\x1b[201~',`ctrl_c_${route}_multiline_paste`);
+        const before=await waitFor(f=>{const o=observe(f);
+          return o.prefix.length===1 && o.chip.length===1 && unchanged() && bridgeExit===undefined;
+        },`ctrl-c ${route} multiline draft`,12000);
+        record('draft-before',before,{prefix_visible:observe(before).prefix.length===1,
+          multiline_chip_visible:observe(before).chip.length===1,pty_alive:bridgeExit===undefined,
+          no_provider_request:unchanged()});
+        await shot('draft-before',before);
+        if(route==='session') {
+          send('\x10','ctrl_c_session_commands_open');
+          const opened=await waitFor(f=>observe(f).commands.length===1 && observe(f).prefix.length===1,
+            'Commands over retained root draft',12000);
+          record('modal-open',opened,{commands_open:observe(opened).commands.length===1,
+            root_draft_retained:observe(opened).prefix.length===1,no_provider_request:unchanged()});
+          send('ctrlcmodal','ctrl_c_session_modal_query');
+          const queried=await waitFor(f=>{const o=observe(f);
+            return o.commands.length===1 && o.modal_query.length===1 && o.prefix.length===1 && unchanged();
+          },'focused Commands query',12000);
+          record('modal-query-before',queried,{commands_open:true,query_visible:true,
+            root_draft_retained:true,no_provider_request:unchanged()});
+          await shot('modal-query-before',queried);
+          send('\x03','ctrl_c_session_modal_interrupt');
+          const afterModal=await waitFor(f=>{const o=observe(f);
+            return o.prefix.length===1 && o.modal_query.length===0 && unchanged() && bridgeExit===undefined;
+          },'modal Ctrl+C cleared query or closed modal',12000);
+          const modalOpen=observe(afterModal).commands.length===1;
+          record('modal-after',afterModal,{query_absent:observe(afterModal).modal_query.length===0,
+            root_draft_retained:observe(afterModal).prefix.length===1,pty_alive:bridgeExit===undefined,
+            no_provider_request:unchanged()},{modal_outcome:modalOpen?'query_cleared':'dismissed'});
+          await shot('modal-after',afterModal);
+          if(modalOpen) {
+            send('\x1b','ctrl_c_session_modal_escape');
+            const dismissed=await waitFor(f=>observe(f).commands.length===0 && observe(f).prefix.length===1 && unchanged(),
+              'dismiss Commands without clearing root draft',12000);
+            record('modal-dismissed',dismissed,{commands_closed:true,root_draft_retained:true,
+              no_provider_request:unchanged()});
+          }
+        }
+        const justBefore=await frame();
+        record('before-root-interrupt',justBefore,{root_draft_visible:observe(justBefore).prefix.length===1,
+          multiline_chip_visible:observe(justBefore).chip.length===1,
+          modal_closed:observe(justBefore).commands.length===0,no_provider_request:unchanged(),
+          pty_alive:bridgeExit===undefined});
+        send('\x03',`ctrl_c_${route}_root_nonempty`);
+        const cleared=await waitFor(f=>{const o=observe(f);
+          return o.prefix.length===0 && o.chip.length===0 && o.commands.length===0 &&
+            empty(o) && unchanged() && bridgeExit===undefined;
+        },`ctrl-c ${route} cleared root draft`,12000);
+        record('root-cleared',cleared,{draft_prefix_absent:observe(cleared).prefix.length===0,
+          multiline_chip_absent:observe(cleared).chip.length===0,
+          empty_prompt_visible:empty(observe(cleared)),
+          pty_alive:bridgeExit===undefined,no_provider_request:unchanged()});
+        await shot('root-cleared',cleared);
+        if(route==='session') {
+          const beforeExitBytes=Buffer.concat(chunks[generation]).length;
+          send('\x03','ctrl_c_session_root_empty_exit');
+          const deadline=Date.now()+15000;
+          while(!logs.some(e=>e.kind==='exit' && e.generation===0) && Date.now()<deadline) await sleep(100);
+          const exit=logs.find(e=>e.kind==='exit' && e.generation===0);
+          const exitBytes=Buffer.concat(chunks[generation]).subarray(beforeExitBytes).toString('latin1');
+          const alternateScreenLeft=/\x1b\[\?(?:1049|1047|47)l/.test(exitBytes);
+          const cursorRestored=/\x1b\[\?25h/.test(exitBytes);
+          record('empty-root-exit',cleared,{natural_exit:exit?.termination==='natural',
+            zero_exit_code:exit?.code===0,alternate_screen_left:alternateScreenLeft,
+            cursor_restored:cursorRestored,no_provider_request:unchanged()},
+          {exit,exit_vt_sha256:sha(Buffer.from(exitBytes,'latin1')),
+            exit_vt_byte_length:Buffer.byteLength(exitBytes,'latin1')});
+        }
+      };
       const autocompleteObserve=f=>{
         const rows=f.cells.map(row=>row.map(c=>c.symbol).join(''));
         const draftRow=rows[f.cursor.y] || '';
@@ -625,6 +741,7 @@ try {
         lock.autocomplete_keys[origin]={status:'IN_PROGRESS',checks:autocompleteKeysChecks};
         await probeAutocompleteKeys('home');
       }
+      if(ctrlC) await probeCtrlC('home');
       if(mention) {
         lock.mention ??= {};
         lock.mention[origin]={status:'IN_PROGRESS',checks:mentionChecks};
@@ -1268,6 +1385,19 @@ try {
          lock.attempts.push({origin,status:'AUTOCOMPLETE_KEYS_CHECKS_PASS',
            predicates:autocompleteKeysChecks.map(c=>({route:c.route,stage:c.stage,...c.predicates}))});
        }
+        if(ctrlC) {
+          await waitFor(f=>f.text.includes('GEOMETRY-SHORT: tool read completed.') &&
+            logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length===1,
+          'completed read and title before Ctrl+C session probe');
+          const baseline=providerCounts();
+          if(completedStatus!=='CAPTURED' || baseline.requests!==3 || baseline.completed!==3 || baseline.invalid!==0)
+            throw Error('Ctrl+C session requires stable completed read/title and valid provider baseline');
+          await probeCtrlC('session');
+          lock.ctrl_c[origin].status='PASS';
+          json('capture.lock.json',lock);
+          lock.attempts.push({origin,status:'CTRL_C_CHECKS_PASS',
+            predicates:ctrlCChecks.map(c=>({route:c.route,stage:c.stage,...c.predicates}))});
+        }
         if(mention) {
           await probeMention('session');
           lock.mention[origin].status='RECORDED';
@@ -1971,6 +2101,7 @@ try {
         if(sidebarPalette && lock.sidebar_palette?.[origin]) lock.sidebar_palette[origin].status='FAILED';
         if(autocomplete && lock.autocomplete?.[origin]) lock.autocomplete[origin].status='FAILED';
         if(autocompleteKeys && lock.autocomplete_keys?.[origin]) lock.autocomplete_keys[origin].status='FAILED';
+        if(ctrlC && lock.ctrl_c?.[origin]) lock.ctrl_c[origin].status='FAILED';
           if(mention && lock.mention?.[origin]) lock.mention[origin].status='FAILED';
           if(reasoningClick && lock.reasoning_click?.[origin]) lock.reasoning_click[origin].status='FAILED';
            if(selectionCopy && lock.selection_copy?.[origin]) lock.selection_copy[origin].status='FAILED';

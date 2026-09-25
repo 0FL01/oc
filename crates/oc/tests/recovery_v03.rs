@@ -98,12 +98,67 @@ fn binary_viewport_resize_draft_sidebar_and_debug() {
             );
         }
     }
+    // The shared geometry fixture still assumes one Ctrl+C quits even when its
+    // pasted prompt is nonempty. Adapt only this invocation until that fixture
+    // can be changed: the first interrupt must clear, the second must exit.
+    let geometry = include_str!("support/geometry.py");
+    let old_stop = r#"def stop(child, fd):
+    # Ctrl+C uses the existing quit route; no draft gets submitted to the peer.
+    os.write(fd, b'\x03')
+    drain(fd)
+    try:
+        code = child.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        child.kill(); child.wait(); raise
+    finally:
+        os.close(fd)
+    assert code == 0, code
+"#;
+    let new_stop = r#"def stop(child, fd, draft_session=None):
+    if draft_session is not None:
+        import sqlite3
+        db_path = home / 'data/oc/oc.sqlite'
+        def user_count():
+            with sqlite3.connect(db_path) as db:
+                return db.execute('SELECT COUNT(*) FROM messages WHERE session_id=? AND role=?',
+                                  (draft_session, 'user')).fetchone()[0]
+        before = user_count()
+        os.write(fd, b'\x03')
+        cleared = drain(fd, .3)
+        assert child.poll() is None, 'nonempty Ctrl+C exited instead of clearing'
+        assert '[Pasted ~3 lines]' not in cleared, 'draft still visible after Ctrl+C'
+        assert user_count() == before, 'cleared draft was submitted'
+    os.write(fd, b'\x03')
+    restored = drain(fd)
+    try:
+        code = child.wait(timeout=5)
+        restored += drain(fd, .1)
+        flags = termios.tcgetattr(fd)[3]
+    except subprocess.TimeoutExpired:
+        child.kill(); child.wait(); raise
+    finally:
+        os.close(fd)
+    assert code == 0, code
+    assert '\x1b[?1049l' in restored, 'alternate screen not left'
+    assert flags & (termios.ICANON | termios.ECHO) == (termios.ICANON | termios.ECHO), 'terminal not restored'
+"#;
+    assert!(
+        geometry.contains(old_stop),
+        "geometry cleanup fixture changed"
+    );
+    let geometry = geometry.replacen(old_stop, new_stop, 1);
+    let old_call = "        stop(child, fd)\n\n(home / 'config/opencode/cli.json')";
+    assert!(
+        geometry.contains(old_call),
+        "geometry resize fixture changed"
+    );
+    let geometry = geometry.replacen(
+        old_call,
+        "        stop(child, fd, 'child' if mode == 'child' else 'long')\n\n(home / 'config/opencode/cli.json')",
+        1,
+    );
     let output = Command::new("python3")
-        .args([
-            "-c",
-            include_str!("support/geometry.py"),
-            env!("CARGO_BIN_EXE_oc"),
-        ])
+        .args(["-c", &geometry, env!("CARGO_BIN_EXE_oc")])
         .arg(root.path())
         .output()
         .unwrap();

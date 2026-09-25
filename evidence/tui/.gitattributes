@@ -53,3 +53,5 @@ selection-copy-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 selection-copy-*/*/*.vt binary
 scanner-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 scanner-*/*/*.vt binary
+ctrl-c-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+ctrl-c-*/*/*.vt binary

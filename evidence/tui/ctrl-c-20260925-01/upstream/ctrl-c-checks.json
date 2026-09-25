@@ -1,0 +1,778 @@
+{
+  "checks": [
+    {
+      "route": "home",
+      "stage": "draft-before",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [
+          {
+            "x": 26,
+            "y": 21
+          }
+        ],
+        "chip": [
+          {
+            "x": 47,
+            "y": 21
+          }
+        ],
+        "draft_start": 26,
+        "draft": "interrupt-draft-home-[Pasted ~3 lines]",
+        "commands": [],
+        "modal_query": [],
+        "cursor": {
+          "x": 65,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "prefix_visible": true,
+        "multiline_chip_visible": true,
+        "pty_alive": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "279fd1d6e97fe347e0468b0712fec52873f4bcbc9884ecc994f9e2fc9c4796fe"
+    },
+    {
+      "route": "home",
+      "stage": "draft-before-capture",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [
+          {
+            "x": 26,
+            "y": 21
+          }
+        ],
+        "chip": [
+          {
+            "x": 47,
+            "y": 21
+          }
+        ],
+        "draft_start": 26,
+        "draft": "interrupt-draft-home-[Pasted ~3 lines]",
+        "commands": [],
+        "modal_query": [],
+        "cursor": {
+          "x": 65,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "stable_capture": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "279fd1d6e97fe347e0468b0712fec52873f4bcbc9884ecc994f9e2fc9c4796fe"
+    },
+    {
+      "route": "home",
+      "stage": "before-root-interrupt",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [
+          {
+            "x": 26,
+            "y": 21
+          }
+        ],
+        "chip": [
+          {
+            "x": 47,
+            "y": 21
+          }
+        ],
+        "draft_start": 26,
+        "draft": "interrupt-draft-home-[Pasted ~3 lines]",
+        "commands": [],
+        "modal_query": [],
+        "cursor": {
+          "x": 65,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "root_draft_visible": true,
+        "multiline_chip_visible": true,
+        "modal_closed": true,
+        "no_provider_request": true,
+        "pty_alive": true
+      },
+      "grid_sha256": "279fd1d6e97fe347e0468b0712fec52873f4bcbc9884ecc994f9e2fc9c4796fe"
+    },
+    {
+      "route": "home",
+      "stage": "root-cleared",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [],
+        "chip": [],
+        "draft_start": 26,
+        "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+        "commands": [],
+        "modal_query": [],
+        "cursor": {
+          "x": 26,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "draft_prefix_absent": true,
+        "multiline_chip_absent": true,
+        "empty_prompt_visible": true,
+        "pty_alive": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "de75104853acdce3bdfe3b17afaa445ccc52b7356eb86f6ecd238489336c88b6"
+    },
+    {
+      "route": "home",
+      "stage": "root-cleared-capture",
+      "baseline": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [],
+        "chip": [],
+        "draft_start": 26,
+        "draft": "Ask anything… \"Fix a TODO in the codebase\"",
+        "commands": [],
+        "modal_query": [],
+        "cursor": {
+          "x": 26,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 0,
+          "completed": 0,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "stable_capture": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "de75104853acdce3bdfe3b17afaa445ccc52b7356eb86f6ecd238489336c88b6"
+    },
+    {
+      "route": "session",
+      "stage": "draft-before",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [
+          {
+            "x": 5,
+            "y": 34
+          }
+        ],
+        "chip": [
+          {
+            "x": 29,
+            "y": 34
+          }
+        ],
+        "draft_start": 5,
+        "draft": "interrupt-draft-session-[Pasted ~3 lines]",
+        "commands": [],
+        "modal_query": [],
+        "cursor": {
+          "x": 47,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "prefix_visible": true,
+        "multiline_chip_visible": true,
+        "pty_alive": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "16fc39aa495772a544a813b6f3717f35c59e6c05226220f3d60c3ddebb8e275c"
+    },
+    {
+      "route": "session",
+      "stage": "draft-before-capture",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [
+          {
+            "x": 5,
+            "y": 34
+          }
+        ],
+        "chip": [
+          {
+            "x": 29,
+            "y": 34
+          }
+        ],
+        "draft_start": 5,
+        "draft": "interrupt-draft-session-[Pasted ~3 lines]",
+        "commands": [],
+        "modal_query": [],
+        "cursor": {
+          "x": 47,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "stable_capture": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "16fc39aa495772a544a813b6f3717f35c59e6c05226220f3d60c3ddebb8e275c"
+    },
+    {
+      "route": "session",
+      "stage": "modal-open",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [
+          {
+            "x": 5,
+            "y": 34
+          }
+        ],
+        "chip": [
+          {
+            "x": 29,
+            "y": 34
+          }
+        ],
+        "draft_start": null,
+        "draft": null,
+        "commands": [
+          {
+            "x": 34,
+            "y": 11
+          }
+        ],
+        "modal_query": [],
+        "cursor": {
+          "x": 34,
+          "y": 13,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "commands_open": true,
+        "root_draft_retained": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "fb461ad642aa8d99efdb69020bbb8fb618834c36203a8f73421e7d1f9a5fdcf6"
+    },
+    {
+      "route": "session",
+      "stage": "modal-query-before",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [
+          {
+            "x": 5,
+            "y": 34
+          }
+        ],
+        "chip": [
+          {
+            "x": 29,
+            "y": 34
+          }
+        ],
+        "draft_start": null,
+        "draft": null,
+        "commands": [
+          {
+            "x": 34,
+            "y": 11
+          }
+        ],
+        "modal_query": [
+          {
+            "x": 34,
+            "y": 13
+          }
+        ],
+        "cursor": {
+          "x": 44,
+          "y": 13,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "commands_open": true,
+        "query_visible": true,
+        "root_draft_retained": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "d84a8b216c579c0da295f96cdf8dbaf2c1b0ef1c53592911f34ce0a105768913"
+    },
+    {
+      "route": "session",
+      "stage": "modal-query-before-capture",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [
+          {
+            "x": 5,
+            "y": 34
+          }
+        ],
+        "chip": [
+          {
+            "x": 29,
+            "y": 34
+          }
+        ],
+        "draft_start": null,
+        "draft": null,
+        "commands": [
+          {
+            "x": 34,
+            "y": 11
+          }
+        ],
+        "modal_query": [
+          {
+            "x": 34,
+            "y": 13
+          }
+        ],
+        "cursor": {
+          "x": 44,
+          "y": 13,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "stable_capture": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "d84a8b216c579c0da295f96cdf8dbaf2c1b0ef1c53592911f34ce0a105768913"
+    },
+    {
+      "route": "session",
+      "stage": "modal-after",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [
+          {
+            "x": 5,
+            "y": 34
+          }
+        ],
+        "chip": [
+          {
+            "x": 29,
+            "y": 34
+          }
+        ],
+        "draft_start": null,
+        "draft": null,
+        "commands": [
+          {
+            "x": 34,
+            "y": 11
+          }
+        ],
+        "modal_query": [],
+        "cursor": {
+          "x": 34,
+          "y": 13,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "query_absent": true,
+        "root_draft_retained": true,
+        "pty_alive": true,
+        "no_provider_request": true
+      },
+      "modal_outcome": "query_cleared",
+      "grid_sha256": "fb461ad642aa8d99efdb69020bbb8fb618834c36203a8f73421e7d1f9a5fdcf6"
+    },
+    {
+      "route": "session",
+      "stage": "modal-after-capture",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [
+          {
+            "x": 5,
+            "y": 34
+          }
+        ],
+        "chip": [
+          {
+            "x": 29,
+            "y": 34
+          }
+        ],
+        "draft_start": null,
+        "draft": null,
+        "commands": [
+          {
+            "x": 34,
+            "y": 11
+          }
+        ],
+        "modal_query": [],
+        "cursor": {
+          "x": 34,
+          "y": 13,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "stable_capture": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "fb461ad642aa8d99efdb69020bbb8fb618834c36203a8f73421e7d1f9a5fdcf6"
+    },
+    {
+      "route": "session",
+      "stage": "modal-dismissed",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [
+          {
+            "x": 5,
+            "y": 34
+          }
+        ],
+        "chip": [
+          {
+            "x": 29,
+            "y": 34
+          }
+        ],
+        "draft_start": 5,
+        "draft": "interrupt-draft-session-[Pasted ~3 lines]",
+        "commands": [],
+        "modal_query": [],
+        "cursor": {
+          "x": 47,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "commands_closed": true,
+        "root_draft_retained": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "16fc39aa495772a544a813b6f3717f35c59e6c05226220f3d60c3ddebb8e275c"
+    },
+    {
+      "route": "session",
+      "stage": "before-root-interrupt",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [
+          {
+            "x": 5,
+            "y": 34
+          }
+        ],
+        "chip": [
+          {
+            "x": 29,
+            "y": 34
+          }
+        ],
+        "draft_start": 5,
+        "draft": "interrupt-draft-session-[Pasted ~3 lines]",
+        "commands": [],
+        "modal_query": [],
+        "cursor": {
+          "x": 47,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "root_draft_visible": true,
+        "multiline_chip_visible": true,
+        "modal_closed": true,
+        "no_provider_request": true,
+        "pty_alive": true
+      },
+      "grid_sha256": "16fc39aa495772a544a813b6f3717f35c59e6c05226220f3d60c3ddebb8e275c"
+    },
+    {
+      "route": "session",
+      "stage": "root-cleared",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [],
+        "chip": [],
+        "draft_start": 5,
+        "draft": "",
+        "commands": [],
+        "modal_query": [],
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "draft_prefix_absent": true,
+        "multiline_chip_absent": true,
+        "empty_prompt_visible": true,
+        "pty_alive": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "4426eb9c3cfa87f86d8dbbc7dd0e3fc24459c34ee89602705225af60c6f33425"
+    },
+    {
+      "route": "session",
+      "stage": "root-cleared-capture",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [],
+        "chip": [],
+        "draft_start": 5,
+        "draft": "",
+        "commands": [],
+        "modal_query": [],
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        },
+        "exit_events": []
+      },
+      "predicates": {
+        "stable_capture": true,
+        "no_provider_request": true
+      },
+      "grid_sha256": "4426eb9c3cfa87f86d8dbbc7dd0e3fc24459c34ee89602705225af60c6f33425"
+    },
+    {
+      "route": "session",
+      "stage": "empty-root-exit",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "observed": {
+        "prefix": [],
+        "chip": [],
+        "draft_start": 5,
+        "draft": "",
+        "commands": [],
+        "modal_query": [],
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        },
+        "exit_events": [
+          {
+            "kind": "exit",
+            "generation": 0,
+            "code": 0,
+            "termination": "natural"
+          }
+        ]
+      },
+      "predicates": {
+        "natural_exit": true,
+        "zero_exit_code": true,
+        "alternate_screen_left": true,
+        "cursor_restored": true,
+        "no_provider_request": true
+      },
+      "exit": {
+        "kind": "exit",
+        "generation": 0,
+        "code": 0,
+        "termination": "natural"
+      },
+      "exit_vt_sha256": "d920fb76eef47d859448bd3be2e032ce732e7bd3a265717dc215ed554a6da3b3",
+      "exit_vt_byte_length": 1671,
+      "grid_sha256": "4426eb9c3cfa87f86d8dbbc7dd0e3fc24459c34ee89602705225af60c6f33425"
+    }
+  ]
+}

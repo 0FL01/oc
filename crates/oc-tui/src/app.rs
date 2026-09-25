@@ -3376,6 +3376,20 @@ impl TuiState {
                     self.slash_dismissed = Some(self.input_revision);
                     return KeyOutcome::default();
                 }
+                KeyAction::Interrupt => {
+                    // autocomplete.tsx:744-759: prompt.clear hides the command
+                    // menu and removes only the trigger-to-caret token.
+                    let caret = self.editor.cursor;
+                    self.editor.move_to(0, false);
+                    self.editor.move_to(caret, true);
+                    if self.editor.delete(&mut self.input, true, false) {
+                        self.input_revision += 1;
+                    }
+                    self.slash_selected = 0;
+                    self.slash_dismissed = Some(self.input_revision);
+                    self.leader = None;
+                    return KeyOutcome::default();
+                }
                 _ => {}
             }
         }
@@ -3402,12 +3416,19 @@ impl TuiState {
                     self.mention_dismissed = self.mention_request();
                     return KeyOutcome::default();
                 }
+                KeyAction::Interrupt => {
+                    // Reference autocomplete hides without deleting @query.
+                    self.mention_dismissed = self.mention_request();
+                    self.leader = None;
+                    return KeyOutcome::default();
+                }
                 _ => {}
             }
         } else if let Some(request) = self.mention_request() {
             match action {
-                KeyAction::Cancel => {
+                KeyAction::Cancel | KeyAction::Interrupt => {
                     self.mention_dismissed = Some(request);
+                    self.leader = None;
                     return KeyOutcome::default();
                 }
                 KeyAction::Up | KeyAction::Down | KeyAction::Commands | KeyAction::Tab => {
@@ -3583,7 +3604,16 @@ impl TuiState {
                 KeyOutcome::default()
             }
             KeyAction::Interrupt => {
-                self.status = TuiStatus::Quit;
+                if self.input.is_empty() {
+                    self.status = TuiStatus::Quit;
+                } else {
+                    self.input.clear();
+                    self.editor.clear();
+                    self.input_revision += 1;
+                    self.slash_selected = 0;
+                    self.slash_dismissed = None;
+                    self.clear_mentions();
+                }
                 KeyOutcome::default()
             }
             KeyAction::Cancel => {
@@ -4167,13 +4197,22 @@ impl TuiState {
     }
 
     fn handle_rename_key(&mut self, action: KeyAction) -> KeyOutcome {
-        if action == KeyAction::Cancel || action == KeyAction::Interrupt {
+        if action == KeyAction::Cancel {
             if self.rename_pending.is_none() {
                 self.close_panel();
             }
             return KeyOutcome::default();
         }
         if self.rename_pending.is_some() {
+            return KeyOutcome::default();
+        }
+        if action == KeyAction::Interrupt {
+            if self.rename_input.is_empty() {
+                self.close_panel();
+            } else {
+                self.rename_input.clear();
+                self.rename_editor.clear();
+            }
             return KeyOutcome::default();
         }
         match action {
@@ -6043,6 +6082,38 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn ctrl_c_clears_focused_rename_prefill_before_dismissing_dialog() {
+        let mut state = fresh_state("rename-interrupt").await;
+        state.session_title = Some("Existing title".into());
+        type_text(&mut state, "untouched prompt").await;
+        state.handle_key(KeyAction::Rename).await;
+        assert_eq!(state.rename_title(), Some("Existing title"));
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.rename_title(), Some(""));
+        assert_eq!(state.rename_cursor(), 0);
+        assert_eq!(state.input(), "untouched prompt");
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        state.handle_key(KeyAction::Undo).await;
+        assert_eq!(
+            state.rename_title(),
+            Some(""),
+            "old prefill must not return"
+        );
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.panel(), &TuiPanel::None);
+        assert_eq!(state.session_title.as_deref(), Some("Existing title"));
+        assert_eq!(state.input(), "untouched prompt");
+
+        state.handle_key(KeyAction::Rename).await;
+        state.handle_key(KeyAction::Cancel).await;
+        assert_eq!(
+            state.panel(),
+            &TuiPanel::None,
+            "Esc still closes immediately"
+        );
+    }
+
+    #[tokio::test]
     async fn rename_oversized_prefill_never_submits_a_prefix_and_can_be_replaced() {
         let mut state = fresh_state("rename-generated").await;
         let generated = "🙂".repeat(100);
@@ -7664,6 +7735,140 @@ mod tests {
         state.handle_key(KeyAction::Leader).await;
         state.handle_key(KeyAction::Interrupt).await;
         assert_eq!(state.status(), &TuiStatus::Quit);
+    }
+
+    #[tokio::test]
+    async fn ctrl_c_clears_slash_draft_and_editor_history_before_empty_exit() {
+        let mut state = fresh_state("interrupt-slash").await;
+        state.attach_page(&page(
+            vec![msg(1, Role::User, "stored prompt")],
+            1,
+            false,
+            false,
+        ));
+        type_text(&mut state, "/side").await;
+        assert!(state.slash_options().is_some());
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        assert_eq!(state.input(), "");
+        assert!(state.slash_options().is_none());
+        assert_eq!(state.editor.cursor, 0);
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.status(), &TuiStatus::Quit);
+
+        let mut state = fresh_state("interrupt-draft").await;
+        state.attach_page(&page(
+            vec![msg(1, Role::User, "stored prompt")],
+            1,
+            false,
+            false,
+        ));
+        type_text(&mut state, "plain draft").await;
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.input(), "");
+        state.handle_key(KeyAction::Undo).await;
+        assert_eq!(state.input(), "", "root clear must not be undoable");
+        state.handle_key(KeyAction::Up).await;
+        assert_eq!(
+            state.input(),
+            "stored prompt",
+            "durable history remains available"
+        );
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.input(), "");
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.status(), &TuiStatus::Quit);
+    }
+
+    #[tokio::test]
+    async fn ctrl_c_dismisses_slash_token_but_preserves_text_after_caret() {
+        let mut state = fresh_state("interrupt-slash-suffix").await;
+        state.handle_paste("/side suffix");
+        for _ in 0..7 {
+            state.handle_key(KeyAction::Left).await;
+        }
+        assert_eq!(state.editor.cursor, 5);
+        assert!(state.slash_options().is_some());
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        assert_eq!(state.input(), " suffix");
+        assert_eq!(state.editor.cursor, 0);
+        assert!(state.slash_options().is_none());
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.input(), "");
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.status(), &TuiStatus::Quit);
+    }
+
+    #[tokio::test]
+    async fn ctrl_c_clears_mention_and_multiline_chip_without_reusing_stale_suggestions() {
+        let mut state = fresh_state("interrupt-mention").await;
+        state.chrome.location = Some("/A".into());
+        state.handle_paste("@sr");
+        let stale = state.mention_request().expect("mention query");
+        assert!(
+            state.apply_file_suggestions(stale.clone(), file_result("/A", 1, &["src/main.rs"]))
+        );
+        assert!(state.mention_options().is_some());
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        assert_eq!(state.input(), "@sr", "first Ctrl+C only hides references");
+        assert!(state.mention_options().is_none());
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        assert_eq!(state.input(), "");
+        state.handle_paste("@sr");
+        assert!(!state.apply_file_suggestions(stale, file_result("/A", 1, &["stale.rs"])));
+        assert!(state.mention_options().is_none());
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(
+            state.input(),
+            "@sr",
+            "unloaded mention still owns dismissal"
+        );
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.input(), "");
+
+        state.handle_paste("one\ntwo\nthree");
+        assert_eq!(state.prompt_layout(80).0[0].text, "[Pasted ~3 lines] ");
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.status(), &TuiStatus::Idle);
+        assert_eq!(state.input(), "");
+        assert_eq!(state.editor.cursor, 0);
+        state.handle_key(KeyAction::Undo).await;
+        assert_eq!(
+            state.input(),
+            "",
+            "paste undo must not restore cleared text"
+        );
+        state.handle_key(KeyAction::Char('x')).await;
+        assert_eq!(state.prompt_layout(80).0[0].text, "x");
+    }
+
+    #[tokio::test]
+    async fn ctrl_c_clears_pending_draft_without_cancelling_accepted_turn() {
+        use oc_core::core_app::InboxMsg;
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("interrupt-pending"));
+        type_text(&mut state, "submitted").await;
+        state.handle_key(KeyAction::Enter).await;
+        let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+            panic!("submission")
+        };
+        state.handle_key(KeyAction::Interrupt).await;
+        assert_eq!(state.status(), &TuiStatus::PendingSubmission);
+        assert_eq!(state.input(), "");
+        assert!(
+            inbox.try_recv().is_err(),
+            "interrupt must not enqueue cancellation"
+        );
+        ack.send(Ok(WorkerTurnId("accepted".into()))).unwrap();
+        state.poll_submission();
+        assert_eq!(state.active_turn(), Some(&WorkerTurnId("accepted".into())));
+        assert_eq!(state.history().rows()[0].text, "submitted");
+        assert_eq!(state.input(), "");
+        assert_eq!(state.status(), &TuiStatus::Streaming);
     }
 
     #[tokio::test]
