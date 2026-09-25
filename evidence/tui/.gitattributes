@@ -55,3 +55,5 @@ scanner-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 scanner-*/*/*.vt binary
 ctrl-c-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 ctrl-c-*/*/*.vt binary
+two-turn-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+two-turn-*/*/*.vt binary

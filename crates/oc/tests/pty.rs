@@ -1070,6 +1070,113 @@ fn persisted(data_dir: &Path, session: &str) -> Vec<(String, String)> {
     db.read_history(session).expect("history")
 }
 
+/// Inspect the painted grid, not the PTY byte order (ratatui skips unchanged
+/// cells). Positions are found by unique turn text, not fixed viewport rows.
+fn assert_two_turn_spacing(pty: &PtySession, first_answer: &str, second_user: &str) {
+    let rows = render_screen(&pty.snapshot()).rows();
+    let first_y = rows
+        .iter()
+        .position(|row| row.contains(first_answer))
+        .expect("first answer visible");
+    let user_y = rows
+        .iter()
+        .position(|row| row.contains(&format!("┃  {second_user}")))
+        .expect("second user text visible");
+    let footer_y = (first_y + 1..user_y)
+        .find(|&y| rows[y].contains("PTY fixture ·"))
+        .unwrap_or_else(|| panic!("first assistant agent/model footer visible: {rows:?}"));
+    let block_y = user_y.checked_sub(1).expect("user block top visible");
+    assert!(
+        rows[block_y].trim().starts_with('┃'),
+        "user block top: {rows:?}"
+    );
+    assert_eq!(block_y - footer_y - 1, 1, "footer → block: {rows:?}");
+    assert_eq!(user_y - footer_y - 1, 2, "footer → text: {rows:?}");
+    assert!(
+        rows[footer_y + 1].trim().is_empty(),
+        "painted gap: {rows:?}"
+    );
+}
+
+#[test]
+fn t44_two_accepted_turns_keep_footer_to_user_spacing_after_restart() {
+    let fixture = Fixture::new(tempfile::tempdir().expect("fixture"));
+    let session = "s-t44-two-turn";
+    let first_user = "t44 first prompt";
+    let second_user = "t44 second prompt";
+    let first_answer = format!("echo: {first_user}");
+    let second_answer = format!("echo: {second_user}");
+    let mut pty = PtySession::spawn_configured(
+        120,
+        40,
+        Some("xterm-256color"),
+        true,
+        fixture.clone(),
+        &["--session", session],
+        None,
+    );
+    pty.wait_visible(READY, DEADLINE);
+    submit_turn(&mut pty, first_user);
+    wait_screen_row(&pty, &first_answer, DEADLINE);
+    // The painted answer may precede TurnFinished: wait for the running hint
+    // to clear before the next submission, without a timing-based sleep.
+    let start = Instant::now();
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|row| row.contains("esc interrupt") || row.contains("submission pending"))
+    {
+        assert!(start.elapsed() < DEADLINE, "first turn did not finish");
+        std::thread::sleep(POLL);
+    }
+    submit_turn(&mut pty, second_user);
+    wait_screen_row(&pty, &second_answer, DEADLINE);
+    let start = Instant::now();
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|row| row.contains("esc interrupt") || row.contains("submission pending"))
+    {
+        assert!(start.elapsed() < DEADLINE, "second turn did not finish");
+        std::thread::sleep(POLL);
+    }
+    assert_two_turn_spacing(&pty, &first_answer, second_user);
+    quit_clean(&mut pty);
+    drop(pty);
+
+    let expected = vec![
+        ("user".into(), first_user.into()),
+        ("assistant".into(), first_answer.clone()),
+        ("user".into(), second_user.into()),
+        ("assistant".into(), second_answer.clone()),
+    ];
+    assert_eq!(persisted(&fixture.data_dir(), session), expected);
+    let requests = fixture.wait_requests(2);
+    let main: Vec<_> = requests.iter().filter(|r| !title::is_title(r)).collect();
+    assert_eq!(main.len(), 2, "exactly two accepted Responses turns");
+    assert_eq!(main[0]["input"][0]["content"][0]["text"], first_user);
+    assert_eq!(main[1]["input"][2]["content"][0]["text"], second_user);
+    assert_eq!(main[1]["input"][1]["content"][0]["text"], first_answer);
+
+    let mut reopened = PtySession::spawn_configured(
+        120,
+        40,
+        Some("xterm-256color"),
+        true,
+        fixture.clone(),
+        &["--session", session],
+        None,
+    );
+    wait_screen_row(&reopened, &second_answer, DEADLINE);
+    assert_two_turn_spacing(&reopened, &first_answer, second_user);
+    quit_clean(&mut reopened);
+    drop(reopened);
+    let after = fixture.requests.lock().expect("requests");
+    assert_eq!(after.len(), requests.len(), "replay made no provider calls");
+    drop(after);
+    assert_eq!(persisted(&fixture.data_dir(), session), expected);
+}
+
 #[test]
 fn pty_smoke_type_echo_quit() {
     let mut pty = spawn_session("s-smoke");

@@ -355,6 +355,40 @@ pressing Return; unequal labels are reported as observations, not parity.
 `capture.lock.json` records side-specific outcomes and ordinary grid/PNG
 comparisons independently. An existing output path is never overwritten.
 
+## R4/V06 same-session two-turn spacing probe
+
+Use the pinned original and an **already built** native binary, with a fresh
+output directory (this command does not run Cargo):
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc \
+  --geometry true --sample tools --sidebar hide --agent-profile true \
+  --columns 120 --rows 40 --two-turn true \
+  --output /home/opencode/ai/oc/evidence/tui/two-turn-NEW-ATTEMPT
+```
+
+This test-only opt-in uses the same 120×40 Reader/tools isolated fake Responses
+profile for both real PTYs. It submits the fixture question and then the distinct
+`Second same-session spacing check?` **in the same live session**, without a tab
+switch or restart. The bridge requires the second prompt on the second turn and
+serves `GEOMETRY-TURN-TWO: tool read completed.` after a second genuine `read`
+round-trip; the runner requires four valid completed transcript requests (two
+per turn), one title request, and no extra or invalid requests per side.
+`session-wide-completed` (after the first turn/title) and
+`session-two-turn-completed` each retain complete `.cells.json`, `.png`, `.vt`,
+`.render.json` and `.txt`. `two-turn-checks.json` records actual styled-cell
+rows between the first assistant attribution and the next user's painted text,
+including their full cells, the second user block's top row, answer→footer and
+footer→user row counts, and request counts. The existing comparator produces
+unmasked full-grid and PNG diff reports for **both** stages; a passed per-side
+turn/spacing observation does not mean the whole frames match. Elapsed-time
+digits, path/version differences, and any resulting scroll remain visible.
+Existing output paths are refused; failed predicates retain diagnostic frames
+and exit nonzero. The source/binary association of an existing native executable
+is not attested without a separate build.
+
 ## VIS15 public reasoning click diagnostic
 
 After rebuilding the native binary, use **both** explicit binaries and a new

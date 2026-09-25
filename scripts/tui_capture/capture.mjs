@@ -53,6 +53,9 @@ if (args['autocomplete-keys'] !== undefined && !['true','false'].includes(args['
 const ctrlC = args['ctrl-c'] === 'true';
 if (args['ctrl-c'] !== undefined && !['true','false'].includes(args['ctrl-c']))
   throw Error('--ctrl-c must be true or false');
+const twoTurn = args['two-turn'] === 'true';
+if (args['two-turn'] !== undefined && !['true','false'].includes(args['two-turn']))
+  throw Error('--two-turn must be true or false');
 const autocompleteKeysRename = args['autocomplete-keys-rename'] === 'true';
 if (args['autocomplete-keys-rename'] !== undefined && !['true','false'].includes(args['autocomplete-keys-rename']))
   throw Error('--autocomplete-keys-rename must be true or false');
@@ -85,6 +88,13 @@ if (scanner && !['true','false'].includes(args['scanner-cancel']))
 if (!scanner && args['scanner-cancel'] !== undefined)
   throw Error('--scanner-cancel requires --scanner true');
 const scannerCancel = args['scanner-cancel'] === 'true';
+if (twoTurn && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
+    args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
+    !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
+    args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
+    args.tabs === 'vertical' || explorationClick || tabClick || renameSession || sidebarPalette ||
+    regenerateTitle || autocomplete || autocompleteKeys || mention || reasoningClick || selectionCopy || scanner || ctrlC))
+  throw Error('--two-turn true requires only paired Reader/tools 120x40 --geometry true --sidebar hide --agent-profile true');
 if (ctrlC && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
@@ -256,7 +266,8 @@ try {
       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
       agent_profile: args['agent-profile'] === 'true',
        seed_root: args['seed-root'], session: args.session, tab_restart: tabRestart || renameSession,
-        regenerate_title: regenerateTitle, ...(scanner ? {scanner:true, animations:scannerAnimation} : {})};
+        regenerate_title: regenerateTitle, two_turn:twoTurn,
+        ...(scanner ? {scanner:true, animations:scannerAnimation} : {})};
     fs.writeFileSync(path.join(dir,'bridge-spec.json'), JSON.stringify(spec, null, 2));
     lock[origin] = {...lock[origin], executable_path: binary, executable_sha256: hash};
     const page = await browser.newPage({viewport: {width: 1800, height: 1100}, deviceScaleFactor: 1});
@@ -1146,12 +1157,97 @@ try {
        send('\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\x1b[201~','prompt_paste');
       await sleep(200); send('\r','submit');
        const marker = ['short','reasoning','tools'].includes(args.sample) ? 'GEOMETRY-SHORT' : ['rows','rows-reflow'].includes(args.sample) ? 'ROW-089' : 'Через Code Mode';
-       const done = await waitFor(f => f.text.includes(marker) &&
+       let done = await waitFor(f => f.text.includes(marker) &&
         /MiMo-V2.6-Flash Free · \d/.test(f.text) &&
          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript') &&
          (!(reasoningClick || selectionCopy) || logs.some(e=>e.kind==='provider_completed' && e.operation==='title')), 'completed transcript');
-        if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');
-        const completedStatus = await capture('session-wide-completed',done,'CAPTURED');
+       if(twoTurn) done=await waitFor(f=>f.text.includes('GEOMETRY-SHORT: tool read completed.') &&
+          /Reader · MiMo-V2.6-Flash Free · \d/.test(f.text) &&
+          logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length===2 &&
+          logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length===1,
+          'first same-session read, answer and title');
+       if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');
+       const completedStatus = await capture('session-wide-completed',done,'CAPTURED');
+       if(twoTurn) {
+          const checks=[];
+          lock.two_turn ??= {};
+          lock.two_turn[origin]={status:'IN_PROGRESS',checks};
+          const counts=()=>({transcript:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length,
+            completed_transcript:logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length,
+            title:logs.filter(e=>e.kind==='provider' && e.operation==='title').length,
+            completed_title:logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length,
+            invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});
+          const save=()=>{
+            fs.writeFileSync(path.join(dir,'two-turn-checks.json'),JSON.stringify({checks,provider_counts:counts()},null,2)+'\n');
+            json('capture.lock.json',lock);
+          };
+          const firstPrompt=fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim();
+          const secondPrompt='Second same-session spacing check?';
+          const firstAnswer='GEOMETRY-SHORT: tool read completed.';
+          const secondAnswer='GEOMETRY-TURN-TWO: tool read completed.';
+          const unique=(f,needle)=>{
+            const found=visibleMatches(f,needle);
+            return found.length===1 ? found[0] : null;
+          };
+          const footer=(f,after,before=f.rows)=>f.cells.map((row,y)=>({y,text:row.map(c=>c.symbol).join('')}))
+            .filter(row=>row.y>after && row.y<before && /Reader · MiMo-V2\.6-Flash Free · \d/.test(row.text));
+          const baseline=counts();
+          checks.push({stage:'first-completed',provider_counts:baseline,
+            predicates:{first_capture_stable:completedStatus==='CAPTURED',
+              one_read_answer_title:baseline.transcript===2 && baseline.completed_transcript===2 &&
+                baseline.title===1 && baseline.completed_title===1 && baseline.invalid===0,
+              first_prompt_unique:!!unique(done,firstPrompt),first_answer_unique:!!unique(done,firstAnswer),
+              first_footer_unique:footer(done,unique(done,firstAnswer)?.y ?? done.rows).length===1}});
+          save();
+          if(Object.values(checks.at(-1).predicates).some(v=>!v)) throw Error('First same-session turn not complete');
+          send('\x1b[200~'+secondPrompt+'\x1b[201~','two_turn_prompt_paste');
+          const drafted=await waitFor(f=>!!unique(f,secondPrompt) && counts().transcript===2,
+            'second draft in same session',12000);
+          checks.push({stage:'second-draft',prompt_position:unique(drafted,secondPrompt),provider_counts:counts()});
+          save();
+          send('\r','two_turn_submit');
+          const complete=await waitFor(f=>!!unique(f,firstPrompt) && !!unique(f,secondPrompt) &&
+            !!unique(f,firstAnswer) && !!unique(f,secondAnswer) &&
+            footer(f,unique(f,firstAnswer).y,unique(f,secondPrompt).y).length===1 &&
+            footer(f,unique(f,secondAnswer).y).length===1 &&
+            counts().transcript===4 && counts().completed_transcript===4 &&
+            counts().title===1 && counts().completed_title===1 && counts().invalid===0,
+            'two completed turns in same session',20000);
+          const first=unique(complete,firstAnswer), user=unique(complete,secondPrompt), second=unique(complete,secondAnswer);
+          const firstFooter=footer(complete,first.y,user.y)[0];
+          const secondFooter=footer(complete,second.y)[0];
+          const blockRows=complete.cells.map((cells,y)=>({y,
+            x:cells.findIndex((c,x)=>x<user.x && c.symbol==='┃')}))
+            .filter(p=>p.y>firstFooter.y && p.y<=user.y && p.x>=0);
+          const blockTop=blockRows.length?blockRows[0].y:null;
+          const betweenRows=complete.cells.slice(firstFooter.y+1,user.y).map((cells,index)=>({
+            y:firstFooter.y+1+index, text:cells.map(c=>c.symbol).join(''), cells}));
+          const positions={first_answer:first,first_footer:{y:firstFooter.y,text:firstFooter.text},
+            second_user:user,second_user_block_top:blockTop,second_user_block_cells:blockRows,
+            second_footer:{y:secondFooter.y,text:secondFooter.text},
+            answer_to_footer_rows:firstFooter.y-first.y-1,
+            footer_to_user_block_rows:blockTop===null?null:blockTop-firstFooter.y-1,
+            footer_to_user_text_rows:user.y-firstFooter.y-1,between_rows:betweenRows};
+          const status=await capture('session-two-turn-completed',complete,'CAPTURED_TWO_TURN');
+          const after=counts();
+          const predicates={stable_capture:status==='CAPTURED_TWO_TURN',
+            same_session_title:visibleMatches(complete,[...tabTitle].slice(0,6).join('')).some(p=>p.y===0),
+            ordered_rows:first.y<firstFooter.y && firstFooter.y<blockTop && blockTop<user.y &&
+              user.y<second.y && second.y<secondFooter.y,
+            two_valid_read_roundtrips:after.transcript===4 && after.completed_transcript===4 &&
+              after.title===1 && after.completed_title===1 && after.invalid===0 &&
+              [0,1].every(turn=>[0,1].every(round=>logs.some(e=>e.kind==='provider' &&
+                e.operation==='transcript' && e.turn_number===turn && e.round_number===round && e.valid)))};
+          checks.push({stage:'second-completed',positions,provider_counts:after,predicates});
+          save();
+          if(Object.values(predicates).some(v=>!v)) throw Error('Same-session second-turn predicate failed');
+          lock.two_turn[origin].status='PASS';
+          save();
+          lock.attempts.push({origin,status:'TWO_TURN_CHECKS_PASS',provider_counts:after,
+            answer_to_footer_rows:positions.answer_to_footer_rows,
+            footer_to_user_block_rows:positions.footer_to_user_block_rows,
+            footer_to_user_text_rows:positions.footer_to_user_text_rows});
+        }
        if(selectionCopy) {
          const word='GEOMETRY';
          const checks=[];
@@ -2106,6 +2202,7 @@ try {
           if(reasoningClick && lock.reasoning_click?.[origin]) lock.reasoning_click[origin].status='FAILED';
            if(selectionCopy && lock.selection_copy?.[origin]) lock.selection_copy[origin].status='FAILED';
            if(scanner && lock.scanner?.[origin]) lock.scanner[origin].status='FAILED';
+           if(twoTurn && lock.two_turn?.[origin]) lock.two_turn[origin].status='FAILED';
       await capture('failure-diagnostic',await frame(),'FAILED_STATE');
     } finally {
       if(scanner && !child.stdin.destroyed)

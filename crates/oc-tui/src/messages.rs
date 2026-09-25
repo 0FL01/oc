@@ -537,7 +537,16 @@ fn render_row(
     cache: Option<&RefCell<MarkdownCache>>,
 ) -> Vec<Line> {
     let lines = match row.role.as_str() {
-        "user" => user_block(row, theme, width, agent_color),
+        "user" => {
+            let mut lines = Vec::new();
+            if index > 0 {
+                // SessionRowView marginTop=1 (index.tsx:1433-1435),
+                // separate from the user block's own paddingTop=1.
+                lines.push(Line::plain(""));
+            }
+            lines.extend(user_block(row, theme, width, agent_color));
+            lines
+        }
         "assistant" => {
             assistant_block(row, index, theme, width, terminal_width, agent_color, cache)
         }
@@ -588,6 +597,10 @@ fn visit_row_blocks(
     let (index, live) = identity;
     let (width, terminal_width) = widths;
     if row.role == "user" && width > 0 {
+        if index > 0 {
+            // Keep the indexed seek height and materialized row in sync.
+            emit(vec![Line::plain("")]);
+        }
         let bg = theme.user_message_background();
         let color = user_agent_color(row, theme, agent_color);
         let border = Style::default().fg(color).bg(bg);
@@ -3276,6 +3289,136 @@ mod tests {
         row.agent_color_index = Some(1);
         let (_, buffer) = render(&[row], 60, 5);
         assert_eq!(buffer[(0, 1)].fg, Theme::dark().categorical_agents()[1]);
+    }
+
+    #[test]
+    fn two_turn_footer_to_next_user_has_row_margin_and_inner_padding() {
+        let mut first_answer = assistant("first answer");
+        first_answer.meta = Some(AssistantMeta {
+            model: Some("ludka2/a".into()),
+            ..Default::default()
+        });
+        let mut second_answer = assistant("second answer");
+        second_answer.meta = first_answer.meta.clone();
+        let rows = [
+            user("first question", Vec::new()),
+            first_answer,
+            user("second question", Vec::new()),
+            second_answer,
+        ];
+        // Pinned 120x40 two-turn capture: answer→footer 1 blank,
+        // footer→next block 1 blank, footer→next text 2 blank rows.
+        let expected = vec![
+            "┃",
+            "┃  first question",
+            "┃",
+            "",
+            "   first answer",
+            "",
+            "   Build · ludka2/a",
+            "",
+            "┃",
+            "┃  second question",
+            "┃",
+            "",
+            "   second answer",
+            "",
+            "   Build · ludka2/a",
+        ];
+        let (full, _) = render(&rows, 120, 40);
+        assert_eq!(&full[..expected.len()], expected);
+
+        let theme = Theme::dark();
+        let cache = RefCell::new(MarkdownCache::default());
+        let (indexed, total) = visible_transcript(
+            &rows,
+            theme,
+            120,
+            120,
+            (40, 0, None),
+            |_| theme.categorical_agents()[0],
+            &cache,
+        );
+        assert_eq!(total, expected.len() + 1, "indexed leading blank");
+        assert_eq!(
+            indexed[1..]
+                .iter()
+                .map(|line| line.plain_text().trim_end().to_string())
+                .collect::<Vec<_>>(),
+            expected
+        );
+        assert_eq!(indexed[0].plain_text(), "");
+    }
+
+    #[test]
+    fn two_turn_indexed_windows_keep_boundary_and_wrapped_user_rows() {
+        let mut first_answer = assistant("done");
+        first_answer.meta = Some(AssistantMeta::default());
+        let rows = [
+            user("first", Vec::new()),
+            first_answer,
+            user("abcdefghijklmnopqr", Vec::new()),
+            assistant("last"),
+        ];
+        let width = 12;
+        let theme = Theme::dark();
+        let cache = RefCell::new(MarkdownCache::default());
+        let expected = std::iter::once(String::new())
+            .chain(
+                styled::wrap_lines(
+                    &transcript(&rows, theme, width, width, |_| theme.text()),
+                    width as usize,
+                )
+                .into_iter()
+                .map(|line| line.plain_text().trim_end().to_string()),
+            )
+            .collect::<Vec<_>>();
+        assert_eq!(
+            &expected[6..13],
+            &["", "   Build", "", "┃", "┃  abcdefghi", "┃  jklmnopqr", "┃"]
+        );
+        for height in [1, 4, 7] {
+            for start in 4..=11 {
+                let end = (start + height).min(expected.len());
+                let scroll = expected.len() - end;
+                let (visible, total) = visible_transcript(
+                    &rows,
+                    theme,
+                    width,
+                    width,
+                    (height, scroll, None),
+                    |_| theme.text(),
+                    &cache,
+                );
+                assert_eq!(total, expected.len());
+                assert_eq!(
+                    visible
+                        .iter()
+                        .map(|line| line.plain_text().trim_end().to_string())
+                        .collect::<Vec<_>>(),
+                    expected[end - height.min(end)..end],
+                    "height={height} start={start} scroll={scroll}"
+                );
+            }
+            let (bottom, total) = visible_transcript(
+                &rows,
+                theme,
+                width,
+                width,
+                (height, 0, None),
+                |_| theme.text(),
+                &cache,
+            );
+            assert_eq!(total, expected.len());
+            assert_eq!(
+                bottom
+                    .iter()
+                    .map(|line| line.plain_text().trim_end().to_string())
+                    .collect::<Vec<_>>(),
+                expected[expected.len() - height..],
+                "sticky bottom at height={height}"
+            );
+        }
     }
 
     /// Assistant markdown at `paddingLeft=3` (`message-parts.tsx:156-171`) with

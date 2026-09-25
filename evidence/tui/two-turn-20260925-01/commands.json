@@ -1,0 +1,190 @@
+[
+  {
+    "argv": [
+      "/usr/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--two-turn",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "bc6bac663f9069299a29be54f1807b66492f9acd\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "60bf03894374258817da5a7aa8f2325e874335a7\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/scripts/tui_capture/README.md b/scripts/tui_capture/README.md\nindex e00f5cd..7e4613d 100644\n--- a/scripts/tui_capture/README.md\n+++ b/scripts/tui_capture/README.md\n@@ -355,6 +355,40 @@ pressing Return; unequal labels are reported as observations, not parity.\n `capture.lock.json` records side-specific outcomes and ordinary grid/PNG\n comparisons independently. An existing output path is never overwritten.\n \n+## R4/V06 same-session two-turn spacing probe\n+\n+Use the pinned original and an **already built** native binary, with a fresh\n+output directory (this command does not run Cargo):\n+\n+```sh\n+node scripts/tui_capture/capture.mjs \\\n+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \\\n+  --oc /home/opencode/ai/oc/target/debug/oc \\\n+  --geometry true --sample tools --sidebar hide --agent-profile true \\\n+  --columns 120 --rows 40 --two-turn true \\\n+  --output /home/opencode/ai/oc/evidence/tui/two-turn-NEW-ATTEMPT\n+```\n+\n+This test-only opt-in uses the same 120×40 Reader/tools isolated fake Responses\n+profile for both real PTYs. It submits the fixture question and then the distinct\n+`Second same-session spacing check?` **in the same live session**, without a tab\n+switch or restart. The bridge requires the second prompt on the second turn and\n+serves `GEOMETRY-TURN-TWO: tool read completed.` after a second genuine `read`\n+round-trip; the runner requires four valid completed transcript requests (two\n+per turn), one title request, and no extra or invalid requests per side.\n+`session-wide-completed` (after the first turn/title) and\n+`session-two-turn-completed` each retain complete `.cells.json`, `.png`, `.vt`,\n+`.render.json` and `.txt`. `two-turn-checks.json` records actual styled-cell\n+rows between the first assistant attribution and the next user's painted text,\n+including their full cells, the second user block's top row, answer→footer and\n+footer→user row counts, and request counts. The existing comparator produces\n+unmasked full-grid and PNG diff reports for **both** stages; a passed per-side\n+turn/spacing observation does not mean the whole frames match. Elapsed-time\n+digits, path/version differences, and any resulting scroll remain visible.\n+Existing output paths are refused; failed predicates retain diagnostic frames\n+and exit nonzero. The source/binary association of an existing native executable\n+is not attested without a separate build.\n+\n ## VIS15 public reasoning click diagnostic\n \n After rebuilding the native binary, use **both** explicit binaries and a new\ndiff --git a/scripts/tui_capture/bridge.py b/scripts/tui_capture/bridge.py\nindex c9c51db..afa80b6 100644\n--- a/scripts/tui_capture/bridge.py\n+++ b/scripts/tui_capture/bridge.py\n@@ -29,6 +29,7 @@ spec = json.loads(Path(sys.argv[1]).read_text())\n root = Path(spec['isolated_root'])\n fixture = Path(spec['fixture'])\n prompt = (fixture / 'input.txt').read_text().strip()\n+second_prompt = 'Second same-session spacing check?'\n profile_id = 'Reader' if spec.get('agent_profile') else None\n profile_prompt = 'You are the isolated T44 paired reader.' if profile_id else None\n answer = (fixture / 'transcript.md').read_text().strip()\n@@ -66,30 +67,37 @@ class Provider(BaseHTTPRequestHandler):\n                       'title' in system.lower()))\n         with round_lock:\n             tool_results = [x for x in body.get('input', []) if x.get('type') == 'function_call_output']\n-            round_number = 1 if tool_results else 0\n-            turn_number = transcript_round - 1 if tool_results else transcript_round\n+            if spec.get('two_turn') and second_prompt in serialized and not is_title:\n+                turn_number = 1\n+                round_number = int(any(x.get('call_id') == 'call_fixture_read_2' for x in tool_results))\n+            else:\n+                round_number = 1 if tool_results else 0\n+                turn_number = transcript_round - 1 if tool_results else transcript_round\n             if is_title:\n                 title_round += 1\n                 turn_number = title_round - 1\n             elif not tool_results:\n                 transcript_round += 1\n-        second = spec.get('tab_restart') and turn_number > 0\n+        second = (spec.get('tab_restart') or spec.get('two_turn')) and turn_number > 0\n         text = (('Regenerated fixture title' if spec.get('regenerate_title') and title_round == 2 else\n                  'Second fixture session' if second else title) if is_title else\n-                ('GEOMETRY-SECOND: tool read completed.' if second else answer))\n-        valid = valid and (is_title or prompt in serialized)\n+                 ('GEOMETRY-TURN-TWO: tool read completed.' if spec.get('two_turn') and second else\n+                  'GEOMETRY-SECOND: tool read completed.' if second else answer))\n+        expected_prompt = second_prompt if spec.get('two_turn') and second and not is_title else prompt\n+        valid = valid and (is_title or expected_prompt in serialized)\n         profile_prompt_present = profile_prompt is not None and profile_prompt in system\n         if profile_id and not is_title:\n             valid = valid and profile_prompt_present\n         if spec.get('sample') == 'tools' and not is_title:\n             valid = valid and 'read' in [x.get('name') for x in body.get('tools', [])]\n             if round_number:\n-                calls = [x for x in tool_results if x.get('call_id') == 'call_fixture_read']\n+                calls = [x for x in tool_results if x.get('call_id') == ('call_fixture_read_2' if spec.get('two_turn') and second else 'call_fixture_read')]\n                 valid = valid and len(calls) == 1 and 'fixture-content' in str(calls[0].get('output', ''))\n         record = {'kind': 'provider', 'path': self.path, 'model': body.get('model'),\n-                   'stream': body.get('stream'), 'prompt_present': prompt in serialized,\n+                   'stream': body.get('stream'), 'prompt_present': expected_prompt in serialized,\n                    'profile_prompt_present': profile_prompt_present,\n                    'operation': 'title' if is_title else 'transcript', 'valid': valid,\n+                   'turn_number': turn_number, 'round_number': round_number,\n                   'request_sha256': hashlib.sha256(serialized.encode()).hexdigest(),\n                    'registered_tools': [x.get('name') for x in body.get('tools', [])],\n                    'tool_result_count': len(tool_results),\n@@ -100,14 +108,16 @@ class Provider(BaseHTTPRequestHandler):\n             self.send_error(400, 'fixture contract rejected')\n             return\n         if spec.get('sample') == 'tools' and not is_title and round_number == 0:\n-            item = {'id': 'fc_fixture', 'type': 'function_call', 'status': 'completed',\n-                    'call_id': 'call_fixture_read', 'name': 'read',\n+            item = {'id': 'fc_fixture_2' if spec.get('two_turn') and second else 'fc_fixture',\n+                    'type': 'function_call', 'status': 'completed',\n+                    'call_id': 'call_fixture_read_2' if spec.get('two_turn') and second else 'call_fixture_read', 'name': 'read',\n                     'arguments': json.dumps({'path': 'fixture-note.txt'})}\n             text = ''\n         else:\n-            item = {'id': 'msg_fixture', 'type': 'message', 'role': 'assistant', 'status': 'completed',\n+            item = {'id': 'msg_fixture_2' if spec.get('two_turn') and second else 'msg_fixture',\n+                    'type': 'message', 'role': 'assistant', 'status': 'completed',\n                  'content': [{'type': 'output_text', 'text': text, 'annotations': []}]}\n-        response = {'id': 'resp_fixture', 'object': 'response', 'created_at': 1700000000,\n+        response = {'id': 'resp_fixture_2' if spec.get('two_turn') and second else 'resp_fixture', 'object': 'response', 'created_at': 1700000000,\n                     'model': 'fixture-model-1', 'status': 'in_progress', 'output': [],\n                     'error': None, 'incomplete_details': None}\n         events = [\ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex e45efe8..aa2d840 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -53,6 +53,9 @@ if (args['autocomplete-keys'] !== undefined && !['true','false'].includes(args['\n const ctrlC = args['ctrl-c'] === 'true';\n if (args['ctrl-c'] !== undefined && !['true','false'].includes(args['ctrl-c']))\n   throw Error('--ctrl-c must be true or false');\n+const twoTurn = args['two-turn'] === 'true';\n+if (args['two-turn'] !== undefined && !['true','false'].includes(args['two-turn']))\n+  throw Error('--two-turn must be true or false');\n const autocompleteKeysRename = args['autocomplete-keys-rename'] === 'true';\n if (args['autocomplete-keys-rename'] !== undefined && !['true','false'].includes(args['autocomplete-keys-rename']))\n   throw Error('--autocomplete-keys-rename must be true or false');\n@@ -85,6 +88,13 @@ if (scanner && !['true','false'].includes(args['scanner-cancel']))\n if (!scanner && args['scanner-cancel'] !== undefined)\n   throw Error('--scanner-cancel requires --scanner true');\n const scannerCancel = args['scanner-cancel'] === 'true';\n+if (twoTurn && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||\n+    args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||\n+    !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||\n+    args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||\n+    args.tabs === 'vertical' || explorationClick || tabClick || renameSession || sidebarPalette ||\n+    regenerateTitle || autocomplete || autocompleteKeys || mention || reasoningClick || selectionCopy || scanner || ctrlC))\n+  throw Error('--two-turn true requires only paired Reader/tools 120x40 --geometry true --sidebar hide --agent-profile true');\n if (ctrlC && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||\n     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||\n     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||\n@@ -256,7 +266,8 @@ try {\n       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',\n       agent_profile: args['agent-profile'] === 'true',\n        seed_root: args['seed-root'], session: args.session, tab_restart: tabRestart || renameSession,\n-        regenerate_title: regenerateTitle, ...(scanner ? {scanner:true, animations:scannerAnimation} : {})};\n+         regenerate_title: regenerateTitle, two_turn:twoTurn,\n+         ...(scanner ? {scanner:true, animations:scannerAnimation} : {})};\n     fs.writeFileSync(path.join(dir,'bridge-spec.json'), JSON.stringify(spec, null, 2));\n     lock[origin] = {...lock[origin], executable_path: binary, executable_sha256: hash};\n     const page = await browser.newPage({viewport: {width: 1800, height: 1100}, deviceScaleFactor: 1});\n@@ -1146,12 +1157,97 @@ try {\n        send('\\x1b[200~'+fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()+'\\x1b[201~','prompt_paste');\n       await sleep(200); send('\\r','submit');\n        const marker = ['short','reasoning','tools'].includes(args.sample) ? 'GEOMETRY-SHORT' : ['rows','rows-reflow'].includes(args.sample) ? 'ROW-089' : 'Через Code Mode';\n-       const done = await waitFor(f => f.text.includes(marker) &&\n-        /MiMo-V2.6-Flash Free · \\d/.test(f.text) &&\n+        let done = await waitFor(f => f.text.includes(marker) &&\n+         /MiMo-V2.6-Flash Free · \\d/.test(f.text) &&\n          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript') &&\n          (!(reasoningClick || selectionCopy) || logs.some(e=>e.kind==='provider_completed' && e.operation==='title')), 'completed transcript');\n-        if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');\n-        const completedStatus = await capture('session-wide-completed',done,'CAPTURED');\n+        if(twoTurn) done=await waitFor(f=>f.text.includes('GEOMETRY-SHORT: tool read completed.') &&\n+          /Reader · MiMo-V2.6-Flash Free · \\d/.test(f.text) &&\n+          logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length===2 &&\n+          logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length===1,\n+          'first same-session read, answer and title');\n+         if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');\n+         const completedStatus = await capture('session-wide-completed',done,'CAPTURED');\n+        if(twoTurn) {\n+          const checks=[];\n+          lock.two_turn ??= {};\n+          lock.two_turn[origin]={status:'IN_PROGRESS',checks};\n+          const counts=()=>({transcript:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length,\n+            completed_transcript:logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length,\n+            title:logs.filter(e=>e.kind==='provider' && e.operation==='title').length,\n+            completed_title:logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length,\n+            invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});\n+          const save=()=>{\n+            fs.writeFileSync(path.join(dir,'two-turn-checks.json'),JSON.stringify({checks,provider_counts:counts()},null,2)+'\\n');\n+            json('capture.lock.json',lock);\n+          };\n+          const firstPrompt=fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim();\n+          const secondPrompt='Second same-session spacing check?';\n+          const firstAnswer='GEOMETRY-SHORT: tool read completed.';\n+          const secondAnswer='GEOMETRY-TURN-TWO: tool read completed.';\n+          const unique=(f,needle)=>{\n+            const found=visibleMatches(f,needle);\n+            return found.length===1 ? found[0] : null;\n+          };\n+          const footer=(f,after,before=f.rows)=>f.cells.map((row,y)=>({y,text:row.map(c=>c.symbol).join('')}))\n+            .filter(row=>row.y>after && row.y<before && /Reader · MiMo-V2\\.6-Flash Free · \\d/.test(row.text));\n+          const baseline=counts();\n+          checks.push({stage:'first-completed',provider_counts:baseline,\n+            predicates:{first_capture_stable:completedStatus==='CAPTURED',\n+              one_read_answer_title:baseline.transcript===2 && baseline.completed_transcript===2 &&\n+                baseline.title===1 && baseline.completed_title===1 && baseline.invalid===0,\n+              first_prompt_unique:!!unique(done,firstPrompt),first_answer_unique:!!unique(done,firstAnswer),\n+              first_footer_unique:footer(done,unique(done,firstAnswer)?.y ?? done.rows).length===1}});\n+          save();\n+          if(Object.values(checks.at(-1).predicates).some(v=>!v)) throw Error('First same-session turn not complete');\n+          send('\\x1b[200~'+secondPrompt+'\\x1b[201~','two_turn_prompt_paste');\n+          const drafted=await waitFor(f=>!!unique(f,secondPrompt) && counts().transcript===2,\n+            'second draft in same session',12000);\n+          checks.push({stage:'second-draft',prompt_position:unique(drafted,secondPrompt),provider_counts:counts()});\n+          save();\n+          send('\\r','two_turn_submit');\n+          const complete=await waitFor(f=>!!unique(f,firstPrompt) && !!unique(f,secondPrompt) &&\n+            !!unique(f,firstAnswer) && !!unique(f,secondAnswer) &&\n+            footer(f,unique(f,firstAnswer).y,unique(f,secondPrompt).y).length===1 &&\n+            footer(f,unique(f,secondAnswer).y).length===1 &&\n+            counts().transcript===4 && counts().completed_transcript===4 &&\n+            counts().title===1 && counts().completed_title===1 && counts().invalid===0,\n+            'two completed turns in same session',20000);\n+          const first=unique(complete,firstAnswer), user=unique(complete,secondPrompt), second=unique(complete,secondAnswer);\n+          const firstFooter=footer(complete,first.y,user.y)[0];\n+          const secondFooter=footer(complete,second.y)[0];\n+          const blockRows=complete.cells.map((cells,y)=>({y,\n+            x:cells.findIndex((c,x)=>x<user.x && c.symbol==='┃')}))\n+            .filter(p=>p.y>firstFooter.y && p.y<=user.y && p.x>=0);\n+          const blockTop=blockRows.length?blockRows[0].y:null;\n+          const betweenRows=complete.cells.slice(firstFooter.y+1,user.y).map((cells,index)=>({\n+            y:firstFooter.y+1+index, text:cells.map(c=>c.symbol).join(''), cells}));\n+          const positions={first_answer:first,first_footer:{y:firstFooter.y,text:firstFooter.text},\n+            second_user:user,second_user_block_top:blockTop,second_user_block_cells:blockRows,\n+            second_footer:{y:secondFooter.y,text:secondFooter.text},\n+            answer_to_footer_rows:firstFooter.y-first.y-1,\n+            footer_to_user_block_rows:blockTop===null?null:blockTop-firstFooter.y-1,\n+            footer_to_user_text_rows:user.y-firstFooter.y-1,between_rows:betweenRows};\n+          const status=await capture('session-two-turn-completed',complete,'CAPTURED_TWO_TURN');\n+          const after=counts();\n+          const predicates={stable_capture:status==='CAPTURED_TWO_TURN',\n+            same_session_title:visibleMatches(complete,[...tabTitle].slice(0,6).join('')).some(p=>p.y===0),\n+            ordered_rows:first.y<firstFooter.y && firstFooter.y<blockTop && blockTop<user.y &&\n+              user.y<second.y && second.y<secondFooter.y,\n+            two_valid_read_roundtrips:after.transcript===4 && after.completed_transcript===4 &&\n+              after.title===1 && after.completed_title===1 && after.invalid===0 &&\n+              [0,1].every(turn=>[0,1].every(round=>logs.some(e=>e.kind==='provider' &&\n+                e.operation==='transcript' && e.turn_number===turn && e.round_number===round && e.valid)))};\n+          checks.push({stage:'second-completed',positions,provider_counts:after,predicates});\n+          save();\n+          if(Object.values(predicates).some(v=>!v)) throw Error('Same-session second-turn predicate failed');\n+          lock.two_turn[origin].status='PASS';\n+          save();\n+          lock.attempts.push({origin,status:'TWO_TURN_CHECKS_PASS',provider_counts:after,\n+            answer_to_footer_rows:positions.answer_to_footer_rows,\n+            footer_to_user_block_rows:positions.footer_to_user_block_rows,\n+            footer_to_user_text_rows:positions.footer_to_user_text_rows});\n+        }\n        if(selectionCopy) {\n          const word='GEOMETRY';\n          const checks=[];\n@@ -2105,7 +2201,8 @@ try {\n           if(mention && lock.mention?.[origin]) lock.mention[origin].status='FAILED';\n           if(reasoningClick && lock.reasoning_click?.[origin]) lock.reasoning_click[origin].status='FAILED';\n            if(selectionCopy && lock.selection_copy?.[origin]) lock.selection_copy[origin].status='FAILED';\n-           if(scanner && lock.scanner?.[origin]) lock.scanner[origin].status='FAILED';\n+            if(scanner && lock.scanner?.[origin]) lock.scanner[origin].status='FAILED';\n+            if(twoTurn && lock.two_turn?.[origin]) lock.two_turn[origin].status='FAILED';\n       await capture('failure-diagnostic',await frame(),'FAILED_STATE');\n     } finally {\n       if(scanner && !child.stdin.destroyed)\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/assets/upstream/PROVENANCE.md\u0000crates/oc-adapters/assets/upstream/v2/review.txt\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/scanner.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/clipboard.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"2d73511167c58ab919f9a8f940118a55a88aede6e7bc480d8609599bdf2df3f2\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"37b07b785e58039743ecab90475052787beb8f59e5937dd69d67affd79df23a2\", \"actual_sha256\": \"6934051d6cb20ae3a5f2a3bbab678002da838dcb4051910ee653aae2d83fe736\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"bc6bac663f9069299a29be54f1807b66492f9acd\", \"cells_checked\": 4800, \"different_cells\": 46, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 56, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"4da974f9a88feb3f8b7e328c7e4ad349c1b82aeb0b9bdf7ea0dcab6a24fdeec4\", \"actual_sha256\": \"900d40d8c886f47085faba50262cd887df96c62fda049bc32f066d1368b5dae0\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1834, \"changed_fraction_diagnostic_only\": 0.00283444609297725, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"2d73511167c58ab919f9a8f940118a55a88aede6e7bc480d8609599bdf2df3f2\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"f39cab281245eb6de21f43d64f5c8de53e06550683bbca436ecb9bab8fe7f231\", \"actual_sha256\": \"120b2d5b92653138b055133cfd3abff4ddb29323dc8a7bd6888491c4f10c0e5a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"bc6bac663f9069299a29be54f1807b66492f9acd\", \"cells_checked\": 4800, \"different_cells\": 1, \"cursor_differs\": false, \"difference_bbox_inclusive\": [39, 10, 39, 10], \"samples\": [{\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"080457c3c9e0b3ce13778c65cfeec4290e489f790fdc4ae272ba04ec596d69eb\", \"actual_sha256\": \"306a21a7ce1a75f49d80a1179c45d5f8350b93a7e3688f0202d53793acb263b6\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 59, \"changed_fraction_diagnostic_only\": 9.118447082096934e-05, \"difference_bbox_inclusive\": [329, 163, 335, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/upstream/session-two-turn-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/oc/session-two-turn-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/session-two-turn-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-two-turn-completed\", \"fixture_sha256\": \"2d73511167c58ab919f9a8f940118a55a88aede6e7bc480d8609599bdf2df3f2\", \"environment_id\": \"75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e\", \"reference_sha256\": \"dea6e4aa16e2d22beca8ec4a3259af2d1005c071b73f4611a6ed952437b8d857\", \"actual_sha256\": \"2d9f86ebb2d302204babfbcd4b2d8cf482f0a274e8a74fe55bfb499c16cea054\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"bc6bac663f9069299a29be54f1807b66492f9acd\", \"cells_checked\": 4800, \"different_cells\": 488, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 10, 117, 20], \"samples\": [{\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 2, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 3, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 4, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 5, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 6, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 7, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 8, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 9, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 10, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 11, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 12, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 13, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 14, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 15, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 16, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 17, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 18, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 19, \"y\": 11, \"different_fields\": [\"bg\"]}, {\"x\": 20, \"y\": 11, \"different_fields\": [\"bg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/upstream/session-two-turn-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/oc/session-two-turn-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/two-turn-20260925-01/session-two-turn-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"36674673285d05a2d530aad554860f37d5d343efd69c51c6fe4425b8200a9e3b\", \"actual_sha256\": \"d8ce173081cab7c9c53c6d1e583d6d438bc8d94daf2c22050f323fef18fa4881\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 40365, \"changed_fraction_diagnostic_only\": 0.06238408753709199, \"difference_bbox_inclusive\": [17, 163, 992, 332]}\n",
+    "stderr": ""
+  }
+]

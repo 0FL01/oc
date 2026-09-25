@@ -3984,11 +3984,11 @@ mod tests {
         let frame = screen(&state, 80, 24);
         // Two committed rows, then the live turn: user block, assistant block
         // with the reasoning header, markdown body and footer.
-        assert_eq!(frame[1], "  ┃", "{frame:?}");
-        assert_eq!(frame[2], "  ┃  hello", "{frame:?}");
-        assert_eq!(frame[3], "  ┃", "{frame:?}");
-        assert_eq!(frame[4], "", "{frame:?}");
-        assert_eq!(frame[5], "     hi there", "{frame:?}");
+        assert_eq!(frame[1], "  ┃  hello", "{frame:?}");
+        assert_eq!(frame[2], "  ┃", "{frame:?}");
+        assert_eq!(frame[3], "", "{frame:?}");
+        assert_eq!(frame[4], "     hi there", "{frame:?}");
+        assert_eq!(frame[5], "", "{frame:?}");
         assert_eq!(frame[6], "  ┃", "{frame:?}");
         assert_eq!(frame[7], "  ┃  hi", "{frame:?}");
         assert_eq!(frame[8], "  ┃", "{frame:?}");
@@ -4027,7 +4027,7 @@ mod tests {
             "{:?}",
             state.viewport()
         );
-        assert!(frame[13] == "     X · a · 1.5s · interrupted", "{frame:?}");
+        assert_eq!(frame[14], "     X · a · 1.5s · interrupted", "{frame:?}");
     }
 
     #[tokio::test]
