@@ -674,7 +674,7 @@ async fn load_stages(
             &trace::env_fact(name, parent_env.get(name).map(String::as_str)),
         );
     }
-    let mut generation = config::assemble_admitted(
+    let (mut generation, terminal_copy) = config::assemble_admitted_with_terminal_copy(
         &sources,
         &parent_env,
         Some(&selected_providers),
@@ -894,6 +894,7 @@ async fn load_stages(
     }
     let mut tui_chrome = oc_core::queries::TuiChrome {
         location: Some(project.to_string_lossy().into_owned()),
+        terminal_copy,
         build_channel: if cfg!(debug_assertions) {
             oc_core::queries::TuiBuildChannel::Local
         } else {
@@ -1440,7 +1441,7 @@ mod tests {
             sources[0].path.clone(),
             (&root.dir, std::path::PathBuf::from("branch/source")),
         )]);
-        let generation = config::assemble_admitted(
+        let generation = config::assemble_admitted_with_terminal_copy(
             &sources,
             &BTreeMap::new(),
             Some(&HashSet::from(["fixture".into()])),
@@ -1453,7 +1454,9 @@ mod tests {
         std::fs::remove_file(project.join("branch")).unwrap();
         std::fs::rename(project.join("branch-old"), project.join("branch")).unwrap();
         let generation =
-            config::assemble_admitted(&sources, &BTreeMap::new(), None, &roots).unwrap();
+            config::assemble_admitted_with_terminal_copy(&sources, &BTreeMap::new(), None, &roots)
+                .unwrap()
+                .0;
         assert_eq!(
             generation.providers["fixture"].options.api_key,
             "local-fixture-key"

@@ -49,3 +49,5 @@ mention-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 mention-*/*/*.vt binary
 reasoning-click-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 reasoning-click-*/*/*.vt binary
+selection-copy-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+selection-copy-*/*/*.vt binary

@@ -303,6 +303,17 @@ pub struct TuiChrome {
     pub vertical_tabs_width: u16,
     /// Upstream tab indicator presentation; status is the default.
     pub tab_indicators: TabIndicators,
+    /// Explicit terminal.copy selection; absence uses the UI's platform default.
+    pub terminal_copy: Option<TerminalCopyMode>,
+}
+
+/// Mouse text selection/copy behavior from the effective Location config.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TerminalCopyMode {
+    /// Copy selected text on a dragging mouse-up.
+    Select,
+    /// Copy an existing selection on right mouse-down.
+    Manual,
 }
 
 /// Selected session tab indicator presentation (upstream `tabs.indicators`).

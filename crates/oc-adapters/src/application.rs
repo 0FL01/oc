@@ -2281,7 +2281,94 @@ fn resolve_submission(
 #[cfg(test)]
 mod review_tests {
     use super::*;
+    use oc_core::queries::TerminalCopyMode;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    #[tokio::test]
+    async fn terminal_copy_follows_global_location_switch_and_reload() {
+        let root = tempfile::tempdir().unwrap();
+        let global = root.path().join("global");
+        let a = root.path().join("a");
+        let b = root.path().join("b");
+        let data = root.path().join("data");
+        for path in [&global, &a, &b, &data] {
+            std::fs::create_dir_all(path).unwrap();
+        }
+        let model = serde_json::json!({
+            "model": "fixture/m", "provider": {"fixture": {
+                "options": {"baseURL": "https://example.invalid/v1", "apiKey": "dummy"},
+                "models": {"m": {}}
+            }}
+        });
+        std::fs::write(global.join("opencode.json"), model.to_string()).unwrap();
+        std::fs::write(
+            global.join("opencode.jsonc"),
+            r#"{"terminal":{"copy":"manual"}}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            b.join("opencode.jsonc"),
+            r#"{"terminal":{"copy":"select"}}"#,
+        )
+        .unwrap();
+        let env = BTreeMap::from([(
+            "OPENCODE_CONFIG_DIR".into(),
+            global.to_string_lossy().into_owned(),
+        )]);
+        let (app, guard, _) = spawn_with_env(&a, &data, env).await.unwrap();
+        let initial = app.catalog().await.unwrap();
+        assert_eq!(initial.chrome.terminal_copy, Some(TerminalCopyMode::Manual));
+        let switched = app
+            .switch_location_home(b.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        assert_eq!(
+            switched.catalog.chrome.terminal_copy,
+            Some(TerminalCopyMode::Select)
+        );
+        assert_eq!(
+            app.catalog().await.unwrap().chrome.terminal_copy,
+            switched.catalog.chrome.terminal_copy
+        );
+
+        std::fs::write(
+            b.join("opencode.jsonc"),
+            r#"{"terminal":{"copy":"sensitive-fixture"}}"#,
+        )
+        .unwrap();
+        let failure = app.reload_location().await.unwrap_err();
+        assert!(!failure.to_string().contains("sensitive-fixture"));
+        assert_eq!(
+            app.catalog().await.unwrap().chrome.terminal_copy,
+            Some(TerminalCopyMode::Select)
+        );
+
+        std::fs::write(b.join("opencode.jsonc"), "{}").unwrap();
+        let reloaded = app.reload_location().await.unwrap();
+        assert!(reloaded.generation > switched.generation);
+        assert_eq!(
+            reloaded.catalog.chrome.terminal_copy,
+            Some(TerminalCopyMode::Manual)
+        );
+        assert_eq!(
+            app.catalog().await.unwrap().chrome.terminal_copy,
+            reloaded.catalog.chrome.terminal_copy
+        );
+        let returned = app
+            .switch_location_home(a.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        assert_eq!(
+            returned.catalog.chrome.terminal_copy,
+            Some(TerminalCopyMode::Manual)
+        );
+
+        std::fs::write(global.join("opencode.jsonc"), "{}").unwrap();
+        let unconfigured = app.reload_location().await.unwrap();
+        assert_eq!(unconfigured.catalog.chrome.terminal_copy, None);
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
 
     #[tokio::test]
     async fn catalog_descriptions_track_current_location_and_reload() {

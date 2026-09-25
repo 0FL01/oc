@@ -1000,6 +1000,350 @@ fn mouse_click(pty: &mut PtySession, x: u16, y: u16) {
     pty.send(format!("\x1b[<0;{x};{y}M\x1b[<0;{x};{y}m").as_bytes());
 }
 
+/// Decode the terminal clipboard destination from *complete* OSC 52 frames.
+/// Never include a frame or its decoded contents in assertion diagnostics.
+fn osc52_clipboard(output: &[u8]) -> Vec<Vec<u8>> {
+    let mut copies = Vec::new();
+    let prefix = b"\x1b]52;c;";
+    let mut cursor = 0;
+    while cursor + prefix.len() <= output.len() {
+        if &output[cursor..cursor + prefix.len()] != prefix {
+            cursor += 1;
+            continue;
+        }
+        let start = cursor + prefix.len();
+        let Some(end) = output[start..].iter().position(|byte| *byte == b'\x07') else {
+            break; // an in-flight frame is not a successful clipboard write
+        };
+        let encoded = &output[start..start + end];
+        assert!(
+            !encoded.is_empty() && encoded.len().is_multiple_of(4),
+            "invalid OSC 52 length"
+        );
+        let mut decoded = Vec::new();
+        for (index, quartet) in encoded.chunks_exact(4).enumerate() {
+            let value = |byte| match byte {
+                b'A'..=b'Z' => Some(byte - b'A'),
+                b'a'..=b'z' => Some(byte - b'a' + 26),
+                b'0'..=b'9' => Some(byte - b'0' + 52),
+                b'+' => Some(62),
+                b'/' => Some(63),
+                _ => None,
+            };
+            let a = value(quartet[0]).expect("invalid OSC 52 alphabet");
+            let b = value(quartet[1]).expect("invalid OSC 52 alphabet");
+            decoded.push(a << 2 | b >> 4);
+            if quartet[2] != b'=' {
+                let c = value(quartet[2]).expect("invalid OSC 52 alphabet");
+                decoded.push(b << 4 | c >> 2);
+                if quartet[3] != b'=' {
+                    let d = value(quartet[3]).expect("invalid OSC 52 alphabet");
+                    decoded.push(c << 6 | d);
+                }
+            } else {
+                assert_eq!(quartet[3], b'=', "invalid OSC 52 padding");
+            }
+            if quartet.contains(&b'=') {
+                assert_eq!(index + 1, encoded.len() / 4, "early OSC 52 padding");
+            }
+        }
+        copies.push(decoded);
+        cursor = start + end + 1;
+    }
+    copies
+}
+
+fn wait_clipboard(pty: &PtySession, count: usize, expected: &[u8]) {
+    let start = Instant::now();
+    loop {
+        let copies = osc52_clipboard(&pty.snapshot());
+        if copies.len() >= count {
+            assert_eq!(copies.len(), count, "unexpected OSC 52 clipboard writes");
+            assert!(
+                copies[count - 1] == expected,
+                "OSC 52 clipboard destination mismatch"
+            );
+            return;
+        }
+        assert!(
+            start.elapsed() < DEADLINE,
+            "missing complete OSC 52 clipboard write"
+        );
+        std::thread::sleep(POLL);
+    }
+}
+
+/// The transcript source is an ordinary ASCII provider answer, at a painted
+/// screen coordinate rather than a hard-coded layout position.
+fn vis27_answer_cell(pty: &PtySession) -> (u16, u16) {
+    let rows = render_screen(&pty.snapshot()).rows();
+    let (y, row) = rows
+        .iter()
+        .enumerate()
+        .find(|(_, row)| row.contains("echo: amber cobalt zircon"))
+        .unwrap_or_else(|| panic!("VIS27 answer missing from painted transcript: {rows:?}"));
+    let x = row.find("cobalt").expect("VIS27 painted word");
+    (u16::try_from(x + 1).unwrap(), u16::try_from(y + 1).unwrap())
+}
+
+fn vis27_mouse(pty: &mut PtySession, button: u8, x: u16, y: u16, suffix: char) {
+    pty.send(format!("\x1b[<{button};{x};{y}{suffix}").as_bytes());
+}
+
+/// Screen reconstructs glyphs without styles. Require the word's painted
+/// bytes to carry the paired source selection colors (or reverse-video), not
+/// merely appear in an OSC clipboard frame or a success toast.
+fn vis27_highlighted_word(output: &[u8], word: &[u8]) -> bool {
+    let (mut cursor, mut reverse) = (0, false);
+    let (mut fg, mut bg) = (None, None);
+    let mut selected = Vec::new();
+    while cursor < output.len() {
+        if output[cursor..].starts_with(b"\x1b[") {
+            let start = cursor + 2;
+            let Some(end) = output[start..]
+                .iter()
+                .position(|byte| (0x40..=0x7e).contains(byte))
+                .map(|n| start + n)
+            else {
+                break;
+            };
+            if output[end] == b'm' {
+                let codes: Vec<_> = output[start..end]
+                    .split(|byte| *byte == b';')
+                    .map(|code| {
+                        if code.is_empty() {
+                            Some(0)
+                        } else {
+                            std::str::from_utf8(code).ok()?.parse::<u16>().ok()
+                        }
+                    })
+                    .collect();
+                let mut i = 0;
+                while i < codes.len() {
+                    match codes[i] {
+                        Some(0) => {
+                            reverse = false;
+                            fg = None;
+                            bg = None;
+                        }
+                        Some(7) => reverse = true,
+                        Some(27) => reverse = false,
+                        Some(39) => fg = None,
+                        Some(49) => bg = None,
+                        Some(38 | 48) => {
+                            let foreground = codes[i] == Some(38);
+                            let color = if codes.get(i + 1) == Some(&Some(2)) {
+                                let rgb = codes
+                                    .get(i + 2..i + 5)
+                                    .and_then(|parts| Some((parts[0]?, parts[1]?, parts[2]?)));
+                                i += 4;
+                                rgb
+                            } else if codes.get(i + 1) == Some(&Some(5)) {
+                                i += 2;
+                                None
+                            } else {
+                                None
+                            };
+                            if foreground { fg = color } else { bg = color }
+                        }
+                        Some(30..=37 | 90..=97) => fg = None,
+                        Some(40..=47 | 100..=107) => bg = None,
+                        _ => {}
+                    }
+                    i += 1;
+                }
+                if !reverse && (fg != Some((10, 10, 10)) || bg != Some((238, 238, 238))) {
+                    selected.clear();
+                }
+            } else {
+                selected.clear(); // do not join words painted at unrelated cursor positions
+            }
+            cursor = end + 1;
+        } else if output[cursor..].starts_with(b"\x1b]") {
+            let Some(end) = output[cursor + 2..]
+                .iter()
+                .position(|byte| *byte == b'\x07')
+            else {
+                break;
+            };
+            cursor += 2 + end + 1;
+            selected.clear();
+        } else if output[cursor].is_ascii_graphic() || output[cursor] == b' ' {
+            if !reverse && (fg != Some((10, 10, 10)) || bg != Some((238, 238, 238))) {
+                selected.clear();
+                cursor += 1;
+                continue;
+            }
+            selected.push(output[cursor]);
+            if selected.windows(word.len()).any(|part| part == word) {
+                return true;
+            }
+            cursor += 1;
+        } else {
+            selected.clear();
+            cursor += 1;
+        }
+    }
+    false
+}
+
+fn vis27_wait_highlight(pty: &PtySession, word: &[u8]) {
+    let start = Instant::now();
+    while !vis27_highlighted_word(&pty.snapshot(), word) {
+        assert!(
+            start.elapsed() < DEADLINE,
+            "selected word was not painted with selection styling"
+        );
+        std::thread::sleep(POLL);
+    }
+}
+
+#[test]
+fn vis27_real_pty_osc52_select_and_manual_clipboard_modes() {
+    const PROMPT: &str = "amber cobalt zircon";
+    // The source line selection trims leading transcript padding.
+    const LINE: &[u8] = b"echo: amber cobalt zircon";
+    let fixture = Fixture::new();
+    let session = "vis27-select";
+    let mut pty = PtySession::spawn(fixture.clone(), session, None);
+    pty.wait_visible(READY, DEADLINE);
+    assert!(
+        contains(&pty.snapshot(), b"\x1b[?1006h"),
+        "SGR mouse capture"
+    );
+    submit(&mut pty, PROMPT);
+    fixture.wait_requests(1);
+    wait_screen_row(&pty, "echo: amber cobalt zircon", DEADLINE);
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    wait_idle(&pty);
+    let requests_before = fixture.requests.lock().unwrap().clone();
+    let (x, y) = vis27_answer_cell(&pty);
+    assert!(
+        osc52_clipboard(&pty.snapshot()).is_empty(),
+        "no clipboard write before selection"
+    );
+
+    // SGR reports one-based coordinates. First down/up is a caret, never a copy.
+    vis27_mouse(&mut pty, 0, x, y, 'M');
+    vis27_mouse(&mut pty, 0, x, y, 'm');
+    std::thread::sleep(Duration::from_millis(75)); // dispatch before the second click, within 500ms
+    assert!(
+        osc52_clipboard(&pty.snapshot()).is_empty(),
+        "first click copied"
+    );
+    assert!(
+        !contains(&pty.snapshot(), b"Copied to clipboard"),
+        "first click claimed success"
+    );
+    // The two subsequent no-motion releases exercise the multi-click clock.
+    let before_word_copy = pty.snapshot().len();
+    mouse_click(&mut pty, x, y);
+    wait_clipboard(&pty, 1, b"cobalt");
+    pty.wait_visible_after(before_word_copy, "Copied to clipboard", DEADLINE);
+    assert!(
+        vis27_highlighted_word(&pty.snapshot()[before_word_copy..], b"cobalt"),
+        "word highlight missing after copy"
+    );
+    mouse_click(&mut pty, x, y);
+    wait_clipboard(&pty, 2, LINE);
+    assert_eq!(
+        vis27_answer_cell(&pty),
+        (x, y),
+        "selection changed the painted transcript"
+    );
+
+    // A fresh drag starts elsewhere and selects just the interior of the line.
+    let start_x = x - 6; // 'amber' begins six cells before 'cobalt'
+    vis27_mouse(&mut pty, 0, start_x, y, 'M');
+    vis27_mouse(&mut pty, 32, x + 6, y, 'M');
+    vis27_mouse(&mut pty, 0, x + 6, y, 'm');
+    wait_clipboard(&pty, 3, b"amber cobalt");
+    assert!(
+        *fixture.requests.lock().unwrap() == requests_before,
+        "selection sent provider traffic"
+    );
+    pty.send(b"/quit\r");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(
+        status.success() && pty.restored(),
+        "select-mode terminal recovery"
+    );
+    assert!(contains(&output, ALT_LEAVE) && contains(&output, b"\x1b[?1006l"));
+    assert_eq!(osc52_clipboard(&output).len(), 3);
+    assert_eq!(
+        persisted(pty.data_dir(), session),
+        [
+            ("user".into(), PROMPT.into()),
+            ("assistant".into(), "echo: amber cobalt zircon".into())
+        ],
+        "selection changed the two-message history"
+    );
+
+    // Write an admitted project config before a *new* binary launch. The
+    // fixture global config and data root stay isolated throughout.
+    std::fs::write(
+        fixture.root.path().join("project/opencode.json"),
+        r#"{"terminal":{"copy":"manual"}}"#,
+    )
+    .expect("manual project config");
+    let session = "vis27-manual";
+    let mut manual = PtySession::spawn(fixture.clone(), session, None);
+    manual.wait_visible(READY, DEADLINE);
+    submit(&mut manual, PROMPT);
+    fixture.wait_requests(2);
+    wait_screen_row(&manual, "echo: amber cobalt zircon", DEADLINE);
+    wait_screen_row(&manual, "Fixture session title", DEADLINE);
+    wait_idle(&manual);
+    let requests_before = fixture.requests.lock().unwrap().clone();
+    let (x, y) = vis27_answer_cell(&manual);
+    vis27_mouse(&mut manual, 0, x, y, 'M');
+    vis27_mouse(&mut manual, 32, x + 6, y, 'M');
+    vis27_mouse(&mut manual, 0, x + 6, y, 'm');
+    // Synchronize with the completed drag via its painted highlight redraw;
+    // no auto-copy and no success toast may precede a manual right press.
+    vis27_wait_highlight(&manual, b"cobalt");
+    std::thread::sleep(Duration::from_millis(150));
+    assert!(
+        osc52_clipboard(&manual.snapshot()).is_empty(),
+        "manual drag copied automatically"
+    );
+    assert!(
+        !contains(&manual.snapshot(), b"Copied to clipboard"),
+        "manual drag claimed success"
+    );
+    let before_manual_copy = manual.snapshot().len();
+    vis27_mouse(&mut manual, 2, x, y, 'M');
+    wait_clipboard(&manual, 1, b"cobalt");
+    manual.wait_visible_after(before_manual_copy, "Copied to clipboard", DEADLINE);
+    // Right-down leaves the selected cells untouched in the ratatui diff;
+    // their prior selection-style paint remains in the PTY's screen buffer.
+    assert!(
+        vis27_highlighted_word(&manual.snapshot(), b"cobalt"),
+        "manual highlight lost after copy"
+    );
+    assert_eq!(vis27_answer_cell(&manual), (x, y));
+    assert!(
+        *fixture.requests.lock().unwrap() == requests_before,
+        "manual selection sent provider traffic"
+    );
+    manual.send(b"/quit\r");
+    let (status, output) = manual.wait_exit(DEADLINE);
+    assert!(
+        status.success() && manual.restored(),
+        "manual-mode terminal recovery"
+    );
+    assert!(contains(&output, ALT_LEAVE) && contains(&output, b"\x1b[?1006l"));
+    assert_eq!(osc52_clipboard(&output).len(), 1);
+    assert_eq!(
+        persisted(manual.data_dir(), session),
+        [
+            ("user".into(), PROMPT.into()),
+            ("assistant".into(), "echo: amber cobalt zircon".into())
+        ],
+        "manual selection changed the two-message history"
+    );
+}
+
 /// Locate the completed reasoning control on the *painted* PTY grid.
 fn reasoning_click_header(pty: &PtySession, prefix: &str) -> (u16, u16) {
     let rows = render_screen(&pty.snapshot()).rows();
@@ -1049,6 +1393,10 @@ fn v06_real_pty_completed_reasoning_header_click_expands_and_collapses() {
     );
 
     let (x, y) = reasoning_click_header(&pty, "- Thought");
+    // A rapid second click on the same glyph is a word-selection gesture in
+    // select-copy mode, not another single-click header activation. Let the
+    // multi-click window close before exercising a second ordinary click.
+    std::thread::sleep(Duration::from_millis(510));
     mouse_click(&mut pty, x, y);
     let started = Instant::now();
     loop {

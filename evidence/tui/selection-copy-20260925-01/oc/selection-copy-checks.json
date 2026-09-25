@@ -1,0 +1,514 @@
+{
+  "baseline": {
+    "requests": 3,
+    "completed": 3,
+    "invalid": 0
+  },
+  "checks": [
+    {
+      "stage": "completed-before-click",
+      "target": {
+        "x": 5,
+        "y": 8
+      },
+      "cell": {
+        "x": 8,
+        "y": 8
+      },
+      "word_cells": [
+        {
+          "fg": "#eeeeee",
+          "bg": "#0a0a0a",
+          "modifiers": []
+        },
+        {
+          "fg": "#eeeeee",
+          "bg": "#0a0a0a",
+          "modifiers": []
+        },
+        {
+          "fg": "#eeeeee",
+          "bg": "#0a0a0a",
+          "modifiers": []
+        },
+        {
+          "fg": "#eeeeee",
+          "bg": "#0a0a0a",
+          "modifiers": []
+        },
+        {
+          "fg": "#eeeeee",
+          "bg": "#0a0a0a",
+          "modifiers": []
+        },
+        {
+          "fg": "#eeeeee",
+          "bg": "#0a0a0a",
+          "modifiers": []
+        },
+        {
+          "fg": "#eeeeee",
+          "bg": "#0a0a0a",
+          "modifiers": []
+        },
+        {
+          "fg": "#eeeeee",
+          "bg": "#0a0a0a",
+          "modifiers": []
+        }
+      ],
+      "predicates": {
+        "unique_painted_word": true,
+        "completed_capture": true,
+        "default_select_mode": true,
+        "no_prior_toast": true,
+        "provider_counts_unchanged": true
+      }
+    },
+    {
+      "stage": "double-click-1",
+      "cell": {
+        "x": 8,
+        "y": 8
+      },
+      "pty_column": 9,
+      "pty_row": 9,
+      "down_base64": "G1s8MDs5OzlN",
+      "up_base64": "G1s8MDs5Ozlt"
+    },
+    {
+      "stage": "double-click-2",
+      "cell": {
+        "x": 8,
+        "y": 8
+      },
+      "pty_column": 9,
+      "pty_row": 9,
+      "down_base64": "G1s8MDs5OzlN",
+      "up_base64": "G1s8MDs5Ozlt"
+    },
+    {
+      "stage": "double-captured",
+      "observed": {
+        "word_matches": [
+          {
+            "x": 5,
+            "y": 8
+          }
+        ],
+        "toast_matches": [
+          {
+            "x": 93,
+            "y": 2
+          }
+        ],
+        "changed_style_columns": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "word_highlight_columns": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "outside_word_highlight_columns": [],
+        "word_cells": [
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          }
+        ],
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "unique_painted_word": true,
+        "word_highlight_visible": true,
+        "toast_visible": true,
+        "line_extends_beyond_word": null,
+        "provider_counts_unchanged": true,
+        "stable_capture": true
+      },
+      "osc52_introducers_since_previous_stage": 1,
+      "osc52_note": "Prefix-only observation in PTY output; not proof of a system clipboard write"
+    },
+    {
+      "stage": "between-clicks-toast-expired",
+      "observed": {
+        "word_matches": [
+          {
+            "x": 5,
+            "y": 8
+          }
+        ],
+        "toast_matches": [
+          {
+            "x": 93,
+            "y": 2
+          }
+        ],
+        "changed_style_columns": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "word_highlight_columns": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "outside_word_highlight_columns": [],
+        "word_cells": [
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          }
+        ],
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "toast_absent": false
+      },
+      "reason": "Timed out waiting for selection copy prior toast disappeared"
+    },
+    {
+      "stage": "triple-click-1",
+      "cell": {
+        "x": 8,
+        "y": 8
+      },
+      "pty_column": 9,
+      "pty_row": 9,
+      "down_base64": "G1s8MDs5OzlN",
+      "up_base64": "G1s8MDs5Ozlt"
+    },
+    {
+      "stage": "triple-click-2",
+      "cell": {
+        "x": 8,
+        "y": 8
+      },
+      "pty_column": 9,
+      "pty_row": 9,
+      "down_base64": "G1s8MDs5OzlN",
+      "up_base64": "G1s8MDs5Ozlt"
+    },
+    {
+      "stage": "triple-click-3",
+      "cell": {
+        "x": 8,
+        "y": 8
+      },
+      "pty_column": 9,
+      "pty_row": 9,
+      "down_base64": "G1s8MDs5OzlN",
+      "up_base64": "G1s8MDs5Ozlt"
+    },
+    {
+      "stage": "triple-captured",
+      "observed": {
+        "word_matches": [
+          {
+            "x": 5,
+            "y": 8
+          }
+        ],
+        "toast_matches": [
+          {
+            "x": 93,
+            "y": 2
+          }
+        ],
+        "changed_style_columns": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40
+        ],
+        "word_highlight_columns": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "outside_word_highlight_columns": [
+          2,
+          3,
+          4,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40
+        ],
+        "word_cells": [
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          },
+          {
+            "fg": "#eeeeee",
+            "bg": "#0a0a0a",
+            "modifiers": [
+              "reversed"
+            ]
+          }
+        ],
+        "provider_counts": {
+          "requests": 3,
+          "completed": 3,
+          "invalid": 0
+        }
+      },
+      "predicates": {
+        "unique_painted_word": true,
+        "word_highlight_visible": true,
+        "toast_visible": true,
+        "line_extends_beyond_word": true,
+        "provider_counts_unchanged": true,
+        "stable_capture": true
+      },
+      "osc52_introducers_since_previous_stage": 2,
+      "osc52_note": "Prefix-only observation in PTY output; not proof of a system clipboard write"
+    }
+  ]
+}

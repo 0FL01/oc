@@ -23,6 +23,7 @@ use oc_core::queries::{
 };
 use oc_core::session::CoreError;
 use ratatui::layout::Rect;
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::commands::{CommandAction, dispatch};
 use crate::dcp_panel::{DcpOutcome, DcpPanelState};
@@ -45,6 +46,8 @@ pub const CARDS_MAX: usize = 160;
 pub const LIVE_PARTS_MAX: usize = 64;
 /// Maximum rows fetched for one inline mention (owner traversal is separately bounded).
 pub const MENTION_LIMIT: usize = 10;
+/// Never send a clipboard payload larger than a bounded visible transcript.
+pub const MAX_SELECTION_BYTES: usize = 64 * 1024;
 static NEXT_VIEW_ID: AtomicU64 = AtomicU64::new(1);
 
 /// Exact identity of one focused file query. A tab can park and return with
@@ -233,6 +236,64 @@ pub struct KeyOutcome {
     pub consumed_input: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClipboardMode {
+    Select,
+    Manual,
+    /// A published Location no longer matches this view; wait for an owner
+    /// catalog before allowing either automatic or explicit clipboard writes.
+    Disabled,
+}
+
+impl Default for ClipboardMode {
+    fn default() -> Self {
+        if cfg!(windows) {
+            Self::Manual
+        } else {
+            Self::Select
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct TextPoint {
+    row: usize,
+    byte: usize,
+}
+
+#[derive(Clone)]
+struct PaintedTranscript {
+    area: Rect,
+    rows: Vec<Line>,
+    total: usize,
+    scroll: usize,
+}
+
+struct TranscriptSelection {
+    anchor: TextPoint,
+    focus: TextPoint,
+    painted: PaintedTranscript,
+    dragging: bool,
+}
+
+impl TranscriptSelection {
+    fn bounds(&self) -> (TextPoint, TextPoint) {
+        if self.anchor <= self.focus {
+            (self.anchor, self.focus)
+        } else {
+            (self.focus, self.anchor)
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct TranscriptClick {
+    x: u16,
+    y: u16,
+    at: Instant,
+    count: u8,
+}
+
 /// One live part of the streaming turn, in arrival order (upstream message
 /// parts: reasoning, text, tool — `routes/session/index.tsx:1433-1481`).
 ///
@@ -383,6 +444,14 @@ pub struct TuiState {
     /// Sampled once per UI instance; never changes during a redraw.
     pub(crate) home_example: &'static str,
     viewport: std::cell::Cell<Option<TranscriptViewport>>,
+    painted_transcript: std::cell::RefCell<Option<PaintedTranscript>>,
+    clipboard_mode: ClipboardMode,
+    /// Last successful owner projection, independent of manual/test overrides.
+    owner_clipboard_mode: Option<oc_core::queries::TerminalCopyMode>,
+    pending_copy: Option<String>,
+    selection: Option<TranscriptSelection>,
+    selection_gesture: bool,
+    click: Option<TranscriptClick>,
     /// Current session's durable human title, refreshed with history.
     pub session_title: Option<String>,
     /// Session autoaccept capability supplied by the application.
@@ -525,6 +594,13 @@ impl TuiState {
             home,
             home_example: HOME_EXAMPLES[index],
             viewport: std::cell::Cell::new(None),
+            painted_transcript: std::cell::RefCell::new(None),
+            clipboard_mode: ClipboardMode::default(),
+            owner_clipboard_mode: None,
+            pending_copy: None,
+            selection: None,
+            selection_gesture: false,
+            click: None,
             session_title: None,
             auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
             app,
@@ -640,6 +716,9 @@ impl TuiState {
     /// Refresh the retained deck. The binary owns route selection and the add
     /// action; Home itself becomes a synthetic final slot only in the renderer.
     pub fn set_tab_strip(&mut self, tabs: Vec<TabPresentation>, active: usize, can_add: bool) {
+        if self.active_tab != active.min(tabs.len().saturating_sub(1)) {
+            self.clear_transcript_selection();
+        }
         self.tab_down = None;
         let count = tabs.len().min(16);
         if self.tabs.len() != count
@@ -656,6 +735,7 @@ impl TuiState {
 
     /// Clear the recorded SGR coordinate when a resize invalidates its frame.
     pub fn clear_mouse_position(&mut self) {
+        self.clear_transcript_selection();
         self.last_mouse = None;
         self.toast_down = false;
         self.set_toast_hover(false, Instant::now());
@@ -1505,6 +1585,7 @@ impl TuiState {
 
     /// Close any open panel (chat view).
     pub fn close_panel(&mut self) {
+        self.clear_transcript_selection();
         self.panel = TuiPanel::None;
         self.rename_input.clear();
         self.rename_editor.clear();
@@ -1550,6 +1631,8 @@ impl TuiState {
                 MouseEventKind::Down(MouseButton::Left) => {
                     self.toast_down = close_hit && event.modifiers.is_empty();
                     if self.toast_down {
+                        self.selection_gesture = false;
+                        self.click = None;
                         self.tab_down = None;
                         self.exploration_down = None;
                         self.reasoning_down = None;
@@ -1576,18 +1659,33 @@ impl TuiState {
         // These surfaces are drawn after the transcript. Their entire painted
         // rectangles own the press and release, including blank fill cells.
         if self.panel == TuiPanel::None
-            && matches!(
-                event.kind,
-                MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Up(MouseButton::Left)
-            )
+            && matches!(event.kind, MouseEventKind::Down(MouseButton::Left))
             && self.transcript_overpainted(area, event.column, event.row)
         {
+            self.selection_gesture = false;
+            self.click = None;
             self.reasoning_down = None;
             self.exploration_down = None;
             self.tab_down = None;
             return KeyOutcome::default();
         }
         if self.panel == TuiPanel::None {
+            self.handle_transcript_selection(event, area);
+            if matches!(event.kind, MouseEventKind::Up(MouseButton::Left))
+                && self.transcript_overpainted(area, event.column, event.row)
+            {
+                self.reasoning_down = None;
+                self.exploration_down = None;
+                self.tab_down = None;
+                return KeyOutcome::default();
+            }
+            // A drag started on a header belongs to text selection; it must
+            // never activate the header on release, even if it returns there.
+            if matches!(event.kind, MouseEventKind::Drag(_)) {
+                self.exploration_down = None;
+                self.reasoning_down = None;
+                self.tab_down = None;
+            }
             match event.kind {
                 MouseEventKind::Moved => {
                     self.hovered_tab.set(
@@ -1640,6 +1738,7 @@ impl TuiState {
                         };
                     }
                     if event.modifiers.is_empty()
+                        && self.click.is_none_or(|click| click.count == 1)
                         && let Some((op, x, y)) = pressed
                         && (x, y) == (event.column, event.row)
                         && self
@@ -1677,6 +1776,7 @@ impl TuiState {
                         );
                     }
                     if event.modifiers.is_empty()
+                        && self.click.is_none_or(|click| click.count == 1)
                         && let Some((id, x, y, painted, total, scroll, requested)) =
                             reasoning_pressed
                         && painted == area
@@ -1729,6 +1829,7 @@ impl TuiState {
             }
             return KeyOutcome::default();
         }
+        self.clear_transcript_selection();
         self.exploration_down = None;
         self.reasoning_down = None;
         self.tab_down = None;
@@ -1854,6 +1955,387 @@ impl TuiState {
             _ => {}
         }
         KeyOutcome::default()
+    }
+
+    /// Snapshot only the rows actually painted. This same bounded set supplies
+    /// the rendered highlight and the clipboard; a new frame or resize makes
+    /// stale selections unusable until the next valid mouse selection.
+    pub(crate) fn paint_transcript(
+        &self,
+        area: Rect,
+        rows: &[Line],
+        total: usize,
+        scroll: usize,
+    ) -> Vec<Line> {
+        let selected = self.selection.as_ref().filter(|selected| {
+            selected.painted.area == area
+                && selected.painted.total == total
+                && selected.painted.scroll == scroll
+                && selected.painted.rows == rows
+                && self.panel == TuiPanel::None
+        });
+        let result = rows
+            .iter()
+            .enumerate()
+            .map(|(row, line)| {
+                if let Some(selected) = selected {
+                    let (start, end) = selected.bounds();
+                    let begin = if row == start.row {
+                        start.byte
+                    } else if row > start.row {
+                        0
+                    } else {
+                        line.plain_text().len()
+                    };
+                    let finish = if row == end.row {
+                        end.byte
+                    } else if row < end.row {
+                        line.plain_text().len()
+                    } else {
+                        0
+                    };
+                    if begin < finish {
+                        let theme = Theme::dark();
+                        return line.highlight(begin, finish, theme.text(), theme.background());
+                    }
+                }
+                line.clone()
+            })
+            .collect();
+        let mut painted = self.painted_transcript.borrow_mut();
+        if !painted.as_ref().is_some_and(|previous| {
+            previous.area == area
+                && previous.total == total
+                && previous.scroll == scroll
+                && previous.rows == rows
+        }) {
+            *painted = Some(PaintedTranscript {
+                area,
+                rows: rows.to_vec(),
+                total,
+                scroll,
+            });
+        }
+        result
+    }
+
+    /// Configuration/test override of the platform's native clipboard mode.
+    pub fn set_clipboard_mode(&mut self, mode: ClipboardMode) {
+        self.clipboard_mode = mode;
+    }
+
+    pub fn clipboard_mode(&self) -> ClipboardMode {
+        self.clipboard_mode
+    }
+
+    /// A parked route may carry an older catalog. Route activation adopts the
+    /// current view's last successful owner projection, not the parked value.
+    pub fn sync_clipboard_mode_from(&mut self, current: &Self) {
+        if current.clipboard_mode == ClipboardMode::Disabled {
+            self.disable_clipboard_until_catalog();
+        } else {
+            self.apply_owner_clipboard_mode(current.owner_clipboard_mode);
+        }
+    }
+
+    /// A reload receipt is already published even if a later route-specific
+    /// catalog query fails. Apply this safety-sensitive owner setting first so
+    /// a stale view cannot keep auto-copy enabled after switching to manual.
+    pub fn refresh_clipboard_mode(&mut self, mode: Option<oc_core::queries::TerminalCopyMode>) {
+        self.clear_transcript_selection();
+        self.apply_owner_clipboard_mode(mode);
+    }
+
+    pub fn disable_clipboard_until_catalog(&mut self) {
+        self.clear_transcript_selection();
+        self.clipboard_mode = ClipboardMode::Disabled;
+    }
+
+    fn apply_owner_clipboard_mode(&mut self, mode: Option<oc_core::queries::TerminalCopyMode>) {
+        self.owner_clipboard_mode = mode;
+        self.chrome.terminal_copy = mode;
+        self.clipboard_mode = match mode {
+            Some(oc_core::queries::TerminalCopyMode::Select) => ClipboardMode::Select,
+            Some(oc_core::queries::TerminalCopyMode::Manual) => ClipboardMode::Manual,
+            None => ClipboardMode::default(),
+        };
+    }
+
+    /// Drain the mouse copy request once. The caller performs the actual
+    /// clipboard write and reports its asynchronous result separately.
+    pub fn take_copy_request(&mut self) -> Option<String> {
+        self.pending_copy.take()
+    }
+
+    /// The binary reports the actual asynchronous clipboard write outcome.
+    pub fn report_clipboard_result(&mut self, result: Result<(), String>) {
+        match result {
+            Ok(()) => self.push_transient_note("Copied to clipboard", NoteVariant::Info),
+            Err(error) => self.push_transient_note(&error, NoteVariant::Error),
+        }
+    }
+
+    fn clear_transcript_selection(&mut self) {
+        self.selection = None;
+        self.selection_gesture = false;
+        self.click = None;
+        self.pending_copy = None;
+        *self.painted_transcript.borrow_mut() = None;
+    }
+
+    fn selection_text(&self) -> Result<Option<String>, &'static str> {
+        const TOO_LARGE: &str = "Selection exceeds clipboard size limit";
+        let Some(selected) = self.selection.as_ref() else {
+            return Ok(None);
+        };
+        let painted = self.painted_transcript.borrow();
+        let Some(current) = painted.as_ref() else {
+            return Ok(None);
+        };
+        if selected.painted.area != current.area
+            || selected.painted.total != current.total
+            || selected.painted.scroll != current.scroll
+            || selected.painted.rows != current.rows
+        {
+            return Ok(None);
+        }
+        let (start, end) = selected.bounds();
+        if start == end {
+            return Ok(None);
+        }
+        let mut result = String::new();
+        for row in start.row..=end.row {
+            let Some(line) = selected.painted.rows.get(row) else {
+                return Ok(None);
+            };
+            let text = line.plain_text();
+            let begin = if row == start.row { start.byte } else { 0 };
+            let finish = if row == end.row { end.byte } else { text.len() };
+            if begin > finish || !text.is_char_boundary(begin) || !text.is_char_boundary(finish) {
+                return Ok(None);
+            }
+            let addition = finish - begin + usize::from(row > start.row);
+            if result.len().saturating_add(addition) > MAX_SELECTION_BYTES {
+                return Err(TOO_LARGE);
+            }
+            if row > start.row {
+                result.push('\n');
+            }
+            result.push_str(&text[begin..finish]);
+        }
+        Ok((!result.is_empty()).then_some(result))
+    }
+
+    fn request_selection_copy(&mut self) {
+        self.pending_copy = None;
+        match self.selection_text() {
+            Ok(Some(text)) => self.pending_copy = Some(text),
+            Ok(None) => {}
+            Err(error) => self.push_transient_note(error, NoteVariant::Error),
+        }
+    }
+
+    fn handle_transcript_selection(&mut self, event: MouseEvent, area: Rect) {
+        let relevant = matches!(event.kind, MouseEventKind::Down(MouseButton::Left))
+            && event.modifiers.is_empty()
+            || matches!(event.kind, MouseEventKind::Down(MouseButton::Right))
+                && self.clipboard_mode == ClipboardMode::Manual
+            || self.selection_gesture
+                && matches!(event.kind, MouseEventKind::Drag(_) | MouseEventKind::Up(_));
+        if !relevant {
+            // A new press on any other surface breaks the multi-click chain,
+            // without destroying the completed selection for manual copy.
+            if matches!(event.kind, MouseEventKind::Down(_)) {
+                self.selection_gesture = false;
+                self.click = None;
+            }
+            return;
+        }
+        let current = crate::shell::transcript_area(self, area);
+        let painted_valid = self
+            .painted_transcript
+            .borrow()
+            .as_ref()
+            .is_some_and(|painted| painted.area == current);
+        if !painted_valid {
+            self.clear_transcript_selection();
+            return;
+        }
+        if matches!(event.kind, MouseEventKind::Down(MouseButton::Left))
+            && !current.contains((event.column, event.row).into())
+        {
+            self.selection_gesture = false;
+            self.click = None;
+            return;
+        }
+        let (rows, total, scroll) =
+            self.visible_transcript_at_viewport(current.width, area.width, current.height);
+        if !self
+            .painted_transcript
+            .borrow()
+            .as_ref()
+            .is_some_and(|painted| {
+                painted.total == total && painted.scroll == scroll && painted.rows == rows
+            })
+        {
+            self.clear_transcript_selection();
+            return;
+        }
+        match event.kind {
+            MouseEventKind::Down(MouseButton::Right)
+                if self.clipboard_mode == ClipboardMode::Manual =>
+            {
+                self.selection_gesture = false;
+                self.click = None;
+                self.request_selection_copy();
+            }
+            MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
+                let painted = self
+                    .painted_transcript
+                    .borrow()
+                    .clone()
+                    .expect("validated paint");
+                let Some(at) = self.transcript_point(&painted, area, event.column, event.row)
+                else {
+                    self.selection_gesture = false;
+                    self.click = None;
+                    return;
+                };
+                let now = Instant::now();
+                let count = self
+                    .click
+                    .filter(|click| {
+                        click.x == event.column
+                            && click.y == event.row
+                            && now.duration_since(click.at) <= Duration::from_millis(500)
+                    })
+                    .map_or(1, |click| (click.count % 3) + 1);
+                self.click = Some(TranscriptClick {
+                    x: event.column,
+                    y: event.row,
+                    at: now,
+                    count,
+                });
+                let mut selected = TranscriptSelection {
+                    anchor: at,
+                    focus: at,
+                    painted,
+                    dragging: count > 1,
+                };
+                self.selection_gesture = true;
+                if count == 2 || count == 3 {
+                    let text = selected.painted.rows[at.row].plain_text();
+                    if count == 3 {
+                        // OpenTUI paints the content of the display row, not
+                        // the indentation before its first visible glyph.
+                        selected.anchor.byte = text.len() - text.trim_start().len();
+                        selected.focus.byte = text.len();
+                    } else {
+                        // OpenTUI's painted word includes internal hyphens
+                        // (GEOMETRY-SHORT), but not the adjacent colon. Group
+                        // Unicode words on this already-wrapped display row.
+                        let words: Vec<_> = text.unicode_word_indices().collect();
+                        if let Some((index, (offset, word))) =
+                            words.iter().enumerate().find(|(_, (offset, word))| {
+                                *offset <= at.byte && at.byte < *offset + word.len()
+                            })
+                        {
+                            let mut start = *offset;
+                            let mut end = start + word.len();
+                            for (next_offset, next_word) in words[index + 1..].iter() {
+                                if text.get(end..*next_offset) != Some("-") {
+                                    break;
+                                }
+                                end = next_offset + next_word.len();
+                            }
+                            for (previous_offset, previous_word) in words[..index].iter().rev() {
+                                if text.get(previous_offset + previous_word.len()..start)
+                                    != Some("-")
+                                {
+                                    break;
+                                }
+                                start = *previous_offset;
+                            }
+                            selected.anchor.byte = start;
+                            selected.focus.byte = end;
+                        }
+                    }
+                }
+                self.selection = Some(selected);
+            }
+            MouseEventKind::Drag(MouseButton::Left) => {
+                let at = self
+                    .painted_transcript
+                    .borrow()
+                    .as_ref()
+                    .and_then(|painted| {
+                        self.transcript_point(painted, area, event.column, event.row)
+                    });
+                if let Some(at) = at
+                    && let Some(selected) = &mut self.selection
+                {
+                    selected.dragging = true;
+                    selected.focus = at;
+                }
+                self.click = None;
+            }
+            MouseEventKind::Drag(_) => {
+                // Only a left press owns this selection. An unrelated button
+                // must never turn an old highlight into a new drag/copy.
+                self.selection_gesture = false;
+                self.click = None;
+            }
+            MouseEventKind::Up(_) => {
+                self.selection_gesture = false;
+                let at = self
+                    .painted_transcript
+                    .borrow()
+                    .as_ref()
+                    .and_then(|painted| {
+                        self.transcript_point(painted, area, event.column, event.row)
+                    });
+                if let Some(selected) = &mut self.selection
+                    && selected.dragging
+                {
+                    if let Some(at) = at {
+                        // Repeated-click word/line selection keeps its
+                        // expanded endpoints on a no-motion release.
+                        if self.click.is_none_or(|click| {
+                            click.count == 1 || (click.x, click.y) != (event.column, event.row)
+                        }) {
+                            selected.focus = at;
+                        }
+                    }
+                    selected.dragging = false;
+                    if self.clipboard_mode == ClipboardMode::Select {
+                        self.request_selection_copy();
+                    }
+                }
+            }
+            MouseEventKind::Down(_) => {
+                self.selection_gesture = false;
+                self.click = None;
+            }
+            _ => {}
+        }
+    }
+
+    fn transcript_point(
+        &self,
+        painted: &PaintedTranscript,
+        area: Rect,
+        x: u16,
+        y: u16,
+    ) -> Option<TextPoint> {
+        let rect = painted.area;
+        if !rect.contains((x, y).into()) || self.transcript_overpainted(area, x, y) {
+            return None;
+        }
+        let row = (y - rect.y) as usize;
+        Some(TextPoint {
+            row,
+            byte: painted.rows.get(row)?.byte_at_cell((x - rect.x) as usize),
+        })
     }
 
     fn tab_hit(&self, area: Rect, x: u16, y: u16) -> Option<TabPress> {
@@ -2276,6 +2758,7 @@ impl TuiState {
             self.generation += 1;
             self.clear_mentions();
         }
+        self.apply_owner_clipboard_mode(snapshot.chrome.terminal_copy);
         self.chrome = snapshot.chrome.clone();
         self.auto_accept = snapshot.auto_accept;
         let mut picker = ModelPicker::new(catalog_from_snapshot(&snapshot));
@@ -2676,20 +3159,32 @@ impl TuiState {
         self.toast_down = false;
     }
 
-    /// Only owner-reported reload feedback has upstream toast timing; legacy
-    /// warnings continue to persist until replaced or explicitly cleared.
+    /// Timed feedback uses the upstream default five-second toast lifetime;
+    /// legacy warnings continue to persist until replaced or explicitly cleared.
     pub fn push_transient_note(&mut self, note: &str, variant: NoteVariant) {
-        self.push_transient_note_at(note, variant, Instant::now());
+        self.push_transient_note_for(note, variant, Duration::from_secs(5));
     }
 
-    fn push_transient_note_at(&mut self, note: &str, variant: NoteVariant, now: Instant) {
+    /// Explicit duration for long-running owner operations such as reload.
+    pub fn push_transient_note_for(
+        &mut self,
+        note: &str,
+        variant: NoteVariant,
+        duration: Duration,
+    ) {
+        self.push_transient_note_at(note, variant, duration, Instant::now());
+    }
+
+    fn push_transient_note_at(
+        &mut self,
+        note: &str,
+        variant: NoteVariant,
+        duration: Duration,
+        now: Instant,
+    ) {
         self.push_note_variant(note, variant);
         self.toast_expiry = Some(ToastExpiry {
-            remaining: if variant == NoteVariant::Info {
-                Duration::from_secs(30)
-            } else {
-                Duration::from_secs(5)
-            },
+            remaining: duration,
             started: Some(now),
         });
     }
@@ -3106,6 +3601,7 @@ impl TuiState {
         if self.panel != TuiPanel::None {
             return KeyOutcome::default();
         }
+        self.clear_transcript_selection();
         if up {
             let max_scroll = self.max_scroll();
             self.scroll = self.display_scroll();
@@ -4669,14 +5165,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn only_typed_reload_notes_expire_and_hover_preserves_remaining_time() {
+    async fn transient_feedback_defaults_to_five_seconds_and_reload_hover_pauses() {
         let mut state = fresh_state("toast-timer").await;
         let start = Instant::now();
         state.push_note("legacy warning");
         state.tick_toast(start + Duration::from_secs(60));
         assert_eq!(state.note(), Some("legacy warning"));
 
-        state.push_transient_note_at("Reloading", NoteVariant::Info, start);
+        state.push_transient_note_at(
+            "Reloading",
+            NoteVariant::Info,
+            Duration::from_secs(30),
+            start,
+        );
         state.tick_toast(start + Duration::from_secs(29));
         assert_eq!(state.note(), Some("Reloading"));
         state.set_toast_hover(true, start + Duration::from_secs(29));
@@ -4686,12 +5187,20 @@ mod tests {
         state.tick_toast(start + Duration::from_secs(91));
         assert_eq!(state.note(), None);
 
-        state.push_transient_note_at("Done", NoteVariant::Success, start);
+        state.push_transient_note_at("Done", NoteVariant::Success, Duration::from_secs(5), start);
         state.tick_toast(start + Duration::from_secs(4));
         assert_eq!(state.note(), Some("Done"));
         state.tick_toast(start + Duration::from_secs(5));
         assert_eq!(state.note(), None);
-        state.push_transient_note_at("Failed", NoteVariant::Error, start);
+        state.push_transient_note_at(
+            "Copied to clipboard",
+            NoteVariant::Info,
+            Duration::from_secs(5),
+            start,
+        );
+        state.tick_toast(start + Duration::from_secs(5));
+        assert_eq!(state.note(), None);
+        state.push_transient_note_at("Failed", NoteVariant::Error, Duration::from_secs(5), start);
         state.push_note("other warning");
         state.tick_toast(start + Duration::from_secs(60));
         assert_eq!(state.note(), Some("other warning"));
@@ -7213,6 +7722,64 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn vis27_owner_catalog_mode_and_absence_replace_prior_selection() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        use oc_core::queries::TerminalCopyMode;
+
+        let mut state = fresh_state("owner-terminal-copy").await;
+        let frame = Rect::new(0, 0, 100, 28);
+        state.live_text = "owner copy text".into();
+        let (x, y) = paint_selection_fixture(&mut state, frame, "owner");
+        let mut configured = snapshot();
+        configured.chrome.terminal_copy = Some(TerminalCopyMode::Manual);
+        state.apply_catalog(configured.clone());
+        assert_eq!(state.clipboard_mode(), super::ClipboardMode::Manual);
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), x + 5, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x + 5, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request(), None);
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Right), x, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request().as_deref(), Some("owner"));
+
+        configured.chrome.terminal_copy = Some(TerminalCopyMode::Select);
+        state.refresh_configuration(configured.clone());
+        assert_eq!(state.clipboard_mode(), super::ClipboardMode::Select);
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Right), x, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request(), None);
+
+        configured.chrome.terminal_copy = None;
+        state.apply_catalog(configured);
+        assert_eq!(state.clipboard_mode(), super::ClipboardMode::default());
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Right), x, y),
+            frame,
+        );
+        assert_eq!(
+            state.take_copy_request().as_deref(),
+            if cfg!(windows) { Some("owner") } else { None },
+            "unconfigured right-click follows the platform default"
+        );
+        let other = TuiState::new_home(state.app.clone());
+        state.sync_clipboard_mode_from(&other);
+        assert_eq!(state.clipboard_mode(), super::ClipboardMode::default());
+    }
+
+    #[tokio::test]
     async fn slash_overlay_commands_consume_alias_but_compress_keeps_input() {
         let mut state = fresh_state("s-slash").await;
         for (command, intent) in [
@@ -8797,5 +9364,525 @@ mod tests {
         let expected: String = (0..20).map(|i| format!("t{i} ")).collect();
         assert_eq!(outcome, PumpOutcome::Finished(expected));
         assert_eq!(state.status(), &TuiStatus::Idle);
+    }
+
+    fn selection_mouse(
+        kind: crossterm::event::MouseEventKind,
+        x: u16,
+        y: u16,
+    ) -> crossterm::event::MouseEvent {
+        crossterm::event::MouseEvent {
+            kind,
+            column: x,
+            row: y,
+            modifiers: crossterm::event::KeyModifiers::NONE,
+        }
+    }
+
+    fn paint_selection_fixture(state: &mut TuiState, frame: Rect, needle: &str) -> (u16, u16) {
+        use unicode_width::UnicodeWidthStr;
+        let rect = crate::shell::transcript_area(state, frame);
+        let (rows, total, scroll) =
+            state.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
+        state.observe_transcript_viewport(rect.width, frame.width, rect.height, total, scroll);
+        let (row, byte) = rows
+            .iter()
+            .enumerate()
+            .find_map(|(row, line)| line.plain_text().find(needle).map(|byte| (row, byte)))
+            .expect("painted fixture text");
+        let column = UnicodeWidthStr::width(&rows[row].plain_text()[..byte]);
+        state.paint_transcript(rect, &rows, total, scroll);
+        (rect.x + column as u16, rect.y + row as u16)
+    }
+
+    #[tokio::test]
+    async fn vis27_paired_word_and_line_selection_paint_explicit_source_cells() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        use ratatui::{Terminal, backend::TestBackend, style::Modifier, widgets::Paragraph};
+
+        let mut state = fresh_state("selection-paired-cells").await;
+        let frame = Rect::new(0, 0, 100, 28);
+        state.set_clipboard_mode(super::ClipboardMode::Select);
+        state.live_text = "GEOMETRY-SHORT: tool read completed.".into();
+        let (x, y) = paint_selection_fixture(&mut state, frame, "GEOMETRY-SHORT");
+        let theme = super::Theme::dark();
+        let mut terminal = Terminal::new(TestBackend::new(frame.width, frame.height)).unwrap();
+        for (clicks, selected_text) in [
+            (2, "GEOMETRY-SHORT"),
+            (3, "GEOMETRY-SHORT: tool read completed."),
+        ] {
+            state.click = None;
+            for _ in 0..clicks {
+                state.handle_mouse(
+                    selection_mouse(MouseEventKind::Down(MouseButton::Left), x + 3, y),
+                    frame,
+                );
+                state.handle_mouse(
+                    selection_mouse(MouseEventKind::Up(MouseButton::Left), x + 3, y),
+                    frame,
+                );
+            }
+            assert_eq!(state.take_copy_request().as_deref(), Some(selected_text));
+            let rect = crate::shell::transcript_area(&state, frame);
+            let (rows, total, scroll) =
+                state.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
+            let highlighted = state.paint_transcript(rect, &rows, total, scroll);
+            terminal
+                .draw(|frame| {
+                    frame.render_widget(
+                        ratatui::widgets::Block::default().style(
+                            ratatui::style::Style::default()
+                                .fg(theme.text())
+                                .bg(theme.background()),
+                        ),
+                        frame.area(),
+                    );
+                    frame.render_widget(
+                        Paragraph::new(crate::styled::Lines::from(highlighted).into_text()),
+                        rect,
+                    );
+                })
+                .unwrap();
+            let cells = terminal.backend().buffer();
+            for col in x..x + selected_text.len() as u16 {
+                let cell = &cells[(col, y)];
+                assert_eq!(cell.fg, theme.background(), "fg at {col}");
+                assert_eq!(cell.bg, theme.text(), "bg at {col}");
+                assert!(!cell.modifier.contains(Modifier::REVERSED), "at {col}");
+            }
+            let outside = &cells[(x + selected_text.len() as u16, y)];
+            assert_eq!(outside.bg, theme.background());
+            if x > rect.x {
+                let leading = &cells[(x - 1, y)];
+                assert_eq!(leading.bg, theme.background(), "indent stays unselected");
+                assert!(!leading.modifier.contains(Modifier::REVERSED));
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn vis27_drag_and_repeated_click_copy_only_selected_painted_text() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        let mut state = fresh_state("selection-drag").await;
+        let frame = Rect::new(0, 0, 100, 28);
+        state.set_clipboard_mode(super::ClipboardMode::Select);
+        state.live_text = "alpha beta gamma".into();
+        let (x, y) = paint_selection_fixture(&mut state, frame, "beta");
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request(), None, "ordinary click is empty");
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request().as_deref(), Some("beta"));
+        let rect = crate::shell::transcript_area(&state, frame);
+        let (rows, total, scroll) =
+            state.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
+        let highlighted = state.paint_transcript(rect, &rows, total, scroll);
+        assert!(
+            highlighted
+                .iter()
+                .flat_map(|line| line.spans())
+                .any(|span| {
+                    span.content() == "beta"
+                        && span.style().fg == Some(super::Theme::dark().background())
+                        && span.style().bg == Some(super::Theme::dark().text())
+                        && !span
+                            .style()
+                            .add_modifier
+                            .contains(ratatui::style::Modifier::REVERSED)
+                })
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+            frame,
+        );
+        assert!(
+            state
+                .take_copy_request()
+                .unwrap()
+                .contains("alpha beta gamma")
+        );
+
+        // A fresh press followed by a true drag selects exact visible cells.
+        state.click = None;
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), x + 4, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x + 4, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request().as_deref(), Some("beta"));
+        assert!(state.selection.is_some(), "copy preserves highlight");
+        state.report_clipboard_result(Err("clipboard unavailable".into()));
+        assert_eq!(state.note_variant(), Some(NoteVariant::Error));
+        assert_eq!(state.note(), Some("clipboard unavailable"));
+        state.report_clipboard_result(Ok(()));
+        assert_eq!(state.note_variant(), Some(NoteVariant::Info));
+        assert_eq!(state.note(), Some("Copied to clipboard"));
+    }
+
+    #[tokio::test]
+    async fn vis27_manual_right_click_and_resize_do_not_copy_unseen_rows() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        let mut state = fresh_state("selection-manual").await;
+        let frame = Rect::new(0, 0, 100, 28);
+        state.set_clipboard_mode(super::ClipboardMode::Manual);
+        state.live_text = "word after".into();
+        let (x, y) = paint_selection_fixture(&mut state, frame, "word");
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Right), x, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request(), None);
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), x + 4, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x + 4, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request(), None);
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Right), x, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request().as_deref(), Some("word"));
+        state.live_text = "changed private content".into();
+        let _ = paint_selection_fixture(&mut state, frame, "changed");
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Right), x, y),
+            frame,
+        );
+        assert_eq!(
+            state.take_copy_request(),
+            None,
+            "stale rows must never leak"
+        );
+        state.clear_mouse_position();
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Right), x, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request(), None);
+    }
+
+    #[tokio::test]
+    async fn vis27_drag_on_reasoning_header_cannot_toggle_or_steal_modal() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        let mut state = fresh_state("selection-reasoning-owner").await;
+        let frame = Rect::new(0, 0, 100, 28);
+        state.live_reasoning = "**thinking**".into();
+        let (x, y) = paint_selection_fixture(&mut state, frame, "Thinking");
+        let id = state
+            .reasoning_hit(frame, x, y)
+            .expect("painted reasoning header");
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), x + 1, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+            frame,
+        );
+        assert!(!state.reasoning_expanded.contains(&id));
+        state.handle_key(KeyAction::Commands).await;
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Right), x, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request(), None);
+        assert_eq!(state.panel(), &TuiPanel::Commands);
+    }
+
+    #[tokio::test]
+    async fn vis27_wrapped_wide_graphemes_copy_complete_visible_rows() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        use unicode_width::UnicodeWidthStr;
+        let mut state = fresh_state("selection-wide-wrap").await;
+        let frame = Rect::new(0, 0, 40, 25);
+        state.set_clipboard_mode(super::ClipboardMode::Select);
+        state.live_text = "🧑‍💻".repeat(36);
+        let (x, y) = paint_selection_fixture(&mut state, frame, "🧑‍💻");
+        let rect = crate::shell::transcript_area(&state, frame);
+        let (rows, _, _) =
+            state.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
+        let next = rows
+            .iter()
+            .enumerate()
+            .skip((y - rect.y) as usize + 1)
+            .find_map(|(row, line)| {
+                line.plain_text().find("🧑‍💻").map(|byte| {
+                    (
+                        rect.x + UnicodeWidthStr::width(&line.plain_text()[..byte]) as u16,
+                        rect.y + row as u16,
+                    )
+                })
+            })
+            .expect("wrapped emoji row");
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x + 1, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), next.0 + 2, next.1),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), next.0 + 2, next.1),
+            frame,
+        );
+        let copied = state.take_copy_request().expect("wrapped selection");
+        assert!(copied.contains('\n'));
+        assert!(copied.contains("🧑‍💻"));
+        assert!(!copied.contains('�'));
+    }
+
+    #[tokio::test]
+    async fn vis27_double_click_word_is_clipped_to_painted_wrap_row() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        let mut state = fresh_state("selection-word-wrap").await;
+        let frame = Rect::new(0, 0, 40, 25);
+        state.live_text = "q".repeat(200);
+        let (x, y) = paint_selection_fixture(&mut state, frame, "qqqq");
+        let rect = crate::shell::transcript_area(&state, frame);
+        let row = (y - rect.y) as usize;
+        let visible_word =
+            state.painted_transcript.borrow().as_ref().unwrap().rows[row].plain_text();
+        assert!(visible_word.len() < 200, "word must wrap on screen");
+        for _ in 0..2 {
+            state.handle_mouse(
+                selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+                frame,
+            );
+            state.handle_mouse(
+                selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+                frame,
+            );
+        }
+        assert_eq!(
+            state.take_copy_request().as_deref(),
+            Some(visible_word.trim_start())
+        );
+        assert!(!visible_word.contains('\n'));
+    }
+
+    #[tokio::test]
+    async fn vis27_nonowned_drag_cannot_change_completed_selection_or_copy() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        let mut state = fresh_state("selection-owner").await;
+        let frame = Rect::new(0, 0, 100, 28);
+        state.live_text = "alpha beta gamma".into();
+        let (x, y) = paint_selection_fixture(&mut state, frame, "beta");
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), x + 4, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Right), x + 4, y),
+            frame,
+        );
+        assert_eq!(
+            state.take_copy_request().as_deref(),
+            Some("beta"),
+            "release button is immaterial"
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Right), x + 10, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Right), x + 10, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request(), None);
+        assert_eq!(state.selection_text(), Ok(Some("beta".into())));
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Right), x + 8, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x + 8, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request(), None);
+        assert_eq!(state.selection_text(), Ok(None));
+    }
+
+    #[tokio::test]
+    async fn vis27_modifier_and_surface_click_preserve_completed_highlight() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEventKind};
+        let mut state = fresh_state("selection-surface").await;
+        let frame = Rect::new(0, 0, 100, 28);
+        state.live_text = "alpha beta gamma".into();
+        let (x, y) = paint_selection_fixture(&mut state, frame, "beta");
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), x + 4, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x + 4, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request().as_deref(), Some("beta"));
+        let mut modified = selection_mouse(MouseEventKind::Down(MouseButton::Left), x + 6, y);
+        modified.modifiers = KeyModifiers::SHIFT;
+        state.handle_mouse(modified, frame);
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), x + 7, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x + 7, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request(), None);
+        assert_eq!(state.selection_text(), Ok(Some("beta".into())));
+
+        let rect = crate::shell::transcript_area(&state, frame);
+        state.handle_mouse(
+            selection_mouse(
+                MouseEventKind::Down(MouseButton::Left),
+                rect.x,
+                rect.bottom(),
+            ),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), rect.x, rect.bottom()),
+            frame,
+        );
+        assert_eq!(state.selection_text(), Ok(Some("beta".into())));
+        state.set_clipboard_mode(super::ClipboardMode::Manual);
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Right), x, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request().as_deref(), Some("beta"));
+    }
+
+    #[tokio::test]
+    async fn vis27_oversized_selection_reports_error_without_clipboard_request() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        let mut state = fresh_state("selection-size").await;
+        let frame = Rect::new(0, 0, 100, 28);
+        let (x, y) = paint_selection_fixture(&mut state, frame, "");
+        let large = "z".repeat(super::MAX_SELECTION_BYTES + 1);
+        let rect = crate::shell::transcript_area(&state, frame);
+        let painted = super::PaintedTranscript {
+            area: rect,
+            rows: vec![crate::styled::Line::plain(&large)],
+            total: 1,
+            scroll: 0,
+        };
+        state.selection = Some(super::TranscriptSelection {
+            anchor: super::TextPoint { row: 0, byte: 0 },
+            focus: super::TextPoint {
+                row: 0,
+                byte: large.len(),
+            },
+            painted: painted.clone(),
+            dragging: false,
+        });
+        *state.painted_transcript.borrow_mut() = Some(painted);
+        state.set_clipboard_mode(super::ClipboardMode::Manual);
+        // The same snapshot is intentionally used for the byte-budget check;
+        // no clipboard request is produced even when the selection is nonempty.
+        assert_eq!(
+            state.selection_text(),
+            Err("Selection exceeds clipboard size limit")
+        );
+        state.pending_copy = Some("previous request".into());
+        state.request_selection_copy();
+        assert_eq!(state.take_copy_request(), None);
+        assert_eq!(state.note_variant(), Some(NoteVariant::Error));
+        assert_eq!(state.note(), Some("Selection exceeds clipboard size limit"));
+        // A right-down over the real fixture's unchanged text remains empty.
+        state.clear_transcript_selection();
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Right), x, y),
+            frame,
+        );
+        assert_eq!(state.take_copy_request(), None);
+    }
+
+    #[tokio::test]
+    async fn vis27_unrelated_mouse_events_do_not_rebuild_painted_transcript() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        let mut state = fresh_state("selection-motion-cost").await;
+        let frame = Rect::new(0, 0, 100, 28);
+        state.live_text = "before".into();
+        let (x, y) = paint_selection_fixture(&mut state, frame, "before");
+        let before = state
+            .painted_transcript
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .rows
+            .clone();
+        state.live_text = "after".into();
+        for kind in [
+            MouseEventKind::Moved,
+            MouseEventKind::ScrollUp,
+            MouseEventKind::ScrollDown,
+            MouseEventKind::Drag(MouseButton::Right),
+            MouseEventKind::Up(MouseButton::Right),
+        ] {
+            state.handle_mouse(selection_mouse(kind, x, y), frame);
+        }
+        assert_eq!(
+            state.painted_transcript.borrow().as_ref().unwrap().rows,
+            before
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        assert!(
+            state.selection.is_none(),
+            "changed transcript invalidates stale paint"
+        );
     }
 }

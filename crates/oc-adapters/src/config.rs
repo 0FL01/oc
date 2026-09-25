@@ -477,18 +477,20 @@ pub fn assemble(
     enabled_providers: Option<&HashSet<String>>,
 ) -> Result<Generation, ConfigError> {
     assemble_with_reader(sources, env, enabled_providers, &read_trusted_file)
+        .map(|(generation, _)| generation)
 }
 
 /// Application-only substitution authority. Every admitted source is paired
 /// with its pinned root and the source's canonical directory relative to it.
 /// A missing entry fails closed; the public Source trust bit is not a directory
-/// capability and cannot expand the application's read boundary.
-pub(crate) fn assemble_admitted(
+/// capability and cannot expand the application's read boundary. Return the
+/// generation and presentation choice from one pinned source traversal.
+pub(crate) fn assemble_admitted_with_terminal_copy(
     sources: &[Source],
     env: &BTreeMap<String, String>,
     enabled_providers: Option<&HashSet<String>>,
     roots: &BTreeMap<String, (&File, PathBuf)>,
-) -> Result<Generation, ConfigError> {
+) -> Result<(Generation, Option<oc_core::queries::TerminalCopyMode>), ConfigError> {
     assemble_with_reader(sources, env, enabled_providers, &|path, source| {
         let (root, directory) = roots.get(source).ok_or_else(|| file_refused(source))?;
         read_trusted_file_rooted(path, source, root, directory)
@@ -500,13 +502,15 @@ fn assemble_with_reader(
     env: &BTreeMap<String, String>,
     enabled_providers: Option<&HashSet<String>>,
     reader: &impl Fn(&str, &str) -> Result<String, ConfigError>,
-) -> Result<Generation, ConfigError> {
+) -> Result<(Generation, Option<oc_core::queries::TerminalCopyMode>), ConfigError> {
     let mut providers: BTreeMap<String, (ProviderEntry, String)> = BTreeMap::new();
     // Unknown provider option keys: visible warnings, never a hard failure.
     let mut unknown_options: Vec<String> = Vec::new();
     let mut mcp: BTreeMap<String, (McpEntry, String)> = BTreeMap::new();
     let mut permissions: BTreeMap<String, (Permission, String)> = BTreeMap::new();
     let mut permission_rules = crate::permissions::PermissionRules::default();
+    let mut terminal_copy_source = None;
+    let mut terminal_copy = None;
 
     for source in sources {
         let value = parse_jsonc(&source.text, &source.path)?;
@@ -514,6 +518,11 @@ fn assemble_with_reader(
             field: source.path.clone(),
             reason: "root must be an object".to_string(),
         })?;
+
+        if let Some(mode) = terminal_copy_value(obj)? {
+            terminal_copy_source = Some(source.path.clone());
+            terminal_copy = Some(mode);
+        }
 
         if let Some(prov) = obj.get("provider") {
             let map = prov.as_object().ok_or_else(|| ConfigError::Invalid {
@@ -640,15 +649,45 @@ fn assemble_with_reader(
         out_perm.insert(key.clone(), *level);
         provenance.insert(format!("permissions.{key}"), path.clone());
     }
+    if let Some(path) = terminal_copy_source {
+        provenance.insert("terminal.copy".to_string(), path);
+    }
 
-    Ok(Generation {
-        providers: out_providers,
-        mcp: out_mcp,
-        permissions: out_perm,
-        permission_rules,
-        provenance,
-        warnings: unknown_options,
-    })
+    Ok((
+        Generation {
+            providers: out_providers,
+            mcp: out_mcp,
+            permissions: out_perm,
+            permission_rules,
+            provenance,
+            warnings: unknown_options,
+        },
+        terminal_copy,
+    ))
+}
+
+fn terminal_copy_value(
+    obj: &serde_json::Map<String, serde_json::Value>,
+) -> Result<Option<oc_core::queries::TerminalCopyMode>, ConfigError> {
+    use oc_core::queries::TerminalCopyMode;
+    let Some(terminal) = obj.get("terminal") else {
+        return Ok(None);
+    };
+    let terminal = terminal.as_object().ok_or_else(|| ConfigError::Invalid {
+        field: "terminal".to_string(),
+        reason: "must be an object".to_string(),
+    })?;
+    let Some(copy) = terminal.get("copy") else {
+        return Ok(None);
+    };
+    match copy.as_str() {
+        Some("select") => Ok(Some(TerminalCopyMode::Select)),
+        Some("manual") => Ok(Some(TerminalCopyMode::Manual)),
+        _ => Err(ConfigError::Invalid {
+            field: "terminal.copy".to_string(),
+            reason: "must be select or manual".to_string(),
+        }),
+    }
 }
 
 /// Known provider option keys; anything else is a visible warning.
@@ -1172,6 +1211,88 @@ pub fn parse_native_profile(text: &str) -> Result<NativeProfile, ConfigError> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn terminal_copy_is_validated_in_each_source_with_winning_provenance() {
+        use oc_core::queries::TerminalCopyMode;
+        let source = |path: &str, text: &str| super::Source {
+            path: path.into(),
+            text: text.into(),
+            trusted: true,
+        };
+        let global = source("global/opencode.json", r#"{"terminal":{"copy":"manual"}}"#);
+        let local = source(
+            "project/opencode.jsonc",
+            r#"{// override
+            "terminal":{"copy":"select"},}"#,
+        );
+        let sources = [global.clone(), local];
+        let assembled = |sources: &[super::Source]| {
+            super::assemble_with_reader(sources, &Default::default(), None, &|_, _| {
+                unreachable!("fixture has no file substitutions")
+            })
+        };
+        let (generation, mode) = assembled(&sources).unwrap();
+        assert_eq!(mode, Some(TerminalCopyMode::Select));
+        assert_eq!(
+            generation.provenance["terminal.copy"],
+            "project/opencode.jsonc"
+        );
+        let (generation, mode) = assembled(&[global]).unwrap();
+        assert_eq!(mode, Some(TerminalCopyMode::Manual));
+        assert_eq!(
+            generation.provenance["terminal.copy"],
+            "global/opencode.json"
+        );
+        let absent = source("empty", "{}");
+        let (generation, mode) = assembled(&[absent]).unwrap();
+        assert_eq!(mode, None);
+        assert!(!generation.provenance.contains_key("terminal.copy"));
+
+        for invalid in [
+            "null",
+            "false",
+            "42",
+            "{}",
+            r#""MANUAL""#,
+            r#""sensitive-fixture""#,
+        ] {
+            let invalid_source = source(
+                "invalid",
+                &format!("{{\"terminal\":{{\"copy\":{invalid}}}}}"),
+            );
+            for sources in [
+                vec![invalid_source.clone()],
+                vec![
+                    invalid_source,
+                    source("later", r#"{"terminal":{"copy":"select"}}"#),
+                ],
+            ] {
+                let error = super::assemble(&sources, &Default::default(), None).unwrap_err();
+                assert_eq!(
+                    error,
+                    super::ConfigError::Invalid {
+                        field: "terminal.copy".into(),
+                        reason: "must be select or manual".into()
+                    }
+                );
+                assert!(!error.to_string().contains("sensitive-fixture"));
+            }
+        }
+        let error = super::assemble(
+            &[source("bad", r#"{"terminal":"sensitive-fixture"}"#)],
+            &Default::default(),
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(
+            error,
+            super::ConfigError::Invalid {
+                field: "terminal".into(),
+                reason: "must be an object".into()
+            }
+        );
+    }
+
     #[test]
     fn native_fallback_limits_are_explicit_validated_options() {
         let assemble_caps = |caps: serde_json::Value| {

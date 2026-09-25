@@ -5,6 +5,7 @@
 
 mod bootstrap;
 mod cli;
+mod clipboard;
 mod headless;
 mod tui_cmd;
 

@@ -328,7 +328,8 @@ impl LoopState {
             return Ok(());
         }
         state.close_panel();
-        let next = self.tabs[index].take().expect("parked tab");
+        let mut next = self.tabs[index].take().expect("parked tab");
+        next.sync_clipboard_mode_from(state);
         let previous = std::mem::replace(state, next);
         state.invalidate_file_suggestions();
         if let Some(old) = self.active_tab {
@@ -359,10 +360,11 @@ impl LoopState {
     }
 
     fn restore_home(&mut self, state: &mut TuiState) -> bool {
-        let Some(home) = self.home.take() else {
+        let Some(mut home) = self.home.take() else {
             return false;
         };
         state.close_panel();
+        home.sync_clipboard_mode_from(state);
         let old = self.active_tab.take().expect("Home parked from a tab");
         self.tabs[old] = Some(std::mem::replace(state, home));
         state.invalidate_file_suggestions();
@@ -1094,10 +1096,12 @@ async fn handle_event(
                 // A wheel event also moves the pointer. Keep transcript
                 // scrolling, but invalidate a held tab when it leaves the strip.
                 state.handle_mouse(mouse, area);
+                report_copy_request(state);
                 let outcome = state.scroll_transcript(mouse.kind == MouseEventKind::ScrollUp);
                 apply_outcome(app, state, loop_state, outcome, false).await;
             } else {
                 let outcome = state.handle_mouse(mouse, area);
+                report_copy_request(state);
                 apply_mouse_outcome(
                     app,
                     state,
@@ -1114,6 +1118,14 @@ async fn handle_event(
         None => {}
     }
     Ok(())
+}
+
+fn report_copy_request(state: &mut TuiState) {
+    // Apply to the view that produced the selection before a mouse outcome
+    // can swap the active tab. Never log the selected transcript text.
+    if let Some(text) = state.take_copy_request() {
+        state.report_clipboard_result(crate::clipboard::copy(&text));
+    }
 }
 
 /// A tab view replacement loses the old view's hover. Re-hit-test only the
@@ -1236,7 +1248,11 @@ async fn apply_intent_with_origin(
                 return Err("turn active; configuration reload refused".into());
             }
             let slash_draft = (state.input().trim() == "/reload").then(|| state.input().to_owned());
-            state.push_transient_note("Reloading configuration…", NoteVariant::Info);
+            state.push_transient_note_for(
+                "Reloading configuration…",
+                NoteVariant::Info,
+                std::time::Duration::from_secs(30),
+            );
             loop_state.reload_draft = slash_draft;
             let owner = app.clone();
             loop_state.reload_job =
@@ -1585,9 +1601,27 @@ async fn finish_reload(
     if state.chrome.location.as_deref() != Some(snapshot.location.as_str())
         || deck.location.as_deref() != Some(snapshot.location.as_str())
     {
+        state.disable_clipboard_until_catalog();
+        for parked in deck.tabs.iter_mut().flatten() {
+            parked.disable_clipboard_until_catalog();
+        }
+        if let Some(home) = deck.home.as_mut() {
+            home.disable_clipboard_until_catalog();
+        }
         return Err(
             "Configuration reload incomplete; visible Location changed during refresh".into(),
         );
+    }
+    // The owner has already published the replacement. Unlike the remainder
+    // of each view's catalog, terminal.copy is safety-sensitive: a failed
+    // session/Home refresh must not retain an obsolete automatic-copy mode.
+    let copy_mode = snapshot.catalog.chrome.terminal_copy;
+    state.refresh_clipboard_mode(copy_mode);
+    for parked in deck.tabs.iter_mut().flatten() {
+        parked.refresh_clipboard_mode(copy_mode);
+    }
+    if let Some(home) = deck.home.as_mut() {
+        home.refresh_clipboard_mode(copy_mode);
     }
     let mut catalogs = Vec::with_capacity(deck.tabs.len());
     for (index, parked) in deck.tabs.iter().enumerate() {
@@ -2549,6 +2583,38 @@ mod tests {
         deck.sync_tabs(state);
     }
 
+    #[test]
+    fn vis27_parked_tabs_and_home_use_current_owner_mode_on_activation() {
+        use oc_core::queries::TerminalCopyMode;
+        use oc_tui::app::ClipboardMode;
+
+        let (app, _inbox, _) = CoreApp::channel(8);
+        let mut old = catalog();
+        old.chrome.terminal_copy = Some(TerminalCopyMode::Manual);
+        let mut current = old.clone();
+        current.chrome.terminal_copy = Some(TerminalCopyMode::Select);
+        let mut state = TuiState::new(app.clone(), SessionId::new("first").unwrap());
+        state.apply_catalog(old.clone());
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        append_tab(&app, &mut deck, &mut state, "second");
+        state.apply_catalog(current);
+        deck.activate(&mut state, 0).unwrap();
+        assert_eq!(state.clipboard_mode(), ClipboardMode::Select);
+
+        let mut home = TuiState::new_home(app.clone());
+        home.apply_catalog(old);
+        deck.home = Some(home);
+        assert!(deck.restore_home(&mut state));
+        assert_eq!(state.clipboard_mode(), ClipboardMode::Select);
+        // A now-unconfigured owner snapshot resets every restored route.
+        state.apply_catalog(catalog());
+        deck.activate(&mut state, 1).unwrap();
+        assert_eq!(state.clipboard_mode(), ClipboardMode::default());
+        assert!(deck.restore_home(&mut state));
+        assert_eq!(state.clipboard_mode(), ClipboardMode::default());
+    }
+
     #[tokio::test]
     async fn pending_owner_reload_allows_resize_and_quit_without_dropping_owner_receipt() {
         let (app, mut inbox, _) = CoreApp::channel(8);
@@ -2587,9 +2653,12 @@ mod tests {
 
     #[tokio::test]
     async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
+        use oc_core::queries::TerminalCopyMode;
+        use oc_tui::app::ClipboardMode;
         let (app, mut inbox, _) = CoreApp::channel(8);
         let mut old = catalog();
         old.chrome.location = Some("/fixture".into());
+        old.chrome.terminal_copy = Some(TerminalCopyMode::Select);
         old.commands = vec!["old-command".into()];
         let mut state = TuiState::new(app.clone(), SessionId::new("first").unwrap());
         state.apply_catalog(old.clone());
@@ -2603,6 +2672,8 @@ mod tests {
         state.handle_paste("/reload");
         let mut fresh = old.clone();
         fresh.commands = vec!["fresh-command".into()];
+        fresh.chrome.terminal_copy = Some(TerminalCopyMode::Manual);
+        let published = fresh.clone();
         let worker = tokio::spawn(async move {
             let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
                 panic!("parked session selection")
@@ -2620,7 +2691,7 @@ mod tests {
             ReloadLocationSnapshot {
                 location: "/fixture".into(),
                 generation: 2,
-                catalog: old,
+                catalog: published,
                 diagnostics: Vec::new(),
                 notices: Vec::new(),
             },
@@ -2635,12 +2706,184 @@ mod tests {
         assert_eq!(state.input(), "/reload");
         assert!(state.is_workspace_command("/old-command"));
         assert!(!state.is_workspace_command("/fresh-command"));
+        assert_eq!(state.clipboard_mode(), ClipboardMode::Manual);
         assert!(
             deck.tabs[0]
                 .as_ref()
                 .unwrap()
                 .is_workspace_command("/old-command")
         );
+        assert_eq!(
+            deck.tabs[0].as_ref().unwrap().clipboard_mode(),
+            ClipboardMode::Manual
+        );
+    }
+
+    #[tokio::test]
+    async fn vis27_mismatched_published_reload_disables_copy_until_owner_catalog() {
+        use oc_core::queries::TerminalCopyMode;
+        use oc_tui::app::ClipboardMode;
+
+        let (app, _inbox, _) = CoreApp::channel(8);
+        let mut current = catalog();
+        current.chrome.location = Some("/B".into());
+        current.chrome.terminal_copy = Some(TerminalCopyMode::Select);
+        let mut state = TuiState::new_home(app.clone());
+        state.apply_catalog(current.clone());
+        let mut deck = LoopState {
+            location: Some("/B".into()),
+            ..Default::default()
+        };
+        let error = finish_reload(
+            &app,
+            &mut state,
+            &mut deck,
+            ReloadLocationSnapshot {
+                location: "/A".into(),
+                generation: 2,
+                catalog: current.clone(),
+                diagnostics: Vec::new(),
+                notices: Vec::new(),
+            },
+            None,
+        )
+        .await
+        .unwrap_err();
+        assert!(error.contains("Location changed"));
+        assert_eq!(state.clipboard_mode(), ClipboardMode::Disabled);
+        state.apply_catalog(current);
+        assert_eq!(state.clipboard_mode(), ClipboardMode::Select);
+    }
+
+    #[tokio::test]
+    async fn vis27_reload_projects_owner_mode_to_active_parked_and_home() {
+        use oc_core::queries::TerminalCopyMode;
+        use oc_tui::app::ClipboardMode;
+
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let mut old = catalog();
+        old.chrome.location = Some("/fixture".into());
+        old.chrome.terminal_copy = Some(TerminalCopyMode::Manual);
+        let mut state = TuiState::new(app.clone(), SessionId::new("first").unwrap());
+        state.apply_catalog(old.clone());
+        let mut deck = LoopState {
+            location: Some("/fixture".into()),
+            ..Default::default()
+        };
+        deck.sync_tabs(&mut state);
+        append_tab(&app, &mut deck, &mut state, "second");
+        state.apply_catalog(old.clone());
+        let mut home = TuiState::new_home(app.clone());
+        home.apply_catalog(old.clone());
+        deck.home = Some(home);
+
+        let mut fresh = old.clone();
+        fresh.chrome.terminal_copy = Some(TerminalCopyMode::Select);
+        let returned = fresh.clone();
+        let worker = tokio::spawn(async move {
+            for expected in ["first", "second"] {
+                let Some(InboxMsg::SessionSelection { session, ack, .. }) = inbox.recv().await
+                else {
+                    panic!("refresh session selection")
+                };
+                assert_eq!(session.0, expected);
+                ack.send(Ok(fresh.clone())).unwrap();
+            }
+            let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
+                panic!("refresh Home selection")
+            };
+            ack.send(Ok(fresh.clone())).unwrap();
+            let Some(InboxMsg::Catalog { ack }) = inbox.recv().await else {
+                panic!("verify Location catalog")
+            };
+            ack.send(Ok(fresh)).unwrap();
+            assert!(inbox.try_recv().is_err(), "reload does not save tab deck");
+        });
+        finish_reload(
+            &app,
+            &mut state,
+            &mut deck,
+            ReloadLocationSnapshot {
+                location: "/fixture".into(),
+                generation: 2,
+                catalog: returned,
+                diagnostics: Vec::new(),
+                notices: Vec::new(),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+        worker.await.unwrap();
+        assert_eq!(state.clipboard_mode(), ClipboardMode::Select);
+        assert_eq!(
+            deck.tabs[0].as_ref().unwrap().clipboard_mode(),
+            ClipboardMode::Select
+        );
+        assert_eq!(
+            deck.home.as_ref().unwrap().clipboard_mode(),
+            ClipboardMode::Select
+        );
+        deck.activate(&mut state, 0).unwrap();
+        assert_eq!(state.clipboard_mode(), ClipboardMode::Select);
+        assert!(deck.restore_home(&mut state));
+        assert_eq!(state.clipboard_mode(), ClipboardMode::Select);
+    }
+
+    #[tokio::test]
+    async fn vis27_invalid_owner_location_does_not_replace_mode_or_write_tabs() {
+        use oc_core::queries::TerminalCopyMode;
+        use oc_tui::app::ClipboardMode;
+
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let mut current = catalog();
+        current.chrome.location = Some("/A".into());
+        current.chrome.terminal_copy = Some(TerminalCopyMode::Manual);
+        let mut state = TuiState::new_home(app.clone());
+        state.apply_catalog(current);
+        let mut deck = LoopState {
+            location: Some("/A".into()),
+            ..Default::default()
+        };
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::SwitchLocationHome { ack, .. }) = inbox.recv().await else {
+                panic!("owner Location switch")
+            };
+            ack.send(Err(CoreError::Application("invalid configuration".into())))
+                .unwrap();
+            let Some(InboxMsg::ReloadLocation { ack }) = inbox.recv().await else {
+                panic!("owner reload")
+            };
+            ack.send(Err(CoreError::Application("invalid configuration".into())))
+                .unwrap();
+            assert!(
+                inbox.try_recv().is_err(),
+                "failed config must not save tabs"
+            );
+        });
+        assert!(
+            apply_intent(
+                &app,
+                &mut state,
+                &mut deck,
+                PanelIntent::SwitchLocation { path: "/B".into() },
+            )
+            .await
+            .is_err()
+        );
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::ReloadConfiguration,
+        )
+        .await
+        .unwrap();
+        assert!(deck.reload_job.take().unwrap().await.unwrap().is_err());
+        worker.await.unwrap();
+        assert_eq!(state.chrome.location.as_deref(), Some("/A"));
+        assert_eq!(state.clipboard_mode(), ClipboardMode::Manual);
+        assert_eq!(deck.location.as_deref(), Some("/A"));
     }
 
     #[tokio::test]
@@ -3143,7 +3386,12 @@ mod tests {
 
     #[tokio::test]
     async fn published_location_uses_new_owner_binding_and_token_for_next_save() {
+        use oc_core::queries::TerminalCopyMode;
+        use oc_tui::app::ClipboardMode;
         let (app, mut inbox, _) = CoreApp::channel(8);
+        let mut b_catalog = catalog();
+        b_catalog.chrome.terminal_copy = Some(TerminalCopyMode::Manual);
+        let b_session_catalog = b_catalog.clone();
         let worker = tokio::spawn(async move {
             let Some(InboxMsg::TabDeck { ack }) = inbox.recv().await else {
                 panic!("read B preference")
@@ -3163,7 +3411,7 @@ mod tests {
             let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
                 panic!("read B catalog")
             };
-            ack.send(Ok(catalog())).unwrap();
+            ack.send(Ok(b_session_catalog)).unwrap();
             let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
                 panic!("save B route")
             };
@@ -3178,6 +3426,9 @@ mod tests {
             assert!(inbox.try_recv().is_err());
         });
         let mut state = TuiState::new(app.clone(), SessionId::new("a-root").unwrap());
+        let mut a_catalog = catalog();
+        a_catalog.chrome.terminal_copy = Some(TerminalCopyMode::Select);
+        state.apply_catalog(a_catalog);
         let mut deck = LoopState {
             location: Some("/A".into()),
             revision: Some("A-stale".into()),
@@ -3186,8 +3437,9 @@ mod tests {
             active_tab: Some(0),
             ..Default::default()
         };
-        adopt_location(&app, &mut state, &mut deck, catalog(), "/B").await;
+        adopt_location(&app, &mut state, &mut deck, b_catalog, "/B").await;
         assert!(state.attached_session().is_none());
+        assert_eq!(state.clipboard_mode(), ClipboardMode::Manual);
         assert_eq!(deck.location.as_deref(), Some("/B"));
         assert_eq!(deck.revision.as_deref(), Some("B-loaded"));
         apply_intent(
@@ -3199,6 +3451,7 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(state.session().0, "b-root");
+        assert_eq!(state.clipboard_mode(), ClipboardMode::Manual);
         assert_eq!(deck.revision.as_deref(), Some("B-saved"));
         worker.await.unwrap();
     }

@@ -1,0 +1,1307 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-25T08:28:19.705Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "d42cbe0dc2d4d9b83014ee35c1f7e9433c1ea33bf8bcf9204dc727f26513ed3f",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "05a8b8b6b9da204e8005a9fd6d3627b1624cf1ca86d11fe7d7f141c1e8ac3b5d"
+  },
+  "fixture_sha256": "16a8757ab6b87d86b9db94e5b5beda3c1117cfa15997522339b86479524bc143",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "91e278a9983ae29501df6ae29aef434efac70585",
+    "tree": "726b858fc30f9cacb546af912ddc1eb4caf689b5",
+    "dirty_diff_sha256": "0f9ff249aa71dc6be779bc8c624ab084fbbaa8182fa582492b7f429ddb6c548b",
+    "source_manifest_sha256": "900b357da2cceb8bfb1a79637b36cae7d2484d8939e2b255b066b8d9223a628d",
+    "build_provenance": "Existing binary; build/source association not attested by this run",
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "21b13906b3ae7dd6336add0d32bda97cc4d0c2cd3fc6765f4dd0723d2e25bf8a",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "SELECTION_COPY_CHECKS_PASS",
+      "predicates": [
+        {
+          "stage": "completed-before-click",
+          "unique_painted_word": true,
+          "completed_capture": true,
+          "default_select_mode": true,
+          "no_prior_toast": true,
+          "provider_counts_unchanged": true
+        },
+        {
+          "stage": "double-captured",
+          "unique_painted_word": true,
+          "word_highlight_visible": true,
+          "toast_visible": true,
+          "line_extends_beyond_word": null,
+          "provider_counts_unchanged": true,
+          "stable_capture": true
+        },
+        {
+          "stage": "between-clicks-toast-expired",
+          "toast_absent": true,
+          "provider_counts_unchanged": true
+        },
+        {
+          "stage": "triple-captured",
+          "unique_painted_word": true,
+          "word_highlight_visible": true,
+          "toast_visible": true,
+          "line_extends_beyond_word": true,
+          "provider_counts_unchanged": true,
+          "stable_capture": true
+        }
+      ]
+    },
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "SELECTION_COPY_CHECKS_FAILED",
+      "predicates": [
+        {
+          "stage": "completed-before-click",
+          "unique_painted_word": true,
+          "completed_capture": true,
+          "default_select_mode": true,
+          "no_prior_toast": true,
+          "provider_counts_unchanged": true
+        },
+        {
+          "stage": "double-captured",
+          "unique_painted_word": true,
+          "word_highlight_visible": true,
+          "toast_visible": true,
+          "line_extends_beyond_word": null,
+          "provider_counts_unchanged": true,
+          "stable_capture": true
+        },
+        {
+          "stage": "between-clicks-toast-expired",
+          "toast_absent": false
+        },
+        {
+          "stage": "triple-captured",
+          "unique_painted_word": true,
+          "word_highlight_visible": true,
+          "toast_visible": true,
+          "line_extends_beyond_word": true,
+          "provider_counts_unchanged": true,
+          "stable_capture": true
+        }
+      ]
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "selection-double",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "selection-double",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "selection-triple",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "selection-triple",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "576cfc4a66b5b3c30620db1416c313ee33fb0500af9bd90e745b4673884df82e",
+      "png_sha256": "bfad82e67faa479d43ff67e58fc5ca52af85d91238ef10d737c50a10cb71c0f8",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2d87b4d1f21daee293ae0183df4b3bf74fda0879f5f6dcb7a8a82c7fcdfaf1e7",
+      "png_sha256": "05215571e0dff77a9a49fd11dd046570d808e1279f857675a723ac0dd6c8ed0b",
+      "render_sha256": "174157f35ee532033fd15633ace6adb59f7dfca286e52282f242f130e2737d02",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "selection-double",
+      "status": "CAPTURED_SELECTION_COPY",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "4e93d1956ea5e4b19f3ccc0eea3c6fcfbcab319e7ebc9ab3718f3da2d9e9ac6f",
+      "png_sha256": "9358e5b33cb115e9eebf67b9f3b2a6e70fc7ece7332dd835589f960cbbf3648e",
+      "render_sha256": "e18c0a124345bc0948d2cdc3a2fdd0550b7988e74303de442c70e5401a3abe58",
+      "path": "upstream/selection-double"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "selection-triple",
+      "status": "CAPTURED_SELECTION_COPY",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "a6c5c2c608a537b793050e31d0c27c52f8fce763ebde69aa404c399d3288944e",
+      "png_sha256": "6c77042901e62518f0f3a06b2ea1c2927b2078696d135f66cbfeb48b8ab0e79f",
+      "render_sha256": "9e3c175ff470be6ab942258e9da519e7df3c1bebce9a38f92dea16d1bbbe1f64",
+      "path": "upstream/selection-triple"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "0377f2ef1157fc0536a3b3aae97c0af65899431d31fadb318a4dbc445696588b",
+      "png_sha256": "545cb126b19f8207bd0550a0617925732396b65318e0089ce84bfde4960f3563",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "b820a98e01655de82d261bd732fe4ad97c731d1eb1672ae521d591829f87167f",
+      "png_sha256": "175254023af464f79df6b1c3f01b7ae167b11c7b132e4432f12bb951bec4a290",
+      "render_sha256": "46773fc00448873e0035f8ccdfb36305df35244ad4c4f8e35e3ca74a59b3dd6e",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "selection-double",
+      "status": "CAPTURED_SELECTION_COPY",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "cb6e9162b715d564390f289fe5e2300637197fa21a8031b4578f70fa8442156a",
+      "png_sha256": "77627b191a1cec3bb4740fa828dca57199585524035808f4b31e586f6aac2fb8",
+      "render_sha256": "bbe21b5043bff12824b4c084a6538f0e1b4e1900718e3c44c6c7d338b33807c5",
+      "path": "oc/selection-double"
+    },
+    {
+      "origin": "oc",
+      "scenario": "selection-triple",
+      "status": "CAPTURED_SELECTION_COPY",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "11404dfde3446c68612b4196bb597712135380e74b3e301a9707f3ebecd40820",
+      "png_sha256": "e0bf593120bf9d235de77963e5935191d9176562f305e0e15ca6ba5b08509377",
+      "render_sha256": "620a4200834dbf3d0e17bf5f8509ab45a4014529095672c8485ee438942ff8b5",
+      "path": "oc/selection-triple"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "selection_copy": {
+    "upstream": {
+      "status": "PASS",
+      "clipboard_mode": "default Select",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "checks": [
+        {
+          "stage": "completed-before-click",
+          "target": {
+            "x": 5,
+            "y": 8
+          },
+          "cell": {
+            "x": 8,
+            "y": 8
+          },
+          "word_cells": [
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            }
+          ],
+          "predicates": {
+            "unique_painted_word": true,
+            "completed_capture": true,
+            "default_select_mode": true,
+            "no_prior_toast": true,
+            "provider_counts_unchanged": true
+          }
+        },
+        {
+          "stage": "double-click-1",
+          "cell": {
+            "x": 8,
+            "y": 8
+          },
+          "pty_column": 9,
+          "pty_row": 9,
+          "down_base64": "G1s8MDs5OzlN",
+          "up_base64": "G1s8MDs5Ozlt"
+        },
+        {
+          "stage": "double-click-2",
+          "cell": {
+            "x": 8,
+            "y": 8
+          },
+          "pty_column": 9,
+          "pty_row": 9,
+          "down_base64": "G1s8MDs5OzlN",
+          "up_base64": "G1s8MDs5Ozlt"
+        },
+        {
+          "stage": "double-captured",
+          "observed": {
+            "word_matches": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "toast_matches": [
+              {
+                "x": 93,
+                "y": 2
+              }
+            ],
+            "changed_style_columns": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18
+            ],
+            "word_highlight_columns": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "outside_word_highlight_columns": [
+              13,
+              14,
+              15,
+              16,
+              17,
+              18
+            ],
+            "word_cells": [
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              }
+            ],
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "unique_painted_word": true,
+            "word_highlight_visible": true,
+            "toast_visible": true,
+            "line_extends_beyond_word": null,
+            "provider_counts_unchanged": true,
+            "stable_capture": true
+          },
+          "osc52_introducers_since_previous_stage": 1,
+          "osc52_note": "Prefix-only observation in PTY output; not proof of a system clipboard write"
+        },
+        {
+          "stage": "between-clicks-toast-expired",
+          "observed": {
+            "word_matches": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "toast_matches": [],
+            "changed_style_columns": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18
+            ],
+            "word_highlight_columns": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "outside_word_highlight_columns": [
+              13,
+              14,
+              15,
+              16,
+              17,
+              18
+            ],
+            "word_cells": [
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              }
+            ],
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "toast_absent": true,
+            "provider_counts_unchanged": true
+          }
+        },
+        {
+          "stage": "triple-click-1",
+          "cell": {
+            "x": 8,
+            "y": 8
+          },
+          "pty_column": 9,
+          "pty_row": 9,
+          "down_base64": "G1s8MDs5OzlN",
+          "up_base64": "G1s8MDs5Ozlt"
+        },
+        {
+          "stage": "triple-click-2",
+          "cell": {
+            "x": 8,
+            "y": 8
+          },
+          "pty_column": 9,
+          "pty_row": 9,
+          "down_base64": "G1s8MDs5OzlN",
+          "up_base64": "G1s8MDs5Ozlt"
+        },
+        {
+          "stage": "triple-click-3",
+          "cell": {
+            "x": 8,
+            "y": 8
+          },
+          "pty_column": 9,
+          "pty_row": 9,
+          "down_base64": "G1s8MDs5OzlN",
+          "up_base64": "G1s8MDs5Ozlt"
+        },
+        {
+          "stage": "triple-captured",
+          "observed": {
+            "word_matches": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "toast_matches": [
+              {
+                "x": 93,
+                "y": 2
+              }
+            ],
+            "changed_style_columns": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40
+            ],
+            "word_highlight_columns": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "outside_word_highlight_columns": [
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40
+            ],
+            "word_cells": [
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              },
+              {
+                "fg": "#0a0a0a",
+                "bg": "#eeeeee",
+                "modifiers": []
+              }
+            ],
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "unique_painted_word": true,
+            "word_highlight_visible": true,
+            "toast_visible": true,
+            "line_extends_beyond_word": true,
+            "provider_counts_unchanged": true,
+            "stable_capture": true
+          },
+          "osc52_introducers_since_previous_stage": 2,
+          "osc52_note": "Prefix-only observation in PTY output; not proof of a system clipboard write"
+        }
+      ]
+    },
+    "oc": {
+      "status": "FAILED_OBSERVATION",
+      "clipboard_mode": "default Select",
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "checks": [
+        {
+          "stage": "completed-before-click",
+          "target": {
+            "x": 5,
+            "y": 8
+          },
+          "cell": {
+            "x": 8,
+            "y": 8
+          },
+          "word_cells": [
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            },
+            {
+              "fg": "#eeeeee",
+              "bg": "#0a0a0a",
+              "modifiers": []
+            }
+          ],
+          "predicates": {
+            "unique_painted_word": true,
+            "completed_capture": true,
+            "default_select_mode": true,
+            "no_prior_toast": true,
+            "provider_counts_unchanged": true
+          }
+        },
+        {
+          "stage": "double-click-1",
+          "cell": {
+            "x": 8,
+            "y": 8
+          },
+          "pty_column": 9,
+          "pty_row": 9,
+          "down_base64": "G1s8MDs5OzlN",
+          "up_base64": "G1s8MDs5Ozlt"
+        },
+        {
+          "stage": "double-click-2",
+          "cell": {
+            "x": 8,
+            "y": 8
+          },
+          "pty_column": 9,
+          "pty_row": 9,
+          "down_base64": "G1s8MDs5OzlN",
+          "up_base64": "G1s8MDs5Ozlt"
+        },
+        {
+          "stage": "double-captured",
+          "observed": {
+            "word_matches": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "toast_matches": [
+              {
+                "x": 93,
+                "y": 2
+              }
+            ],
+            "changed_style_columns": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "word_highlight_columns": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "outside_word_highlight_columns": [],
+            "word_cells": [
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              }
+            ],
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "unique_painted_word": true,
+            "word_highlight_visible": true,
+            "toast_visible": true,
+            "line_extends_beyond_word": null,
+            "provider_counts_unchanged": true,
+            "stable_capture": true
+          },
+          "osc52_introducers_since_previous_stage": 1,
+          "osc52_note": "Prefix-only observation in PTY output; not proof of a system clipboard write"
+        },
+        {
+          "stage": "between-clicks-toast-expired",
+          "observed": {
+            "word_matches": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "toast_matches": [
+              {
+                "x": 93,
+                "y": 2
+              }
+            ],
+            "changed_style_columns": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "word_highlight_columns": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "outside_word_highlight_columns": [],
+            "word_cells": [
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              }
+            ],
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "toast_absent": false
+          },
+          "reason": "Timed out waiting for selection copy prior toast disappeared"
+        },
+        {
+          "stage": "triple-click-1",
+          "cell": {
+            "x": 8,
+            "y": 8
+          },
+          "pty_column": 9,
+          "pty_row": 9,
+          "down_base64": "G1s8MDs5OzlN",
+          "up_base64": "G1s8MDs5Ozlt"
+        },
+        {
+          "stage": "triple-click-2",
+          "cell": {
+            "x": 8,
+            "y": 8
+          },
+          "pty_column": 9,
+          "pty_row": 9,
+          "down_base64": "G1s8MDs5OzlN",
+          "up_base64": "G1s8MDs5Ozlt"
+        },
+        {
+          "stage": "triple-click-3",
+          "cell": {
+            "x": 8,
+            "y": 8
+          },
+          "pty_column": 9,
+          "pty_row": 9,
+          "down_base64": "G1s8MDs5OzlN",
+          "up_base64": "G1s8MDs5Ozlt"
+        },
+        {
+          "stage": "triple-captured",
+          "observed": {
+            "word_matches": [
+              {
+                "x": 5,
+                "y": 8
+              }
+            ],
+            "toast_matches": [
+              {
+                "x": 93,
+                "y": 2
+              }
+            ],
+            "changed_style_columns": [
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40
+            ],
+            "word_highlight_columns": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "outside_word_highlight_columns": [
+              2,
+              3,
+              4,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40
+            ],
+            "word_cells": [
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              },
+              {
+                "fg": "#eeeeee",
+                "bg": "#0a0a0a",
+                "modifiers": [
+                  "reversed"
+                ]
+              }
+            ],
+            "provider_counts": {
+              "requests": 3,
+              "completed": 3,
+              "invalid": 0
+            }
+          },
+          "predicates": {
+            "unique_painted_word": true,
+            "word_highlight_visible": true,
+            "toast_visible": true,
+            "line_extends_beyond_word": true,
+            "provider_counts_unchanged": true,
+            "stable_capture": true
+          },
+          "osc52_introducers_since_previous_stage": 2,
+          "osc52_note": "Prefix-only observation in PTY output; not proof of a system clipboard write"
+        }
+      ]
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-25T08:29:05.185Z",
+  "exit_code": 1
+}

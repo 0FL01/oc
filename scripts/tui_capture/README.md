@@ -516,6 +516,49 @@ predicates, not parity. Record an executed run and its actual comparator results
 in `evidence/tui/mention-report.md`; do not write capture evidence or a PASS
 claim for a binary that predates VIS26.
 
+## VIS27 paired mouse selection/copy diagnostic
+
+Use an existing **rebuilt** native binary and the pinned original, with a fresh
+output path (do not pass `--build-oc true` unless you explicitly want the runner
+to build it):
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc \
+  --geometry true --sample tools --sidebar hide --agent-profile true \
+  --columns 120 --rows 40 --selection-copy true \
+  --output /home/opencode/ai/oc/evidence/tui/selection-copy-NEW-ATTEMPT
+```
+
+`--selection-copy true` is test-only and requires exactly this paired Reader/tools
+120×40 completed-session profile without other interaction, variant or resize
+modes. Each side locates its own **unique painted** `GEOMETRY` in the real tool
+answer, compares the word's styled cells against the completed baseline, and
+sends two then three SGR left-button press/release pairs at an interior word
+cell via that side's PTY. There is **no motion event**. The runner observes the
+styled highlight and the actual `Copied to clipboard` toast in the VT grid,
+captures `selection-double` and `selection-triple` (full unmasked cells, PNG,
+VT and render geometry), and waits for observable toast disappearance before
+the second gesture. A triple-click also requires styled highlight outside the
+word on the same line. `selection-copy-checks.json`, `inputs.json` and
+`capture.lock.json` retain coordinates, exact mouse bytes (base64), observed
+cell styles, predicate outcomes, provider counts and whether an OSC 52 **prefix**
+was seen in PTY output. The prefix count does not decode payloads or prove a
+system clipboard write. The existing raw VT evidence is the unmodified PTY
+stream; use the fixture-only isolated root for this probe, not private content.
+No system clipboard is read or asserted: terminal OSC 52 transport, xterm's
+clipboard handling, and the desktop/system clipboard are separate boundaries.
+
+The original OpenTUI copy-on-select handler requires `isDragging` on mouse
+release (`opencode/packages/tui/src/util/selection.ts`). Bare SGR clicks can
+select without producing that event; a missing toast/highlight is recorded as
+`FAILED_OBSERVATION`, with its actual diagnostic frame, never substituted with
+a synthetic success. Both sides still run, and the normal **whole-grid and PNG**
+comparators run for both stages. Any differing frame or failed predicate keeps
+exit code 1; interaction feedback does not imply pixel parity. Existing output
+paths are refused, including failed attempts.
+
 ## V04 variant and search follow-up
 
 `--variants true --sample short` adds the explicit fixture in

@@ -66,6 +66,16 @@ if (args.mention !== undefined && !['true','false'].includes(args.mention))
 const reasoningClick = args['reasoning-click'] === 'true';
 if (args['reasoning-click'] !== undefined && !['true','false'].includes(args['reasoning-click']))
   throw Error('--reasoning-click must be true or false');
+const selectionCopy = args['selection-copy'] === 'true';
+if (args['selection-copy'] !== undefined && !['true','false'].includes(args['selection-copy']))
+  throw Error('--selection-copy must be true or false');
+if (selectionCopy && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
+    args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
+    !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
+    args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
+    args.tabs === 'vertical' || explorationClick || tabClick || renameSession || sidebarPalette ||
+    regenerateTitle || autocomplete || autocompleteKeys || mention || reasoningClick))
+  throw Error('--selection-copy true requires paired binaries, --geometry true --sample tools --sidebar hide --agent-profile true --columns 120 --rows 40, horizontal tabs and no other interaction/resize modes');
 if (reasoningClick && (args.geometry !== 'true' || args.sample !== 'reasoning' || args.sidebar !== 'hide' ||
     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
@@ -593,10 +603,116 @@ try {
        const done = await waitFor(f => f.text.includes(marker) &&
         /MiMo-V2.6-Flash Free · \d/.test(f.text) &&
          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript') &&
-         (!reasoningClick || logs.some(e=>e.kind==='provider_completed' && e.operation==='title')), 'completed transcript');
+         (!(reasoningClick || selectionCopy) || logs.some(e=>e.kind==='provider_completed' && e.operation==='title')), 'completed transcript');
         if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');
         const completedStatus = await capture('session-wide-completed',done,'CAPTURED');
-        if(reasoningClick) {
+       if(selectionCopy) {
+         const word='GEOMETRY';
+         const checks=[];
+         const counts=()=>({requests:logs.filter(e=>e.kind==='provider').length,
+           completed:logs.filter(e=>e.kind==='provider_completed').length,
+           invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});
+         const baseline=counts();
+         const unchanged=()=>canonical(counts())===canonical(baseline);
+         lock.selection_copy ??= {};
+         lock.selection_copy[origin]={status:'IN_PROGRESS',clipboard_mode:'default Select',baseline,checks};
+         const save=()=>{
+           fs.writeFileSync(path.join(dir,'selection-copy-checks.json'),JSON.stringify({baseline,checks},null,2)+'\n');
+           json('capture.lock.json',lock);
+         };
+         const toast=f=>visibleMatches(f,'Copied to clipboard');
+         const matches=visibleMatches(done,word);
+         if(matches.length!==1 || completedStatus!=='CAPTURED' || baseline.requests!==3 ||
+             baseline.completed!==3 || baseline.invalid!==0)
+           throw Error('Selection copy requires one painted answer word, stable completed read/title and valid provider baseline');
+         const target=matches[0];
+         const cell={x:target.x+3,y:target.y};
+         const selectionStyle=c=>({fg:c.fg,bg:c.bg,modifiers:c.modifiers});
+         const before=await frame();
+         if(canonical(visibleMatches(before,word))!==canonical([target]) || toast(before).length || !unchanged())
+           throw Error('Selection copy baseline changed before mouse input');
+         const baseRow=before.cells[target.y];
+         const observe=f=>{
+           const painted=visibleMatches(f,word);
+           const row=f.cells[target.y];
+           const changed=row.map((c,x)=>canonical(selectionStyle(c))!==canonical(selectionStyle(baseRow[x])) ? x : -1).filter(x=>x>=0);
+           return {word_matches:painted,toast_matches:toast(f),changed_style_columns:changed,
+             word_highlight_columns:changed.filter(x=>x>=target.x && x<target.x+word.length),
+             outside_word_highlight_columns:changed.filter(x=>x<target.x || x>=target.x+word.length),
+             word_cells:row.slice(target.x,target.x+word.length).map(selectionStyle),
+             provider_counts:counts()};
+         };
+         checks.push({stage:'completed-before-click',target,cell,word_cells:baseRow.slice(target.x,target.x+word.length).map(selectionStyle),
+           predicates:{unique_painted_word:matches.length===1,completed_capture:completedStatus==='CAPTURED',
+             default_select_mode:true,no_prior_toast:toast(before).length===0,provider_counts_unchanged:unchanged()}});
+         save();
+         // Two and three independent press/release pairs at the same cell. No
+         // motion is synthesized; the original may require OpenTUI isDragging.
+         const pair=async(stage,index)=>{
+           const x=cell.x+1,y=cell.y+1;
+           const down=`\x1b[<0;${x};${y}M`,up=`\x1b[<0;${x};${y}m`;
+           checks.push({stage:`${stage}-click-${index}`,cell,pty_column:x,pty_row:y,
+             down_base64:Buffer.from(down).toString('base64'),up_base64:Buffer.from(up).toString('base64')});
+           save();
+           send(down,`selection_${stage}_${index}_mouse_down`);
+           send(up,`selection_${stage}_${index}_mouse_up`);
+           await sleep(80);
+         };
+         let passed=true;
+         const osc52Count=()=> (Buffer.concat(chunks[generation]).toString('latin1').match(/\x1b\]52;/g)||[]).length;
+         let previousOsc52=osc52Count();
+         for(const [stage,repetitions] of [['double',2],['triple',3]]) {
+           if(stage==='triple') {
+             // A prior toast can overlay a new toast and expire during the PNG.
+             // Wait for observed disappearance, also resetting the multi-click
+             // interval rather than assuming a fixed toast lifetime.
+             try {
+               const cleared=await waitFor(f=>toast(f).length===0 && visibleMatches(f,word).length===1 && unchanged(),
+                 'selection copy prior toast disappeared',12000);
+               checks.push({stage:'between-clicks-toast-expired',observed:observe(cleared),predicates:{toast_absent:true,provider_counts_unchanged:unchanged()}});
+             } catch(e) {
+               checks.push({stage:'between-clicks-toast-expired',observed:observe(await frame()),predicates:{toast_absent:false},reason:e.message});
+               passed=false;
+             }
+             save();
+             await sleep(600);
+           }
+           for(let index=1;index<=repetitions;index++) await pair(stage,index);
+           // The toast can arrive asynchronously and is short-lived. Observe
+           // both styled selection and real painted feedback before screenshot.
+           let observed;
+           try {observed=await waitFor(f=>toast(f).length===1 && observe(f).word_highlight_columns.length>0 && unchanged(),
+             `selection ${stage} highlight and copy toast`,3200);}
+           catch(e) {
+             observed=await frame();
+             checks.push({stage:`${stage}-wait`,observed:observe(observed),reason:e.message});
+             save();
+           }
+           const snapshot=observe(observed);
+           const predicates={unique_painted_word:canonical(snapshot.word_matches)===canonical([target]),
+             word_highlight_visible:snapshot.word_highlight_columns.length>0,
+             toast_visible:snapshot.toast_matches.length===1,
+             line_extends_beyond_word:stage==='triple' ? snapshot.outside_word_highlight_columns.length>0 : null,
+             provider_counts_unchanged:unchanged()};
+           const status=await capture(`selection-${stage}`,observed,'CAPTURED_SELECTION_COPY');
+           predicates.stable_capture=status==='CAPTURED_SELECTION_COPY';
+           // Record only the OSC 52 introducer count; never decode or store a
+           // clipboard payload in checks/lock. Raw VT is existing capture data.
+           const osc52=osc52Count();
+           checks.push({stage:`${stage}-captured`,observed:snapshot,predicates,
+             osc52_introducers_since_previous_stage:osc52-previousOsc52,
+             osc52_note:'Prefix-only observation in PTY output; not proof of a system clipboard write'});
+           previousOsc52=osc52;
+           save();
+           if(Object.entries(predicates).some(([,v])=>v===false)) passed=false;
+         }
+         lock.selection_copy[origin].status=passed?'PASS':'FAILED_OBSERVATION';
+         save();
+         lock.attempts.push({origin,status:passed?'SELECTION_COPY_CHECKS_PASS':'SELECTION_COPY_CHECKS_FAILED',
+           predicates:checks.filter(c=>c.predicates).map(c=>({stage:c.stage,...c.predicates}))});
+         if(!passed) result=1;
+       }
+       if(reasoningClick) {
           const checks=[];
           const counts=()=>({transcript:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length,
             title:logs.filter(e=>e.kind==='provider' && e.operation==='title').length,
@@ -1427,6 +1543,7 @@ try {
         if(autocompleteKeys && lock.autocomplete_keys?.[origin]) lock.autocomplete_keys[origin].status='FAILED';
           if(mention && lock.mention?.[origin]) lock.mention[origin].status='FAILED';
           if(reasoningClick && lock.reasoning_click?.[origin]) lock.reasoning_click[origin].status='FAILED';
+          if(selectionCopy && lock.selection_copy?.[origin]) lock.selection_copy[origin].status='FAILED';
       await capture('failure-diagnostic',await frame(),'FAILED_STATE');
     } finally {
       if(!child.stdin.destroyed) child.stdin.write(JSON.stringify({kind:'stop'})+'\n');

@@ -7,7 +7,7 @@
 //! keep compiling and render byte-identically while views add [`Style`]s
 //! where the theme requires them.
 
-use ratatui::style::Style;
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Text;
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
@@ -109,6 +109,45 @@ impl Line {
             .map(|span| ratatui::text::Span::styled(span.content, span.style))
             .collect::<Vec<_>>();
         ratatui::text::Line::from(spans).style(self.style)
+    }
+
+    /// A terminal cell maps to a whole grapheme boundary, never the middle of
+    /// a wide emoji/CJK glyph. Empty cells after the text map to its end.
+    pub fn byte_at_cell(&self, cell: usize) -> usize {
+        let text = self.plain_text();
+        let mut column = 0;
+        for (byte, glyph) in text.grapheme_indices(true) {
+            let next = column + UnicodeWidthStr::width(glyph);
+            if cell < next {
+                return byte;
+            }
+            column = next;
+        }
+        text.len()
+    }
+
+    /// Paint selected graphemes with explicit source-cell foreground and
+    /// background colors; the terminal must not retain a REVERSED attribute.
+    pub fn highlight(&self, start: usize, end: usize, base_fg: Color, base_bg: Color) -> Self {
+        let mut spans = Vec::new();
+        let mut offset = 0;
+        for span in &self.spans {
+            for glyph in span.content.graphemes(true) {
+                let selected = offset >= start && offset < end;
+                let style = if selected {
+                    let source = self.style.patch(span.style);
+                    span.style
+                        .remove_modifier(Modifier::REVERSED)
+                        .fg(source.bg.unwrap_or(base_bg))
+                        .bg(source.fg.unwrap_or(base_fg))
+                } else {
+                    span.style
+                };
+                spans.push((glyph.to_string(), style));
+                offset += glyph.len();
+            }
+        }
+        Self::new(coalesce(spans)).with_style(self.style)
     }
 }
 
@@ -342,6 +381,68 @@ mod tests {
         let rendered = line.into_ratatui();
         assert_eq!(rendered.spans[0].style.fg, Some(Color::Rgb(1, 2, 3)));
         assert_eq!(rendered.spans[1].style.fg, None);
+    }
+
+    #[test]
+    fn selection_cells_snap_to_wide_graphemes_and_keep_wrapped_source() {
+        let line = Line::plain("a中🧑‍💻b");
+        let rows = wrap_line(&line, 3);
+        assert_eq!(rows[0].plain_text(), "a中");
+        assert_eq!(rows[1].plain_text(), "🧑‍💻b");
+        assert_eq!(rows[0].byte_at_cell(1), 1);
+        assert_eq!(rows[0].byte_at_cell(2), 1);
+        assert_eq!(rows[1].byte_at_cell(0), 0);
+        assert_eq!(rows[1].byte_at_cell(1), 0);
+        assert_eq!(rows[1].byte_at_cell(2), "🧑‍💻".len());
+        let marked = rows[1].highlight(
+            0,
+            "🧑‍💻".len(),
+            Color::Rgb(238, 238, 238),
+            Color::Rgb(10, 10, 10),
+        );
+        assert_eq!(marked.plain_text(), rows[1].plain_text());
+        assert_eq!(marked.spans()[0].style().fg, Some(Color::Rgb(10, 10, 10)));
+        assert_eq!(
+            marked.spans()[0].style().bg,
+            Some(Color::Rgb(238, 238, 238))
+        );
+        assert!(
+            !marked.spans()[0]
+                .style()
+                .add_modifier
+                .contains(Modifier::REVERSED)
+        );
+        assert!(
+            !rows[1].spans()[0]
+                .style()
+                .add_modifier
+                .contains(Modifier::REVERSED)
+        );
+    }
+
+    #[test]
+    fn selected_cells_use_source_style_and_preserve_unselected_spans() {
+        let bg = Color::Rgb(10, 10, 10);
+        let text = Color::Rgb(238, 238, 238);
+        let accent = Color::Rgb(100, 200, 100);
+        let line = Line::new(vec![
+            Span::styled(" ab", Style::default().fg(accent)),
+            Span::styled("中z", Style::default().fg(text)),
+        ])
+        .with_style(Style::default().bg(bg));
+        let marked = line.highlight(1, " ab中".len(), text, bg);
+        let cells = render_paragraph(Lines::from(vec![marked]).into_text(), 10, 1);
+        assert_eq!(cells[(0, 0)].fg, accent);
+        assert_eq!(cells[(0, 0)].bg, bg);
+        for x in 1..3 {
+            assert_eq!(cells[(x, 0)].fg, bg);
+            assert_eq!(cells[(x, 0)].bg, accent);
+            assert!(!cells[(x, 0)].modifier.contains(Modifier::REVERSED));
+        }
+        assert_eq!(cells[(3, 0)].fg, bg);
+        assert_eq!(cells[(3, 0)].bg, text);
+        assert_eq!(cells[(5, 0)].fg, text);
+        assert_eq!(cells[(5, 0)].bg, bg);
     }
 
     /// Unstyled `Vec<String>` conversion must render byte-identically to the
