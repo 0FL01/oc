@@ -33,6 +33,8 @@ const MODEL: &str = "pty-model";
 const ALT_MODEL: &str = "alt-model";
 const AGENT_PROMPT: &str = "You are the T39 fixture agent.";
 const COMPRESS_PREFIX: &str = "Manual context compression request";
+const S07_PROMPT: &str = "s07 progressive markdown";
+const S07_ANSWER: &str = "```rust\nfn s07_probe() {\n    let S07_STREAM_FRAGMENT_42 = 42;\n    let S07_STREAM_DONE_43 = S07_STREAM_FRAGMENT_42 + 1;\n}\n```";
 
 /// Scripted native Responses peer plus isolated HOME/config.
 struct Fixture {
@@ -40,6 +42,7 @@ struct Fixture {
     requests: Arc<Mutex<Vec<serde_json::Value>>>,
     hold_title: Arc<AtomicBool>,
     title_closed: Arc<AtomicBool>,
+    s07_continue: Arc<AtomicBool>,
     stop: Arc<AtomicBool>,
     server: Option<std::thread::JoinHandle<()>>,
 }
@@ -94,6 +97,8 @@ impl Fixture {
         let closed = title_closed.clone();
         let stop = Arc::new(AtomicBool::new(false));
         let stopping = stop.clone();
+        let s07_continue = Arc::new(AtomicBool::new(false));
+        let continue_stream = s07_continue.clone();
         let server = std::thread::spawn(move || {
             while !stopping.load(Ordering::Relaxed) {
                 match listener.accept() {
@@ -116,7 +121,7 @@ impl Fixture {
                             continue;
                         }
                         let scripted = script(&body);
-                        let _ = respond(&mut socket, &scripted, &stopping);
+                        let _ = respond(&mut socket, &scripted, &stopping, &continue_stream);
                     }
                     Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                         std::thread::sleep(POLL);
@@ -130,6 +135,7 @@ impl Fixture {
             requests,
             hold_title,
             title_closed,
+            s07_continue,
             stop,
             server: Some(server),
         })
@@ -196,6 +202,7 @@ impl Drop for Fixture {
 enum Script {
     Text(String),
     Slow(String),
+    S07Markdown,
     Compress(String),
 }
 
@@ -226,6 +233,9 @@ fn script(body: &serde_json::Value) -> Script {
     }
     if prompt == "slow stream" {
         return Script::Slow("answer:slow stream".to_string());
+    }
+    if prompt == S07_PROMPT {
+        return Script::S07Markdown;
     }
     Script::Text(format!("echo: {prompt}"))
 }
@@ -307,7 +317,7 @@ fn read_request(socket: &mut TcpStream) -> serde_json::Value {
                 .then(|| value.trim().parse().expect("length"))
         })
         .expect("content length");
-    assert!(length < 262_144, "bounded request");
+    assert!(length < 262_144, "bounded request: {length} bytes");
     while bytes.len() < header_end + length {
         let n = socket.read(&mut chunk).expect("HTTP body");
         assert_ne!(n, 0, "early body EOF");
@@ -316,7 +326,12 @@ fn read_request(socket: &mut TcpStream) -> serde_json::Value {
     serde_json::from_slice(&bytes[header_end..header_end + length]).expect("request JSON")
 }
 
-fn respond(socket: &mut TcpStream, script: &Script, stop: &AtomicBool) -> std::io::Result<()> {
+fn respond(
+    socket: &mut TcpStream,
+    script: &Script,
+    stop: &AtomicBool,
+    s07_continue: &AtomicBool,
+) -> std::io::Result<()> {
     write!(
         socket,
         "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: close\r\n\r\n"
@@ -337,17 +352,56 @@ fn respond(socket: &mut TcpStream, script: &Script, stop: &AtomicBool) -> std::i
     match script {
         Script::Text(answer) => finish_text(socket, answer),
         Script::Compress(arguments) => finish_call(socket, "compress", arguments),
+        Script::S07Markdown => {
+            // Flush an open fence over several real SSE events. The test must
+            // observe its unique partial code row before releasing completion.
+            for chunk in [
+                "```rust\n",
+                "fn s07_probe() {\n",
+                "    let S07_STREAM_FRAGMENT_42 = 42;\n",
+            ] {
+                let delta =
+                    serde_json::json!({"type": "response.output_text.delta", "delta": chunk});
+                write!(socket, "data: {delta}\n\n")?;
+                socket.flush()?;
+                std::thread::sleep(Duration::from_millis(60));
+            }
+            let began = Instant::now();
+            while !s07_continue.load(Ordering::Relaxed) {
+                if stop.load(Ordering::Relaxed) || began.elapsed() >= DEADLINE {
+                    return Ok(());
+                }
+                std::thread::sleep(POLL);
+            }
+            for chunk in [
+                "    let S07_STREAM_DONE_43 = S07_STREAM_FRAGMENT_42 + 1;\n",
+                "}\n",
+                "```",
+            ] {
+                let delta =
+                    serde_json::json!({"type": "response.output_text.delta", "delta": chunk});
+                write!(socket, "data: {delta}\n\n")?;
+                socket.flush()?;
+                std::thread::sleep(Duration::from_millis(60));
+            }
+            finish_completed(socket, S07_ANSWER)
+        }
         Script::Slow(_) => unreachable!("handled above"),
     }
 }
 
 fn finish_text(socket: &mut TcpStream, answer: &str) -> std::io::Result<()> {
     let delta = serde_json::json!({"type": "response.output_text.delta", "delta": answer});
+    write!(socket, "data: {delta}\n\n")?;
+    finish_completed(socket, answer)
+}
+
+fn finish_completed(socket: &mut TcpStream, answer: &str) -> std::io::Result<()> {
     let completed = serde_json::json!({"type": "response.completed", "response": {
         "status": "completed", "output": [{"type": "message", "role": "assistant",
             "content": [{"type": "output_text", "text": answer}]}]
     }});
-    write!(socket, "data: {delta}\n\ndata: {completed}\n\n")?;
+    write!(socket, "data: {completed}\n\n")?;
     socket.flush()
 }
 
@@ -2840,11 +2894,42 @@ fn s07_pty_equal_view_archive_resource_samples() {
         small.after_viewport, large.after_viewport,
         "recovered viewport differs"
     );
+    assert_eq!(small.request, large.request, "Responses requests differ");
+    assert_eq!(
+        small.request["input"]
+            .as_array()
+            .expect("Responses input")
+            .len(),
+        202,
+        "200 shared messages, current prompt, and common preamble"
+    );
+    assert_eq!(
+        small.active_view, large.active_view,
+        "streamed active view differs"
+    );
+    assert_eq!(
+        small.active_cursor, large.active_cursor,
+        "active cursor differs"
+    );
     for (label, run) in [("small", &small), ("large", &large)] {
         assert_eq!(
             run.viewport, run.after_viewport,
             "{label}: viewport not restored"
         );
+        assert!(
+            run.active_view
+                .iter()
+                .any(|row| row.contains("S07_STREAM_FRAGMENT_42"))
+                && run
+                    .active_view
+                    .iter()
+                    .any(|row| row.contains("S07_STREAM_DONE_43")),
+            "{label}: incomplete streamed view: {:?}",
+            run.active_view
+        );
+        assert_eq!(last_user_text(&run.request).as_deref(), Some(S07_PROMPT));
+        assert_eq!(run.request["stream"], true);
+        assert_eq!(run.request["model"], MODEL);
         let metrics = &run.metrics;
         let rows = metrics["window_rows"].as_u64().expect("window rows");
         let bytes = metrics["retained_bytes"].as_u64().expect("retained bytes");
@@ -2856,7 +2941,7 @@ fn s07_pty_equal_view_archive_resource_samples() {
             bytes <= (oc_tui::history::WINDOW_BYTES + oc_tui::app::MAX_INPUT_BYTES) as u64,
             "{label}: {bytes}"
         );
-        assert_eq!(metrics["window_total"].as_u64(), Some(200 + run.archive));
+        assert_eq!(metrics["window_total"].as_u64(), Some(202 + run.archive));
         let frames = metrics["frame_count"].as_u64().expect("frames");
         let sum = metrics["frame_sum_ns"].as_u64().expect("draw sum");
         let max = metrics["frame_max_ns"].as_u64().expect("draw max");
@@ -2866,9 +2951,50 @@ fn s07_pty_equal_view_archive_resource_samples() {
         let queue_lagged = metrics["worker_event_queue_lagged"]
             .as_u64()
             .expect("overwritten worker events");
+        let live_text_current = metrics["live_text_bytes_current"]
+            .as_u64()
+            .expect("live text current");
+        let live_text_peak = metrics["live_text_bytes_peak"]
+            .as_u64()
+            .expect("live text peak");
+        let live_reasoning_current = metrics["live_reasoning_bytes_current"]
+            .as_u64()
+            .expect("live reasoning current");
+        let live_reasoning_peak = metrics["live_reasoning_bytes_peak"]
+            .as_u64()
+            .expect("live reasoning peak");
+        let live_parts_current = metrics["live_part_count_current"]
+            .as_u64()
+            .expect("live parts current");
+        let live_parts_peak = metrics["live_part_count_peak"]
+            .as_u64()
+            .expect("live parts peak");
+        let cache_current = metrics["markdown_cache_retained_bytes_current"]
+            .as_u64()
+            .expect("Markdown cache current");
+        let cache_peak = metrics["markdown_cache_retained_bytes_peak"]
+            .as_u64()
+            .expect("Markdown cache peak");
+        assert!(live_text_peak > 0, "{label}: streamed text never sampled");
+        assert_eq!(live_text_current, 0, "{label}: live text after exit");
+        assert_eq!(
+            live_reasoning_current, 0,
+            "{label}: live reasoning after exit"
+        );
+        assert_eq!(live_parts_current, 0, "{label}: live parts after exit");
+        assert!(live_reasoning_peak >= live_reasoning_current);
+        assert!(live_parts_peak >= live_parts_current);
+        // Each retained route has a 512 KiB styled-block cache and a 2 MiB
+        // source-page index; account for the active state plus parked tabs.
+        let route_count = metrics["tab_count"].as_u64().expect("tab count") + 1;
+        let cache_bound = route_count * (512 * 1024 + 2 * 1024 * 1024);
+        assert!(
+            cache_current <= cache_peak && cache_peak <= cache_bound,
+            "{label}: Markdown cache current={cache_current} peak={cache_peak} bound={cache_bound}"
+        );
         assert!(frames > 0 && sum >= max && max > 0);
         println!(
-            "S07 {label}: archive={} rss_kb={} pss_kb={} hwm_kb={} cpu_ticks={} child_max={} retained_bytes={} window_rows={} frames={} draw_sum_ns={} draw_max_ns={} worker_event_queue_peak={} worker_event_queue_lagged={} elapsed_ms={}",
+            "S07 {label}: archive={} rss_kb={} pss_kb={} hwm_kb={} cpu_ticks={} child_max={} retained_bytes={} window_rows={} frames={} draw_sum_ns={} draw_max_ns={} worker_event_queue_peak={} worker_event_queue_lagged={} live_text_bytes_current={} live_text_bytes_peak={} live_reasoning_bytes_current={} live_reasoning_bytes_peak={} live_part_count_current={} live_part_count_peak={} markdown_cache_retained_bytes_current={} markdown_cache_retained_bytes_peak={} markdown_cache_bound={} elapsed_ms={}",
             run.archive,
             run.peak_rss_kb,
             run.peak_pss_kb,
@@ -2882,6 +3008,15 @@ fn s07_pty_equal_view_archive_resource_samples() {
             max,
             queue_peak,
             queue_lagged,
+            live_text_current,
+            live_text_peak,
+            live_reasoning_current,
+            live_reasoning_peak,
+            live_parts_current,
+            live_parts_peak,
+            cache_current,
+            cache_peak,
+            cache_bound,
             run.elapsed.as_millis()
         );
     }
@@ -2891,6 +3026,9 @@ struct S07Run {
     archive: u64,
     viewport: Vec<String>,
     after_viewport: Vec<String>,
+    active_view: Vec<String>,
+    active_cursor: (usize, usize),
+    request: serde_json::Value,
     peak_rss_kb: u64,
     peak_pss_kb: u64,
     peak_hwm_kb: u64,
@@ -2976,13 +3114,76 @@ fn s07_stable_tail(pty: &PtySession, minimum: usize) -> Vec<String> {
     }
 }
 
+fn s07_active_view(pty: &PtySession) -> Vec<String> {
+    render_screen(&pty.snapshot())
+        .rows()
+        .into_iter()
+        .filter(|row| {
+            row.contains("shared tail")
+                || row.contains(S07_PROMPT)
+                || row.contains("rust")
+                || row.contains("s07_probe")
+                || row.contains("S07_STREAM_")
+                || row.trim() == "}"
+        })
+        .collect()
+}
+
+fn s07_stable_active_view(pty: &PtySession) -> Vec<String> {
+    let began = Instant::now();
+    let mut previous = Vec::new();
+    loop {
+        let visible = s07_active_view(pty);
+        if visible.iter().any(|row| row.contains("S07_STREAM_DONE_43")) && visible == previous {
+            return visible;
+        }
+        assert!(
+            began.elapsed() < DEADLINE,
+            "streamed active view did not settle: {visible:?}"
+        );
+        previous = visible;
+        std::thread::sleep(POLL);
+    }
+}
+
 fn measure_s07(archive: usize) -> S07Run {
     let fixture = Fixture::new();
+    // The 200-message legacy tail costs more than the default fixture model's
+    // input budget. Admit this one S07 turn without changing its history size.
+    let config = fixture
+        .root
+        .path()
+        .join("home/config/opencode/opencode.json");
+    let mut settings: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&config).expect("S07 config")).expect("config JSON");
+    settings["provider"]["fixture"]["models"][MODEL]["limit"]["context"] =
+        serde_json::json!(262_144);
+    // The two provider requests have identical active context. DCP's anchors
+    // contain durable message ids, which legitimately differ across archives.
+    settings["dcp"]["enabled"] = serde_json::json!(false);
+    std::fs::write(&config, settings.to_string()).expect("S07 model context");
     let data_dir = fixture.data_dir();
     let project = fixture.root.path().join("project");
     let session = "s-s07";
     seed_session(&data_dir, &project, session, archive);
     let db = oc_adapters::storage::Db::open(&data_dir).expect("db");
+    db.apply_dcp_schema().expect("DCP schema for prune mark");
+    let archived = db.read_history_full(session).expect("durable archive");
+    assert_eq!(archived.len(), archive);
+    let archive_mark = archived.last().map(|(id, role, text)| {
+        assert_eq!(role, "assistant");
+        assert_eq!(text, &format!("seeded row {:05} payload", archive - 1));
+        db.save_prune_mark(session, id).expect("prune old prefix");
+        assert_eq!(
+            db.prune_bound(session).expect("validated prune bound"),
+            Some((id.clone(), archive as i64))
+        );
+        id.clone()
+    });
+    assert_eq!(archive_mark.is_some(), archive != 0);
+    if archive_mark.is_none() {
+        assert_eq!(db.prune_bound(session).expect("empty prune bound"), None);
+    }
     for i in 0..200 {
         let role = if (archive + i).is_multiple_of(2) {
             "user"
@@ -3096,11 +3297,116 @@ fn measure_s07(archive: usize) -> S07Run {
     pty.send(b"\x1b");
     dismissed(&pty, "Commands");
     let after_viewport = s07_stable_tail(&pty, viewport.len());
+    // Submit the same real Responses turn in both processes. The fake peer
+    // holds completion until the open fenced code is visibly rendered here.
+    let stream_from = submit(&mut pty, S07_PROMPT);
+    let requests = {
+        let began = Instant::now();
+        loop {
+            let requests: Vec<_> = fixture
+                .requests
+                .lock()
+                .expect("requests")
+                .iter()
+                .filter(|r| !title::is_title(r))
+                .cloned()
+                .collect();
+            if !requests.is_empty() {
+                break requests;
+            }
+            assert!(
+                began.elapsed() < DEADLINE,
+                "S07 provider request absent; screen: {:?}",
+                render_screen(&pty.snapshot()).rows()
+            );
+            std::thread::sleep(POLL);
+        }
+    };
+    assert_eq!(requests.len(), 1, "exactly one S07 provider turn");
+    let request = requests[0].clone();
+    assert_eq!(last_user_text(&request).as_deref(), Some(S07_PROMPT));
+    assert_eq!(request["stream"], true);
+    pty.wait_visible_after(stream_from, "S07_STREAM_FRAGMENT_42", DEADLINE);
+    wait_screen_row(&pty, "S07_STREAM_FRAGMENT_42", DEADLINE);
+    let partial = render_screen(&pty.snapshot()).rows();
+    assert!(
+        partial.iter().any(|row| row.contains("esc interrupt")),
+        "the fenced fragment must render while the turn is active: {partial:?}"
+    );
+    assert!(
+        !partial.iter().any(|row| row.contains("S07_STREAM_DONE_43"))
+            && !fixture.s07_continue.load(Ordering::Relaxed),
+        "completion must still be held at the partial frame"
+    );
+    sample();
+    fixture.s07_continue.store(true, Ordering::Relaxed);
+    wait_screen_row(&pty, "S07_STREAM_DONE_43", DEADLINE);
+    wait_idle(&pty);
+    let active_view = s07_stable_active_view(&pty);
+    let active_cursor = render_screen(&pty.snapshot()).cursor;
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|row| row.contains("esc interrupt") || row.contains("submission pending")),
+        "stream must finish idle"
+    );
     let end = sample();
     pty.send(b"/quit\r");
     let (status, output) = pty.wait_exit(DEADLINE);
     let elapsed = start.elapsed();
     assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+    assert_eq!(
+        fixture
+            .requests
+            .lock()
+            .expect("requests")
+            .iter()
+            .filter(|request| !title::is_title(request))
+            .count(),
+        1,
+        "exactly one S07 provider request after shutdown"
+    );
+    let history = persisted(pty.data_dir(), session);
+    assert_eq!(history.len(), archive + 202, "archive remains durable");
+    if archive != 0 {
+        assert_eq!(
+            history.first(),
+            Some(&("user".into(), "seeded row 00000 payload".into()))
+        );
+        assert_eq!(
+            history[archive - 1],
+            (
+                "assistant".into(),
+                format!("seeded row {:05} payload", archive - 1)
+            )
+        );
+    }
+    let post_turn_db = oc_adapters::storage::Db::open(pty.data_dir()).expect("post-turn db");
+    let post_turn_full = post_turn_db
+        .read_history_full(session)
+        .expect("post-turn full history");
+    assert_eq!(post_turn_full.len(), archive + 202);
+    assert_eq!(
+        &post_turn_full[..archive],
+        archived.as_slice(),
+        "all older archive ids, roles and texts remain durable"
+    );
+    assert_eq!(
+        post_turn_db
+            .prune_bound(session)
+            .expect("durable prune bound"),
+        archive_mark.map(|id| (id, archive as i64))
+    );
+    drop(post_turn_db);
+    assert_eq!(
+        history.last(),
+        Some(&("assistant".to_string(), S07_ANSWER.to_string()))
+    );
+    assert_eq!(
+        history[history.len() - 2],
+        ("user".to_string(), S07_PROMPT.to_string())
+    );
     assert!(
         !Path::new(&format!("/proc/{pid}")).exists(),
         "child not reaped"
@@ -3112,6 +3418,9 @@ fn measure_s07(archive: usize) -> S07Run {
         archive: archive as u64,
         viewport,
         after_viewport,
+        active_view,
+        active_cursor,
+        request,
         peak_rss_kb,
         peak_pss_kb,
         peak_hwm_kb,

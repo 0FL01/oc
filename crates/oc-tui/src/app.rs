@@ -315,6 +315,26 @@ impl LivePart {
     }
 }
 
+/// Numeric view-owned state sampled only by the opt-in terminal metrics loop.
+/// Text/reasoning include open buffers and frozen segments; part count is the
+/// frozen `live_parts` list (tool cards included), not the render projection.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct LiveViewMetrics {
+    pub text_bytes: usize,
+    pub reasoning_bytes: usize,
+    pub part_count: usize,
+    pub markdown_cache_retained_bytes: usize,
+}
+
+impl std::ops::AddAssign for LiveViewMetrics {
+    fn add_assign(&mut self, other: Self) {
+        self.text_bytes += other.text_bytes;
+        self.reasoning_bytes += other.reasoning_bytes;
+        self.part_count += other.part_count;
+        self.markdown_cache_retained_bytes += other.markdown_cache_retained_bytes;
+    }
+}
+
 /// Immutable submission identity plus the editable draft's revision at enqueue.
 struct PendingSubmission {
     request_id: u64,
@@ -1842,6 +1862,26 @@ impl TuiState {
                 .pending
                 .as_ref()
                 .map_or(0, |pending| pending.draft.len())
+    }
+
+    /// No transcript projection, Markdown parse, or history walk. The cache is
+    /// persistent on each view, including parked tabs; counts are payload
+    /// bytes, not String/Vec capacities or temporary frame allocations.
+    pub fn live_view_metrics(&self) -> LiveViewMetrics {
+        let mut result = LiveViewMetrics {
+            text_bytes: self.live_text.len(),
+            reasoning_bytes: self.live_reasoning.len(),
+            part_count: self.live_parts.len(),
+            markdown_cache_retained_bytes: self.markdown_cache.borrow().retained_bytes(),
+        };
+        for part in &self.live_parts {
+            match part {
+                LivePart::Text(text) => result.text_bytes += text.len(),
+                LivePart::Reasoning { text, .. } => result.reasoning_bytes += text.len(),
+                LivePart::Tool { .. } => {}
+            }
+        }
+        result
     }
 
     /// Visible viewport lines (bounded, scroll-aware, live answer last).
@@ -7712,6 +7752,28 @@ mod tests {
             );
             assert!(state.viewport().len() <= VIEWPORT_LINES);
         }
+    }
+
+    #[tokio::test]
+    async fn live_view_metrics_count_open_and_frozen_text_without_rendering() {
+        let mut state = fresh_state("s-metrics").await;
+        let turn = WorkerTurnId("metrics-turn".into());
+        state.active_turn = Some(turn.clone());
+        state.apply_reasoning_delta(&turn, "old");
+        state.apply_delta(&turn, "first");
+        state.apply_tool_started(&turn, "op", "read", "{}");
+        state.apply_reasoning_delta(&turn, "new");
+        state.apply_delta(&turn, "second");
+        let sample = state.live_view_metrics();
+        assert_eq!(sample.text_bytes, "firstsecond".len());
+        assert_eq!(sample.reasoning_bytes, "oldnew".len());
+        assert_eq!(sample.part_count, 3, "two frozen segments and a tool");
+        assert_eq!(sample.markdown_cache_retained_bytes, 0);
+        state.apply_finished(&turn, "firstsecond", 1);
+        let done = state.live_view_metrics();
+        assert_eq!(done.text_bytes, 0);
+        assert_eq!(done.reasoning_bytes, 0);
+        assert_eq!(done.part_count, 0);
     }
 
     #[tokio::test]

@@ -67,6 +67,7 @@ struct IndexedPart {
     revision: u64,
     width: u16,
     pages: Vec<SourcePage>,
+    bytes: usize,
 }
 
 #[derive(Clone)]
@@ -104,6 +105,7 @@ pub(crate) struct MarkdownCache {
     blocks: VecDeque<CachedBlock>,
     bytes: usize,
     indexes: VecDeque<IndexedPart>,
+    index_bytes: usize,
     #[cfg(test)]
     parses: usize,
     #[cfg(test)]
@@ -123,17 +125,29 @@ impl MarkdownCache {
             return index.pages.clone();
         }
         let pages = index_source(text, width);
-        self.indexes.retain(|p| p.part != part);
+        self.indexes.retain(|p| {
+            if p.part == part {
+                self.index_bytes -= p.bytes;
+                false
+            } else {
+                true
+            }
+        });
+        let bytes = Self::pages_bytes(&pages);
+        self.index_bytes += bytes;
         self.indexes.push_back(IndexedPart {
             part,
             revision,
             width,
             pages: pages.clone(),
+            bytes,
         });
         // The index is bounded by the loaded history window, with a fixed
         // ceiling for pathological numbers of independently paged parts.
         while self.indexes.len() > 32 || self.index_bytes() > MAX_INDEX_BYTES {
-            self.indexes.pop_front();
+            if let Some(index) = self.indexes.pop_front() {
+                self.index_bytes -= index.bytes;
+            }
         }
         pages
     }
@@ -150,24 +164,23 @@ impl MarkdownCache {
     }
 
     fn index_bytes(&self) -> usize {
-        self.indexes
+        self.index_bytes
+    }
+
+    fn pages_bytes(pages: &[SourcePage]) -> usize {
+        pages
             .iter()
-            .map(|p| {
-                p.pages
-                    .iter()
-                    .map(|page| {
-                        std::mem::size_of::<SourcePage>()
-                            + page.fence.as_ref().map_or(0, String::len)
-                            + page
-                                .table_widths
-                                .as_ref()
-                                .map_or(0, |cols| cols.len() * std::mem::size_of::<usize>())
-                            + page
-                                .table_segment
-                                .as_ref()
-                                .map_or(0, |segment| segment.prefix.len() + segment.suffix.len())
-                    })
-                    .sum::<usize>()
+            .map(|page| {
+                std::mem::size_of::<SourcePage>()
+                    + page.fence.as_ref().map_or(0, String::len)
+                    + page
+                        .table_widths
+                        .as_ref()
+                        .map_or(0, |cols| cols.len() * std::mem::size_of::<usize>())
+                    + page
+                        .table_segment
+                        .as_ref()
+                        .map_or(0, |segment| segment.prefix.len() + segment.suffix.len())
             })
             .sum()
     }
@@ -2647,6 +2660,34 @@ mod tests {
         backend::TestBackend,
         widgets::{Block, Paragraph},
     };
+
+    #[test]
+    fn retained_cache_index_counter_tracks_replacement_and_eviction() {
+        let mut cache = MarkdownCache::default();
+        let text = "# one\n".repeat(200);
+        cache.pages((1, 0), &text, 60);
+        let first = cache.index_bytes();
+        assert!(first > 0);
+        cache.pages((1, 0), &text, 60);
+        assert_eq!(
+            cache.index_bytes(),
+            first,
+            "cache hit must not accumulate bytes"
+        );
+        cache.pages((1, 0), "# shorter", 60);
+        assert!(cache.index_bytes() < first, "revision replaces old index");
+        for id in 2..40 {
+            cache.pages((id, 0), "# item", 60);
+        }
+        assert_eq!(cache.indexes.len(), 32);
+        let actual: usize = cache
+            .indexes
+            .iter()
+            .map(|index| MarkdownCache::pages_bytes(&index.pages))
+            .sum();
+        assert_eq!(cache.index_bytes(), actual);
+        assert_eq!(cache.retained_bytes(), cache.bytes + actual);
+    }
 
     fn user(text: &str, chips: Vec<Chip>) -> HistoryRow {
         HistoryRow {

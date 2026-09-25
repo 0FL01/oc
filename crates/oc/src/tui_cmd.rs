@@ -23,8 +23,8 @@ use oc_core::queries::{
 use oc_core::queries::{SessionProbe, StartupNotice, TabDeckSnapshot};
 use oc_core::session::{CoreError, LocationSwitchFailure};
 use oc_tui::app::{
-    KeyOutcome, MENTION_LIMIT, MentionRequest, NoteVariant, PanelIntent, TabPresentation, TuiPanel,
-    TuiState, TuiStatus,
+    KeyOutcome, LiveViewMetrics, MENTION_LIMIT, MentionRequest, NoteVariant, PanelIntent,
+    TabPresentation, TuiPanel, TuiState, TuiStatus,
 };
 use oc_tui::commands::{CommandAction, dispatch};
 use oc_tui::dcp_panel::DcpOutcome;
@@ -50,6 +50,29 @@ struct FrameMetrics {
     max_ns: u128,
     worker_event_queue_peak: usize,
     worker_event_queue_lagged: u64,
+    live_current: LiveViewMetrics,
+    live_peak: LiveViewMetrics,
+}
+
+impl FrameMetrics {
+    fn sample_views(&mut self, state: &TuiState, deck: &LoopState) {
+        let mut current = state.live_view_metrics();
+        for parked in deck.tabs.iter().flatten() {
+            current += parked.live_view_metrics();
+        }
+        if let Some(home) = &deck.home {
+            current += home.live_view_metrics();
+        }
+        self.live_peak.text_bytes = self.live_peak.text_bytes.max(current.text_bytes);
+        self.live_peak.reasoning_bytes =
+            self.live_peak.reasoning_bytes.max(current.reasoning_bytes);
+        self.live_peak.part_count = self.live_peak.part_count.max(current.part_count);
+        self.live_peak.markdown_cache_retained_bytes = self
+            .live_peak
+            .markdown_cache_retained_bytes
+            .max(current.markdown_cache_retained_bytes);
+        self.live_current = current;
+    }
 }
 
 /// Max key events drained per frame (paste bursts stay fast; a flooding
@@ -539,6 +562,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
             metrics.count += 1;
             metrics.sum_ns += elapsed;
             metrics.max_ns = metrics.max_ns.max(elapsed);
+            metrics.sample_views(&state, &loop_state);
         }
         if *state.status() == TuiStatus::Quit {
             break;
@@ -603,6 +627,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
         job.abort();
     }
     reconcile_exit(app, &mut state, &mut loop_state).await?;
+    if let Some(metrics) = frame_metrics.as_mut() {
+        metrics.sample_views(&state, &loop_state);
+    }
     write_metrics(&state, &loop_state, frame_metrics.as_ref());
     drop(_term);
     // The terminal is restored promptly even when the owner is still rebuilding.
@@ -1906,6 +1933,14 @@ fn write_metrics(state: &TuiState, deck: &LoopState, frames: Option<&FrameMetric
         "frame_max_ns": frames.map_or(0, |frames| frames.max_ns),
         "worker_event_queue_peak": frames.map_or(0, |frames| frames.worker_event_queue_peak),
         "worker_event_queue_lagged": frames.map_or(0, |frames| frames.worker_event_queue_lagged),
+        "live_text_bytes_current": frames.map_or(0, |frames| frames.live_current.text_bytes),
+        "live_text_bytes_peak": frames.map_or(0, |frames| frames.live_peak.text_bytes),
+        "live_reasoning_bytes_current": frames.map_or(0, |frames| frames.live_current.reasoning_bytes),
+        "live_reasoning_bytes_peak": frames.map_or(0, |frames| frames.live_peak.reasoning_bytes),
+        "live_part_count_current": frames.map_or(0, |frames| frames.live_current.part_count),
+        "live_part_count_peak": frames.map_or(0, |frames| frames.live_peak.part_count),
+        "markdown_cache_retained_bytes_current": frames.map_or(0, |frames| frames.live_current.markdown_cache_retained_bytes),
+        "markdown_cache_retained_bytes_peak": frames.map_or(0, |frames| frames.live_peak.markdown_cache_retained_bytes),
     });
     let _ = std::fs::write(path, metrics.to_string());
 }
@@ -1918,6 +1953,42 @@ mod tests {
     use oc_core::core_app::WorkerTurnId;
     use oc_core::queries::{AutoAcceptState, HistoryMessage, HistoryPage, ToolOpPage, ToolOpView};
     use oc_core::session::Role;
+
+    #[test]
+    fn sampled_view_metrics_include_parked_routes_and_preserve_peaks() {
+        let (app, _, _) = CoreApp::channel(8);
+        let mut active = TuiState::new_home(app.clone());
+        active.handle_paste("draft");
+        let mut parked = TuiState::new(app, SessionId::new("parked").unwrap());
+        parked.attach_page(&HistoryPage {
+            rows: vec![HistoryMessage {
+                seq: 1,
+                role: Role::Assistant,
+                text: "# cached markdown".into(),
+                turn: None,
+            }],
+            total: 1,
+            ..Default::default()
+        });
+        parked.transcript_lines(60, 80);
+        let cached = parked.live_view_metrics().markdown_cache_retained_bytes;
+        assert!(cached > 0);
+        let mut deck = LoopState {
+            home: Some(parked),
+            ..Default::default()
+        };
+        let mut metrics = FrameMetrics::default();
+        metrics.sample_views(&active, &deck);
+        assert_eq!(metrics.live_current.text_bytes, 0);
+        assert_eq!(metrics.live_current.part_count, 0);
+        assert_eq!(metrics.live_current.markdown_cache_retained_bytes, cached);
+        // Sampling ignores input drafts; it is neither streamed text nor a UI queue.
+        assert_eq!(metrics.live_peak.text_bytes, 0);
+        deck.home = None;
+        metrics.sample_views(&active, &deck);
+        assert_eq!(metrics.live_current.markdown_cache_retained_bytes, 0);
+        assert_eq!(metrics.live_peak.markdown_cache_retained_bytes, cached);
+    }
 
     #[test]
     fn worker_event_metrics_count_overwritten_broadcast_events_and_stop_drain() {
