@@ -1,0 +1,183 @@
+{
+  "kind": "grid",
+  "status": "FAIL",
+  "scope": "frame equality only; capture provenance is not attested",
+  "scenario": "toast-overlap-before",
+  "fixture_sha256": "2d73511167c58ab919f9a8f940118a55a88aede6e7bc480d8609599bdf2df3f2",
+  "environment_id": "a67ae9a4ca444386af764f17c3db5021622d953008b2418f6bca5242d0b258a0",
+  "reference_sha256": "4133c96b28a3b6d338c479cf19dd68f8b5c189b13717baf230f82e8d45a58f88",
+  "actual_sha256": "55d24b5b2343ff2f8d2d482aff63b77a547b40538dd1065874ba2e155cbb6cdb",
+  "reference_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "actual_commit": "6c581de119cc42a30528bb77ee34d65903b047b8",
+  "cells_checked": 4840,
+  "different_cells": 141,
+  "cursor_differs": false,
+  "difference_bbox_inclusive": [
+    39,
+    2,
+    116,
+    10
+  ],
+  "samples": [
+    {
+      "x": 107,
+      "y": 2,
+      "different_fields": [
+        "symbol",
+        "fg",
+        "modifiers"
+      ]
+    },
+    {
+      "x": 108,
+      "y": 2,
+      "different_fields": [
+        "symbol",
+        "fg",
+        "modifiers"
+      ]
+    },
+    {
+      "x": 109,
+      "y": 2,
+      "different_fields": [
+        "symbol",
+        "fg",
+        "modifiers"
+      ]
+    },
+    {
+      "x": 110,
+      "y": 2,
+      "different_fields": [
+        "symbol",
+        "fg",
+        "modifiers"
+      ]
+    },
+    {
+      "x": 111,
+      "y": 2,
+      "different_fields": [
+        "symbol",
+        "fg",
+        "modifiers"
+      ]
+    },
+    {
+      "x": 112,
+      "y": 2,
+      "different_fields": [
+        "symbol",
+        "fg",
+        "modifiers"
+      ]
+    },
+    {
+      "x": 113,
+      "y": 2,
+      "different_fields": [
+        "symbol",
+        "fg",
+        "modifiers"
+      ]
+    },
+    {
+      "x": 114,
+      "y": 2,
+      "different_fields": [
+        "symbol",
+        "fg",
+        "modifiers"
+      ]
+    },
+    {
+      "x": 115,
+      "y": 2,
+      "different_fields": [
+        "symbol",
+        "fg",
+        "modifiers"
+      ]
+    },
+    {
+      "x": 116,
+      "y": 2,
+      "different_fields": [
+        "symbol",
+        "fg",
+        "modifiers"
+      ]
+    },
+    {
+      "x": 81,
+      "y": 3,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 82,
+      "y": 3,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 83,
+      "y": 3,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 84,
+      "y": 3,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 85,
+      "y": 3,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 86,
+      "y": 3,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 87,
+      "y": 3,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 88,
+      "y": 3,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 89,
+      "y": 3,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 90,
+      "y": 3,
+      "different_fields": [
+        "symbol"
+      ]
+    }
+  ]
+}

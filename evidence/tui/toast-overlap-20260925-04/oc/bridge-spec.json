@@ -1,0 +1,18 @@
+{
+  "binary": "/home/opencode/ai/oc/target/debug/oc",
+  "origin": "oc",
+  "columns": 121,
+  "rows": 40,
+  "isolated_root": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/toast-overlap-20260925-04",
+  "fixture": "/home/opencode/ai/oc/tui-recovery/fixtures",
+  "sample": "tools",
+  "sidebar": "auto",
+  "devtools": false,
+  "tabs": "horizontal",
+  "variants": false,
+  "startup_error": false,
+  "agent_profile": true,
+  "tab_restart": false,
+  "regenerate_title": false,
+  "two_turn": false
+}

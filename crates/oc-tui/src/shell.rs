@@ -1612,7 +1612,9 @@ fn render_toast(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Re
             vertical_right: "┃",
             ..border::PLAIN
         })
-        .border_style(Style::default().fg(color));
+        // Preserve the background under each border, but not underlay text
+        // modifiers (a long bold sidebar title can lie beneath this toast).
+        .border_style(Style::default().fg(color).remove_modifier(Modifier::all()));
     let text_width = rect.width.saturating_sub(9);
     let wrapped: Vec<Line<'static>> = wrap_text(message, text_width as usize)
         .into_iter()
@@ -1621,14 +1623,21 @@ fn render_toast(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Re
     frame.render_widget(block, rect);
     // Interior surface (inside the side borders, padding included), upstream
     // `background.raised.high` (`ui/toast.tsx:64-70`).
+    let interior = Rect::new(
+        rect.x.saturating_add(1),
+        rect.y,
+        rect.width.saturating_sub(2),
+        rect.height,
+    );
+    frame.render_widget(Clear, interior);
+    // OpenTUI blank canvas cells use truecolor white, including toast padding.
     frame.render_widget(
-        Block::default().style(Style::default().bg(theme.background_raised_high())),
-        Rect::new(
-            rect.x.saturating_add(1),
-            rect.y,
-            rect.width.saturating_sub(2),
-            rect.height,
+        Block::default().style(
+            Style::default()
+                .fg(Color::Rgb(255, 255, 255))
+                .bg(theme.background_raised_high()),
         ),
+        interior,
     );
     frame.render_widget(
         Paragraph::new(wrapped).style(Style::default().fg(theme.text())),
@@ -4144,6 +4153,72 @@ mod tests {
         }
         state.push_note("other status");
         assert_eq!(state.note_variant(), Some(NoteVariant::Warning));
+    }
+
+    #[tokio::test]
+    async fn copied_toast_clears_sidebar_title_under_raised_interior() {
+        let mut state = golden_state().await;
+        state.chrome.devtools = Some(false);
+        state.close_panel();
+        state.session_title =
+            Some("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".into());
+        let area = Rect::new(0, 0, 121, 40);
+        let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+
+        state.push_note_variant("Copied to clipboard", NoteVariant::Info);
+        let rect = toast_rect(&state, area).unwrap();
+        let interior = Rect::new(rect.x + 1, rect.y, rect.width - 2, rect.height);
+        let before = terminal.backend().buffer();
+        assert_eq!(before[(interior.x, interior.y + 1)].symbol(), "L");
+
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        let theme = Theme::dark();
+        for y in interior.y..interior.bottom() {
+            let mut painted = String::new();
+            for x in interior.x..interior.right() {
+                let cell = &buffer[(x, y)];
+                assert_eq!(
+                    cell.bg,
+                    theme.background_raised_high(),
+                    "background at ({x},{y})"
+                );
+                if y != rect.y + 1
+                    || x < rect.x + 3
+                    || (x >= rect.right() - 6 && x != rect.right() - 4)
+                {
+                    assert_eq!(cell.symbol(), " ", "padding at ({x},{y})");
+                    assert_eq!(
+                        cell.fg,
+                        Color::Rgb(255, 255, 255),
+                        "foreground at ({x},{y})"
+                    );
+                    assert_eq!(cell.modifier, Modifier::empty(), "modifier at ({x},{y})");
+                }
+                painted.push_str(cell.symbol());
+            }
+            let expected = if y == rect.y + 1 {
+                "  Copied to clipboard  x  ".to_string()
+            } else {
+                " ".repeat(interior.width as usize)
+            };
+            assert_eq!(painted, expected, "toast interior row {y}");
+        }
+        for y in rect.y..rect.bottom() {
+            assert_eq!(buffer[(rect.x, y)].symbol(), "┃");
+            assert_eq!(buffer[(rect.right() - 1, y)].symbol(), "┃");
+            assert_eq!(buffer[(rect.x, y)].fg, theme.info());
+            assert_eq!(buffer[(rect.right() - 1, y)].fg, theme.info());
+            assert!(buffer[(rect.x, y)].modifier.is_empty());
+            assert!(buffer[(rect.right() - 1, y)].modifier.is_empty());
+        }
+        assert_eq!(buffer[(rect.x + 3, rect.y + 1)].fg, theme.text());
+        assert_eq!(
+            buffer[(rect.right() - 4, rect.y + 1)].fg,
+            theme.text_muted()
+        );
+        assert_eq!(state.note(), Some("Copied to clipboard"));
     }
 
     #[tokio::test]

@@ -627,6 +627,45 @@ comparators run for both stages. Any differing frame or failed predicate keeps
 exit code 1; interaction feedback does not imply pixel parity. Existing output
 paths are refused, including failed attempts.
 
+For the **121×40 visible-sidebar toast overlap** diagnostic, use a separate fresh
+output directory and replace `--sidebar hide --columns 120 --selection-copy true`
+above with `--sidebar auto --columns 121 --toast-overlap true`. Keep the paired
+Reader/tools profile, `--rows 40 --geometry true --sample tools` and
+`--agent-profile true`, and both explicit binaries. This mode rejects
+`--build-oc true` and other interaction/resize/seed modes; it uses an existing
+binary without invoking Cargo. Each real PTY completes the read and title
+fixture (two transcript requests and one title request), then sends Ctrl+R,
+replaces the prefilled title through the real Rename session dialog with a long
+`OVERLAPTITLE-` title and confirms with Return.
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc \
+  --geometry true --sample tools --sidebar auto --agent-profile true \
+  --columns 121 --rows 40 --toast-overlap true \
+  --output /home/opencode/ai/oc/evidence/tui/toast-overlap-NEW-ATTEMPT
+```
+
+The title must appear in the painted sidebar and on the toast's future
+bottom-padding row. The runner saves
+`toast-overlap-before` (full styled cells/PNG/VT/render) and finds that side's
+unique painted `GEOMETRY` in the transcript for two SGR left-button down/up
+pairs without pointer movement. It saves `toast-overlap-toast` after observing
+the actual `Copied to clipboard` feedback, selection styling and an OSC 52
+introducer. `toast-overlap-checks.json` records the toast's observed border
+rectangle, the **underlying title cells inside that exact rectangle**, the
+painted bottom-padding cells, predicates that padding contains only raised-bg
+spaces, mouse bytes and unchanged provider counts. Failure remains a failed
+observation, with the actual frames retained. The normal comparator checks
+the **entire** paired grid and PNG for both stages without masks; per-side
+overlap predicates do not imply frame equality. `capture.lock.json` records
+both outcomes and comparator exits. The OSC 52 prefix and toast only establish
+the PTY transport attempt and on-screen feedback; the external/system clipboard
+destination is **NOT_VERIFIED_BY_PTY** and needs a separate destination test.
+Use a rebuilt native binary for claims about a source fix; an existing binary
+has no attested source association in this run.
+
 ## VIS28 paired temporal running-footer diagnostic
 
 Run the pinned original and an **already built** native binary with a fresh

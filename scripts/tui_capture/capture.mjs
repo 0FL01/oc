@@ -75,6 +75,9 @@ if (args['reasoning-click'] !== undefined && !['true','false'].includes(args['re
 const selectionCopy = args['selection-copy'] === 'true';
 if (args['selection-copy'] !== undefined && !['true','false'].includes(args['selection-copy']))
   throw Error('--selection-copy must be true or false');
+const toastOverlap = args['toast-overlap'] === 'true';
+if (args['toast-overlap'] !== undefined && !['true','false'].includes(args['toast-overlap']))
+  throw Error('--toast-overlap must be true or false');
 const scanner = args.scanner === 'true';
 if (args.scanner !== undefined && !['true','false'].includes(args.scanner))
   throw Error('--scanner must be true or false');
@@ -88,40 +91,49 @@ if (scanner && !['true','false'].includes(args['scanner-cancel']))
 if (!scanner && args['scanner-cancel'] !== undefined)
   throw Error('--scanner-cancel requires --scanner true');
 const scannerCancel = args['scanner-cancel'] === 'true';
+if (toastOverlap && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'auto' ||
+    args['agent-profile'] !== 'true' || Number(args.columns) !== 121 || Number(args.rows) !== 40 ||
+    !args.reference || !args.oc || args['build-oc'] === 'true' || args['refresh-before-capture'] === 'true' ||
+    args.devtools === 'true' || args.session || args.matrix === 'true' || args.variants === 'true' ||
+    args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
+    args.tabs === 'vertical' || explorationClick || tabClick || renameSession || sidebarPalette ||
+    regenerateTitle || autocomplete || autocompleteKeys || mention || reasoningClick || selectionCopy ||
+    scanner || ctrlC || twoTurn))
+  throw Error('--toast-overlap true requires only paired Reader/tools 121x40 --geometry true --sidebar auto --agent-profile true');
 if (twoTurn && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
     args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
     args.tabs === 'vertical' || explorationClick || tabClick || renameSession || sidebarPalette ||
-    regenerateTitle || autocomplete || autocompleteKeys || mention || reasoningClick || selectionCopy || scanner || ctrlC))
+    regenerateTitle || autocomplete || autocompleteKeys || mention || reasoningClick || selectionCopy || toastOverlap || scanner || ctrlC))
   throw Error('--two-turn true requires only paired Reader/tools 120x40 --geometry true --sidebar hide --agent-profile true');
 if (ctrlC && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
     args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
     args.tabs === 'vertical' || explorationClick || tabClick || renameSession || sidebarPalette ||
-    regenerateTitle || autocomplete || autocompleteKeys || mention || reasoningClick || selectionCopy || scanner))
+    regenerateTitle || autocomplete || autocompleteKeys || mention || reasoningClick || selectionCopy || toastOverlap || scanner))
   throw Error('--ctrl-c true requires paired Reader/tools 120x40, --geometry true --sidebar hide --agent-profile true and no other interaction/resize modes');
 if (scanner && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
     args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
     args.tabs === 'vertical' || explorationClick || tabClick || renameSession || sidebarPalette ||
-    regenerateTitle || autocomplete || autocompleteKeys || mention || reasoningClick || selectionCopy))
+    regenerateTitle || autocomplete || autocompleteKeys || mention || reasoningClick || selectionCopy || toastOverlap))
   throw Error('--scanner true requires paired Reader/tools 120x40, --geometry true --sidebar hide --agent-profile true and no other interaction/resize modes');
 if (selectionCopy && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
     args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
     args.tabs === 'vertical' || explorationClick || tabClick || renameSession || sidebarPalette ||
-    regenerateTitle || autocomplete || autocompleteKeys || mention || reasoningClick))
+    regenerateTitle || autocomplete || autocompleteKeys || mention || reasoningClick || toastOverlap))
   throw Error('--selection-copy true requires paired binaries, --geometry true --sample tools --sidebar hide --agent-profile true --columns 120 --rows 40, horizontal tabs and no other interaction/resize modes');
 if (reasoningClick && (args.geometry !== 'true' || args.sample !== 'reasoning' || args.sidebar !== 'hide' ||
     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
     args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
     args.tabs === 'vertical' || explorationClick || tabClick || tabClose || tabCloseKey || tabRestart ||
-    renameSession || regenerateTitle || sidebarPalette || autocomplete || autocompleteKeys || mention))
+    renameSession || regenerateTitle || sidebarPalette || autocomplete || autocompleteKeys || mention || toastOverlap))
   throw Error('--reasoning-click true requires paired binaries, --geometry true --sample reasoning --sidebar hide --agent-profile true --columns 120 --rows 40, horizontal tabs and no other interaction/resize modes');
 if (mention && autocomplete) throw Error('--mention true and --autocomplete true are mutually exclusive');
 if (autocompleteKeys && (autocomplete || mention))
@@ -130,7 +142,7 @@ if ((autocomplete || mention || autocompleteKeys) && (args.geometry !== 'true' |
     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
     args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
-    args.tabs === 'vertical' || tabClick || explorationClick || renameSession || sidebarPalette ||
+    args.tabs === 'vertical' || tabClick || explorationClick || renameSession || sidebarPalette || toastOverlap ||
     regenerateTitle || tabClose || tabCloseKey || tabRestart))
   throw Error('--autocomplete/--mention/--autocomplete-keys true requires paired binaries, --geometry true --sample tools --sidebar hide --agent-profile true --columns 120 --rows 40 and no other interaction/resize modes');
 if (sidebarPalette && (args.geometry !== 'true' || args.sample !== 'tools' ||
@@ -138,7 +150,7 @@ if (sidebarPalette && (args.geometry !== 'true' || args.sample !== 'tools' ||
     !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
     args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
     args.tabs === 'vertical' || args['tab-click'] === 'true' || args['exploration-click'] === 'true' ||
-    args['rename-session'] === 'true'))
+    args['rename-session'] === 'true' || toastOverlap))
   throw Error('--sidebar-palette true requires paired binaries, --geometry true --sample tools --sidebar hide|auto --columns 160 --rows 48, horizontal tabs and no other interaction/resize modes');
 if (regenerateTitle && !renameSession)
   throw Error('--regenerate-title true requires --rename-session true (paired Reader tools 120x40 profile)');
@@ -146,7 +158,7 @@ if (renameSession && (tabClick || tabClose || tabCloseKey || tabRestart || explo
     args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
     args.matrix === 'true' || args.variants === 'true' || args['scroll-resize'] === 'true' || args['startup-error'] === 'true' ||
-    args['seed-root'] || args.tabs === 'vertical' || !args.reference || !args.oc))
+    args['seed-root'] || args.tabs === 'vertical' || toastOverlap || !args.reference || !args.oc))
   throw Error('--rename-session true requires both binaries, --geometry true --sample tools --sidebar hide --agent-profile true --columns 120 --rows 40, horizontal tabs and no tab-click/tab-close/tab-close-key/tab-restart/exploration-click/matrix/variants/scroll-resize/startup-error/seed-root');
 if (explorationClick && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     Number(args.columns) !== 120 || Number(args.rows) !== 40 || args.matrix === 'true' || args['scroll-resize'] === 'true'))
@@ -1160,7 +1172,7 @@ try {
        let done = await waitFor(f => f.text.includes(marker) &&
         /MiMo-V2.6-Flash Free · \d/.test(f.text) &&
          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript') &&
-         (!(reasoningClick || selectionCopy) || logs.some(e=>e.kind==='provider_completed' && e.operation==='title')), 'completed transcript');
+         (!(reasoningClick || selectionCopy || toastOverlap) || logs.some(e=>e.kind==='provider_completed' && e.operation==='title')), 'completed transcript');
        if(twoTurn) done=await waitFor(f=>f.text.includes('GEOMETRY-SHORT: tool read completed.') &&
           /Reader · MiMo-V2.6-Flash Free · \d/.test(f.text) &&
           logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length===2 &&
@@ -1247,6 +1259,94 @@ try {
             answer_to_footer_rows:positions.answer_to_footer_rows,
             footer_to_user_block_rows:positions.footer_to_user_block_rows,
             footer_to_user_text_rows:positions.footer_to_user_text_rows});
+        }
+        if(toastOverlap) {
+          const longTitle='OVERLAPTITLE-'.repeat(8);
+          const checks=[];
+          const counts=()=>({requests:logs.filter(e=>e.kind==='provider').length,
+            completed:logs.filter(e=>e.kind==='provider_completed').length,
+            invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});
+          const baseline=counts();
+          const unchanged=()=>canonical(counts())===canonical(baseline);
+          lock.toast_overlap ??= {};
+          lock.toast_overlap[origin]={status:'IN_PROGRESS',baseline,checks,
+            clipboard_destination:'NOT_VERIFIED_BY_PTY'};
+          const save=()=>{
+            fs.writeFileSync(path.join(dir,'toast-overlap-checks.json'),JSON.stringify({baseline,checks},null,2)+'\n');
+            json('capture.lock.json',lock);
+          };
+          const record=(stage,predicates,details={})=>{
+            checks.push({stage,predicates,provider_counts:counts(),...details});save();
+            if(Object.values(predicates).some(v=>v!==true)) throw Error('Toast overlap predicate failed: '+stage);
+          };
+          const word='GEOMETRY';
+          record('completed-read',{
+            stable_capture:completedStatus==='CAPTURED',unique_answer_word:visibleMatches(done,word).length===1,
+            sidebar_visible:visibleMatches(done,'Context').some(p=>p.x>=80 && p.y<20),
+            read_and_title_complete:baseline.requests===3 && baseline.completed===3 && baseline.invalid===0});
+          send('\x12','toast_overlap_rename_ctrl_r');
+          const prefilled=await waitFor(f=>f.text.includes('Rename session') &&
+            visibleMatches(f,tabTitle).some(p=>p.y>0) && unchanged(),'toast overlap rename prefill');
+          record('rename-prefilled',{dialog_visible:prefilled.text.includes('Rename session'),provider_unchanged:unchanged()});
+          send('\x1b[H','toast_overlap_rename_home');await sleep(100);
+          send('\x1b[1;2F','toast_overlap_rename_shift_end');await sleep(100);
+          send(longTitle,'toast_overlap_rename_replacement');
+          const edited=await waitFor(f=>visibleMatches(f,'OVERLAPTITLE-').some(p=>p.y>0) &&
+            !visibleMatches(f,tabTitle).some(p=>p.y>0) && unchanged(),'toast overlap rename edited');
+          record('rename-edited',{replacement_visible:visibleMatches(edited,'OVERLAPTITLE-').some(p=>p.y>0),
+            provider_unchanged:unchanged()});
+          send('\r','toast_overlap_rename_return');
+          // The long title is persisted by the real session.rename route. Require
+          // visible painted underlay in the toast's lower padding row (y=3).
+          const underlay=await waitFor(f=>!f.text.includes('Rename session') &&
+            visibleMatches(f,word).length===1 && f.cells[3].slice(90).some(c=>/[A-Z]/.test(c.symbol)) &&
+            visibleMatches(f,'Context').some(p=>p.x>=80 && p.y<20) && unchanged(),
+            'renamed sidebar title under toast padding');
+          const underlayRow=underlay.cells[3].slice(90).map(c=>c.symbol).join('');
+          record('title-underlay',{
+            title_in_sidebar:underlay.cells.slice(2,6).some(row=>row.slice(80).map(c=>c.symbol).join('').includes('OVERLAP')),
+            title_on_toast_padding_row:/[A-Z]/.test(underlayRow),
+            unique_answer_word:visibleMatches(underlay,word).length===1,
+            no_toast:visibleMatches(underlay,'Copied to clipboard').length===0,
+            provider_unchanged:unchanged()}, {underlay_row_y3_from_x90:underlayRow,long_title:longTitle});
+          const beforeStatus=await capture('toast-overlap-before',underlay,'CAPTURED_TOAST_UNDERLAY');
+          record('before-capture',{stable_capture:beforeStatus==='CAPTURED_TOAST_UNDERLAY',provider_unchanged:unchanged()});
+          const target=visibleMatches(underlay,word)[0];
+          const x=target.x+4,y=target.y+1; // interior of painted transcript word, one-based SGR
+          const osc52=()=> (Buffer.concat(chunks[generation]).toString('latin1').match(/\x1b\]52;/g)||[]).length;
+          const beforeOsc52=osc52();
+          for(let i=0;i<2;i++) {
+            const down=`\x1b[<0;${x};${y}M`,up=`\x1b[<0;${x};${y}m`;
+            checks.push({stage:'mouse-click-'+(i+1),cell:{x:x-1,y:y-1},pty_column:x,pty_row:y,
+              down_base64:Buffer.from(down).toString('base64'),up_base64:Buffer.from(up).toString('base64')});save();
+            send(down,`toast_overlap_mouse_down_${i+1}`);send(up,`toast_overlap_mouse_up_${i+1}`);
+            await sleep(80);
+          }
+          const toast=await waitFor(f=>visibleMatches(f,'Copied to clipboard').length===1 &&
+            visibleMatches(f,word).length===1 && unchanged(),'copied toast over long sidebar title',3200);
+          const message=visibleMatches(toast,'Copied to clipboard')[0];
+          const left=message.x-3, right=toast.cells[message.y].findIndex((c,index)=>index>message.x+20 && c.symbol==='┃');
+          const paddingY=message.y+1;
+          const underlayCells=underlay.cells[paddingY]?.slice(left+1,right) ?? [];
+          const paddingCells=toast.cells[paddingY]?.slice(left+1,right) ?? [];
+          const toastBg=toast.cells[message.y]?.[message.x]?.bg;
+          const status=await capture('toast-overlap-toast',toast,'CAPTURED_TOAST_OVERLAP');
+          record('toast-capture',{
+            stable_capture:status==='CAPTURED_TOAST_OVERLAP',unique_toast_message:visibleMatches(toast,'Copied to clipboard').length===1,
+            toast_side_borders:left>=0 && right>left && [message.y-1,message.y,paddingY].every(row=>
+              toast.cells[row]?.[left]?.symbol==='┃' && toast.cells[row]?.[right]?.symbol==='┃'),
+            title_overlaps_padding:underlayCells.some(c=>/[A-Z]/.test(c.symbol)),
+            blank_padding:paddingCells.length>0 && paddingCells.every(c=>c.symbol===' ' && c.bg===toastBg),
+            selected_word_styled:word.split('').some((_,i)=>
+              canonical(toast.cells[target.y][target.x+i])!==canonical(underlay.cells[target.y][target.x+i])),
+            osc52_attempted:osc52()>beforeOsc52,provider_unchanged:unchanged()
+          },{toast_rect:{x:left,y:message.y-1,width:right-left+1,height:3},
+            underlying_padding:underlayCells,painted_padding:paddingCells,
+            osc52_introducers_since_mouse:osc52()-beforeOsc52,
+            clipboard_destination:'NOT_VERIFIED_BY_PTY; OSC 52 prefix and toast do not prove a system clipboard write'});
+          lock.toast_overlap[origin].status='PASS';save();
+          lock.attempts.push({origin,status:'TOAST_OVERLAP_CHECKS_PASS',provider_counts:counts(),
+            clipboard_destination:'NOT_VERIFIED_BY_PTY'});
         }
        if(selectionCopy) {
          const word='GEOMETRY';
@@ -2201,6 +2301,7 @@ try {
           if(mention && lock.mention?.[origin]) lock.mention[origin].status='FAILED';
           if(reasoningClick && lock.reasoning_click?.[origin]) lock.reasoning_click[origin].status='FAILED';
            if(selectionCopy && lock.selection_copy?.[origin]) lock.selection_copy[origin].status='FAILED';
+            if(toastOverlap && lock.toast_overlap?.[origin]) lock.toast_overlap[origin].status='FAILED';
            if(scanner && lock.scanner?.[origin]) lock.scanner[origin].status='FAILED';
            if(twoTurn && lock.two_turn?.[origin]) lock.two_turn[origin].status='FAILED';
       await capture('failure-diagnostic',await frame(),'FAILED_STATE');
