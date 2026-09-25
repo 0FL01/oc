@@ -75,3 +75,5 @@ home-height-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 home-height-*/*/*.vt binary
 model-switch-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 model-switch-*/*/*.vt binary
+two-escape-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+two-escape-*/*/*.vt binary

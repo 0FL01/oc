@@ -1119,8 +1119,11 @@ try {
                    if(!gone) absent=0;
                    if(bridgeExit!==undefined || !held()) break;
                    await sleep(100);
-                 }
-                 escape.counts_after=counts();escape.canceled=Boolean(interrupted);save();
+                  }
+                  escape.counts_after=counts();escape.canceled=Boolean(interrupted);save();
+                  if(i===1 && (interrupted || !escape.checks.some(c=>
+                      c.hint_text==='esc again to interrupt' && c.held && !c.indicator_absent)))
+                    throw Error('First Escape must only arm the held running turn');
                }
                if(!interrupted) {
                  checks.interruption.status='NO_CANCEL_AFTER_ESCAPES';
@@ -1141,7 +1144,10 @@ try {
                    checks.interruption.resume_ack=await control('resume_scanner');
                  save();
                }
-               checks.predicates={...checks.predicates,held_at_escape:checks.interruption.escapes.every(e=>e.held_before),
+                checks.predicates={...checks.predicates,
+                  two_escape_guard:checks.interruption.escapes.length===2 &&
+                    !checks.interruption.escapes[0].canceled && checks.interruption.escapes[1].canceled,
+                  held_at_escape:checks.interruption.escapes.every(e=>e.held_before),
                  running_indicator_disappeared:indicatorAbsent(interrupted),
                  durable_input_visible:interrupted.text.includes(promptText),
                  interrupted_capture:interruptedStatus==='CAPTURED_SCANNER_INTERRUPTED',

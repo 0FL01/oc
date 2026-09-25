@@ -1542,12 +1542,16 @@ fn pty_escape_cancels_heartbeat_request() {
     wait_screen_row(&pty, "turn busy", DEADLINE);
     // Rejected input stays in the editor; remove it before issuing /quit.
     pty.send(&[127; 19]);
-    pty.send(b"\x1b"); // Esc cancels; Ctrl-C always quits in the existing key map.
+    pty.send(b"\x1b");
+    wait_screen_row(&pty, "esc again to interrupt", DEADLINE);
+    // The first Esc arms the guarded interrupt; the held turn and durable
+    // accepted prompt are not discarded before a second press.
+    pty.send(b"\x1b");
     // Iteration 2 (upstream shell): the old `oc Cancelled` pane title is gone.
     // Iteration 3a renders the upstream interrupt presentation: the partial
     // assistant text with the footer's `interrupted` marker
     // (`routes/session/index.tsx:1977-1980`).
-    wait_screen_row(&pty, "cancelled", DEADLINE);
+    wait_screen_row(&pty, "interrupted", DEADLINE);
     quit_clean(&mut pty);
     assert_eq!(
         persisted(pty.data_dir(), "s-cancel"),

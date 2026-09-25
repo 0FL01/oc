@@ -1,0 +1,463 @@
+{
+  "animation": false,
+  "cancel": true,
+  "observations": [
+    {
+      "elapsed_ms": 308,
+      "at": "2026-09-25T20:46:07.696Z",
+      "cycle": 0,
+      "hint": {
+        "x": 7,
+        "y": 38
+      },
+      "run": null,
+      "active": [],
+      "fallback": [
+        {
+          "x": 3,
+          "y": 38
+        }
+      ],
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "signature": null,
+      "transition": {
+        "from": "forward",
+        "to": "forward"
+      }
+    }
+  ],
+  "pause_attempts": [
+    {
+      "stage": "fallback",
+      "observed": {
+        "elapsed_ms": 308,
+        "at": "2026-09-25T20:46:07.696Z",
+        "cycle": 0,
+        "hint": {
+          "x": 7,
+          "y": 38
+        },
+        "run": null,
+        "active": [],
+        "fallback": [
+          {
+            "x": 3,
+            "y": 38
+          }
+        ],
+        "provider_counts": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "signature": null,
+        "transition": {
+          "from": "forward",
+          "to": "forward"
+        }
+      },
+      "requested_at": "2026-09-25T20:46:07.696Z",
+      "pause_ack": {
+        "kind": "scanner_pause_ack",
+        "request_id": 1,
+        "paused": true,
+        "generation": 0
+      },
+      "paused": {
+        "at": "2026-09-25T20:46:08.006Z",
+        "observed": {
+          "hints": [
+            {
+              "x": 7,
+              "y": 38
+            }
+          ],
+          "hint_text": "esc interrupt",
+          "run": null,
+          "run_count": 0,
+          "active": [],
+          "first": null,
+          "last": null,
+          "fallback": [
+            {
+              "x": 3,
+              "y": 38
+            }
+          ],
+          "signature": null
+        },
+        "grid_sha256": "1d9d3c346dcf1387038f59603cfceebe37f79fd57711cbe8b30a60117332ab15",
+        "matches_requested_stage": true
+      },
+      "capture_name": "scanner-fallback",
+      "phase_match": "REFERENCE",
+      "status": "CAPTURED_SCANNER",
+      "resume_ack": {
+        "kind": "scanner_resume_ack",
+        "request_id": 2,
+        "paused": false,
+        "generation": 0
+      }
+    }
+  ],
+  "stages": {
+    "fallback": {
+      "status": "CAPTURED_SCANNER",
+      "scenario": "scanner-fallback",
+      "sample": {
+        "elapsed_ms": 308,
+        "at": "2026-09-25T20:46:07.696Z",
+        "cycle": 0,
+        "hint": {
+          "x": 7,
+          "y": 38
+        },
+        "run": null,
+        "active": [],
+        "fallback": [
+          {
+            "x": 3,
+            "y": 38
+          }
+        ],
+        "provider_counts": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "signature": null,
+        "transition": {
+          "from": "forward",
+          "to": "forward"
+        }
+      },
+      "paused": {
+        "at": "2026-09-25T20:46:08.006Z",
+        "observed": {
+          "hints": [
+            {
+              "x": 7,
+              "y": 38
+            }
+          ],
+          "hint_text": "esc interrupt",
+          "run": null,
+          "run_count": 0,
+          "active": [],
+          "first": null,
+          "last": null,
+          "fallback": [
+            {
+              "x": 3,
+              "y": 38
+            }
+          ],
+          "signature": null
+        },
+        "grid_sha256": "1d9d3c346dcf1387038f59603cfceebe37f79fd57711cbe8b30a60117332ab15",
+        "matches_requested_stage": true
+      },
+      "indicator_cells": [
+        {
+          "symbol": "[",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "⋯",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        },
+        {
+          "symbol": "]",
+          "fg": "#808080",
+          "bg": "#0a0a0a",
+          "width": 1,
+          "modifiers": []
+        }
+      ],
+      "color_distance": 0,
+      "phase_match": "REFERENCE"
+    }
+  },
+  "predicates": {
+    "all_phases_observed": true,
+    "provider_held": true,
+    "no_early_completion": true,
+    "valid_running_requests": true,
+    "two_escape_guard": true,
+    "held_at_escape": true,
+    "running_indicator_disappeared": true,
+    "durable_input_visible": true,
+    "interrupted_capture": true,
+    "no_completed_read": true,
+    "no_completed_transcript": true,
+    "release_acknowledged": true,
+    "server_released": true,
+    "provider_request_terminated": true,
+    "no_post_cancel_answer": true,
+    "durable_input_after_release": true,
+    "no_hidden_spinner": true,
+    "no_extra_transcript_requests": true
+  },
+  "release": {
+    "at": "2026-09-25T20:46:11.657Z",
+    "elapsed_ms": 4269
+  },
+  "interruption": {
+    "escapes": [
+      {
+        "number": 1,
+        "at": "2026-09-25T20:46:08.653Z",
+        "held_before": true,
+        "before": {
+          "hints": [
+            {
+              "x": 7,
+              "y": 38
+            }
+          ],
+          "hint_text": "esc interrupt",
+          "run": null,
+          "run_count": 0,
+          "active": [],
+          "first": null,
+          "last": null,
+          "fallback": [
+            {
+              "x": 3,
+              "y": 38
+            }
+          ],
+          "signature": null
+        },
+        "counts_before": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "checks": [
+          {
+            "at": "2026-09-25T20:46:08.886Z",
+            "hint": [
+              {
+                "x": 7,
+                "y": 38
+              }
+            ],
+            "hint_text": "esc interrupt",
+            "indicator_absent": false,
+            "provider_counts": {
+              "requests": 2,
+              "completed": 1,
+              "invalid": 0
+            },
+            "held": true
+          },
+          {
+            "at": "2026-09-25T20:46:09.208Z",
+            "hint": [
+              {
+                "x": 7,
+                "y": 38
+              }
+            ],
+            "hint_text": "esc again to interrupt",
+            "indicator_absent": false,
+            "provider_counts": {
+              "requests": 2,
+              "completed": 1,
+              "invalid": 0
+            },
+            "held": true
+          },
+          {
+            "at": "2026-09-25T20:46:09.535Z",
+            "hint": [
+              {
+                "x": 7,
+                "y": 38
+              }
+            ],
+            "hint_text": "esc again to interrupt",
+            "indicator_absent": false,
+            "provider_counts": {
+              "requests": 2,
+              "completed": 1,
+              "invalid": 0
+            },
+            "held": true
+          },
+          {
+            "at": "2026-09-25T20:46:09.867Z",
+            "hint": [
+              {
+                "x": 7,
+                "y": 38
+              }
+            ],
+            "hint_text": "esc again to interrupt",
+            "indicator_absent": false,
+            "provider_counts": {
+              "requests": 2,
+              "completed": 1,
+              "invalid": 0
+            },
+            "held": true
+          }
+        ],
+        "counts_after": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "canceled": false
+      },
+      {
+        "number": 2,
+        "at": "2026-09-25T20:46:09.982Z",
+        "held_before": true,
+        "before": {
+          "hints": [
+            {
+              "x": 7,
+              "y": 38
+            }
+          ],
+          "hint_text": "esc again to interrupt",
+          "run": null,
+          "run_count": 0,
+          "active": [],
+          "first": null,
+          "last": null,
+          "fallback": [
+            {
+              "x": 3,
+              "y": 38
+            }
+          ],
+          "signature": null
+        },
+        "counts_before": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "checks": [
+          {
+            "at": "2026-09-25T20:46:10.281Z",
+            "hint": [
+              {
+                "x": 7,
+                "y": 38
+              }
+            ],
+            "hint_text": "esc again to interrupt",
+            "indicator_absent": false,
+            "provider_counts": {
+              "requests": 2,
+              "completed": 1,
+              "invalid": 0
+            },
+            "held": true
+          },
+          {
+            "at": "2026-09-25T20:46:10.655Z",
+            "hint": [],
+            "hint_text": null,
+            "indicator_absent": true,
+            "provider_counts": {
+              "requests": 2,
+              "completed": 1,
+              "invalid": 0
+            },
+            "held": true
+          },
+          {
+            "at": "2026-09-25T20:46:11.012Z",
+            "hint": [],
+            "hint_text": null,
+            "indicator_absent": true,
+            "provider_counts": {
+              "requests": 2,
+              "completed": 1,
+              "invalid": 0
+            },
+            "held": true
+          }
+        ],
+        "counts_after": {
+          "requests": 2,
+          "completed": 1,
+          "invalid": 0
+        },
+        "canceled": true
+      }
+    ],
+    "armed_hint": {
+      "hints": [
+        {
+          "x": 7,
+          "y": 38
+        }
+      ],
+      "hint_text": "esc interrupt",
+      "run": null,
+      "run_count": 0,
+      "active": [],
+      "first": null,
+      "last": null,
+      "fallback": [
+        {
+          "x": 3,
+          "y": 38
+        }
+      ],
+      "signature": null
+    },
+    "status": "CANCELED",
+    "armed_counts": {
+      "requests": 2,
+      "completed": 1,
+      "invalid": 0
+    },
+    "pause_ack": {
+      "kind": "scanner_pause_ack",
+      "request_id": 3,
+      "paused": true,
+      "generation": 0
+    },
+    "resume_ack": {
+      "kind": "scanner_resume_ack",
+      "request_id": 4,
+      "paused": false,
+      "generation": 0
+    },
+    "at": "2026-09-25T20:46:11.654Z",
+    "provider_counts": {
+      "requests": 2,
+      "completed": 1,
+      "invalid": 0
+    },
+    "grid_sha256": "0eb3d1cf20589e79d11a7a74ec50dac37faf72a4a8289f89c920b796137005bc",
+    "indicator": {
+      "hints": [],
+      "run_count": 0,
+      "fallback": [],
+      "phase": null
+    },
+    "after_release_counts": {
+      "requests": 2,
+      "completed": 1,
+      "invalid": 0
+    }
+  }
+}

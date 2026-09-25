@@ -2541,14 +2541,16 @@ fn footer_line(
     if let Some(tps) = tokens_per_second(meta) {
         push_field(Span::styled(format!("{tps:.1} tok/s"), muted), &mut spans);
     }
-    if let Some(status) = meta
+    if meta.interrupted {
+        // The application records `cancelled` as the durable outcome, while
+        // the pinned TUI labels an interrupted assistant row `interrupted`.
+        push_field(Span::styled("interrupted", muted), &mut spans);
+    } else if let Some(status) = meta
         .status
         .as_deref()
         .filter(|s| *s != "completed" && *s != "started")
     {
         push_field(Span::styled(status, muted), &mut spans);
-    } else if meta.interrupted {
-        push_field(Span::styled("interrupted", muted), &mut spans);
     }
     (spans.len() > 1).then(|| Line::new(spans))
 }
@@ -4971,6 +4973,7 @@ mod tests {
                 output_tokens: None,
                 streamed_ms: None,
                 interrupted: true,
+                status: Some("cancelled".into()),
                 ..AssistantMeta::default()
             }),
             ..assistant("")

@@ -1519,8 +1519,18 @@ fn footer_line(
         }
         spans.push(Span::raw(" ")); // running row gap=1
         let (key, label) = ESC_INTERRUPT;
-        spans.push(Span::styled(key, Style::default().fg(theme.text())));
-        spans.push(Span::styled(label, Style::default().fg(theme.text_muted())));
+        if state.interrupt_armed() {
+            // The pinned prompt uses warning for both spans while armed; its
+            // 220ms flash is a separate time-dependent color transition.
+            spans.push(Span::styled(key, Style::default().fg(theme.warning())));
+            spans.push(Span::styled(
+                format!("again to {label}"),
+                Style::default().fg(theme.warning()),
+            ));
+        } else {
+            spans.push(Span::styled(key, Style::default().fg(theme.text())));
+            spans.push(Span::styled(label, Style::default().fg(theme.text_muted())));
+        }
     } else if let Some(notice) = state.dcp.notice() {
         spans.push(Span::styled(
             notice.to_string(),
@@ -3849,6 +3859,15 @@ mod tests {
         let off = screen(&state, 80, 24);
         assert!(off[21].starts_with("   [⋯] esc interrupt"), "{off:?}");
         assert_eq!(off[20], start[20]);
+        state.handle_key(KeyAction::Cancel).await;
+        let armed = screen(&state, 80, 24);
+        assert!(
+            armed[21].starts_with("   [⋯] esc again to interrupt"),
+            "{armed:?}"
+        );
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(7, 21)].fg, theme.warning());
+        assert_eq!(terminal.backend().buffer()[(11, 21)].fg, theme.warning());
         state.apply_finished(&turn, "", 0);
         assert!(!screen(&state, 80, 24)[21].contains("[⋯]"));
         assert!(!screen(&state, 80, 24)[21].contains("esc interrupt"));

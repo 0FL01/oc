@@ -1250,6 +1250,12 @@ fn vis28_real_pty_scanner_cycles_then_esc_cancels_and_static_fallback_completes(
         "stationary hold must visibly fade in painted SGR colors"
     );
     pty.send(b"\x1b");
+    wait_screen_row(&pty, "esc again to interrupt", DEADLINE);
+    assert!(
+        !fixture.vis28_continue.load(Ordering::Relaxed),
+        "first Esc cannot release the held request"
+    );
+    pty.send(b"\x1b");
     vis28_wait_gone(&pty);
     fixture.vis28_continue.store(true, Ordering::Relaxed);
     pty.send(b"/quit\r");

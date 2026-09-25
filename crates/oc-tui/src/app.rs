@@ -526,6 +526,9 @@ pub struct TuiState {
     toast_expiry: Option<ToastExpiry>,
     toast_down: bool,
     active_turn: Option<WorkerTurnId>,
+    /// First Esc arms the running turn for five seconds; only a second press
+    /// interrupts it (pinned prompt/index.tsx:499–528).
+    interrupt_armed_until: Option<Instant>,
     pending: Option<PendingSubmission>,
     compress_turn: Option<WorkerTurnId>,
     request_id: u64,
@@ -657,6 +660,7 @@ impl TuiState {
             toast_expiry: None,
             toast_down: false,
             active_turn: None,
+            interrupt_armed_until: None,
             pending: None,
             compress_turn: None,
             request_id: 0,
@@ -1007,6 +1011,12 @@ impl TuiState {
     fn reset_scanner(&mut self) {
         self.scanner_frame = 0;
         self.scanner_at = None;
+        self.interrupt_armed_until = None;
+    }
+
+    pub(crate) fn interrupt_armed(&self) -> bool {
+        self.interrupt_armed_until
+            .is_some_and(|until| Instant::now() < until)
     }
 
     /// Advance the running prompt scanner from a caller-supplied monotonic clock.
@@ -3330,6 +3340,9 @@ impl TuiState {
     }
 
     pub fn tick_toast(&mut self, now: Instant) {
+        if self.interrupt_armed_until.is_some_and(|until| now >= until) {
+            self.interrupt_armed_until = None;
+        }
         if self.toast_expiry.as_ref().is_some_and(|expiry| {
             expiry
                 .started
@@ -3717,6 +3730,17 @@ impl TuiState {
             }
             KeyAction::Cancel => {
                 if self.is_busy() {
+                    // Pending submission cancellation retains its existing
+                    // safety semantics. Once a turn is accepted, the focused
+                    // prompt follows the original's two-Esc interrupt guard.
+                    if self.status == TuiStatus::Streaming && self.active_turn.is_some() {
+                        let now = Instant::now();
+                        if self.interrupt_armed_until.is_none_or(|until| now >= until) {
+                            self.interrupt_armed_until = now.checked_add(Duration::from_secs(5));
+                            return KeyOutcome::default();
+                        }
+                        self.interrupt_armed_until = None;
+                    }
                     let session = self
                         .pending
                         .as_ref()
@@ -4562,7 +4586,6 @@ impl TuiState {
         }
         self.window
             .insert_before_live_user(crate::history::model_switch_text(notice));
-        self.reset_scanner();
     }
 
     /// Apply a worker text delta to the live line (turn-scoped: deltas for
@@ -10395,8 +10418,27 @@ mod tests {
         type_text(&mut state, "long").await;
         state.handle_key(KeyAction::Enter).await;
         tokio::time::sleep(Duration::from_millis(30)).await;
+        state.poll_submission();
+        assert_eq!(state.status(), &TuiStatus::Streaming);
+        assert!(state.active_turn.is_some());
+        assert!(!state.interrupt_armed());
+        assert_eq!(state.handle_key(KeyAction::Cancel).await.note, None);
+        assert!(state.interrupt_armed());
+        assert!(state.is_busy(), "the first Esc must not cancel the owner");
+
+        // The first press cannot remain armed forever or be replayed across
+        // turns. Simulate the original five-second timeout without sleeping.
+        state.interrupt_armed_until = Some(Instant::now() - Duration::from_millis(1));
+        state.tick_toast(Instant::now());
+        assert!(!state.interrupt_armed());
+        state.handle_key(KeyAction::Cancel).await;
+        assert!(
+            state.interrupt_armed(),
+            "expired Esc re-arms, not interrupts"
+        );
         let outcome = state.handle_key(KeyAction::Cancel).await;
         assert_eq!(outcome.note, None);
+        assert!(!state.interrupt_armed());
 
         let outcome = driver
             .pump_until_idle(&mut state, Duration::from_secs(5))

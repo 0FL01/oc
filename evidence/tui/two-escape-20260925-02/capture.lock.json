@@ -1,0 +1,1193 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-25T20:48:09.798Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "deaea877030d9a24e6cf9bf28207f60c313055c43d4e764fb5abaffb2ceef21d",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "b17abde5d053fa31f4f4708c81c1740b89580792df7d2efa9f9c647ed42154e5"
+  },
+  "fixture_sha256": "a7b7fe50d2f59287463e40b1e4abd795f3bf3448819dfef4fef9471ae4f5b9a4",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "83fa25040a423bd501e67f78ecdbed6e2e8cf9a6",
+    "tree": "2339018517a2f8341f5daaa32a5104d016bc3721",
+    "dirty_diff_sha256": "627be1e63176fcb8a708f909a3ae1e49d517e736de50c5ffe35dd3a50adf31c7",
+    "source_manifest_sha256": "db224167d2ce164465befadebfd50d75d10026aa3ffbc1093f1a617c23f650a5",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "3b0c8a91ffdc1d2b4fb065619e868ad12493dcd7f288798ce6f10994c7819aa1",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "SCANNER_PASS",
+      "predicates": {
+        "all_phases_observed": true,
+        "provider_held": true,
+        "no_early_completion": true,
+        "valid_running_requests": true,
+        "two_escape_guard": true,
+        "held_at_escape": true,
+        "running_indicator_disappeared": true,
+        "durable_input_visible": true,
+        "interrupted_capture": true,
+        "no_completed_read": true,
+        "no_completed_transcript": true,
+        "release_acknowledged": true,
+        "server_released": true,
+        "provider_request_terminated": true,
+        "no_post_cancel_answer": true,
+        "durable_input_after_release": true,
+        "no_hidden_spinner": true,
+        "no_extra_transcript_requests": true
+      }
+    },
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "SCANNER_PASS",
+      "predicates": {
+        "all_phases_observed": true,
+        "provider_held": true,
+        "no_early_completion": true,
+        "valid_running_requests": true,
+        "two_escape_guard": true,
+        "held_at_escape": true,
+        "running_indicator_disappeared": true,
+        "durable_input_visible": true,
+        "interrupted_capture": true,
+        "no_completed_read": true,
+        "no_completed_transcript": true,
+        "release_acknowledged": true,
+        "server_released": true,
+        "provider_request_terminated": true,
+        "no_post_cancel_answer": true,
+        "durable_input_after_release": true,
+        "no_hidden_spinner": true,
+        "no_extra_transcript_requests": true
+      }
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "scanner-fallback",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "native_capture": "scanner-fallback",
+      "phase_match": "EXACT_INDICATOR",
+      "exit_code": 1
+    },
+    {
+      "scenario": "scanner-fallback",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "native_capture": "scanner-fallback",
+      "phase_match": "EXACT_INDICATOR",
+      "exit_code": 1
+    },
+    {
+      "scenario": "scanner-interrupted",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "scanner-interrupted",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "dd80313b08c2dda8cddda7acdd4e872dbb6639ea778722283829b5ed8a2f3eb8",
+      "cells_sha256": "d430699e6f0da8f9a8aa77e7d97eee69741c1e3ef7f1e7386ad4a35680226307",
+      "png_sha256": "33194ca3568133ce951a568dea5e30b77312a19276406653b7eeb64ffabead22",
+      "render_sha256": "6830804959f21adfbf64e60dc0b1078ace1492eabbc49fb63e4c7e43f02c337b",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "scanner-fallback",
+      "status": "CAPTURED_SCANNER",
+      "environment_id": "dd80313b08c2dda8cddda7acdd4e872dbb6639ea778722283829b5ed8a2f3eb8",
+      "cells_sha256": "07a9cee769562453de29db3b50601fc9b2b3adb60fa2521c39f06c68737fe1f6",
+      "png_sha256": "ed2cf264a45544f865333557cdd1a8b67d255286ed6a70369accbd456bb0fa5d",
+      "render_sha256": "13bbb5f7e6d3fc8b6d132847bb199d45f50bd6c0d67d7f4117c542be2fa56405",
+      "path": "upstream/scanner-fallback"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "scanner-interrupted",
+      "status": "CAPTURED_SCANNER_INTERRUPTED",
+      "environment_id": "dd80313b08c2dda8cddda7acdd4e872dbb6639ea778722283829b5ed8a2f3eb8",
+      "cells_sha256": "1229a578103779e231d6b91ce54fa4a07e8c0d163798b52079451e49282e37f8",
+      "png_sha256": "591d6a109ef2f9f82d3d9741bdc615f183262f561fc0ff67873e3bba513679f6",
+      "render_sha256": "a3a84280d49254185b0654ffa5ffd5bcbb278ffdc7e5d369819c9d3eaed0c671",
+      "path": "upstream/scanner-interrupted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "dd80313b08c2dda8cddda7acdd4e872dbb6639ea778722283829b5ed8a2f3eb8",
+      "cells_sha256": "40c065a76e261e46d9d41338a8e3e28486f902117c3d123afbe2a9c091e73e55",
+      "png_sha256": "f8497f2e070ee0955c22f95e2ca55b3608f0627811efbb33da29cb1280aac327",
+      "render_sha256": "83793b60f0eea1af8a3ad894143c0b530fd53013bac590b32f40f244cee4219f",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scanner-fallback",
+      "status": "CAPTURED_SCANNER",
+      "environment_id": "dd80313b08c2dda8cddda7acdd4e872dbb6639ea778722283829b5ed8a2f3eb8",
+      "cells_sha256": "0ac854a778aedf16a1b47696cd1711cdcf8624000c1adfd3502eb3f135297cf9",
+      "png_sha256": "0b409a7239997608f51991f0590095010a0ed7f211cedf5cd9651cbde1b4bbbb",
+      "render_sha256": "e067bf5c2a595d7101ceb0e56df812bcec7f3dc076ac98bb4fe91c1653c71808",
+      "path": "oc/scanner-fallback"
+    },
+    {
+      "origin": "oc",
+      "scenario": "scanner-interrupted",
+      "status": "CAPTURED_SCANNER_INTERRUPTED",
+      "environment_id": "dd80313b08c2dda8cddda7acdd4e872dbb6639ea778722283829b5ed8a2f3eb8",
+      "cells_sha256": "fe5ce3015927fee19d98ca1e446779ec8dfa8c38fbe014baa4652af43e77804f",
+      "png_sha256": "5b6a072582850345d3dc939dc66a678890408dacabef6894ddc4d2899b9be6dd",
+      "render_sha256": "119871b15d8e509c9ec0fe3a75e8c0652cfd40ad2d762309eb8052fa9696f7d4",
+      "path": "oc/scanner-interrupted"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": false,
+      "scanner_cancel": true
+    }
+  },
+  "scanner": {
+    "upstream": {
+      "status": "PASS",
+      "checks": {
+        "animation": false,
+        "cancel": true,
+        "observations": [
+          {
+            "elapsed_ms": 264,
+            "at": "2026-09-25T20:48:14.995Z",
+            "cycle": 0,
+            "hint": {
+              "x": 7,
+              "y": 38
+            },
+            "run": null,
+            "active": [],
+            "fallback": [
+              {
+                "x": 3,
+                "y": 38
+              }
+            ],
+            "provider_counts": {
+              "requests": 2,
+              "completed": 1,
+              "invalid": 0
+            },
+            "signature": null,
+            "transition": {
+              "from": "forward",
+              "to": "forward"
+            }
+          }
+        ],
+        "pause_attempts": [
+          {
+            "stage": "fallback",
+            "observed": {
+              "elapsed_ms": 264,
+              "at": "2026-09-25T20:48:14.995Z",
+              "cycle": 0,
+              "hint": {
+                "x": 7,
+                "y": 38
+              },
+              "run": null,
+              "active": [],
+              "fallback": [
+                {
+                  "x": 3,
+                  "y": 38
+                }
+              ],
+              "provider_counts": {
+                "requests": 2,
+                "completed": 1,
+                "invalid": 0
+              },
+              "signature": null,
+              "transition": {
+                "from": "forward",
+                "to": "forward"
+              }
+            },
+            "requested_at": "2026-09-25T20:48:14.995Z",
+            "pause_ack": {
+              "kind": "scanner_pause_ack",
+              "request_id": 1,
+              "paused": true,
+              "generation": 0
+            },
+            "paused": {
+              "at": "2026-09-25T20:48:15.236Z",
+              "observed": {
+                "hints": [
+                  {
+                    "x": 7,
+                    "y": 38
+                  }
+                ],
+                "hint_text": "esc interrupt",
+                "run": null,
+                "run_count": 0,
+                "active": [],
+                "first": null,
+                "last": null,
+                "fallback": [
+                  {
+                    "x": 3,
+                    "y": 38
+                  }
+                ],
+                "signature": null
+              },
+              "grid_sha256": "1d9d3c346dcf1387038f59603cfceebe37f79fd57711cbe8b30a60117332ab15",
+              "matches_requested_stage": true
+            },
+            "capture_name": "scanner-fallback",
+            "phase_match": "REFERENCE",
+            "status": "CAPTURED_SCANNER",
+            "resume_ack": {
+              "kind": "scanner_resume_ack",
+              "request_id": 2,
+              "paused": false,
+              "generation": 0
+            }
+          }
+        ],
+        "stages": {
+          "fallback": {
+            "status": "CAPTURED_SCANNER",
+            "scenario": "scanner-fallback",
+            "sample": {
+              "elapsed_ms": 264,
+              "at": "2026-09-25T20:48:14.995Z",
+              "cycle": 0,
+              "hint": {
+                "x": 7,
+                "y": 38
+              },
+              "run": null,
+              "active": [],
+              "fallback": [
+                {
+                  "x": 3,
+                  "y": 38
+                }
+              ],
+              "provider_counts": {
+                "requests": 2,
+                "completed": 1,
+                "invalid": 0
+              },
+              "signature": null,
+              "transition": {
+                "from": "forward",
+                "to": "forward"
+              }
+            },
+            "paused": {
+              "at": "2026-09-25T20:48:15.236Z",
+              "observed": {
+                "hints": [
+                  {
+                    "x": 7,
+                    "y": 38
+                  }
+                ],
+                "hint_text": "esc interrupt",
+                "run": null,
+                "run_count": 0,
+                "active": [],
+                "first": null,
+                "last": null,
+                "fallback": [
+                  {
+                    "x": 3,
+                    "y": 38
+                  }
+                ],
+                "signature": null
+              },
+              "grid_sha256": "1d9d3c346dcf1387038f59603cfceebe37f79fd57711cbe8b30a60117332ab15",
+              "matches_requested_stage": true
+            },
+            "indicator_cells": [
+              {
+                "symbol": "[",
+                "fg": "#808080",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⋯",
+                "fg": "#808080",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "]",
+                "fg": "#808080",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "color_distance": 0,
+            "phase_match": "REFERENCE"
+          }
+        },
+        "predicates": {
+          "all_phases_observed": true,
+          "provider_held": true,
+          "no_early_completion": true,
+          "valid_running_requests": true,
+          "two_escape_guard": true,
+          "held_at_escape": true,
+          "running_indicator_disappeared": true,
+          "durable_input_visible": true,
+          "interrupted_capture": true,
+          "no_completed_read": true,
+          "no_completed_transcript": true,
+          "release_acknowledged": true,
+          "server_released": true,
+          "provider_request_terminated": true,
+          "no_post_cancel_answer": true,
+          "durable_input_after_release": true,
+          "no_hidden_spinner": true,
+          "no_extra_transcript_requests": true
+        },
+        "release": {
+          "at": "2026-09-25T20:48:18.745Z",
+          "elapsed_ms": 4014
+        },
+        "interruption": {
+          "escapes": [
+            {
+              "number": 1,
+              "at": "2026-09-25T20:48:15.852Z",
+              "held_before": true,
+              "before": {
+                "hints": [
+                  {
+                    "x": 7,
+                    "y": 38
+                  }
+                ],
+                "hint_text": "esc interrupt",
+                "run": null,
+                "run_count": 0,
+                "active": [],
+                "first": null,
+                "last": null,
+                "fallback": [
+                  {
+                    "x": 3,
+                    "y": 38
+                  }
+                ],
+                "signature": null
+              },
+              "counts_before": {
+                "requests": 2,
+                "completed": 1,
+                "invalid": 0
+              },
+              "checks": [
+                {
+                  "at": "2026-09-25T20:48:16.074Z",
+                  "hint": [
+                    {
+                      "x": 7,
+                      "y": 38
+                    }
+                  ],
+                  "hint_text": "esc interrupt",
+                  "indicator_absent": false,
+                  "provider_counts": {
+                    "requests": 2,
+                    "completed": 1,
+                    "invalid": 0
+                  },
+                  "held": true
+                },
+                {
+                  "at": "2026-09-25T20:48:16.407Z",
+                  "hint": [
+                    {
+                      "x": 7,
+                      "y": 38
+                    }
+                  ],
+                  "hint_text": "esc again to interrupt",
+                  "indicator_absent": false,
+                  "provider_counts": {
+                    "requests": 2,
+                    "completed": 1,
+                    "invalid": 0
+                  },
+                  "held": true
+                },
+                {
+                  "at": "2026-09-25T20:48:16.736Z",
+                  "hint": [
+                    {
+                      "x": 7,
+                      "y": 38
+                    }
+                  ],
+                  "hint_text": "esc again to interrupt",
+                  "indicator_absent": false,
+                  "provider_counts": {
+                    "requests": 2,
+                    "completed": 1,
+                    "invalid": 0
+                  },
+                  "held": true
+                },
+                {
+                  "at": "2026-09-25T20:48:17.032Z",
+                  "hint": [
+                    {
+                      "x": 7,
+                      "y": 38
+                    }
+                  ],
+                  "hint_text": "esc again to interrupt",
+                  "indicator_absent": false,
+                  "provider_counts": {
+                    "requests": 2,
+                    "completed": 1,
+                    "invalid": 0
+                  },
+                  "held": true
+                }
+              ],
+              "counts_after": {
+                "requests": 2,
+                "completed": 1,
+                "invalid": 0
+              },
+              "canceled": false
+            },
+            {
+              "number": 2,
+              "at": "2026-09-25T20:48:17.143Z",
+              "held_before": true,
+              "before": {
+                "hints": [
+                  {
+                    "x": 7,
+                    "y": 38
+                  }
+                ],
+                "hint_text": "esc again to interrupt",
+                "run": null,
+                "run_count": 0,
+                "active": [],
+                "first": null,
+                "last": null,
+                "fallback": [
+                  {
+                    "x": 3,
+                    "y": 38
+                  }
+                ],
+                "signature": null
+              },
+              "counts_before": {
+                "requests": 2,
+                "completed": 1,
+                "invalid": 0
+              },
+              "checks": [
+                {
+                  "at": "2026-09-25T20:48:17.456Z",
+                  "hint": [
+                    {
+                      "x": 7,
+                      "y": 38
+                    }
+                  ],
+                  "hint_text": "esc again to interrupt",
+                  "indicator_absent": false,
+                  "provider_counts": {
+                    "requests": 2,
+                    "completed": 1,
+                    "invalid": 0
+                  },
+                  "held": true
+                },
+                {
+                  "at": "2026-09-25T20:48:17.779Z",
+                  "hint": [],
+                  "hint_text": null,
+                  "indicator_absent": true,
+                  "provider_counts": {
+                    "requests": 2,
+                    "completed": 1,
+                    "invalid": 0
+                  },
+                  "held": true
+                },
+                {
+                  "at": "2026-09-25T20:48:18.179Z",
+                  "hint": [],
+                  "hint_text": null,
+                  "indicator_absent": true,
+                  "provider_counts": {
+                    "requests": 2,
+                    "completed": 1,
+                    "invalid": 0
+                  },
+                  "held": true
+                }
+              ],
+              "counts_after": {
+                "requests": 2,
+                "completed": 1,
+                "invalid": 0
+              },
+              "canceled": true
+            }
+          ],
+          "armed_hint": {
+            "hints": [
+              {
+                "x": 7,
+                "y": 38
+              }
+            ],
+            "hint_text": "esc interrupt",
+            "run": null,
+            "run_count": 0,
+            "active": [],
+            "first": null,
+            "last": null,
+            "fallback": [
+              {
+                "x": 3,
+                "y": 38
+              }
+            ],
+            "signature": null
+          },
+          "status": "CANCELED",
+          "armed_counts": {
+            "requests": 2,
+            "completed": 1,
+            "invalid": 0
+          },
+          "pause_ack": {
+            "kind": "scanner_pause_ack",
+            "request_id": 3,
+            "paused": true,
+            "generation": 0
+          },
+          "resume_ack": {
+            "kind": "scanner_resume_ack",
+            "request_id": 4,
+            "paused": false,
+            "generation": 0
+          },
+          "at": "2026-09-25T20:48:18.742Z",
+          "provider_counts": {
+            "requests": 2,
+            "completed": 1,
+            "invalid": 0
+          },
+          "grid_sha256": "0ce136a7b9b015449e95d03963dbe783219ee742630244de2d9a6361b693d443",
+          "indicator": {
+            "hints": [],
+            "run_count": 0,
+            "fallback": [],
+            "phase": null
+          },
+          "after_release_counts": {
+            "requests": 2,
+            "completed": 1,
+            "invalid": 0
+          }
+        }
+      }
+    },
+    "oc": {
+      "status": "PASS",
+      "checks": {
+        "animation": false,
+        "cancel": true,
+        "observations": [
+          {
+            "elapsed_ms": 175,
+            "at": "2026-09-25T20:48:24.588Z",
+            "cycle": 0,
+            "hint": {
+              "x": 7,
+              "y": 38
+            },
+            "run": null,
+            "active": [],
+            "fallback": [
+              {
+                "x": 3,
+                "y": 38
+              }
+            ],
+            "provider_counts": {
+              "requests": 1,
+              "completed": 0,
+              "invalid": 0
+            },
+            "signature": null,
+            "transition": {
+              "from": "forward",
+              "to": "forward"
+            }
+          }
+        ],
+        "pause_attempts": [
+          {
+            "stage": "fallback",
+            "observed": {
+              "elapsed_ms": 175,
+              "at": "2026-09-25T20:48:24.588Z",
+              "cycle": 0,
+              "hint": {
+                "x": 7,
+                "y": 38
+              },
+              "run": null,
+              "active": [],
+              "fallback": [
+                {
+                  "x": 3,
+                  "y": 38
+                }
+              ],
+              "provider_counts": {
+                "requests": 1,
+                "completed": 0,
+                "invalid": 0
+              },
+              "signature": null,
+              "transition": {
+                "from": "forward",
+                "to": "forward"
+              }
+            },
+            "requested_at": "2026-09-25T20:48:24.589Z",
+            "pause_ack": {
+              "kind": "scanner_pause_ack",
+              "request_id": 1,
+              "paused": true,
+              "generation": 0
+            },
+            "paused": {
+              "at": "2026-09-25T20:48:24.835Z",
+              "observed": {
+                "hints": [
+                  {
+                    "x": 7,
+                    "y": 38
+                  }
+                ],
+                "hint_text": "esc interrupt",
+                "run": null,
+                "run_count": 0,
+                "active": [],
+                "first": null,
+                "last": null,
+                "fallback": [
+                  {
+                    "x": 3,
+                    "y": 38
+                  }
+                ],
+                "signature": null
+              },
+              "grid_sha256": "6fe65a2306ec69c58810a7c5ca9379529a9eff57192ccea35c87d9e12e313de2",
+              "matches_requested_stage": true
+            },
+            "capture_name": "scanner-fallback",
+            "phase_match": "EXACT_INDICATOR",
+            "status": "CAPTURED_SCANNER",
+            "resume_ack": {
+              "kind": "scanner_resume_ack",
+              "request_id": 2,
+              "paused": false,
+              "generation": 0
+            }
+          }
+        ],
+        "stages": {
+          "fallback": {
+            "status": "CAPTURED_SCANNER",
+            "scenario": "scanner-fallback",
+            "sample": {
+              "elapsed_ms": 175,
+              "at": "2026-09-25T20:48:24.588Z",
+              "cycle": 0,
+              "hint": {
+                "x": 7,
+                "y": 38
+              },
+              "run": null,
+              "active": [],
+              "fallback": [
+                {
+                  "x": 3,
+                  "y": 38
+                }
+              ],
+              "provider_counts": {
+                "requests": 1,
+                "completed": 0,
+                "invalid": 0
+              },
+              "signature": null,
+              "transition": {
+                "from": "forward",
+                "to": "forward"
+              }
+            },
+            "paused": {
+              "at": "2026-09-25T20:48:24.835Z",
+              "observed": {
+                "hints": [
+                  {
+                    "x": 7,
+                    "y": 38
+                  }
+                ],
+                "hint_text": "esc interrupt",
+                "run": null,
+                "run_count": 0,
+                "active": [],
+                "first": null,
+                "last": null,
+                "fallback": [
+                  {
+                    "x": 3,
+                    "y": 38
+                  }
+                ],
+                "signature": null
+              },
+              "grid_sha256": "6fe65a2306ec69c58810a7c5ca9379529a9eff57192ccea35c87d9e12e313de2",
+              "matches_requested_stage": true
+            },
+            "indicator_cells": [
+              {
+                "symbol": "[",
+                "fg": "#808080",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "⋯",
+                "fg": "#808080",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "]",
+                "fg": "#808080",
+                "bg": "#0a0a0a",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "color_distance": 0,
+            "phase_match": "EXACT_INDICATOR"
+          }
+        },
+        "predicates": {
+          "all_phases_observed": true,
+          "provider_held": true,
+          "no_early_completion": true,
+          "valid_running_requests": true,
+          "two_escape_guard": true,
+          "held_at_escape": true,
+          "running_indicator_disappeared": true,
+          "durable_input_visible": true,
+          "interrupted_capture": true,
+          "no_completed_read": true,
+          "no_completed_transcript": true,
+          "release_acknowledged": true,
+          "server_released": true,
+          "provider_request_terminated": true,
+          "no_post_cancel_answer": true,
+          "durable_input_after_release": true,
+          "no_hidden_spinner": true,
+          "no_extra_transcript_requests": true
+        },
+        "release": {
+          "at": "2026-09-25T20:48:28.148Z",
+          "elapsed_ms": 3735
+        },
+        "interruption": {
+          "escapes": [
+            {
+              "number": 1,
+              "at": "2026-09-25T20:48:25.433Z",
+              "held_before": true,
+              "before": {
+                "hints": [
+                  {
+                    "x": 7,
+                    "y": 38
+                  }
+                ],
+                "hint_text": "esc interrupt",
+                "run": null,
+                "run_count": 0,
+                "active": [],
+                "first": null,
+                "last": null,
+                "fallback": [
+                  {
+                    "x": 3,
+                    "y": 38
+                  }
+                ],
+                "signature": null
+              },
+              "counts_before": {
+                "requests": 1,
+                "completed": 0,
+                "invalid": 0
+              },
+              "checks": [
+                {
+                  "at": "2026-09-25T20:48:25.666Z",
+                  "hint": [
+                    {
+                      "x": 7,
+                      "y": 38
+                    }
+                  ],
+                  "hint_text": "esc interrupt",
+                  "indicator_absent": false,
+                  "provider_counts": {
+                    "requests": 1,
+                    "completed": 0,
+                    "invalid": 0
+                  },
+                  "held": true
+                },
+                {
+                  "at": "2026-09-25T20:48:25.982Z",
+                  "hint": [
+                    {
+                      "x": 7,
+                      "y": 38
+                    }
+                  ],
+                  "hint_text": "esc again to interrupt",
+                  "indicator_absent": false,
+                  "provider_counts": {
+                    "requests": 1,
+                    "completed": 0,
+                    "invalid": 0
+                  },
+                  "held": true
+                },
+                {
+                  "at": "2026-09-25T20:48:26.307Z",
+                  "hint": [
+                    {
+                      "x": 7,
+                      "y": 38
+                    }
+                  ],
+                  "hint_text": "esc again to interrupt",
+                  "indicator_absent": false,
+                  "provider_counts": {
+                    "requests": 1,
+                    "completed": 0,
+                    "invalid": 0
+                  },
+                  "held": true
+                },
+                {
+                  "at": "2026-09-25T20:48:26.624Z",
+                  "hint": [
+                    {
+                      "x": 7,
+                      "y": 38
+                    }
+                  ],
+                  "hint_text": "esc again to interrupt",
+                  "indicator_absent": false,
+                  "provider_counts": {
+                    "requests": 1,
+                    "completed": 0,
+                    "invalid": 0
+                  },
+                  "held": true
+                }
+              ],
+              "counts_after": {
+                "requests": 1,
+                "completed": 0,
+                "invalid": 0
+              },
+              "canceled": false
+            },
+            {
+              "number": 2,
+              "at": "2026-09-25T20:48:26.738Z",
+              "held_before": true,
+              "before": {
+                "hints": [
+                  {
+                    "x": 7,
+                    "y": 38
+                  }
+                ],
+                "hint_text": "esc again to interrupt",
+                "run": null,
+                "run_count": 0,
+                "active": [],
+                "first": null,
+                "last": null,
+                "fallback": [
+                  {
+                    "x": 3,
+                    "y": 38
+                  }
+                ],
+                "signature": null
+              },
+              "counts_before": {
+                "requests": 1,
+                "completed": 0,
+                "invalid": 0
+              },
+              "checks": [
+                {
+                  "at": "2026-09-25T20:48:26.951Z",
+                  "hint": [
+                    {
+                      "x": 7,
+                      "y": 38
+                    }
+                  ],
+                  "hint_text": "esc again to interrupt",
+                  "indicator_absent": false,
+                  "provider_counts": {
+                    "requests": 1,
+                    "completed": 0,
+                    "invalid": 0
+                  },
+                  "held": true
+                },
+                {
+                  "at": "2026-09-25T20:48:27.271Z",
+                  "hint": [],
+                  "hint_text": null,
+                  "indicator_absent": true,
+                  "provider_counts": {
+                    "requests": 1,
+                    "completed": 0,
+                    "invalid": 0
+                  },
+                  "held": true
+                },
+                {
+                  "at": "2026-09-25T20:48:27.602Z",
+                  "hint": [],
+                  "hint_text": null,
+                  "indicator_absent": true,
+                  "provider_counts": {
+                    "requests": 1,
+                    "completed": 0,
+                    "invalid": 0
+                  },
+                  "held": true
+                }
+              ],
+              "counts_after": {
+                "requests": 1,
+                "completed": 0,
+                "invalid": 0
+              },
+              "canceled": true
+            }
+          ],
+          "armed_hint": {
+            "hints": [
+              {
+                "x": 7,
+                "y": 38
+              }
+            ],
+            "hint_text": "esc interrupt",
+            "run": null,
+            "run_count": 0,
+            "active": [],
+            "first": null,
+            "last": null,
+            "fallback": [
+              {
+                "x": 3,
+                "y": 38
+              }
+            ],
+            "signature": null
+          },
+          "status": "CANCELED",
+          "armed_counts": {
+            "requests": 1,
+            "completed": 0,
+            "invalid": 0
+          },
+          "pause_ack": {
+            "kind": "scanner_pause_ack",
+            "request_id": 3,
+            "paused": true,
+            "generation": 0
+          },
+          "resume_ack": {
+            "kind": "scanner_resume_ack",
+            "request_id": 4,
+            "paused": false,
+            "generation": 0
+          },
+          "at": "2026-09-25T20:48:28.146Z",
+          "provider_counts": {
+            "requests": 1,
+            "completed": 0,
+            "invalid": 0
+          },
+          "grid_sha256": "4968ad1da2440d8b406752184ef378297443f964fe2b2b299110df2f0a72a4b0",
+          "indicator": {
+            "hints": [],
+            "run_count": 0,
+            "fallback": [],
+            "phase": null
+          },
+          "after_release_counts": {
+            "requests": 1,
+            "completed": 1,
+            "invalid": 0
+          }
+        }
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": false,
+      "scanner_cancel": true
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-25T20:48:31.455Z",
+  "exit_code": 1
+}

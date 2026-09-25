@@ -1,0 +1,206 @@
+[
+  {
+    "argv": [
+      "/usr/local/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "hide",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--scanner",
+      "true",
+      "--scanner-animation",
+      "false",
+      "--scanner-cancel",
+      "true",
+      "--output",
+      "evidence/tui/two-escape-20260925-02"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "83fa25040a423bd501e67f78ecdbed6e2e8cf9a6\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "2339018517a2f8341f5daaa32a5104d016bc3721\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/app.rs b/crates/oc-tui/src/app.rs\nindex c983314..547bbee 100644\n--- a/crates/oc-tui/src/app.rs\n+++ b/crates/oc-tui/src/app.rs\n@@ -526,6 +526,9 @@ pub struct TuiState {\n     toast_expiry: Option<ToastExpiry>,\n     toast_down: bool,\n     active_turn: Option<WorkerTurnId>,\n+    /// First Esc arms the running turn for five seconds; only a second press\n+    /// interrupts it (pinned prompt/index.tsx:499–528).\n+    interrupt_armed_until: Option<Instant>,\n     pending: Option<PendingSubmission>,\n     compress_turn: Option<WorkerTurnId>,\n     request_id: u64,\n@@ -657,6 +660,7 @@ impl TuiState {\n             toast_expiry: None,\n             toast_down: false,\n             active_turn: None,\n+            interrupt_armed_until: None,\n             pending: None,\n             compress_turn: None,\n             request_id: 0,\n@@ -1007,6 +1011,12 @@ impl TuiState {\n     fn reset_scanner(&mut self) {\n         self.scanner_frame = 0;\n         self.scanner_at = None;\n+        self.interrupt_armed_until = None;\n+    }\n+\n+    pub(crate) fn interrupt_armed(&self) -> bool {\n+        self.interrupt_armed_until\n+            .is_some_and(|until| Instant::now() < until)\n     }\n \n     /// Advance the running prompt scanner from a caller-supplied monotonic clock.\n@@ -3330,6 +3340,9 @@ impl TuiState {\n     }\n \n     pub fn tick_toast(&mut self, now: Instant) {\n+        if self.interrupt_armed_until.is_some_and(|until| now >= until) {\n+            self.interrupt_armed_until = None;\n+        }\n         if self.toast_expiry.as_ref().is_some_and(|expiry| {\n             expiry\n                 .started\n@@ -3717,6 +3730,17 @@ impl TuiState {\n             }\n             KeyAction::Cancel => {\n                 if self.is_busy() {\n+                    // Pending submission cancellation retains its existing\n+                    // safety semantics. Once a turn is accepted, the focused\n+                    // prompt follows the original's two-Esc interrupt guard.\n+                    if self.status == TuiStatus::Streaming && self.active_turn.is_some() {\n+                        let now = Instant::now();\n+                        if self.interrupt_armed_until.is_none_or(|until| now >= until) {\n+                            self.interrupt_armed_until = now.checked_add(Duration::from_secs(5));\n+                            return KeyOutcome::default();\n+                        }\n+                        self.interrupt_armed_until = None;\n+                    }\n                     let session = self\n                         .pending\n                         .as_ref()\n@@ -4562,7 +4586,6 @@ impl TuiState {\n         }\n         self.window\n             .insert_before_live_user(crate::history::model_switch_text(notice));\n-        self.reset_scanner();\n     }\n \n     /// Apply a worker text delta to the live line (turn-scoped: deltas for\n@@ -10395,8 +10418,27 @@ mod tests {\n         type_text(&mut state, \"long\").await;\n         state.handle_key(KeyAction::Enter).await;\n         tokio::time::sleep(Duration::from_millis(30)).await;\n+        state.poll_submission();\n+        assert_eq!(state.status(), &TuiStatus::Streaming);\n+        assert!(state.active_turn.is_some());\n+        assert!(!state.interrupt_armed());\n+        assert_eq!(state.handle_key(KeyAction::Cancel).await.note, None);\n+        assert!(state.interrupt_armed());\n+        assert!(state.is_busy(), \"the first Esc must not cancel the owner\");\n+\n+        // The first press cannot remain armed forever or be replayed across\n+        // turns. Simulate the original five-second timeout without sleeping.\n+        state.interrupt_armed_until = Some(Instant::now() - Duration::from_millis(1));\n+        state.tick_toast(Instant::now());\n+        assert!(!state.interrupt_armed());\n+        state.handle_key(KeyAction::Cancel).await;\n+        assert!(\n+            state.interrupt_armed(),\n+            \"expired Esc re-arms, not interrupts\"\n+        );\n         let outcome = state.handle_key(KeyAction::Cancel).await;\n         assert_eq!(outcome.note, None);\n+        assert!(!state.interrupt_armed());\n \n         let outcome = driver\n             .pump_until_idle(&mut state, Duration::from_secs(5))\ndiff --git a/crates/oc-tui/src/messages.rs b/crates/oc-tui/src/messages.rs\nindex 59eead8..aed1af6 100644\n--- a/crates/oc-tui/src/messages.rs\n+++ b/crates/oc-tui/src/messages.rs\n@@ -2541,14 +2541,16 @@ fn footer_line(\n     if let Some(tps) = tokens_per_second(meta) {\n         push_field(Span::styled(format!(\"{tps:.1} tok/s\"), muted), &mut spans);\n     }\n-    if let Some(status) = meta\n+    if meta.interrupted {\n+        // The application records `cancelled` as the durable outcome, while\n+        // the pinned TUI labels an interrupted assistant row `interrupted`.\n+        push_field(Span::styled(\"interrupted\", muted), &mut spans);\n+    } else if let Some(status) = meta\n         .status\n         .as_deref()\n         .filter(|s| *s != \"completed\" && *s != \"started\")\n     {\n         push_field(Span::styled(status, muted), &mut spans);\n-    } else if meta.interrupted {\n-        push_field(Span::styled(\"interrupted\", muted), &mut spans);\n     }\n     (spans.len() > 1).then(|| Line::new(spans))\n }\n@@ -4971,6 +4973,7 @@ mod tests {\n                 output_tokens: None,\n                 streamed_ms: None,\n                 interrupted: true,\n+                status: Some(\"cancelled\".into()),\n                 ..AssistantMeta::default()\n             }),\n             ..assistant(\"\")\ndiff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs\nindex 7295c13..053d355 100644\n--- a/crates/oc-tui/src/shell.rs\n+++ b/crates/oc-tui/src/shell.rs\n@@ -1519,8 +1519,18 @@ fn footer_line(\n         }\n         spans.push(Span::raw(\" \")); // running row gap=1\n         let (key, label) = ESC_INTERRUPT;\n-        spans.push(Span::styled(key, Style::default().fg(theme.text())));\n-        spans.push(Span::styled(label, Style::default().fg(theme.text_muted())));\n+        if state.interrupt_armed() {\n+            // The pinned prompt uses warning for both spans while armed; its\n+            // 220ms flash is a separate time-dependent color transition.\n+            spans.push(Span::styled(key, Style::default().fg(theme.warning())));\n+            spans.push(Span::styled(\n+                format!(\"again to {label}\"),\n+                Style::default().fg(theme.warning()),\n+            ));\n+        } else {\n+            spans.push(Span::styled(key, Style::default().fg(theme.text())));\n+            spans.push(Span::styled(label, Style::default().fg(theme.text_muted())));\n+        }\n     } else if let Some(notice) = state.dcp.notice() {\n         spans.push(Span::styled(\n             notice.to_string(),\ndiff --git a/crates/oc/tests/pty.rs b/crates/oc/tests/pty.rs\nindex cae40dc..7c32f0b 100644\n--- a/crates/oc/tests/pty.rs\n+++ b/crates/oc/tests/pty.rs\n@@ -1542,7 +1542,11 @@ fn pty_escape_cancels_heartbeat_request() {\n     wait_screen_row(&pty, \"turn busy\", DEADLINE);\n     // Rejected input stays in the editor; remove it before issuing /quit.\n     pty.send(&[127; 19]);\n-    pty.send(b\"\\x1b\"); // Esc cancels; Ctrl-C always quits in the existing key map.\n+    pty.send(b\"\\x1b\");\n+    wait_screen_row(&pty, \"esc again to interrupt\", DEADLINE);\n+    // The first Esc arms the guarded interrupt; the held turn and durable\n+    // accepted prompt are not discarded before a second press.\n+    pty.send(b\"\\x1b\");\n     // Iteration 2 (upstream shell): the old `oc Cancelled` pane title is gone.\n     // Iteration 3a renders the upstream interrupt presentation: the partial\n     // assistant text with the footer's `interrupted` marker\ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex d250abd..8ff9768 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -1119,8 +1119,11 @@ try {\n                    if(!gone) absent=0;\n                    if(bridgeExit!==undefined || !held()) break;\n                    await sleep(100);\n-                 }\n-                 escape.counts_after=counts();escape.canceled=Boolean(interrupted);save();\n+                  }\n+                  escape.counts_after=counts();escape.canceled=Boolean(interrupted);save();\n+                  if(i===1 && (interrupted || !escape.checks.some(c=>\n+                      c.hint_text==='esc again to interrupt' && c.held && !c.indicator_absent)))\n+                    throw Error('First Escape must only arm the held running turn');\n                }\n                if(!interrupted) {\n                  checks.interruption.status='NO_CANCEL_AFTER_ESCAPES';\n@@ -1141,7 +1144,10 @@ try {\n                    checks.interruption.resume_ack=await control('resume_scanner');\n                  save();\n                }\n-               checks.predicates={...checks.predicates,held_at_escape:checks.interruption.escapes.every(e=>e.held_before),\n+                checks.predicates={...checks.predicates,\n+                  two_escape_guard:checks.interruption.escapes.length===2 &&\n+                    !checks.interruption.escapes[0].canceled && checks.interruption.escapes[1].canceled,\n+                  held_at_escape:checks.interruption.escapes.every(e=>e.held_before),\n                  running_indicator_disappeared:indicatorAbsent(interrupted),\n                  durable_input_visible:interrupted.text.includes(promptText),\n                  interrupted_capture:interruptedStatus==='CAPTURED_SCANNER_INTERRUPTED',\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/assets/upstream/PROVENANCE.md\u0000crates/oc-adapters/assets/upstream/v2/review.txt\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/scanner.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/clipboard.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.17s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"a7b7fe50d2f59287463e40b1e4abd795f3bf3448819dfef4fef9471ae4f5b9a4\", \"environment_id\": \"dd80313b08c2dda8cddda7acdd4e872dbb6639ea778722283829b5ed8a2f3eb8\", \"reference_sha256\": \"d430699e6f0da8f9a8aa77e7d97eee69741c1e3ef7f1e7386ad4a35680226307\", \"actual_sha256\": \"40c065a76e261e46d9d41338a8e3e28486f902117c3d123afbe2a9c091e73e55\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"83fa25040a423bd501e67f78ecdbed6e2e8cf9a6\", \"cells_checked\": 4800, \"different_cells\": 46, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 56, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"33194ca3568133ce951a568dea5e30b77312a19276406653b7eeb64ffabead22\", \"actual_sha256\": \"f8497f2e070ee0955c22f95e2ca55b3608f0627811efbb33da29cb1280aac327\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1834, \"changed_fraction_diagnostic_only\": 0.00283444609297725, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/upstream/scanner-fallback.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/oc/scanner-fallback.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/scanner-fallback.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scanner-fallback\", \"fixture_sha256\": \"a7b7fe50d2f59287463e40b1e4abd795f3bf3448819dfef4fef9471ae4f5b9a4\", \"environment_id\": \"dd80313b08c2dda8cddda7acdd4e872dbb6639ea778722283829b5ed8a2f3eb8\", \"reference_sha256\": \"07a9cee769562453de29db3b50601fc9b2b3adb60fa2521c39f06c68737fe1f6\", \"actual_sha256\": \"0ac854a778aedf16a1b47696cd1711cdcf8624000c1adfd3502eb3f135297cf9\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"83fa25040a423bd501e67f78ecdbed6e2e8cf9a6\", \"cells_checked\": 4800, \"different_cells\": 32, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 0, 34, 0], \"samples\": [{\"x\": 3, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 4, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 5, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 6, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 7, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 8, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 9, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 10, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 11, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 12, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 13, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 20, \"y\": 0, \"different_fields\": [\"fg\", \"modifiers\"]}, {\"x\": 21, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 22, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/upstream/scanner-fallback.png",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/oc/scanner-fallback.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/scanner-fallback.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"ed2cf264a45544f865333557cdd1a8b67d255286ed6a70369accbd456bb0fa5d\", \"actual_sha256\": \"0b409a7239997608f51991f0590095010a0ed7f211cedf5cd9651cbde1b4bbbb\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1518, \"changed_fraction_diagnostic_only\": 0.0023460682492581603, \"difference_bbox_inclusive\": [25, 1, 285, 15]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/upstream/scanner-interrupted.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/oc/scanner-interrupted.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/scanner-interrupted.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"scanner-interrupted\", \"fixture_sha256\": \"a7b7fe50d2f59287463e40b1e4abd795f3bf3448819dfef4fef9471ae4f5b9a4\", \"environment_id\": \"dd80313b08c2dda8cddda7acdd4e872dbb6639ea778722283829b5ed8a2f3eb8\", \"reference_sha256\": \"1229a578103779e231d6b91ce54fa4a07e8c0d163798b52079451e49282e37f8\", \"actual_sha256\": \"fe5ce3015927fee19d98ca1e446779ec8dfa8c38fbe014baa4652af43e77804f\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"83fa25040a423bd501e67f78ecdbed6e2e8cf9a6\", \"cells_checked\": 4800, \"different_cells\": 29, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 0, 31, 0], \"samples\": [{\"x\": 3, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 4, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 5, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 6, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 7, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 8, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 9, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 10, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 11, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 12, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 13, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 0, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 20, \"y\": 0, \"different_fields\": [\"fg\", \"modifiers\"]}, {\"x\": 21, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 22, \"y\": 0, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/upstream/scanner-interrupted.png",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/oc/scanner-interrupted.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/two-escape-20260925-02/scanner-interrupted.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"591d6a109ef2f9f82d3d9741bdc615f183262f561fc0ff67873e3bba513679f6\", \"actual_sha256\": \"5b6a072582850345d3dc939dc66a678890408dacabef6894ddc4d2899b9be6dd\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 1490, \"changed_fraction_diagnostic_only\": 0.0023027942631058357, \"difference_bbox_inclusive\": [25, 1, 268, 15]}\n",
+    "stderr": ""
+  }
+]
