@@ -198,7 +198,7 @@
       "id": "VIS15",
       "step": "V06",
       "title": "Reasoning and footer truth",
-      "expected": "Collapsed/running/complete/error reasoning and known duration/usage visible; opaque encrypted continuation absent from UI/logs.",
+      "expected": "Collapsed/running/complete/error reasoning and known duration/usage visible; opaque encrypted continuation absent from UI/logs. In a paired two-turn transcript, final assistant text, agent/model attribution, and the next user's message have the same blank/styled row positions as pinned upstream, including wrapped text and replay; the entire frame remains subject to pixel-parity comparison, not a cropped-region PASS.",
       "sources": [
         "P06",
         "P10",
