@@ -1,0 +1,218 @@
+[
+  {
+    "argv": [
+      "/usr/local/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--geometry",
+      "true",
+      "--sample",
+      "tools",
+      "--sidebar",
+      "auto",
+      "--agent-profile",
+      "true",
+      "--columns",
+      "121",
+      "--rows",
+      "40",
+      "--toast-overlap",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "23b069a293bfea6caa6ea393fba24cdfb473cdba\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "00db23ea276f9cd880083b157618160a6bfec1c8\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs\nindex 2bb94ef..a69fbe8 100644\n--- a/crates/oc-tui/src/shell.rs\n+++ b/crates/oc-tui/src/shell.rs\n@@ -631,7 +631,7 @@ fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area:\n         area.width.saturating_sub(4),\n         area.height.saturating_sub(2),\n     );\n-    let title = wrap_text_with_breaks(\n+    let title = wrap_sidebar_title(\n         state.session_title.as_deref().unwrap_or(UNTITLED_SESSION),\n         inner.width.saturating_sub(2) as usize,\n     );\n@@ -1707,6 +1707,62 @@ fn wrap_text_with_breaks(text: &str, width: usize) -> Vec<(String, bool)> {\n     lines\n }\n \n+/// Sidebar titles also wrap after a hyphen. Only whitespace wraps carry a\n+/// styled separator cell into the preceding row.\n+fn wrap_sidebar_title(text: &str, width: usize) -> Vec<(String, bool)> {\n+    if width == 0 {\n+        return vec![(String::new(), false)];\n+    }\n+    let mut lines = Vec::new();\n+    let mut current = String::new();\n+    let mut current_width = 0;\n+    for word in text.split(' ') {\n+        let mut pieces = Vec::new();\n+        let mut start = 0;\n+        for (offset, grapheme) in word.grapheme_indices(true) {\n+            if grapheme == \"-\" {\n+                let end = offset + grapheme.len();\n+                pieces.push(&word[start..end]);\n+                start = end;\n+            }\n+        }\n+        if start < word.len() || pieces.is_empty() {\n+            pieces.push(&word[start..]);\n+        }\n+        for (index, piece) in pieces.into_iter().enumerate() {\n+            let separated_by_space = index == 0 && !current.is_empty();\n+            let separator = usize::from(separated_by_space);\n+            let piece_width = text_width(piece);\n+            if current_width + separator + piece_width <= width {\n+                if separated_by_space {\n+                    current.push(' ');\n+                    current_width += 1;\n+                }\n+                current.push_str(piece);\n+                current_width += piece_width;\n+                continue;\n+            }\n+            if !current.is_empty() {\n+                lines.push((std::mem::take(&mut current), separated_by_space));\n+                current_width = 0;\n+            }\n+            for grapheme in piece.graphemes(true) {\n+                let grapheme_width = text_width(grapheme);\n+                if current_width + grapheme_width > width && !current.is_empty() {\n+                    lines.push((std::mem::take(&mut current), false));\n+                    current_width = 0;\n+                }\n+                current.push_str(grapheme);\n+                current_width += grapheme_width;\n+            }\n+        }\n+    }\n+    if !current.is_empty() || lines.is_empty() {\n+        lines.push((current, false));\n+    }\n+    lines\n+}\n+\n fn text_width(text: &str) -> usize {\n     Line::from(text).width()\n }\n@@ -3472,6 +3528,49 @@ mod tests {\n         }\n     }\n \n+    #[tokio::test]\n+    async fn hyphenated_sidebar_title_wraps_like_paired_121x40_frame() {\n+        let mut state = golden_state().await;\n+        state.session_title = Some(\"OVERLAPTITLE-\".repeat(8));\n+        state.chrome.devtools = Some(false);\n+        let mut terminal = Terminal::new(TestBackend::new(121, 40)).unwrap();\n+        terminal.draw(|frame| render(frame, &state)).unwrap();\n+        let buffer = terminal.backend().buffer();\n+        let session = shell_regions(&state, Rect::new(0, 0, 121, 40)).session;\n+        let title_x = session.right() - layout::SESSION_SIDEBAR_WIDTH + 2;\n+        let title_y = session.y + 1;\n+        let expected = \"OVERLAPTITLE-OVERLAPTITLE-\";\n+        assert_eq!(title_x, 81);\n+        assert_eq!(title_y, 2);\n+        for y in title_y..title_y + 4 {\n+            let row = (title_x..title_x + expected.len() as u16)\n+                .map(|x| buffer[(x, y)].symbol())\n+                .collect::<String>();\n+            assert_eq!(row, expected, \"title row {y}\");\n+            let tail = &buffer[(title_x + expected.len() as u16, y)];\n+            assert_eq!(tail.symbol(), \" \");\n+            assert!(!tail.modifier.contains(Modifier::BOLD), \"hyphen row {y}\");\n+        }\n+        let context = (title_x..title_x + 7)\n+            .map(|x| buffer[(x, 7)].symbol())\n+            .collect::<String>();\n+        assert_eq!(context, \"Context\");\n+        assert_eq!(buffer[(title_x, 6)].symbol(), \" \");\n+\n+        // A hyphen break and an unbreakable title both keep graphemes intact.\n+        assert_eq!(\n+            wrap_sidebar_title(\"e\\u{301}-e\\u{301}-e\\u{301}-\", 4),\n+            [\n+                (\"e\\u{301}-e\\u{301}-\".into(), false),\n+                (\"e\\u{301}-\".into(), false)\n+            ]\n+        );\n+        assert_eq!(\n+            wrap_sidebar_title(&\"🧑‍💻\".repeat(3), 3),\n+            vec![(\"🧑‍💻\".into(), false); 3]\n+        );\n+    }\n+\n     #[tokio::test]\n     async fn hard_wrapped_unicode_sidebar_title_has_no_separator_cell() {\n         let mut state = golden_state().await;\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/assets/upstream/PROVENANCE.md\u0000crates/oc-adapters/assets/upstream/v2/review.txt\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/scanner.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/clipboard.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/upstream/home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/oc/home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"home\", \"fixture_sha256\": \"a7b7fe50d2f59287463e40b1e4abd795f3bf3448819dfef4fef9471ae4f5b9a4\", \"environment_id\": \"a67ae9a4ca444386af764f17c3db5021622d953008b2418f6bca5242d0b258a0\", \"reference_sha256\": \"74e082044600bc4ca3bc65fa876cd0efd4b0a75ae4e6736245cd4eb44f2b8608\", \"actual_sha256\": \"fe3f036a58b5c1f26ad8e8f7bae672513b923ace5b19780f3c01e7eead1de54d\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"23b069a293bfea6caa6ea393fba24cdfb473cdba\", \"cells_checked\": 4840, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [113, 38, 118, 38], \"samples\": [{\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 118, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/upstream/home.png",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/oc/home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"bf1be83aa3fc950190f3d4d54f8c26dee8d5e338c149372b45cb6540ffebff5b\", \"actual_sha256\": \"e307d14ecea082f17d6526d4bcfab70fec1fd925ccdfeec11f389a74fcf47d69\", \"width\": 1020, \"height\": 640, \"pixels_checked\": 652800, \"different_pixels\": 303, \"changed_fraction_diagnostic_only\": 0.00046415441176470587, \"difference_bbox_inclusive\": [952, 611, 1001, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/upstream/session-wide-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/oc/session-wide-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/session-wide-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"session-wide-completed\", \"fixture_sha256\": \"a7b7fe50d2f59287463e40b1e4abd795f3bf3448819dfef4fef9471ae4f5b9a4\", \"environment_id\": \"a67ae9a4ca444386af764f17c3db5021622d953008b2418f6bca5242d0b258a0\", \"reference_sha256\": \"328b947901b0c2137b248167ad3cf8b93e016e628deac221a854776f852b51cd\", \"actual_sha256\": \"ae22dc3f536c842c8d0564a140ddf4283cb55b0cec3fd24061d3e649c45b3c1f\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"23b069a293bfea6caa6ea393fba24cdfb473cdba\", \"cells_checked\": 4840, \"different_cells\": 3, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 10, 39, 10], \"samples\": [{\"x\": 37, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/upstream/session-wide-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/oc/session-wide-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/session-wide-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"363ebf6de59ff41c645533601fa4bebd2b1066d9daa220fd5ce7695d1b5dbe5d\", \"actual_sha256\": \"4a45d3618e6f10fa97f48aa3a3f6bac548b32c607c0e2fd9e18a7d29d5804e7e\", \"width\": 1020, \"height\": 640, \"pixels_checked\": 652800, \"different_pixels\": 167, \"changed_fraction_diagnostic_only\": 0.00025582107843137255, \"difference_bbox_inclusive\": [312, 163, 335, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/upstream/toast-overlap-before.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/oc/toast-overlap-before.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/toast-overlap-before.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"toast-overlap-before\", \"fixture_sha256\": \"a7b7fe50d2f59287463e40b1e4abd795f3bf3448819dfef4fef9471ae4f5b9a4\", \"environment_id\": \"a67ae9a4ca444386af764f17c3db5021622d953008b2418f6bca5242d0b258a0\", \"reference_sha256\": \"7aeb68ff87013b6655ae6c93af5e845d40790fbc6ef75e8a1850be6a804385f0\", \"actual_sha256\": \"a0c650a60a85e152450ac2dbd37fe64f9ff95b856cd6f32229659eb95fefc16c\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"23b069a293bfea6caa6ea393fba24cdfb473cdba\", \"cells_checked\": 4840, \"different_cells\": 3, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 10, 39, 10], \"samples\": [{\"x\": 37, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/upstream/toast-overlap-before.png",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/oc/toast-overlap-before.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/toast-overlap-before.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"d086832cf1323338ba57e4a4aaa88de552191ebcd0cd8475ab34af9d74683307\", \"actual_sha256\": \"d2b23f1a66a47f76f314771b8a984c3d35cf61ad0ff949883e97cab8a6a7ae59\", \"width\": 1020, \"height\": 640, \"pixels_checked\": 652800, \"different_pixels\": 167, \"changed_fraction_diagnostic_only\": 0.00025582107843137255, \"difference_bbox_inclusive\": [312, 163, 335, 172]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/upstream/toast-overlap-toast.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/oc/toast-overlap-toast.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/toast-overlap-toast.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"toast-overlap-toast\", \"fixture_sha256\": \"a7b7fe50d2f59287463e40b1e4abd795f3bf3448819dfef4fef9471ae4f5b9a4\", \"environment_id\": \"a67ae9a4ca444386af764f17c3db5021622d953008b2418f6bca5242d0b258a0\", \"reference_sha256\": \"195bb1b34ec20cc53d6e49339e0b21dce4363f2d4878d4d4a783ecdaacb4d16b\", \"actual_sha256\": \"38a00ccfe9b00399895a8d20b637ddd5f436a4e73ebacca6e3ce530d3514e13a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"23b069a293bfea6caa6ea393fba24cdfb473cdba\", \"cells_checked\": 4840, \"different_cells\": 3, \"cursor_differs\": false, \"difference_bbox_inclusive\": [37, 10, 39, 10], \"samples\": [{\"x\": 37, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 10, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 10, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/upstream/toast-overlap-toast.png",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/oc/toast-overlap-toast.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/toast-overlap-20260925-06/toast-overlap-toast.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"5dd245a31ae33126c4f05ee9b5bd75de37f5bc0187d93e590c47d033375344c3\", \"actual_sha256\": \"7ad2c8a1a0f19d6b712c4ac5165c83ed0002d0007f56128efbb965a8e08777f1\", \"width\": 1020, \"height\": 640, \"pixels_checked\": 652800, \"different_pixels\": 167, \"changed_fraction_diagnostic_only\": 0.00025582107843137255, \"difference_bbox_inclusive\": [312, 163, 335, 172]}\n",
+    "stderr": ""
+  }
+]

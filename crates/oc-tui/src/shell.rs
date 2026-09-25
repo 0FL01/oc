@@ -631,7 +631,7 @@ fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
         area.width.saturating_sub(4),
         area.height.saturating_sub(2),
     );
-    let title = wrap_text_with_breaks(
+    let title = wrap_sidebar_title(
         state.session_title.as_deref().unwrap_or(UNTITLED_SESSION),
         inner.width.saturating_sub(2) as usize,
     );
@@ -1700,6 +1700,62 @@ fn wrap_text_with_breaks(text: &str, width: usize) -> Vec<(String, bool)> {
         }
         current = chunk;
         current_width = chunk_width;
+    }
+    if !current.is_empty() || lines.is_empty() {
+        lines.push((current, false));
+    }
+    lines
+}
+
+/// Sidebar titles also wrap after a hyphen. Only whitespace wraps carry a
+/// styled separator cell into the preceding row.
+fn wrap_sidebar_title(text: &str, width: usize) -> Vec<(String, bool)> {
+    if width == 0 {
+        return vec![(String::new(), false)];
+    }
+    let mut lines = Vec::new();
+    let mut current = String::new();
+    let mut current_width = 0;
+    for word in text.split(' ') {
+        let mut pieces = Vec::new();
+        let mut start = 0;
+        for (offset, grapheme) in word.grapheme_indices(true) {
+            if grapheme == "-" {
+                let end = offset + grapheme.len();
+                pieces.push(&word[start..end]);
+                start = end;
+            }
+        }
+        if start < word.len() || pieces.is_empty() {
+            pieces.push(&word[start..]);
+        }
+        for (index, piece) in pieces.into_iter().enumerate() {
+            let separated_by_space = index == 0 && !current.is_empty();
+            let separator = usize::from(separated_by_space);
+            let piece_width = text_width(piece);
+            if current_width + separator + piece_width <= width {
+                if separated_by_space {
+                    current.push(' ');
+                    current_width += 1;
+                }
+                current.push_str(piece);
+                current_width += piece_width;
+                continue;
+            }
+            if !current.is_empty() {
+                lines.push((std::mem::take(&mut current), separated_by_space));
+                current_width = 0;
+            }
+            for grapheme in piece.graphemes(true) {
+                let grapheme_width = text_width(grapheme);
+                if current_width + grapheme_width > width && !current.is_empty() {
+                    lines.push((std::mem::take(&mut current), false));
+                    current_width = 0;
+                }
+                current.push_str(grapheme);
+                current_width += grapheme_width;
+            }
+        }
     }
     if !current.is_empty() || lines.is_empty() {
         lines.push((current, false));
@@ -3470,6 +3526,49 @@ mod tests {
                 assert!(!cell.modifier.contains(Modifier::BOLD), "({x},{row})");
             }
         }
+    }
+
+    #[tokio::test]
+    async fn hyphenated_sidebar_title_wraps_like_paired_121x40_frame() {
+        let mut state = golden_state().await;
+        state.session_title = Some("OVERLAPTITLE-".repeat(8));
+        state.chrome.devtools = Some(false);
+        let mut terminal = Terminal::new(TestBackend::new(121, 40)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        let session = shell_regions(&state, Rect::new(0, 0, 121, 40)).session;
+        let title_x = session.right() - layout::SESSION_SIDEBAR_WIDTH + 2;
+        let title_y = session.y + 1;
+        let expected = "OVERLAPTITLE-OVERLAPTITLE-";
+        assert_eq!(title_x, 81);
+        assert_eq!(title_y, 2);
+        for y in title_y..title_y + 4 {
+            let row = (title_x..title_x + expected.len() as u16)
+                .map(|x| buffer[(x, y)].symbol())
+                .collect::<String>();
+            assert_eq!(row, expected, "title row {y}");
+            let tail = &buffer[(title_x + expected.len() as u16, y)];
+            assert_eq!(tail.symbol(), " ");
+            assert!(!tail.modifier.contains(Modifier::BOLD), "hyphen row {y}");
+        }
+        let context = (title_x..title_x + 7)
+            .map(|x| buffer[(x, 7)].symbol())
+            .collect::<String>();
+        assert_eq!(context, "Context");
+        assert_eq!(buffer[(title_x, 6)].symbol(), " ");
+
+        // A hyphen break and an unbreakable title both keep graphemes intact.
+        assert_eq!(
+            wrap_sidebar_title("e\u{301}-e\u{301}-e\u{301}-", 4),
+            [
+                ("e\u{301}-e\u{301}-".into(), false),
+                ("e\u{301}-".into(), false)
+            ]
+        );
+        assert_eq!(
+            wrap_sidebar_title(&"🧑‍💻".repeat(3), 3),
+            vec![("🧑‍💻".into(), false); 3]
+        );
     }
 
     #[tokio::test]

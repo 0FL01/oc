@@ -1,0 +1,16 @@
+# T44 sidebar title wrap — paired 121×40 diagnostic (2026-09-25)
+
+**Result: title region matches, whole-frame parity does not.** The pinned original wraps the eight repetitions of `OVERLAPTITLE-` at hyphens into four two-token lines, with `Context` at y=7. The previous native capture [`toast-overlap-20260925-05`](toast-overlap-20260925-05/capture.lock.json) hard-split at the 36-cell budget, produced three lines, and put `Context` at y=6 (142 differing styled cells before the toast). The title-only grapheme-safe hyphen-break change in `crates/oc-tui/src/shell.rs` yields the same four lines and following sidebar rows in the immutable new [`toast-overlap-20260925-06`](toast-overlap-20260925-06/capture.lock.json) paired PTY capture. The sidebar remains 42 cells wide at the 121-column breakpoint; the title's allocated width was not altered.
+
+The new attempt uses the pinned original commit `2670273ff17da96f85c5826ced57aa1b368754fa` and the real native binary at HEAD `23b069a` plus the one-file dirty source change, against one Reader/tools fixture and identical 121×40 terminal profile. The native binary was manually rebuilt with `CARGO_BUILD_JOBS=3 cargo build --locked` immediately before capture; its SHA-256 `e9e6b66bfb8c1f6f41339aac732aec4310e1fbe2fbaf70d777bbba0fa4124bfd` matches the post-capture executable. The capture lock correctly labels an *existing* binary's source/build association as unattested by **the runner itself**; this manual association is not a clean final-source-SHA qualification.
+
+| Full-frame stage | Different styled cells / 4,840 | Different PNG pixels / 652,800 |
+| --- | ---: | ---: |
+| Home | 6 | 303 |
+| Completed session | 3 | 167 |
+| Renamed title before copy | **3** | **167** |
+| Long title behind copied-toast | **3** | **167** |
+
+In both title stages the grid diff bounds **all** remaining unequal cells to x=37–39, y=10, where independently measured real assistant elapsed-time digits differ. The matched sidebar title, Context rows, and (after copy) toast are part of the **unmasked full-frame** comparison; no cells or PNG pixels were ignored to claim a pass. All four full-frame styled-grid and PNG comparisons are `DIFFERENT`, with comparator exit 1 and runner exit 1. Cursor equality and both origin-side `TOAST_OVERLAP_CHECKS_PASS` are recorded separately. Each origin made three completed valid provider requests and no invalid requests; selecting/copying introduced no request. OSC 52 output and success feedback do not independently verify the OS/terminal clipboard destination (`NOT_VERIFIED_BY_PTY`). The earlier failed/partial attempts remain immutable.
+
+Checks on this code slice: 322 `oc-tui` tests including a new 121×40 title/Context regression, and the serialized full `cargo fmt --all -- --check`, `CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 TMPDIR=/home/opencode/.cache/opencode-tmp/opencode/oc-test-bench-20260924 cargo test --locked --workspace --no-fail-fast`, all-target workspace Clippy with `-D warnings`, locked build, docs/progress/Node/Python syntax and diff checks **PASS**, 0 test failures. Full gate output: `/home/opencode/.local/share/opencode/tool-output/tool_0d9ac8ae30011jWdXZ2hm2MTrg`. These checks and the title match do **not** close VIS01–VIS28, VIS27's clipboard-destination requirement, V09, or T44: mandatory full-frame comparisons remain unequal.
