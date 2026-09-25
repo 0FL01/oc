@@ -1780,6 +1780,7 @@ impl Db {
     }
 
     /// Set a generated title once; explicit/child titles always win.
+    #[cfg(test)]
     pub(crate) fn set_generated_title(
         &self,
         session: &str,

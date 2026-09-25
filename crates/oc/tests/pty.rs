@@ -1474,8 +1474,18 @@ fn aud02_store01_persist_resume_across_restart() {
         "third configured answer"
     );
     let requests = fixture.wait_requests(3);
-    assert_eq!(requests.len(), 4, "three process turns plus one title");
-    assert_eq!(requests.iter().filter(|r| title::is_title(r)).count(), 1);
+    // Each process owns its ancillary title task independently. A completed
+    // title can be durable before the next launch, or a departing process can
+    // leave its title pending and the next launch retries it.
+    assert_eq!(
+        requests.iter().filter(|r| !title::is_title(r)).count(),
+        3,
+        "three accepted process turns"
+    );
+    assert!(
+        (1..=3).contains(&requests.iter().filter(|r| title::is_title(r)).count()),
+        "one title attempt at most per accepted turn"
+    );
     let requests: Vec<_> = requests
         .into_iter()
         .filter(|r| !title::is_title(r))

@@ -89,7 +89,7 @@ pub async fn run_once_to_writers(
                     }
                 };
                 match event {
-                    CoreEvent::TurnStarted { .. } => {}
+                    CoreEvent::TurnStarted { .. } | CoreEvent::SessionTitleUpdated { .. } => {}
                     CoreEvent::TextDelta {
                         turn: id, delta, ..
                     } if id == turn => {

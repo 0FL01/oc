@@ -1,0 +1,22 @@
+[
+  {
+    "at_ms": 1790371690973,
+    "kind": "scanner_prompt_paste",
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "at_ms": 1790371691174,
+    "kind": "scanner_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790371692063,
+    "kind": "scanner_interrupt_escape_1",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1790371693347,
+    "kind": "scanner_interrupt_escape_2",
+    "base64": "Gw=="
+  }
+]

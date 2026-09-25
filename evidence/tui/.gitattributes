@@ -77,3 +77,5 @@ model-switch-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 model-switch-*/*/*.vt binary
 two-escape-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 two-escape-*/*/*.vt binary
+early-title-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+early-title-*/*/*.vt binary

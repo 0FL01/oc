@@ -1803,7 +1803,8 @@ async fn handle_worker_event(
     event: CoreEvent,
 ) -> Result<(), String> {
     let owner = match &event {
-        CoreEvent::TurnStarted { session, .. }
+        CoreEvent::SessionTitleUpdated { session, .. }
+        | CoreEvent::TurnStarted { session, .. }
         | CoreEvent::TurnPresentation { session, .. }
         | CoreEvent::TextDelta { session, .. }
         | CoreEvent::ReasoningDelta { session, .. }
@@ -1819,6 +1820,7 @@ async fn handle_worker_event(
         return Ok(());
     }
     match event {
+        CoreEvent::SessionTitleUpdated { title, .. } => state.session_title = Some(title),
         CoreEvent::TurnStarted {
             turn, model_switch, ..
         } => {
@@ -4838,6 +4840,40 @@ mod tests {
                 "no session-scoped query reached worker"
             );
         }
+    }
+
+    #[tokio::test]
+    async fn committed_title_event_refreshes_only_the_open_session() {
+        let (app, _inbox, _) = CoreApp::channel(4);
+        let session = SessionId::new("open-title").unwrap();
+        let mut state = TuiState::new(app.clone(), session.clone());
+        let mut loop_state = LoopState::default();
+        handle_worker_event(
+            &app,
+            &mut state,
+            &mut loop_state,
+            &session,
+            CoreEvent::SessionTitleUpdated {
+                session: SessionId::new("other-title").unwrap(),
+                title: "foreign".into(),
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.session_title, None);
+        handle_worker_event(
+            &app,
+            &mut state,
+            &mut loop_state,
+            &session,
+            CoreEvent::SessionTitleUpdated {
+                session: session.clone(),
+                title: "Real title".into(),
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.session_title.as_deref(), Some("Real title"));
     }
 
     #[tokio::test]

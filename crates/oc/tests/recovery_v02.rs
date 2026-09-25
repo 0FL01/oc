@@ -83,10 +83,17 @@ async fn scenario(
         std::fs::write(project.join("probe.txt"), probe).unwrap();
     }
     let generated_title = title.clone();
+    let title_prompt = if label == "Changed" {
+        "Generate a short session title from the user's request. Output only the title, in at most 100 characters."
+    } else {
+        "Generate a short session title. Output only the title."
+    };
     let expected_probe = probe.map(str::to_string);
     let server = std::thread::spawn(move || {
         listener.set_nonblocking(true).unwrap();
-        for round in 0..3 {
+        let mut main_rounds = 0;
+        let mut titles = 0;
+        for request_index in 0..3 {
             let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
             let (mut socket, _) = loop {
                 match listener.accept() {
@@ -94,7 +101,7 @@ async fn scenario(
                     Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                         assert!(
                             std::time::Instant::now() < deadline,
-                            "missing request {round}"
+                            "missing request {request_index}"
                         );
                         std::thread::sleep(std::time::Duration::from_millis(10));
                     }
@@ -131,7 +138,19 @@ async fn scenario(
             let request: serde_json::Value =
                 serde_json::from_slice(&bytes[end..end + length]).unwrap();
             assert_eq!(request["model"], "route/model/with/slashes");
-            if round == 1 {
+            let title_request = request["tools"] == serde_json::json!([])
+                && request["max_output_tokens"] == 256
+                && request["input"][0]["role"] == "developer"
+                && request["input"][0]["content"][0]["text"] == title_prompt
+                && request["input"].as_array().is_some_and(|items| {
+                    items.len() == 2
+                        && items[1]["role"] == "user"
+                        && items[1]["content"][0]["text"] == "Inspect probe.txt"
+                });
+            if !title_request {
+                assert!(main_rounds < 2, "unexpected extra main turn: {request}");
+            }
+            if !title_request && main_rounds == 1 {
                 let input = request["input"].as_array().unwrap();
                 for (call, name) in [("c1", "read"), ("c2", "apply_patch")] {
                     let calls: Vec<_> = input
@@ -163,40 +182,43 @@ async fn scenario(
                     }
                 }
             }
-            let (text, output) = match round {
-                0 => (
+            let (text, output) = if title_request {
+                titles += 1;
+                assert_eq!(titles, 1, "one real title request");
+                (
                     "",
-                    serde_json::json!([
-                        {"type":"function_call","id":"i1","call_id":"c1","name":"read","arguments":"{\"path\":\"probe.txt\"}"},
-                        {"type":"function_call","id":"i2","call_id":"c2","name":"apply_patch","arguments":serde_json::json!({"patchText":format!("*** Begin Patch\n*** Add File: replay.txt\n+{}\n*** End Patch", "payload ".repeat(patch_repeat))}).to_string()}
-                    ]),
-                ),
-                1 => (
-                    "Final durable answer",
-                    serde_json::json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Final durable answer"}]}]),
-                ),
-                _ => {
-                    assert!(request["tools"].as_array().is_none_or(|v| v.is_empty()));
-                    assert_eq!(request["max_output_tokens"], 256);
-                    assert!(request["input"].to_string().contains("Inspect probe.txt"));
-                    (
+                    serde_json::json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":generated_title}]}]),
+                )
+            } else {
+                let round = main_rounds;
+                main_rounds += 1;
+                match round {
+                    0 => (
                         "",
-                        serde_json::json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":generated_title}]}]),
-                    )
+                        serde_json::json!([
+                            {"type":"function_call","id":"i1","call_id":"c1","name":"read","arguments":"{\"path\":\"probe.txt\"}"},
+                            {"type":"function_call","id":"i2","call_id":"c2","name":"apply_patch","arguments":serde_json::json!({"patchText":format!("*** Begin Patch\n*** Add File: replay.txt\n+{}\n*** End Patch", "payload ".repeat(patch_repeat))}).to_string()}
+                        ]),
+                    ),
+                    1 => (
+                        "Final durable answer",
+                        serde_json::json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Final durable answer"}]}]),
+                    ),
+                    _ => unreachable!(),
                 }
             };
             let mut sse = String::new();
-            if round == 0 {
+            if !title_request && main_rounds == 1 {
                 sse.push_str("data: {\"type\":\"response.reasoning_summary_text.delta\",\"delta\":\"Public thought\"}\n\ndata: {\"type\":\"response.output_item.done\",\"item\":{\"type\":\"reasoning\",\"id\":\"r1\",\"encrypted_content\":\"opaque-secret\",\"summary\":[]}}\n\n");
             }
-            if round == 1 {
+            if !title_request && main_rounds == 2 {
                 sse.push_str("data: {\"type\":\"response.reasoning_summary_text.delta\",\"delta\":\"Second thought\"}\n\n");
             }
             sse.push_str(&format!(
                 "data: {}\n\n",
                 serde_json::json!({"type":"response.output_text.delta","delta":text})
             ));
-            sse.push_str(&format!("data: {}\n\n",serde_json::json!({"type":"response.completed","response":{"status":"completed","output":output,"usage":if usage_rounds.get(round).copied().unwrap_or(false) {serde_json::json!({"input_tokens":321,"output_tokens":17})}else{serde_json::Value::Null}}})));
+            sse.push_str(&format!("data: {}\n\n",serde_json::json!({"type":"response.completed","response":{"status":"completed","output":output,"usage":if !title_request && usage_rounds[main_rounds - 1] {serde_json::json!({"input_tokens":321,"output_tokens":17})}else{serde_json::Value::Null}}})));
             write!(socket,"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",sse.len()).unwrap();
             let split = sse.find("\n\n").unwrap() + 2;
             socket.write_all(&sse.as_bytes()[..split]).unwrap();
@@ -204,6 +226,11 @@ async fn scenario(
             std::thread::sleep(std::time::Duration::from_millis(150));
             socket.write_all(&sse.as_bytes()[split..]).unwrap();
         }
+        assert_eq!(
+            (main_rounds, titles),
+            (2, 1),
+            "exact call graph and title cardinality"
+        );
     });
     if label == "Changed" {
         binary_tui_restart(&home, &project, "", &title, &model_name, true);

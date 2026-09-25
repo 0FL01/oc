@@ -172,6 +172,7 @@ impl Fixture {
             child,
             stdout,
             stderr,
+            titles: 0,
         }
     }
 
@@ -179,7 +180,17 @@ impl Fixture {
         let deadline = Instant::now() + TIMEOUT;
         loop {
             match self.listener.accept() {
-                Ok((socket, _)) => return read_request(socket),
+                Ok((socket, _)) => {
+                    if let Some((mut socket, request)) = read_request(socket) {
+                        if is_title(&request) {
+                            process.titles += 1;
+                            assert_eq!(process.titles, 1, "at most one title per process");
+                            respond_text(&mut socket, "DCP session");
+                        } else {
+                            return (socket, request);
+                        }
+                    }
+                }
                 Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                     if let Some(status) = process.child.try_wait().expect("poll actual binary") {
                         panic!(
@@ -208,21 +219,39 @@ impl Fixture {
             "{}",
             process.diagnostics()
         );
+        assert_eq!(
+            process.titles,
+            usize::from(label == "seed-early"),
+            "title only for the newly created session"
+        );
     }
 
     fn wait_with_title(&self, process: &mut Process) -> ExitStatus {
         let deadline = Instant::now() + TIMEOUT;
-        let mut titles = 0;
         loop {
             if let Some(status) = process.child.try_wait().unwrap() {
+                while let Ok((socket, _)) = self.listener.accept() {
+                    if let Some((mut socket, request)) = read_request(socket) {
+                        assert!(
+                            is_title(&request),
+                            "unexpected post-turn request: {request}"
+                        );
+                        process.titles += 1;
+                        respond_text(&mut socket, "DCP session");
+                    }
+                }
+                assert!(process.titles <= 1, "duplicate title");
                 return status;
             }
-            if let Ok((socket, _)) = self.listener.accept() {
-                let (mut socket, request) = read_request(socket);
-                titles += 1;
-                assert_eq!(titles, 1, "at most one title per completed turn");
-                assert!(request["tools"].as_array().is_none_or(|v| v.is_empty()));
-                assert_eq!(request["max_output_tokens"], 256);
+            if let Ok((socket, _)) = self.listener.accept()
+                && let Some((mut socket, request)) = read_request(socket)
+            {
+                assert!(
+                    is_title(&request),
+                    "unexpected post-turn request: {request}"
+                );
+                process.titles += 1;
+                assert_eq!(process.titles, 1, "at most one title per completed turn");
                 respond_text(&mut socket, "DCP session");
             }
             assert!(Instant::now() < deadline, "{}", process.diagnostics());
@@ -235,6 +264,7 @@ struct Process {
     child: Child,
     stdout: PathBuf,
     stderr: PathBuf,
+    titles: usize,
 }
 
 impl Process {
@@ -570,7 +600,11 @@ fn aud19_aud20_aud21_binary_model_compress_nudges_and_restart() {
         "covered filler remained in the compressed message projection"
     );
     respond_text(&mut socket, "DCP tool loop complete");
-    assert!(process.wait().success(), "{}", process.diagnostics());
+    assert!(
+        fixture.wait_with_title(&mut process).success(),
+        "{}",
+        process.diagnostics()
+    );
     assert_eq!(process.output().trim(), "DCP tool loop complete");
     drop(process);
 
@@ -612,7 +646,7 @@ fn aud19_aud20_aud21_binary_model_compress_nudges_and_restart() {
     assert_nudges(&cadence_request, 0, "restart restores compression cooldown");
     respond_text(&mut socket, "cadence restored");
     assert!(
-        cadence_restart.wait().success(),
+        fixture.wait_with_title(&mut cadence_restart).success(),
         "{}",
         cadence_restart.diagnostics()
     );
@@ -633,6 +667,7 @@ fn aud19_aud20_aud21_binary_model_compress_nudges_and_restart() {
         "{}",
         isolated.diagnostics()
     );
+    assert_eq!(isolated.titles, 1, "one title for isolated new session");
 
     fixture.write_dcp(true);
     let mut manual = fixture.spawn(
@@ -648,6 +683,7 @@ fn aud19_aud20_aud21_binary_model_compress_nudges_and_restart() {
         "{}",
         manual.diagnostics()
     );
+    assert_eq!(manual.titles, 1, "one title for manual-mode new session");
 
     let mut restarted = fixture.spawn(
         SESSION,
@@ -1056,7 +1092,14 @@ fn seed_crash_history(
 fn drain_pending_requests(listener: &TcpListener) {
     loop {
         match listener.accept() {
-            Ok((socket, _)) => drop(socket),
+            Ok((socket, _)) => {
+                if let Some((_, request)) = read_request(socket) {
+                    assert!(
+                        is_title(&request),
+                        "unexpected request from killed process: {request}"
+                    );
+                }
+            }
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => return,
             Err(error) => panic!("drain killed process provider request: {error}"),
         }
@@ -1381,7 +1424,18 @@ fn function_output<'a>(request: &'a Value, call_id: &str, name: &str) -> &'a str
         .unwrap_or_else(|| panic!("non-string Responses function output for {call_id}: {item}"))
 }
 
-fn read_request(mut socket: TcpStream) -> (TcpStream, Value) {
+fn is_title(request: &Value) -> bool {
+    request["model"] == MODEL
+        && request["max_output_tokens"] == 256
+        && request["tools"] == json!([])
+        && request["input"][0]
+            == json!({"type":"message","role":"developer","content":[{"type":"input_text","text":"Generate a short session title from the user's request. Output only the title, in at most 100 characters."}]})
+        && request["input"]
+            .as_array()
+            .is_some_and(|items| items.len() == 2 && items[1]["role"] == "user")
+}
+
+fn read_request(mut socket: TcpStream) -> Option<(TcpStream, Value)> {
     socket
         .set_read_timeout(Some(Duration::from_secs(2)))
         .expect("request read timeout");
@@ -1394,7 +1448,10 @@ fn read_request(mut socket: TcpStream) -> (TcpStream, Value) {
     let header_end = loop {
         assert!(Instant::now() < deadline, "HTTP header deadline");
         let read = socket.read(&mut chunk).expect("request headers");
-        assert_ne!(read, 0, "request ended before headers");
+        if read == 0 && bytes.is_empty() {
+            return None; // canceled title request before HTTP headers
+        }
+        assert_ne!(read, 0, "partial request ended before headers");
         bytes.extend_from_slice(&chunk[..read]);
         assert!(bytes.len() < 65_536, "bounded request headers");
         if let Some(position) = bytes.windows(4).position(|window| window == b"\r\n\r\n") {
@@ -1422,7 +1479,7 @@ fn read_request(mut socket: TcpStream) -> (TcpStream, Value) {
         .expect("typed Responses request JSON");
     assert_eq!(body["model"], MODEL);
     assert_eq!(body["stream"], true);
-    (socket, body)
+    Some((socket, body))
 }
 
 fn respond_tool(socket: &mut TcpStream, name: &str, arguments: Value, call_id: &str) {

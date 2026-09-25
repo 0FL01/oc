@@ -129,6 +129,13 @@ impl SubmissionReceipt {
 /// Typed application events (live hints + durable outcomes for T03).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CoreEvent {
+    /// A root title was committed; live views can update without waiting for a turn.
+    SessionTitleUpdated {
+        /// Owning root session.
+        session: SessionId,
+        /// Committed, normalized title.
+        title: String,
+    },
     /// Safe durable checkpoint projection; identical identity/order on restart.
     TurnPresentation {
         /// Owning session.
@@ -1441,6 +1448,7 @@ mod tests {
                     panic!("unexpected interrupt partial={partial}")
                 }
                 CoreEvent::TurnStarted { .. }
+                | CoreEvent::SessionTitleUpdated { .. }
                 | CoreEvent::TurnPresentation { .. }
                 | CoreEvent::ReasoningDelta { .. }
                 | CoreEvent::ReasoningItemEnded { .. }
@@ -1735,6 +1743,7 @@ mod tests {
                     panic!("cancel must not finish text={text}")
                 }
                 CoreEvent::TextDelta { .. }
+                | CoreEvent::SessionTitleUpdated { .. }
                 | CoreEvent::TurnPresentation { .. }
                 | CoreEvent::TurnStarted { .. }
                 | CoreEvent::ReasoningDelta { .. }

@@ -124,6 +124,7 @@ impl Fixture {
             child,
             stdout,
             stderr,
+            titles: 0,
         }
     }
 
@@ -131,7 +132,17 @@ impl Fixture {
         let deadline = Instant::now() + TIMEOUT;
         loop {
             match self.listener.accept() {
-                Ok((socket, _)) => return read_request(socket),
+                Ok((socket, _)) => {
+                    if let Some((mut socket, request)) = read_request(socket) {
+                        if is_title(&request) {
+                            process.titles += 1;
+                            assert_eq!(process.titles, 1, "one title per new session");
+                            respond_text(&mut socket, "Configured workspace session");
+                        } else {
+                            return (socket, request);
+                        }
+                    }
+                }
                 Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                     if let Some(status) = process.child.try_wait().expect("poll actual binary") {
                         panic!(
@@ -162,11 +173,31 @@ impl Fixture {
     }
 
     fn respond_title(&self, process: &mut Process) {
-        let (mut socket, request) = self.accept(process);
-        assert_eq!(request["model"], MODEL);
-        assert!(request["tools"].as_array().is_none_or(|v| v.is_empty()));
-        assert_eq!(request["max_output_tokens"], 256);
-        respond_text(&mut socket, "Configured workspace session");
+        if process.titles == 0 {
+            let deadline = Instant::now() + TIMEOUT;
+            loop {
+                match self.listener.accept() {
+                    Ok((socket, _)) => {
+                        if let Some((mut socket, request)) = read_request(socket) {
+                            assert!(is_title(&request), "expected title request: {request}");
+                            process.titles += 1;
+                            respond_text(&mut socket, "Configured workspace session");
+                            break;
+                        }
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                        assert!(
+                            Instant::now() < deadline,
+                            "missing title: {}",
+                            process.diagnostics()
+                        );
+                        std::thread::sleep(POLL);
+                    }
+                    Err(error) => panic!("accept title: {error}"),
+                }
+            }
+        }
+        assert_eq!(process.titles, 1, "one genuine title per new session");
     }
 
     fn wait_for_preflight_failure(&self, process: &mut Process) -> ExitStatus {
@@ -174,8 +205,9 @@ impl Fixture {
         loop {
             match self.listener.accept() {
                 Ok((socket, _)) => {
-                    let (_, request) = read_request(socket);
-                    panic!("invalid selected definition reached the provider: {request}");
+                    if let Some((_, request)) = read_request(socket) {
+                        panic!("invalid selected definition reached the provider: {request}");
+                    }
                 }
                 Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {}
                 Err(error) => panic!("poll fake endpoint: {error}"),
@@ -205,6 +237,7 @@ struct Process {
     child: Child,
     stdout: PathBuf,
     stderr: PathBuf,
+    titles: usize,
 }
 
 impl Process {
@@ -896,7 +929,18 @@ fn write_agent(path: &Path, description: &str, body: &str, apply_patch_permissio
     );
 }
 
-fn read_request(mut socket: TcpStream) -> (TcpStream, Value) {
+fn is_title(request: &Value) -> bool {
+    request["model"] == MODEL
+        && request["max_output_tokens"] == 256
+        && request["tools"] == json!([])
+        && request["input"][0]
+            == json!({"type":"message","role":"developer","content":[{"type":"input_text","text":"Generate a short session title from the user's request. Output only the title, in at most 100 characters."}]})
+        && request["input"]
+            .as_array()
+            .is_some_and(|items| items.len() == 2 && items[1]["role"] == "user")
+}
+
+fn read_request(mut socket: TcpStream) -> Option<(TcpStream, Value)> {
     socket
         .set_read_timeout(Some(Duration::from_secs(2)))
         .expect("request read timeout");
@@ -909,7 +953,10 @@ fn read_request(mut socket: TcpStream) -> (TcpStream, Value) {
     let header_end = loop {
         assert!(Instant::now() < deadline, "HTTP header deadline");
         let read = socket.read(&mut chunk).expect("request headers");
-        assert_ne!(read, 0, "request ended before headers");
+        if read == 0 && bytes.is_empty() {
+            return None; // canceled ancillary request opened before shutdown
+        }
+        assert_ne!(read, 0, "partial request ended before headers");
         bytes.extend_from_slice(&chunk[..read]);
         assert!(bytes.len() < 65_536, "bounded request headers");
         if let Some(position) = bytes.windows(4).position(|window| window == b"\r\n\r\n") {
@@ -935,7 +982,7 @@ fn read_request(mut socket: TcpStream) -> (TcpStream, Value) {
     }
     let body = serde_json::from_slice(&bytes[header_end..header_end + length])
         .expect("typed Responses request JSON");
-    (socket, body)
+    Some((socket, body))
 }
 
 fn respond_tool(socket: &mut TcpStream, name: &str, arguments: Value, call_id: &str) {

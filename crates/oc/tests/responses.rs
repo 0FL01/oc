@@ -4,6 +4,9 @@ use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
 use std::process::{Child, Command, ExitStatus, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, mpsc};
+use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
@@ -16,7 +19,10 @@ const OPAQUE: &str = "opaque-encrypted-reasoning-never-display-29fe";
 
 struct Fixture {
     root: tempfile::TempDir,
-    listener: TcpListener,
+    main: mpsc::Receiver<(TcpStream, String, Value)>,
+    titles: Arc<Mutex<Vec<Value>>>,
+    stop: Arc<AtomicBool>,
+    server: Option<JoinHandle<()>>,
 }
 
 impl Fixture {
@@ -48,7 +54,53 @@ impl Fixture {
             .to_string(),
         )
         .expect("configuration");
-        Self { root, listener }
+        let (sender, main) = mpsc::channel();
+        let titles = Arc::new(Mutex::new(Vec::new()));
+        let stop = Arc::new(AtomicBool::new(false));
+        let title_requests = Arc::clone(&titles);
+        let server_stop = Arc::clone(&stop);
+        let server = std::thread::spawn(move || {
+            loop {
+                match listener.accept() {
+                    Ok((socket, _)) => {
+                        let (mut socket, headers, body) = Self::read_accepted(socket);
+                        if is_title_request(&body) {
+                            title_requests.lock().unwrap().push(body);
+                            // A title is ancillary and can be cancelled while its
+                            // response is being written. It must not block the main
+                            // stream or become a scripted main turn.
+                            let title = message("assistant", "Two reads session");
+                            let event = json!({"type": "response.completed", "response": {
+                                "status": "completed", "output": [title]
+                            }});
+                            let delta = json!({"type": "response.output_text.delta", "delta": "Two reads session"});
+                            let sse = format!("data: {delta}\n\ndata: {event}\n\n");
+                            let _ = write!(
+                                socket,
+                                "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{sse}",
+                                sse.len()
+                            );
+                        } else if sender.send((socket, headers, body)).is_err() {
+                            break;
+                        }
+                    }
+                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        if server_stop.load(Ordering::Relaxed) {
+                            break;
+                        }
+                        std::thread::sleep(POLL);
+                    }
+                    Err(e) => panic!("accept: {e}"),
+                }
+            }
+        });
+        Self {
+            root,
+            main,
+            titles,
+            stop,
+            server: Some(server),
+        }
     }
 
     fn spawn(&self, prompt: &str, label: &str) -> Process {
@@ -78,17 +130,13 @@ impl Fixture {
     }
 
     fn accept(&self) -> (TcpStream, String, Value) {
+        self.main
+            .recv_timeout(TIMEOUT)
+            .expect("no main request from actual binary")
+    }
+
+    fn read_accepted(mut socket: TcpStream) -> (TcpStream, String, Value) {
         let deadline = Instant::now() + TIMEOUT;
-        let mut socket = loop {
-            match self.listener.accept() {
-                Ok((socket, _)) => break socket,
-                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    assert!(Instant::now() < deadline, "no request from actual binary");
-                    std::thread::sleep(POLL);
-                }
-                Err(e) => panic!("accept: {e}"),
-            }
-        };
         socket
             .set_read_timeout(Some(Duration::from_secs(2)))
             .expect("read bound");
@@ -130,6 +178,67 @@ impl Fixture {
         assert_eq!(body["store"], false);
         (socket, headers, body)
     }
+
+    fn wait_title(&self, prompt: &str) {
+        let deadline = Instant::now() + TIMEOUT;
+        loop {
+            let titles = self.titles.lock().unwrap();
+            if !titles.is_empty() {
+                assert_eq!(titles.len(), 1, "one title for the new session");
+                assert!(
+                    is_title_for(&titles[0], prompt),
+                    "unexpected title: {}",
+                    titles[0]
+                );
+                return;
+            }
+            drop(titles);
+            assert!(
+                Instant::now() < deadline,
+                "missing title request for {prompt}"
+            );
+            std::thread::sleep(POLL);
+        }
+    }
+
+    fn finish(&mut self, prompt: &str) {
+        self.stop.store(true, Ordering::Relaxed);
+        self.server
+            .take()
+            .expect("server")
+            .join()
+            .expect("fake server");
+        let titles = self.titles.lock().unwrap();
+        assert_eq!(titles.len(), 1, "one title for the new session");
+        assert!(
+            is_title_for(&titles[0], prompt),
+            "unexpected title: {}",
+            titles[0]
+        );
+        assert!(self.main.try_recv().is_err(), "extra main request");
+    }
+}
+
+fn is_title_request(body: &Value) -> bool {
+    body["input"][0]
+        == message(
+            "developer",
+            "Generate a short session title from the user's request. Output only the title, in at most 100 characters.",
+        )
+}
+
+fn is_title_for(body: &Value, prompt: &str) -> bool {
+    body["model"] == MODEL
+        && body["tools"] == json!([])
+        && body["max_output_tokens"] == 256
+        && body["input"]
+            == json!([
+                message(
+                    "developer",
+                    "Generate a short session title from the user's request. Output only the title, in at most 100 characters."
+                ),
+                message("user", prompt)
+            ])
 }
 
 struct Process {
@@ -140,9 +249,14 @@ struct Process {
 
 #[test]
 fn aud13_binary_rejects_oversized_pending_line_with_visible_limit() {
-    let fixture = Fixture::new(false);
+    let mut fixture = Fixture::new(false);
     let mut process = fixture.spawn("test bounded stream", "line-limit");
-    let (mut socket, _, _) = fixture.accept();
+    let (mut socket, _, body) = fixture.accept();
+    assert_eq!(
+        body["input"],
+        json!([message("user", "test bounded stream")])
+    );
+    fixture.wait_title("test bounded stream");
     socket
         .write_all(
             b"HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\nconnection: close\r\n\r\n",
@@ -157,10 +271,7 @@ fn aud13_binary_rejects_oversized_pending_line_with_visible_limit() {
         process.errors()
     );
     assert!(process.events().is_empty(), "no completed answer");
-    assert_eq!(
-        fixture.listener.accept().unwrap_err().kind(),
-        std::io::ErrorKind::WouldBlock
-    );
+    fixture.finish("test bounded stream");
 }
 
 impl Process {
@@ -249,7 +360,7 @@ fn respond(socket: &mut TcpStream, output: &[Value], answer: Option<&str>) {
 
 #[test]
 fn aud09_aud10_binary_exact_typed_tool_history_survives_restart() {
-    let fixture = Fixture::new(false);
+    let mut fixture = Fixture::new(false);
     let mut process = fixture.spawn("strict first prompt", "first");
     let mut expected = vec![message("user", "strict first prompt")];
     for (index, (id, call_id)) in [("fc_A", "call_B"), ("fc_C", "call_D")]
@@ -296,18 +407,7 @@ fn aud09_aud10_binary_exact_typed_tool_history_survives_restart() {
         std::slice::from_ref(&final_item),
         Some("two reads complete"),
     );
-    let (mut title_socket, _, title_request) = fixture.accept();
-    assert!(
-        title_request["tools"]
-            .as_array()
-            .is_none_or(|v| v.is_empty())
-    );
-    assert_eq!(title_request["max_output_tokens"], 256);
-    respond(
-        &mut title_socket,
-        &[message("assistant", "Two reads session")],
-        Some("Two reads session"),
-    );
+    fixture.wait_title("strict first prompt");
     assert!(process.wait(TIMEOUT).success(), "{}", process.errors());
     assert_eq!(
         process.events().last().expect("done"),
@@ -335,22 +435,19 @@ fn aud09_aud10_binary_exact_typed_tool_history_survives_restart() {
         reopened.events().last().expect("done"),
         &json!({"type": "done", "text": "restart complete"})
     );
-    assert_eq!(
-        fixture
-            .listener
-            .accept()
-            .expect_err("no replay requests")
-            .kind(),
-        std::io::ErrorKind::WouldBlock
-    );
+    fixture.finish("strict first prompt");
 }
 
 #[test]
 fn aud12_binary_delta_before_terminal_and_silent_stream_sigint() {
     for send_delta in [true, false] {
-        let fixture = Fixture::new(true);
+        let mut fixture = Fixture::new(true);
         let mut process = fixture.spawn("silent cancellation probe", "cancel");
         let (mut socket, _, body) = fixture.accept();
+        assert_eq!(
+            body["input"],
+            json!([message("user", "silent cancellation probe")])
+        );
         assert!(
             body["prompt_cache_key"]
                 .as_str()
@@ -382,6 +479,7 @@ fn aud12_binary_delta_before_terminal_and_silent_stream_sigint() {
                 vec![json!({"type": "delta", "delta": "visible-before-terminal"})]
             );
         }
+        fixture.wait_title("silent cancellation probe");
         assert!(process.child.try_wait().expect("still active").is_none());
         let started = Instant::now();
         assert_eq!(
@@ -403,6 +501,7 @@ fn aud12_binary_delta_before_terminal_and_silent_stream_sigint() {
         );
         // Keep socket alive and silent through cancellation, including no headers.
         drop(socket);
+        fixture.finish("silent cancellation probe");
     }
 }
 

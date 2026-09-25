@@ -5258,6 +5258,11 @@ impl ScriptDriver {
             let event = tokio::time::timeout(timeout, self.rx.recv()).await;
             state.poll_submission();
             match event {
+                Ok(Ok(CoreEvent::SessionTitleUpdated { session, title })) => {
+                    if state.attached_session() == Some(&session) {
+                        state.session_title = Some(title);
+                    }
+                }
                 Err(_) => return PumpOutcome::Timeout,
                 Ok(Err(_)) => return PumpOutcome::Closed,
                 Ok(Ok(CoreEvent::TurnStarted {

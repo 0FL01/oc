@@ -135,7 +135,9 @@ impl Fixture {
                         socket
                             .set_write_timeout(Some(DEADLINE))
                             .expect("write timeout");
-                        let body = read_request(&mut socket);
+                        let Some(body) = read_request(&mut socket) else {
+                            continue;
+                        };
                         captured.lock().expect("requests").push(body.clone());
                         if title::respond(&mut socket, &body) {
                             continue;
@@ -271,12 +273,15 @@ fn last_user_text(body: &serde_json::Value) -> Option<String> {
         }
     })
 }
-fn read_request(socket: &mut TcpStream) -> serde_json::Value {
+fn read_request(socket: &mut TcpStream) -> Option<serde_json::Value> {
     let mut bytes = Vec::new();
     let mut chunk = [0; 4096];
     let header_end = loop {
         let n = socket.read(&mut chunk).expect("HTTP headers");
-        assert_ne!(n, 0, "early EOF");
+        if n == 0 {
+            // Ctrl+C/quit can abort the ancillary title before HTTP completes.
+            return None;
+        }
         bytes.extend_from_slice(&chunk[..n]);
         if let Some(pos) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
             break pos + 4;
@@ -301,10 +306,12 @@ fn read_request(socket: &mut TcpStream) -> serde_json::Value {
     assert!(length < 262_144, "bounded request");
     while bytes.len() < header_end + length {
         let n = socket.read(&mut chunk).expect("HTTP body");
-        assert_ne!(n, 0, "early body EOF");
+        if n == 0 {
+            return None;
+        }
         bytes.extend_from_slice(&chunk[..n]);
     }
-    serde_json::from_slice(&bytes[header_end..header_end + length]).expect("request JSON")
+    Some(serde_json::from_slice(&bytes[header_end..header_end + length]).expect("request JSON"))
 }
 
 fn respond(socket: &mut TcpStream, script: &Script, stop: &AtomicBool) -> std::io::Result<()> {
@@ -1222,11 +1229,31 @@ fn bare_rename_requests_real_title_without_creating_turn_and_restores_on_restart
     submit(&mut pty, "first request for a title");
     wait_stored_title(&fixture, "bare-title", Some("Fixture session title"));
     wait_idle(&pty);
+    let automatic = fixture.requests.lock().unwrap().clone();
+    assert_eq!(
+        automatic
+            .iter()
+            .filter(|body| !title::is_title(body))
+            .count(),
+        1
+    );
+    assert_eq!(
+        automatic
+            .iter()
+            .filter(|body| title::is_title(body))
+            .count(),
+        1
+    );
     pty.send(b"/rename Manual title\r");
     wait_stored_title(&fixture, "bare-title", Some("Manual title"));
     wait_prompt_cleared(&pty, "/rename");
     let counts = journal_counts(&fixture);
     let requests = fixture.requests.lock().unwrap().len();
+    assert_eq!(
+        requests,
+        automatic.len(),
+        "direct manual rename makes no provider request"
+    );
     // Enter on an argument-taking autocomplete item inserts a space; dismiss
     // its overlay first to exercise the existing bare title-generation route.
     pty.send(b"/rename");
@@ -1703,7 +1730,15 @@ fn immediate_ctrl_c_after_first_home_submit_restores_committed_root_on_restart()
     let root = saved["active"].as_str().expect("active new root");
     assert_eq!(saved["sessions"], serde_json::json!([root]));
     assert_eq!(journal_counts(&fixture).0, 1);
-    let requests = fixture.requests.lock().unwrap().len();
+    let requests = fixture.requests.lock().unwrap().clone();
+    assert_eq!(
+        requests
+            .iter()
+            .filter(|body| !title::is_title(body))
+            .count(),
+        1
+    );
+    assert!(requests.iter().filter(|body| title::is_title(body)).count() <= 1);
     assert_eq!(
         fixture.wait_requests(1).len(),
         1,
@@ -1724,7 +1759,13 @@ fn immediate_ctrl_c_after_first_home_submit_restores_committed_root_on_restart()
     assert_eq!(metrics(&path)["session"], root);
     assert_eq!(metrics(&path)["tab_ids"], serde_json::json!([root]));
     assert_eq!(journal_counts(&fixture).0, 1);
-    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+    let after = fixture.requests.lock().unwrap().clone();
+    assert_eq!(
+        after.iter().filter(|body| !title::is_title(body)).count(),
+        1,
+        "reopening the root does not submit an extra turn"
+    );
+    assert!(after.iter().filter(|body| title::is_title(body)).count() <= 1);
 }
 
 /// One-based xterm SGR coordinates; a complete press/release must reach the

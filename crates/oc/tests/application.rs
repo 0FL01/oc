@@ -133,13 +133,21 @@ fn configured_responses_request(unknown_limits: bool, title: Option<TitleFixture
             let mut chunk = [0; 4096];
             let header_end = loop {
                 let n = socket.read(&mut chunk).expect("request headers");
-                assert_ne!(n, 0, "early EOF");
+                if n == 0 && bytes.is_empty() {
+                    // Shutdown can cancel a concurrently opened title socket
+                    // before the HTTP request is sent.
+                    break 0;
+                }
+                assert_ne!(n, 0, "partial request early EOF");
                 bytes.extend_from_slice(&chunk[..n]);
                 if let Some(pos) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
                     break pos + 4;
                 }
                 assert!(bytes.len() < 65_536);
             };
+            if header_end == 0 {
+                continue;
+            }
             let headers = String::from_utf8(bytes[..header_end].to_vec()).expect("headers");
             let length: usize = headers
                 .lines()
@@ -208,7 +216,20 @@ fn configured_responses_request(unknown_limits: bool, title: Option<TitleFixture
         "configured endpoint answer"
     );
     assert_eq!(requests.len(), if title_output.is_some() { 2 } else { 1 });
-    let body = &requests[0];
+    let title_prompt = title.as_ref().map(|title| title.prompt.as_str()).unwrap_or(
+        "Generate a short session title from the user's request. Output only the title, in at most 100 characters.",
+    );
+    let (titles, mains): (Vec<_>, Vec<_>) = requests.iter().partition(|request| {
+        request["input"][0] == serde_json::json!({"type":"message", "role":"developer", "content":[{"type":"input_text", "text":title_prompt}]})
+            && request["tools"] == serde_json::json!([])
+    });
+    assert_eq!(mains.len(), 1, "one configured main request");
+    assert_eq!(
+        titles.len(),
+        usize::from(title_output.is_some()),
+        "one genuine title when admitted"
+    );
+    let body = mains[0];
     assert_eq!(body["model"], model);
     assert_eq!(
         body["max_output_tokens"],
@@ -229,7 +250,7 @@ fn configured_responses_request(unknown_limits: bool, title: Option<TitleFixture
     );
     let diagnostic = String::from_utf8_lossy(&output.stderr);
     if let Some(expected_output) = title_output {
-        let title_body = &requests[1];
+        let title_body = titles[0];
         assert_eq!(title_body["model"], title_model);
         assert_eq!(title_body["max_output_tokens"], expected_output);
         assert!(title_body.get("reasoning").is_none());

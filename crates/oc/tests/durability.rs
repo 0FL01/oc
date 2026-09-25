@@ -68,8 +68,11 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
     );
     std::fs::write(project.join("effect.sh"), script).expect("temporary shell script");
     let arguments = json!({"argv": ["/bin/sh", "effect.sh"], "cwd": "."});
+    // Leave any first-process title unanswered: the SIGKILL must interrupt it
+    // just like the shell outcome. Its arrival may precede the main request.
+    let mut interrupted_title = None;
     let mut first = spawn(&home, &project, FIRST_PROMPT, "first");
-    let (mut socket, request) = accept_request(&listener);
+    let (mut socket, request) = accept_first_main(&listener, &mut interrupted_title);
     assert_eq!(request["input"], json!([user_message(FIRST_PROMPT)]));
     assert!(
         request["tools"]
@@ -125,6 +128,19 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
         Some(libc::SIGKILL),
         "actual process kill"
     );
+    while let Ok((socket, _)) = listener.accept() {
+        if let Some((socket, request)) = read_request(socket) {
+            assert!(
+                is_title_for(&request, FIRST_PROMPT),
+                "killed process made an unexpected request: {request}"
+            );
+            assert!(
+                interrupted_title.replace(socket).is_none(),
+                "duplicate title before crash"
+            );
+        }
+    }
+    drop(interrupted_title);
     let adopted = reaper.reap().expect("reap orphaned shell after oc kill");
     assert_eq!(adopted.len(), 1, "exactly the fixture shell was orphaned");
     assert_eq!(adopted[0].0, shell_pid);
@@ -165,6 +181,11 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
     assert_eq!(wire["input"][1]["call_id"], CALL);
     assert_eq!(wire["input"][1]["arguments"], arguments.to_string());
     assert!(wire.get("assistant_message").is_none());
+    assert_eq!(
+        db.session_meta(SESSION).expect("session metadata").title,
+        None,
+        "crashed title request must not have committed"
+    );
     let accepted = db.read_history_full(SESSION).expect("accepted history");
     assert_eq!(
         accepted.len(),
@@ -179,8 +200,9 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
 
     // Recovery must come from application::spawn in the actual binary, not a
     // direct recover_interrupted_tools call in this test.
+    let mut titles = 0;
     let mut restarted = spawn(&home, &project, NEXT_PROMPT, "restart");
-    let (mut socket, request) = accept_request(&listener);
+    let (mut socket, request) = accept_restart_main(&listener, &mut titles);
     assert_eq!(
         request["input"],
         json!([user_message(FIRST_PROMPT), user_message(NEXT_PROMPT)]),
@@ -203,21 +225,16 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
         ],
     );
     drop(socket);
-    let (mut title_socket, title_request) = accept_request(&listener);
-    assert!(
-        title_request["tools"]
-            .as_array()
-            .is_none_or(|v| v.is_empty())
-    );
-    assert_eq!(title_request["model"], MODEL);
-    respond(
-        &mut title_socket,
-        &[
-            json!({"type":"response.output_text.delta","delta":"Recovered shell session"}),
-            json!({"type":"response.completed","response":{"status":"completed","output":[]}}),
-        ],
-    );
-    drop(title_socket);
+    if titles == 0 {
+        let (mut title_socket, title_request) = accept_request(&listener);
+        assert!(
+            is_title_for(&title_request, NEXT_PROMPT),
+            "expected title: {title_request}"
+        );
+        titles += 1;
+        respond_title(&mut title_socket);
+    }
+    assert_eq!(titles, 1, "exactly one title for the recovered session");
     assert!(restarted.wait().success(), "{}", restarted.diagnostics());
     assert_eq!(
         std::fs::read_to_string(&restarted.stdout)
@@ -240,6 +257,14 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
     assert!(reaper.reap().expect("no children after restart").is_empty());
 
     let db = Db::open(&data).expect("inspect actual application recovery");
+    assert_eq!(
+        db.session_meta(SESSION)
+            .expect("session metadata")
+            .title
+            .as_deref(),
+        Some("Recovered shell session"),
+        "exactly one successful title for the recovered session"
+    );
     let mut recovered = intent.clone();
     recovered.state = "unknown".into();
     assert_eq!(
@@ -453,11 +478,68 @@ impl Drop for Subreaper {
 
 // Single-threaded fake peer: no detached socket threads. Both accept and
 // reads/writes are bounded, including failure cleanup.
+fn is_title_for(request: &Value, prompt: &str) -> bool {
+    request["model"] == MODEL
+        && request["max_output_tokens"] == 256
+        && request["tools"] == json!([])
+        && request["input"][0]
+            == json!({"type":"message","role":"developer","content":[{"type":"input_text","text":"Generate a short session title from the user's request. Output only the title, in at most 100 characters."}]})
+        && request["input"].as_array().is_some_and(|items| {
+            items.len() == 2
+                && items[1]["role"] == "user"
+                && items[1]["content"][0]["text"] == prompt
+        })
+}
+
+fn respond_title(socket: &mut TcpStream) {
+    respond(
+        socket,
+        &[
+            json!({"type":"response.output_text.delta","delta":"Recovered shell session"}),
+            json!({"type":"response.completed","response":{"status":"completed","output":[]}}),
+        ],
+    );
+}
+
+fn accept_first_main(
+    listener: &TcpListener,
+    interrupted_title: &mut Option<TcpStream>,
+) -> (TcpStream, Value) {
+    loop {
+        let (socket, request) = accept_request(listener);
+        if is_title_for(&request, FIRST_PROMPT) {
+            assert!(
+                interrupted_title.replace(socket).is_none(),
+                "duplicate title before crash"
+            );
+        } else {
+            return (socket, request);
+        }
+    }
+}
+
+fn accept_restart_main(listener: &TcpListener, titles: &mut usize) -> (TcpStream, Value) {
+    loop {
+        let (mut socket, request) = accept_request(listener);
+        if is_title_for(&request, NEXT_PROMPT) {
+            *titles += 1;
+            assert_eq!(*titles, 1, "one title for the session");
+            respond_title(&mut socket);
+        } else {
+            return (socket, request);
+        }
+    }
+}
+
 fn accept_request(listener: &TcpListener) -> (TcpStream, Value) {
     let deadline = Instant::now() + TIMEOUT;
-    let mut socket = loop {
+    loop {
         match listener.accept() {
-            Ok((socket, _)) => break socket,
+            Ok((socket, _)) => {
+                if let Some(request) = read_request(socket) {
+                    return request;
+                }
+            }
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                 assert!(
                     Instant::now() < deadline,
@@ -467,7 +549,11 @@ fn accept_request(listener: &TcpListener) -> (TcpStream, Value) {
             }
             Err(error) => panic!("accept: {error}"),
         }
-    };
+    }
+}
+
+fn read_request(mut socket: TcpStream) -> Option<(TcpStream, Value)> {
+    let deadline = Instant::now() + TIMEOUT;
     socket
         .set_read_timeout(Some(Duration::from_secs(2)))
         .expect("read timeout");
@@ -479,7 +565,10 @@ fn accept_request(listener: &TcpListener) -> (TcpStream, Value) {
     let header_end = loop {
         assert!(Instant::now() < deadline, "HTTP header deadline");
         let n = socket.read(&mut chunk).expect("HTTP headers");
-        assert_ne!(n, 0, "early EOF");
+        if n == 0 && bytes.is_empty() {
+            return None;
+        }
+        assert_ne!(n, 0, "partial request early EOF");
         bytes.extend_from_slice(&chunk[..n]);
         assert!(bytes.len() < 65_536, "bounded headers");
         if let Some(pos) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
@@ -507,7 +596,7 @@ fn accept_request(listener: &TcpListener) -> (TcpStream, Value) {
         serde_json::from_slice(&bytes[header_end..header_end + length]).expect("request JSON");
     assert_eq!(body["model"], MODEL);
     assert_eq!(body["stream"], true);
-    (socket, body)
+    Some((socket, body))
 }
 
 fn respond(socket: &mut TcpStream, events: &[Value]) {

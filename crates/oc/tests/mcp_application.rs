@@ -506,12 +506,17 @@ impl FakeResponses {
                     write_http(&mut socket, 404, "text/plain", b"");
                     continue;
                 }
-                let index = {
+                let main_index = {
                     let mut guard = captured.lock().expect("Responses requests");
-                    let index = guard.len();
+                    let index = guard.iter().filter(|body| !title::is_title(body)).count();
                     guard.push(request.body.clone());
                     index
                 };
+                let is_followup = request.body["input"].as_array().is_some_and(|items| {
+                    items
+                        .iter()
+                        .any(|item| item["type"] == "function_call_output")
+                });
                 match &script {
                     _ if title::respond(&mut socket, &request.body) => {}
                     ResponsesScript::TextByPrompt => {
@@ -537,7 +542,7 @@ impl FakeResponses {
                                 &mut socket,
                                 &[(
                                     "item-stall".into(),
-                                    format!("call-{index}"),
+                                    format!("call-{main_index}"),
                                     json!({"__wireName": match &script {
                                         ResponsesScript::ToolNamed(name) => name.as_str(),
                                         _ => "stall__ping",
@@ -546,7 +551,7 @@ impl FakeResponses {
                             );
                         }
                     }
-                    ResponsesScript::ToolBatch { calls, .. } if index == 0 => {
+                    ResponsesScript::ToolBatch { calls, .. } if !is_followup => {
                         respond_tools(&mut socket, calls);
                     }
                     ResponsesScript::ControlProbe { calls, .. }
@@ -879,15 +884,13 @@ fn aud22_binary_accepts_user_authorization_spelling_at_strict_mcp() {
             .filter(|record| record.rpc_method != "initialize")
             .all(|record| record.protocol_version.as_deref() == Some("2025-11-25"))
     );
-    assert_eq!(responses.requests().len(), 2, "one generation plus title");
+    let requests = responses.requests();
     assert_eq!(
-        responses
-            .requests()
-            .iter()
-            .filter(|r| title::is_title(r))
-            .count(),
-        1
+        requests.iter().filter(|r| !title::is_title(r)).count(),
+        1,
+        "one accepted provider turn"
     );
+    assert!(requests.iter().filter(|r| title::is_title(r)).count() <= 1);
 }
 
 #[test]
@@ -1090,10 +1093,15 @@ fn aud24_binary_routes_collision_names_to_exact_original_server_and_tool() {
     assert_eq!(process.output().trim(), "MCP routing observed");
     let requests = responses.requests();
     assert_eq!(requests.len(), 3, "tool round, final round, title");
-    assert!(title::is_title(&requests[2]));
-    assert_eq!(function_output(&requests[1], "call-a"), "server-a:b__c");
-    assert_eq!(function_output(&requests[1], "call-b"), "server-a-b:c");
-    let advertised = function_tool_names(&requests[0]);
+    assert_eq!(requests.iter().filter(|r| title::is_title(r)).count(), 1);
+    let main = requests
+        .iter()
+        .filter(|r| !title::is_title(r))
+        .collect::<Vec<_>>();
+    assert_eq!(main.len(), 2, "tool call and observed results");
+    assert_eq!(function_output(main[1], "call-a"), "server-a:b__c");
+    assert_eq!(function_output(main[1], "call-b"), "server-a-b:c");
+    let advertised = function_tool_names(main[0]);
     for expected in ["a__b__c", "a__b__c__2"] {
         assert_eq!(
             advertised
@@ -1161,10 +1169,11 @@ fn aud24_binary_surfaces_is_error_and_unsupported_result_modality() {
     assert!(!process.output().contains("server-declared failure"));
     let requests = responses.requests();
     assert_eq!(
-        requests.len(),
+        requests.iter().filter(|r| !title::is_title(r)).count(),
         1,
         "unknown outcome was sent back to provider"
     );
+    assert!(requests.iter().filter(|r| title::is_title(r)).count() <= 1);
     let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
     let results = db
         .prepare("SELECT state, output FROM tool_operations ORDER BY rowid")
@@ -1683,6 +1692,14 @@ fn aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns() {
     tui.wait_visible(READY);
     let first = tui.send_line("first MCP ownership turn");
     tui.wait_visible_after(first, "answer:first MCP ownership turn");
+    let start = Instant::now();
+    while !responses.requests().iter().any(title::is_title) {
+        assert!(
+            start.elapsed() < TIMEOUT,
+            "first accepted turn did not request its title"
+        );
+        std::thread::sleep(POLL);
+    }
     // A text delta is rendered before the worker publishes TurnFinished.
     // Bound the handoff without matching a stale `Idle` cell from ratatui.
     std::thread::sleep(Duration::from_millis(750));
@@ -1692,7 +1709,7 @@ fn aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns() {
     tui.send_line("/quit");
     assert!(tui.wait_exit().success(), "clean TUI exit");
 
-    let requests = responses.wait_requests(2);
+    let requests = responses.requests();
     assert_eq!(requests.len(), 3, "two provider turns plus one title");
     assert_eq!(requests.iter().filter(|r| title::is_title(r)).count(), 1);
     for request in requests.into_iter().filter(|r| !title::is_title(r)) {
@@ -1762,13 +1779,13 @@ fn aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns() {
     let mut disabled = fixture.spawn_run("aud23-disabled-restart");
     assert!(disabled.wait().success(), "{}", disabled.diagnostics());
     assert_eq!(disabled.output().trim(), "answer:exercise configured MCP");
-    let requests = responses.wait_requests(5);
+    let requests = responses.requests();
     assert_eq!(
-        requests.len(),
-        5,
-        "three main turns plus titles for two sessions"
+        requests.iter().filter(|r| !title::is_title(r)).count(),
+        3,
+        "three accepted provider turns across both generations"
     );
-    assert_eq!(requests.iter().filter(|r| title::is_title(r)).count(), 2);
+    assert!(requests.iter().filter(|r| title::is_title(r)).count() <= 2);
     assert_eq!(
         fs::read_to_string(&stdio_log)
             .unwrap()
@@ -2460,7 +2477,9 @@ for line in sys.stdin:
         );
     }
     assert!(!release.exists());
-    assert_eq!(responses.requests().len(), 2);
+    let requests = responses.requests();
+    assert_eq!(requests.iter().filter(|r| !title::is_title(r)).count(), 1);
+    assert!(requests.iter().filter(|r| title::is_title(r)).count() <= 1);
     let turns: i64 = db
         .query_row("SELECT count(*) FROM turns", [], |r| r.get(0))
         .unwrap();

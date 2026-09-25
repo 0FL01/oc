@@ -88,7 +88,7 @@ impl Peer {
                             continue;
                         };
                         seen_out.lock().expect("seen").push(body.clone());
-                        if title::respond(&mut socket, &body) {
+                        if is_genuine_title(&body) && title::respond(&mut socket, &body) {
                             continue;
                         }
                         let step = steps_out.lock().expect("steps").pop_front();
@@ -186,6 +186,24 @@ fn read_request(socket: &mut TcpStream) -> Option<Value> {
 fn summarize(body: &Value) -> String {
     let items = body["input"].as_array().map(Vec::len).unwrap_or(0);
     format!("input items {items}")
+}
+
+fn is_genuine_title(body: &Value) -> bool {
+    body["model"] == MODEL
+        && body["tools"] == json!([])
+        && body["max_output_tokens"] == 256
+        && body["input"][0]
+            == json!({
+                "type":"message", "role":"developer", "content":[{"type":"input_text",
+                "text":"Generate a short session title from the user's request. Output only the title, in at most 100 characters."}]
+            })
+        && body["input"].as_array().is_some_and(|items| {
+            items.len() == 2
+                && items[1]["role"] == "user"
+                && items[1]["content"][0]["text"].as_str().is_some_and(|text| {
+                    text.starts_with("fix the add function ") || text == "report the workspace"
+                })
+        })
 }
 
 fn sse_text(text: &str) -> String {
@@ -878,7 +896,7 @@ fn aud35_binary_golden_workflow() {
             .peer
             .requests()
             .iter()
-            .filter(|r| title::is_title(r))
+            .filter(|r| is_genuine_title(r))
             .count(),
         2,
         "one real title request per new session"
@@ -887,7 +905,7 @@ fn aud35_binary_golden_workflow() {
         .peer
         .requests()
         .into_iter()
-        .filter(|body| !title::is_title(body))
+        .filter(|body| !is_genuine_title(body))
         .filter(|body| last_user_text(body).as_deref() == Some("report the workspace"))
         .collect::<Vec<_>>();
     let b_ok = b_requests.len() == 1

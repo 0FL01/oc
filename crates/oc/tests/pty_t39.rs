@@ -56,6 +56,7 @@ struct Fixture {
     vis28_continue: Arc<AtomicBool>,
     stop: Arc<AtomicBool>,
     server: Option<std::thread::JoinHandle<()>>,
+    held_titles: Arc<Mutex<Vec<std::thread::JoinHandle<()>>>>,
 }
 
 impl Fixture {
@@ -112,6 +113,8 @@ impl Fixture {
         let continue_stream = s07_continue.clone();
         let vis28_continue = Arc::new(AtomicBool::new(false));
         let release_scanner = vis28_continue.clone();
+        let held_titles = Arc::new(Mutex::new(Vec::new()));
+        let title_threads = held_titles.clone();
         let server = std::thread::spawn(move || {
             while !stopping.load(Ordering::Relaxed) {
                 match listener.accept() {
@@ -122,12 +125,25 @@ impl Fixture {
                         socket
                             .set_write_timeout(Some(DEADLINE))
                             .expect("write timeout");
-                        let body = read_request(&mut socket);
+                        let Some(body) = read_request(&mut socket) else {
+                            continue;
+                        };
                         captured.lock().expect("requests").push(body.clone());
                         if hold.load(Ordering::Relaxed) && title::is_title(&body) {
-                            let mut byte = [0];
-                            assert_eq!(socket.read(&mut byte).expect("title disconnect"), 0);
-                            closed.store(true, Ordering::Relaxed);
+                            // The title request can arrive before the main request.
+                            // Hold only this connection, not the listener or main stream.
+                            let closed = closed.clone();
+                            title_threads
+                                .lock()
+                                .unwrap()
+                                .push(std::thread::spawn(move || {
+                                    let mut byte = [0];
+                                    assert_eq!(
+                                        socket.read(&mut byte).expect("title disconnect"),
+                                        0
+                                    );
+                                    closed.store(true, Ordering::Relaxed);
+                                }));
                             continue;
                         }
                         if title::respond(&mut socket, &body) {
@@ -158,6 +174,7 @@ impl Fixture {
             vis28_continue,
             stop,
             server: Some(server),
+            held_titles,
         })
     }
 
@@ -213,6 +230,11 @@ impl Drop for Fixture {
             let result = server.join();
             if !std::thread::panicking() {
                 result.expect("fake endpoint assertions");
+            }
+        }
+        for thread in self.held_titles.lock().unwrap().drain(..) {
+            if !std::thread::panicking() {
+                thread.join().expect("held title connection");
             }
         }
     }
@@ -326,12 +348,15 @@ fn dcp_anchors(body: &serde_json::Value) -> Option<Vec<serde_json::Value>> {
     None
 }
 
-fn read_request(socket: &mut TcpStream) -> serde_json::Value {
+fn read_request(socket: &mut TcpStream) -> Option<serde_json::Value> {
     let mut bytes = Vec::new();
     let mut chunk = [0; 4096];
     let header_end = loop {
         let n = socket.read(&mut chunk).expect("HTTP headers");
-        assert_ne!(n, 0, "early EOF");
+        if n == 0 {
+            // A title task can be cancelled before it finishes sending HTTP.
+            return None;
+        }
         bytes.extend_from_slice(&chunk[..n]);
         if let Some(pos) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
             break pos + 4;
@@ -356,10 +381,12 @@ fn read_request(socket: &mut TcpStream) -> serde_json::Value {
     assert!(length < 262_144, "bounded request: {length} bytes");
     while bytes.len() < header_end + length {
         let n = socket.read(&mut chunk).expect("HTTP body");
-        assert_ne!(n, 0, "early body EOF");
+        if n == 0 {
+            return None;
+        }
         bytes.extend_from_slice(&chunk[..n]);
     }
-    serde_json::from_slice(&bytes[header_end..header_end + length]).expect("request JSON")
+    Some(serde_json::from_slice(&bytes[header_end..header_end + length]).expect("request JSON"))
 }
 
 fn respond(
@@ -1593,6 +1620,20 @@ fn vis27_real_pty_osc52_select_and_manual_clipboard_modes() {
     wait_screen_row(&pty, "Fixture session title", DEADLINE);
     wait_idle(&pty);
     let requests_before = fixture.requests.lock().unwrap().clone();
+    assert_eq!(
+        requests_before
+            .iter()
+            .filter(|r| title::is_title(r))
+            .count(),
+        1
+    );
+    assert_eq!(
+        requests_before
+            .iter()
+            .filter(|r| !title::is_title(r))
+            .count(),
+        1
+    );
     let (x, y) = vis27_answer_cell(&pty);
     assert!(
         osc52_clipboard(&pty.snapshot()).is_empty(),
@@ -1666,11 +1707,45 @@ fn vis27_real_pty_osc52_select_and_manual_clipboard_modes() {
     let mut manual = PtySession::spawn(fixture.clone(), session, None);
     manual.wait_visible(READY, DEADLINE);
     submit(&mut manual, PROMPT);
+    // wait_requests counts main turns, not ancillary title requests.
     fixture.wait_requests(2);
     wait_screen_row(&manual, "echo: amber cobalt zircon", DEADLINE);
+    let started = Instant::now();
+    loop {
+        if fixture
+            .requests
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|request| title::is_title(request))
+            .count()
+            == 2
+        {
+            break;
+        }
+        assert!(
+            started.elapsed() < DEADLINE,
+            "second root title request missing"
+        );
+        std::thread::sleep(POLL);
+    }
     wait_screen_row(&manual, "Fixture session title", DEADLINE);
     wait_idle(&manual);
     let requests_before = fixture.requests.lock().unwrap().clone();
+    assert_eq!(
+        requests_before
+            .iter()
+            .filter(|r| title::is_title(r))
+            .count(),
+        2
+    );
+    assert_eq!(
+        requests_before
+            .iter()
+            .filter(|r| !title::is_title(r))
+            .count(),
+        2
+    );
     let (x, y) = vis27_answer_cell(&manual);
     vis27_mouse(&mut manual, 0, x, y, 'M');
     vis27_mouse(&mut manual, 32, x + 6, y, 'M');
@@ -2709,7 +2784,7 @@ async fn title_cancel_and_watchdog_leave_the_main_turn_completed() {
         assert!(start.elapsed() < DEADLINE, "missing title request");
         tokio::time::sleep(POLL).await;
     }
-    app.cancel(session.clone()).await.unwrap();
+    app.cancel_title(session.clone()).await.unwrap();
     let start = Instant::now();
     while !fixture.title_closed.load(Ordering::Relaxed) {
         assert!(

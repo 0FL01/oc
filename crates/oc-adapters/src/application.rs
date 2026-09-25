@@ -20,6 +20,7 @@ use oc_core::queries::{
 };
 use oc_core::session::{CoreError, LocationSwitchFailure, MAX_QUEUE_ITEMS, MessageId, Role};
 use tokio::sync::{broadcast, mpsc, oneshot};
+use tokio::task::JoinHandle;
 
 use crate::composition::{self, Composition};
 use crate::runtime::{
@@ -42,6 +43,102 @@ pub const HISTORY_PAGE_LIMIT: usize = 100;
 pub const TOOL_OPS_PAGE_LIMIT: usize = 100;
 /// Byte cap for the DCP token estimate input.
 const ESTIMATE_BYTES: usize = 4 * 1024 * 1024;
+
+/// A normal exit may finish an already accepted title, but cannot wait for the
+/// provider's full request timeout when it stalls.
+const TITLE_SHUTDOWN_GRACE: std::time::Duration = std::time::Duration::from_secs(2);
+
+struct AutomaticTitleResult {
+    session: SessionId,
+    expected_event: i64,
+    title: Option<String>,
+}
+
+// The owner aborts unfinished provider work on shutdown or Location replacement.
+// A provider task has no database handle: only the owner may commit its result.
+#[derive(Default)]
+struct AutomaticTitles {
+    pending: BTreeMap<String, i64>,
+    tasks: Vec<(String, JoinHandle<()>)>,
+}
+
+impl AutomaticTitles {
+    fn cancel(&mut self, session: &str) -> bool {
+        if self.pending.remove(session).is_none() {
+            return false;
+        }
+        for (owner, task) in &self.tasks {
+            if owner == session {
+                task.abort();
+            }
+        }
+        true
+    }
+}
+
+impl Drop for AutomaticTitles {
+    fn drop(&mut self) {
+        for (_, task) in &self.tasks {
+            task.abort();
+        }
+    }
+}
+
+fn commit_automatic_title(
+    db: &Db,
+    events: &broadcast::Sender<CoreEvent>,
+    work: &Mutex<AutomaticTitles>,
+    result: AutomaticTitleResult,
+) {
+    {
+        let mut work = work.lock().expect("title work mutex");
+        if work.pending.get(&result.session.0) != Some(&result.expected_event) {
+            return;
+        }
+        work.pending.remove(&result.session.0);
+    }
+    if let Some(title) = result.title
+        && let Ok(true) =
+            db.compare_and_set_root_title(&result.session.0, None, result.expected_event, &title)
+    {
+        let _ = events.send(CoreEvent::SessionTitleUpdated {
+            session: result.session,
+            title,
+        });
+    }
+}
+
+async fn stop_automatic_titles(work: &Mutex<AutomaticTitles>) {
+    let tasks = {
+        let mut work = work.lock().expect("title work mutex");
+        work.pending.clear();
+        std::mem::take(&mut work.tasks)
+    };
+    for (_, task) in &tasks {
+        task.abort();
+    }
+    for (_, task) in tasks {
+        let _ = task.await;
+    }
+}
+
+async fn drain_automatic_titles(
+    db: &Db,
+    events: &broadcast::Sender<CoreEvent>,
+    work: &Mutex<AutomaticTitles>,
+    rx: &mut mpsc::Receiver<AutomaticTitleResult>,
+) {
+    let deadline = tokio::time::Instant::now() + TITLE_SHUTDOWN_GRACE;
+    while !work.lock().expect("title work mutex").pending.is_empty() {
+        match tokio::time::timeout_at(deadline, rx.recv()).await {
+            Ok(Some(result)) => commit_automatic_title(db, events, work, result),
+            _ => break,
+        }
+    }
+    // Cancel all remaining provider work and join it before the owner releases
+    // the database. A canceled title never becomes a late title update.
+    stop_automatic_titles(work).await;
+}
 
 /// Allowlisted stage/category for an interactive startup failure. No paths,
 /// config values, provider responses or underlying error text cross this API.
@@ -655,6 +752,10 @@ async fn start_worker(
     // worker-wide epoch distinguishes even a return to the same Location.
     let location_epoch = Arc::new(AtomicU64::new(1));
     let suggestion_queue = Arc::new(Mutex::new(SuggestionQueue::default()));
+    // Title work belongs to the application owner, not a single invocation of
+    // the command loop: a rejected switch resumes that same Location.
+    let (title_tx, mut title_rx) = mpsc::channel::<AutomaticTitleResult>(32);
+    let title_work = Mutex::new(AutomaticTitles::default());
     loop {
         let outcome = worker(
             &runtime,
@@ -668,10 +769,14 @@ async fn start_worker(
             &mut home_choices,
             &location_epoch,
             &suggestion_queue,
+            &title_tx,
+            &mut title_rx,
+            &title_work,
         )
         .await?;
         match outcome {
             WorkerOutcome::Stop => {
+                drain_automatic_titles(&db, &events, &title_work, &mut title_rx).await;
                 runtime
                     .shutdown_mcp()
                     .await
@@ -736,6 +841,17 @@ async fn start_worker(
                             .shutdown_mcp()
                             .await
                             .map_err(|error| error.to_string())?;
+                        // A title that actually completed while target
+                        // validation was in progress still belongs to the old
+                        // accepted prompt. Commit it before retiring that
+                        // Location; only unfinished work is cancelled.
+                        while let Ok(result) = title_rx.try_recv() {
+                            commit_automatic_title(&db, &events, &title_work, result);
+                        }
+                        // All target validation has succeeded. Retire and join
+                        // old provider work before publishing the new Location;
+                        // queued results lose their pending stamp as well.
+                        stop_automatic_titles(&title_work).await;
                         remote_retry_quarantined |= runtime.remote_retry_quarantined();
                         if remote_retry_quarantined {
                             next.quarantine_remote_retries();
@@ -1643,8 +1759,22 @@ async fn worker(
     home_choices: &mut BTreeMap<String, Effective>,
     location_epoch: &Arc<AtomicU64>,
     suggestion_queue: &Arc<Mutex<SuggestionQueue>>,
+    title_tx: &mpsc::Sender<AutomaticTitleResult>,
+    title_rx: &mut mpsc::Receiver<AutomaticTitleResult>,
+    title_work: &Mutex<AutomaticTitles>,
 ) -> Result<WorkerOutcome, String> {
-    while let Some(message) = inbox.recv().await {
+    'worker: loop {
+        let message = tokio::select! {
+            biased;
+            Some(result) = title_rx.recv() => {
+                commit_automatic_title(db, events, title_work, result);
+                continue;
+            }
+            message = inbox.recv() => match message {
+                Some(message) => message,
+                None => break,
+            },
+        };
         // A manual compress request is a real turn: the model drives the
         // compress tool exactly like an automatic nudge.
         let message = match message {
@@ -1660,7 +1790,19 @@ async fn worker(
             other => other,
         };
         match message {
-            InboxMsg::Shutdown => return Ok(WorkerOutcome::Stop),
+            InboxMsg::Shutdown => break 'worker,
+            InboxMsg::CancelTitle { session, ack } => {
+                let result = if title_work
+                    .lock()
+                    .expect("title work mutex")
+                    .cancel(&session.0)
+                {
+                    Ok(())
+                } else {
+                    Err(CoreError::TurnBusy)
+                };
+                let _ = ack.send(result);
+            }
             InboxMsg::RegenerateTitle { session, ack } => {
                 let prepared = (|| -> Result<_, CoreError> {
                     runtime
@@ -1820,7 +1962,7 @@ async fn worker(
                 };
                 let _ = ack.send(result);
                 if shutdown {
-                    return Ok(WorkerOutcome::Stop);
+                    break 'worker;
                 }
             }
             InboxMsg::SwitchLocation { path, ack } => {
@@ -1967,6 +2109,7 @@ async fn worker(
                 let result;
                 {
                     let operation = async {
+                        let mut title_warnings = Vec::new();
                         let on_accept = |id: &str,
                                          model_switch: Option<
                             &oc_core::queries::ModelSwitchNotice,
@@ -1983,6 +2126,130 @@ async fn worker(
                                     project_model_switch(notice, &composition.catalog)
                                 }),
                             });
+                            // Acceptance is durable here. Do not launch a title
+                            // request for a rejected prompt, an already titled
+                            // root, or one with an in-flight title request.
+                            let stamp = db.root_title_stamp(&session.0).ok().flatten();
+                            if let Some((None, expected_event)) = stamp {
+                                let mut work = title_work.lock().expect("title work mutex");
+                                if !work.pending.contains_key(&session.0) {
+                                    work.pending.insert(session.0.clone(), expected_event);
+                                    work.tasks.retain(|(_, task)| !task.is_finished());
+                                    let session = session.clone();
+                                    let sender = (*title_tx).clone();
+                                    let provider = composition.provider.clone();
+                                    let selection = title_selection.clone();
+                                    let prompt = title_prompt.clone();
+                                    let instructions = title_agent
+                                        .map(|agent| agent.body.clone())
+                                        .unwrap_or_else(|| "Generate a short session title from the user's request. Output only the title, in at most 100 characters.".into());
+                                    let fallback = composition
+                                        .generation
+                                        .providers
+                                        .get(&composition.catalog.provider)
+                                        .map(|provider| provider.options.native_fallback_limits)
+                                        .unwrap_or_default();
+                                    let budget = crate::models::budget(&selection, 256, fallback);
+                                    if let Some(warning) = &budget.warning {
+                                        title_warnings.push(format!("title generation: {warning}"));
+                                    }
+                                    let input = vec![
+                                        crate::provider::InputItem::message(
+                                            crate::provider::InputRole::Developer,
+                                            &instructions,
+                                        ),
+                                        crate::provider::InputItem::message(
+                                            crate::provider::InputRole::User,
+                                            &prompt[..prompt
+                                                .floor_char_boundary(prompt.len().min(8192))],
+                                        ),
+                                    ];
+                                    let admitted = serde_json::to_string(&(
+                                        &input,
+                                        &[] as &[crate::provider::ToolDef],
+                                    ))
+                                    .map(|json| crate::runtime::estimate_tokens(&json))
+                                    .map_err(|_| "invalid title request".to_string())
+                                    .and_then(|tokens| {
+                                        crate::models::admit_budget(&selection, tokens, &budget)
+                                            .map_err(|error| error.to_string())
+                                    });
+                                    if let Err(error) = admitted {
+                                        title_warnings
+                                            .push(format!("title generation skipped: {error}"));
+                                        work.pending.remove(&session.0);
+                                    } else {
+                                        work.tasks.push((
+                                            session.0.clone(),
+                                            tokio::spawn(async move {
+                                                let title = async {
+                                                    let cancel = AtomicBool::new(false);
+                                                    let generation = tokio::time::timeout(
+                                                        std::time::Duration::from_secs(10),
+                                                        crate::provider::stream_input_observed(
+                                                            &provider,
+                                                            &selection.id,
+                                                            selection.variant.as_ref(),
+                                                            &input,
+                                                            &[],
+                                                            budget.output,
+                                                            &cancel,
+                                                            &mut |_| {},
+                                                        ),
+                                                    )
+                                                    .await
+                                                    .ok()?
+                                                    .ok()?;
+                                                    let canonical = generation
+                                                        .output
+                                                        .iter()
+                                                        .filter(|item| {
+                                                            item["type"] == "message"
+                                                                && item["role"] == "assistant"
+                                                        })
+                                                        .filter_map(|item| {
+                                                            item.get("content")
+                                                                .and_then(|value| value.as_array())
+                                                        })
+                                                        .flatten()
+                                                        .filter(|part| {
+                                                            part["type"] == "output_text"
+                                                        })
+                                                        .filter_map(|part| part["text"].as_str())
+                                                        .collect::<Vec<_>>()
+                                                        .join("");
+                                                    let text = if generation.text.is_empty() {
+                                                        &canonical
+                                                    } else {
+                                                        &generation.text
+                                                    };
+                                                    let line = text
+                                                        .lines()
+                                                        .find(|line| !line.trim().is_empty())
+                                                        .unwrap_or_default()
+                                                        .trim()
+                                                        .trim_matches('"');
+                                                    let title: String = line
+                                                        .chars()
+                                                        .filter(|c| !c.is_control())
+                                                        .take(100)
+                                                        .collect();
+                                                    normalized_session_title(&title)
+                                                        .map(str::to_string)
+                                                }
+                                                .await;
+                                                let _ = sender
+                                                    .send(AutomaticTitleResult {
+                                                        session,
+                                                        expected_event,
+                                                        title,
+                                                    })
+                                                    .await;
+                                            }),
+                                        ));
+                                    }
+                                }
+                            }
                         };
                         let on_text = |id: &str, delta: &str| {
                             let _ = events.send(CoreEvent::TextDelta {
@@ -2077,105 +2344,28 @@ async fn worker(
                                 projection,
                             });
                         }
-                        // The default/configured title profile uses the selected
-                        // provider adapter, without tools or a second conversation.
-                        // Failure leaves the honest untitled state and can be retried
-                        // on a later turn. Existing/child titles are never replaced.
-                        if report.status == TurnStatus::Completed
-                            && !cancel.load(Ordering::Relaxed)
-                            && db.session_meta(&session.0)?.title.is_none()
-                        {
-                            let selection = &title_selection;
-                            let fallback = composition
-                                .generation
-                                .providers
-                                .get(&composition.catalog.provider)
-                                .map(|provider| provider.options.native_fallback_limits)
-                                .unwrap_or_default();
-                            let budget = crate::models::budget(selection, 256, fallback);
-                            if let Some(warning) = &budget.warning {
-                                report.warnings.push(format!("title generation: {warning}"));
-                            }
-                            let input = vec![
-                                    crate::provider::InputItem::message(
-                                        crate::provider::InputRole::Developer,
-                                        title_agent.map(|a| a.body.as_str()).unwrap_or("Generate a short session title from the user's request. Output only the title, in at most 100 characters."),
-                                    ),
-                                    crate::provider::InputItem::message(
-                                        crate::provider::InputRole::User,
-                                        &title_prompt[..title_prompt.floor_char_boundary(title_prompt.len().min(8192))],
-                                    ),
-                                ];
-                            let tools = [];
-                            let input_tokens = crate::runtime::estimate_tokens(
-                                &serde_json::to_string(&(&input, &tools))
-                                    .map_err(|_| RuntimeError::Storage)?,
-                            );
-                            if let Err(error) =
-                                crate::models::admit_budget(selection, input_tokens, &budget)
-                            {
-                                report
-                                    .warnings
-                                    .push(format!("title generation skipped: {error}"));
-                            } else if let Ok(Ok(generation)) = tokio::time::timeout(
-                                std::time::Duration::from_secs(10),
-                                crate::provider::stream_input_observed(
-                                    &composition.provider,
-                                    &selection.id,
-                                    selection.variant.as_ref(),
-                                    &input,
-                                    &tools,
-                                    budget.output,
-                                    &cancel,
-                                    &mut |_| {},
-                                ),
-                            )
-                            .await
-                            {
-                                let canonical = generation
-                                    .output
-                                    .iter()
-                                    .filter(|item| {
-                                        item["type"] == "message" && item["role"] == "assistant"
-                                    })
-                                    .filter_map(|value| {
-                                        value.get("content").and_then(|v| v.as_array())
-                                    })
-                                    .flatten()
-                                    .filter(|c| c["type"] == "output_text")
-                                    .filter_map(|c| c["text"].as_str())
-                                    .collect::<Vec<_>>()
-                                    .join("");
-                                let title = if generation.text.is_empty() {
-                                    &canonical
-                                } else {
-                                    &generation.text
-                                }
-                                .lines()
-                                .find(|line| !line.trim().is_empty())
-                                .unwrap_or_default()
-                                .trim()
-                                .trim_matches('"');
-                                let title: String = title
-                                    .chars()
-                                    .filter(|c| !c.is_control())
-                                    .take(100)
-                                    .collect();
-                                if !title.is_empty() {
-                                    db.set_generated_title(&session.0, &title)?;
-                                }
-                            }
-                        }
+                        report.warnings.extend(title_warnings);
                         Ok::<_, RuntimeError>(report)
                     };
                     tokio::pin!(operation);
                     result = loop {
                         tokio::select! {
                             result = &mut operation => break result,
+                            Some(result) = title_rx.recv(), if !shutdown => {
+                                commit_automatic_title(db, events, title_work, result);
+                            }
                             command = inbox.recv(), if !shutdown => match command {
                                 None | Some(InboxMsg::Shutdown) => {
                                     shutdown = true;
                                     cancel.store(true, Ordering::Relaxed);
+                                }
+                                Some(InboxMsg::CancelTitle { session: target, ack }) => {
+                                    let result = if title_work.lock().expect("title work mutex").cancel(&target.0) {
+                                        Ok(())
+                                    } else {
+                                        Err(CoreError::TurnBusy)
+                                    };
+                                    let _ = ack.send(result);
                                 }
                                 Some(InboxMsg::Cancel { session: target, ack }) if target == session => {
                                     cancel.store(true, Ordering::Relaxed);

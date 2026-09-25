@@ -243,6 +243,101 @@ impl Fake {
     }
 }
 
+/// Title and main requests have independently controlled responses, regardless
+/// of connection order. A main stream stays open after headers until released.
+fn split_title_server() -> (
+    String,
+    CapturedRequests,
+    Arc<AtomicBool>,
+    Arc<AtomicBool>,
+    Arc<AtomicBool>,
+) {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!(
+        "http://127.0.0.1:{}/v1",
+        listener.local_addr().unwrap().port()
+    );
+    let requests: CapturedRequests = Arc::new(Mutex::new(Vec::new()));
+    let main_release = Arc::new(AtomicBool::new(false));
+    let title_release = Arc::new(AtomicBool::new(false));
+    let title_disconnected = Arc::new(AtomicBool::new(false));
+    let requests_worker = requests.clone();
+    let main_worker = main_release.clone();
+    let title_worker = title_release.clone();
+    let disconnected_worker = title_disconnected.clone();
+    std::thread::spawn(move || {
+        for stream in listener.incoming().filter_map(Result::ok) {
+            let requests = requests_worker.clone();
+            let main_release = main_worker.clone();
+            let title_release = title_worker.clone();
+            let title_disconnected = disconnected_worker.clone();
+            std::thread::spawn(move || {
+                let mut reader = BufReader::new(stream);
+                let mut len = 0;
+                loop {
+                    let mut line = String::new();
+                    if reader.read_line(&mut line).unwrap_or(0) == 0 {
+                        return;
+                    }
+                    if line.trim().is_empty() {
+                        break;
+                    }
+                    if let Some((name, value)) = line.split_once(':')
+                        && name.eq_ignore_ascii_case("content-length")
+                    {
+                        len = value.trim().parse().unwrap();
+                    }
+                }
+                let mut body = vec![0u8; len];
+                if reader.read_exact(&mut body).is_err() {
+                    return;
+                }
+                let request: serde_json::Value = serde_json::from_slice(&body).unwrap();
+                let title = request["model"] == "title-model";
+                requests.lock().unwrap().push(request);
+                let stream = reader.get_mut();
+                let _ = stream.write_all(b"HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\nconnection: close\r\n\r\n");
+                let _ = stream.flush();
+                let gate = if title { title_release } else { main_release };
+                while !gate.load(Ordering::Relaxed) {
+                    if stream.write_all(b": hb\n\n").is_err() {
+                        if title {
+                            title_disconnected.store(true, Ordering::Relaxed);
+                        }
+                        return;
+                    }
+                    let _ = stream.flush();
+                    std::thread::sleep(Duration::from_millis(20));
+                }
+                let response =
+                    sse_delta(if title { "Real title" } else { "main answer" }) + &sse_completed();
+                let _ = stream.write_all(response.as_bytes());
+                let _ = stream.flush();
+            });
+        }
+    });
+    (
+        url,
+        requests,
+        main_release,
+        title_release,
+        title_disconnected,
+    )
+}
+
+async fn wait_for_title_requests(requests: &CapturedRequests, expected: usize) {
+    tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if requests.lock().unwrap().len() >= expected {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("provider requests");
+}
+
 struct Harness {
     _project: tempfile::TempDir,
     _data: tempfile::TempDir,
@@ -1290,7 +1385,6 @@ for line in sys.stdin:
         vec![
             batch("startup", false),
             done(),
-            done(), // First turn also generates a title.
             batch("build", false),
             done(),
             batch("review", true),
@@ -1327,6 +1421,11 @@ for line in sys.stdin:
         .unwrap();
     let session = SessionId::new("primary-policy").unwrap();
     app.create_session(session.clone()).await.unwrap();
+    // This fixture scripts conversational requests by arrival index. Pin its
+    // title so the independent automatic title lane cannot consume that queue.
+    app.rename_session(session.clone(), "Policy fixture".into())
+        .await
+        .unwrap();
     let mut events = app.subscribe();
     for selected in [None, Some("build"), Some("review")] {
         if let Some(id) = selected {
@@ -1401,13 +1500,8 @@ for line in sys.stdin:
         "called\n"
     );
     let captured = requests.lock().unwrap();
-    assert_eq!(captured.len(), 11);
-    for (index, prefix) in [
-        (1, "startup"),
-        (7, "child"),
-        (8, "review"),
-        (10, "restored"),
-    ] {
+    assert_eq!(captured.len(), 10);
+    for (index, prefix) in [(1, "startup"), (6, "child"), (7, "review"), (9, "restored")] {
         assert_eq!(
             function_output(&captured[index], &format!("{prefix}-bash")),
             Some("error: denied bash")
@@ -1418,29 +1512,29 @@ for line in sys.stdin:
         );
     }
     assert!(
-        function_output(&captured[4], "build-bash")
+        function_output(&captured[3], "build-bash")
             .unwrap()
             .contains("exit 0")
     );
     assert!(
-        function_output(&captured[4], "build-mcp")
+        function_output(&captured[3], "build-mcp")
             .unwrap()
             .contains("MCP allowed")
     );
     assert!(
-        function_output(&captured[8], "spawn")
+        function_output(&captured[7], "spawn")
             .unwrap()
             .contains("done")
     );
     for (index, request) in captured.iter().enumerate() {
         assert_eq!(
             request.to_string().contains("PRIMARY_POLICY_GUIDANCE"),
-            matches!(index, 3 | 4),
+            matches!(index, 2 | 3),
             "guidance in request {index}"
         );
     }
-    assert!(captured[6]["input"].to_string().contains("HELPER_CHILD"));
-    assert!(captured[9]["input"].to_string().contains("REVIEW_PRIMARY"));
+    assert!(captured[5]["input"].to_string().contains("HELPER_CHILD"));
+    assert!(captured[8]["input"].to_string().contains("REVIEW_PRIMARY"));
 }
 
 #[tokio::test]
@@ -5096,6 +5190,526 @@ async fn provider_context_usage_survives_missing_round_usage_and_restart() {
 /// End to end through the real application worker: `application::spawn_with_env`
 /// (project-local config, no process env mutation) broadcasts the new
 /// `ReasoningDelta` and `TurnUsage` events next to `TurnFinished`.
+async fn title_fixture(
+    url: &str,
+) -> (
+    tempfile::TempDir,
+    tempfile::TempDir,
+    tempfile::TempDir,
+    oc_core::core_app::CoreApp,
+    oc_core::core_app::WorkerGuard,
+) {
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    std::fs::write(project.path().join("opencode.json"), serde_json::json!({
+        "model": "fixture/main",
+        "provider": {"fixture": {"npm": "@ai-sdk/openai", "options": {"baseURL": url, "apiKey": "dummy"},
+            "models": {"main": {}, "title-model": {}}}},
+        "agent": {"title": {"mode": "subagent", "model": "fixture/title-model", "prompt": "TITLE_AGENT_ONLY"}}
+    }).to_string()).unwrap();
+    let env = BTreeMap::from([
+        ("HOME".into(), home.path().to_string_lossy().into_owned()),
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+    ]);
+    let (app, guard, _) =
+        oc_adapters::application::spawn_with_env(project.path(), data.path(), env)
+            .await
+            .unwrap();
+    (project, data, home, app, guard)
+}
+
+#[tokio::test]
+async fn accepted_prompt_titles_while_main_is_held_and_survives_main_cancel() {
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+    let (url, requests, main_release, title_release, _) = split_title_server();
+    let (_project, _data, _home, app, guard) = title_fixture(&url).await;
+    let session = SessionId::new("concurrent-title").unwrap();
+    let mut events = app.subscribe();
+    app.submit_fresh(session.clone(), "first prompt".into(), None)
+        .await
+        .unwrap();
+    wait_for_title_requests(&requests, 2).await;
+    assert!(
+        requests
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|request| request["model"] == "title-model"
+                && request["input"].to_string().contains("TITLE_AGENT_ONLY")
+                && request["input"].to_string().contains("first prompt"))
+    );
+    title_release.store(true, Ordering::Relaxed);
+    tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if let CoreEvent::SessionTitleUpdated {
+                session: owner,
+                title,
+            } = events.recv().await.unwrap()
+            {
+                assert_eq!(owner, session);
+                assert_eq!(title, "Real title");
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+        app.history_page(session.clone(), None, None, 10)
+            .await
+            .unwrap()
+            .title
+            .as_deref(),
+        Some("Real title")
+    );
+    assert!(
+        app.submit(session.clone(), "cannot submit while main held".into())
+            .await
+            .is_err()
+    );
+    app.cancel(session.clone()).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if matches!(
+                events.recv().await.unwrap(),
+                CoreEvent::TurnInterrupted { .. }
+            ) {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    main_release.store(true, Ordering::Relaxed);
+    app.submit(session.clone(), "followup".into())
+        .await
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if matches!(events.recv().await.unwrap(), CoreEvent::TurnFinished { .. }) {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+        app.history_page(session, None, None, 10)
+            .await
+            .unwrap()
+            .title
+            .as_deref(),
+        Some("Real title")
+    );
+    assert_eq!(
+        requests
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|r| r["model"] == "title-model")
+            .count(),
+        1,
+        "no second title request on completion or subsequent prompt"
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn in_flight_title_is_independent_of_cancel_but_manual_rename_wins() {
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+    let (url, requests, _main_release, title_release, _) = split_title_server();
+    let (_project, _data, _home, app, guard) = title_fixture(&url).await;
+    let session = SessionId::new("manual-title-race").unwrap();
+    let mut events = app.subscribe();
+    app.submit_fresh(session.clone(), "first prompt".into(), None)
+        .await
+        .unwrap();
+    wait_for_title_requests(&requests, 2).await;
+    app.cancel(session.clone()).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if matches!(
+                events.recv().await.unwrap(),
+                CoreEvent::TurnInterrupted { .. }
+            ) {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    app.rename_session(session.clone(), "manual".into())
+        .await
+        .unwrap();
+    app.rename_session(session.clone(), "intermediate".into())
+        .await
+        .unwrap();
+    app.rename_session(session.clone(), "manual".into())
+        .await
+        .unwrap();
+    title_release.store(true, Ordering::Relaxed);
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert_eq!(
+        app.history_page(session, None, None, 10)
+            .await
+            .unwrap()
+            .title
+            .as_deref(),
+        Some("manual")
+    );
+    assert!(!matches!(
+        events.try_recv(),
+        Ok(CoreEvent::SessionTitleUpdated { .. })
+    ));
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn cancelling_automatic_title_does_not_interrupt_main_and_allows_retry() {
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+    let (url, requests, main_release, title_release, _) = split_title_server();
+    let (_project, _data, _home, app, guard) = title_fixture(&url).await;
+    let session = SessionId::new("cancel-auto-title").unwrap();
+    let mut events = app.subscribe();
+    app.submit_fresh(session.clone(), "first prompt".into(), None)
+        .await
+        .unwrap();
+    wait_for_title_requests(&requests, 2).await;
+    app.cancel_title(session.clone()).await.unwrap();
+    title_release.store(true, Ordering::Relaxed);
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    assert_eq!(
+        app.history_page(session.clone(), None, None, 10)
+            .await
+            .unwrap()
+            .title,
+        None
+    );
+    assert!(
+        app.submit(session.clone(), "main still held".into())
+            .await
+            .is_err()
+    );
+    main_release.store(true, Ordering::Relaxed);
+    tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if matches!(events.recv().await.unwrap(), CoreEvent::TurnFinished { .. }) {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+        app.history_page(session.clone(), None, None, 10)
+            .await
+            .unwrap()
+            .title,
+        None,
+        "no second post-completion title request"
+    );
+    app.submit(session.clone(), "retry title".into())
+        .await
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if matches!(
+                events.recv().await.unwrap(),
+                CoreEvent::SessionTitleUpdated { .. }
+            ) {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+        app.history_page(session, None, None, 10)
+            .await
+            .unwrap()
+            .title
+            .as_deref(),
+        Some("Real title")
+    );
+    assert_eq!(
+        requests
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|r| r["model"] == "title-model")
+            .count(),
+        2
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn rejected_reload_keeps_accepted_title_running_on_current_location() {
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+    use oc_core::session::{CoreError, LocationSwitchFailure};
+
+    let (url, requests, _main_release, title_release, title_disconnected) = split_title_server();
+    let (project, _data, _home, app, guard) = title_fixture(&url).await;
+    let session = SessionId::new("rejected-reload-title").unwrap();
+    let mut events = app.subscribe();
+    app.submit_fresh(session.clone(), "first prompt".into(), None)
+        .await
+        .unwrap();
+    wait_for_title_requests(&requests, 2).await;
+    app.cancel(session.clone()).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if matches!(
+                events.recv().await.unwrap(),
+                CoreEvent::TurnInterrupted { .. }
+            ) {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+
+    // This rebuild fails before publication; the accepted prompt still belongs
+    // to the original Location, even though worker() has returned to its owner.
+    std::fs::write(project.path().join("opencode.json"), "{invalid json").unwrap();
+    assert!(matches!(
+        app.reload_location().await,
+        Err(CoreError::LocationSwitch {
+            category: LocationSwitchFailure::Configuration,
+            ..
+        })
+    ));
+    assert_eq!(
+        app.history_page(session.clone(), None, None, 10)
+            .await
+            .unwrap()
+            .title,
+        None
+    );
+    assert!(
+        !title_disconnected.load(Ordering::Relaxed),
+        "rejected reload must not abort the accepted title"
+    );
+
+    title_release.store(true, Ordering::Relaxed);
+    tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if let CoreEvent::SessionTitleUpdated {
+                session: owner,
+                title,
+            } = events.recv().await.unwrap()
+            {
+                assert_eq!(owner, session);
+                assert_eq!(title, "Real title");
+                break;
+            }
+        }
+    })
+    .await
+    .expect("title result must commit after rejected reload");
+    assert_eq!(
+        app.history_page(session, None, None, 10)
+            .await
+            .unwrap()
+            .title
+            .as_deref(),
+        Some("Real title")
+    );
+    assert_eq!(
+        requests
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|request| request["model"] == "title-model")
+            .count(),
+        1
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn title_task_from_retired_location_generation_cannot_commit() {
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+    let (url, requests, _main_release, title_release, _) = split_title_server();
+    let (_project, data, _home, app, guard) = title_fixture(&url).await;
+    let session = SessionId::new("retired-title").unwrap();
+    let mut events = app.subscribe();
+    app.submit_fresh(session.clone(), "first prompt".into(), None)
+        .await
+        .unwrap();
+    wait_for_title_requests(&requests, 2).await;
+    app.cancel(session.clone()).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if matches!(
+                events.recv().await.unwrap(),
+                CoreEvent::TurnInterrupted { .. }
+            ) {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    app.reload_location().await.unwrap();
+    title_release.store(true, Ordering::Relaxed);
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    let conn = rusqlite::Connection::open(data.path().join("oc.sqlite")).unwrap();
+    assert_eq!(
+        conn.query_row(
+            "SELECT title FROM sessions WHERE id='retired-title'",
+            [],
+            |row| row.get::<_, Option<String>>(0)
+        )
+        .unwrap(),
+        None
+    );
+    assert_eq!(
+        app.history_page(session, None, None, 10)
+            .await
+            .unwrap()
+            .title,
+        None
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn completed_turn_shutdown_drains_title_and_persists_before_join() {
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+    let (url, requests, main_release, title_release, _) = split_title_server();
+    let (_project, data, _home, app, guard) = title_fixture(&url).await;
+    let session = SessionId::new("graceful-shutdown-title").unwrap();
+    let mut events = app.subscribe();
+    app.submit_fresh(session.clone(), "first prompt".into(), None)
+        .await
+        .unwrap();
+    wait_for_title_requests(&requests, 2).await;
+    main_release.store(true, Ordering::Relaxed);
+    tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if matches!(events.recv().await.unwrap(), CoreEvent::TurnFinished { .. }) {
+                break;
+            }
+        }
+    })
+    .await
+    .expect("main completion must not wait for the title");
+    assert_eq!(
+        app.history_page(session.clone(), None, None, 10)
+            .await
+            .unwrap()
+            .title,
+        None
+    );
+
+    let shutdown = tokio::spawn({
+        let app = app.clone();
+        async move {
+            app.shutdown().await.unwrap();
+            guard.join().await.unwrap();
+        }
+    });
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    assert!(
+        !shutdown.is_finished(),
+        "normal shutdown must drain the pending title"
+    );
+    title_release.store(true, Ordering::Relaxed);
+    tokio::time::timeout(Duration::from_secs(4), shutdown)
+        .await
+        .expect("shutdown bound")
+        .unwrap();
+    let conn = rusqlite::Connection::open(data.path().join("oc.sqlite")).unwrap();
+    assert_eq!(
+        conn.query_row(
+            "SELECT title FROM sessions WHERE id='graceful-shutdown-title'",
+            [],
+            |row| row.get::<_, Option<String>>(0)
+        )
+        .unwrap()
+        .as_deref(),
+        Some("Real title")
+    );
+    assert_eq!(
+        requests
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|r| r["model"] == "title-model")
+            .count(),
+        1,
+        "drain cannot issue a replacement title request"
+    );
+}
+
+#[tokio::test]
+async fn shutdown_aborts_unfinished_automatic_title() {
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+    let (url, requests, main_release, title_release, title_disconnected) = split_title_server();
+    let (_project, data, _home, app, guard) = title_fixture(&url).await;
+    let session = SessionId::new("shutdown-title").unwrap();
+    let mut events = app.subscribe();
+    app.submit_fresh(session.clone(), "first prompt".into(), None)
+        .await
+        .unwrap();
+    wait_for_title_requests(&requests, 2).await;
+    main_release.store(true, Ordering::Relaxed);
+    tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if matches!(events.recv().await.unwrap(), CoreEvent::TurnFinished { .. }) {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    let start = std::time::Instant::now();
+    tokio::time::timeout(Duration::from_secs(4), async {
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    })
+    .await
+    .expect("held title must not stall shutdown");
+    assert!(
+        start.elapsed() >= Duration::from_millis(500),
+        "title got no grace"
+    );
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while !title_disconnected.load(Ordering::Relaxed) {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("title provider connection must close before worker join returns");
+    title_release.store(true, Ordering::Relaxed);
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    let conn = rusqlite::Connection::open(data.path().join("oc.sqlite")).unwrap();
+    assert_eq!(
+        conn.query_row(
+            "SELECT title FROM sessions WHERE id='shutdown-title'",
+            [],
+            |row| row.get::<_, Option<String>>(0)
+        )
+        .unwrap(),
+        None
+    );
+}
+
 #[tokio::test]
 async fn bare_title_regeneration_uses_title_agent_and_preserves_concurrent_manual_rename() {
     use oc_adapters::application;
@@ -5397,6 +6011,7 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             } => break (text, duration_ms),
             CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             CoreEvent::TurnStarted { .. }
+            | CoreEvent::SessionTitleUpdated { .. }
             | CoreEvent::TurnPresentation { .. }
             | CoreEvent::ReasoningItemEnded { .. }
             | CoreEvent::TextDelta { .. }
@@ -5444,7 +6059,6 @@ async fn anonymous_text_after_second_reasoning_keeps_unstreamed_first_message_on
                     serde_json::json!({"type":"reasoning","id":"rs_2","encrypted_content":"private-2","status":"completed"}),
                     serde_json::json!({"type":"message","role":"assistant","id":"m2","status":"completed","content":[{"type":"output_text","text":"final"}]}),
                 ]),
-            sse_delta("Title") + &sse_completed(),
         ],
         Duration::ZERO,
     );
@@ -5466,6 +6080,11 @@ async fn anonymous_text_after_second_reasoning_keeps_unstreamed_first_message_on
         .unwrap();
     let session = SessionId::new("two-items-app").unwrap();
     app.create_session(session.clone()).await.unwrap();
+    // This fake scripts the reasoning reply by connection order. Keep the
+    // fixture focused on replay by pre-titling the root before acceptance.
+    app.rename_session(session.clone(), "Reasoning replay".into())
+        .await
+        .unwrap();
     let mut rx = app.subscribe();
     let turn = app.submit(session.clone(), "first".into()).await.unwrap();
     let mut events = Vec::new();
@@ -5691,6 +6310,9 @@ async fn dto_application_events_surface_tool_calls() {
         .expect("application");
     let session = SessionId::new("s-app-tools").expect("session id");
     app.create_session(session.clone()).await.expect("create");
+    app.rename_session(session.clone(), "Tool event fixture".into())
+        .await
+        .unwrap();
     let mut rx = app.subscribe();
     app.submit(session.clone(), "patch it".to_string())
         .await
@@ -5722,6 +6344,7 @@ async fn dto_application_events_surface_tool_calls() {
             CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
             CoreEvent::TurnPresentation { projection, .. } => checkpoints.push(projection),
             CoreEvent::TurnStarted { .. }
+            | CoreEvent::SessionTitleUpdated { .. }
             | CoreEvent::TextDelta { .. }
             | CoreEvent::ReasoningDelta { .. }
             | CoreEvent::ReasoningItemEnded { .. }
