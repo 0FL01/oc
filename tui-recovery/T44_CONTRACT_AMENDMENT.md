@@ -43,6 +43,22 @@ gates VIS25/26 остаются открытыми.
   (не обязательны для gate);
 - mentions передаются текстом (`@path`), structured prompt parts не планируются.
 
+## Уточнение R5: выделение и копирование текста мышью
+
+Повторить pinned upstream v2.0.12: `terminal.copy` принимает `select`/`manual`;
+по умолчанию `select` на Linux, `manual` на Windows (`packages/tui/src/app.tsx:561–562`).
+В `select` непустое выделение копируется на `mouse-up`, только если событие имеет
+`isDragging`; обработчик не проверяет кнопку. Это включает выделение перетаскиванием
+и повторными щелчками для слова/строки без перемещения указателя
+(`packages/tui/test/util/selection-copy-on-select.test.tsx:50–60`).
+В `manual` существующее выделение копируется по `mouse-down` ПКМ
+(`packages/tui/src/app.tsx:1315–1325`). Пустое выделение не копируется;
+подсветка остаётся. После успешного результата записи показывается info-toast
+`Copied to clipboard`, при ошибке — ошибка, не success-toast
+(`packages/tui/src/util/selection.ts:34–62`). Не подменять запись показом toast.
+Обязательный сценарий — VIS27; системный clipboard конкретного терминала/SSH
+нельзя считать проверенным только по PTY-кадру.
+
 ## Заменить ослабленное Material Decision
 
 Pixel-perfect — не «наши тесты совпадают с нашими expected».
@@ -72,7 +88,7 @@ R6: pending до full rerun на финальном code SHA; сохранить
 
 ## Обязательные результаты нового прохода
 
-V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS26 из ACCEPTANCE.json:
+V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS27 из ACCEPTANCE.json:
 1. Изолированный upstream reference + identical fixture/state для трёх пользовательских экранов.
 2. Исправленные UI event loop/keymap и диагностируемый MCP error без потери draft.
 3. Shell/sidebar/tabs/prompt/footer из реальных данных с геометрией эталона.

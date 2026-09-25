@@ -359,6 +359,18 @@
       "mandatory": true,
       "execution_status": "NOT_RUN",
       "evidence": []
+    },
+    {
+      "id": "VIS27",
+      "step": "V05",
+      "title": "Mouse selection and upstream clipboard feedback",
+      "expected": "Under the same terminal profile, original and native select mode: a mouse-up marked isDragging copies nonempty selected text, including word/line selection by repeated clicks without pointer movement; empty or ordinary non-drag release does not copy. Manual mode: right-button mouse-down copies an existing nonempty selection. Copy retains the highlight. A successful clipboard write shows the info toast 'Copied to clipboard'; failure does not show a success toast. Verify event/selection behavior and paired toast frames in PTY; separately verify the clipboard destination where supported. A toast frame alone does not prove that an external system clipboard received the text.",
+      "sources": [
+        "P01"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
     }
   ]
 }

@@ -15,7 +15,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 The owner's reviewed [T44 amendment](../../tui-recovery/T44_CONTRACT_AMENDMENT.md)
 supersedes the weaker self-authored interpretation below. Execute V00–V09 from
 [IMPLEMENTATION_GUIDE](../../tui-recovery/IMPLEMENTATION_GUIDE.md), all mandatory
-VIS01–VIS26 in [ACCEPTANCE.json](../../tui-recovery/ACCEPTANCE.json), and
+VIS01–VIS27 in [ACCEPTANCE.json](../../tui-recovery/ACCEPTANCE.json), and
 [SAFETY_REGRESSIONS](../../tui-recovery/SAFETY_REGRESSIONS.md). These are specifications,
 not executed results or a second task engine. `progress.py` remains the task-state owner.
 
@@ -48,8 +48,8 @@ not executed results or a second task engine. `progress.py` remains the task-sta
   - Status: implemented-partial/unverified
   - Evidence: iterations 3a+3b (committed): `crates/oc-tui/src/messages.rs` renders user blocks with `┃`/raised background/chips, assistant markdown (paddingLeft 3, headings/lists/code fences with syntax colors/blockquotes), collapsed reasoning (`Thinking` → `Thought: … · duration`), and the `agent · model · dur · tok/s · interrupted` footer; additive DTOs `ReasoningDelta`/`TurnUsage`/`duration_ms` wired through the provider stream (2 adapter end-to-end tests). Tool cards: inline rows (read/glob/grep/webfetch/skill/generic with upstream labels and spinner), shell `$ cmd` with stdout/stderr/exit/truncation, apply_patch `# Created`/`← Patched`/`# Deleted` with diff hunks using `diff.text.*` roles, subagent card parsed from the real `<subagent …>` wrapper, pending/running/completed/error/cancelled states; additive `ToolCallStarted/Finished` events emitted after durable writes. Known R4 residual: committed history rows carry no tool cards after a page reload (live turns only).
 
-- R5: Interaction parity — keybindings, command palette, dialogs (session list, model, agent, help, error details), input editor behavior (multi-line, paste, history), inline `/` autocomplete and `@` mention overlays (owner amendment 2026-09-24), and status hints match upstream.
-  - Acceptance: keymap table test (key → action) mirroring upstream defaults + PTY tests exercising each dialog; paired original/native frames for VIS25/VIS26 trigger, filtered query and after-Tab states.
+- R5: Interaction parity — keybindings, command palette, dialogs (session list, model, agent, help, error details), input editor behavior (multi-line, paste, history), inline `/` autocomplete and `@` mention overlays (owner amendment 2026-09-24), mouse text selection/copy, and status hints match upstream.
+  - Acceptance: keymap table test (key → action) mirroring upstream defaults + PTY tests exercising each dialog; paired original/native frames for VIS25/VIS26 trigger, filtered query and after-Tab states; VIS27 verifies upstream mouse selection/copy modes and clipboard feedback.
   - Primary evidence: keymap test + dialog snapshots.
   - Status: pending
   - Evidence:
