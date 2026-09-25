@@ -371,6 +371,18 @@
       "mandatory": true,
       "execution_status": "NOT_RUN",
       "evidence": []
+    },
+    {
+      "id": "VIS28",
+      "step": "V05",
+      "title": "Running agent indicator in lower-left prompt footer",
+      "expected": "In a real running session the lower-left footer, below agent/model metadata and before 'esc interrupt', shows the pinned eight-cell agent-colored blocks/trail scanner. With animations enabled, paired original/native temporal captures show forward motion, end hold, reverse motion and start hold at the nominal 40 ms frame cadence; compare matched phases, not unrelated wall-clock frames. With animations disabled both show '[⋯]' beside the interrupt hint. On completion or interruption the running indicator disappears. Metadata labels remain data-driven; a static spinner or an animation-off-only capture cannot pass this case.",
+      "sources": [
+        "P01"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
     }
   ]
 }

@@ -59,6 +59,21 @@ gates VIS25/26 остаются открытыми.
 Обязательный сценарий — VIS27; системный clipboard конкретного терминала/SSH
 нельзя считать проверенным только по PTY-кадру.
 
+## Уточнение R5: индикатор работы агента
+
+В обычном session prompt pinned upstream v2.0.12 под строкой метаданных агента/модели
+нижний левый footer показывает индикатор перед `esc interrupt` только при
+`session.status === "running"` (`packages/tui/src/component/prompt/index.tsx:1825–1837,1884–1900`).
+Это не анимация текста метаданных и не spinner сообщения или вкладки. Индикатор —
+восьмиячеечный blocks/trail от цвета текущего агента (fallback `theme.border.base`),
+с кадрами раз в 40 мс: движение слева направо, пауза, обратно, пауза
+(`packages/tui/src/component/prompt/index.tsx:1624–1641`,
+`packages/tui/src/ui/spinner.ts:25–81,272–328`). При отключённой анимации
+upstream показывает `[⋯]` вместо движущегося индикатора, сохраняя interrupt hint;
+по выходу из running индикатор исчезает. Не хардкодить OCR-строку с именами
+агента/модели. VIS28 проверяет живую последовательность кадров, состояние без
+анимации и завершение/прерывание; один кадр или только animation-off — не PASS.
+
 ## Заменить ослабленное Material Decision
 
 Pixel-perfect — не «наши тесты совпадают с нашими expected».
@@ -88,7 +103,7 @@ R6: pending до full rerun на финальном code SHA; сохранить
 
 ## Обязательные результаты нового прохода
 
-V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS27 из ACCEPTANCE.json:
+V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS28 из ACCEPTANCE.json:
 1. Изолированный upstream reference + identical fixture/state для трёх пользовательских экранов.
 2. Исправленные UI event loop/keymap и диагностируемый MCP error без потери draft.
 3. Shell/sidebar/tabs/prompt/footer из реальных данных с геометрией эталона.
