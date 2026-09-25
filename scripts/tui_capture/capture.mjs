@@ -63,6 +63,16 @@ if (autocompleteKeysMove && !autocompleteKeys)
 const mention = args.mention === 'true';
 if (args.mention !== undefined && !['true','false'].includes(args.mention))
   throw Error('--mention must be true or false');
+const reasoningClick = args['reasoning-click'] === 'true';
+if (args['reasoning-click'] !== undefined && !['true','false'].includes(args['reasoning-click']))
+  throw Error('--reasoning-click must be true or false');
+if (reasoningClick && (args.geometry !== 'true' || args.sample !== 'reasoning' || args.sidebar !== 'hide' ||
+    args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
+    !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
+    args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] ||
+    args.tabs === 'vertical' || explorationClick || tabClick || tabClose || tabCloseKey || tabRestart ||
+    renameSession || regenerateTitle || sidebarPalette || autocomplete || autocompleteKeys || mention))
+  throw Error('--reasoning-click true requires paired binaries, --geometry true --sample reasoning --sidebar hide --agent-profile true --columns 120 --rows 40, horizontal tabs and no other interaction/resize modes');
 if (mention && autocomplete) throw Error('--mention true and --autocomplete true are mutually exclusive');
 if (autocompleteKeys && (autocomplete || mention))
   throw Error('--autocomplete-keys true is mutually exclusive with --autocomplete true and --mention true');
@@ -582,10 +592,124 @@ try {
        const marker = ['short','reasoning','tools'].includes(args.sample) ? 'GEOMETRY-SHORT' : ['rows','rows-reflow'].includes(args.sample) ? 'ROW-089' : 'Через Code Mode';
        const done = await waitFor(f => f.text.includes(marker) &&
         /MiMo-V2.6-Flash Free · \d/.test(f.text) &&
-         logs.some(e => e.kind==='provider_completed' && e.operation==='transcript'), 'completed transcript');
-       if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');
-       const completedStatus = await capture('session-wide-completed',done,'CAPTURED');
-       if(autocomplete) {
+         logs.some(e => e.kind==='provider_completed' && e.operation==='transcript') &&
+         (!reasoningClick || logs.some(e=>e.kind==='provider_completed' && e.operation==='title')), 'completed transcript');
+        if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');
+        const completedStatus = await capture('session-wide-completed',done,'CAPTURED');
+        if(reasoningClick) {
+          const checks=[];
+          const counts=()=>({transcript:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length,
+            title:logs.filter(e=>e.kind==='provider' && e.operation==='title').length,
+            completed_transcript:logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length,
+            completed_title:logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length,
+            invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});
+          const baseline=counts();
+          const providerStable=()=>canonical(counts())===canonical(baseline);
+          // The pinned hide-mode group header (session/index.tsx) is a painted
+          // InlineToolRow, not a string offset in the concatenated frame text.
+          const observe=f=>{
+            const collapsed=visibleMatches(f,'+ Thought: Inspecting');
+            const expanded=visibleMatches(f,'- Thought');
+            const fragments=visibleMatches(f,'Thought');
+            const bodies=visibleMatches(f,'Public summary only.');
+            const header=collapsed.length===1 && expanded.length===0 ? {...collapsed[0],state:'collapsed'} :
+              expanded.length===1 && collapsed.length===0 ? {...expanded[0],state:'expanded'} : null;
+            const text=header?.state==='collapsed' ? '+ Thought: Inspecting' : '- Thought';
+            const cells=header ? f.cells[header.y].slice(header.x,header.x+[...text].length) : [];
+            return {collapsed,expanded,fragments,bodies,header,
+              header_style:header ? {fg:cells.map(c=>c.fg),bg:cells.map(c=>c.bg),
+                modifiers:cells.map(c=>c.modifiers),widths:cells.map(c=>c.width)} : null,
+              cursor:f.cursor,provider_counts:counts(),grid_sha256:sha(JSON.stringify(f))};
+          };
+          const save=()=>{
+            fs.writeFileSync(path.join(dir,'reasoning-click-checks.json'),JSON.stringify({baseline,checks},null,2)+'\n');
+            json('capture.lock.json',lock);
+          };
+          lock.reasoning_click ??= {};
+          lock.reasoning_click[origin]={status:'IN_PROGRESS',baseline,checks};
+          const record=(stage,f,predicates,extra={})=>{
+            const observed=observe(f);
+            checks.push({stage,observed,predicates,...extra});
+            save();
+            if(Object.values(predicates).some(value=>value!==true))
+              throw Error('Reasoning click predicate failed: '+stage);
+            return observed;
+          };
+          const unique=o=>o.fragments.length===1 && o.collapsed.length+o.expanded.length===1 &&
+            o.header && o.fragments[0].x===o.header.x+2 && o.fragments[0].y===o.header.y;
+          const styled=o=>o.header_style?.fg.every(fg=>fg!=='#eeeeee') &&
+            o.header_style?.widths.every(width=>width===1) && o.header_style.fg.length>0;
+          const bodyBelow=o=>o.bodies.length===1 && o.header && o.bodies[0].y>o.header.y;
+          const cursorValid=f=>f.cursor.x>=0 && f.cursor.x<f.columns &&
+            f.cursor.y>=0 && f.cursor.y<f.rows;
+          const state=(f,kind)=>{
+            const o=observe(f);
+            if(o.fragments.length>1 || o.collapsed.length>1 || o.expanded.length>1 || o.bodies.length>1)
+              throw Error('Duplicate/overpainted reasoning header or body: '+kind+' '+JSON.stringify({
+                fragments:o.fragments,collapsed:o.collapsed,expanded:o.expanded,bodies:o.bodies}));
+            return unique(o) && o.header.state===kind && styled(o) &&
+              (kind==='collapsed' ? o.bodies.length===0 : bodyBelow(o)) &&
+              providerStable() && cursorValid(f) && f.text.includes('GEOMETRY-SHORT: public reasoning completed.');
+          };
+          const awaitState=async(stage,kind)=>{
+            try {return await waitFor(f=>state(f,kind),`reasoning click ${stage}`,12000);}
+            catch(e) {
+              const current=await frame();
+              checks.push({stage:stage+'-failed',observed:observe(current),
+                predicates:{state_reached:false},reason:e.message});
+              save();
+              throw e;
+            }
+          };
+          const check=(stage,f,kind)=>{
+            const o=observe(f);
+            return record(stage,f,{
+              unique_painted_header:!!unique(o),
+              expected_header:o.header?.state===kind,
+              styled_header:!!styled(o),
+              body_visibility:kind==='collapsed' ? o.bodies.length===0 : !!bodyBelow(o),
+              provider_counts_unchanged:providerStable(),cursor_in_bounds:cursorValid(f),
+              completed_answer_visible:f.text.includes('GEOMETRY-SHORT: public reasoning completed.'),
+              opaque_content_absent:!f.text.includes('opaque-fixture-must-not-display')});
+          };
+          const shot=async(stage,f)=>{
+            const status=await capture(`reasoning-${stage}`,f,'CAPTURED_REASONING_CLICK');
+            record(stage+'-capture',await frame(),{stable_capture:status==='CAPTURED_REASONING_CLICK'});
+          };
+          const click=(stage,f)=>{
+            const o=observe(f);
+            const x=o.header.x+3, y=o.header.y+1; // interior 'T', one-based SGR
+            const down=`\x1b[<0;${x};${y}M`,up=`\x1b[<0;${x};${y}m`;
+            record(stage+'-click',f,{unique_painted_header:!!unique(o),
+              expected_header:o.header?.state===(stage==='expand'?'collapsed':'expanded'),
+              body_visibility:stage==='expand'?o.bodies.length===0:!!bodyBelow(o),
+              provider_counts_unchanged:providerStable(),cursor_in_bounds:cursorValid(f)},
+              {cell:{x:o.header.x+2,y:o.header.y},pty_column:x,pty_row:y,
+                down_base64:Buffer.from(down).toString('base64'),up_base64:Buffer.from(up).toString('base64')});
+            send(down,`reasoning_${stage}_mouse_down`);
+            send(up,`reasoning_${stage}_mouse_up`);
+          };
+          record('provider-baseline',done,{completed_session_captured:completedStatus==='CAPTURED',
+            one_completed_transcript:baseline.transcript===1 && baseline.completed_transcript===1,
+            one_completed_title:baseline.title===1 && baseline.completed_title===1,
+            no_invalid_requests:baseline.invalid===0});
+          const collapsed=await awaitState('collapsed','collapsed');
+          check('collapsed',collapsed,'collapsed');
+          await shot('collapsed',collapsed);
+          click('expand',await awaitState('before-expand-click','collapsed'));
+          const expanded=await awaitState('expanded','expanded');
+          check('expanded',expanded,'expanded');
+          await shot('expanded',expanded);
+          click('recollapse',await awaitState('before-recollapse-click','expanded'));
+          const recollapsed=await awaitState('recollapsed','collapsed');
+          check('recollapsed',recollapsed,'collapsed');
+          await shot('recollapsed',recollapsed);
+          lock.reasoning_click[origin].status='PASS';
+          save();
+          lock.attempts.push({origin,status:'REASONING_CLICK_CHECKS_PASS',provider_counts:counts(),
+            predicates:checks.filter(c=>c.predicates).map(c=>({stage:c.stage,...c.predicates}))});
+        }
+        if(autocomplete) {
          await probeAutocomplete('session');
          lock.autocomplete[origin].status='RECORDED';
          json('capture.lock.json',lock);
@@ -1301,7 +1425,8 @@ try {
         if(sidebarPalette && lock.sidebar_palette?.[origin]) lock.sidebar_palette[origin].status='FAILED';
         if(autocomplete && lock.autocomplete?.[origin]) lock.autocomplete[origin].status='FAILED';
         if(autocompleteKeys && lock.autocomplete_keys?.[origin]) lock.autocomplete_keys[origin].status='FAILED';
-         if(mention && lock.mention?.[origin]) lock.mention[origin].status='FAILED';
+          if(mention && lock.mention?.[origin]) lock.mention[origin].status='FAILED';
+          if(reasoningClick && lock.reasoning_click?.[origin]) lock.reasoning_click[origin].status='FAILED';
       await capture('failure-diagnostic',await frame(),'FAILED_STATE');
     } finally {
       if(!child.stdin.destroyed) child.stdin.write(JSON.stringify({kind:'stop'})+'\n');
@@ -1336,7 +1461,8 @@ try {
     stable_state_predicate: 'Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response',
     requested_settings: profile.settings,
     unresolved: ['Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs',
-      'Fixture requests 6800ms reasoning but supplies text-only output; reasoning qualification is not executed',
+      ...(reasoningClick ? ['Reasoning click states are captured; whole-frame parity still depends on paired grid/PNG comparator results'] :
+        ['Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed']),
       'Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns',
       'Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings',
       'Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states'],

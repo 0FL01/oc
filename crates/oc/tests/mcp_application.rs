@@ -1841,14 +1841,22 @@ done
         std::thread::sleep(POLL);
     }
     let deadline = Instant::now() + TIMEOUT;
-    while !tui
-        .screen()
-        .iter()
-        .any(|row| row.trim_start().starts_with('·') && row.contains("ms"))
-    {
+    while !tui.screen().iter().any(|row| {
+        row.trim_start()
+            .strip_prefix("MCP application fixture · ")
+            .and_then(|footer| footer.split_whitespace().next())
+            .is_some_and(|duration| {
+                duration
+                    .strip_suffix("ms")
+                    .or_else(|| duration.strip_suffix('s'))
+                    .and_then(|value| value.parse::<f64>().ok())
+                    .is_some_and(|value| value > 0.0)
+            })
+    }) {
         assert!(
             Instant::now() < deadline,
-            "completed assistant footer missing"
+            "completed assistant footer missing; PTY screen: {:#?}",
+            tui.screen()
         );
         std::thread::sleep(POLL);
     }

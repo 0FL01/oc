@@ -11,10 +11,10 @@
 //!   `padding 1/2`, then the skill/file chip rows
 //!   (`routes/session/index.tsx:2273-2398`);
 //! - assistant text: `paddingLeft=3` markdown (`message-parts.tsx:147-174`);
-//! - reasoning: `paddingLeft=3`, collapsed upstream default (`thinkingMode`
-//!   defaults to `"hide"`, `routes/session/index.tsx:226`): a static spinner
-//!   header while running and `+ Thought: … · <duration>` once complete
-//!   (`routes/session/index.tsx:1765-1815`, `message-parts.tsx:98-145`);
+//! - reasoning: default hide-mode `SessionReasoningGroupView` has an inline
+//!   header and, when opened, a separately bordered body (`routes/session/
+//!   index.tsx:1742-1858`); show mode uses `ReasoningPart` instead
+//!   (`message-parts.tsx:20-96`);
 //! - assistant footer: `Agent · model · duration · N tok/s · interrupted`
 //!   (`routes/session/index.tsx:1934-1985`).
 
@@ -334,6 +334,16 @@ pub struct ReasoningBlock {
     pub running: bool,
     /// Session-local presentation mode; history and provider payloads stay unchanged.
     pub expanded: bool,
+    /// Hide mode offers the per-part +/- header; show mode is always open.
+    pub(crate) toggleable: bool,
+    /// Stable UI-only part address; absent on ad-hoc presentation fixtures.
+    pub(crate) identity: Option<ReasoningIdentity>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum ReasoningIdentity {
+    Durable(i64, usize),
+    Live(u64, usize),
 }
 
 /// Assistant footer data, projected from durable turns or live events.
@@ -1386,6 +1396,39 @@ pub(crate) fn exploration_header_at(
         },
     )
     .2
+    .and_then(|hit| match hit {
+        TranscriptHit::Exploration(op) => Some(op),
+        TranscriptHit::Reasoning(_) => None,
+    })
+}
+
+pub(crate) fn reasoning_header_at(
+    rows: &[HistoryRow],
+    theme: &Theme,
+    widths: (u16, u16),
+    viewport: (usize, usize, Option<usize>),
+    agent_color: impl Fn(Option<&str>) -> Color,
+    cache: &RefCell<MarkdownCache>,
+    hit: (&impl Fn(&str) -> bool, (usize, usize)),
+) -> Option<ReasoningIdentity> {
+    visible_transcript_indexed(
+        rows,
+        theme,
+        widths,
+        viewport,
+        &agent_color,
+        cache,
+        ExplorationOptions {
+            expanded: hit.0,
+            point: Some(hit.1),
+            retries: 2,
+        },
+    )
+    .2
+    .and_then(|hit| match hit {
+        TranscriptHit::Reasoning(id) => Some(id),
+        TranscriptHit::Exploration(_) => None,
+    })
 }
 
 pub(crate) fn visible_transcript_expanded(
@@ -1420,6 +1463,11 @@ struct ExplorationOptions<'a> {
     retries: u8,
 }
 
+enum TranscriptHit {
+    Exploration(String),
+    Reasoning(ReasoningIdentity),
+}
+
 fn visible_transcript_indexed(
     rows: &[HistoryRow],
     theme: &Theme,
@@ -1428,7 +1476,7 @@ fn visible_transcript_indexed(
     agent_color: &impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
     options: ExplorationOptions<'_>,
-) -> (Vec<Line>, usize, Option<String>) {
+) -> (Vec<Line>, usize, Option<TranscriptHit>) {
     let (width, terminal_width) = widths;
     let (height, scroll, live_row) = viewport;
     let mut total = 1usize;
@@ -1514,7 +1562,10 @@ fn visible_transcript_indexed(
                             - UnicodeWidthStr::width(text.trim_start());
                         let last = UnicodeWidthStr::width(text.trim_end());
                         if x >= leading && x < last {
-                            hit = row.tool.as_ref().map(|card| card.op.clone());
+                            hit = row
+                                .tool
+                                .as_ref()
+                                .map(|card| TranscriptHit::Exploration(card.op.clone()));
                         }
                     }
                 }
@@ -1535,6 +1586,26 @@ fn visible_transcript_indexed(
                 }
             }
         } else if row.role == "assistant" && width > 0 {
+            if let Some((x, y)) = options.point
+                && let Some(reasoning) = row
+                    .reasoning
+                    .as_ref()
+                    .filter(|r| r.toggleable && !reasoning_content(r).is_empty())
+                && let Some(id) = reasoning.identity
+            {
+                let header_start = position + 1; // reasoning's leading spacer
+                if header_start == start + y && header_start < end {
+                    let header = clipped_reasoning_header(reasoning, theme, width);
+                    let text = header.plain_text();
+                    // Group header is flush with InlineToolRow's paddingLeft=3
+                    // even when its separately bordered body is expanded.
+                    let leading = MESSAGE_PADDING;
+                    let last = UnicodeWidthStr::width(text.trim_end());
+                    if x >= leading && x < last {
+                        hit = Some(TranscriptHit::Reasoning(id));
+                    }
+                }
+            }
             visit_assistant_indexed(
                 row,
                 (index, live_row == Some(index)),
@@ -1781,55 +1852,74 @@ fn assistant_block(
     out
 }
 
-/// Collapsed reasoning header (`routes/session/index.tsx:1765-1815`):
+/// Reasoning header: hide mode is `SessionReasoningGroupView`
+/// (`routes/session/index.tsx:1785-1815`), show mode is `ReasoningPart`
+/// (`message-parts.tsx:49-65,98-145`).
 ///
-/// - running: static spinner fallback `⋯ Thinking` / `⋯ Thinking: <title>`
-///   (`component/spinner.tsx:29-33`, animations off) in `text.base`
-///   (`:1789-1791`);
-/// - completed: `+ Thought: <title> · <duration>` in the warning color at
-///   alpha 0.6 (`:1793-1800`, `message-parts.tsx:106-114`).
+/// - running: static spinner fallback `⋯ Thinking` / `⋯ Thinking: <title>`;
+/// - completed hide: `+ Thought: <title> · <duration>` when closed,
+///   `- Thought · <duration>` when opened; show mode omits the icon.
 fn reasoning_line(reasoning: &ReasoningBlock, theme: &Theme) -> Line {
-    let content = reasoning.text.replace("[REDACTED]", "");
-    let title = if reasoning.expanded {
+    let content = reasoning_content(reasoning);
+    let title = if !reasoning.toggleable || (reasoning.expanded && !reasoning.running) {
         ""
     } else {
         reasoning_title(&content)
     };
     let mut spans = vec![Span::plain(" ".repeat(MESSAGE_PADDING))];
+    if !reasoning.toggleable {
+        spans.push(Span::styled(
+            "┃",
+            Style::default().fg(theme.decrease(theme.background())),
+        ));
+        spans.push(Span::plain(" "));
+    }
+    let fg = if reasoning.running {
+        if reasoning.toggleable {
+            theme.text()
+        } else {
+            theme.fade(theme.warning(), 0.6)
+        }
+    } else if reasoning.toggleable == reasoning.expanded {
+        theme.warning()
+    } else {
+        theme.fade(theme.warning(), 0.6)
+    };
+    let style = Style::default().fg(fg);
     if reasoning.running {
         let mut text = String::from("⋯ Thinking");
         if !title.is_empty() {
             text.push_str(": ");
             text.push_str(title);
         }
-        spans.push(Span::styled(text, Style::default().fg(theme.text())));
+        spans.push(Span::styled(text, style));
         return Line::new(spans);
     }
-    let faded = theme.fade(theme.warning(), 0.6);
-    let style = Style::default().fg(faded);
-    spans.push(Span::styled(
-        format!(
-            "{:<width$}",
-            if reasoning.expanded { "-" } else { "+" },
-            width = INLINE_ICON_WIDTH
-        ),
-        style,
-    ));
+    if reasoning.toggleable {
+        spans.push(Span::styled(
+            format!(
+                "{:<width$}",
+                if reasoning.expanded { "-" } else { "+" },
+                width = INLINE_ICON_WIDTH
+            ),
+            style,
+        ));
+    }
     let mut text = String::from("Thought");
     let duration = reasoning
         .duration_ms
         .filter(|ms| *ms > 0)
         .map(Locale::duration);
-    if !title.is_empty() || duration.is_some() {
+    if !title.is_empty() || (duration.is_some() && !reasoning.toggleable) {
         text.push_str(": ");
     }
     if !title.is_empty() {
         text.push_str(title);
-        if duration.is_some() {
-            text.push_str(" · ");
-        }
     }
     if let Some(duration) = duration {
+        if reasoning.toggleable || !title.is_empty() {
+            text.push_str(" · ");
+        }
         text.push_str(&duration);
     }
     spans.push(Span::styled(text, style));
@@ -1837,35 +1927,94 @@ fn reasoning_line(reasoning: &ReasoningBlock, theme: &Theme) -> Line {
 }
 
 fn reasoning_lines(reasoning: &ReasoningBlock, theme: &Theme, width: u16) -> Vec<Line> {
+    // The owner exposes individual parts, not the pinned group's aggregate
+    // refs/completion; one native row represents one part, never fake steps.
+    let content = reasoning_content(reasoning);
+    if content.is_empty() {
+        return Vec::new();
+    }
     let mut lines = vec![
         Line::plain(""),
-        sanitize_line(reasoning_line(reasoning, theme)),
+        clipped_reasoning_header(reasoning, theme, width),
     ];
     if reasoning.expanded {
-        let content = reasoning.text.replace("[REDACTED]", "");
-        if !content.trim().is_empty() {
-            lines.push(Line::plain(""));
-            let mut end = content.len().min(LIVE_MARKDOWN_BYTES);
-            while !content.is_char_boundary(end) {
-                end -= 1;
-            }
-            let mut body = markdown_block(&content[..end], theme, width);
-            // A single public reasoning part is a bounded view of the owner's
-            // durable text. Do not turn expansion into an unbounded render.
-            let omitted = end < content.len() || body.len() > MAX_MARKDOWN_ROWS;
-            if body.len() > MAX_MARKDOWN_ROWS {
-                body.truncate(MAX_MARKDOWN_ROWS);
-            }
-            if omitted {
-                body.push(Line::styled(
-                    "   … [reasoning preview limited]",
-                    Style::default().fg(theme.text_muted()),
-                ));
-            }
-            lines.extend(body.into_iter().map(sanitize_line));
+        lines.push(Line::plain(""));
+        let mut end = content.len().min(LIVE_MARKDOWN_BYTES);
+        while !content.is_char_boundary(end) {
+            end -= 1;
+        }
+        // Grouped hide: paddingLeft=3, border and paddingLeft=1
+        // (`index.tsx:1815-1851`). Show: ReasoningPart also has a border
+        // and paddingLeft=1 (`message-parts.tsx:68-85`).
+        let inset = MESSAGE_PADDING + 2;
+        let inner = width.saturating_sub(inset as u16).max(1);
+        let mut body = markdown_at_width(&content[..end], theme, inner as usize);
+        // A single public reasoning part is a bounded view of the owner's
+        // durable text. Do not turn expansion into an unbounded render.
+        let omitted = end < content.len() || body.len() > MAX_MARKDOWN_ROWS;
+        if body.len() > MAX_MARKDOWN_ROWS {
+            body.truncate(MAX_MARKDOWN_ROWS);
+        }
+        if omitted {
+            body.push(Line::styled(
+                "… [reasoning preview limited]",
+                Style::default().fg(theme.text_muted()),
+            ));
+        }
+        let border = Style::default().fg(theme.decrease(if reasoning.toggleable {
+            theme.background_raised()
+        } else {
+            theme.background()
+        }));
+        for line in body {
+            let mut spans = vec![
+                Span::plain(" ".repeat(MESSAGE_PADDING)),
+                Span::styled("┃", border),
+                Span::plain(" ".repeat(inset - MESSAGE_PADDING - 1)),
+            ];
+            // thinkingSyntax replaces every Markdown token foreground with
+            // text.muted; retain the native parser's layout/modifiers.
+            spans.extend(
+                line.spans()
+                    .iter()
+                    .map(|span| Span::styled(span.content(), span.style().fg(theme.text_muted()))),
+            );
+            lines.push(clipped_line(sanitize_line(Line::new(spans)), width));
         }
     }
     lines
+}
+
+fn reasoning_content(reasoning: &ReasoningBlock) -> String {
+    reasoning.text.replace("[REDACTED]", "").trim().to_string()
+}
+
+/// OpenTUI's completed header uses `wrapMode="none"`: retain only complete
+/// graphemes that fit the painted row, preserving span styles and cell widths.
+fn clipped_reasoning_header(reasoning: &ReasoningBlock, theme: &Theme, width: u16) -> Line {
+    clipped_line(sanitize_line(reasoning_line(reasoning, theme)), width)
+}
+
+fn clipped_line(header: Line, width: u16) -> Line {
+    if width == 0 {
+        return header;
+    }
+    let mut remaining = width as usize;
+    let mut spans = Vec::new();
+    for span in header.spans() {
+        let mut clipped = String::new();
+        for glyph in span.content().graphemes(true) {
+            let cells = UnicodeWidthStr::width(glyph);
+            if cells > remaining {
+                spans.push(Span::styled(clipped, span.style()));
+                return Line::new(spans);
+            }
+            clipped.push_str(glyph);
+            remaining -= cells;
+        }
+        spans.push(Span::styled(clipped, span.style()));
+    }
+    Line::new(spans)
 }
 
 /// Upstream `reasoningSummary` (`context/thinking.ts:10-19`): a leading
@@ -2717,6 +2866,139 @@ mod tests {
         }
     }
 
+    #[test]
+    fn reasoning_index_hits_only_clipped_painted_cells_at_scroll() {
+        let theme = Theme::dark();
+        let cache = RefCell::new(MarkdownCache::default());
+        let make = |ordinal, text: &str, running| {
+            let mut row = assistant("");
+            row.seq = 42;
+            row.reasoning = Some(ReasoningBlock {
+                text: text.into(),
+                duration_ms: None,
+                running,
+                expanded: false,
+                toggleable: true,
+                identity: Some(ReasoningIdentity::Durable(42, ordinal)),
+            });
+            row
+        };
+        let rows = vec![
+            make(0, "**A long wrapped title**\n\nbody", false),
+            make(2, "second", false),
+            make(3, "streaming", true),
+        ];
+        let hit = |width, height, scroll, x, y| {
+            reasoning_header_at(
+                &rows,
+                theme,
+                (width, width),
+                (height, scroll, None),
+                |_| Color::Reset,
+                &cache,
+                (&|_| false, (x, y)),
+            )
+        };
+        let (lines, total) = visible_transcript_expanded(
+            &rows,
+            theme,
+            (12, 12),
+            (20, 0, None),
+            |_| Color::Reset,
+            &cache,
+            &|_| false,
+        );
+        assert!(
+            !lines
+                .iter()
+                .any(|line| line.plain_text().contains("wrapped"))
+        );
+        assert_eq!(
+            lines[2].plain_text(),
+            "   + Thought",
+            "completed text clips at 12 cells instead of wrapping"
+        );
+        assert_eq!(total, lines.len());
+        assert_eq!(hit(12, 20, 0, 3, 1), None, "spacer");
+        assert_eq!(hit(12, 20, 0, 2, 2), None, "padding");
+        assert_eq!(
+            hit(12, 20, 0, 3, 2),
+            Some(ReasoningIdentity::Durable(42, 0))
+        );
+        assert_eq!(hit(12, 20, 0, 1, 3), None, "no wrapped continuation");
+        let second = lines
+            .iter()
+            .rposition(|line| line.plain_text().contains("Thought"))
+            .unwrap();
+        assert_eq!(
+            hit(12, 20, 0, 4, second),
+            Some(ReasoningIdentity::Durable(42, 2))
+        );
+        let (wide, _) = visible_transcript_expanded(
+            &rows,
+            theme,
+            (40, 40),
+            (20, 0, None),
+            |_| Color::Reset,
+            &cache,
+            &|_| false,
+        );
+        let wide_second = wide
+            .iter()
+            .rposition(|line| line.plain_text().contains("Thought"))
+            .unwrap();
+        assert_eq!(hit(40, 20, 0, 39, wide_second), None, "blank tail");
+        let running = lines
+            .iter()
+            .position(|line| line.plain_text().contains('⋯'))
+            .unwrap();
+        assert_eq!(
+            hit(12, 20, 0, 4, running),
+            Some(ReasoningIdentity::Durable(42, 3)),
+            "running header owns clicks in hide mode"
+        );
+        assert_eq!(hit(12, 4, 0, 3, 2), None, "off-screen first header");
+
+        let mut show = rows[1].clone();
+        show.reasoning.as_mut().unwrap().toggleable = false;
+        show.reasoning.as_mut().unwrap().expanded = true;
+        assert_eq!(
+            clipped_reasoning_header(show.reasoning.as_ref().unwrap(), theme, 12).plain_text(),
+            "   ┃ Thought"
+        );
+        assert_eq!(
+            reasoning_header_at(
+                &[show],
+                theme,
+                (12, 12),
+                (4, 0, None),
+                |_| Color::Reset,
+                &cache,
+                (&|_| false, (4, 2))
+            ),
+            None,
+            "show header has no toggle"
+        );
+
+        let wide = make(4, "**界界**\n\nbody", false);
+        let clipped = clipped_reasoning_header(wide.reasoning.as_ref().unwrap(), theme, 17);
+        assert_eq!(clipped.plain_text(), "   + Thought: 界");
+        assert_eq!(UnicodeWidthStr::width(clipped.plain_text().as_str()), 16);
+        assert_eq!(
+            reasoning_header_at(
+                &[wide],
+                theme,
+                (17, 17),
+                (4, 0, None),
+                |_| Color::Reset,
+                &cache,
+                (&|_| false, (16, 2))
+            ),
+            None,
+            "half a wide glyph is not a hit"
+        );
+    }
+
     fn exploration_tool(name: &str, state: &str, truncated: bool) -> HistoryRow {
         let input = match name {
             "read" => serde_json::json!({"path": "fixture-note.txt"}),
@@ -3046,7 +3328,7 @@ mod tests {
 
     /// Collapsed reasoning (`routes/session/index.tsx:1765-1815`): a static
     /// spinner header while running, `+ Thought: <title> · <duration>` once
-    /// complete, in the warning color at alpha 0.6.
+    /// complete; collapsed warning alpha 0.6, open warning.base.
     #[test]
     fn golden_reasoning_running_and_completed() {
         let theme = Theme::dark();
@@ -3057,10 +3339,12 @@ mod tests {
                 duration_ms: None,
                 running: true,
                 expanded: false,
+                toggleable: true,
+                identity: None,
             }),
             ..assistant("")
         };
-        let (rows, buffer) = render(&[running], 60, 3);
+        let (rows, buffer) = render(std::slice::from_ref(&running), 60, 3);
         assert_eq!(
             rows,
             vec![
@@ -3071,6 +3355,12 @@ mod tests {
         );
         assert_eq!(buffer[(3, 1)].symbol(), "⋯");
         assert_eq!(buffer[(3, 1)].fg, theme.text());
+        let mut running_open = running.clone();
+        running_open.reasoning.as_mut().unwrap().expanded = true;
+        let (rows, buffer) = render(&[running_open], 60, 6);
+        assert_eq!(rows[1], "   ⋯ Thinking: Inspecting");
+        assert_eq!(rows[3], "   ┃ Inspecting");
+        assert_eq!(buffer[(3, 1)].fg, theme.text());
 
         let completed = HistoryRow {
             reasoning: Some(ReasoningBlock {
@@ -3078,10 +3368,12 @@ mod tests {
                 duration_ms: Some(1500),
                 running: false,
                 expanded: false,
+                toggleable: true,
+                identity: None,
             }),
             ..assistant("")
         };
-        let (rows, buffer) = render(&[completed], 60, 3);
+        let (rows, buffer) = render(std::slice::from_ref(&completed), 60, 3);
         assert_eq!(
             rows,
             vec![
@@ -3093,6 +3385,21 @@ mod tests {
         assert_eq!(buffer[(3, 1)].symbol(), "+");
         assert_eq!(buffer[(3, 1)].fg, fading);
         assert_eq!(buffer[(5, 1)].fg, fading);
+        let mut open = completed.clone();
+        open.reasoning.as_mut().unwrap().expanded = true;
+        let (rows, buffer) = render(&[open.clone()], 60, 6);
+        assert_eq!(buffer[(3, 1)].symbol(), "-");
+        assert_eq!(buffer[(3, 1)].fg, theme.warning());
+        assert_eq!(buffer[(5, 1)].symbol(), "T");
+        assert_eq!(rows[1], "   - Thought · 1.5s");
+        assert_eq!(rows[3], "   ┃ Inspecting");
+        assert_eq!(buffer[(3, 3)].fg, theme.decrease(theme.background_raised()));
+        assert_eq!(buffer[(5, 3)].fg, theme.text_muted());
+        open.reasoning.as_mut().unwrap().toggleable = false;
+        let (rows, buffer) = render(&[open], 60, 6);
+        assert_eq!(rows[1], "   ┃ Thought: 1.5s");
+        assert_eq!(buffer[(5, 1)].symbol(), "T");
+        assert_eq!(buffer[(5, 1)].fg, fading);
         // Unknown duration renders `Thought` without an invented `0ms`.
         let no_duration = HistoryRow {
             reasoning: Some(ReasoningBlock {
@@ -3100,11 +3407,212 @@ mod tests {
                 duration_ms: None,
                 running: false,
                 expanded: false,
+                toggleable: true,
+                identity: None,
             }),
             ..assistant("")
         };
         let (rows, _) = render(&[no_duration], 60, 2);
         assert_eq!(rows, vec![String::new(), "   + Thought".to_string()]);
+    }
+
+    #[test]
+    fn empty_cleaned_reasoning_has_no_header_spacer_or_index_hit() {
+        let theme = Theme::dark();
+        let cache = RefCell::new(MarkdownCache::default());
+        for text in ["  \n\t  ", "  [REDACTED]\n", "[REDACTED] [REDACTED]"] {
+            let mut row = assistant("");
+            row.reasoning = Some(ReasoningBlock {
+                text: text.into(),
+                duration_ms: None,
+                running: false,
+                expanded: true,
+                toggleable: true,
+                identity: Some(ReasoningIdentity::Durable(2, 0)),
+            });
+            let (normal, buffer) = render(std::slice::from_ref(&row), 120, 40);
+            assert!(normal.iter().all(String::is_empty), "{text:?}: {normal:?}");
+            assert_eq!(buffer[(3, 1)].symbol(), " ");
+            let (indexed, total) = visible_transcript_expanded(
+                std::slice::from_ref(&row),
+                theme,
+                (120, 120),
+                (40, 0, None),
+                |_| Color::Reset,
+                &cache,
+                &|_| false,
+            );
+            assert_eq!(total, 1, "no hidden spacer: {text:?}");
+            assert_eq!(indexed.len(), 1);
+            assert_eq!(
+                reasoning_header_at(
+                    &[row],
+                    theme,
+                    (120, 120),
+                    (40, 0, None),
+                    |_| Color::Reset,
+                    &cache,
+                    (&|_| false, (5, 1)),
+                ),
+                None
+            );
+        }
+    }
+
+    #[test]
+    fn expanded_group_header_and_body_use_separate_geometry_and_index() {
+        let theme = Theme::dark();
+        let cache = RefCell::new(MarkdownCache::default());
+        let mut row = assistant("");
+        row.reasoning = Some(ReasoningBlock {
+            text: "detail".into(),
+            duration_ms: None,
+            running: false,
+            expanded: true,
+            toggleable: true,
+            identity: Some(ReasoningIdentity::Durable(2, 0)),
+        });
+        for width in [120, 12, 8] {
+            let (rows, buffer) = render(std::slice::from_ref(&row), width, 40);
+            assert_eq!(
+                rows[1],
+                match width {
+                    8 => "   - Tho",
+                    _ => "   - Thought",
+                }
+            );
+            assert_eq!(buffer[(3, 1)].symbol(), "-");
+            assert_eq!(buffer[(3, 1)].fg, theme.warning());
+            assert_eq!(buffer[(4, 1)].symbol(), " ");
+            assert_eq!(buffer[(5, 1)].symbol(), "T");
+            assert_eq!(buffer[(3, 3)].symbol(), "┃");
+            assert_eq!(buffer[(3, 3)].fg, theme.decrease(theme.background_raised()));
+            assert_eq!(buffer[(5, 3)].symbol(), "d");
+            assert_eq!(buffer[(5, 3)].fg, theme.text_muted());
+            assert_eq!(
+                rows[3],
+                if width == 8 {
+                    "   ┃ det"
+                } else {
+                    "   ┃ detail"
+                }
+            );
+            let (visible, total) = visible_transcript_expanded(
+                std::slice::from_ref(&row),
+                theme,
+                (width, width),
+                (40, 0, None),
+                |_| Color::Reset,
+                &cache,
+                &|_| false,
+            );
+            assert_eq!(visible.len(), total);
+            assert_eq!(visible[2].plain_text(), rows[1]);
+            for x in [2, 3, 4, 7, (width - 1) as usize] {
+                let expected = (3..(width as usize).min(12))
+                    .contains(&x)
+                    .then_some(ReasoningIdentity::Durable(2, 0));
+                assert_eq!(
+                    reasoning_header_at(
+                        std::slice::from_ref(&row),
+                        theme,
+                        (width, width),
+                        (40, 0, None),
+                        |_| Color::Reset,
+                        &cache,
+                        (&|_| false, (x, 2)),
+                    ),
+                    expected,
+                    "width={width} x={x}"
+                );
+            }
+            assert_eq!(
+                reasoning_header_at(
+                    std::slice::from_ref(&row),
+                    theme,
+                    (width, width),
+                    (40, 0, None),
+                    |_| Color::Reset,
+                    &cache,
+                    (&|_| false, (7, 3)),
+                ),
+                None,
+                "body is not clickable"
+            );
+        }
+        row.reasoning.as_mut().unwrap().toggleable = false;
+        let (rows, buffer) = render(&[row], 120, 40);
+        assert_eq!(rows[1], "   ┃ Thought");
+        assert_eq!(rows[3], "   ┃ detail");
+        assert_eq!(buffer[(5, 1)].symbol(), "T");
+        assert_eq!(buffer[(5, 3)].symbol(), "d");
+        assert_eq!(buffer[(3, 3)].fg, theme.decrease(theme.background()));
+    }
+
+    #[test]
+    fn grouped_hide_duration_title_and_open_body_match_session_group() {
+        let theme = Theme::dark();
+        let cache = RefCell::new(MarkdownCache::default());
+        let mut row = assistant("");
+        row.reasoning = Some(ReasoningBlock {
+            text: "**Inspecting**\n\nPublic summary only.".into(),
+            duration_ms: Some(5),
+            running: false,
+            expanded: false,
+            toggleable: true,
+            identity: Some(ReasoningIdentity::Durable(2, 0)),
+        });
+        let (collapsed, buffer) = render(std::slice::from_ref(&row), 120, 40);
+        assert_eq!(collapsed[1], "   + Thought: Inspecting · 5ms");
+        assert_eq!(buffer[(3, 1)].fg, theme.fade(theme.warning(), 0.6));
+        row.reasoning.as_mut().unwrap().expanded = true;
+        let (open, buffer) = render(std::slice::from_ref(&row), 120, 40);
+        assert_eq!(open[1], "   - Thought · 5ms");
+        assert_eq!(open[3], "   ┃ Inspecting");
+        assert!(open.iter().any(|line| line == "   ┃ Public summary only."));
+        assert_eq!(buffer[(3, 1)].fg, theme.warning());
+        assert_eq!(buffer[(3, 3)].fg, theme.decrease(theme.background_raised()));
+        assert_eq!(buffer[(5, 3)].fg, theme.text_muted());
+        let (narrow, _) = render(std::slice::from_ref(&row), 12, 40);
+        assert_eq!(narrow[1], "   - Thought");
+        assert_eq!(narrow[3], "   ┃ Inspect");
+        for width in [120, 12] {
+            let (visible, _) = visible_transcript_expanded(
+                std::slice::from_ref(&row),
+                theme,
+                (width, width),
+                (40, 0, None),
+                |_| Color::Reset,
+                &cache,
+                &|_| false,
+            );
+            assert_eq!(
+                visible[2].plain_text(),
+                if width == 12 {
+                    narrow[1].as_str()
+                } else {
+                    open[1].as_str()
+                }
+            );
+            for x in [2, 3, 4, 5, 11, 12, 18] {
+                let header_width = if width == 12 { 12 } else { 18 };
+                assert_eq!(
+                    reasoning_header_at(
+                        std::slice::from_ref(&row),
+                        theme,
+                        (width, width),
+                        (40, 0, None),
+                        |_| Color::Reset,
+                        &cache,
+                        (&|_| false, (x, 2)),
+                    ),
+                    (3..header_width)
+                        .contains(&x)
+                        .then_some(ReasoningIdentity::Durable(2, 0)),
+                    "width={width}, x={x}"
+                );
+            }
+        }
     }
 
     /// Assistant footer (`routes/session/index.tsx:1963-1981`): titlecased
@@ -3609,6 +4117,8 @@ mod tests {
             duration_ms: None,
             running: true,
             expanded: false,
+            toggleable: true,
+            identity: None,
         });
         reasoning.meta = Some(AssistantMeta {
             model: Some("\u{1b}[2Jmodel".into()),

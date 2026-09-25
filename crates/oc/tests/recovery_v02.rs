@@ -466,7 +466,22 @@ async fn scenario(
     // qualifies complete structured input and its parsed card across restart.
     if patch_repeat == 1 {
         assert!(
-            frame.contains("Thought:")
+            frame
+                .lines()
+                .filter(|row| {
+                    row.trim_start()
+                        .strip_prefix("+ Thought · ")
+                        .and_then(|header| header.split_whitespace().next())
+                        .is_some_and(|duration| {
+                            duration
+                                .strip_suffix("ms")
+                                .or_else(|| duration.strip_suffix('s'))
+                                .and_then(|value| value.parse::<f64>().ok())
+                                .is_some_and(|value| value > 0.0)
+                        })
+                })
+                .count()
+                == 2
                 && frame.contains("probe.txt")
                 && frame.contains("replay.txt"),
             "{frame}"
@@ -755,7 +770,7 @@ fn binary_tui_restart(
             .iter()
             .all(|s| text.contains(s))
             && (!compact
-                || ["Thought:", "probe.txt", "replay.txt"]
+                || ["+ Thought · ", "probe.txt", "replay.txt"]
                     .iter()
                     .all(|s| text.contains(s)))
         {

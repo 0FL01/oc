@@ -271,7 +271,11 @@ impl LivePart {
     }
 
     /// Render this part as a transcript row.
-    fn to_row(&self, agent: Option<String>) -> HistoryRow {
+    fn to_row(
+        &self,
+        agent: Option<String>,
+        identity: Option<crate::messages::ReasoningIdentity>,
+    ) -> HistoryRow {
         match self {
             LivePart::Text(text) => HistoryRow {
                 seq: i64::MAX,
@@ -296,6 +300,8 @@ impl LivePart {
                     duration_ms: *duration_ms,
                     running: false,
                     expanded: false,
+                    toggleable: true,
+                    identity,
                 }),
                 meta: None,
                 tool: None,
@@ -398,6 +404,19 @@ pub struct TuiState {
     /// Only operation IDs whose exploration headers were explicitly opened.
     exploration_expanded: BTreeSet<String>,
     exploration_down: Option<(String, u16, u16)>,
+    reasoning_expanded: BTreeSet<crate::messages::ReasoningIdentity>,
+    reasoning_down: Option<(
+        crate::messages::ReasoningIdentity,
+        u16,
+        u16,
+        Rect,
+        usize,
+        usize,
+        usize,
+    )>,
+    reasoning_epoch: u64,
+    /// Number of evicted frozen parts in this turn; ordinals never shift.
+    live_part_offset: usize,
     leader: Option<Instant>,
     input: String,
     editor: crate::editor::Editor,
@@ -523,6 +542,10 @@ impl TuiState {
             can_add_tab: false,
             exploration_expanded: BTreeSet::new(),
             exploration_down: None,
+            reasoning_expanded: BTreeSet::new(),
+            reasoning_down: None,
+            reasoning_epoch: 0,
+            live_part_offset: 0,
             leader: None,
             input: String::new(),
             editor: Default::default(),
@@ -639,6 +662,7 @@ impl TuiState {
         self.hovered_tab.set(None);
         self.close_hold = None;
         self.tab_down = None;
+        self.reasoning_down = None;
     }
 
     /// Recover hover after a successful mouse tab activation (never on keys).
@@ -795,6 +819,8 @@ impl TuiState {
         self.active_tab = 0;
         self.can_add_tab = false;
         self.exploration_expanded.clear();
+        self.reasoning_expanded.clear();
+        self.reasoning_down = None;
         self.chrome = Default::default();
         self.parent_id = None;
         self.auto_accept = oc_core::queries::AutoAcceptState::Unsupported;
@@ -832,6 +858,8 @@ impl TuiState {
         self.slash_dismissed = None;
         self.clear_mentions();
         self.exploration_expanded.clear();
+        self.reasoning_expanded.clear();
+        self.reasoning_down = None;
         self.cards.clear();
         self.card_ops.clear();
         self.cards_cursor = 0;
@@ -854,6 +882,8 @@ impl TuiState {
         self.live_text.clear();
         self.live_reasoning.clear();
         self.live_parts.clear();
+        self.live_part_offset = 0;
+        self.reasoning_down = None;
         self.reasoning_started = None;
         self.reasoning_finished = None;
         self.turn_usage = None;
@@ -1435,6 +1465,8 @@ impl TuiState {
     pub fn attach_page(&mut self, page: &HistoryPage) {
         self.exploration_down = None;
         self.exploration_expanded.clear();
+        self.reasoning_down = None;
+        self.reasoning_expanded.clear();
         self.viewport.set(None);
         self.parent_id = page.parent_id.clone();
         self.session_title = page.title.clone();
@@ -1446,12 +1478,14 @@ impl TuiState {
     pub fn prepend_page(&mut self, page: &HistoryPage) {
         self.viewport.set(None);
         self.window.prepend_older(page);
+        self.prune_reasoning();
     }
 
     /// Add a newer page at the back of the window.
     pub fn append_page(&mut self, page: &HistoryPage) {
         self.viewport.set(None);
         self.window.append_newer(page);
+        self.prune_reasoning();
     }
 
     /// Older committed rows exist before the loaded window.
@@ -1484,6 +1518,7 @@ impl TuiState {
         self.close_hold = None;
         self.last_mouse = None;
         self.exploration_down = None;
+        self.reasoning_down = None;
         self.select.reset();
     }
 
@@ -1517,6 +1552,7 @@ impl TuiState {
                     if self.toast_down {
                         self.tab_down = None;
                         self.exploration_down = None;
+                        self.reasoning_down = None;
                         return KeyOutcome::default();
                     }
                 }
@@ -1537,6 +1573,20 @@ impl TuiState {
             self.toast_down = false;
             self.set_toast_hover(false, Instant::now());
         }
+        // These surfaces are drawn after the transcript. Their entire painted
+        // rectangles own the press and release, including blank fill cells.
+        if self.panel == TuiPanel::None
+            && matches!(
+                event.kind,
+                MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Up(MouseButton::Left)
+            )
+            && self.transcript_overpainted(area, event.column, event.row)
+        {
+            self.reasoning_down = None;
+            self.exploration_down = None;
+            self.tab_down = None;
+            return KeyOutcome::default();
+        }
         if self.panel == TuiPanel::None {
             match event.kind {
                 MouseEventKind::Moved => {
@@ -1546,16 +1596,36 @@ impl TuiState {
                             .map(|index| (index, area)),
                     );
                     self.exploration_down = None;
+                    self.reasoning_down = None;
                 }
                 MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
                     self.tab_down = self.tab_hit(area, event.column, event.row);
                     self.exploration_down = self
                         .exploration_hit(area, event.column, event.row)
                         .map(|op| (op, event.column, event.row));
+                    self.reasoning_down =
+                        self.reasoning_hit(area, event.column, event.row).map(|id| {
+                            let rect = crate::shell::transcript_area(self, area);
+                            let (_, total, scroll) = self.visible_transcript_at_viewport(
+                                rect.width,
+                                area.width,
+                                rect.height,
+                            );
+                            (
+                                id,
+                                event.column,
+                                event.row,
+                                area,
+                                total,
+                                scroll,
+                                self.scroll,
+                            )
+                        });
                 }
                 MouseEventKind::Up(MouseButton::Left) => {
                     let pressed_tab = self.tab_down.take();
                     let pressed = self.exploration_down.take();
+                    let reasoning_pressed = self.reasoning_down.take();
                     if event.modifiers.is_empty()
                         && let Some(tab) = pressed_tab
                         && self.tab_hit(area, event.column, event.row) == Some(tab)
@@ -1606,6 +1676,42 @@ impl TuiState {
                             self.scroll,
                         );
                     }
+                    if event.modifiers.is_empty()
+                        && let Some((id, x, y, painted, total, scroll, requested)) =
+                            reasoning_pressed
+                        && painted == area
+                        && requested == self.scroll
+                        && (x, y) == (event.column, event.row)
+                        && self.reasoning_hit(area, x, y) == Some(id)
+                    {
+                        let rect = crate::shell::transcript_area(self, area);
+                        let (_, now, displayed) = self.visible_transcript_at_viewport(
+                            rect.width,
+                            area.width,
+                            rect.height,
+                        );
+                        if (now, displayed) == (total, scroll) {
+                            let first = now
+                                .saturating_sub(rect.height as usize)
+                                .saturating_sub(displayed);
+                            self.prune_reasoning();
+                            if !self.reasoning_expanded.insert(id) {
+                                self.reasoning_expanded.remove(&id);
+                            }
+                            let (_, after) =
+                                self.visible_transcript(rect.width, area.width, rect.height);
+                            self.scroll = after
+                                .saturating_sub(rect.height as usize)
+                                .saturating_sub(first);
+                            self.observe_transcript_viewport(
+                                rect.width,
+                                area.width,
+                                rect.height,
+                                after,
+                                self.scroll,
+                            );
+                        }
+                    }
                 }
                 MouseEventKind::Drag(_)
                 | MouseEventKind::Down(_)
@@ -1613,6 +1719,7 @@ impl TuiState {
                 | MouseEventKind::ScrollUp
                 | MouseEventKind::ScrollDown => {
                     self.exploration_down = None;
+                    self.reasoning_down = None;
                     self.tab_down = None;
                     if matches!(event.kind, MouseEventKind::Drag(_)) {
                         self.hovered_tab.set(None);
@@ -1623,6 +1730,7 @@ impl TuiState {
             return KeyOutcome::default();
         }
         self.exploration_down = None;
+        self.reasoning_down = None;
         self.tab_down = None;
         self.hovered_tab.set(None);
         self.close_hold = None;
@@ -1834,6 +1942,99 @@ impl TuiState {
         )
     }
 
+    fn reasoning_hit(
+        &self,
+        area: Rect,
+        x: u16,
+        y: u16,
+    ) -> Option<crate::messages::ReasoningIdentity> {
+        if self.thinking_expanded || self.transcript_overpainted(area, x, y) {
+            return None;
+        }
+        let rect = crate::shell::transcript_area(self, area);
+        if rect.width == 0 || rect.height == 0 || !rect.contains((x, y).into()) {
+            return None;
+        }
+        let rows = self.transcript_rows();
+        let live_row = (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| {
+            rows.len() - 1 - usize::from(self.active_turn.is_some() && self.live_preview_truncated)
+        });
+        crate::messages::reasoning_header_at(
+            &rows,
+            Theme::dark(),
+            (rect.width, area.width),
+            (
+                rect.height as usize,
+                self.scroll_for_current_view(),
+                live_row,
+            ),
+            |agent| self.agent_color(agent),
+            &self.markdown_cache,
+            (
+                &|op| self.exploration_expanded.contains(op),
+                ((x - rect.x) as usize, (y - rect.y) as usize),
+            ),
+        )
+    }
+
+    fn transcript_overpainted(&self, area: Rect, x: u16, y: u16) -> bool {
+        if crate::shell::toast_rect(self, area).is_some_and(|rect| rect.contains((x, y).into())) {
+            return true;
+        }
+        if self.slash_options().is_none() && self.mention_options().is_none() {
+            return false;
+        }
+        // Recover the session main column from the exact painted transcript
+        // rectangle, then use the same prompt allocation as shell::render_session.
+        let transcript = crate::shell::transcript_area(self, area);
+        if transcript.width == 0 {
+            return false;
+        }
+        let shell = crate::layout::configured_shell_regions(
+            area,
+            self.chrome.devtools_visible(),
+            self.chrome.vertical_tabs_width,
+        );
+        let pad = transcript.x.saturating_sub(shell.session.x);
+        let main = Rect::new(
+            shell.session.x,
+            shell.session.y,
+            transcript.width.saturating_add(2 * pad),
+            shell.session.height,
+        );
+        let text_width = main.width.saturating_sub(4 * pad + 1).max(1);
+        let input_height = (self.prompt_layout(text_width as usize).0.len() as u16)
+            .min((area.height / 3).max(6))
+            .max(1);
+        let body = crate::layout::dynamic_session_regions(main, 0, input_height + 3).prompt;
+        let covers = |count: usize| {
+            let height = (count.clamp(1, 10) as u16).min(body.y.saturating_sub(area.y));
+            let rect = Rect::new(body.x, body.y.saturating_sub(height), body.width, height);
+            rect.width >= 3 && rect.height > 0 && rect.contains((x, y).into())
+        };
+        self.slash_options()
+            .is_some_and(|options| covers(options.len()))
+            || self.mention_options().is_some_and(|options| {
+                let height = (options.paths.len().clamp(1, MENTION_LIMIT) as u16)
+                    .min(body.y.saturating_sub(area.y));
+                let rect = Rect::new(body.x, body.y.saturating_sub(height), body.width, height);
+                rect.width >= 3 && rect.height > 0 && rect.contains((x, y).into())
+            })
+    }
+
+    fn prune_reasoning(&mut self) {
+        let retained: BTreeSet<_> = self
+            .transcript_rows()
+            .iter()
+            .filter_map(|row| row.reasoning.as_ref()?.identity)
+            .collect();
+        self.reasoning_expanded.retain(|id| retained.contains(id));
+        self.reasoning_down = self
+            .reasoning_down
+            .take()
+            .filter(|(id, ..)| retained.contains(id));
+    }
+
     /// Window bytes plus live text, live parts and input; bounded by the
     /// window caps.
     pub fn retained_bytes(&self) -> usize {
@@ -1907,8 +2108,14 @@ impl TuiState {
     /// answer (reasoning block and streaming text) while a turn is active.
     pub fn transcript_rows(&self) -> Vec<HistoryRow> {
         let mut rows = self.window.rows().to_vec();
-        for part in &self.live_parts {
-            rows.push(part.to_row(self.active_agent.clone()));
+        for (ordinal, part) in self.live_parts.iter().enumerate() {
+            rows.push(part.to_row(
+                self.active_agent.clone(),
+                Some(crate::messages::ReasoningIdentity::Live(
+                    self.reasoning_epoch,
+                    self.live_part_offset + ordinal,
+                )),
+            ));
         }
         let live = !self.live_text.is_empty() || !self.live_reasoning.is_empty();
         if live {
@@ -1924,6 +2131,11 @@ impl TuiState {
                     duration_ms: None,
                     running: true,
                     expanded: false,
+                    toggleable: true,
+                    identity: Some(crate::messages::ReasoningIdentity::Live(
+                        self.reasoning_epoch,
+                        self.live_part_offset + self.live_parts.len(),
+                    )),
                 }),
                 meta: None,
                 tool: None,
@@ -1937,7 +2149,11 @@ impl TuiState {
         }
         for row in &mut rows {
             if let Some(reasoning) = &mut row.reasoning {
-                reasoning.expanded = self.thinking_expanded;
+                reasoning.expanded = self.thinking_expanded
+                    || reasoning
+                        .identity
+                        .is_some_and(|id| self.reasoning_expanded.contains(&id));
+                reasoning.toggleable = !self.thinking_expanded;
             }
         }
         rows
@@ -2381,6 +2597,7 @@ impl TuiState {
         self.live_agent_color_index = None;
         self.compress_turn = Some(turn.clone());
         self.active_turn = Some(turn);
+        self.reasoning_epoch = self.reasoning_epoch.wrapping_add(1);
         self.status = TuiStatus::Streaming;
         self.panel = TuiPanel::Dcp;
         self.clear_mouse_position();
@@ -2389,6 +2606,8 @@ impl TuiState {
         self.live_text.clear();
         self.live_reasoning.clear();
         self.live_parts.clear();
+        self.live_part_offset = 0;
+        self.reasoning_down = None;
         self.reasoning_started = None;
         self.reasoning_finished = None;
         self.turn_usage = None;
@@ -3079,15 +3298,19 @@ impl TuiState {
                         pending.agent,
                         pending.agent_color_index,
                     );
+                    self.prune_reasoning();
                 }
                 self.compress_turn = pending.compress.then(|| turn.clone());
                 self.live_text.clear();
                 self.live_reasoning.clear();
                 self.live_parts.clear();
+                self.live_part_offset = 0;
+                self.reasoning_down = None;
                 self.reasoning_started = None;
                 self.reasoning_finished = None;
                 self.turn_usage = None;
                 self.active_turn = Some(turn);
+                self.reasoning_epoch = self.reasoning_epoch.wrapping_add(1);
                 if !exiting {
                     self.status = TuiStatus::Streaming;
                 }
@@ -3751,12 +3974,14 @@ impl TuiState {
                 meta: Some(meta),
                 tool: None,
             });
+            self.prune_reasoning();
             return;
         }
         let parts = self.commit_live_parts(reasoning);
         self.push_committed_parts(parts);
         self.window
             .push_row(footer_row(self.active_agent.clone(), meta));
+        self.prune_reasoning();
     }
 
     /// Apply a worker turn-interrupted event: keep the partial text (never
@@ -3787,6 +4012,7 @@ impl TuiState {
                 meta: Some(meta),
                 tool: None,
             });
+            self.prune_reasoning();
             return;
         }
         // The partial text is already the frozen trailing segment.
@@ -3794,6 +4020,7 @@ impl TuiState {
         self.push_committed_parts(parts);
         self.window
             .push_row(footer_row(self.active_agent.clone(), meta));
+        self.prune_reasoning();
     }
 
     /// Release a failed turn and show its error, never a successful answer.
@@ -3817,6 +4044,7 @@ impl TuiState {
             .push_row(footer_row(self.active_agent.clone(), meta));
         self.window
             .push_synthetic("", &format!("(error: {error})"), None, None);
+        self.prune_reasoning();
     }
 
     /// Freeze the open live segments and return the whole part list in
@@ -3839,8 +4067,14 @@ impl TuiState {
 
     /// Push committed part rows into the window (bounded like any row).
     fn push_committed_parts(&mut self, parts: Vec<LivePart>) {
-        for part in parts {
-            self.window.push_row(part.to_row(self.active_agent.clone()));
+        for (ordinal, part) in parts.into_iter().enumerate() {
+            self.window.push_row(part.to_row(
+                self.active_agent.clone(),
+                Some(crate::messages::ReasoningIdentity::Live(
+                    self.reasoning_epoch,
+                    self.live_part_offset + ordinal,
+                )),
+            ));
         }
     }
 
@@ -3957,8 +4191,10 @@ impl TuiState {
                 > WINDOW_BYTES
         {
             self.live_parts.remove(0);
+            self.live_part_offset += 1;
             self.live_preview_truncated = true;
         }
+        self.prune_reasoning();
     }
 
     /// Footer metadata for the finished turn from real state: the effective
@@ -4014,6 +4250,11 @@ impl TuiState {
             duration_ms,
             running: false,
             expanded: false,
+            toggleable: true,
+            identity: Some(crate::messages::ReasoningIdentity::Live(
+                self.reasoning_epoch,
+                self.live_part_offset + self.live_parts.len(),
+            )),
         })
     }
 
@@ -4393,6 +4634,7 @@ mod tests {
         VariantEntry,
     };
     use oc_core::session::{CoreError, Role};
+    use ratatui::layout::Rect;
     use std::time::{Duration, Instant};
 
     fn sid(raw: &str) -> SessionId {
@@ -6300,7 +6542,7 @@ mod tests {
             .collect::<Vec<_>>()
             .join("\n");
         assert!(
-            expanded.contains("- Thought: 1.5s")
+            expanded.contains("   ┃ Thought: 1.5s")
                 && expanded.contains("Public detail")
                 && !expanded.contains("[REDACTED]"),
             "{expanded}"
@@ -7509,6 +7751,507 @@ mod tests {
         click(&mut state, area, rect.x + 4, rect.y + row as u16);
         state.set_session(sid("other-session"));
         assert!(state.exploration_expanded.is_empty());
+    }
+
+    #[tokio::test]
+    async fn reasoning_click_is_independent_across_same_seq_parts_and_owned_by_viewport() {
+        use crate::messages::ReasoningIdentity;
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        use oc_core::queries::{HistoryTurn, TranscriptPart};
+        let mut state = fresh_state("reasoning-mouse").await;
+        let mut message = msg(9, Role::Assistant, "aggregate");
+        message.turn = Some(HistoryTurn {
+            parts: vec![
+                TranscriptPart::Reasoning {
+                    text: "first".into(),
+                    duration_ms: None,
+                },
+                TranscriptPart::Text("between".into()),
+                TranscriptPart::Reasoning {
+                    text: "second".into(),
+                    duration_ms: None,
+                },
+            ],
+            status: "completed".into(),
+            ..Default::default()
+        });
+        state.attach_page(&page(vec![message], 1, false, false));
+        let area = ratatui::layout::Rect::new(0, 0, 80, 24);
+        let rect = crate::shell::transcript_area(&state, area);
+        let event = |kind, x, y| MouseEvent {
+            kind,
+            column: x,
+            row: y,
+            modifiers: KeyModifiers::NONE,
+        };
+        let headers = |state: &TuiState, area: ratatui::layout::Rect| {
+            let rect = crate::shell::transcript_area(state, area);
+            state
+                .visible_transcript(rect.width, area.width, rect.height)
+                .0
+                .iter()
+                .enumerate()
+                .filter(|(_, line)| line.plain_text().contains("Thought"))
+                .map(|(i, _)| rect.y + i as u16)
+                .collect::<Vec<_>>()
+        };
+        let click = |state: &mut TuiState, area, x, y| {
+            state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), x, y), area);
+            state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left), x, y), area);
+        };
+        let y = headers(&state, area)[0];
+        let x = rect.x + 4;
+        state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left), x, y), area);
+        assert!(state.reasoning_expanded.is_empty(), "release needs a press");
+        state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), x, y), area);
+        state.handle_mouse(event(MouseEventKind::Drag(MouseButton::Left), x, y), area);
+        state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left), x, y), area);
+        assert!(state.reasoning_expanded.is_empty());
+        state.panel = TuiPanel::Help(None);
+        click(&mut state, area, x, y);
+        assert!(state.reasoning_expanded.is_empty(), "dialog owns mouse");
+        state.close_panel();
+        click(&mut state, area, x, y - 1);
+        click(&mut state, area, rect.x, y);
+        click(&mut state, area, rect.right() - 1, y);
+        assert!(state.reasoning_expanded.is_empty());
+        click(&mut state, area, x, y);
+        assert_eq!(
+            state.reasoning_expanded.iter().copied().collect::<Vec<_>>(),
+            [ReasoningIdentity::Durable(9, 0)]
+        );
+        assert!(
+            state
+                .visible_transcript(rect.width, area.width, rect.height)
+                .0[y as usize - rect.y as usize]
+                .plain_text()
+                .contains("-")
+        );
+        assert_eq!(state.reasoning_hit(area, rect.x + 2, y), None, "padding");
+        assert_eq!(
+            state.reasoning_hit(area, rect.x + 3, y),
+            Some(ReasoningIdentity::Durable(9, 0)),
+            "expanded group header stays at the collapsed x"
+        );
+        let second_y = *headers(&state, area).last().unwrap();
+        click(&mut state, area, x, second_y);
+        assert_eq!(state.reasoning_expanded.len(), 2);
+        click(&mut state, area, rect.x + 6, y);
+        assert_eq!(
+            state.reasoning_expanded.iter().copied().collect::<Vec<_>>(),
+            [ReasoningIdentity::Durable(9, 2)]
+        );
+        state.run_command(crate::commands::CommandAction::ToggleThinking);
+        assert!(
+            state.transcript_rows()[2]
+                .reasoning
+                .as_ref()
+                .unwrap()
+                .expanded,
+            "show mode is open even for a locally collapsed part"
+        );
+        assert!(
+            !state.transcript_rows()[2]
+                .reasoning
+                .as_ref()
+                .unwrap()
+                .toggleable
+        );
+        let in_show = state.reasoning_expanded.clone();
+        let show_y = *headers(&state, area).last().unwrap();
+        click(&mut state, area, x, show_y);
+        assert_eq!(
+            state.reasoning_expanded, in_show,
+            "show mode ignores header clicks"
+        );
+        state.run_command(crate::commands::CommandAction::ToggleThinking);
+        assert!(
+            state.transcript_rows()[2]
+                .reasoning
+                .as_ref()
+                .unwrap()
+                .expanded,
+            "hide mode restores its prior per-part toggle"
+        );
+
+        // A press on an old frame cannot act after scrolling or resizing.
+        let second_y = *headers(&state, area).last().unwrap();
+        state.handle_mouse(
+            event(MouseEventKind::Down(MouseButton::Left), x, second_y),
+            area,
+        );
+        state.scroll = 1;
+        state.handle_mouse(
+            event(MouseEventKind::Up(MouseButton::Left), x, second_y),
+            area,
+        );
+        assert_eq!(state.reasoning_expanded.len(), 1);
+        state.scroll = 0;
+        state.handle_mouse(
+            event(MouseEventKind::Down(MouseButton::Left), x, second_y),
+            area,
+        );
+        state.handle_mouse(
+            event(MouseEventKind::Up(MouseButton::Left), x, second_y),
+            ratatui::layout::Rect::new(0, 0, 81, 24),
+        );
+        assert_eq!(state.reasoning_expanded.len(), 1);
+        state.set_session(sid("reasoning-next"));
+        assert!(state.reasoning_expanded.is_empty());
+        assert!(state.reasoning_down.is_none());
+    }
+
+    #[tokio::test]
+    async fn redacted_only_durable_reasoning_leaves_no_mouse_target_or_spacer() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        use oc_core::queries::{HistoryTurn, TranscriptPart};
+        let mut state = fresh_state("empty-reasoning-click").await;
+        let mut message = msg(9, Role::Assistant, "aggregate");
+        message.turn = Some(HistoryTurn {
+            parts: vec![
+                TranscriptPart::Reasoning {
+                    text: " [REDACTED] \n".into(),
+                    duration_ms: None,
+                },
+                TranscriptPart::Reasoning {
+                    text: "actual".into(),
+                    duration_ms: None,
+                },
+            ],
+            status: "completed".into(),
+            ..Default::default()
+        });
+        state.attach_page(&page(vec![message], 1, false, false));
+        let area = Rect::new(0, 0, 120, 40);
+        let rect = crate::shell::transcript_area(&state, area);
+        let (lines, total) = state.visible_transcript(rect.width, area.width, rect.height);
+        assert_eq!(total, 5, "root blank + one visible header + footer");
+        assert_eq!(lines[2].plain_text(), "   + Thought");
+        let x = rect.x + 4;
+        let y = rect.y + 2;
+        assert_eq!(
+            state.reasoning_hit(area, x, y),
+            Some(crate::messages::ReasoningIdentity::Durable(9, 1))
+        );
+        let event = |kind| MouseEvent {
+            kind,
+            column: x,
+            row: y,
+            modifiers: KeyModifiers::NONE,
+        };
+        state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left)), area);
+        state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left)), area);
+        assert_eq!(
+            state.reasoning_expanded.iter().copied().collect::<Vec<_>>(),
+            [crate::messages::ReasoningIdentity::Durable(9, 1)]
+        );
+        assert_eq!(
+            state.reasoning_hit(area, x, y),
+            Some(crate::messages::ReasoningIdentity::Durable(9, 1)),
+            "expanded group header remains at its collapsed position"
+        );
+    }
+
+    #[tokio::test]
+    async fn reasoning_addresses_survive_paging_and_live_eviction_then_reset() {
+        use crate::messages::ReasoningIdentity;
+        use oc_core::queries::{HistoryTurn, TranscriptPart};
+        let mut state = fresh_state("reasoning-paging").await;
+        let mut message = msg(90, Role::Assistant, "aggregate");
+        message.turn = Some(HistoryTurn {
+            parts: vec![
+                TranscriptPart::Reasoning {
+                    text: "one".into(),
+                    duration_ms: None,
+                },
+                TranscriptPart::Text("between".into()),
+                TranscriptPart::Reasoning {
+                    text: "two".into(),
+                    duration_ms: None,
+                },
+            ],
+            status: "completed".into(),
+            ..Default::default()
+        });
+        state.attach_page(&page(vec![message], 90, true, true));
+        state
+            .reasoning_expanded
+            .insert(ReasoningIdentity::Durable(90, 0));
+        state
+            .reasoning_expanded
+            .insert(ReasoningIdentity::Durable(90, 2));
+        state.prepend_page(&page(vec![msg(1, Role::User, "earlier")], 90, false, true));
+        state.append_page(&page(vec![msg(91, Role::User, "later")], 91, true, false));
+        assert_eq!(state.reasoning_expanded.len(), 2);
+        assert!(
+            state
+                .transcript_rows()
+                .iter()
+                .filter_map(|row| row.reasoning.as_ref())
+                .all(|r| r.expanded)
+        );
+        let newer = (100..100 + WINDOW_ROWS)
+            .map(|i| msg(i as i64, Role::User, "next"))
+            .collect();
+        state.append_page(&page(newer, 500, true, false));
+        assert!(
+            state.reasoning_expanded.is_empty(),
+            "evicted owner parts release local state"
+        );
+
+        state.active_turn = Some(WorkerTurnId("reasoning-live".into()));
+        state.live_reasoning = "open".into();
+        state.freeze_reasoning();
+        let first = state
+            .transcript_rows()
+            .last()
+            .unwrap()
+            .reasoning
+            .as_ref()
+            .unwrap()
+            .identity
+            .unwrap();
+        assert_eq!(first, ReasoningIdentity::Live(state.reasoning_epoch, 0));
+        state.live_reasoning = "retained".into();
+        state.freeze_reasoning();
+        let retained = ReasoningIdentity::Live(state.reasoning_epoch, 1);
+        for i in 0..LIVE_PARTS_MAX - 1 {
+            state
+                .live_parts
+                .push(super::LivePart::Text(format!("segment {i}")));
+        }
+        state.enforce_parts();
+        assert_eq!(state.live_part_offset, 1);
+        assert_eq!(
+            state
+                .transcript_rows()
+                .iter()
+                .find_map(|row| row.reasoning.as_ref().and_then(|r| r.identity)),
+            Some(retained),
+            "retained part keeps its ordinal after head eviction"
+        );
+        state.live_reasoning = "next".into();
+        state.freeze_reasoning();
+        let last = state
+            .transcript_rows()
+            .iter()
+            .rev()
+            .find_map(|row| row.reasoning.as_ref().and_then(|r| r.identity))
+            .unwrap();
+        assert_ne!(first, last);
+        assert_eq!(
+            last,
+            ReasoningIdentity::Live(
+                state.reasoning_epoch,
+                state.live_part_offset + state.live_parts.len() - 1
+            )
+        );
+        state.reasoning_expanded.insert(last);
+        state.reset_workspace();
+        assert!(state.reasoning_expanded.is_empty());
+    }
+
+    #[tokio::test]
+    async fn running_reasoning_click_survives_freeze_but_resize_releases_press() {
+        use crate::messages::ReasoningIdentity;
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        let mut state = fresh_state("running-reasoning-click").await;
+        let turn = WorkerTurnId("running-reasoning-turn".into());
+        state.active_turn = Some(turn.clone());
+        state.live_reasoning = "**Streaming**\n\nstep".into();
+        let area = Rect::new(0, 0, 80, 24);
+        let rect = crate::shell::transcript_area(&state, area);
+        let (lines, _) = state.visible_transcript(rect.width, area.width, rect.height);
+        let x = rect.x + 5;
+        let y = rect.y
+            + lines
+                .iter()
+                .position(|line| line.plain_text().contains("Thinking"))
+                .unwrap() as u16;
+        let mouse = |kind| MouseEvent {
+            kind,
+            column: x,
+            row: y,
+            modifiers: KeyModifiers::NONE,
+        };
+        let down = mouse(MouseEventKind::Down(MouseButton::Left));
+        let up = mouse(MouseEventKind::Up(MouseButton::Left));
+        let id = ReasoningIdentity::Live(state.reasoning_epoch, 0);
+        assert_eq!(state.reasoning_hit(area, x, y), Some(id));
+        state.thinking_expanded = true;
+        assert!(
+            state
+                .transcript_rows()
+                .last()
+                .unwrap()
+                .reasoning
+                .as_ref()
+                .unwrap()
+                .expanded
+        );
+        assert_eq!(
+            state.reasoning_hit(area, x, y),
+            None,
+            "show mode has no running toggle"
+        );
+        state.handle_mouse(down, area);
+        state.handle_mouse(up, area);
+        assert!(state.reasoning_expanded.is_empty());
+        state.thinking_expanded = false;
+        state.handle_mouse(down, area);
+        assert!(state.reasoning_down.is_some());
+        state.clear_mouse_position();
+        state.handle_mouse(up, area);
+        assert!(
+            state.reasoning_expanded.is_empty(),
+            "resize invalidates press even at original size"
+        );
+        state.handle_mouse(down, area);
+        state.clear_mouse_position();
+        let resized = Rect::new(0, 0, 81, 24);
+        state.handle_mouse(up, resized);
+        state.handle_mouse(up, area);
+        assert!(
+            state.reasoning_expanded.is_empty(),
+            "resize roundtrip does not revive the press"
+        );
+        state.handle_mouse(down, area);
+        state.handle_mouse(up, area);
+        assert!(state.reasoning_expanded.contains(&id));
+        state.freeze_reasoning();
+        assert_eq!(
+            state
+                .transcript_rows()
+                .last()
+                .unwrap()
+                .reasoning
+                .as_ref()
+                .unwrap()
+                .identity,
+            Some(id)
+        );
+        assert!(
+            state
+                .transcript_rows()
+                .last()
+                .unwrap()
+                .reasoning
+                .as_ref()
+                .unwrap()
+                .expanded
+        );
+        state.apply_finished(&turn, "", 100);
+        assert!(state.transcript_rows().iter().any(|row| {
+            row.reasoning
+                .as_ref()
+                .is_some_and(|r| r.identity == Some(id) && r.expanded && !r.running)
+        }));
+        state.handle_mouse(down, area);
+        state.set_session(sid("another-running-session"));
+        state.handle_mouse(up, area);
+        assert!(state.reasoning_down.is_none());
+        assert!(state.reasoning_expanded.is_empty());
+    }
+
+    #[tokio::test]
+    async fn painted_toast_slash_and_mentions_block_reasoning_press_and_release() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        use oc_core::queries::{HistoryTurn, TranscriptPart};
+        let area = Rect::new(0, 0, 80, 24);
+        let mouse = |kind, x, y| MouseEvent {
+            kind,
+            column: x,
+            row: y,
+            modifiers: KeyModifiers::NONE,
+        };
+        let click = |state: &mut TuiState, x, y| {
+            state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), x, y), area);
+            state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), area);
+        };
+        let mut toast = fresh_state("reasoning-toast").await;
+        let mut message = msg(9, Role::Assistant, "aggregate");
+        message.turn = Some(HistoryTurn {
+            parts: vec![TranscriptPart::Reasoning {
+                text: format!("**{}**\n\nbody", "title".repeat(20)),
+                duration_ms: None,
+            }],
+            status: "completed".into(),
+            ..Default::default()
+        });
+        toast.attach_page(&page(vec![message], 1, false, false));
+        let rect = crate::shell::transcript_area(&toast, area);
+        let y = rect.y + 2;
+        toast.push_note("Overpaint");
+        let surface = crate::shell::toast_rect(&toast, area).unwrap();
+        let x = surface.x + 2;
+        assert!(surface.contains((x, y).into()));
+        toast.note = None;
+        assert!(
+            toast.reasoning_hit(area, x, y).is_some(),
+            "underlying long header"
+        );
+        toast.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), x, y), area);
+        toast.push_note("Overpaint");
+        toast.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), area);
+        click(&mut toast, x, y);
+        assert!(
+            toast.reasoning_expanded.is_empty(),
+            "entire toast surface owns input"
+        );
+        toast.note = None;
+        click(&mut toast, x, y);
+        assert_eq!(toast.reasoning_expanded.len(), 1);
+
+        let mut state = fresh_state("reasoning-autocomplete").await;
+        state.chrome.location = Some("/A".into());
+        for i in 0..20 {
+            state
+                .window
+                .push_synthetic("assistant", &format!("earlier {i}"), None, None);
+        }
+        state.live_reasoning = "**Latest**\n\nbody".into();
+        state.active_turn = Some(WorkerTurnId("overlay-turn".into()));
+        let rect = crate::shell::transcript_area(&state, area);
+        let (lines, _) = state.visible_transcript(rect.width, area.width, rect.height);
+        let y = rect.y
+            + lines
+                .iter()
+                .position(|line| line.plain_text().contains("Thinking"))
+                .unwrap() as u16;
+        let x = rect.x + 5;
+        assert!(state.reasoning_hit(area, x, y).is_some());
+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), x, y), area);
+        type_text(&mut state, "/").await;
+        assert!(state.slash_options().is_some());
+        assert!(
+            state.transcript_overpainted(area, x, y),
+            "slash rect covers painted header"
+        );
+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), area);
+        click(&mut state, x, y);
+        assert!(state.reasoning_expanded.is_empty());
+        state.input.clear();
+        state.editor.clear();
+        type_text(&mut state, "@").await;
+        let request = state.mention_request().unwrap();
+        assert!(state.apply_file_suggestions(
+            request,
+            file_result("/A", 1, &["a", "b", "c", "d", "e", "f", "g", "h"])
+        ));
+        assert!(
+            state.transcript_overpainted(area, x, y),
+            "mention rect covers painted header"
+        );
+        click(&mut state, x, y);
+        assert!(state.reasoning_expanded.is_empty());
+        state.input.clear();
+        state.editor.clear();
+        click(&mut state, x, y);
+        assert_eq!(
+            state.reasoning_expanded.len(),
+            1,
+            "uncovered running header works"
+        );
     }
 
     #[tokio::test]

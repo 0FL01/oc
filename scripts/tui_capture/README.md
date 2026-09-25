@@ -355,6 +355,40 @@ pressing Return; unequal labels are reported as observations, not parity.
 `capture.lock.json` records side-specific outcomes and ordinary grid/PNG
 comparisons independently. An existing output path is never overwritten.
 
+## VIS15 public reasoning click diagnostic
+
+After rebuilding the native binary, use **both** explicit binaries and a new
+immutable output directory (the runner refuses an existing attempt):
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc \
+  --geometry true --sample reasoning --sidebar hide --agent-profile true \
+  --columns 120 --rows 40 --reasoning-click true \
+  --output /home/opencode/ai/oc/evidence/tui/NEW-REASONING-ATTEMPT
+```
+
+This test-only mode excludes the other interaction, resize, variant and seeded
+routes. The bridge's real Responses stream supplies public
+`**Inspecting**\n\nPublic summary only.` plus an opaque encrypted marker that must
+never paint; the visible answer is `GEOMETRY-SHORT: public reasoning completed.`
+After the completed-session frame, each side's actual styled cells must show
+exactly one `+ Thought: Inspecting` (pinned hide-mode group in
+`opencode/packages/tui/src/routes/session/index.tsx:1780-1814`), with no public
+body. The runner uses that side's cell coordinates to send a left-button SGR
+press and release separately through its real PTY, waits for the unique
+`- Thought` header and `Public summary only.` beneath it, then locates the
+expanded header anew, clicks and requires the body to disappear. Duplicate or
+overpainted headers/bodies fail rather than choosing a convenient match.
+`reasoning-{collapsed,expanded,recollapsed}` each save full styled cells, PNG,
+VT, render geometry and cursor. `reasoning-click-checks.json`, `inputs.json`
+and `capture.lock.json` retain actual header styles/coordinates, click bytes,
+typed predicates, provider request/completion counts and failures. The normal
+unmasked full-grid and PNG comparators run for all paired stages; a successful
+click does not assert whole-frame equality. A failed attempt remains available
+at its original path; retry only under a fresh name.
+
 `--startup-error true` with only `--oc` captures a real malformed-config native
 preflight error. For supported child routes and real Location query failures,
 `OC_V03_CAPTURE_OUTPUT=/absolute/fresh-attempt-prefix cargo test --locked -p oc

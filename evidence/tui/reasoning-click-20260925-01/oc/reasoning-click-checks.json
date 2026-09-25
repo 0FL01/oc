@@ -1,0 +1,1145 @@
+{
+  "baseline": {
+    "transcript": 1,
+    "title": 1,
+    "completed_transcript": 1,
+    "completed_title": 1,
+    "invalid": 0
+  },
+  "checks": [
+    {
+      "stage": "provider-baseline",
+      "observed": {
+        "collapsed": [
+          {
+            "x": 5,
+            "y": 6
+          }
+        ],
+        "expanded": [],
+        "fragments": [
+          {
+            "x": 7,
+            "y": 6
+          }
+        ],
+        "bodies": [],
+        "header": {
+          "x": 5,
+          "y": 6,
+          "state": "collapsed"
+        },
+        "header_style": {
+          "fg": [
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742"
+          ],
+          "bg": [
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a"
+          ],
+          "modifiers": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "widths": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "transcript": 1,
+          "title": 1,
+          "completed_transcript": 1,
+          "completed_title": 1,
+          "invalid": 0
+        },
+        "grid_sha256": "86f8ffc856594d2ebc0ae03e53ad8c9139086d7dddc1af3b06a1b92d345869be"
+      },
+      "predicates": {
+        "completed_session_captured": true,
+        "one_completed_transcript": true,
+        "one_completed_title": true,
+        "no_invalid_requests": true
+      }
+    },
+    {
+      "stage": "collapsed",
+      "observed": {
+        "collapsed": [
+          {
+            "x": 5,
+            "y": 6
+          }
+        ],
+        "expanded": [],
+        "fragments": [
+          {
+            "x": 7,
+            "y": 6
+          }
+        ],
+        "bodies": [],
+        "header": {
+          "x": 5,
+          "y": 6,
+          "state": "collapsed"
+        },
+        "header_style": {
+          "fg": [
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742"
+          ],
+          "bg": [
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a"
+          ],
+          "modifiers": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "widths": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "transcript": 1,
+          "title": 1,
+          "completed_transcript": 1,
+          "completed_title": 1,
+          "invalid": 0
+        },
+        "grid_sha256": "86f8ffc856594d2ebc0ae03e53ad8c9139086d7dddc1af3b06a1b92d345869be"
+      },
+      "predicates": {
+        "unique_painted_header": true,
+        "expected_header": true,
+        "styled_header": true,
+        "body_visibility": true,
+        "provider_counts_unchanged": true,
+        "cursor_in_bounds": true,
+        "completed_answer_visible": true,
+        "opaque_content_absent": true
+      }
+    },
+    {
+      "stage": "collapsed-capture",
+      "observed": {
+        "collapsed": [
+          {
+            "x": 5,
+            "y": 6
+          }
+        ],
+        "expanded": [],
+        "fragments": [
+          {
+            "x": 7,
+            "y": 6
+          }
+        ],
+        "bodies": [],
+        "header": {
+          "x": 5,
+          "y": 6,
+          "state": "collapsed"
+        },
+        "header_style": {
+          "fg": [
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742"
+          ],
+          "bg": [
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a"
+          ],
+          "modifiers": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "widths": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "transcript": 1,
+          "title": 1,
+          "completed_transcript": 1,
+          "completed_title": 1,
+          "invalid": 0
+        },
+        "grid_sha256": "86f8ffc856594d2ebc0ae03e53ad8c9139086d7dddc1af3b06a1b92d345869be"
+      },
+      "predicates": {
+        "stable_capture": true
+      }
+    },
+    {
+      "stage": "expand-click",
+      "observed": {
+        "collapsed": [
+          {
+            "x": 5,
+            "y": 6
+          }
+        ],
+        "expanded": [],
+        "fragments": [
+          {
+            "x": 7,
+            "y": 6
+          }
+        ],
+        "bodies": [],
+        "header": {
+          "x": 5,
+          "y": 6,
+          "state": "collapsed"
+        },
+        "header_style": {
+          "fg": [
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742"
+          ],
+          "bg": [
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a"
+          ],
+          "modifiers": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "widths": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "transcript": 1,
+          "title": 1,
+          "completed_transcript": 1,
+          "completed_title": 1,
+          "invalid": 0
+        },
+        "grid_sha256": "86f8ffc856594d2ebc0ae03e53ad8c9139086d7dddc1af3b06a1b92d345869be"
+      },
+      "predicates": {
+        "unique_painted_header": true,
+        "expected_header": true,
+        "body_visibility": true,
+        "provider_counts_unchanged": true,
+        "cursor_in_bounds": true
+      },
+      "cell": {
+        "x": 7,
+        "y": 6
+      },
+      "pty_column": 8,
+      "pty_row": 7,
+      "down_base64": "G1s8MDs4OzdN",
+      "up_base64": "G1s8MDs4Ozdt"
+    },
+    {
+      "stage": "expanded",
+      "observed": {
+        "collapsed": [],
+        "expanded": [
+          {
+            "x": 7,
+            "y": 6
+          }
+        ],
+        "fragments": [
+          {
+            "x": 9,
+            "y": 6
+          }
+        ],
+        "bodies": [
+          {
+            "x": 9,
+            "y": 10
+          }
+        ],
+        "header": {
+          "x": 7,
+          "y": 6,
+          "state": "expanded"
+        },
+        "header_style": {
+          "fg": [
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b"
+          ],
+          "bg": [
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a"
+          ],
+          "modifiers": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "widths": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "transcript": 1,
+          "title": 1,
+          "completed_transcript": 1,
+          "completed_title": 1,
+          "invalid": 0
+        },
+        "grid_sha256": "78fc672ad8112cc68cd1ed68ec535fe45e92dd4749ab19fd72fec068aec08f68"
+      },
+      "predicates": {
+        "unique_painted_header": true,
+        "expected_header": true,
+        "styled_header": true,
+        "body_visibility": true,
+        "provider_counts_unchanged": true,
+        "cursor_in_bounds": true,
+        "completed_answer_visible": true,
+        "opaque_content_absent": true
+      }
+    },
+    {
+      "stage": "expanded-capture",
+      "observed": {
+        "collapsed": [],
+        "expanded": [
+          {
+            "x": 7,
+            "y": 6
+          }
+        ],
+        "fragments": [
+          {
+            "x": 9,
+            "y": 6
+          }
+        ],
+        "bodies": [
+          {
+            "x": 9,
+            "y": 10
+          }
+        ],
+        "header": {
+          "x": 7,
+          "y": 6,
+          "state": "expanded"
+        },
+        "header_style": {
+          "fg": [
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b"
+          ],
+          "bg": [
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a"
+          ],
+          "modifiers": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "widths": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "transcript": 1,
+          "title": 1,
+          "completed_transcript": 1,
+          "completed_title": 1,
+          "invalid": 0
+        },
+        "grid_sha256": "78fc672ad8112cc68cd1ed68ec535fe45e92dd4749ab19fd72fec068aec08f68"
+      },
+      "predicates": {
+        "stable_capture": true
+      }
+    },
+    {
+      "stage": "recollapse-click",
+      "observed": {
+        "collapsed": [],
+        "expanded": [
+          {
+            "x": 7,
+            "y": 6
+          }
+        ],
+        "fragments": [
+          {
+            "x": 9,
+            "y": 6
+          }
+        ],
+        "bodies": [
+          {
+            "x": 9,
+            "y": 10
+          }
+        ],
+        "header": {
+          "x": 7,
+          "y": 6,
+          "state": "expanded"
+        },
+        "header_style": {
+          "fg": [
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b",
+            "#97682b"
+          ],
+          "bg": [
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a"
+          ],
+          "modifiers": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "widths": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "transcript": 1,
+          "title": 1,
+          "completed_transcript": 1,
+          "completed_title": 1,
+          "invalid": 0
+        },
+        "grid_sha256": "78fc672ad8112cc68cd1ed68ec535fe45e92dd4749ab19fd72fec068aec08f68"
+      },
+      "predicates": {
+        "unique_painted_header": true,
+        "expected_header": true,
+        "body_visibility": true,
+        "provider_counts_unchanged": true,
+        "cursor_in_bounds": true
+      },
+      "cell": {
+        "x": 9,
+        "y": 6
+      },
+      "pty_column": 10,
+      "pty_row": 7,
+      "down_base64": "G1s8MDsxMDs3TQ==",
+      "up_base64": "G1s8MDsxMDs3bQ=="
+    },
+    {
+      "stage": "recollapsed",
+      "observed": {
+        "collapsed": [
+          {
+            "x": 5,
+            "y": 6
+          }
+        ],
+        "expanded": [],
+        "fragments": [
+          {
+            "x": 7,
+            "y": 6
+          }
+        ],
+        "bodies": [],
+        "header": {
+          "x": 5,
+          "y": 6,
+          "state": "collapsed"
+        },
+        "header_style": {
+          "fg": [
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742"
+          ],
+          "bg": [
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a"
+          ],
+          "modifiers": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "widths": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "transcript": 1,
+          "title": 1,
+          "completed_transcript": 1,
+          "completed_title": 1,
+          "invalid": 0
+        },
+        "grid_sha256": "86f8ffc856594d2ebc0ae03e53ad8c9139086d7dddc1af3b06a1b92d345869be"
+      },
+      "predicates": {
+        "unique_painted_header": true,
+        "expected_header": true,
+        "styled_header": true,
+        "body_visibility": true,
+        "provider_counts_unchanged": true,
+        "cursor_in_bounds": true,
+        "completed_answer_visible": true,
+        "opaque_content_absent": true
+      }
+    },
+    {
+      "stage": "recollapsed-capture",
+      "observed": {
+        "collapsed": [
+          {
+            "x": 5,
+            "y": 6
+          }
+        ],
+        "expanded": [],
+        "fragments": [
+          {
+            "x": 7,
+            "y": 6
+          }
+        ],
+        "bodies": [],
+        "header": {
+          "x": 5,
+          "y": 6,
+          "state": "collapsed"
+        },
+        "header_style": {
+          "fg": [
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742",
+            "#f5a742"
+          ],
+          "bg": [
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a",
+            "#0a0a0a"
+          ],
+          "modifiers": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "widths": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "cursor": {
+          "x": 5,
+          "y": 34,
+          "visible": true,
+          "shape": "block"
+        },
+        "provider_counts": {
+          "transcript": 1,
+          "title": 1,
+          "completed_transcript": 1,
+          "completed_title": 1,
+          "invalid": 0
+        },
+        "grid_sha256": "86f8ffc856594d2ebc0ae03e53ad8c9139086d7dddc1af3b06a1b92d345869be"
+      },
+      "predicates": {
+        "stable_capture": true
+      }
+    }
+  ]
+}

@@ -37,6 +37,9 @@ const S07_PROMPT: &str = "s07 progressive markdown";
 const S07_NOTE: &str = "S07_NOTE_READ_CONFIRMED\n";
 const S07_REASONING: &str = "S07 public reasoning before the read.";
 const S07_ANSWER: &str = "```rust\nfn s07_probe() {\n    let S07_STREAM_FRAGMENT_42 = 42;\n    let S07_STREAM_DONE_43 = S07_STREAM_FRAGMENT_42 + 1;\n}\n```";
+const REASONING_CLICK_PROMPT: &str = "pty reasoning header click";
+const REASONING_CLICK_BODY: &str = "PTY_REASONING_CLICK_BODY_7819";
+const REASONING_CLICK_ANSWER: &str = "PTY_REASONING_CLICK_FINAL_3826";
 
 /// Scripted native Responses peer plus isolated HOME/config.
 struct Fixture {
@@ -206,6 +209,7 @@ enum Script {
     Slow(String),
     S07Read,
     S07Markdown,
+    ReasoningClick,
     Compress(String),
 }
 
@@ -242,6 +246,9 @@ fn script(body: &serde_json::Value) -> Script {
     }
     if prompt == S07_PROMPT {
         return Script::S07Read;
+    }
+    if prompt == REASONING_CLICK_PROMPT {
+        return Script::ReasoningClick;
     }
     Script::Text(format!("echo: {prompt}"))
 }
@@ -398,6 +405,15 @@ fn respond(
                 std::thread::sleep(Duration::from_millis(60));
             }
             finish_completed(socket, S07_ANSWER)
+        }
+        Script::ReasoningClick => {
+            let reasoning = serde_json::json!({
+                "type": "response.reasoning_summary_text.delta",
+                "delta": format!("**Click plan**\n\n{REASONING_CLICK_BODY}")
+            });
+            write!(socket, "data: {reasoning}\n\n")?;
+            socket.flush()?;
+            finish_text(socket, REASONING_CLICK_ANSWER)
         }
         Script::Slow(_) => unreachable!("handled above"),
     }
@@ -982,6 +998,85 @@ fn choose_variant(pty: &mut PtySession, title: &str) {
 /// SGR mouse protocol: terminal reports one-based x/y; Crossterm maps to cells.
 fn mouse_click(pty: &mut PtySession, x: u16, y: u16) {
     pty.send(format!("\x1b[<0;{x};{y}M\x1b[<0;{x};{y}m").as_bytes());
+}
+
+/// Locate the completed reasoning control on the *painted* PTY grid.
+fn reasoning_click_header(pty: &PtySession, prefix: &str) -> (u16, u16) {
+    let rows = render_screen(&pty.snapshot()).rows();
+    let (y, row) = rows
+        .iter()
+        .enumerate()
+        .find(|(_, row)| row.contains(prefix))
+        .unwrap_or_else(|| panic!("missing painted {prefix:?} header: {rows:?}"));
+    let x = row.find(prefix).expect("header position");
+    (u16::try_from(x + 1).unwrap(), u16::try_from(y + 1).unwrap())
+}
+
+#[test]
+fn v06_real_pty_completed_reasoning_header_click_expands_and_collapses() {
+    let fixture = Fixture::new();
+    let session = "v06-reasoning-click";
+    let mut pty = PtySession::spawn(fixture.clone(), session, None);
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, REASONING_CLICK_PROMPT);
+    assert_eq!(
+        last_user_text(&fixture.wait_requests(1)[0]).as_deref(),
+        Some(REASONING_CLICK_PROMPT)
+    );
+    wait_screen_row(&pty, REASONING_CLICK_ANSWER, DEADLINE);
+    wait_screen_row(&pty, "+ Thought: Click plan", DEADLINE);
+    wait_idle(&pty);
+    let before = render_screen(&pty.snapshot()).rows();
+    assert!(
+        !before.iter().any(|row| row.contains(REASONING_CLICK_BODY)),
+        "collapsed reasoning body must not be painted: {before:?}"
+    );
+    // Wait for the ancillary title before recording the complete provider
+    // request baseline, so header clicks must be entirely local.
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    let requests_before = fixture.requests.lock().unwrap().len();
+
+    let (x, y) = reasoning_click_header(&pty, "+ Thought: Click plan");
+    mouse_click(&mut pty, x, y); // real SGR left press + release
+    wait_screen_row(&pty, REASONING_CLICK_BODY, DEADLINE);
+    wait_screen_row(&pty, "- Thought", DEADLINE);
+    assert!(
+        render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|row| row.contains(REASONING_CLICK_ANSWER)),
+        "expanding reasoning retains the answer"
+    );
+
+    let (x, y) = reasoning_click_header(&pty, "- Thought");
+    mouse_click(&mut pty, x, y);
+    let started = Instant::now();
+    loop {
+        let rows = render_screen(&pty.snapshot()).rows();
+        if rows.iter().any(|row| row.contains("+ Thought: Click plan"))
+            && !rows.iter().any(|row| row.contains(REASONING_CLICK_BODY))
+        {
+            break;
+        }
+        assert!(
+            started.elapsed() < DEADLINE,
+            "reasoning did not collapse: {rows:?}"
+        );
+        std::thread::sleep(POLL);
+    }
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests_before);
+    pty.send(b"\x03");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests_before);
+    assert_eq!(
+        persisted(pty.data_dir(), session),
+        vec![
+            ("user".to_string(), REASONING_CLICK_PROMPT.to_string()),
+            ("assistant".to_string(), REASONING_CLICK_ANSWER.to_string())
+        ],
+        "reasoning toggles leave the original durable answer unchanged"
+    );
 }
 
 fn wait_cursor(pty: &PtySession, wanted: (usize, usize)) {

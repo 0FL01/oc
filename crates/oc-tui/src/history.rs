@@ -11,7 +11,7 @@
 use oc_core::queries::{HistoryMessage, HistoryPage, ToolOpView};
 use oc_core::session::Role;
 
-use crate::messages::{AssistantMeta, Chip, ReasoningBlock};
+use crate::messages::{AssistantMeta, Chip, ReasoningBlock, ReasoningIdentity};
 use crate::tools::ToolRender;
 
 /// Max rows retained by the window.
@@ -277,6 +277,8 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
                     duration_ms: *duration_ms,
                     running: turn.status == "started",
                     expanded: false,
+                    toggleable: true,
+                    identity: Some(ReasoningIdentity::Durable(row.seq, index)),
                 })
             }
             TranscriptPart::Tool(op) => {

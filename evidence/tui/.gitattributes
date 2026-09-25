@@ -47,3 +47,5 @@ autocomplete-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 autocomplete-*/*/*.vt binary
 mention-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 mention-*/*/*.vt binary
+reasoning-click-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+reasoning-click-*/*/*.vt binary
