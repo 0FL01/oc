@@ -71,3 +71,5 @@ models-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 models-*/*/*.vt binary
 home-visibility-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 home-visibility-*/*/*.vt binary
+home-height-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+home-height-*/*/*.vt binary

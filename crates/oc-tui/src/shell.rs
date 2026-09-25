@@ -735,12 +735,15 @@ fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rec
     // starts at 64; with no other footer items this leaves one less occupied
     // row at 44..63 (home.tsx and feature-plugins/home/footer.tsx).
     let empty_footer = area.height >= 16 && (44..64).contains(&area.width);
+    // The upstream 3-row spacer may flex-shrink to zero before the logo when
+    // the prompt, underline and footer consume the entire short viewport.
+    let top_spacer = 3.min(area.height.saturating_sub(h + logo_height + 4));
     let y = area.y
         + area
             .height
             .saturating_sub(h + logo_height + 9 - u16::from(empty_footer))
             / 2
-        + 3;
+        + top_spacer;
     let logo_width = logo.iter().map(Line::width).max().unwrap_or(0) as u16;
     frame.render_widget(
         Paragraph::new(logo),
@@ -2529,6 +2532,20 @@ mod tests {
                 Some(prompt_y),
                 "Home width {width}"
             );
+        }
+    }
+
+    #[tokio::test]
+    async fn short_home_shrinks_the_top_spacer_before_clipping_the_prompt() {
+        let mut state = golden_state().await;
+        state.home = true;
+        state.chrome.devtools = Some(false);
+        for height in 12..=15 {
+            let rows = screen(&state, 44, height);
+            let locate = |needle: &str| rows.iter().position(|row| row.contains(needle));
+            assert_eq!(locate("█▀▀█ █▀▀█"), Some(height as usize - 11));
+            assert_eq!(locate("Ask anything…"), Some(height as usize - 5));
+            assert_eq!(locate("x · a"), Some(height as usize - 3));
         }
     }
 
