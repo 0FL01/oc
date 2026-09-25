@@ -1798,6 +1798,7 @@ mod tests {
     fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
         HistoryMessage {
             turn: None,
+            model_switch: None,
             seq,
             role,
             text: text.to_string(),

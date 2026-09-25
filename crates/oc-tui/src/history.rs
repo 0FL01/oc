@@ -202,6 +202,33 @@ impl HistoryWindow {
         }
     }
 
+    /// A live acceptance notice arrives after the prompt echo receipt.
+    pub(crate) fn insert_before_live_user(&mut self, text: String) {
+        if let Some(index) = self
+            .rows
+            .iter()
+            .rposition(|row| row.seq == i64::MAX && row.role == "user")
+        {
+            self.rows.insert(
+                index,
+                HistoryRow {
+                    seq: i64::MAX,
+                    role: "model_switch".into(),
+                    text,
+                    agent: None,
+                    agent_color_index: None,
+                    chips: Vec::new(),
+                    reasoning: None,
+                    meta: None,
+                    tool: None,
+                },
+            );
+            if self.enforce(Evict::Oldest) {
+                self.has_older = true;
+            }
+        }
+    }
+
     /// Drop rows from `side` until both caps hold; returns true when any row
     /// was evicted.
     fn enforce(&mut self, side: Evict) -> bool {
@@ -224,11 +251,18 @@ impl HistoryWindow {
 fn row_from_page(row: &HistoryMessage) -> HistoryRow {
     HistoryRow {
         seq: row.seq,
-        role: match row.role {
-            Role::User => "user".to_string(),
-            Role::Assistant => "assistant".to_string(),
+        role: if row.model_switch.is_some() {
+            "model_switch".into()
+        } else {
+            match row.role {
+                Role::User => "user".to_string(),
+                Role::Assistant => "assistant".to_string(),
+            }
         },
-        text: row.text.clone(),
+        text: row
+            .model_switch
+            .as_ref()
+            .map_or_else(|| row.text.clone(), model_switch_text),
         agent: row.turn.as_ref().and_then(|turn| turn.agent.clone()),
         agent_color_index: row.turn.as_ref().and_then(|turn| turn.agent_color_index),
         chips: Vec::new(),
@@ -238,8 +272,43 @@ fn row_from_page(row: &HistoryMessage) -> HistoryRow {
     }
 }
 
+pub(crate) fn model_switch_text(notice: &oc_core::queries::ModelSwitchNotice) -> String {
+    let current = &notice.current;
+    let text = if notice.previous.provider == current.provider && notice.previous.id == current.id {
+        format!(
+            "Switched variant to {}",
+            current.variant.as_deref().unwrap_or("default")
+        )
+    } else if let Some(name) = &notice.display_name {
+        let variant = current
+            .variant
+            .as_deref()
+            .filter(|value| *value != "default");
+        format!(
+            "Switched model to {name}{}",
+            variant.map_or(String::new(), |v| format!(" ({v})"))
+        )
+    } else {
+        let variant = current
+            .variant
+            .as_deref()
+            .map_or(String::new(), |v| format!("/{v}"));
+        format!(
+            "Switched model to {}/{}{variant}",
+            current.provider, current.id
+        )
+    };
+    // Provider/model IDs and older journal rows may be unbounded. Never let
+    // their text expand an unbounded TUI row or
+    // inject control characters into the terminal.
+    text.chars().filter(|c| !c.is_control()).take(512).collect()
+}
+
 fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
     use oc_core::queries::TranscriptPart;
+    if row.model_switch.is_some() {
+        return vec![row_from_page(row)];
+    }
     let Some(turn) = &row.turn else {
         return vec![row_from_page(row)];
     };
@@ -470,10 +539,100 @@ mod tests {
     fn row(seq: i64, role: Role, text: &str) -> HistoryMessage {
         HistoryMessage {
             turn: None,
+            model_switch: None,
             seq,
             role,
             text: text.to_string(),
         }
+    }
+
+    #[test]
+    fn model_switch_replays_before_user_across_pages_and_live_receipts() {
+        let notice = oc_core::queries::ModelSwitchNotice {
+            previous: oc_core::queries::ModelRef {
+                provider: "p".into(),
+                id: "old".into(),
+                variant: None,
+            },
+            current: oc_core::queries::ModelRef {
+                provider: "p".into(),
+                id: "new".into(),
+                variant: Some("high".into()),
+            },
+            display_name: Some("Catalog Name".into()),
+        };
+        let mut marker = row(12, Role::Assistant, "");
+        marker.model_switch = Some(notice);
+        let user = row(13, Role::User, "accepted prompt");
+        let mut window = super::HistoryWindow::new();
+        window.reset(&page(vec![user.clone()], 2, true, false));
+        window.prepend_older(&page(vec![marker.clone()], 2, false, true));
+        assert_eq!(window.rows()[0].seq, 12);
+        assert_eq!(window.rows()[0].role, "model_switch");
+        assert_eq!(
+            window.rows()[0].text,
+            "Switched model to Catalog Name (high)"
+        );
+        assert_eq!(window.rows()[1].text, "accepted prompt");
+        window.reset(&page(vec![marker.clone(), user], 2, false, false));
+        assert_eq!(
+            window.rows()[0].text,
+            "Switched model to Catalog Name (high)"
+        );
+        window.push_synthetic("user", "next", None, None);
+        window.insert_before_live_user(super::model_switch_text(
+            marker.model_switch.as_ref().unwrap(),
+        ));
+        assert_eq!(window.rows()[2].role, "model_switch");
+        assert_eq!(
+            window.rows()[2].text,
+            "Switched model to Catalog Name (high)"
+        );
+        assert_eq!(window.rows()[3].text, "next");
+    }
+
+    #[test]
+    fn model_switch_labels_variant_default_and_missing_catalog_safely() {
+        use oc_core::queries::{ModelRef, ModelSwitchNotice};
+        let old = ModelRef {
+            provider: "p".into(),
+            id: "old".into(),
+            variant: None,
+        };
+        let mut notice = ModelSwitchNotice {
+            previous: old.clone(),
+            current: ModelRef {
+                provider: "p".into(),
+                id: "new".into(),
+                variant: Some("fast".into()),
+            },
+            display_name: None,
+        };
+        assert_eq!(
+            super::model_switch_text(&notice),
+            "Switched model to p/new/fast"
+        );
+        notice.display_name = Some("Readable".into());
+        notice.current.variant = None;
+        assert_eq!(
+            super::model_switch_text(&notice),
+            "Switched model to Readable"
+        );
+        notice.previous = notice.current.clone();
+        notice.current.variant = Some("fast".into());
+        assert_eq!(
+            super::model_switch_text(&notice),
+            "Switched variant to fast"
+        );
+        notice.current.variant = None;
+        assert_eq!(
+            super::model_switch_text(&notice),
+            "Switched variant to default"
+        );
+        notice.previous = old;
+        notice.current.id = "new".repeat(500);
+        notice.display_name = None;
+        assert!(super::model_switch_text(&notice).chars().count() <= 512);
     }
 
     fn page(rows: Vec<HistoryMessage>, total: usize, older: bool, newer: bool) -> HistoryPage {

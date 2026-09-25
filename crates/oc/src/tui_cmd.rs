@@ -1819,7 +1819,13 @@ async fn handle_worker_event(
         return Ok(());
     }
     match event {
-        CoreEvent::TurnStarted { .. } => {}
+        CoreEvent::TurnStarted {
+            turn, model_switch, ..
+        } => {
+            if let Some(notice) = model_switch {
+                state.apply_model_switch(&turn, &notice);
+            }
+        }
         CoreEvent::TurnPresentation {
             turn, projection, ..
         } => state.apply_presentation(&turn, &projection),
@@ -2213,6 +2219,7 @@ mod tests {
                 role: Role::Assistant,
                 text: "# cached markdown".into(),
                 turn: None,
+                model_switch: None,
             }],
             total: 1,
             ..Default::default()
@@ -3976,6 +3983,7 @@ mod tests {
                 role: Role::User,
                 text: "first viewport marker".into(),
                 turn: None,
+                model_switch: None,
             }],
             total: 1,
             ..Default::default()

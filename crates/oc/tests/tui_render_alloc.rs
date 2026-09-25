@@ -189,6 +189,7 @@ fn page(older: usize) -> HistoryPage {
                 role,
                 text,
                 turn,
+                model_switch: None,
             }
         })
         .collect();

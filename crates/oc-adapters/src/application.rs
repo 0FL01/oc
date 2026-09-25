@@ -15,8 +15,8 @@ use oc_core::core_app::{
 use oc_core::domain::SessionId;
 use oc_core::queries::{
     AgentEntry, CatalogSnapshot, DcpSnapshot, FileSuggestionsSnapshot, HistoryMessage, HistoryPage,
-    HomeLocationSnapshot, LocationSnapshot, ModelEntry, ReloadLocationSnapshot, SessionProbe,
-    SkillCard, StartupNotice, ToolOpPage, ToolOpView, VariantEntry,
+    HomeLocationSnapshot, LocationSnapshot, ModelEntry, ModelSwitchNotice, ReloadLocationSnapshot,
+    SessionProbe, SkillCard, StartupNotice, ToolOpPage, ToolOpView, VariantEntry,
 };
 use oc_core::session::{CoreError, LocationSwitchFailure, MAX_QUEUE_ITEMS, MessageId, Role};
 use tokio::sync::{broadcast, mpsc, oneshot};
@@ -1146,6 +1146,21 @@ fn compress_prompt(focus: &str) -> String {
     )
 }
 
+/// Resolve only the current catalog's matching public display name. Durable
+/// notices carry refs alone; a rename/removal takes effect on the next query.
+fn project_model_switch(
+    mut notice: ModelSwitchNotice,
+    catalog: &crate::models::ModelCatalog,
+) -> ModelSwitchNotice {
+    notice.display_name = (notice.current.provider == catalog.provider)
+        .then(|| catalog.models.get(&notice.current.id))
+        .flatten()
+        .and_then(|entry| entry.get("name"))
+        .and_then(serde_json::Value::as_str)
+        .map(|name| name.chars().filter(|c| !c.is_control()).take(128).collect());
+    notice
+}
+
 /// Handle one owner-only query or action. Never runs while a turn streams
 /// except for read-only snapshots.
 #[allow(clippy::too_many_arguments)]
@@ -1309,23 +1324,40 @@ fn query(
                 let rows = page
                     .into_iter()
                     .map(|(seq, role, text)| {
+                        let model_switch = if role == "model_switch" {
+                            let notice = serde_json::from_str(&text)
+                                .map_err(|_| app_error("invalid model switch notice"))?;
+                            Some(project_model_switch(notice, &composition.catalog))
+                        } else {
+                            None
+                        };
                         Ok(HistoryMessage {
-                            turn: db
-                                .history_turn(&session.0, seq)
-                                .map_err(app_error)?
-                                .or_else(|| {
-                                    (role == "assistant").then(|| oc_core::queries::HistoryTurn {
-                                        legacy_text_only: true,
-                                        ..Default::default()
+                            turn: if model_switch.is_some() {
+                                None
+                            } else {
+                                db.history_turn(&session.0, seq)
+                                    .map_err(app_error)?
+                                    .or_else(|| {
+                                        (role == "assistant").then(|| {
+                                            oc_core::queries::HistoryTurn {
+                                                legacy_text_only: true,
+                                                ..Default::default()
+                                            }
+                                        })
                                     })
-                                }),
+                            },
+                            model_switch,
                             seq,
                             role: if role == "user" {
                                 Role::User
                             } else {
                                 Role::Assistant
                             },
-                            text,
+                            text: if role == "model_switch" {
+                                String::new()
+                            } else {
+                                text
+                            },
                         })
                     })
                     .collect::<Result<Vec<_>, CoreError>>()?;
@@ -1935,7 +1967,10 @@ async fn worker(
                 let result;
                 {
                     let operation = async {
-                        let on_accept = |id: &str| {
+                        let on_accept = |id: &str,
+                                         model_switch: Option<
+                            &oc_core::queries::ModelSwitchNotice,
+                        >| {
                             let id = WorkerTurnId(id.to_string());
                             turn = Some(id.clone());
                             if let Some(ack) = ack.take() {
@@ -1944,6 +1979,9 @@ async fn worker(
                             let _ = events.send(CoreEvent::TurnStarted {
                                 session: session.clone(),
                                 turn: id,
+                                model_switch: model_switch.cloned().map(|notice| {
+                                    project_model_switch(notice, &composition.catalog)
+                                }),
                             });
                         };
                         let on_text = |id: &str, delta: &str| {
@@ -2006,7 +2044,7 @@ async fn worker(
                         };
                         let mut report = if is_fresh {
                             runtime
-                                .run_fresh_turn_with_reasoning_items(
+                                .run_fresh_turn_with_reasoning_items_and_notice(
                                     params,
                                     initial_selection
                                         .as_ref()
@@ -2020,7 +2058,7 @@ async fn worker(
                                 .await?
                         } else {
                             runtime
-                                .run_turn_with_reasoning_items(
+                                .run_turn_with_reasoning_items_and_notice(
                                     params,
                                     on_accept,
                                     on_text,
@@ -2946,6 +2984,177 @@ mod reload_tests {
             ("HOME".into(), data.to_string_lossy().into_owned()),
             ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
         ])
+    }
+
+    #[test]
+    fn model_switch_projection_uses_only_matching_current_catalog_name() {
+        let raw = r#"{"previous":{"provider":"fixture","id":"old","variant":null},"current":{"provider":"fixture","id":"new","variant":null},"display_name":"Stale"}"#;
+        let notice: ModelSwitchNotice = serde_json::from_str(raw).unwrap();
+        let mut catalog = crate::models::ModelCatalog {
+            provider: "fixture".into(),
+            models: [("new".into(), serde_json::json!({"name": "Public\nName"}))].into(),
+        };
+        let projected = project_model_switch(notice.clone(), &catalog);
+        assert_eq!(projected.display_name.as_deref(), Some("PublicName"));
+        assert!(
+            !serde_json::to_string(&projected)
+                .unwrap()
+                .contains("display_name")
+        );
+        catalog
+            .models
+            .insert("new".into(), serde_json::json!({"name": 17}));
+        assert!(
+            project_model_switch(notice.clone(), &catalog)
+                .display_name
+                .is_none()
+        );
+        catalog.models.remove("new");
+        assert!(
+            project_model_switch(notice.clone(), &catalog)
+                .display_name
+                .is_none()
+        );
+        catalog.provider = "foreign".into();
+        catalog
+            .models
+            .insert("new".into(), serde_json::json!({"name": "Wrong Provider"}));
+        assert!(
+            project_model_switch(notice, &catalog)
+                .display_name
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn accepted_switch_projects_typed_paged_history_after_restart() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}/v1", listener.local_addr().unwrap());
+        let mut config: serde_json::Value =
+            serde_json::from_str(&config("old", &base, true)).unwrap();
+        config["provider"]["fixture"]["models"]["new"] =
+            serde_json::json!({"name": "Readable New"});
+        std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
+        let server = tokio::spawn(async move {
+            // First turn, its real title generation, and the second turn.
+            for _ in 0..3 {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let mut request = Vec::new();
+                loop {
+                    let mut buf = [0; 4096];
+                    let size = stream.read(&mut buf).await.unwrap();
+                    assert!(size > 0);
+                    request.extend_from_slice(&buf[..size]);
+                    if let Some(end) = request.windows(4).position(|bytes| bytes == b"\r\n\r\n") {
+                        let headers = String::from_utf8_lossy(&request[..end]);
+                        let length = headers
+                            .lines()
+                            .find_map(|line| {
+                                line.to_ascii_lowercase()
+                                    .strip_prefix("content-length: ")
+                                    .and_then(|n| n.parse::<usize>().ok())
+                            })
+                            .unwrap();
+                        if request.len() >= end + 4 + length {
+                            break;
+                        }
+                    }
+                }
+                let sse = "data: {\"type\":\"response.output_text.delta\",\"delta\":\"reply\"}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\"}}\n\n";
+                stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{sse}", sse.len()).as_bytes()).await.unwrap();
+            }
+        });
+        let session = SessionId("switch-replay".into());
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        app.create_session(session.clone()).await.unwrap();
+        let mut events = app.subscribe();
+        let mut live_switch = None;
+        for prompt in ["first", "second"] {
+            if prompt == "second" {
+                app.session_selection(session.clone(), false, Action::Model("new".into()))
+                    .await
+                    .unwrap();
+                assert!(
+                    app.history_page(session.clone(), None, None, 10)
+                        .await
+                        .unwrap()
+                        .rows
+                        .iter()
+                        .all(|r| r.model_switch.is_none())
+                );
+            }
+            app.submit(session.clone(), prompt.into()).await.unwrap();
+            loop {
+                match tokio::time::timeout(std::time::Duration::from_secs(10), events.recv())
+                    .await
+                    .unwrap()
+                    .unwrap()
+                {
+                    CoreEvent::TurnStarted { model_switch, .. } => {
+                        if prompt == "second" {
+                            live_switch = model_switch;
+                        }
+                    }
+                    CoreEvent::TurnFinished { .. } => break,
+                    CoreEvent::TurnFailed { error, .. } => panic!("turn failed: {error}"),
+                    _ => {}
+                }
+            }
+        }
+        server.await.unwrap();
+        let newer = app
+            .history_page(session.clone(), None, None, 1)
+            .await
+            .unwrap();
+        let before = newer.rows[0].seq;
+        let user = app
+            .history_page(session.clone(), Some(before), None, 1)
+            .await
+            .unwrap();
+        let marker = app
+            .history_page(session.clone(), Some(user.rows[0].seq), None, 1)
+            .await
+            .unwrap();
+        let switch = marker.rows[0].model_switch.as_ref().unwrap();
+        assert_eq!(switch.display_name.as_deref(), Some("Readable New"));
+        assert_eq!(live_switch.as_ref(), Some(switch));
+        assert_eq!(
+            (&switch.previous.id, &switch.current.id),
+            (&"old".to_string(), &"new".to_string())
+        );
+        assert_eq!(marker.rows[0].text, "");
+        assert_eq!(app.read_history(session.clone()).await.unwrap().len(), 4);
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        config["provider"]["fixture"]["models"]["new"]["name"] = serde_json::json!("Renamed Later");
+        std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
+        let (reopened, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let replay = reopened
+            .history_page(session, None, None, 10)
+            .await
+            .unwrap();
+        assert_eq!(
+            replay
+                .rows
+                .iter()
+                .filter(|r| r.model_switch.is_some())
+                .count(),
+            1
+        );
+        assert_eq!(
+            replay.rows.iter().find_map(|r| r.model_switch.as_ref()),
+            Some(&ModelSwitchNotice {
+                display_name: Some("Renamed Later".into()),
+                ..live_switch.unwrap()
+            })
+        );
+        reopened.shutdown().await.unwrap();
+        guard.join().await.unwrap();
     }
 
     #[tokio::test]

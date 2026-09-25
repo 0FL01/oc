@@ -1319,6 +1319,7 @@ try {
           check('selected',selected,{dialog_closed:!selected.text.includes('Select model'),
             new_model_in_composer:selected.text.includes('Reader · ZZ Scroll 11'),
             old_answer_preserved:selected.text.includes('GEOMETRY-SHORT: tool read completed.'),
+            no_premature_model_switch:!selected.text.includes('Switched model to ZZ Scroll 11'),
             no_provider_request:unchanged()});
           await shot('selected',selected);
           const secondPrompt='Second same-session model check?';
@@ -1333,6 +1334,7 @@ try {
           const requests=logs.filter(e=>e.kind==='provider');
           const after=counts();
           const predicates={same_session_title:visibleMatches(finished,oldTitlePrefix).some(p=>p.y===0),
+            one_durable_model_switch:visibleMatches(finished,'Switched model to ZZ Scroll 11').length===1,
             first_turn_original_model:requests.filter(e=>e.operation==='transcript' && e.turn_number===0).length===2 &&
               requests.filter(e=>e.operation==='transcript' && e.turn_number===0).every(e=>e.model==='fixture-model-1' && e.valid),
             second_turn_selected_model:requests.filter(e=>e.operation==='transcript' && e.turn_number===1).length===2 &&

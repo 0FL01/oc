@@ -1268,6 +1268,29 @@ impl<'a> Runtime<'a> {
         &self,
         params: TurnParams<'_>,
         mut accepted: impl FnMut(&str) + Send,
+        text_delta: impl FnMut(&str, &str) + Send,
+        reasoning_delta: impl FnMut(&str, &str) + Send,
+        reasoning_item_ended: impl FnMut(&str) + Send,
+        tool_event: impl FnMut(&str, &ToolCallEvent) + Send,
+    ) -> Result<TurnReport, RuntimeError> {
+        self.run_turn_with_reasoning_items_and_notice(
+            params,
+            |id, _| accepted(id),
+            text_delta,
+            reasoning_delta,
+            reasoning_item_ended,
+            tool_event,
+        )
+        .await
+    }
+
+    /// Application-owner callback receives the notice from the committed
+    /// acceptance transaction, never from a post-commit history lookup.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) async fn run_turn_with_reasoning_items_and_notice(
+        &self,
+        params: TurnParams<'_>,
+        mut accepted: impl FnMut(&str, Option<&oc_core::queries::ModelSwitchNotice>) + Send,
         mut text_delta: impl FnMut(&str, &str) + Send,
         mut reasoning_delta: impl FnMut(&str, &str) + Send,
         mut reasoning_item_ended: impl FnMut(&str) + Send,
@@ -1346,6 +1369,29 @@ impl<'a> Runtime<'a> {
         params: TurnParams<'_>,
         initial_selection: Option<(&str, &str)>,
         mut accepted: impl FnMut(&str) + Send,
+        text_delta: impl FnMut(&str, &str) + Send,
+        reasoning_delta: impl FnMut(&str, &str) + Send,
+        reasoning_item_ended: impl FnMut(&str) + Send,
+        tool_event: impl FnMut(&str, &ToolCallEvent) + Send,
+    ) -> Result<TurnReport, RuntimeError> {
+        self.run_fresh_turn_with_reasoning_items_and_notice(
+            params,
+            initial_selection,
+            |id, _| accepted(id),
+            text_delta,
+            reasoning_delta,
+            reasoning_item_ended,
+            tool_event,
+        )
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) async fn run_fresh_turn_with_reasoning_items_and_notice(
+        &self,
+        params: TurnParams<'_>,
+        initial_selection: Option<(&str, &str)>,
+        mut accepted: impl FnMut(&str, Option<&oc_core::queries::ModelSwitchNotice>) + Send,
         mut text_delta: impl FnMut(&str, &str) + Send,
         mut reasoning_delta: impl FnMut(&str, &str) + Send,
         mut reasoning_item_ended: impl FnMut(&str) + Send,
@@ -1575,7 +1621,7 @@ impl<'a> Runtime<'a> {
         lane: &TurnLane,
         attached: &McpGeneration,
         fresh_selection: Option<Option<(&str, &str)>>,
-        accepted: &mut (dyn FnMut(&str) + Send),
+        accepted: &mut (dyn FnMut(&str, Option<&oc_core::queries::ModelSwitchNotice>) + Send),
         text_delta: &mut (dyn FnMut(&str, &str) + Send),
         reasoning_delta: &mut (dyn FnMut(&str, &str) + Send),
         reasoning_item_ended: &mut (dyn FnMut(&str) + Send),
@@ -1618,7 +1664,7 @@ impl<'a> Runtime<'a> {
         lane: &TurnLane,
         attached: &McpGeneration,
         fresh_selection: Option<Option<(&str, &str)>>,
-        accepted: &mut (dyn FnMut(&str) + Send),
+        accepted: &mut (dyn FnMut(&str, Option<&oc_core::queries::ModelSwitchNotice>) + Send),
         text_delta: &mut (dyn FnMut(&str, &str) + Send),
         reasoning_delta: &mut (dyn FnMut(&str, &str) + Send),
         reasoning_item_ended: &mut (dyn FnMut(&str) + Send),
@@ -1732,7 +1778,16 @@ impl<'a> Runtime<'a> {
         // Durable intent before any side effect.
         let turn_id = next_turn_id(&params.session, millis());
         let user_text = params.invocation.as_deref().unwrap_or(&params.prompt);
-        let user_message = if let Some(initial_selection) = fresh_selection {
+        let model_ref = oc_core::queries::ModelRef {
+            provider: params.catalog.provider.clone(),
+            id: selection.id.clone(),
+            variant: selection
+                .variant
+                .as_ref()
+                .map(|variant| variant.name.clone())
+                .filter(|name| name != "default"),
+        };
+        let accepted_turn = if let Some(initial_selection) = fresh_selection {
             self.db.create_bound_session_and_accept_turn(
                 &params.session,
                 &self.location,
@@ -1740,12 +1795,19 @@ impl<'a> Runtime<'a> {
                 &params.prompt,
                 user_text,
                 initial_selection,
+                &model_ref,
             )?
         } else {
-            self.db
-                .accept_turn(&turn_id, &params.session, &params.prompt, user_text)?
+            self.db.accept_turn(
+                &turn_id,
+                &params.session,
+                &params.prompt,
+                user_text,
+                &model_ref,
+            )?
         };
-        accepted(&turn_id);
+        accepted(&turn_id, accepted_turn.model_switch.as_ref());
+        let user_message = accepted_turn.user_message;
         let mut tool_defs = builtin_tool_defs();
         if !compress_available {
             tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
@@ -2411,7 +2473,7 @@ impl<'a> Runtime<'a> {
             &lane,
             attached,
             None,
-            &mut |_: &str| {},
+            &mut |_: &str, _| {},
             &mut |_: &str, _: &str| {},
             &mut |_: &str, _: &str| {},
             &mut |_: &str| {},

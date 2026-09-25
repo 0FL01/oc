@@ -4552,6 +4552,19 @@ impl TuiState {
 
     // ---- worker events --------------------------------------------------
 
+    pub fn apply_model_switch(
+        &mut self,
+        turn: &WorkerTurnId,
+        notice: &oc_core::queries::ModelSwitchNotice,
+    ) {
+        if self.active_turn.as_ref() != Some(turn) {
+            return;
+        }
+        self.window
+            .insert_before_live_user(crate::history::model_switch_text(notice));
+        self.reset_scanner();
+    }
+
     /// Apply a worker text delta to the live line (turn-scoped: deltas for
     /// a stale turn are ignored, so a late event can never corrupt the view).
     pub fn apply_delta(&mut self, turn: &WorkerTurnId, delta: &str) {
@@ -5224,7 +5237,13 @@ impl ScriptDriver {
             match event {
                 Err(_) => return PumpOutcome::Timeout,
                 Ok(Err(_)) => return PumpOutcome::Closed,
-                Ok(Ok(CoreEvent::TurnStarted { .. })) => {}
+                Ok(Ok(CoreEvent::TurnStarted {
+                    turn, model_switch, ..
+                })) => {
+                    if let Some(notice) = model_switch {
+                        state.apply_model_switch(&turn, &notice);
+                    }
+                }
                 Ok(Ok(CoreEvent::TurnPresentation {
                     turn, projection, ..
                 })) => state.apply_presentation(&turn, &projection),
@@ -5347,6 +5366,7 @@ mod tests {
     fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
         HistoryMessage {
             turn: None,
+            model_switch: None,
             seq,
             role,
             text: text.to_string(),

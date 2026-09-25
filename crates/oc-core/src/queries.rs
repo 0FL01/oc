@@ -91,6 +91,28 @@ pub struct HistoryMessage {
     pub text: String,
     /// Safe projection of this row's turn; absent for legacy text-only rows.
     pub turn: Option<HistoryTurn>,
+    /// Public model transition committed with the following accepted prompt.
+    pub model_switch: Option<ModelSwitchNotice>,
+}
+
+/// Only the validated public model identity; never provider options or credentials.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ModelRef {
+    pub provider: String,
+    pub id: String,
+    /// `None` is the normalized Default variant.
+    pub variant: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ModelSwitchNotice {
+    pub previous: ModelRef,
+    pub current: ModelRef,
+    /// Query/live projection from the current catalog; never written to history.
+    #[serde(skip_serializing, default)]
+    pub display_name: Option<String>,
 }
 
 /// Safe turn metadata and ordered bounded parts, projected from durable records.

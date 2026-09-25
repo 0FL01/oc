@@ -435,6 +435,7 @@ async fn fresh_turn_commits_root_binding_selection_before_ack_and_streams_normal
         [
             "session_created",
             "turn_started",
+            "accepted_model",
             "message",
             "message",
             "turn_finished"
@@ -816,6 +817,88 @@ fn params<'c>(
 }
 
 static NO_CANCEL: AtomicBool = AtomicBool::new(false);
+
+#[tokio::test]
+async fn accepted_model_switch_is_public_only_and_does_not_add_provider_requests() {
+    let (mut harness, generation) = make_harness(allow_all());
+    harness.catalog.models.get_mut("m").unwrap()["variants"] = serde_json::json!({"default": {}});
+    harness.catalog.models.insert(
+        "next".into(),
+        serde_json::json!({
+            "limit": {"context": 1_000_000, "output": 100_000},
+            "variants": {"high": {"reasoningEffort": "high"}}
+        }),
+    );
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s").unwrap();
+    let (base, hits, requests) =
+        Fake::start_recording(vec![sse_delta("answer") + &sse_completed()], Duration::ZERO);
+    let first = params("s", "first", &harness, provider_of(&base), &NO_CANCEL);
+    assert_eq!(
+        runtime.run_turn(first).await.unwrap().status,
+        TurnStatus::Completed
+    );
+    let mut same = params(
+        "s",
+        "still default",
+        &harness,
+        provider_of(&base),
+        &NO_CANCEL,
+    );
+    same.variant = Some("default".into());
+    assert_eq!(
+        runtime.run_turn(same).await.unwrap().status,
+        TurnStatus::Completed
+    );
+    let mut next = params("s", "second", &harness, provider_of(&base), &NO_CANCEL);
+    next.model_id = "next".into();
+    next.variant = Some("high".into());
+    assert_eq!(
+        runtime.run_turn(next).await.unwrap().status,
+        TurnStatus::Completed
+    );
+    assert_eq!(*hits.lock().unwrap(), 3);
+    let wire = requests.lock().unwrap();
+    assert_eq!(wire.len(), 3);
+    assert_eq!(wire[2]["model"], "next");
+    let outbound = wire[2].to_string();
+    assert!(outbound.contains("first"));
+    assert!(!outbound.contains("model_switch"));
+    assert!(!outbound.contains("Switched model"));
+    assert!(!outbound.contains("Switched variant"));
+    drop(wire);
+    let page = harness.db.read_history_page("s", 10, None).unwrap();
+    assert_eq!(
+        page.iter()
+            .filter(|(_, role, _)| role == "model_switch")
+            .count(),
+        1
+    );
+    assert_eq!(
+        page.iter()
+            .map(|(_, role, _)| role.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "assistant",
+            "user",
+            "model_switch",
+            "assistant",
+            "user",
+            "assistant",
+            "user"
+        ]
+    );
+    assert_eq!(harness.db.read_history_full("s").unwrap().len(), 6);
+    assert_eq!(
+        harness
+            .db
+            .active_history("s", 0, 100_000)
+            .unwrap()
+            .rows
+            .len(),
+        6
+    );
+}
 
 /// Real runtime/provider/MCP path: dropping a polled tools/call future must
 /// remain quarantined even if the caller reloads before starting a new turn.

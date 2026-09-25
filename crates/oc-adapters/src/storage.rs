@@ -220,6 +220,13 @@ pub struct Db {
     _lock: RootLock,
 }
 
+/// Exact result of the committed acceptance transaction, without a second
+/// history query that could observe a later turn or silently fail.
+pub(crate) struct AcceptedTurn {
+    pub user_message: String,
+    pub model_switch: Option<oc_core::queries::ModelSwitchNotice>,
+}
+
 /// Constructed only after successful acquisition of the exclusive flock.
 struct RootLock(File);
 
@@ -435,6 +442,7 @@ impl Db {
     /// and user message/event commit together.
     /// Unlike `create_bound_session`, an existing root (even one bound to this
     /// Location) is always a duplicate; no existing history is modified.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn create_bound_session_and_accept_turn(
         &self,
         id: &str,
@@ -443,7 +451,8 @@ impl Db {
         prompt: &str,
         user_text: &str,
         initial_selection: Option<(&str, &str)>,
-    ) -> Result<String, StorageError> {
+        model: &oc_core::queries::ModelRef,
+    ) -> Result<AcceptedTurn, StorageError> {
         if !valid_tab_id(id) || tab_adoption_scope(location).len() > MAX_TAB_ADOPTION_KEY_BYTES {
             return Err(invalid_tab_adoption());
         }
@@ -483,7 +492,7 @@ impl Db {
         }
         Self::insert_root_session(&tx, id)?;
         Self::insert_location_binding(&tx, id, location)?;
-        let message = Self::insert_accepted_turn(&tx, turn, id, prompt, user_text)?;
+        let accepted = Self::insert_accepted_turn(&tx, turn, id, prompt, user_text, model)?;
         if let Some((key, value)) = initial_selection {
             Self::upsert_pref(&tx, key, value)?;
         }
@@ -493,7 +502,7 @@ impl Db {
             params![marker, TAB_ADOPTION_VALUE, now_rfc3339()],
         )?;
         tx.commit()?;
-        Ok(message)
+        Ok(accepted)
     }
 
     fn create_root_session(
@@ -650,7 +659,7 @@ impl Db {
     pub fn read_history(&self, session: &str) -> Result<Vec<(String, String)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let mut stmt = conn.prepare_cached(
-            "SELECT role, text FROM messages WHERE session_id = ?1 ORDER BY seq ASC",
+            "SELECT role, text FROM messages WHERE session_id = ?1 AND role != 'model_switch' ORDER BY seq ASC",
         )?;
         let rows = stmt.query_map(params![session], |row| {
             let role: String = row.get(0)?;
@@ -788,7 +797,7 @@ impl Db {
         let conn = self.conn.lock().expect("db mutex");
         let mut stmt = conn.prepare_cached(
             "SELECT seq, role, text FROM messages
-             WHERE session_id = ?1 AND seq > ?2
+                   WHERE session_id = ?1 AND seq > ?2
              ORDER BY seq ASC LIMIT ?3",
         )?;
         let rows = stmt.query_map(params![session, after_seq, limit], |row| {
@@ -802,6 +811,36 @@ impl Db {
             Self::require_session(&conn, session)?;
         }
         Ok(out)
+    }
+
+    /// Public notice adjacent to the last accepted user row, if present.
+    /// Called only after the acceptance transaction commits.
+    #[cfg(test)]
+    pub(crate) fn latest_model_switch(
+        &self,
+        session: &str,
+    ) -> Result<Option<oc_core::queries::ModelSwitchNotice>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let raw: Option<String> = conn
+            .query_row(
+                "SELECT n.text FROM messages u JOIN messages n ON n.session_id=u.session_id
+             AND n.seq=(SELECT MAX(seq) FROM messages WHERE session_id=u.session_id AND seq<u.seq)
+             WHERE u.session_id=?1 AND u.role='user' AND n.role='model_switch'
+               AND u.seq=(SELECT MAX(seq) FROM messages WHERE session_id=?1)
+             LIMIT 1",
+                [session],
+                |row| row.get(0),
+            )
+            .optional()?;
+        raw.map(|text| {
+            serde_json::from_str(&text).map_err(|_| {
+                StorageError::Io(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "invalid model switch notice",
+                ))
+            })
+        })
+        .transpose()
     }
 
     /// Committed message seq bounds `(min, max)`; `None` for an empty session.
@@ -1110,7 +1149,7 @@ impl Db {
         loop {
             let mut stmt = conn.prepare_cached(
                 "SELECT id, role, seq, length(CAST(text AS BLOB)), text FROM messages
-                  WHERE session_id = ?1 AND seq > ?2
+                       WHERE session_id = ?1 AND seq > ?2 AND role != 'model_switch'
                     AND NOT EXISTS (SELECT 1 FROM compression_members cm
                                      WHERE cm.message_id = messages.id)
                   ORDER BY seq ASC LIMIT ?3",
@@ -1227,7 +1266,7 @@ impl Db {
     ) -> Result<Vec<(String, String, String)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let mut stmt = conn.prepare_cached(
-            "SELECT id, role, text FROM messages WHERE session_id = ?1 ORDER BY seq ASC",
+            "SELECT id, role, text FROM messages WHERE session_id = ?1 AND role != 'model_switch' ORDER BY seq ASC",
         )?;
         let rows = stmt.query_map(params![session], |row| {
             let id: String = row.get(0)?;
@@ -1431,12 +1470,13 @@ impl Db {
         session: &str,
         prompt: &str,
         user_text: &str,
-    ) -> Result<String, StorageError> {
+        model: &oc_core::queries::ModelRef,
+    ) -> Result<AcceptedTurn, StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let message = Self::insert_accepted_turn(&tx, turn, session, prompt, user_text)?;
+        let accepted = Self::insert_accepted_turn(&tx, turn, session, prompt, user_text, model)?;
         tx.commit()?;
-        Ok(message)
+        Ok(accepted)
     }
 
     fn insert_accepted_turn(
@@ -1445,9 +1485,44 @@ impl Db {
         session: &str,
         prompt: &str,
         user_text: &str,
-    ) -> Result<String, StorageError> {
+        model: &oc_core::queries::ModelRef,
+    ) -> Result<AcceptedTurn, StorageError> {
+        use oc_core::queries::ModelRef;
         Self::insert_turn(conn, turn, session, prompt)?;
-        Self::insert_message(conn, session, "user", user_text)
+        // The event journal, unlike the picker preference or later turn
+        // checkpoint, records the model of the last *accepted* prompt.
+        let prior: Option<String> = conn.query_row(
+            "SELECT payload FROM events WHERE session_id=?1 AND kind='accepted_model' ORDER BY seq DESC LIMIT 1",
+            [session], |row| row.get(0),
+        ).optional()?;
+        let mut switch = None;
+        if let Some(previous) = prior {
+            let previous: ModelRef = serde_json::from_str(&previous).map_err(|_| {
+                StorageError::Io(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "invalid accepted model reference",
+                ))
+            })?;
+            if previous != *model {
+                let notice = oc_core::queries::ModelSwitchNotice {
+                    previous,
+                    current: model.clone(),
+                    display_name: None,
+                };
+                let text = serde_json::to_string(&notice).map_err(std::io::Error::other)?;
+                Self::insert_message(conn, session, "model_switch", &text)?;
+                switch = Some(notice);
+            }
+        }
+        let reference = serde_json::to_string(model).map_err(std::io::Error::other)?;
+        conn.execute(
+            "INSERT INTO events(session_id,kind,payload) VALUES (?1,'accepted_model',?2)",
+            params![session, reference],
+        )?;
+        Ok(AcceptedTurn {
+            user_message: Self::insert_message(conn, session, "user", user_text)?,
+            model_switch: switch,
+        })
     }
 
     fn insert_turn(
@@ -2709,9 +2784,10 @@ fn apply_schema(conn: &Connection) -> Result<(), StorageError> {
          CREATE TABLE IF NOT EXISTS tool_operations(
            id TEXT PRIMARY KEY, session_id TEXT NOT NULL, turn_id TEXT,
            name TEXT NOT NULL, state TEXT NOT NULL, input TEXT, output TEXT);
-         CREATE TABLE IF NOT EXISTS events(
-           seq INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
-           kind TEXT NOT NULL, payload TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS events(
+            seq INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
+            kind TEXT NOT NULL, payload TEXT NOT NULL);
+          CREATE INDEX IF NOT EXISTS events_accepted_model ON events(session_id, seq) WHERE kind='accepted_model';
          CREATE TABLE IF NOT EXISTS blobs(digest TEXT PRIMARY KEY, size INTEGER NOT NULL, path TEXT NOT NULL);
          CREATE TABLE IF NOT EXISTS prefs(key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL);
          INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (1, 't04');",
@@ -2731,6 +2807,14 @@ mod tests {
     use std::os::unix::fs::PermissionsExt as _;
     use std::path::Path;
     use std::time::Duration;
+
+    fn test_model() -> oc_core::queries::ModelRef {
+        oc_core::queries::ModelRef {
+            provider: "test".into(),
+            id: "m".into(),
+            variant: None,
+        }
+    }
 
     /// `(name, type)` of a table's columns in declaration order.
     fn session_columns(db: &Db) -> Vec<(String, String)> {
@@ -3510,10 +3594,17 @@ mod tests {
             "prompt",
             "user",
             None,
+            &test_model(),
         );
-        assert_eq!(accepted.unwrap(), "m0001");
+        assert_eq!(accepted.unwrap().user_message, "m0001");
         let refusal = db.create_bound_session_and_accept_turn(
-            "blocked", location, "t2", "prompt", "user", None,
+            "blocked",
+            location,
+            "t2",
+            "prompt",
+            "user",
+            None,
+            &test_model(),
         );
         assert!(
             matches!(refusal, Err(StorageError::Io(ref e)) if e.kind() == std::io::ErrorKind::InvalidData)
@@ -3530,7 +3621,7 @@ mod tests {
             .unwrap();
         // The trigger is gone; the full union still refuses the root.
         assert!(matches!(
-            db.create_bound_session_and_accept_turn("blocked", location, "t2", "prompt", "user", None),
+            db.create_bound_session_and_accept_turn("blocked", location, "t2", "prompt", "user", None, &test_model()),
             Err(StorageError::Io(ref e)) if e.kind() == std::io::ErrorKind::InvalidData
         ));
     }
@@ -3558,7 +3649,8 @@ mod tests {
                     turn,
                     "prompt",
                     "visible input",
-                    Some((&selection_key(session), "choice"))
+                    Some((&selection_key(session), "choice")),
+                    &test_model()
                 ),
                 Err(StorageError::Sqlite(_))
             ));
@@ -3576,16 +3668,18 @@ mod tests {
                     turn,
                     "prompt",
                     "visible input",
-                    Some((&selection_key(session), "choice"))
+                    Some((&selection_key(session), "choice")),
+                    &test_model()
                 )
-                .unwrap(),
+                .unwrap()
+                .user_message,
                 if session == "turn-fail" {
                     "m0001"
                 } else {
                     "m0002"
                 }
             );
-            assert_eq!(fresh_turn_rows(&db, session, turn), (1, 1, 3, 1, 1));
+            assert_eq!(fresh_turn_rows(&db, session, turn), (1, 1, 4, 1, 1));
             assert_eq!(
                 db.get_pref(&selection_key(session)).unwrap().as_deref(),
                 Some("choice")
@@ -3614,7 +3708,8 @@ mod tests {
                 "turn",
                 "prompt",
                 "user",
-                Some((key, "choice"))
+                Some((key, "choice")),
+                &test_model()
             ),
             Err(StorageError::Sqlite(_))
         ));
@@ -3632,12 +3727,14 @@ mod tests {
                 "turn",
                 "prompt",
                 "user",
-                Some((key, "choice"))
+                Some((key, "choice")),
+                &test_model()
             )
-            .unwrap(),
+            .unwrap()
+            .user_message,
             "m0001"
         );
-        assert_eq!(fresh_turn_rows(&db, "fresh", "turn"), (1, 1, 3, 1, 1));
+        assert_eq!(fresh_turn_rows(&db, "fresh", "turn"), (1, 1, 4, 1, 1));
         assert_eq!(db.get_pref(key).unwrap().as_deref(), Some("choice"));
     }
 
@@ -3665,7 +3762,8 @@ mod tests {
                     &format!("turn{index}"),
                     "prompt",
                     "user",
-                    Some((key, "bad"))
+                    Some((key, "bad")),
+                    &test_model()
                 )
                 .is_err()
             );
@@ -3694,9 +3792,10 @@ mod tests {
                 "raw prompt",
                 "rendered user text",
                 Some((key, "new choice")),
+                &test_model(),
             )
             .unwrap();
-        assert_eq!(first, "m0001");
+        assert_eq!(first.user_message, "m0001");
         assert_eq!(db.get_pref(key).unwrap().as_deref(), Some("new choice"));
         assert_eq!(
             db.get_pref("tui.session_location.new").unwrap().as_deref(),
@@ -3705,7 +3804,11 @@ mod tests {
         assert_eq!(db.session_meta("new").unwrap().parent_id, None);
         assert_eq!(
             db.read_history_full("new").unwrap(),
-            vec![(first.clone(), "user".into(), "rendered user text".into())]
+            vec![(
+                first.user_message.clone(),
+                "user".into(),
+                "rendered user text".into()
+            )]
         );
         {
             let conn = db.conn.lock().unwrap();
@@ -3729,7 +3832,11 @@ mod tests {
                 vec![
                     ("session_created".into(), "{}".into()),
                     ("turn_started".into(), "first".into()),
-                    ("message".into(), first),
+                    (
+                        "accepted_model".into(),
+                        serde_json::to_string(&test_model()).unwrap()
+                    ),
+                    ("message".into(), first.user_message),
                 ]
             );
         }
@@ -3741,13 +3848,14 @@ mod tests {
                     "duplicate",
                     "bad",
                     "bad",
-                    Some((key, "bad choice"))
+                    Some((key, "bad choice")),
+                    &test_model()
                 ),
                 Err(StorageError::SessionAlreadyExists)
             ));
         }
         assert_eq!(db.get_pref(key).unwrap().as_deref(), Some("new choice"));
-        assert_eq!(fresh_turn_rows(&db, "new", "duplicate"), (1, 1, 3, 0, 1));
+        assert_eq!(fresh_turn_rows(&db, "new", "duplicate"), (1, 1, 4, 0, 1));
         db.create_session("unbound").unwrap();
         assert!(matches!(
             db.create_bound_session_and_accept_turn(
@@ -3756,7 +3864,8 @@ mod tests {
                 "duplicate",
                 "bad",
                 "bad",
-                None
+                None,
+                &test_model()
             ),
             Err(StorageError::SessionAlreadyExists)
         ));
@@ -3765,16 +3874,17 @@ mod tests {
             (1, 0, 1, 0, 0)
         );
         assert_eq!(
-            db.accept_turn("next", "new", "another prompt", "next user")
-                .unwrap(),
+            db.accept_turn("next", "new", "another prompt", "next user", &test_model())
+                .unwrap()
+                .user_message,
             "m0002"
         );
-        assert_eq!(fresh_turn_rows(&db, "new", "next"), (1, 1, 5, 1, 2));
+        assert_eq!(fresh_turn_rows(&db, "new", "next"), (1, 1, 7, 1, 2));
         assert!(matches!(
-            db.accept_turn("next", "new", "bad", "bad"),
+            db.accept_turn("next", "new", "bad", "bad", &test_model()),
             Err(StorageError::Sqlite(_))
         ));
-        assert_eq!(fresh_turn_rows(&db, "new", "next"), (1, 1, 5, 1, 2));
+        assert_eq!(fresh_turn_rows(&db, "new", "next"), (1, 1, 7, 1, 2));
     }
 
     #[test]
@@ -3782,11 +3892,17 @@ mod tests {
         let tmp = tmp_root("fresh-duplicate-turn");
         let db = Db::open(&tmp.path().join("data")).unwrap();
         db.create_session("existing").unwrap();
-        db.accept_turn("taken", "existing", "first", "first")
+        db.accept_turn("taken", "existing", "first", "first", &test_model())
             .unwrap();
         assert!(matches!(
             db.create_bound_session_and_accept_turn(
-                "new", "/project", "taken", "second", "second", None
+                "new",
+                "/project",
+                "taken",
+                "second",
+                "second",
+                None,
+                &test_model()
             ),
             Err(StorageError::Sqlite(_))
         ));
@@ -3797,12 +3913,78 @@ mod tests {
         );
         assert_eq!(
             db.create_bound_session_and_accept_turn(
-                "new", "/project", "free", "second", "second", None
+                "new",
+                "/project",
+                "free",
+                "second",
+                "second",
+                None,
+                &test_model()
             )
-            .unwrap(),
+            .unwrap()
+            .user_message,
             "m0002"
         );
-        assert_eq!(fresh_turn_rows(&db, "new", "free"), (1, 1, 3, 1, 1));
+        assert_eq!(fresh_turn_rows(&db, "new", "free"), (1, 1, 4, 1, 1));
+    }
+
+    #[test]
+    fn model_switch_is_atomic_scoped_replayable_and_excluded_from_context() {
+        let tmp = tmp_root("model-switch-atomic");
+        let path = tmp.path().join("data");
+        let old = test_model();
+        let new = oc_core::queries::ModelRef {
+            provider: "other".into(),
+            id: "new".into(),
+            variant: Some("high".into()),
+        };
+        {
+            let db = Db::open(&path).unwrap();
+            db.apply_dcp_schema().unwrap();
+            db.create_bound_session_and_accept_turn("a", "/one", "first", "one", "one", None, &old)
+                .unwrap();
+            db.create_bound_session_and_accept_turn(
+                "b", "/one", "other", "other", "other", None, &new,
+            )
+            .unwrap();
+            assert!(db.latest_model_switch("a").unwrap().is_none());
+            db.conn.lock().unwrap().execute_batch(
+                "CREATE TRIGGER refuse_user BEFORE INSERT ON messages WHEN NEW.role='user' AND NEW.text='reject'
+                 BEGIN SELECT RAISE(ABORT, 'refused'); END;"
+            ).unwrap();
+            assert!(
+                db.accept_turn("refused", "a", "reject", "reject", &new)
+                    .is_err()
+            );
+            assert!(db.latest_model_switch("a").unwrap().is_none());
+            assert_eq!(db.read_history_page("a", 10, None).unwrap().len(), 1);
+            db.conn
+                .lock()
+                .unwrap()
+                .execute_batch("DROP TRIGGER refuse_user")
+                .unwrap();
+            db.accept_turn("same", "a", "two", "two", &old).unwrap();
+            assert!(db.latest_model_switch("a").unwrap().is_none());
+            let accepted = db
+                .accept_turn("changed", "a", "three", "three", &new)
+                .unwrap();
+            assert_eq!(accepted.model_switch.as_ref().unwrap().display_name, None);
+            assert_eq!(db.latest_model_switch("a").unwrap().unwrap().previous, old);
+            assert_eq!(db.latest_model_switch("a").unwrap(), accepted.model_switch);
+            let page = db.read_history_page("a", 2, None).unwrap();
+            assert_eq!(page[0].1, "user");
+            assert_eq!(page[1].1, "model_switch");
+            assert!(page[1].2.contains("\"current\""));
+            assert!(!page[1].2.contains("display_name"));
+            assert_eq!(db.read_history_full("a").unwrap().len(), 3);
+            assert_eq!(db.active_history("a", 0, 1000).unwrap().rows.len(), 3);
+            assert_eq!(db.read_history_after("a", 10, 0).unwrap().len(), 4);
+        }
+        let db = Db::open(&path).unwrap();
+        assert_eq!(db.latest_model_switch("a").unwrap().unwrap().current, new);
+        db.accept_turn("unchanged", "a", "four", "four", &new)
+            .unwrap();
+        assert!(db.latest_model_switch("a").unwrap().is_none());
     }
 
     #[test]

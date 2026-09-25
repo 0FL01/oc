@@ -808,6 +808,15 @@ fn render_row(
                 notice_block(row)
             }
         }
+        // SessionRowView supplies one top margin; the notice itself has
+        // paddingLeft=3 and muted text (session/index.tsx:1433, 1999-2013).
+        "model_switch" => vec![
+            Line::plain(""),
+            Line::new(vec![
+                Span::plain(" ".repeat(MESSAGE_PADDING)),
+                Span::styled(row.text.clone(), Style::default().fg(theme.text_muted())),
+            ]),
+        ],
         _ => notice_block(row),
     };
     // Markdown event text is already cleaned; reasoning titles, user chips,
@@ -4268,6 +4277,36 @@ mod tests {
             })
             .collect();
         (rows_text, buffer)
+    }
+
+    #[test]
+    fn model_switch_notice_uses_pinned_row_margin_padding_and_muted_text() {
+        let theme = Theme::dark();
+        let mut notice = assistant("");
+        notice.role = "model_switch".into();
+        notice.text = "Switched model to Catalog Name".into();
+        let (rows, painted) = render(&[notice.clone()], 80, 4);
+        assert_eq!(rows[0], "");
+        assert_eq!(rows[1], "   Switched model to Catalog Name");
+        assert_eq!(painted[(3, 1)].fg, theme.text_muted());
+
+        let cache = RefCell::new(MarkdownCache::default());
+        let (indexed, total) = visible_transcript(
+            &[notice],
+            theme,
+            80,
+            80,
+            (4, 0, None),
+            |_| theme.text(),
+            &cache,
+        );
+        assert_eq!(total, 3);
+        let indexed_notice = indexed.last().unwrap();
+        assert_eq!(indexed_notice.plain_text(), rows[1]);
+        assert_eq!(
+            indexed_notice.spans()[1].style().fg,
+            Some(theme.text_muted())
+        );
     }
 
     /// Upstream user block (`routes/session/index.tsx:2298-2398`): `┃` border

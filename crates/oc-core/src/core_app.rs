@@ -144,6 +144,8 @@ pub enum CoreEvent {
         session: SessionId,
         /// New turn id.
         turn: WorkerTurnId,
+        /// Public notice accepted immediately before this turn's user row.
+        model_switch: Option<crate::queries::ModelSwitchNotice>,
     },
     /// Incremental provider delta (not yet a durable message).
     TextDelta {
@@ -1328,6 +1330,7 @@ fn scripted_accept_submit(
     let _ = events.send(CoreEvent::TurnStarted {
         session,
         turn: turn_id,
+        model_switch: None,
     });
 }
 
