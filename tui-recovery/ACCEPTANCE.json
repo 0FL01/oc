@@ -146,7 +146,7 @@
       "id": "VIS11",
       "step": "V05",
       "title": "Keyboard modifiers and events",
-      "expected": "Ctrl/Alt do not leak printable chars; Press/Repeat/Release rules tested, leader shortcuts correct per focus, no duplicate submission.",
+      "expected": "Ctrl/Alt do not leak printable chars; Press/Repeat/Release rules tested, leader shortcuts correct per focus, no duplicate submission. In a real PTY, Ctrl+C clears a nonempty focused prompt without exiting or sending a provider request; Ctrl+C on an empty root prompt exits; in a modal it clears the focused search or dismisses the modal without exiting.",
       "sources": [
         "P07",
         "U02"
