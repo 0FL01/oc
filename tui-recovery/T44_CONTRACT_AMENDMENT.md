@@ -228,9 +228,49 @@ R6: pending до full rerun на финальном code SHA; сохранить
 
 Pinned источники VIS34: U15–U17 в `SOURCES.json`.
 
+## File-mutation parity — VIS35
+
+1. Сохранить единый `apply_patch(patchText)` для всех моделей; write/edit не
+   добавлять в model registry и не вводить native model-name routing. Визуальный
+   эталон — оригинальный OC2 `patch`, компонент `ApplyPatch`; Write/Edit — отдельные
+   представления OC2, не fallback для «глупых» моделей. Это ordinary function tool,
+   не provider-hosted Responses apply_patch schema.
+2. Проверить настоящий executor: create, empty create, multi-hunk update,
+   full replacement, delete, move и multi-file. Независимо проверять bytes,
+   modes, отсутствие удалённого/source файла и содержимое destination.
+   Повторно выполнить применимые TOOL02–TOOL04 и integration/replay checks.
+3. Получать bounded result-derived diff metadata у mutation owner:
+   operation type, итоговый путь, before/after hunks с корректными номерами,
+   additions/deletions и подтверждённые effects. Сохранять для live/replay;
+   reopen не читает текущие workspace-файлы и не повторяет mutation.
+   Это metadata transcript, не файловый snapshot/restore subsystem.
+4. Воспроизвести `# Created` / `← Patched` / `# Deleted` и `-N line/lines`,
+   fallback `Patching` со spinner и `# Patch failed`, отдельные per-file blocks,
+   geometry/theme/syntax/gutters, unified/split/auto (>120 columns) и wrap.
+   Preview до исполнения не показывать как подтверждённый success.
+5. Добавить bounded paired PTY scenario к существующему capture harness:
+   реальные tool calls OC2 patch/native apply_patch, проверка объявленных
+   schemas, файловых effects и model-visible results. Для OC2 использовать
+   штатный hook, допускающий patch на fixture-model; не менять донор.
+6. Снять полные styled-cell/PNG frames на narrow/wide и границе 120/121,
+   при default и explicit diff settings, для completed/error и permission
+   accept/reject; проверить observable streaming/running frames.
+   Проверить session switch/reopen/restart без повторного вызова tools.
+7. Сохранить проверки conflict, denied, partial, cancelled/unknown:
+   отображать только подтверждённые effects, не обещать repo-wide atomicity.
+   Поведение и visual comparator имеют отдельные результаты; несовпадение
+   полного кадра не становится PASS через crop/mask или mock-карточку.
+8. Отдельно переиспользовать coding E2E из A09: реальная модель сама составляет
+   patch и выполняет цикл read → apply_patch → shell test → ответ, с проверкой
+   expected paths и reopen. Успех scripted provider fixture доказывает backend/TUI,
+   не способность модели работать с форматом; наличие строкового patchText в schema
+   тоже не гарантирует корректные hunks. Не добавлять новый model matrix/framework.
+
+Pinned источники: U18–U20 в `SOURCES.json`. VIS35 — спецификация, не executed PASS.
+
 ## Обязательные результаты нового прохода
 
-V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS34 из ACCEPTANCE.json:
+V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS35 из ACCEPTANCE.json:
 1. Изолированный upstream reference + identical fixture/state для трёх пользовательских экранов.
 2. Исправленные UI event loop/keymap и диагностируемый MCP error без потери draft.
 3. Shell/sidebar/tabs/prompt/footer из реальных данных с геометрией эталона.

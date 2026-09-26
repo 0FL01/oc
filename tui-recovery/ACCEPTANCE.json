@@ -470,6 +470,20 @@
       "mandatory": true,
       "execution_status": "NOT_RUN",
       "evidence": []
+    },
+    {
+      "id": "VIS35",
+      "step": "V06",
+      "title": "Unified apply_patch filesystem effects and full OC2 patch visual parity",
+      "expected": "Exercise real OC2 patch and native apply_patch calls for create, empty create, multi-hunk update away from line one, full replacement, delete, move and multi-file operations. Independently verify bytes/modes, deletion and source/destination effects, declared schemas and model-visible results. Match full styled-cell/PNG frames for per-file blocks, Created/Patched/Deleted labels, destination paths, deletion counts, geometry, theme roles, syntax, correct old/new line numbers, unified/split/auto at 120/121 columns and configured wrapping. Verify observable streaming/running, completed, conflict/error and permission accept/reject states. Persist result-derived diff metadata and reproduce cards after session switch/reopen/restart without reading current files or reexecuting tools. Preserve honest native partial/cancelled/unknown outcomes, confirmed effects only, permissions and DCP protections. No write/edit built-ins or model-name routing in native production; use the ordinary function patchText contract, not provider-hosted apply_patch. Renderer-only fixtures and historical backend PASS do not qualify the current binary; behavior and full-frame visual results are separate. Separately reuse A09 coding E2E with a real model authoring the patch, expected-path verification, shell tests and reopen; scripted provider calls do not establish model proficiency.",
+      "sources": [
+        "U18",
+        "U19",
+        "U20"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
     }
   ]
 }

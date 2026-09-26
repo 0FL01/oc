@@ -300,6 +300,33 @@
       "locator": "79–143 compaction delivery/execution; 216–270 automatic trigger and overflow recovery; admission in session.ts:240–258 and inbox.ts:204–226",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/runner/llm.ts#L79-L143",
       "purpose": "Safe-boundary manual admission/execution, automatic trigger and overflow recovery"
+    },
+    {
+      "id": "U18",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "2784–2865 BlockTool; 3044–3078 Write; 3324–3503 Edit/ApplyPatch; component/patch-diff.tsx:19–81 PatchDiff",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L3324-L3503",
+      "purpose": "Original file-mutation presentation, layout, labels, lifecycle and diff settings"
+    },
+    {
+      "id": "U19",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/tool/plugin/patch.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "19–45 schema/output; 85–290 execution/metadata; 296–310 tool selection; 321–362 result diff; file-diff.ts:4–23 before/after diff",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/patch.ts#L19-L45",
+      "purpose": "Real patch execution, result-derived file diffs and fixture admission through the original hook"
+    },
+    {
+      "id": "U20",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/permission.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "22–110 EditBody; PermissionPrompt",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/permission.tsx#L22-L110",
+      "purpose": "File-mutation permission preview and diff presentation"
     }
   ],
   "external_primary_sources": [
