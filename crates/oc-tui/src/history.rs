@@ -89,6 +89,43 @@ impl HistoryWindow {
         }
     }
 
+    /// Replace the overlapping durable tail after completion, retaining loaded
+    /// older pages. A disjoint newest page must not fabricate a contiguous gap:
+    /// keep the reader's window and let normal newer paging reach the tail.
+    pub(crate) fn refresh_completed(&mut self, page: &HistoryPage, detached: bool) {
+        let first = page.rows.first().map(|row| row.seq);
+        let overlaps = page.rows.iter().any(|message| {
+            self.rows
+                .iter()
+                .any(|row| row.message_id.as_deref() == Some(&message.id))
+        });
+        if detached && !overlaps && self.rows.iter().any(|row| row.message_id.is_some()) {
+            self.rows.retain(|row| row.message_id.is_some());
+            self.total = page.total;
+            self.has_newer = true;
+            return;
+        }
+        let older = detached.then(|| {
+            self.rows
+                .iter()
+                .filter(|row| row.message_id.is_some() && first.is_some_and(|seq| row.seq < seq))
+                .cloned()
+                .collect::<Vec<_>>()
+        });
+        let has_older = self.has_older;
+        self.reset(page);
+        if let Some(mut older) = older
+            && !older.is_empty()
+        {
+            older.append(&mut self.rows);
+            self.rows = older;
+            self.has_older = has_older;
+            if self.enforce(Evict::Oldest) {
+                self.has_older = true;
+            }
+        }
+    }
+
     /// Add an older page at the front; returns rows added. Evicts newest
     /// rows while over a cap and flags `has_newer` when it does.
     pub fn prepend_older(&mut self, page: &HistoryPage) -> usize {

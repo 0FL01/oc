@@ -1,0 +1,1134 @@
+{
+  "origin": "oc",
+  "status": "FAILED",
+  "stages": [
+    {
+      "name": "wheel-shell-completed",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "verified_real_outputs": true
+    },
+    {
+      "name": "expanded-idle",
+      "window_ms": 1013.076296,
+      "cpu_ticks": 0,
+      "cpu_ms": 0,
+      "terminal_bytes": 0,
+      "main_thread_voluntary_context_switches": 0,
+      "main_thread_involuntary_context_switches": 0
+    },
+    {
+      "name": "wheel-165-single-up",
+      "cursor": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requested_hz": 165,
+      "sent": [
+        {
+          "at_ms": 0.34751400000823196,
+          "direction": -1
+        }
+      ],
+      "first_changed_cell_ms": 588.8198039999988,
+      "last_changed_cell_ms": 588.8198039999988,
+      "settle_after_last_input_ms": 588.4722899999906,
+      "terminal_chunks": 5,
+      "endpoint_view": "  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n                                                                                                      Jump to latest ↓  ",
+      "cursor_before": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "editor_cursor_preserved": true,
+      "observations": [
+        {
+          "at_ms": 232.07585100000142,
+          "view": "  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n     BOUNDED-SHELL: both real printf tools completed.                                                                   \n                                                                                                                        \n     Fixture-Shell · MiMo-V2.6-Flash Free · 280ms                                                                       \n                                                                                                                        ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 588.8198039999988,
+          "view": "  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 934.4380919999967,
+          "view": "  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 1269.641306999998,
+          "view": "  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ]
+    },
+    {
+      "name": "wheel-165-burst-up",
+      "cursor": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requested_hz": 165,
+      "sent": [
+        {
+          "at_ms": 0.38902499999676365,
+          "direction": -1
+        },
+        {
+          "at_ms": 5.989828999998281,
+          "direction": -1
+        },
+        {
+          "at_ms": 10.913865999988047,
+          "direction": -1
+        },
+        {
+          "at_ms": 17.64267899999686,
+          "direction": -1
+        },
+        {
+          "at_ms": 24.47903299999598,
+          "direction": -1
+        },
+        {
+          "at_ms": 30.2465089999896,
+          "direction": -1
+        },
+        {
+          "at_ms": 36.04623300000094,
+          "direction": -1
+        },
+        {
+          "at_ms": 42.95713999999862,
+          "direction": -1
+        }
+      ],
+      "first_changed_cell_ms": 680.4203969999944,
+      "last_changed_cell_ms": 680.4203969999944,
+      "settle_after_last_input_ms": 637.4632569999958,
+      "terminal_chunks": 6,
+      "endpoint_view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+      "cursor_before": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "editor_cursor_preserved": true,
+      "observations": [
+        {
+          "at_ms": 240.5546089999989,
+          "view": "  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 680.4203969999944,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 1036.7533019999973,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 1311.4049989999912,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ]
+    },
+    {
+      "name": "wheel-165-reverse",
+      "cursor": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requested_hz": 165,
+      "sent": [
+        {
+          "at_ms": 1.667702000006102,
+          "direction": -1
+        },
+        {
+          "at_ms": 5.714286000002176,
+          "direction": -1
+        },
+        {
+          "at_ms": 11.812529000002542,
+          "direction": -1
+        },
+        {
+          "at_ms": 22.008494000008795,
+          "direction": 1
+        },
+        {
+          "at_ms": 22.700897000002442,
+          "direction": 1
+        },
+        {
+          "at_ms": 30.612460999996983,
+          "direction": 1
+        }
+      ],
+      "first_changed_cell_ms": 711.9315320000023,
+      "last_changed_cell_ms": 711.9315320000023,
+      "settle_after_last_input_ms": 681.3190710000054,
+      "terminal_chunks": 17,
+      "endpoint_view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+      "cursor_before": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "editor_cursor_preserved": true,
+      "observations": [
+        {
+          "at_ms": 237.35387000000628,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 711.9315320000023,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 1044.3258159999968,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 1378.4815320000052,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ]
+    },
+    {
+      "name": "wheel-165-top-edge",
+      "cursor": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requested_hz": 165,
+      "sent": [
+        {
+          "at_ms": 0.37590700000873767,
+          "direction": -1
+        },
+        {
+          "at_ms": 7.565534000008483,
+          "direction": -1
+        },
+        {
+          "at_ms": 11.75979000001098,
+          "direction": -1
+        },
+        {
+          "at_ms": 17.744762000002083,
+          "direction": -1
+        },
+        {
+          "at_ms": 23.98866600000474,
+          "direction": -1
+        },
+        {
+          "at_ms": 30.327181000000564,
+          "direction": -1
+        },
+        {
+          "at_ms": 35.400952000010875,
+          "direction": -1
+        },
+        {
+          "at_ms": 41.42814800000633,
+          "direction": -1
+        },
+        {
+          "at_ms": 47.67910200000915,
+          "direction": -1
+        },
+        {
+          "at_ms": 53.72421500000928,
+          "direction": -1
+        },
+        {
+          "at_ms": 59.73672000000079,
+          "direction": -1
+        },
+        {
+          "at_ms": 65.39147500001127,
+          "direction": -1
+        },
+        {
+          "at_ms": 72.38203300000168,
+          "direction": -1
+        },
+        {
+          "at_ms": 78.4089590000076,
+          "direction": -1
+        },
+        {
+          "at_ms": 84.74661300001026,
+          "direction": -1
+        },
+        {
+          "at_ms": 170.17613500000152,
+          "direction": -1
+        },
+        {
+          "at_ms": 228.4415880000015,
+          "direction": -1
+        },
+        {
+          "at_ms": 230.01935400000366,
+          "direction": -1
+        },
+        {
+          "at_ms": 231.51247200000216,
+          "direction": -1
+        },
+        {
+          "at_ms": 232.85245000000577,
+          "direction": -1
+        },
+        {
+          "at_ms": 234.99227300001075,
+          "direction": -1
+        },
+        {
+          "at_ms": 235.40623700000287,
+          "direction": -1
+        },
+        {
+          "at_ms": 236.94287100000656,
+          "direction": -1
+        },
+        {
+          "at_ms": 238.7602279999992,
+          "direction": -1
+        },
+        {
+          "at_ms": 239.47312200001033,
+          "direction": -1
+        },
+        {
+          "at_ms": 240.44052800000645,
+          "direction": -1
+        },
+        {
+          "at_ms": 242.20532600001025,
+          "direction": -1
+        },
+        {
+          "at_ms": 243.85066300000472,
+          "direction": -1
+        },
+        {
+          "at_ms": 244.47880900000746,
+          "direction": -1
+        },
+        {
+          "at_ms": 245.67518200000632,
+          "direction": -1
+        },
+        {
+          "at_ms": 246.46657300001243,
+          "direction": -1
+        },
+        {
+          "at_ms": 247.40618800000811,
+          "direction": -1
+        }
+      ],
+      "first_changed_cell_ms": 476.91826800000854,
+      "last_changed_cell_ms": 476.91826800000854,
+      "settle_after_last_input_ms": 229.51208000000042,
+      "terminal_chunks": 17,
+      "endpoint_view": "  ┃                                                                                                                     \n  ┃  Какие тебе тулы доступны?                                                                                          \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+      "cursor_before": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "editor_cursor_preserved": true,
+      "observations": [
+        {
+          "at_ms": 227.95467500000086,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 476.91826800000854,
+          "view": "  ┃                                                                                                                     \n  ┃  Какие тебе тулы доступны?                                                                                          \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 894.2685600000113,
+          "view": "  ┃                                                                                                                     \n  ┃  Какие тебе тулы доступны?                                                                                          \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 1249.9516440000007,
+          "view": "  ┃                                                                                                                     \n  ┃  Какие тебе тулы доступны?                                                                                          \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ]
+    },
+    {
+      "name": "wheel-165-bottom-edge",
+      "cursor": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requested_hz": 165,
+      "sent": [
+        {
+          "at_ms": 0.43305200000759214,
+          "direction": 1
+        },
+        {
+          "at_ms": 5.712553000004846,
+          "direction": 1
+        },
+        {
+          "at_ms": 12.650829999998678,
+          "direction": 1
+        },
+        {
+          "at_ms": 17.60685399999784,
+          "direction": 1
+        },
+        {
+          "at_ms": 24.296950000003562,
+          "direction": 1
+        },
+        {
+          "at_ms": 30.152577000000747,
+          "direction": 1
+        },
+        {
+          "at_ms": 35.56267500000831,
+          "direction": 1
+        },
+        {
+          "at_ms": 42.29749700000684,
+          "direction": 1
+        },
+        {
+          "at_ms": 47.6256710000016,
+          "direction": 1
+        },
+        {
+          "at_ms": 53.69995799999742,
+          "direction": 1
+        },
+        {
+          "at_ms": 60.359448000002885,
+          "direction": 1
+        },
+        {
+          "at_ms": 67.20989300000656,
+          "direction": 1
+        },
+        {
+          "at_ms": 73.14164600000367,
+          "direction": 1
+        },
+        {
+          "at_ms": 77.92889500000456,
+          "direction": 1
+        },
+        {
+          "at_ms": 140.5467639999988,
+          "direction": 1
+        },
+        {
+          "at_ms": 212.01970699999947,
+          "direction": 1
+        },
+        {
+          "at_ms": 213.9308650000021,
+          "direction": 1
+        },
+        {
+          "at_ms": 215.24579499999527,
+          "direction": 1
+        },
+        {
+          "at_ms": 217.3944310000079,
+          "direction": 1
+        },
+        {
+          "at_ms": 221.63248299999395,
+          "direction": 1
+        },
+        {
+          "at_ms": 223.35651900000812,
+          "direction": 1
+        },
+        {
+          "at_ms": 225.00467199999548,
+          "direction": 1
+        },
+        {
+          "at_ms": 225.59335900000588,
+          "direction": 1
+        },
+        {
+          "at_ms": 227.14997199999925,
+          "direction": 1
+        },
+        {
+          "at_ms": 227.61620499999844,
+          "direction": 1
+        },
+        {
+          "at_ms": 228.47964499999944,
+          "direction": 1
+        },
+        {
+          "at_ms": 230.03572800000256,
+          "direction": 1
+        },
+        {
+          "at_ms": 230.58356300000742,
+          "direction": 1
+        },
+        {
+          "at_ms": 232.38696899999923,
+          "direction": 1
+        },
+        {
+          "at_ms": 233.4762400000036,
+          "direction": 1
+        },
+        {
+          "at_ms": 237.49519200000213,
+          "direction": 1
+        },
+        {
+          "at_ms": 238.58938900000066,
+          "direction": 1
+        }
+      ],
+      "first_changed_cell_ms": 487.2225940000062,
+      "last_changed_cell_ms": 487.2225940000062,
+      "settle_after_last_input_ms": 248.63320500000555,
+      "terminal_chunks": 16,
+      "endpoint_view": "  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n     BOUNDED-SHELL: both real printf tools completed.                                                                   \n                                                                                                                        \n     Fixture-Shell · MiMo-V2.6-Flash Free · 280ms                                                                       \n                                                                                                                        ",
+      "cursor_before": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "editor_cursor_preserved": true,
+      "observations": [
+        {
+          "at_ms": 211.50362000000314,
+          "view": "  ┃                                                                                                                     \n  ┃  Какие тебе тулы доступны?                                                                                          \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 487.2225940000062,
+          "view": "  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n     BOUNDED-SHELL: both real printf tools completed.                                                                   \n                                                                                                                        \n     Fixture-Shell · MiMo-V2.6-Flash Free · 280ms                                                                       \n                                                                                                                        ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 915.1622829999978,
+          "view": "  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n     BOUNDED-SHELL: both real printf tools completed.                                                                   \n                                                                                                                        \n     Fixture-Shell · MiMo-V2.6-Flash Free · 280ms                                                                       \n                                                                                                                        ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 1261.5189419999951,
+          "view": "  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n     BOUNDED-SHELL: both real printf tools completed.                                                                   \n                                                                                                                        \n     Fixture-Shell · MiMo-V2.6-Flash Free · 280ms                                                                       \n                                                                                                                        ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ]
+    },
+    {
+      "name": "settled-165-idle",
+      "window_ms": 1010.674988,
+      "cpu_ticks": 0,
+      "cpu_ms": 0,
+      "terminal_bytes": 0,
+      "main_thread_voluntary_context_switches": 0,
+      "main_thread_involuntary_context_switches": 0
+    },
+    {
+      "name": "wheel-250-single-up",
+      "cursor": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requested_hz": 250,
+      "sent": [
+        {
+          "at_ms": 0.9595750000007683,
+          "direction": -1
+        }
+      ],
+      "first_changed_cell_ms": 591.3176539999986,
+      "last_changed_cell_ms": 591.3176539999986,
+      "settle_after_last_input_ms": 590.3580789999978,
+      "terminal_chunks": 3,
+      "endpoint_view": "  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n                                                                                                      Jump to latest ↓  ",
+      "cursor_before": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "editor_cursor_preserved": true,
+      "observations": [
+        {
+          "at_ms": 216.51588799999445,
+          "view": "  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n     BOUNDED-SHELL: both real printf tools completed.                                                                   \n                                                                                                                        \n     Fixture-Shell · MiMo-V2.6-Flash Free · 280ms                                                                       \n                                                                                                                        ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 591.3176539999986,
+          "view": "  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 944.540525000004,
+          "view": "  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 1331.394459999996,
+          "view": "  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ]
+    },
+    {
+      "name": "wheel-250-burst-up",
+      "cursor": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requested_hz": 250,
+      "sent": [
+        {
+          "at_ms": 0.4194719999941299,
+          "direction": -1
+        },
+        {
+          "at_ms": 3.8145539999968605,
+          "direction": -1
+        },
+        {
+          "at_ms": 7.570510000005015,
+          "direction": -1
+        },
+        {
+          "at_ms": 12.156165000007604,
+          "direction": -1
+        },
+        {
+          "at_ms": 16.506326000002446,
+          "direction": -1
+        },
+        {
+          "at_ms": 19.31295300000056,
+          "direction": -1
+        },
+        {
+          "at_ms": 23.561761999997543,
+          "direction": -1
+        },
+        {
+          "at_ms": 27.262784999998985,
+          "direction": -1
+        }
+      ],
+      "first_changed_cell_ms": 665.1581920000026,
+      "last_changed_cell_ms": 665.1581920000026,
+      "settle_after_last_input_ms": 637.8954070000036,
+      "terminal_chunks": 6,
+      "endpoint_view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+      "cursor_before": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "editor_cursor_preserved": true,
+      "observations": [
+        {
+          "at_ms": 230.34085599999526,
+          "view": "  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n  ┃  SHELL-LINE-25                                                                                                      \n  ┃  SHELL-LINE-26                                                                                                      \n  ┃  SHELL-LINE-27                                                                                                      \n  ┃  SHELL-LINE-28                                                                                                      \n  ┃  SHELL-LINE-29                                                                                                      \n  ┃  SHELL-LINE-30                                                                                                      \n  ┃  SHELL-LINE-31                                                                                                      \n  ┃  SHELL-LINE-32                                                                                                      \n  ┃  SHELL-LINE-33                                                                                                      \n  ┃  SHELL-LINE-34                                                                                                      \n  ┃  SHELL-LINE-35                                                                                                      \n  ┃  SHELL-LINE-36                                                                                                      \n  ┃  SHELL-LINE-37                                                                                                      \n  ┃  SHELL-LINE-38                                                                                                      \n  ┃  SHELL-LINE-39                                                                                                      \n  ┃  SHELL-LINE-40                                                                                                      \n  ┃                                                                                                                     \n                                                                                                                        \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 665.1581920000026,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 1032.5409360000049,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 1404.4500059999991,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ]
+    },
+    {
+      "name": "wheel-250-reverse",
+      "cursor": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requested_hz": 250,
+      "sent": [
+        {
+          "at_ms": 0.3922699999966426,
+          "direction": -1
+        },
+        {
+          "at_ms": 3.7146130000037374,
+          "direction": -1
+        },
+        {
+          "at_ms": 7.551221000001533,
+          "direction": -1
+        },
+        {
+          "at_ms": 11.549451999992016,
+          "direction": 1
+        },
+        {
+          "at_ms": 15.361512000003131,
+          "direction": 1
+        },
+        {
+          "at_ms": 19.369558999998844,
+          "direction": 1
+        }
+      ],
+      "first_changed_cell_ms": 595.389486,
+      "last_changed_cell_ms": 595.389486,
+      "settle_after_last_input_ms": 576.0199270000012,
+      "terminal_chunks": 6,
+      "endpoint_view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+      "cursor_before": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "editor_cursor_preserved": true,
+      "observations": [
+        {
+          "at_ms": 230.47434800000337,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 595.389486,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 928.7453959999984,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 1270.936382999993,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ]
+    },
+    {
+      "name": "wheel-250-top-edge",
+      "cursor": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requested_hz": 250,
+      "sent": [
+        {
+          "at_ms": 0.37053900001046713,
+          "direction": -1
+        },
+        {
+          "at_ms": 5.269396000003326,
+          "direction": -1
+        },
+        {
+          "at_ms": 7.7734570000029635,
+          "direction": -1
+        },
+        {
+          "at_ms": 11.442101000007824,
+          "direction": -1
+        },
+        {
+          "at_ms": 15.876840000011725,
+          "direction": -1
+        },
+        {
+          "at_ms": 18.551358000011533,
+          "direction": -1
+        },
+        {
+          "at_ms": 24.215918000001693,
+          "direction": -1
+        },
+        {
+          "at_ms": 28.00134900001285,
+          "direction": -1
+        },
+        {
+          "at_ms": 31.724956000005477,
+          "direction": -1
+        },
+        {
+          "at_ms": 35.45973000000231,
+          "direction": -1
+        },
+        {
+          "at_ms": 40.145507000008365,
+          "direction": -1
+        },
+        {
+          "at_ms": 44.16461900000286,
+          "direction": -1
+        },
+        {
+          "at_ms": 47.94251800001075,
+          "direction": -1
+        },
+        {
+          "at_ms": 50.870739000005415,
+          "direction": -1
+        },
+        {
+          "at_ms": 54.72304900000745,
+          "direction": -1
+        },
+        {
+          "at_ms": 59.01443100000324,
+          "direction": -1
+        },
+        {
+          "at_ms": 63.85511200000474,
+          "direction": -1
+        },
+        {
+          "at_ms": 67.95935200000531,
+          "direction": -1
+        },
+        {
+          "at_ms": 70.6980470000126,
+          "direction": -1
+        },
+        {
+          "at_ms": 74.83104000000458,
+          "direction": -1
+        },
+        {
+          "at_ms": 79.00556700000016,
+          "direction": -1
+        },
+        {
+          "at_ms": 84.20397600000433,
+          "direction": -1
+        },
+        {
+          "at_ms": 87.61184800000046,
+          "direction": -1
+        },
+        {
+          "at_ms": 158.77599700000428,
+          "direction": -1
+        },
+        {
+          "at_ms": 249.4412810000067,
+          "direction": -1
+        },
+        {
+          "at_ms": 250.7497820000135,
+          "direction": -1
+        },
+        {
+          "at_ms": 252.26202000000922,
+          "direction": -1
+        },
+        {
+          "at_ms": 254.15340700000525,
+          "direction": -1
+        },
+        {
+          "at_ms": 255.5168110000086,
+          "direction": -1
+        },
+        {
+          "at_ms": 256.8944860000047,
+          "direction": -1
+        },
+        {
+          "at_ms": 258.4577000000136,
+          "direction": -1
+        },
+        {
+          "at_ms": 260.09604700001364,
+          "direction": -1
+        }
+      ],
+      "first_changed_cell_ms": 517.7385290000093,
+      "last_changed_cell_ms": 517.7385290000093,
+      "settle_after_last_input_ms": 257.64248199999565,
+      "terminal_chunks": 17,
+      "endpoint_view": "  ┃                                                                                                                     \n  ┃  Какие тебе тулы доступны?                                                                                          \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+      "cursor_before": {
+        "x": 12,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "editor_cursor_preserved": true,
+      "observations": [
+        {
+          "at_ms": 248.80456300001242,
+          "view": "                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n  ┃  SHELL-LINE-16                                                                                                      \n  ┃  SHELL-LINE-17                                                                                                      \n  ┃  SHELL-LINE-18                                                                                                      \n  ┃  SHELL-LINE-19                                                                                                      \n  ┃  SHELL-LINE-20                                                                                                      \n  ┃  SHELL-LINE-21                                                                                                      \n  ┃  SHELL-LINE-22                                                                                                      \n  ┃  SHELL-LINE-23                                                                                                      \n  ┃  SHELL-LINE-24                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 517.7385290000093,
+          "view": "  ┃                                                                                                                     \n  ┃  Какие тебе тулы доступны?                                                                                          \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 855.2976400000043,
+          "view": "  ┃                                                                                                                     \n  ┃  Какие тебе тулы доступны?                                                                                          \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "at_ms": 1197.1973480000015,
+          "view": "  ┃                                                                                                                     \n  ┃  Какие тебе тулы доступны?                                                                                          \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-SHORT\\n                                                                                             \n  ┃                                                                                                                     \n  ┃  SHELL-SHORT                                                                                                        \n  ┃                                                                                                                     \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  $ printf SHELL-LINE-%02d\\n 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31     \n  ┃  32 33 34 35 36 37 38 39 40                                                                                         \n  ┃                                                                                                                     \n  ┃  SHELL-LINE-01                                                                                                      \n  ┃  SHELL-LINE-02                                                                                                      \n  ┃  SHELL-LINE-03                                                                                                      \n  ┃  SHELL-LINE-04                                                                                                      \n  ┃  SHELL-LINE-05                                                                                                      \n  ┃  SHELL-LINE-06                                                                                                      \n  ┃  SHELL-LINE-07                                                                                                      \n  ┃  SHELL-LINE-08                                                                                                      \n  ┃  SHELL-LINE-09                                                                                                      \n  ┃  SHELL-LINE-10                                                                                                      \n  ┃  SHELL-LINE-11                                                                                                      \n  ┃  SHELL-LINE-12                                                                                                      \n  ┃  SHELL-LINE-13                                                                                                      \n  ┃  SHELL-LINE-14                                                                                                      \n  ┃  SHELL-LINE-15                                                                                                      \n                                                                                                      Jump to latest ↓  ",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ]
+    }
+  ],
+  "motion_contract": "compare settled endpoints; temporal frames may differ; rates are requested input cadence, not physical FPS",
+  "reason": "page.evaluate: Target page, context or browser has been closed"
+}

@@ -1947,70 +1947,15 @@ fn visible_transcript_indexed(
     INDEXED_TRAVERSALS.set(INDEXED_TRAVERSALS.get() + 1);
     let (width, terminal_width) = widths;
     let (height, scroll, live_row) = viewport;
-    let mut total = 1usize;
-    let mut grouped_until = 0;
-    for (index, row) in rows.iter().enumerate() {
-        if index < grouped_until {
-            continue;
-        }
-        if let Some(group) = reasoning_group(rows, index) {
-            grouped_until = index + group.members.len();
-            visit_reasoning_group(&group, theme, width, index, Some(cache), |height, _| {
-                total += height
-            });
-            continue;
-        }
-        if let Some(group) = exploration_entry(rows, index, theme) {
-            let is_expanded = !group.is_empty()
-                && (options.expanded)(&row.tool.as_ref().expect("group has tool").op);
-            for line in group {
-                total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
-            }
-            if is_expanded {
-                for member in rows[index..]
-                    .iter()
-                    .take_while(|row| exploration_kind(row).is_some())
-                {
-                    total += styled::wrap_line_limited(
-                        &exploration_member(member, theme),
-                        width as usize,
-                        MAX_MARKDOWN_ROWS,
-                    )
-                    .len();
-                }
-            }
-        } else if let Some(lines) = shell_entry(row, theme, width, options.expanded) {
-            for line in lines {
-                total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
-            }
-        } else if row.role == "assistant" && width > 0 {
-            visit_assistant_indexed(
-                row,
-                (index, live_row == Some(index)),
-                theme,
-                (width, terminal_width),
-                &agent_color,
-                cache,
-                |height, _, _| total += height,
-            );
-        } else {
-            visit_row_blocks(
-                row,
-                (index, false),
-                theme,
-                (width, terminal_width),
-                &agent_color,
-                cache,
-                |lines| {
-                    for line in lines {
-                        total +=
-                            styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS)
-                                .len();
-                    }
-                },
-            );
-        }
-    }
+    let total = transcript_part_positions(
+        rows,
+        theme,
+        (width, terminal_width, live_row),
+        agent_color,
+        cache,
+        options.expanded,
+        |_, _, _| {},
+    );
     let end = total.saturating_sub(scroll.min(total.saturating_sub(height)));
     let start = end.saturating_sub(height);
     let mut visible = Vec::with_capacity(height);
@@ -2230,6 +2175,88 @@ fn visible_transcript_indexed(
     }
     user_targets.resize(visible.len(), None);
     (visible, total, hit, user_targets)
+}
+
+/// Count the same cached/grouped parts used by the painter, without materializing
+/// offscreen Markdown. Positions identify a part independently of preceding rows.
+pub(crate) fn transcript_part_positions(
+    rows: &[HistoryRow],
+    theme: &Theme,
+    geometry: (u16, u16, Option<usize>),
+    agent_color: &impl Fn(Option<&str>) -> Color,
+    cache: &RefCell<MarkdownCache>,
+    expanded: &dyn Fn(&str) -> bool,
+    mut part: impl FnMut(usize, usize, usize),
+) -> usize {
+    let (width, terminal_width, live_row) = geometry;
+    let mut total = 1usize;
+    let mut grouped_until = 0;
+    for (index, row) in rows.iter().enumerate() {
+        if index < grouped_until {
+            continue;
+        }
+        let start = total;
+        if let Some(group) = reasoning_group(rows, index) {
+            grouped_until = index + group.members.len();
+            visit_reasoning_group(&group, theme, width, index, Some(cache), |height, _| {
+                total += height
+            });
+            part(index, start, total);
+            continue;
+        }
+        if let Some(group) = exploration_entry(rows, index, theme) {
+            let is_expanded =
+                !group.is_empty() && expanded(&row.tool.as_ref().expect("group has tool").op);
+            for line in group {
+                total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
+            }
+            if is_expanded {
+                for member in rows[index..]
+                    .iter()
+                    .take_while(|row| exploration_kind(row).is_some())
+                {
+                    total += styled::wrap_line_limited(
+                        &exploration_member(member, theme),
+                        width as usize,
+                        MAX_MARKDOWN_ROWS,
+                    )
+                    .len();
+                }
+            }
+        } else if let Some(lines) = shell_entry(row, theme, width, expanded) {
+            for line in lines {
+                total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
+            }
+        } else if row.role == "assistant" && width > 0 {
+            visit_assistant_indexed(
+                row,
+                (index, live_row == Some(index)),
+                theme,
+                (width, terminal_width),
+                &agent_color,
+                cache,
+                |height, _, _| total += height,
+            );
+        } else {
+            visit_row_blocks(
+                row,
+                (index, false),
+                theme,
+                (width, terminal_width),
+                &agent_color,
+                cache,
+                |lines| {
+                    for line in lines {
+                        total +=
+                            styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS)
+                                .len();
+                    }
+                },
+            );
+        }
+        part(index, start, total);
+    }
+    total
 }
 
 fn add_visible_lines(

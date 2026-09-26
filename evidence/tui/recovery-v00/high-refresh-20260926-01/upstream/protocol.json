@@ -1,0 +1,2230 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/high-refresh-20260926-01/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/high-refresh-20260926-01/upstream/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/high-refresh-20260926-01/upstream/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/high-refresh-20260926-01/upstream/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/high-refresh-20260926-01/upstream/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/high-refresh-20260926-01/upstream/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/high-refresh-20260926-01/upstream/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"share\": \"disabled\", \"update\": \"disable\", \"plugins\": [\"-opencode.models.dev\"], \"providers\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"package\": \"@opencode/ai/providers/openai/responses\", \"settings\": {\"baseURL\": \"http://127.0.0.1:35909/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}, \"default_agent\": \"build\", \"agents\": {\"fixture-shell\": {\"mode\": \"primary\", \"system\": \"You are the isolated T44 bounded fixture profile.\", \"color\": \"#5c9cf5\", \"permissions\": [{\"action\": \"*\", \"resource\": \"*\", \"effect\": \"deny\"}, {\"action\": \"shell\", \"resource\": \"printf 'SHELL-SHORT\\\\n'\", \"effect\": \"allow\"}, {\"action\": \"shell\", \"resource\": \"printf 'SHELL-LINE-%02d\\\\n' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40\", \"effect\": \"allow\"}]}}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "opencode v2.0.12",
+    "version_exit": 0
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078726652423,
+    "base64": "G10xMDtyZ2I6ZWVlZS9lZWVlL2VlZWUbXA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078728225702,
+    "base64": "G10xMTtyZ2I6MGEwYS8wYTBhLzBhMGEbXA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078728684032,
+    "base64": "G1sxOzFS"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078729622705,
+    "base64": "G1s/MTAxNjsyJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078729660753,
+    "base64": "G1s/MjAyNzswJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078729840614,
+    "base64": "G1s/MjAzMTswJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078730597343,
+    "base64": "G1s/MTAwNDsyJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078737203321,
+    "base64": "G1s/MjAwNDsyJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078738591031,
+    "base64": "G1s/MjAyNjsyJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078739096001,
+    "base64": "G1s/MTsyYw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078739435544,
+    "base64": "G1sxOzFS"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078739883126,
+    "base64": "G1sxOzFS"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078857961207,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078866814179,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078868740710,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078869346713,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078874466933,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127078874525411,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127081896415113,
+    "base64": "L2FnZW50cw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127084348379224,
+    "base64": "DQ=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127086757494266,
+    "base64": "Zml4dHVyZS1zaGVsbA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127089108908022,
+    "base64": "DQ=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127091527181425,
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127091528547171,
+    "base64": "DQ=="
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": false,
+    "operation": "title",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "9de3016ba8ea67eda3bdfcebbdecd2a6f47303c9325d106e1bac0ad98d83800d",
+    "registered_tools": [],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream"
+    ],
+    "tool_schemas": {},
+    "reasoning_effort": null
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title",
+    "response_text_sha256": "1d813e919dac6b6dd2b09b29e81ca7d93d503f841030b3118759525fd000beaa"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "2a8294317e728fcb0254b84e465acf845fda9c81e0067c46332eba93a1afeb94",
+    "registered_tools": [
+      "shell"
+    ],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "tool_schemas": {
+      "shell": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "Shell command string to execute"
+          },
+          "workdir": {
+            "type": "string",
+            "description": "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead."
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Timeout in milliseconds. Set to 0 to disable the timeout. Defaults to 120000 for foreground commands. Background commands have no timeout by default."
+          },
+          "background": {
+            "type": "boolean",
+            "description": "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion."
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reasoning_effort": null,
+    "fixture_outputs_verified": true,
+    "fixture_outputs": {},
+    "bounded_request_index": 0
+  },
+  {
+    "kind": "fixture_tool_call",
+    "name": "shell",
+    "arguments": {
+      "command": "printf 'SHELL-SHORT\\n'",
+      "description": "Fixture short output"
+    },
+    "call_id": "call_fixture_shell_0"
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 1,
+    "request_sha256": "5d41078958e8ea3fb53b48907696bb34afcd5a8cc53c132ad4615c17ed1fb72c",
+    "registered_tools": [
+      "shell"
+    ],
+    "tool_result_count": 1,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "tool_schemas": {
+      "shell": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "Shell command string to execute"
+          },
+          "workdir": {
+            "type": "string",
+            "description": "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead."
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Timeout in milliseconds. Set to 0 to disable the timeout. Defaults to 120000 for foreground commands. Background commands have no timeout by default."
+          },
+          "background": {
+            "type": "boolean",
+            "description": "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion."
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reasoning_effort": null,
+    "fixture_outputs_verified": true,
+    "fixture_outputs": {
+      "call_fixture_shell_0": "[{'type': 'input_text', 'text': 'SHELL-SHORT\\n'}, {'type': 'input_text', 'text': 'Command exited with code 0.'}]"
+    },
+    "bounded_request_index": 1
+  },
+  {
+    "kind": "fixture_tool_call",
+    "name": "shell",
+    "arguments": {
+      "command": "printf 'SHELL-LINE-%02d\\n' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40",
+      "description": "Fixture long output"
+    },
+    "call_id": "call_fixture_shell_1"
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 1,
+    "request_sha256": "9d09b868098555e0c7213cfe22856361a7e186c497a4e168310c6aeaaf351cc7",
+    "registered_tools": [
+      "shell"
+    ],
+    "tool_result_count": 2,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "tool_schemas": {
+      "shell": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "Shell command string to execute"
+          },
+          "workdir": {
+            "type": "string",
+            "description": "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead."
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Timeout in milliseconds. Set to 0 to disable the timeout. Defaults to 120000 for foreground commands. Background commands have no timeout by default."
+          },
+          "background": {
+            "type": "boolean",
+            "description": "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion."
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reasoning_effort": null,
+    "fixture_outputs_verified": true,
+    "fixture_outputs": {
+      "call_fixture_shell_0": "[{'type': 'input_text', 'text': 'SHELL-SHORT\\n'}, {'type': 'input_text', 'text': 'Command exited with code 0.'}]",
+      "call_fixture_shell_1": "[{'type': 'input_text', 'text': 'SHELL-LINE-01\\nSHELL-LINE-02\\nSHELL-LINE-03\\nSHELL-LINE-04\\nSHELL-LINE-05\\nSHELL-LINE-06\\nSHELL-LINE-07\\nSHELL-LINE-08\\nSHELL-LINE-09\\nSHELL-LINE-10\\nSHELL-LINE-11\\nSHELL-LINE-12\\nSHELL-LINE-13\\nSHELL-LINE-14\\nSHELL-LINE-15\\nSHELL-LINE-16\\nSHELL-LINE-17\\nSHELL-LINE-18\\nSHELL-LINE-19\\nSHELL-LINE-20\\nSHELL-LINE-21\\nSHELL-LINE-22\\nSHELL-LINE-23\\nSHELL-LINE-24\\nSHELL-LINE-25\\nSHELL-LINE-26\\nSHELL-LINE-27\\nSHELL-LINE-28\\nSHELL-LINE-29\\nSHELL-LINE-30\\nSHELL-LINE-31\\nSHELL-LINE-32\\nSHELL-LINE-33\\nSHELL-LINE-34\\nSHELL-LINE-35\\nSHELL-LINE-36\\nSHELL-LINE-37\\nSHELL-LINE-38\\nSHELL-LINE-39\\nSHELL-LINE-40\\n'}, {'type': 'input_text', 'text': 'Command exited with code 0.'}]"
+    },
+    "bounded_request_index": 2
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "4232375ba1fb520015b3563af5a3f9909ee9b23c8bee7949af1c3af8c4a70c8c"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127094940718650,
+    "base64": "G1s8MDs4OzE2TQ=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127094940813413,
+    "base64": "G1s8MDs4OzE2bQ=="
+  },
+  {
+    "kind": "resize",
+    "columns": 120,
+    "rows": 80
+  },
+  {
+    "kind": "resize",
+    "columns": 120,
+    "rows": 40
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127101091116367,
+    "base64": "G1syMDB+Rk9DVVMtQQpGT0NVUy1CG1syMDF+"
+  },
+  {
+    "kind": "process_sample",
+    "request_id": "expanded-idle-start",
+    "at_ns": 1127103757750312,
+    "pid": 4015522,
+    "cpu_ticks": 198,
+    "clock_ticks_per_second": 100,
+    "voluntary_context_switches": 713,
+    "involuntary_context_switches": 1248
+  },
+  {
+    "kind": "process_sample",
+    "request_id": "expanded-idle-end",
+    "at_ns": 1127104768765795,
+    "pid": 4015522,
+    "cpu_ticks": 199,
+    "clock_ticks_per_second": 100,
+    "voluntary_context_switches": 720,
+    "involuntary_context_switches": 1249
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127105033825770,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127106849274627,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127106853265947,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127106860326580,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127106866068978,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127106870862937,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127106877496978,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127106883575501,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127106888987311,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127108796066186,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127108796904318,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127108802827388,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127108810276205,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127108816190172,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127108822172150,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127110800213040,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127110802384109,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127110808980763,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127110814972467,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127110822037285,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127110826372283,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127110832627043,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127110838692657,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127110844830339,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127110851916191,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127110857066097,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127110864335313,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127110869590759,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127110875558515,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127110985953854,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111064099417,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111065568148,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111066800305,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111067291164,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111068930181,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111069411046,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111071145869,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111072570374,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111073615708,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111074541142,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111076139869,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111078039911,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111078374295,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111079612519,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111081421904,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111082383012,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127111083929690,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112531915826,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112533867466,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112540709548,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112546292417,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112552442247,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112559240185,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112565494614,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112571671416,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112575923589,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112581648169,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112590368492,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112594582338,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112601342048,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112609134874,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112612465690,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112693429046,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112759701538,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112761401788,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112763686419,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112763743826,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112764725885,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112765546401,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112766245523,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112772718372,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112773889896,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112774629800,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112775340049,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112777516687,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112779545482,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112780759150,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112781531092,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127112782877970,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "process_sample",
+    "request_id": "settled-165-idle-start",
+    "at_ns": 1127114397957028,
+    "pid": 4015522,
+    "cpu_ticks": 214,
+    "clock_ticks_per_second": 100,
+    "voluntary_context_switches": 967,
+    "involuntary_context_switches": 1404
+  },
+  {
+    "kind": "process_sample",
+    "request_id": "settled-165-idle-end",
+    "at_ns": 1127115407868838,
+    "pid": 4015522,
+    "cpu_ticks": 215,
+    "clock_ticks_per_second": 100,
+    "voluntary_context_switches": 976,
+    "involuntary_context_switches": 1416
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127115638630852,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127117591926655,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127117591987386,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127117592048648,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127117596937921,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127117600326083,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127117606499010,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127117608855078,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127117611432138,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127119810614931,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127119814176655,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127119819161032,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127119822258596,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127119826343146,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127119829986714,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121752906951,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121755623151,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121761234452,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121764350685,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121768221624,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121772451353,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121775553236,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121783730089,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121784026695,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121788369035,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121792101466,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121796084213,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121800214223,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121806004142,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121806683566,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121811615112,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121816403563,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121820342314,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121824338743,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121827794598,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121831679408,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121923214394,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121992487145,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121995457428,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121995501314,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121996505406,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121998132266,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127121999773047,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127122000693312,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127122001666558,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127122002555498,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127122004082628,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123489474391,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123493809379,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123496404508,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123500543911,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123504040477,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123508073030,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123512114465,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123516449464,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123520921779,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123523247361,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123530713224,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123531640641,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123534946149,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123539027394,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123542940928,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123547027953,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123551634250,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123555475505,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123559393486,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123565182653,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123568221840,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123572241092,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123577043985,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123580161150,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123584955079,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123586548518,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123688576577,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123754685494,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123767761334,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123767848847,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123767873554,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127123767894044,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "process_sample",
+    "request_id": "settled-250-idle-start",
+    "at_ns": 1127125285827574,
+    "pid": 4015522,
+    "cpu_ticks": 228,
+    "clock_ticks_per_second": 100,
+    "voluntary_context_switches": 1212,
+    "involuntary_context_switches": 1616
+  },
+  {
+    "kind": "process_sample",
+    "request_id": "settled-250-idle-end",
+    "at_ns": 1127126296182720,
+    "pid": 4015522,
+    "cpu_ticks": 229,
+    "clock_ticks_per_second": 100,
+    "voluntary_context_switches": 1221,
+    "involuntary_context_switches": 1621
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127126312199299,
+    "base64": "Aw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127126410468257,
+    "base64": "L21vZGVscw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127128928883653,
+    "base64": "DQ=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127131973074042,
+    "base64": "G1s8NjQ7NjA7MjBN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127131975085120,
+    "base64": "G1s8NjQ7NjA7MjBN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127131982550174,
+    "base64": "G1s8NjQ7NjA7MjBN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127131983747867,
+    "base64": "G1s8NjQ7NjA7MjBN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127133433793459,
+    "base64": "G1s8NjU7NjA7MjBN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127133436716391,
+    "base64": "G1s8NjU7NjA7MjBN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127133441266122,
+    "base64": "G1s8NjU7NjA7MjBN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127133446083747,
+    "base64": "G1s8NjU7NjA7MjBN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127134780058714,
+    "base64": "Gw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127137261796171,
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127137261886497,
+    "base64": "DQ=="
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 1,
+    "request_sha256": "f092d4b2f681284ef3be0f8df1ef2950ad28bcf7bd0d1cd6ec8abc5e8630f294",
+    "registered_tools": [
+      "shell"
+    ],
+    "tool_result_count": 2,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "tool_schemas": {
+      "shell": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "Shell command string to execute"
+          },
+          "workdir": {
+            "type": "string",
+            "description": "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead."
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Timeout in milliseconds. Set to 0 to disable the timeout. Defaults to 120000 for foreground commands. Background commands have no timeout by default."
+          },
+          "background": {
+            "type": "boolean",
+            "description": "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion."
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reasoning_effort": null,
+    "fixture_outputs_verified": true,
+    "fixture_outputs": {
+      "call_fixture_shell_0": "[{'type': 'input_text', 'text': 'SHELL-SHORT\\n'}, {'type': 'input_text', 'text': 'Command exited with code 0.'}]",
+      "call_fixture_shell_1": "[{'type': 'input_text', 'text': 'SHELL-LINE-01\\nSHELL-LINE-02\\nSHELL-LINE-03\\nSHELL-LINE-04\\nSHELL-LINE-05\\nSHELL-LINE-06\\nSHELL-LINE-07\\nSHELL-LINE-08\\nSHELL-LINE-09\\nSHELL-LINE-10\\nSHELL-LINE-11\\nSHELL-LINE-12\\nSHELL-LINE-13\\nSHELL-LINE-14\\nSHELL-LINE-15\\nSHELL-LINE-16\\nSHELL-LINE-17\\nSHELL-LINE-18\\nSHELL-LINE-19\\nSHELL-LINE-20\\nSHELL-LINE-21\\nSHELL-LINE-22\\nSHELL-LINE-23\\nSHELL-LINE-24\\nSHELL-LINE-25\\nSHELL-LINE-26\\nSHELL-LINE-27\\nSHELL-LINE-28\\nSHELL-LINE-29\\nSHELL-LINE-30\\nSHELL-LINE-31\\nSHELL-LINE-32\\nSHELL-LINE-33\\nSHELL-LINE-34\\nSHELL-LINE-35\\nSHELL-LINE-36\\nSHELL-LINE-37\\nSHELL-LINE-38\\nSHELL-LINE-39\\nSHELL-LINE-40\\n'}, {'type': 'input_text', 'text': 'Command exited with code 0.'}]"
+    },
+    "bounded_request_index": 3
+  },
+  {
+    "kind": "wheel_stream_held",
+    "index": 3,
+    "at_ns": 1127137401564854
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127137896028457,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127137900155321,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127137907259890,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127137912628435,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127137917980295,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127137925454031,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127137930577816,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127137936777422,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127137941849951,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127137948559516,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127137954805351,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127137961670660,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "29002d835adb1313ad6bd578f2a1474b9564972fa550a7b4a7ce154d42e38de8"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143355559088,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143356948731,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143361399061,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143366640967,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143369800124,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143373954810,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143380153636,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143382397414,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143386469838,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143390582410,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143396130916,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143397163261,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143402137472,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143406124375,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143410566375,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143413642437,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143417641340,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143421525038,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143426656456,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143429670446,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143434404474,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143512401402,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143576383355,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143578090136,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143580495648,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143581293489,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143583215084,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143584540258,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143587760930,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143588742598,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143591288692,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143591329423,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143592714829,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143593506472,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143598020750,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143598084035,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143599311114,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143601941935,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143602889763,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143604324503,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143606946191,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143607004339,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143608753744,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143610130987,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143612770172,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143613566351,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143614879648,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143615466122,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143616476604,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143618301811,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143620969679,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143621790376,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143622504550,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143624320576,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143626068318,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143627869971,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143629801190,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143630012428,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143630805863,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143631440328,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143635702416,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143636489272,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143636570464,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127143636609822,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127144914464744,
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127144915007922,
+    "base64": "DQ=="
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 1,
+    "request_sha256": "a97cd78a3f2563e5c766078b51eb2d0bd684e4051a8b321540ef9783a8520f94",
+    "registered_tools": [
+      "shell"
+    ],
+    "tool_result_count": 2,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "tool_schemas": {
+      "shell": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "Shell command string to execute"
+          },
+          "workdir": {
+            "type": "string",
+            "description": "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead."
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Timeout in milliseconds. Set to 0 to disable the timeout. Defaults to 120000 for foreground commands. Background commands have no timeout by default."
+          },
+          "background": {
+            "type": "boolean",
+            "description": "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion."
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reasoning_effort": null,
+    "fixture_outputs_verified": true,
+    "fixture_outputs": {
+      "call_fixture_shell_0": "[{'type': 'input_text', 'text': 'SHELL-SHORT\\n'}, {'type': 'input_text', 'text': 'Command exited with code 0.'}]",
+      "call_fixture_shell_1": "[{'type': 'input_text', 'text': 'SHELL-LINE-01\\nSHELL-LINE-02\\nSHELL-LINE-03\\nSHELL-LINE-04\\nSHELL-LINE-05\\nSHELL-LINE-06\\nSHELL-LINE-07\\nSHELL-LINE-08\\nSHELL-LINE-09\\nSHELL-LINE-10\\nSHELL-LINE-11\\nSHELL-LINE-12\\nSHELL-LINE-13\\nSHELL-LINE-14\\nSHELL-LINE-15\\nSHELL-LINE-16\\nSHELL-LINE-17\\nSHELL-LINE-18\\nSHELL-LINE-19\\nSHELL-LINE-20\\nSHELL-LINE-21\\nSHELL-LINE-22\\nSHELL-LINE-23\\nSHELL-LINE-24\\nSHELL-LINE-25\\nSHELL-LINE-26\\nSHELL-LINE-27\\nSHELL-LINE-28\\nSHELL-LINE-29\\nSHELL-LINE-30\\nSHELL-LINE-31\\nSHELL-LINE-32\\nSHELL-LINE-33\\nSHELL-LINE-34\\nSHELL-LINE-35\\nSHELL-LINE-36\\nSHELL-LINE-37\\nSHELL-LINE-38\\nSHELL-LINE-39\\nSHELL-LINE-40\\n'}, {'type': 'input_text', 'text': 'Command exited with code 0.'}]"
+    },
+    "bounded_request_index": 4
+  },
+  {
+    "kind": "wheel_stream_held",
+    "index": 4,
+    "at_ns": 1127145012146417
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "a41c0e0cb45f1391787e0afbb79a3f28defc1a186336b5155f237f775b2cfbb6"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148854614615,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148854988690,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148857773092,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148862172948,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148866403328,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148869828467,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148875420859,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148878648569,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148881617570,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148885669283,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148889677529,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148893776000,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148898117969,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148901993365,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148905852166,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148909828604,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148913811041,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148917748581,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148921663207,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127148925453395,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149004197518,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149064755515,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149066854506,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149068281846,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149070171651,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149071995528,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149073837351,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149076787474,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149077595000,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149078463077,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149080271751,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149082067095,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149083865623,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149084650084,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149085444141,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149087309129,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149089353458,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149091438338,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149093640354,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149094645017,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149095731643,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149096721694,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149097692186,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149098653033,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149099686088,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149100474816,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149102398874,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149104472997,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149106373158,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149108324437,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149110407934,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149112358762,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149114320726,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149116499898,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149118462524,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149120463537,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149122431752,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149124403972,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149127146252,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149128067088,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149128899160,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149129772898,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149130559762,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127149131394459,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "process_sample",
+    "request_id": "final-settled-idle-start",
+    "at_ns": 1127150591837385,
+    "pid": 4015522,
+    "cpu_ticks": 323,
+    "clock_ticks_per_second": 100,
+    "voluntary_context_switches": 1856,
+    "involuntary_context_switches": 2492
+  },
+  {
+    "kind": "process_sample",
+    "request_id": "final-settled-idle-end",
+    "at_ns": 1127151602357807,
+    "pid": 4015522,
+    "cpu_ticks": 323,
+    "clock_ticks_per_second": 100,
+    "voluntary_context_switches": 1869,
+    "involuntary_context_switches": 2505
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": 130,
+    "termination": "forced_stop"
+  }
+]

@@ -968,3 +968,51 @@ with `--columns 160 --rows 48`, `--columns 80 --rows 24` and
 (the pinned original's dependency). Its JSON output is checked in at
 `crates/oc-tui/assets/fuzzysort-oracle.json`. Cargo tests compare native scores
 and heap ordering without Node; the Rust port retains the upstream MIT notice.
+
+## VIS31/VIS32 bounded wheel and scheduling measurements
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --bounded-mode wheel --geometry true --sample short --sidebar hide \
+  --columns 120 --rows 40 \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc \
+  --output /home/opencode/ai/oc/evidence/tui/recovery-v00/NEW-HIGH-REFRESH-ATTEMPT
+node scripts/tui_capture/summarize_wheel.mjs \
+  evidence/tui/recovery-v00/NEW-HIGH-REFRESH-ATTEMPT
+```
+
+Allow a bounded 300-second runner timeout. Existing paths and summary filenames
+are refused. This mode runs actual authorized short/40-line `printf` function
+calls on both applications, verifies returned outputs, expands the Shell card,
+and sends actual SGR single/burst/reversed/edge wheel sequences with a multiline
+editor draft at requested 165/250 Hz. A 32-entry catalog extension exercises
+list-modal scrolling. Two real Responses streams cover detached and sticky
+viewports; the sticky stream also receives 32 unique UTF-8 glyphs at each rate.
+Paced input runs in the PTY bridge independently of browser sampling.
+
+`protocol.json` preserves monotonic input timestamps and real function-call
+results. `output-timeline.jsonl` preserves timestamped raw PTY chunks.
+`wheel-checks.json` records endpoints, cursor, coarse frontend observations,
+raw first/last terminal writes and exact UTF-8 input-to-output samples.
+Frontend observations include browser/IPC overhead and are **not** millisecond
+latency measurements. First/last wheel writes are diagnostic bounds: during
+active streaming they also include scanner/provider output. Negative last-write
+offsets at an edge mean the view finished changing before remaining ticks.
+These fields are not configured FPS or physical display-refresh measurements.
+
+Four settled one-second windows use `/proc/<pid>/stat` for actual process CPU
+and `/proc/<pid>/status` for main-thread context switches. Context switches do
+not enumerate every worker-thread wakeup. The native binary opts into
+`OC_TUI_TEST_METRICS` and exits naturally to seal `scheduler.json`. Instrumented
+draws include terminal writes; output totals are not changed-frame counts.
+The renderer's relative first-draw time lacks an external monotonic epoch, so
+this campaign cannot directly align every idle sample to scheduler frames.
+
+Compare all normal/settled grids and PNGs without masks. Native's active
+16.667ms wheel adaptation is an explicit temporal difference from original's
+immediate default three-row endpoint, not evidence of MacOS acceleration or
+momentum parity. `MEASURED` means the campaign completed; frame differences,
+unstable active-animation PNGs, missing samples and anchor failures remain
+visible and do not qualify VIS31/VIS32. History paging requires a separate
+large-history scenario. This command does not invoke Cargo.

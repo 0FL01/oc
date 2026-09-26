@@ -7,6 +7,8 @@
 //! the opt-in view-metrics probe — never render snapshots alone.
 
 use std::io::{Read, Write};
+#[path = "support/terminal.rs"]
+mod terminal;
 #[path = "support/title.rs"]
 mod title;
 use std::net::{TcpListener, TcpStream};
@@ -243,6 +245,8 @@ impl Drop for Fixture {
 /// One scripted peer response, including bounded multi-round tool fixtures.
 enum Script {
     Text(String),
+    HighRateBurst,
+    WheelHeldRows,
     Slow(String),
     Vis28Held,
     S07Read,
@@ -260,6 +264,12 @@ fn script(body: &serde_json::Value) -> Script {
         return Script::Text("answer:compressed".to_string());
     }
     let prompt = last_user_text(body).unwrap_or_default();
+    if prompt == "vis31 provider burst" {
+        return Script::HighRateBurst;
+    }
+    if prompt == "vis32 held rows" {
+        return Script::WheelHeldRows;
+    }
     if prompt.starts_with(COMPRESS_PREFIX) {
         let anchors = dcp_anchors(body).expect("DCP anchors in the compress request");
         let first = anchors[0]["id"].as_str().expect("first anchor id");
@@ -429,6 +439,53 @@ fn respond(
     }
     match script {
         Script::Text(answer) => finish_text(socket, answer),
+        Script::WheelHeldRows => {
+            let mut answer = String::from("```text\n");
+            let prefix = serde_json::json!({"type":"response.output_text.delta", "delta":answer});
+            write!(socket, "data: {prefix}\n\n")?;
+            for index in 0..120 {
+                if index == 60 {
+                    while !s07_continue.load(Ordering::Relaxed) && !stop.load(Ordering::Relaxed) {
+                        std::thread::sleep(Duration::from_millis(10));
+                    }
+                    if stop.load(Ordering::Relaxed) {
+                        return Ok(());
+                    }
+                }
+                let text = format!("VIS32_ROW_{index:03}\n");
+                answer.push_str(&text);
+                let delta = serde_json::json!({"type":"response.output_text.delta", "delta":text});
+                write!(socket, "data: {delta}\n\n")?;
+                socket.flush()?;
+                if index >= 60 {
+                    std::thread::sleep(Duration::from_millis(4));
+                }
+            }
+            answer.push_str("```");
+            let suffix = serde_json::json!({"type":"response.output_text.delta", "delta":"```"});
+            write!(socket, "data: {suffix}\n\n")?;
+            finish_completed(socket, &answer)
+        }
+        Script::HighRateBurst => {
+            let mut answer = String::new();
+            // Multiple worker deltas per requested input period. Real SSE
+            // updates must progress concurrently with keyboard paints.
+            for index in 0..1024 {
+                let text = if index == 1023 {
+                    "VIS31_PROVIDER_BURST_DONE\n".to_string()
+                } else {
+                    format!("burst-{index:04}\n")
+                };
+                answer.push_str(&text);
+                let delta = serde_json::json!({"type":"response.output_text.delta", "delta":text});
+                write!(socket, "data: {delta}\n\n")?;
+                socket.flush()?;
+                if index % 8 == 7 {
+                    std::thread::sleep(Duration::from_millis(1));
+                }
+            }
+            finish_completed(socket, &answer)
+        }
         Script::Compress(arguments) => finish_call(socket, "compress", arguments),
         Script::S07Read => {
             let reasoning = serde_json::json!({"type": "response.reasoning_summary_text.delta",
@@ -601,6 +658,217 @@ struct PtySession {
     data_dir: PathBuf,
 }
 
+/// VIS31: actual terminal writes and process CPU in a stable idle window,
+/// followed by paced unique glyphs (not a configured FPS inferred as output).
+#[test]
+fn vis31_demand_driven_idle_and_high_rate_input_paints() {
+    let fixture = Fixture::new();
+    let metrics_path = fixture.root.path().join("scheduling.json");
+    let mut pty = PtySession::spawn(fixture, "scheduling", Some(&metrics_path));
+    pty.wait_visible(READY, DEADLINE);
+    std::thread::sleep(Duration::from_millis(200));
+    let idle_start = Instant::now();
+    let bytes_before = pty.snapshot().len();
+    let cpu_before = process_cpu_ticks(pty.child.id());
+    std::thread::sleep(Duration::from_secs(1));
+    let cpu_ticks = process_cpu_ticks(pty.child.id()) - cpu_before;
+    assert_eq!(
+        pty.snapshot().len(),
+        bytes_before,
+        "stable idle wrote terminal bytes"
+    );
+    let idle_end = idle_start.elapsed();
+    eprintln!("VIS31 idle window={idle_end:?} CPU ticks={cpu_ticks}");
+    // The old-loop baseline used 3–4 CPU ticks and 627–660 terminal bytes
+    // per second on this host. Stable idle must have no periodic paint work.
+    assert!(cpu_ticks <= 1, "stable idle consumed {cpu_ticks} CPU ticks");
+    let mut measured = Vec::new();
+    for hz in [165_u32, 250] {
+        let phase = Instant::now();
+        let mut latencies = Vec::new();
+        let offset = pty.snapshot().len();
+        let mut writer = pty.master.try_clone().unwrap();
+        let (tx, rx) = std::sync::mpsc::channel();
+        // Injection must not wait for rendering: slow paints cannot silently
+        // lower the requested event rate and make the latency sample look good.
+        let sender = std::thread::spawn(move || {
+            for index in 0..32 {
+                let due = phase + Duration::from_secs_f64(f64::from(index) / f64::from(hz));
+                std::thread::sleep(due.saturating_duration_since(Instant::now()));
+                let glyph = char::from_u32(0x4e00 + index + hz).unwrap().to_string();
+                let sent = Instant::now();
+                writer.write_all(glyph.as_bytes()).unwrap();
+                tx.send((sent, glyph)).unwrap();
+            }
+        });
+        for (sent, glyph) in rx {
+            while !contains(&pty.snapshot()[offset..], glyph.as_bytes()) {
+                assert!(
+                    sent.elapsed() < Duration::from_millis(100),
+                    "glyph did not paint promptly"
+                );
+                std::thread::sleep(Duration::from_micros(100));
+            }
+            latencies.push(sent.elapsed().as_micros());
+        }
+        sender.join().unwrap();
+        latencies.sort_unstable();
+        measured.push((
+            hz,
+            phase.elapsed().as_micros(),
+            latencies[16],
+            latencies[30],
+            latencies[31],
+        ));
+        pty.send(b"\x03");
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    pty.resize(120, 40);
+    std::thread::sleep(Duration::from_millis(100));
+    pty.send(b"\x03");
+    assert!(pty.wait_exit(DEADLINE).0.success());
+    assert!(pty.restored());
+    let metrics: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(metrics_path).unwrap()).unwrap();
+    let samples = metrics["frame_samples_ns"].as_array().unwrap();
+    // This window starts after startup, before any injected input. A repeated
+    // Terminal::draw with an unchanged buffer is still a forbidden idle attempt.
+    assert!(
+        !samples.iter().any(|sample| {
+            let at = sample[0].as_u64().unwrap();
+            (250_000_000..1_000_000_000).contains(&at)
+        }),
+        "idle render attempts: {metrics}"
+    );
+    eprintln!("VIS31 (hz, window_us, p50_us, p95_us, max_us)={measured:?}; metrics={metrics}");
+}
+
+fn process_cpu_ticks(pid: u32) -> u64 {
+    let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).unwrap();
+    let fields: Vec<_> = stat
+        .rsplit_once(") ")
+        .unwrap()
+        .1
+        .split_whitespace()
+        .collect();
+    fields[11].parse::<u64>().unwrap() + fields[12].parse::<u64>().unwrap()
+}
+
+/// Nearest VIS31 fairness risk: independently paced UTF-8 keyboard input
+/// while a real Responses peer sends a bounded burst of worker updates.
+#[test]
+fn vis31_high_rate_input_during_provider_burst() {
+    for hz in [165_u32, 250] {
+        let fixture = Fixture::new();
+        let metrics_path = fixture.root.path().join("burst-scheduling.json");
+        let mut pty = PtySession::spawn(fixture, "burst-scheduling", Some(&metrics_path));
+        pty.wait_visible(READY, DEADLINE);
+        let off = submit(&mut pty, "vis31 provider burst");
+        pty.wait_visible_after(off, "burst-", DEADLINE);
+        let phase = Instant::now();
+        let offset = pty.snapshot().len();
+        let mut writer = pty.master.try_clone().unwrap();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let sender = std::thread::spawn(move || {
+            for index in 0..32 {
+                let due = phase + Duration::from_secs_f64(f64::from(index) / f64::from(hz));
+                std::thread::sleep(due.saturating_duration_since(Instant::now()));
+                let glyph = char::from_u32(0x5000 + index + hz).unwrap().to_string();
+                let sent = Instant::now();
+                writer.write_all(glyph.as_bytes()).unwrap();
+                tx.send((sent, glyph)).unwrap();
+            }
+        });
+        let mut latencies = Vec::new();
+        for (sent, glyph) in rx {
+            while !contains(&pty.snapshot()[offset..], glyph.as_bytes()) {
+                assert!(
+                    sent.elapsed() < Duration::from_millis(100),
+                    "provider burst starved input paint"
+                );
+                std::thread::sleep(Duration::from_micros(100));
+            }
+            latencies.push(sent.elapsed().as_micros());
+        }
+        sender.join().unwrap();
+        pty.wait_visible_after(off, "VIS31_PROVIDER_BURST_DONE", DEADLINE);
+        latencies.sort_unstable();
+        eprintln!(
+            "VIS31 burst hz={hz} window_us={} p50_us={} p95_us={} max_us={}",
+            phase.elapsed().as_micros(),
+            latencies[16],
+            latencies[30],
+            latencies[31]
+        );
+        pty.send(b"\x03");
+        std::thread::sleep(Duration::from_millis(250));
+        let bytes = pty.snapshot().len();
+        let cpu = process_cpu_ticks(pty.child.id());
+        std::thread::sleep(Duration::from_secs(1));
+        assert_eq!(
+            pty.snapshot().len(),
+            bytes,
+            "settled burst wrote idle terminal bytes"
+        );
+        assert!(process_cpu_ticks(pty.child.id()) - cpu <= 1);
+        pty.send(b"\x03");
+        assert!(pty.wait_exit(DEADLINE).0.success());
+        assert!(pty.restored());
+        let metrics: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(metrics_path).unwrap()).unwrap();
+        assert_eq!(
+            metrics["worker_event_queue_lagged"], 0,
+            "worker events lost: {metrics}"
+        );
+        eprintln!("VIS31 burst metrics={metrics}");
+    }
+}
+
+/// The paired wheel campaign exposed a real TurnFinished refresh regression:
+/// completion must preserve the detached painted anchor, not repin the view.
+#[test]
+fn vis32_detached_stream_anchor_survives_durable_completion_refresh() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "wheel-completion", None);
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "vis32 held rows");
+    wait_screen_row(&pty, "VIS32_ROW_059", DEADLINE);
+    for _ in 0..12 {
+        pty.send(b"\x1b[<64;20;8M");
+        std::thread::sleep(Duration::from_micros(6060));
+    }
+    std::thread::sleep(Duration::from_millis(250));
+    let markers = |pty: &PtySession| {
+        render_screen(&pty.snapshot())
+            .rows()
+            .into_iter()
+            .filter_map(|row| {
+                let index = row.find("VIS32_ROW_")?;
+                Some(row[index..index + "VIS32_ROW_000".len()].to_string())
+            })
+            .collect::<Vec<_>>()
+    };
+    let before = markers(&pty);
+    assert!(!before.is_empty());
+    assert!(!before.iter().any(|row| row == "VIS32_ROW_059"));
+    fixture.s07_continue.store(true, Ordering::Relaxed);
+    wait_idle(&pty);
+    let after = markers(&pty);
+    assert_eq!(
+        after.first(),
+        before.first(),
+        "durable completion moved detached viewport"
+    );
+    assert!(
+        after
+            .iter()
+            .zip(&before)
+            .all(|(after, before)| after == before)
+    );
+    pty.send(b"\x03");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+}
+
 impl PtySession {
     fn spawn(fixture: Arc<Fixture>, session: &str, metrics: Option<&Path>) -> Self {
         Self::spawn_sized(fixture, session, metrics, 80, 24)
@@ -624,6 +892,7 @@ impl PtySession {
         if let Some(path) = metrics {
             cmd.env("OC_TUI_TEST_METRICS", path);
         }
+        terminal::controlling_terminal(&mut cmd);
         let child = cmd.spawn().expect("spawn oc tui");
         drop(slave);
         Self::finish_spawn(master, child, fixture)
@@ -2082,6 +2351,22 @@ fn wait_cursor(pty: &PtySession, wanted: (usize, usize)) {
     }
 }
 
+/// Text cells precede the final cursor-position bytes in a ratatui frame. A
+/// relative cursor assertion must not derive its baseline from a partial write.
+fn settled_cursor(pty: &PtySession) -> (usize, usize) {
+    let start = Instant::now();
+    let mut previous = pty.snapshot();
+    loop {
+        std::thread::sleep(POLL);
+        let current = pty.snapshot();
+        if current.len() == previous.len() {
+            return render_screen(&current).cursor;
+        }
+        assert!(start.elapsed() < DEADLINE, "cursor baseline did not settle");
+        previous = current;
+    }
+}
+
 /// V07 S03: terminal bytes, focused dialogs, editor and actual Responses wire.
 #[test]
 fn v07_raw_modifiers_release_and_modal_interrupt_keep_exact_draft() {
@@ -2197,7 +2482,7 @@ fn v05_raw_unicode_multiline_focus_and_one_durable_submit() {
     pty.send("привет е\u{301}🧑‍💻 мир".as_bytes());
     wait_screen_row(&pty, "мир", DEADLINE);
     // Left over " мир", backspace removes the whole emoji, then reinsert it.
-    let original_cursor = render_screen(&pty.snapshot()).cursor;
+    let original_cursor = settled_cursor(&pty);
     pty.send(b"\x1b[D\x1b[D\x1b[D\x1b[D");
     wait_cursor(&pty, (original_cursor.0, original_cursor.1 - 4));
     pty.send(b"\x7f");
@@ -2211,7 +2496,7 @@ fn v05_raw_unicode_multiline_focus_and_one_durable_submit() {
     pty.send(b"\x1b[13;2u"); // Shift+Enter in terminals supporting CSI-u
     pty.send("третья".as_bytes());
     wait_screen_row(&pty, "третья", DEADLINE);
-    let before_paste = render_screen(&pty.snapshot()).cursor;
+    let before_paste = settled_cursor(&pty);
     pty.send("\x1b[200~ из пасты\x1b[201~".as_bytes());
     wait_screen_row(&pty, "из пасты", DEADLINE);
     pty.send(b"\x1b[45;5u"); // CSI-u Ctrl+- undoes the whole paste
@@ -2227,7 +2512,7 @@ fn v05_raw_unicode_multiline_focus_and_one_durable_submit() {
     pty.send(b"\x7f"); // delete retained selection, then restore it
     pty.send("я".as_bytes());
     wait_screen_row(&pty, "третья", DEADLINE);
-    let second_line_cursor = render_screen(&pty.snapshot()).cursor;
+    let second_line_cursor = settled_cursor(&pty);
     pty.send(b"\x1b[A\x1b[H"); // navigate the draft without scrolling history
     let start = Instant::now();
     while render_screen(&pty.snapshot()).cursor == second_line_cursor {
@@ -2237,7 +2522,7 @@ fn v05_raw_unicode_multiline_focus_and_one_durable_submit() {
         );
         std::thread::sleep(POLL);
     }
-    let before = render_screen(&pty.snapshot()).cursor;
+    let before = settled_cursor(&pty);
     pty.send(b"\x10");
     wait_screen_row(&pty, "Commands", DEADLINE);
     pty.send(b"\x1b");

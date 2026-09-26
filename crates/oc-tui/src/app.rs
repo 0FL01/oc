@@ -473,6 +473,28 @@ struct TranscriptViewport {
     displayed_scroll: usize,
 }
 
+struct CompletionAnchor {
+    message: std::sync::Arc<oc_core::session::MessageId>,
+    part: usize,
+    row: usize,
+    requested_scroll: usize,
+    pending: bool,
+}
+
+/// Native row-quantized presentation of a wheel target. OC2/OpenTUI 0.5.10
+/// applies wheel displacement immediately (ScrollBox.onMouseEvent); it has no
+/// wheel inertia. We distribute that displacement over one OC2 paint budget
+/// (app.tsx targetFps: 60), never retain a velocity or replay an input queue.
+#[derive(Clone, Copy)]
+struct WheelMotion {
+    started: Instant,
+    distance: usize,
+    applied: usize,
+    up: bool,
+}
+
+const WHEEL_PRESENTATION: Duration = Duration::from_nanos(16_666_667);
+
 /// Bounded chat state on the shared handle, optionally attached to a session.
 pub struct TuiState {
     pub chrome: oc_core::queries::TuiChrome,
@@ -482,6 +504,7 @@ pub struct TuiState {
     /// Sampled once per UI instance; never changes during a redraw.
     pub(crate) home_example: &'static str,
     viewport: std::cell::Cell<Option<TranscriptViewport>>,
+    completion_anchor: std::cell::RefCell<Option<CompletionAnchor>>,
     painted_transcript: std::cell::RefCell<Option<PaintedTranscript>>,
     paint_generation: std::cell::Cell<u64>,
     message_down: Option<(oc_core::session::MessageId, u64, Rect)>,
@@ -572,6 +595,7 @@ pub struct TuiState {
     /// Provider usage reported for the active turn (never synthesized).
     turn_usage: Option<TurnUsage>,
     scroll: usize,
+    wheel_motion: Option<WheelMotion>,
     note: Option<(String, NoteVariant)>,
     toast_expiry: Option<ToastExpiry>,
     toast_down: bool,
@@ -654,6 +678,7 @@ impl TuiState {
             home,
             home_example: HOME_EXAMPLES[index],
             viewport: std::cell::Cell::new(None),
+            completion_anchor: std::cell::RefCell::new(None),
             painted_transcript: std::cell::RefCell::new(None),
             paint_generation: std::cell::Cell::new(0),
             message_down: None,
@@ -719,6 +744,7 @@ impl TuiState {
             reasoning_finished: None,
             turn_usage: None,
             scroll: 0,
+            wheel_motion: None,
             note: None,
             toast_expiry: None,
             toast_down: false,
@@ -1010,6 +1036,7 @@ impl TuiState {
     }
 
     pub fn set_session(&mut self, session: SessionId) {
+        self.completion_anchor.get_mut().take();
         self.conversation_available = None;
         self.reverted = None;
         self.close_panel();
@@ -1047,6 +1074,7 @@ impl TuiState {
         self.reasoning_finished = None;
         self.turn_usage = None;
         self.scroll = 0;
+        self.wheel_motion = None;
         self.active_turn = None;
         if self.status != TuiStatus::Quit {
             self.status = TuiStatus::Idle;
@@ -1073,6 +1101,51 @@ impl TuiState {
     /// Current status.
     pub fn status(&self) -> &TuiStatus {
         &self.status
+    }
+
+    /// Owner receipts need reconciliation until accepted, independently from
+    /// streaming and animation. A settled view has no receipt polling work.
+    pub fn has_pending_submission(&self) -> bool {
+        self.pending.is_some()
+    }
+
+    /// Active view deadlines only; input/provider paints never reset these
+    /// clocks. Hover-paused toasts and settled wheel motion have no deadline.
+    pub fn next_ui_deadline(&self) -> Option<Instant> {
+        let scanner = (self.status == TuiStatus::Streaming
+            && self.chrome.animations != Some(false))
+        .then(|| {
+            self.scanner_at
+                .map(|at| at + Duration::from_millis(crate::scanner::FRAME_MS))
+        })
+        .flatten();
+        let toast = self
+            .toast_expiry
+            .as_ref()
+            .and_then(|expiry| expiry.started.map(|at| at + expiry.remaining));
+        [
+            scanner,
+            toast,
+            self.interrupt_armed_until,
+            self.next_scroll_animation_deadline(),
+        ]
+        .into_iter()
+        .flatten()
+        .min()
+    }
+
+    /// True only when a deadline actually changes visible state.
+    pub fn tick_ui(&mut self, now: Instant) -> bool {
+        let expired = self.interrupt_armed_until.is_some_and(|until| now >= until)
+            || self.toast_expiry.as_ref().is_some_and(|expiry| {
+                expiry
+                    .started
+                    .is_some_and(|at| now.saturating_duration_since(at) >= expiry.remaining)
+            });
+        self.tick_toast(now);
+        let scanner = self.tick_scanner(now);
+        let wheel = self.tick_scroll_animation(now);
+        expired || scanner || wheel
     }
 
     fn reset_scanner(&mut self) {
@@ -1837,6 +1910,7 @@ impl TuiState {
 
     /// Newest page becomes the whole window; scroll pins to the newest row.
     pub fn attach_page(&mut self, page: &HistoryPage) {
+        self.completion_anchor.get_mut().take();
         self.reverted = page.reverted.clone();
         self.clear_transcript_selection();
         self.exploration_down = None;
@@ -1848,11 +1922,131 @@ impl TuiState {
         self.session_title = page.title.clone();
         self.window.reset(page);
         self.scroll = 0;
+        self.wheel_motion = None;
+    }
+
+    /// Same-session TurnFinished receipt only. Explicit routing/conversation
+    /// resets use attach_page. Preserve a painted part, not a total-row delta:
+    /// durable projection may replace synthetic parts and the paging window.
+    pub fn refresh_completed_page(&mut self, page: &HistoryPage) {
+        let view = self.viewport.get().filter(|_| self.scroll > 0);
+        let old_rows = self.transcript_rows();
+        let mut anchor = None;
+        if let Some(view) = view {
+            let top = view
+                .total
+                .saturating_sub(view.height as usize)
+                .saturating_sub(view.displayed_scroll);
+            self.transcript_part_positions(
+                &old_rows,
+                (view.width, view.terminal_width),
+                |index, start, end| {
+                    if start <= top && top < end {
+                        anchor = Some((index, top - start));
+                    }
+                },
+            );
+        }
+        self.reverted = page.reverted.clone();
+        self.parent_id = page.parent_id.clone();
+        self.session_title = page.title.clone();
+        self.clear_transcript_selection();
+        self.window.refresh_completed(page, self.scroll > 0);
+        self.completion_anchor.get_mut().take();
+        let rows = self.transcript_rows();
+        self.reasoning_expanded = old_rows
+            .iter()
+            .enumerate()
+            .filter_map(|(index, row)| {
+                let identity = row.reasoning.as_ref()?.identity?;
+                if !self.reasoning_expanded.contains(&identity) {
+                    return None;
+                }
+                let index = Self::refreshed_part(&old_rows, &rows, index)?;
+                rows[index].reasoning.as_ref()?.identity
+            })
+            .collect();
+        if let Some((index, row_offset)) = anchor {
+            let matched = Self::refreshed_part(&old_rows, &rows, index);
+            if let Some(index) = matched
+                && let Some(message) = rows[index].message_id.clone()
+            {
+                let part = rows[..index]
+                    .iter()
+                    .filter(|row| row.message_id.as_ref() == Some(&message))
+                    .count();
+                *self.completion_anchor.get_mut() = Some(CompletionAnchor {
+                    message,
+                    part,
+                    row: row_offset,
+                    requested_scroll: self.scroll,
+                    pending: true,
+                });
+            }
+        }
+        // Keep the painted geometry for sticky-bottom and fallback clamping.
+        // The semantic anchor resolves against the new cached part positions.
+    }
+
+    fn refreshed_part(old_rows: &[HistoryRow], rows: &[HistoryRow], index: usize) -> Option<usize> {
+        let old = &old_rows[index];
+        if let Some(id) = &old.message_id {
+            let ordinal = old_rows[..index]
+                .iter()
+                .filter(|row| row.message_id.as_ref() == Some(id))
+                .count();
+            rows.iter()
+                .enumerate()
+                .filter(|(_, row)| row.message_id.as_ref() == Some(id))
+                .nth(ordinal)
+                .map(|(index, _)| index)
+        } else {
+            // Live parts have no durable ID yet; operation ID or the exact
+            // final text binds them to the newly committed part once.
+            let same = |row: &HistoryRow| {
+                row.role == old.role
+                    && match (&old.tool, &row.tool) {
+                        (Some(old), Some(new)) => old.op == new.op,
+                        (None, None) => {
+                            old.text == row.text
+                                && old.reasoning.as_ref().map(|r| &r.text)
+                                    == row.reasoning.as_ref().map(|r| &r.text)
+                        }
+                        _ => false,
+                    }
+            };
+            let ordinal = old_rows[index + 1..].iter().filter(|row| same(row)).count();
+            rows.iter()
+                .enumerate()
+                .rev()
+                .filter(|(_, row)| same(row))
+                .nth(ordinal)
+                .map(|(index, _)| index)
+        }
+    }
+
+    fn transcript_part_positions(
+        &self,
+        rows: &[HistoryRow],
+        widths: (u16, u16),
+        part: impl FnMut(usize, usize, usize),
+    ) -> usize {
+        crate::messages::transcript_part_positions(
+            rows,
+            Theme::dark(),
+            (widths.0, widths.1, None),
+            &|agent| self.agent_color(agent),
+            &self.markdown_cache,
+            &|op| self.exploration_expanded.contains(op),
+            part,
+        )
     }
 
     /// Add an older page at the front of the window.
     pub fn prepend_page(&mut self, page: &HistoryPage) {
+        self.completion_anchor.get_mut().take();
         self.reverted = page.reverted.clone();
+        self.scroll = self.display_scroll();
         self.clear_transcript_selection();
         self.viewport.set(None);
         self.window.prepend_older(page);
@@ -1863,7 +2057,6 @@ impl TuiState {
     pub fn append_page(&mut self, page: &HistoryPage) {
         self.reverted = page.reverted.clone();
         self.clear_transcript_selection();
-        self.viewport.set(None);
         self.window.append_newer(page);
         self.prune_reasoning();
     }
@@ -1885,6 +2078,7 @@ impl TuiState {
 
     /// Close any open panel (chat view).
     pub fn close_panel(&mut self) {
+        self.wheel_motion = None;
         self.clear_transcript_selection();
         self.panel = TuiPanel::None;
         self.rename_input.clear();
@@ -2265,10 +2459,14 @@ impl TuiState {
             let inside = rect.contains((event.column, event.row).into());
             match event.kind {
                 MouseEventKind::ScrollUp if inside => {
-                    self.handle_panel_key(KeyAction::Up);
+                    for _ in 0..3 {
+                        self.handle_panel_key(KeyAction::Up);
+                    }
                 }
                 MouseEventKind::ScrollDown if inside => {
-                    self.handle_panel_key(KeyAction::Down);
+                    for _ in 0..3 {
+                        self.handle_panel_key(KeyAction::Down);
+                    }
                 }
                 MouseEventKind::Down(MouseButton::Left) => {
                     self.mouse_down = Some(if inside {
@@ -3355,8 +3553,38 @@ impl TuiState {
         let resized = previous.is_some_and(|view| {
             (view.width, view.terminal_width, view.height) != (width, terminal_width, height)
         });
+        let semantic_scroll = self
+            .completion_anchor
+            .borrow()
+            .as_ref()
+            .filter(|anchor| {
+                anchor.requested_scroll == self.scroll
+                    && self.scroll > 0
+                    && (anchor.pending || resized)
+            })
+            .and_then(|anchor| {
+                let index = rows
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, row)| row.message_id.as_ref() == Some(&anchor.message))
+                    .nth(anchor.part)
+                    .map(|(index, _)| index)?;
+                let mut top = None;
+                let total = self.transcript_part_positions(
+                    &rows,
+                    (width, terminal_width),
+                    |part, start, end| {
+                        if part == index && end > start {
+                            top = Some(start + anchor.row.min(end - start - 1));
+                        }
+                    },
+                );
+                top.map(|top| total.saturating_sub(height as usize).saturating_sub(top))
+            });
         let scroll = if self.scroll == 0 {
             0
+        } else if let Some(scroll) = semantic_scroll {
+            scroll
         } else if resized && previous.is_some_and(|view| view.requested_scroll == self.scroll) {
             let view = previous.expect("resized viewport");
             // Count-only indexing is needed on resize, not on every draw.
@@ -3371,7 +3599,27 @@ impl TuiState {
         } else {
             self.scroll
         };
-        let (lines, total, targets) = render(height as usize, scroll);
+        let (mut lines, total, mut targets) = render(height as usize, scroll);
+        // A bottom-relative offset alone follows appended rows even when the
+        // reader detached. Preserve the last painted top row during live tail
+        // growth. Prepending deliberately clears the viewport: its new rows
+        // precede that anchor, so the bottom-relative offset already holds it.
+        let scroll = if self.scroll > 0
+            && semantic_scroll.is_none()
+            && !resized
+            && let Some(view) = previous.filter(|view| view.requested_scroll == self.scroll)
+            && view.total != total
+        {
+            let top = view
+                .total
+                .saturating_sub(view.height as usize)
+                .saturating_sub(view.displayed_scroll);
+            let anchored = total.saturating_sub(height as usize).saturating_sub(top);
+            (lines, _, targets) = render(height as usize, anchored);
+            anchored
+        } else {
+            scroll
+        };
         (
             lines,
             total,
@@ -3828,6 +4076,7 @@ impl TuiState {
         self.reasoning_finished = None;
         self.turn_usage = None;
         self.scroll = 0;
+        self.wheel_motion = None;
         self.push_note("dcp: compressing…");
     }
 
@@ -4411,6 +4660,7 @@ impl TuiState {
     /// Wheel/scrollbox navigation never changes the focused editor, even
     /// when keyboard Up/Down would move its caret or recall prompt history.
     pub fn scroll_transcript(&mut self, up: bool) -> KeyOutcome {
+        self.wheel_motion = None;
         self.poll_submission();
         if self.panel != TuiPanel::None {
             return KeyOutcome::default();
@@ -4438,6 +4688,103 @@ impl TuiState {
                 ..KeyOutcome::default()
             }
         }
+    }
+
+    /// A compatible directional wheel burst, in original arrival order. Only
+    /// adjacent events with the same owner/direction/modifiers may be grouped.
+    /// OC2 CustomSpeedScroll(3) times the terminal's unit delta supplies the
+    /// target; keyboard navigation deliberately retains its separate step.
+    pub fn wheel_transcript_at(&mut self, up: bool, ticks: usize, now: Instant) -> KeyOutcome {
+        if self.panel != TuiPanel::None || ticks == 0 {
+            return KeyOutcome::default();
+        }
+        self.tick_scroll_animation(now);
+        let visible = self.display_scroll();
+        let continuing = self.wheel_motion.filter(|motion| motion.up == up);
+        let pending = continuing.map_or(0, |motion| motion.distance - motion.applied);
+        // A reversal discards the old presentation debt and starts at the
+        // visible position. It must not wait for an obsolete target to settle.
+        let distance = ticks.saturating_mul(3).saturating_add(pending);
+        let distance = distance.min(if up {
+            self.max_scroll().saturating_sub(visible)
+        } else {
+            visible
+        });
+        self.scroll = visible;
+        self.clear_transcript_selection();
+        self.exploration_down = None;
+        self.reasoning_down = None;
+        self.wheel_motion = (distance > 0).then_some(WheelMotion {
+            started: continuing.map_or(now, |motion| motion.started),
+            distance: distance.saturating_add(continuing.map_or(0, |motion| motion.applied)),
+            applied: continuing.map_or(0, |motion| motion.applied),
+            up,
+        });
+        KeyOutcome {
+            intent: if up && visible.saturating_add(distance) >= self.max_scroll() {
+                self.window.has_older().then_some(PanelIntent::LoadOlder)
+            } else if !up && distance == visible {
+                self.window.has_newer().then_some(PanelIntent::LoadNewer)
+            } else {
+                None
+            },
+            ..KeyOutcome::default()
+        }
+    }
+
+    /// Next changed-row deadline, absent at rest. The binary folds this into
+    /// its existing active render deadline; there is no independent timer.
+    pub fn next_scroll_animation_deadline(&self) -> Option<Instant> {
+        let motion = self.wheel_motion?;
+        if self.panel != TuiPanel::None {
+            return None;
+        }
+        let nanos = (WHEEL_PRESENTATION.as_nanos() * (motion.applied + 1) as u128)
+            .div_ceil(motion.distance as u128);
+        Some(motion.started + Duration::from_nanos(nanos as u64))
+    }
+
+    /// Elapsed progress is bounded by one presentation budget, independent of
+    /// scheduler frequency. Returns dirty only when a painted row changes.
+    pub fn tick_scroll_animation(&mut self, now: Instant) -> bool {
+        let Some(mut motion) = self.wheel_motion else {
+            return false;
+        };
+        if self.panel != TuiPanel::None {
+            self.wheel_motion = None;
+            return false;
+        }
+        let elapsed = now
+            .saturating_duration_since(motion.started)
+            .as_nanos()
+            .min(WHEEL_PRESENTATION.as_nanos());
+        let applied = (motion.distance as u128 * elapsed / WHEEL_PRESENTATION.as_nanos()) as usize;
+        let step = applied.saturating_sub(motion.applied);
+        if step == 0 {
+            return false;
+        }
+        let visible = self.display_scroll();
+        self.scroll = if motion.up {
+            visible.saturating_add(step).min(self.max_scroll())
+        } else {
+            visible.saturating_sub(step)
+        };
+        motion.applied = applied;
+        let edge = if motion.up {
+            self.scroll == self.max_scroll()
+        } else {
+            self.scroll == 0
+        };
+        self.wheel_motion = (!edge && applied < motion.distance).then_some(motion);
+        if visible == self.scroll {
+            return false;
+        }
+        // Movement invalidates every press/release target from the old paint,
+        // including selection-guarded user/reverted and expandable tool rows.
+        self.clear_transcript_selection();
+        self.exploration_down = None;
+        self.reasoning_down = None;
+        true
     }
 
     async fn handle_enter(&mut self) -> KeyOutcome {
@@ -4629,6 +4976,7 @@ impl TuiState {
                     self.status = TuiStatus::Streaming;
                 }
                 self.scroll = 0;
+                self.wheel_motion = None;
                 if self.input_revision == pending.revision && !pending.cancelling {
                     self.input.clear();
                     self.editor.clear_submitted_draft();
@@ -5769,6 +6117,15 @@ impl TuiState {
         total: usize,
         displayed_scroll: usize,
     ) {
+        let mut anchor = self.completion_anchor.borrow_mut();
+        if anchor
+            .as_ref()
+            .is_some_and(|anchor| anchor.requested_scroll != self.scroll)
+        {
+            anchor.take();
+        } else if let Some(anchor) = anchor.as_mut() {
+            anchor.pending = false;
+        }
         self.viewport.set(Some(TranscriptViewport {
             width,
             terminal_width,
@@ -11310,6 +11667,283 @@ mod tests {
         assert_eq!(state.handle_panel_key(KeyAction::Rename).intent, None);
         assert_eq!(state.handle_panel_key(KeyAction::DeleteOrQuit).intent, None);
         assert_eq!(state.panel(), &TuiPanel::Sessions);
+    }
+
+    #[tokio::test]
+    async fn vis32_wheel_displacement_elapsed_motion_and_edges() {
+        use std::time::{Duration, Instant};
+        // Donor fixture: OC2 util/scroll.ts CustomSpeedScroll(3), OpenTUI
+        // v0.5.10 ScrollBox.onMouseEvent: unit delta * 3, truncation, clamp.
+        // These endpoints are donor semantics; intermediate rows explicitly
+        // qualify our one-paint-budget native presentation, not donor inertia.
+        for (budget, expected_rows) in [
+            (Duration::from_micros(6060), &[1, 2, 3][..]),
+            (Duration::from_millis(2), &[0, 0, 1, 1, 1, 2, 2, 2, 3][..]),
+        ] {
+            let mut state = fresh_state("wheel-timeline").await;
+            state.observe_viewport(10, 110);
+            state.handle_paste("draft 界👩‍💻");
+            let now = Instant::now();
+            assert_eq!(state.next_scroll_animation_deadline(), None);
+            state.wheel_transcript_at(true, 1, now);
+            assert_eq!(state.scroll(), 0);
+            assert_eq!(
+                state.next_scroll_animation_deadline(),
+                Some(now + Duration::from_nanos(5_555_556))
+            );
+            let mut elapsed = Duration::ZERO;
+            for expected in expected_rows {
+                elapsed += budget;
+                state.tick_scroll_animation(now + elapsed);
+                assert_eq!(state.scroll(), *expected);
+            }
+            assert_eq!(state.scroll(), 3);
+            assert_eq!(state.input(), "draft 界👩‍💻");
+            assert_eq!(state.next_scroll_animation_deadline(), None);
+            assert!(!state.tick_scroll_animation(now + Duration::from_secs(1)));
+
+            // Same-direction burst is accumulated without a per-event queue.
+            let now = now + Duration::from_secs(2);
+            state.wheel_transcript_at(true, 4, now);
+            state.wheel_transcript_at(true, 2, now + Duration::from_millis(4));
+            assert!(state.tick_scroll_animation(now + Duration::from_millis(17)));
+            assert_eq!(state.scroll(), 21);
+            assert_eq!(state.next_scroll_animation_deadline(), None);
+
+            // Reverse before settling: obsolete upward debt cannot drag the
+            // reader past the position visible when downward input arrives.
+            let now = now + Duration::from_secs(1);
+            state.wheel_transcript_at(true, 10, now);
+            state.tick_scroll_animation(now + Duration::from_millis(6));
+            let reversed_from = state.scroll();
+            state.wheel_transcript_at(false, 1, now + Duration::from_millis(6));
+            state.tick_scroll_animation(now + Duration::from_millis(23));
+            assert_eq!(state.scroll(), reversed_from - 3);
+
+            let now = now + Duration::from_secs(1);
+            state.wheel_transcript_at(true, usize::MAX, now);
+            state.tick_scroll_animation(now + Duration::from_millis(17));
+            assert_eq!(state.scroll(), 100);
+            state.wheel_transcript_at(false, usize::MAX, now + Duration::from_millis(20));
+            state.tick_scroll_animation(now + Duration::from_millis(37));
+            assert_eq!(state.scroll(), 0);
+            assert_eq!(state.next_scroll_animation_deadline(), None);
+
+            state.observe_viewport(10, 3);
+            state.wheel_transcript_at(true, 1, now + Duration::from_secs(2));
+            assert_eq!(
+                state.next_scroll_animation_deadline(),
+                None,
+                "short transcript needs no timer"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn vis31_deadlines_do_not_reset_scanner_and_disappear_at_rest() {
+        let mut state = fresh_state("deadline").await;
+        let now = std::time::Instant::now();
+        assert_eq!(state.next_ui_deadline(), None);
+        assert!(!state.tick_ui(now));
+        state.status = super::TuiStatus::Streaming;
+        assert!(!state.tick_ui(now));
+        let frame = std::time::Duration::from_millis(crate::scanner::FRAME_MS);
+        assert_eq!(state.next_ui_deadline(), Some(now + frame));
+        // Faster unrelated paints never postpone or restart the animation.
+        for millis in 1..40 {
+            assert!(!state.tick_ui(now + std::time::Duration::from_millis(millis)));
+            assert_eq!(state.next_ui_deadline(), Some(now + frame));
+        }
+        assert!(state.tick_ui(now + frame));
+        assert_eq!(state.next_ui_deadline(), Some(now + frame + frame));
+        state.status = super::TuiStatus::Idle;
+        assert_eq!(state.next_ui_deadline(), None);
+        state.push_transient_note_at("deadline", super::NoteVariant::Info, frame, now);
+        assert_eq!(state.next_ui_deadline(), Some(now + frame));
+        state.set_toast_hover(true, now);
+        assert_eq!(state.next_ui_deadline(), None);
+        state.set_toast_hover(false, now);
+        assert!(state.tick_ui(now + frame));
+        assert_eq!(state.next_ui_deadline(), None);
+    }
+
+    #[tokio::test]
+    async fn vis32_live_tail_anchor_unicode_paging_and_resize() {
+        fn paint(state: &super::TuiState, width: u16, height: u16) -> Vec<String> {
+            let (lines, total, scroll) = state.visible_transcript_at_viewport(width, width, height);
+            state.observe_transcript_viewport(width, width, height, total, scroll);
+            lines
+                .iter()
+                .map(|line| line.spans().iter().map(|span| span.content()).collect())
+                .collect()
+        }
+        let mut state = fresh_state("wheel-anchor").await;
+        let text = (0..90)
+            .map(|i| format!("ROW-{i:03} 界👩‍💻 é\n"))
+            .collect::<String>();
+        state.attach_page(&page(vec![msg(1, Role::Assistant, &text)], 1, true, false));
+        state.active_turn = Some(WorkerTurnId("wheel-live".into()));
+        let turn = state.active_turn.clone().unwrap();
+        state.apply_delta(&turn, "LIVE-ONE\n");
+        paint(&state, 80, 10);
+        let now = std::time::Instant::now();
+        state.wheel_transcript_at(true, 10, now);
+        state.tick_scroll_animation(now + std::time::Duration::from_millis(17));
+        let before = paint(&state, 80, 10);
+        assert!(
+            before.iter().any(|line| line.contains("ROW-")),
+            "{before:?}"
+        );
+        let top = before[0].clone();
+        state.apply_delta(&turn, "LIVE-TWO 界\nLIVE-THREE 👩‍💻\n");
+        let after = paint(&state, 80, 10);
+        assert_eq!(
+            after, before,
+            "stream growth must preserve all painted detached rows"
+        );
+        let resized = paint(&state, 60, 6);
+        assert_eq!(resized[0], top, "resize retains the painted top row");
+        state.prepend_page(&page(
+            vec![msg(0, Role::Assistant, "OLDER 界")],
+            2,
+            false,
+            false,
+        ));
+        assert_eq!(
+            paint(&state, 60, 6)[0],
+            top,
+            "older paging retains the loaded anchor"
+        );
+
+        // Reengage sticky follow using the visible, resize-adjusted offset.
+        let now = now + std::time::Duration::from_secs(1);
+        state.wheel_transcript_at(false, usize::MAX, now);
+        state.tick_scroll_animation(now + std::time::Duration::from_millis(17));
+        paint(&state, 60, 6);
+        state.apply_delta(&turn, "LIVE-LATEST 界\n");
+        let pinned = paint(&state, 60, 6);
+        assert!(
+            pinned.iter().any(|line| line.contains("LIVE-LATEST")),
+            "{pinned:?}"
+        );
+        assert_eq!(state.scroll(), 0);
+        assert_eq!(state.next_scroll_animation_deadline(), None);
+    }
+
+    #[tokio::test]
+    async fn vis32_completion_preserves_cached_part_expansion_paging_and_resize() {
+        use oc_core::queries::{HistoryTurn, ToolOpView, TranscriptPart};
+        fn paint(state: &super::TuiState, width: u16, height: u16) -> Vec<String> {
+            let (lines, total, scroll) = state.visible_transcript_at_viewport(width, width, height);
+            state.observe_transcript_viewport(width, width, height, total, scroll);
+            lines.iter().map(|line| line.plain_text()).collect()
+        }
+        let mut state = fresh_state("completion-parts").await;
+        let mut answer = msg(2, Role::Assistant, "");
+        answer.turn = Some(HistoryTurn {
+            id: "parts".into(),
+            status: "completed".into(),
+            parts: vec![
+                TranscriptPart::Text(
+                    "## Markdown before tool\n\n| A | B |\n|---|---|\n| cell | value |\n".into(),
+                ),
+                TranscriptPart::Tool(ToolOpView {
+                    rowid: 1,
+                    op: "anchor-shell".into(),
+                    name: "bash".into(),
+                    state: "completed".into(),
+                    input: Some(r#"{"command":"fixture"}"#.into()),
+                    output: Some((0..60).map(|i| format!("SHELL-{i:03}\n")).collect()),
+                    output_bytes: 600,
+                    output_truncated: false,
+                }),
+                TranscriptPart::Text((0..60).map(|i| format!("TAIL-{i:03}\n")).collect()),
+            ],
+            ..HistoryTurn::default()
+        });
+        let prefix = msg(1, Role::Assistant, &"prefix ".repeat(70));
+        state.attach_page(&page(vec![prefix, answer.clone()], 2, true, false));
+        state.exploration_expanded.insert("anchor-shell".into());
+        let all = state.rendered_transcript(80, 80);
+        let top = all
+            .iter()
+            .position(|line| line.plain_text().contains("SHELL-020"))
+            .unwrap();
+        state.scroll = all.len() - 8 - top;
+        let before = paint(&state, 80, 8);
+        assert!(before[0].contains("SHELL-020"));
+
+        // Both the prefix and tail change height. A total-row delta or old
+        // global row index would land on the wrong content inside this message.
+        let refreshed = page(
+            vec![
+                msg(1, Role::Assistant, &"changed prefix ".repeat(140)),
+                answer.clone(),
+                msg(3, Role::Assistant, "NEWEST\n"),
+            ],
+            3,
+            true,
+            false,
+        );
+        state.refresh_completed_page(&refreshed);
+        assert_eq!(paint(&state, 80, 8), before);
+        assert!(state.exploration_expanded.contains("anchor-shell"));
+        assert_eq!(
+            paint(&state, 60, 6)[0].trim_end(),
+            before[0].trim_end(),
+            "resize must reindex the same part"
+        );
+        assert_eq!(
+            paint(&state, 60, 6)[0].trim_end(),
+            before[0].trim_end(),
+            "cached repaint must remain anchored"
+        );
+
+        // An overlapping newest page retains the already loaded older message.
+        state.refresh_completed_page(&page(
+            vec![answer.clone(), msg(3, Role::Assistant, "NEWEST\n")],
+            3,
+            true,
+            false,
+        ));
+        assert!(state.history().rows().iter().any(|row| row.seq == 1));
+        assert_eq!(paint(&state, 60, 6)[0].trim_end(), before[0].trim_end());
+
+        state.scroll = 0;
+        state.refresh_completed_page(&refreshed);
+        assert_eq!(state.scroll(), 0);
+        assert!(
+            paint(&state, 80, 8)
+                .iter()
+                .any(|line| line.contains("NEWEST"))
+        );
+        // Explicit conversation/session replacement still discards all view state.
+        state.scroll = 20;
+        state.attach_page(&page(vec![answer], 1, false, false));
+        assert_eq!(state.scroll(), 0);
+        assert!(state.exploration_expanded.is_empty());
+        assert!(state.completion_anchor.borrow().is_none());
+
+        // A far-detached window and a disjoint newest page cannot be joined
+        // across missing messages. Retain the reader and expose newer paging.
+        let old = (0..60)
+            .map(|i| format!("OLDER-{i:03}\n"))
+            .collect::<String>();
+        state.attach_page(&page(vec![msg(1, Role::Assistant, &old)], 100, false, true));
+        state.scroll = 20;
+        let before = paint(&state, 80, 8);
+        state.refresh_completed_page(&page(
+            vec![msg(100, Role::Assistant, "NEW TAIL")],
+            100,
+            true,
+            false,
+        ));
+        assert_eq!(paint(&state, 80, 8), before);
+        assert!(state.needs_newer());
+        assert!(state.history().rows().iter().all(|row| row.seq == 1));
+        state.set_session(oc_core::domain::SessionId("other-route".into()));
+        assert_eq!(state.scroll(), 0);
+        assert!(state.completion_anchor.borrow().is_none());
     }
 
     #[tokio::test]

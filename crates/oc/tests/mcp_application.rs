@@ -9,6 +9,8 @@
 use std::collections::HashMap;
 use std::fs;
 use std::io::{Read, Write};
+#[path = "support/terminal.rs"]
+mod terminal;
 #[path = "support/title.rs"]
 mod title;
 use std::net::{TcpListener, TcpStream};
@@ -1506,6 +1508,7 @@ impl PtyProcess {
             .stdin(Stdio::from(dup_fd(&slave)))
             .stdout(Stdio::from(dup_fd(&slave)))
             .stderr(Stdio::from(dup_fd(&slave)));
+        terminal::controlling_terminal(&mut command);
         let child = command.spawn().expect("actual oc TUI");
         drop(slave);
         let master: fs::File = master.into();

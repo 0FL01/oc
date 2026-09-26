@@ -9,6 +9,7 @@ import readline from 'node:readline';
 import {fileURLToPath} from 'node:url';
 import {probeMessageActions} from './message_actions.mjs';
 import {probeBounded} from './bounded.mjs';
+import {probeWheel} from './wheel.mjs';
 import {probeSessions} from './sessions.mjs';
 import {probeRevertRedo} from './revert_redo.mjs';
 
@@ -34,10 +35,10 @@ if(sessionsInteraction && (args.geometry!=='true' || args.sidebar!=='hide' || ar
     args['seed-root'] || args.session || boundedMode || args.tabs==='vertical' ||
     Object.entries(args).some(([k,v])=>v==='true' && !['sessions-interaction','geometry','build-oc'].includes(k))))
   throw Error('--sessions-interaction requires exclusive paired short 120x40 geometry sidebar hide');
-if(boundedMode && (!['variants','shell'].includes(boundedMode) || args.geometry!=='true' || args.sidebar!=='hide' ||
+if(boundedMode && (!['variants','shell','wheel'].includes(boundedMode) || args.geometry!=='true' || args.sidebar!=='hide' ||
     Number(args.columns)!==120 || Number(args.rows)!==40 || !args.reference || !args.oc || args.sample!=='short' ||
     Object.entries(args).some(([k,v])=>v==='true' && !['geometry','build-oc'].includes(k))))
-  throw Error('--bounded-mode variants|shell requires exclusive paired short 120x40 geometry sidebar hide');
+  throw Error('--bounded-mode variants|shell|wheel requires exclusive paired short 120x40 geometry sidebar hide');
 const tools = path.resolve(args.tools || '/home/opencode/.cache/opencode-tmp/opencode/t44-reference');
 process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(tools, 'browsers');
 const require = createRequire(path.join(tools, 'package.json'));
@@ -266,7 +267,7 @@ const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
     ...(revertRedo ? {revert_redo:true,probe_sha256:sha(fs.readFileSync(path.join(here,'revert_redo.mjs')))} : {}),
-    ...(boundedMode ? {bounded_mode:boundedMode,bounded_probe_sha256:sha(fs.readFileSync(path.join(here,'bounded.mjs')))} : {}),
+    ...(boundedMode ? {bounded_mode:boundedMode,bounded_probe_sha256:sha(fs.readFileSync(path.join(here,boundedMode==='wheel'?'wheel.mjs':'bounded.mjs')))} : {}),
     ...(sessionsInteraction ? {sessions_interaction:true,sessions_probe_sha256:sha(fs.readFileSync(path.join(here,'sessions.mjs')))} : {}),
    models_interaction:modelsInteraction, ...(messageActions ? {message_actions:true,...(messageForkRevert?{message_fork_revert:true}:{})} : {}), protocol: sha(fs.readFileSync(path.join(here,'bridge.py')))}));
 const commands = [];
@@ -291,7 +292,7 @@ const sourceManifest = Object.fromEntries([...new Set(sourcePaths.stdout.split('
   .map(name => [name,sha(fs.readFileSync(path.join(repo,name)))]));
 json('source-manifest.json', sourceManifest);
 const lock = {schema_version: 1, started: new Date().toISOString(), runner_version: 1,
-    runner_hashes: Object.fromEntries(['capture.mjs','frontend.js','bridge.py',...(revertRedo?['revert_redo.mjs']:[]),...(messageActions?['message_actions.mjs']:[]),...(sessionsInteraction?['sessions.mjs']:[])].map(n => [n, sha(fs.readFileSync(path.join(here,n)))])),
+    runner_hashes: Object.fromEntries(['capture.mjs','frontend.js','bridge.py',...(boundedMode==='wheel'?['wheel.mjs']:[]),...(revertRedo?['revert_redo.mjs']:[]),...(messageActions?['message_actions.mjs']:[]),...(sessionsInteraction?['sessions.mjs']:[])].map(n => [n, sha(fs.readFileSync(path.join(here,n)))])),
   fixture_sha256: fixtureSha, fixture_files: fixtureFiles, oc: {commit, tree, dirty_diff_sha256: sha(diff),
     source_manifest_sha256: sha(canonical(sourceManifest))},
   sources: {upstream_commit: '2670273ff17da96f85c5826ced57aa1b368754fa'}, attempts: [], captures: []};
@@ -369,7 +370,7 @@ try {
     const spec = {binary, origin, columns: profile.columns, rows: profile.rows, isolated_root: isolated, fixture,
       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,
       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
-         agent_profile: args['agent-profile'] === 'true', bounded_mode:boundedMode, sessions_interaction:sessionsInteraction,
+          agent_profile: args['agent-profile'] === 'true', bounded_mode:boundedMode==='wheel'?'shell':boundedMode, wheel_probe:boundedMode==='wheel', metrics_path:path.join(dir,'scheduler.json'), sessions_interaction:sessionsInteraction,
          revert_redo:revertRedo,
         sessions_resume:!!args['sessions-root'],
         sessions_campaign:args['sessions-campaign'] || 'legacy',
@@ -386,7 +387,7 @@ try {
     await page.addScriptTag({path: path.join(tools,'node_modules/@xterm/addon-unicode11/lib/addon-unicode11.js')});
     await page.addScriptTag({path: path.join(here,'frontend.js')});
     const child = spawn('/usr/bin/python3', [path.join(here,'bridge.py'), path.join(dir,'bridge-spec.json')], {env: cleanEnv, stdio: ['pipe','pipe','pipe']});
-    const logs = [], chunks = [[],[]], inputs = [];
+     const logs = [], chunks = [[],[]], inputs = [], outputTimeline=[];
     let generation=0, prequitBoundary;
     let writeQueue = Promise.resolve(), bridgeExit, bridgeError = '';
     const closed = new Promise(r => child.once('close',r));
@@ -401,10 +402,11 @@ try {
     await page.evaluate(p => startTerminal(p), profile);
     readline.createInterface({input: child.stdout}).on('line', line => {
       const event = JSON.parse(line);
-      if (event.kind === 'output') {
+       if (event.kind === 'output') {
         const bytes=Buffer.from(event.data, 'base64');
         const n=event.generation || 0;
-        chunks[n].push(bytes);
+         chunks[n].push(bytes);
+         if(boundedMode==='wheel') {outputTimeline.push({at_ns:event.at_ns,received_ms:performance.now(),bytes:bytes.length,base64:event.data});fs.appendFileSync(path.join(dir,'output-timeline.jsonl'),JSON.stringify(outputTimeline.at(-1))+'\n');}
         // Keep a diagnostic VT prefix if the capture process is interrupted
         // before the normal per-generation teardown writes its sealed copy.
         fs.appendFileSync(path.join(dir,'raw.vt'),bytes);
@@ -887,8 +889,9 @@ try {
         lock.mention[origin]={status:'IN_PROGRESS',checks:mentionChecks};
         await probeMention('home');
       }
-        if(boundedMode) {
-          const checks=await probeBounded({mode:boundedMode,origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
+         if(boundedMode) {
+           const checks=await (boundedMode==='wheel'?probeWheel:probeBounded)({mode:boundedMode,origin,dir,send,waitFor,frame,capture,visibleMatches,logs,outputTimeline,
+             control:(kind,extra={})=>child.stdin.write(JSON.stringify({kind,...extra})+'\n'),
             resize:async(rows)=>{profile.rows=rows;await page.evaluate(rows=>term.resize(120,rows),rows);child.stdin.write(JSON.stringify({kind:'resize',columns:120,rows})+'\n');},
             prompt:fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()});
           lock.bounded ??= {}; lock.bounded[origin]=checks; json('capture.lock.json',lock);

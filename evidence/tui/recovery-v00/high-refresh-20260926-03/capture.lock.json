@@ -1,0 +1,757 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-26T19:55:35.690Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "f303cbcd0dd302d11234765594d71b6dcebb30af8daee8a4a3baf89336e9b227",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "e6893bda7be60727c3b333dd9606446cf890f50978e9921d2b32a085e6c209b5"
+  },
+  "fixture_sha256": "e8706a2ad9c9eab14de3537bb09fc76b8e1391ebf6339b81ceb66716f2259611",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "f44842e2d83ced45b2eacf5baa7d98de553548c3",
+    "tree": "11452c754340b8ea0c52a61820bc6eb150ca4098",
+    "dirty_diff_sha256": "5f4f7be405c231cbee0007ffe8f038b74c0a99ad14408a36b568574815b1f7eb",
+    "source_manifest_sha256": "950c5ff94c4bb23be10f280f0b36708464fec395fb4e1a5ea70d139fd1b91066",
+    "build_provenance": "Existing binary; build/source association not attested by this run",
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "baed56776aa8332cbdb60592c541044e5eb6030c8e7034cd0b9df19c9496b3b4",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "FAILED",
+      "reason": "stream not held"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-stream-detach",
+      "status": "UNSTABLE_CAPTURE",
+      "reason": "VT grid changed during PNG capture"
+    },
+    {
+      "origin": "oc",
+      "scenario": "stream-detached-before",
+      "status": "UNSTABLE_CAPTURE",
+      "reason": "VT grid changed during PNG capture"
+    },
+    {
+      "origin": "oc",
+      "status": "FAILED",
+      "reason": "stream not held"
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-shell-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-shell-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-165-single-up",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-165-single-up",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-165-burst-up",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-165-burst-up",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-165-reverse",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-165-reverse",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-165-top-edge",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-165-top-edge",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-165-bottom-edge",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-165-bottom-edge",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-250-single-up",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-250-single-up",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-250-burst-up",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-250-burst-up",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-250-reverse",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-250-reverse",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-250-top-edge",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-250-top-edge",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-250-bottom-edge",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-250-bottom-edge",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-models-before",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-models-before",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-models-up",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-models-up",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-models-down",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-models-down",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-stream-detach",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-stream-detach",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "stream-detached-before",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "stream-detached-before",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "stream-detached-after",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "stream-detached-after",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-stream-3-repin",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "wheel-stream-3-repin",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "failure-diagnostic",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "failure-diagnostic",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "1693a501b9da19358a3aa7f0350a1bc8f9b11175684d65877a5f28556700299e",
+      "png_sha256": "ceee440c728fd103cad74f451642dc62f03ac68966dc05fdb473db3b2df46507",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-shell-completed",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3ac6c427ed71b93761201b07a069f0787cabdeff8e39dd2a943327e492519112",
+      "png_sha256": "ddba5b2bfc8a69e4083726924dd39a8e1d8fde2ce8f25239032aab0361d988b8",
+      "render_sha256": "5129eb5ffddd2afa797ea7561d8b0436b3b7d5fd0189dae71e266cfae4d6f5d4",
+      "path": "upstream/wheel-shell-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-165-single-up",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "5ddf549f3a7120d0f3d55d2da31f24c6e55aa92f7dc445de61a600becf9a9931",
+      "png_sha256": "e15769e6874634afa3ed57f3eab83595ce12190ad41b2b096b43b16a9c0e9728",
+      "render_sha256": "1540c55dc0803eef0fc31ea491299a08b7aa564bee6fb82f2db57a7ca48d4660",
+      "path": "upstream/wheel-165-single-up"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-165-burst-up",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2a9f282c53044fa52e553effd5fbfb8dce2d4a7a98c4d2c42daeb9423690f7b5",
+      "png_sha256": "e0961881b0c684b9fd4b748b0a4cdce948487b3bea25a22b70c20706323d47b7",
+      "render_sha256": "aa50e6986f90df24b4dad7b0752982af3f8720584fa51506b67e52bc8f43c4ec",
+      "path": "upstream/wheel-165-burst-up"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-165-reverse",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "a58c11815396bb9668647785f5944551b68aff4f21e8e649b5b98e41cbbcaf15",
+      "png_sha256": "5c3f3bb5a400c6c8a805feaccb26aea45bafdf4010a09040c1772e09bbbcf140",
+      "render_sha256": "570384b4bf6783d2e4ed214f7584e2d4207ab25748fb487efe1013826c7e03b9",
+      "path": "upstream/wheel-165-reverse"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-165-top-edge",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "4dfc87044160b653646e4904dcb8b0d6791a136ce7e42cd106847fe74128f4f0",
+      "png_sha256": "5b20c966251fdee3bf78cf171e93f1ef99f5a231b0fdfdce906f75699ed171ad",
+      "render_sha256": "b2908b479e94ea62dd6000cc1ceeec746647c6f96041f66d3abb8759eae30d67",
+      "path": "upstream/wheel-165-top-edge"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-165-bottom-edge",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "b57395f9ae4b68e36d4328b17dcad9b4c4e32b891c5bc9dea3a09ebd6ea9bb30",
+      "png_sha256": "25ddee27994b99c570dacaeb33aa59e7bceecd00fca86b002072dac6925e2593",
+      "render_sha256": "cc68b4870ca48f818394352a05a6b004754ae300e0f0af98d55ea39b1bd648e5",
+      "path": "upstream/wheel-165-bottom-edge"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-250-single-up",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "12c32e03cfdf0e05db4c0a237cf6633c0f435425920773a3d1848fbbfb99bce8",
+      "png_sha256": "e15769e6874634afa3ed57f3eab83595ce12190ad41b2b096b43b16a9c0e9728",
+      "render_sha256": "f11a5bc4cb06ad75989ac96865a1f447f4bdec698dcfd1a2dc710d14aab6b679",
+      "path": "upstream/wheel-250-single-up"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-250-burst-up",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ff377029bb1d72e285f7aa962ae5d67fff14cec904560372f70fc743eef2350f",
+      "png_sha256": "e0961881b0c684b9fd4b748b0a4cdce948487b3bea25a22b70c20706323d47b7",
+      "render_sha256": "a1df9a86c145ad3b88677dc6f732bd610720dd3d5f7ea14370e7dd5adfbbb127",
+      "path": "upstream/wheel-250-burst-up"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-250-reverse",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2275ff2cc9f50dae4dc1f7b3e8a6d3a2db6f500ae926af5657de3dbb0c903f15",
+      "png_sha256": "5c3f3bb5a400c6c8a805feaccb26aea45bafdf4010a09040c1772e09bbbcf140",
+      "render_sha256": "b1de5d33fa5b8dc4f5070d3c908b3a36d1d5ba2338a58499d8587374ba4dd9d1",
+      "path": "upstream/wheel-250-reverse"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-250-top-edge",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c0ef6d3a3e06288d4ea5601d12ec56a05992ee5c8cf4aa134ede26da186fcd5e",
+      "png_sha256": "5b20c966251fdee3bf78cf171e93f1ef99f5a231b0fdfdce906f75699ed171ad",
+      "render_sha256": "adc0b040b2ae47c9860ef22e8490e6300a2b1a62722843b8bc2f68f5c1b99db9",
+      "path": "upstream/wheel-250-top-edge"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-250-bottom-edge",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "6a337f346384f3955107ec4c6a816b0ca0457af4b8cef430c81b329fb3771852",
+      "png_sha256": "25ddee27994b99c570dacaeb33aa59e7bceecd00fca86b002072dac6925e2593",
+      "render_sha256": "e35e42e468d2adfb34cf2ff34ce331983349db42398e16510ce5c93740cdb409",
+      "path": "upstream/wheel-250-bottom-edge"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-models-before",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "b479b6ec6e1d71ab6617dab07be0704b09984504ea45d3b8a90fe29f2451d3e1",
+      "png_sha256": "a749a9726698187b8d0f051e6bc03b2fd07d0e06b6f865a0684ac981ea09da1e",
+      "render_sha256": "63636d00c1738f9e2be956668185ee525b2cbc579d3c5f6b0ec081944a03e271",
+      "path": "upstream/wheel-models-before"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-models-up",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "74afb8e18923ebedfd411b05439cf04eaa62e377b8761e55475d7378225e83b3",
+      "png_sha256": "a749a9726698187b8d0f051e6bc03b2fd07d0e06b6f865a0684ac981ea09da1e",
+      "render_sha256": "bb0278a4236459249938879b3bcd790c6adfca6e55ee90668bd9e8f4d2c360be",
+      "path": "upstream/wheel-models-up"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-models-down",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ca4aacfd66fd14f3a02baccf6d3866ee4360eb7d263f22124c9b0ffcd39475b5",
+      "png_sha256": "2a6cb296e78ec638ae368207a6f0654aee764cb4cfd460c9fc30ce5bf1a66d2d",
+      "render_sha256": "467bcc120deaacac9cfb87bc433cc4b5b5c7fb3e8444e038545004a268f182d1",
+      "path": "upstream/wheel-models-down"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-stream-detach",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3cf16f59f24a2d55cca28003d9f12fa1e30eed0a0a131af5c47ef145a7080f2b",
+      "png_sha256": "f54dc1e23c7f8c2ed1c2aab17f12b65d151181f7983e0993b364adbaa503bc63",
+      "render_sha256": "e05af6bf9218efbb84f85fc1dc52324d66b283a606189cb36daf004a992dc9fd",
+      "path": "upstream/wheel-stream-detach"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "stream-detached-before",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3dc47c65035095f87f42cd74f6ef7ab0a349fd2c9715c5fe4db3ba58d5c2b565",
+      "png_sha256": "f54dc1e23c7f8c2ed1c2aab17f12b65d151181f7983e0993b364adbaa503bc63",
+      "render_sha256": "2cb3865f00d3cf287e8313965aad0af633026f7fcbe95568c5ade0a137d82228",
+      "path": "upstream/stream-detached-before"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "stream-detached-after",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d77dc57a0b8b816b54e09ae49e31a4632ccd36f1fb6e1736b521451d22a422e4",
+      "png_sha256": "4cd78e378edff0b29533ef7e9b0621d9d776b0bdf731a15cc9fb9bb460488aa9",
+      "render_sha256": "f1cc041fd0223865645f87c70b5a9351ad3d22aa6d6cd8a13599ff46b47663db",
+      "path": "upstream/stream-detached-after"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "wheel-stream-3-repin",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "8e4c69ceab645e146d73f56e4cbd9d4ae5b6c535fd2d12b8833cfc267fe2f734",
+      "png_sha256": "f08f8b9adc7357899a9e7715aa7815c9559f1dd3ec04971c7c807edb6cba2528",
+      "render_sha256": "51702dba7ba398538b18b2bb2242bb60f0028ae225d5f757ec06ce45e196511b",
+      "path": "upstream/wheel-stream-3-repin"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "failure-diagnostic",
+      "status": "FAILED_STATE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f7380c3af8ff26c1aa6bc6fd0669c7c821bac6646183a0e508c460de5e2d794e",
+      "png_sha256": "c3adb69d738a712f87d7c23218e14ec3a2716b097bf9bcdb7fa3e7a80e7d4924",
+      "render_sha256": "667daa93d3778c042b5b811af2e13ae1c04645be627ffdeb4fee5b0bf52fb39b",
+      "path": "upstream/failure-diagnostic"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f1fb43a22f5b1216ab03c7d599a4afc7ee121dcb47ea978cc1b2feb9ad831bb1",
+      "png_sha256": "527c32468d212806c32203ef88c84e8afd0eb3b2c9f6f3e9a4103ca4b1541732",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-shell-completed",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "8b38c654c35fc21dbe49363673c8c89206937cdf2544d9003531afda379137e0",
+      "png_sha256": "d26d75ac5478344e6834651103744abfcb8949e0f8f673d44dfebc828be27461",
+      "render_sha256": "ae1fee6536b6d968c2e0214a10293b7bb6d448cc681fd5ff0e71559fdb26c70c",
+      "path": "oc/wheel-shell-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-165-single-up",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "0c19e912b7d6876f4379734a1a55f5e87a4ca5b38d9e7936fcfc7c58b714a13b",
+      "png_sha256": "70993d76bb6029d9dbb8e5b26768bb64e1f3d3aa5a14422b0640dd3aaac4f396",
+      "render_sha256": "a249cb917bb0d4898284ca9c6ebbcc88b082696c773923cc3090e4ab15f81987",
+      "path": "oc/wheel-165-single-up"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-165-burst-up",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "6c5ed6c64e1652c8a494e1dfd9ad69252ccc50e58455c02734dcfb0c936b00fa",
+      "png_sha256": "a868095169750a660038a7305b4232bc142c320666b21a0c8e0bb45de2f55183",
+      "render_sha256": "09ea0512baaf16305d7773fa6f7c28315845bdd27306066d2a5d1719015724d1",
+      "path": "oc/wheel-165-burst-up"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-165-reverse",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "baa02699b600a8c11119706001352c5deb8e5fc30feb5d76657fac75b24c2bc6",
+      "png_sha256": "edefbe219df6a63cd12315389995d179baa8decdd84b60310b3f703bb814bedb",
+      "render_sha256": "8b2722945430315bb1ba2caa3ce4482d5e58eb3f07971e3ae900d1b18ed6d9a5",
+      "path": "oc/wheel-165-reverse"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-165-top-edge",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "8eeaec2f14f273d3f75cda7a0aaf26e6cdc50ea4b41c73568b3e5c6d94f019a7",
+      "png_sha256": "ff3fc8b453ec36a1c1aa6d1f75eddafc485136dd0f82c64ad2a1121efe87bd2c",
+      "render_sha256": "3e493065bb1e48481f22134a09892f1ea99bd9dc83c7d535a8acfa9e47667513",
+      "path": "oc/wheel-165-top-edge"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-165-bottom-edge",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "43e021b9368e32c4343dd31a146e918ab4ba6d0f03bd46f3e2875ffad0f88c80",
+      "png_sha256": "21954217739874bbb2fe04f435e86280dc0894a37de3c66484b501b9f1271d17",
+      "render_sha256": "6b43aa83f0d1d7b46f3abcae087356e1eac805528ef94c5d8b0fadf9523d0f2a",
+      "path": "oc/wheel-165-bottom-edge"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-250-single-up",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f3e5f1689c94d7f3dc5723b9f0f2159fd4d577bf077e88fe6acd0d5603a8c5cb",
+      "png_sha256": "70993d76bb6029d9dbb8e5b26768bb64e1f3d3aa5a14422b0640dd3aaac4f396",
+      "render_sha256": "dfdd772ef9f5484e8c53590cf667708200906651fffcb75c4f5956f7d80e9bcd",
+      "path": "oc/wheel-250-single-up"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-250-burst-up",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "32482df8ae1b99b7f468e4aeba17e6dc025c4a3ba8d5db6dd854a7cc15a83736",
+      "png_sha256": "a868095169750a660038a7305b4232bc142c320666b21a0c8e0bb45de2f55183",
+      "render_sha256": "065ee7a6e6b14778dd20b4e1a64c775f052ee98818bea3b72e27c61f1c35a546",
+      "path": "oc/wheel-250-burst-up"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-250-reverse",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3c332fd68d9cc39645a8367dd71e2839285049d32b349906ea0cdc0a22be4bfe",
+      "png_sha256": "edefbe219df6a63cd12315389995d179baa8decdd84b60310b3f703bb814bedb",
+      "render_sha256": "3cdffc4a0f44c7bedfcfb3d784d0bbe785f7c6a45b8cbd6e41f462aec68a7f8b",
+      "path": "oc/wheel-250-reverse"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-250-top-edge",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "8e2383d1dc113e7f772c418a2816db2fc2f2c5585931f34dad9b4328fb8f867a",
+      "png_sha256": "ff3fc8b453ec36a1c1aa6d1f75eddafc485136dd0f82c64ad2a1121efe87bd2c",
+      "render_sha256": "4d721209f2bfe63372a9ee5722eb147c2cf6ebf557bb4449c1b6f34fd6e40220",
+      "path": "oc/wheel-250-top-edge"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-250-bottom-edge",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "8b6fb56b321ef790a7ba0ad45107ae896ee82f8b1311687e54dcefb5041cd42a",
+      "png_sha256": "21954217739874bbb2fe04f435e86280dc0894a37de3c66484b501b9f1271d17",
+      "render_sha256": "72ab5915603551f2a264585a12517486073cced629e30b92a2bc3155dd808f9e",
+      "path": "oc/wheel-250-bottom-edge"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-models-before",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "296583835782cf699e7a84211ff91d9b80be32ebf1883d968d72562e6bbcc649",
+      "png_sha256": "f4b21888fc6266c8b73f54646292e2056a4dc4060337c130afe32576fcfae84c",
+      "render_sha256": "9e4f57b4018047e502e4320c8f83556a60eb824898c22bc80b516430cf5fbaec",
+      "path": "oc/wheel-models-before"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-models-up",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e4ed58fd890a56aa5ae258c217ff31e0d0b4a6bf4e2aeb335bca49d1b27f7d2a",
+      "png_sha256": "f4b21888fc6266c8b73f54646292e2056a4dc4060337c130afe32576fcfae84c",
+      "render_sha256": "31ed81ad8e5ab13909eae497f621633b5d82469099e49eda1f3626b05be2cf84",
+      "path": "oc/wheel-models-up"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-models-down",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ec5cf0beead96bda41d4ecbcce65b16113bfb4cbec70b952035cb142634b87a0",
+      "png_sha256": "e5216c0336c3c8216393ce27c76fa4fdf31d830ec53c0d72b3b575e08ce38a27",
+      "render_sha256": "a4953f59a2eea194b9ebb155134637d269d49f928560c1e17207b053f131f473",
+      "path": "oc/wheel-models-down"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-stream-detach",
+      "status": "UNSTABLE_CAPTURE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "70294c6b0b81f97ec037504f7a36c0529e002d1e5f492b38c729280dd13d5937",
+      "png_sha256": "3393a05d18ce9446b8835a63f64b4f2ef3170b373d77a51cfaaeaa9cc9ae8436",
+      "render_sha256": "998cc7c5ee4a276817e234df5348e02202cf7df2d321b54b2551f4b72fa88ec1",
+      "path": "oc/wheel-stream-detach"
+    },
+    {
+      "origin": "oc",
+      "scenario": "stream-detached-before",
+      "status": "UNSTABLE_CAPTURE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "18899d55d070d9b800eb109d2df6b6798266b9d3c98a260b646e93e621b85fb3",
+      "png_sha256": "5a43cb357bab3bc5cc00dd8cfcf401e6c65041ad25efb2797acdd916f07ba068",
+      "render_sha256": "4de873515cae20b88ad8ec081a60895742f3e905dca174a185a9e036dc484e6c",
+      "path": "oc/stream-detached-before"
+    },
+    {
+      "origin": "oc",
+      "scenario": "stream-detached-after",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "fadda15f6225ea70d04d7ee3c418618e738de4ec45da721671db8c603111e57a",
+      "png_sha256": "b60bae0913f396abb23dbac335b81e420ae0d850f15263307fc639341a0f2874",
+      "render_sha256": "3f0d650d76af4ebd1344c1259b1dc8713f91ebbec8304e4b7543afe5c36c7e72",
+      "path": "oc/stream-detached-after"
+    },
+    {
+      "origin": "oc",
+      "scenario": "wheel-stream-3-repin",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "1020d8ca85194facab6f5e0d1a079824727967d98d4172bbf10aee64b89a08e4",
+      "png_sha256": "b60bae0913f396abb23dbac335b81e420ae0d850f15263307fc639341a0f2874",
+      "render_sha256": "9d21e0b8f79b1eff35d525f5e90aa7b00e694b27e85f27ff0dfdc82ab6382d8e",
+      "path": "oc/wheel-stream-3-repin"
+    },
+    {
+      "origin": "oc",
+      "scenario": "failure-diagnostic",
+      "status": "FAILED_STATE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "5fdee93becc810b3792676794ed97d87077405581cdc04ca031c86176b5b2d44",
+      "png_sha256": "8cb1953a43c6d9a1f078aa2a2cc9da253538a9436578f74113d10cbdf9bd8891",
+      "render_sha256": "6968cfc80fadd87764dc69b6cd9ceebba8b9bafe2d26f29220a7362958ddc72a",
+      "path": "oc/failure-diagnostic"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-26T19:58:13.927Z",
+  "exit_code": 1
+}

@@ -5,11 +5,13 @@
 //! into turn-scoped view state, and owns terminal setup/restore. UI never
 //! persists input or outcomes independently of application acceptance.
 
+use std::io::Write;
 use std::path::Path;
 use std::process::ExitCode;
 use std::time::{Duration, Instant};
 
 use crossterm::event::{self, Event as CEvent, MouseEventKind};
+use futures_util::{Stream, StreamExt};
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 
@@ -43,6 +45,53 @@ const PANIC_PROBE_ENV: &str = "OC_TUI_TEST_PANIC";
 /// in normal use.
 const METRICS_ENV: &str = "OC_TUI_TEST_METRICS";
 
+#[derive(Clone, Copy, Default)]
+struct WriteMetrics {
+    calls: u64,
+    flush_calls: u64,
+    bytes: u64,
+    sum_ns: u128,
+    max_ns: u128,
+}
+
+/// Instrument the actual backend writes only when the existing bounded probe
+/// is enabled. No terminal content is retained by this instrumentation.
+struct TerminalOutput {
+    stdout: std::io::Stdout,
+    metrics: Option<std::rc::Rc<std::cell::Cell<WriteMetrics>>>,
+}
+
+impl Write for TerminalOutput {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        let start = self.metrics.as_ref().map(|_| Instant::now());
+        let result = self.stdout.write(bytes);
+        if let (Some(metrics), Some(start)) = (&self.metrics, start) {
+            let mut value = metrics.get();
+            let elapsed = start.elapsed().as_nanos();
+            value.calls += 1;
+            value.bytes += result.as_ref().copied().unwrap_or(0) as u64;
+            value.sum_ns += elapsed;
+            value.max_ns = value.max_ns.max(elapsed);
+            metrics.set(value);
+        }
+        result
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        let start = self.metrics.as_ref().map(|_| Instant::now());
+        let result = self.stdout.flush();
+        if let (Some(metrics), Some(start)) = (&self.metrics, start) {
+            let mut value = metrics.get();
+            let elapsed = start.elapsed().as_nanos();
+            value.flush_calls += 1;
+            value.sum_ns += elapsed;
+            value.max_ns = value.max_ns.max(elapsed);
+            metrics.set(value);
+        }
+        result
+    }
+}
+
 #[derive(Default)]
 struct FrameMetrics {
     count: u64,
@@ -52,6 +101,14 @@ struct FrameMetrics {
     worker_event_queue_lagged: u64,
     live_current: LiveViewMetrics,
     live_peak: LiveViewMetrics,
+    started: Option<Instant>,
+    frame_samples: Vec<(u128, u128)>,
+    wakeups: u64,
+    input_events: u64,
+    worker_events: u64,
+    changed_frames: u64,
+    previous: Option<ratatui::buffer::Buffer>,
+    writes: WriteMetrics,
 }
 
 impl FrameMetrics {
@@ -78,6 +135,11 @@ impl FrameMetrics {
 /// Max key events drained per frame (paste bursts stay fast; a flooding
 /// input still yields to the worker drain below each frame).
 const MAX_KEYS_PER_FRAME: usize = 256;
+const MAX_WORKER_EVENTS_PER_FRAME: usize = 256;
+/// A short coalescing window, independent of animation cadence. Continuous
+/// activity cannot postpone its first dirty deadline.
+const FRAME_BUDGET: Duration = Duration::from_millis(2);
+const BURST_BUDGET: Duration = Duration::from_millis(2);
 const MAX_TABS: usize = 16;
 const MENTION_DEBOUNCE: Duration = Duration::from_millis(90);
 
@@ -263,6 +325,40 @@ async fn apply_conversation_refresh(state: &mut TuiState, refresh: ConversationR
 }
 
 impl LoopState {
+    fn has_jobs(&self) -> bool {
+        self.job_lanes() != 0
+    }
+
+    fn job_lanes(&self) -> u8 {
+        u8::from(self.conversation_job.is_some())
+            | (u8::from(self.recovery_job.is_some()) << 1)
+            | (u8::from(self.mention_job.is_some()) << 2)
+            | (u8::from(self.title_job.is_some()) << 3)
+            | (u8::from(self.reload_job.is_some()) << 4)
+    }
+
+    fn ready_job(&self) -> bool {
+        self.conversation_job
+            .as_ref()
+            .is_some_and(|job| job.is_finished())
+            || self
+                .recovery_job
+                .as_ref()
+                .is_some_and(|job| job.is_finished())
+            || self
+                .mention_job
+                .as_ref()
+                .is_some_and(|(_, job)| job.is_finished())
+            || self
+                .title_job
+                .as_ref()
+                .is_some_and(|(_, job)| job.is_finished())
+            || self
+                .reload_job
+                .as_ref()
+                .is_some_and(|job| job.is_finished())
+    }
+
     fn can_open_session(&self) -> bool {
         self.tabs.len() < MAX_TABS - usize::from(self.home.is_some() || self.active_tab.is_none())
     }
@@ -651,7 +747,12 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
     if std::env::var_os(PANIC_PROBE_ENV).is_some() {
         panic!("{PANIC_PROBE_ENV} probe");
     }
-    let backend = CrosstermBackend::new(std::io::stdout());
+    let output_metrics = std::env::var_os(METRICS_ENV)
+        .map(|_| std::rc::Rc::new(std::cell::Cell::new(WriteMetrics::default())));
+    let backend = CrosstermBackend::new(TerminalOutput {
+        stdout: std::io::stdout(),
+        metrics: output_metrics.clone(),
+    });
     let mut terminal = Terminal::new(backend).map_err(|e| format!("terminal: {e}"))?;
     let (mut state, mut loop_state) = match restore_initial(app, session).await {
         Ok(restored) => restored,
@@ -660,41 +761,44 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
     let mut rx = app.subscribe();
     loop_state.sync_tabs(&mut state);
     let mut frame_metrics = std::env::var_os(METRICS_ENV).map(|_| FrameMetrics::default());
+    // One Crossterm reader owns both terminal input and resize. Mixing its
+    // Mio reader with a second stdin readiness poller can lose edge events.
+    let mut input = event::EventStream::new();
+    let mut dirty = true;
+    let mut paint_at = Instant::now();
+    let mut worker_ready = None;
+    let mut input_pending = std::collections::VecDeque::new();
 
     loop {
-        state.tick_toast(Instant::now());
+        let had_pending = state.has_pending_submission();
+        let job_lanes = loop_state.job_lanes();
+        let job_ready = loop_state.ready_job();
+        dirty |= state.tick_ui(Instant::now());
         poll_and_sync(app, &mut state, &mut loop_state).await;
-        sync_mention(app, &mut state, &mut loop_state).await;
+        dirty |= sync_mention(app, &mut state, &mut loop_state).await;
         finish_conversation(app, &mut state, &mut loop_state).await;
-        if loop_state.reload_job.is_some() {
-            if loop_state.reload_painted
-                && loop_state
-                    .reload_job
-                    .as_ref()
-                    .is_some_and(|job| job.is_finished())
-            {
-                let job = loop_state.reload_job.take().expect("finished reload job");
-                let draft = loop_state.reload_draft.take();
-                match job.await.unwrap_or(Err(CoreError::Shutdown)) {
-                    Ok(snapshot) => {
-                        match finish_reload(app, &mut state, &mut loop_state, snapshot, draft).await
-                        {
-                            Ok(()) => state.push_transient_note(
-                                "Configuration reloaded",
-                                NoteVariant::Success,
-                            ),
-                            Err(message) => state.push_transient_note(&message, NoteVariant::Error),
-                        }
-                    }
-                    Err(error) => {
-                        state.push_transient_note(&reload_error(error), NoteVariant::Error)
+        dirty |= job_ready || had_pending != state.has_pending_submission();
+        if loop_state.reload_job.is_some()
+            && loop_state.reload_painted
+            && loop_state
+                .reload_job
+                .as_ref()
+                .is_some_and(|job| job.is_finished())
+        {
+            let job = loop_state.reload_job.take().expect("finished reload job");
+            let draft = loop_state.reload_draft.take();
+            match job.await.unwrap_or(Err(CoreError::Shutdown)) {
+                Ok(snapshot) => {
+                    match finish_reload(app, &mut state, &mut loop_state, snapshot, draft).await {
+                        Ok(()) => state
+                            .push_transient_note("Configuration reloaded", NoteVariant::Success),
+                        Err(message) => state.push_transient_note(&message, NoteVariant::Error),
                     }
                 }
-                loop_state.reload_painted = false;
-                loop_state.sync_tabs(&mut state);
-            } else {
-                loop_state.reload_painted = true;
+                Err(error) => state.push_transient_note(&reload_error(error), NoteVariant::Error),
             }
+            loop_state.reload_painted = false;
+            loop_state.sync_tabs(&mut state);
         }
         if loop_state
             .title_job
@@ -719,42 +823,89 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
         }
         // Reconciliation may have just accepted the first running turn. Arm
         // its clock before the first painted frame, rather than one poll late.
-        state.tick_scanner(Instant::now());
-        let draw_start = frame_metrics.as_ref().map(|_| Instant::now());
-        terminal
-            .draw(|frame| render_frame(frame, &state))
-            .map_err(|e| format!("draw: {e}"))?;
-        if let (Some(metrics), Some(start)) = (&mut frame_metrics, draw_start) {
-            let elapsed = start.elapsed().as_nanos();
-            metrics.count += 1;
-            metrics.sum_ns += elapsed;
-            metrics.max_ns = metrics.max_ns.max(elapsed);
-            metrics.sample_views(&state, &loop_state);
+        // A job can finish after ready_job was sampled above. Its removal or
+        // replacement must still paint the accepted receipt in this iteration.
+        dirty |= job_lanes != loop_state.job_lanes();
+        dirty |= state.tick_scanner(Instant::now());
+        if dirty && Instant::now() >= paint_at {
+            let draw_start = frame_metrics.as_ref().map(|_| Instant::now());
+            let painted = terminal
+                .draw(|frame| render_frame(frame, &state))
+                .map_err(|e| format!("draw: {e}"))?;
+            if let (Some(metrics), Some(start)) = (&mut frame_metrics, draw_start) {
+                let elapsed = start.elapsed().as_nanos();
+                metrics.count += 1;
+                metrics.sum_ns += elapsed;
+                metrics.max_ns = metrics.max_ns.max(elapsed);
+                let origin = *metrics.started.get_or_insert(start);
+                if metrics.frame_samples.len() < 4096 {
+                    metrics
+                        .frame_samples
+                        .push((start.duration_since(origin).as_nanos(), elapsed));
+                }
+                if metrics.previous.as_ref() != Some(painted.buffer) {
+                    metrics.changed_frames += 1;
+                }
+                metrics.previous = Some(painted.buffer.clone());
+                metrics.sample_views(&state, &loop_state);
+                metrics.writes = output_metrics.as_ref().expect("metrics enabled").get();
+            }
+            dirty = false;
+            paint_at = Instant::now() + FRAME_BUDGET;
+            if loop_state.reload_job.is_some() {
+                loop_state.reload_painted = true;
+            }
         }
         if *state.status() == TuiStatus::Quit {
             break;
         }
-        // Keys: one 50 ms poll keeps streaming responsive without a busy
-        // loop, then drain everything already pending — pastes arrive as
-        // char bursts and one-event-per-frame would take a minute for a
-        // large paste. The drain is bounded so a flooding input cannot
-        // starve the worker drain below.
-        let poll_interval =
-            if *state.status() == TuiStatus::Streaming && state.chrome.animations != Some(false) {
-                Duration::from_millis(40)
-            } else {
-                Duration::from_millis(50)
+        // Drain bounded ready bursts on both lanes before considering sleep.
+        // Count and elapsed-time limits give paints and provider events a turn.
+        let burst_start = Instant::now();
+        for _ in input_pending.len()..MAX_KEYS_PER_FRAME {
+            // Register the actual UI task's waker even for a nonblocking
+            // drain. now_or_never() would register a noop waker in Crossterm's
+            // blocking reader and strand the following select at stable idle.
+            let ready = std::future::poll_fn(|cx| {
+                let item = std::pin::Pin::new(&mut input).poll_next(cx);
+                std::task::Poll::Ready(match item {
+                    std::task::Poll::Ready(item) => Some(item),
+                    std::task::Poll::Pending => None,
+                })
+            })
+            .await;
+            let cev = match ready {
+                Some(Some(Ok(event))) => event,
+                Some(Some(Err(error))) => return Err(format!("input: {error}")),
+                Some(None) => return Err("terminal input closed".into()),
+                None => break,
             };
-        if event::poll(poll_interval).map_err(|e| format!("input: {e}"))? {
-            for _ in 0..MAX_KEYS_PER_FRAME {
-                if !event::poll(Duration::ZERO).map_err(|e| format!("input: {e}"))? {
+            if let Some(metrics) = &mut frame_metrics {
+                metrics.input_events += 1;
+            }
+            let coalesce = matches!(&cev, CEvent::Mouse(mouse) if matches!(mouse.kind, MouseEventKind::ScrollUp | MouseEventKind::ScrollDown))
+                && input_pending
+                    .back()
+                    .is_some_and(|(previous, _)| *previous == cev);
+            if coalesce {
+                input_pending.back_mut().expect("compatible wheel").1 += 1;
+            } else {
+                input_pending.push_back((cev, 1));
+            }
+            if burst_start.elapsed() >= BURST_BUDGET {
+                break;
+            }
+        }
+        let handling_start = Instant::now();
+        for _ in 0..MAX_KEYS_PER_FRAME {
+            if let Some((cev, ticks)) = input_pending.pop_front() {
+                handle_event_ticks(app, &mut state, &mut loop_state, cev, ticks).await?;
+                dirty = true;
+                if *state.status() == TuiStatus::Quit || handling_start.elapsed() >= BURST_BUDGET {
                     break;
                 }
-                let cev = event::read().map_err(|e| format!("input: {e}"))?;
-                handle_event(app, &mut state, &mut loop_state, cev).await?;
-                if *state.status() == TuiStatus::Quit {
-                    break;
-                }
+            } else {
+                break;
             }
         }
         // Quit stops input/event processing; the unique pending Home receipt
@@ -767,7 +918,20 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
         if let Some(metrics) = frame_metrics.as_mut() {
             metrics.worker_event_queue_peak = metrics.worker_event_queue_peak.max(rx.len());
         }
-        while let Ok(event) = try_worker_event(&mut rx, frame_metrics.as_mut()) {
+        let worker_start = Instant::now();
+        for _ in 0..MAX_WORKER_EVENTS_PER_FRAME {
+            let event = match worker_ready
+                .take()
+                .map(Ok)
+                .unwrap_or_else(|| try_worker_event(&mut rx, frame_metrics.as_mut()))
+            {
+                Ok(event) => event,
+                Err(_) => break,
+            };
+            dirty = true;
+            if let Some(metrics) = &mut frame_metrics {
+                metrics.worker_events += 1;
+            }
             poll_and_sync(app, &mut state, &mut loop_state).await;
             if let Some(current) = state.attached_session().cloned() {
                 handle_worker_event(app, &mut state, &mut loop_state, &current, event).await?;
@@ -776,12 +940,15 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
             if let Some(metrics) = frame_metrics.as_mut() {
                 metrics.worker_event_queue_peak = metrics.worker_event_queue_peak.max(rx.len());
             }
+            if worker_start.elapsed() >= BURST_BUDGET {
+                break;
+            }
         }
         if let Some(metrics) = frame_metrics.as_mut() {
             metrics.worker_event_queue_peak = metrics.worker_event_queue_peak.max(rx.len());
         }
         // Arm the debounce for the final caret/edit after the key burst.
-        sync_mention(app, &mut state, &mut loop_state).await;
+        dirty |= sync_mention(app, &mut state, &mut loop_state).await;
         // The DCP panel shows runtime counters: refresh when it opens.
         if *state.panel() == TuiPanel::Dcp && !loop_state.dcp_seen {
             if let Some(current) = state.attached_session().cloned() {
@@ -790,6 +957,56 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
             loop_state.dcp_seen = true;
         } else if *state.panel() != TuiPanel::Dcp {
             loop_state.dcp_seen = false;
+        }
+        if dirty && Instant::now() >= paint_at {
+            continue;
+        }
+        let mut deadline = state.next_ui_deadline();
+        if dirty {
+            deadline = Some(deadline.map_or(paint_at, |at| at.min(paint_at)));
+        }
+        if state.has_pending_submission() || loop_state.has_jobs() {
+            let check = Instant::now() + FRAME_BUDGET;
+            deadline = Some(deadline.map_or(check, |at| at.min(check)));
+        }
+        if let Some((_, since)) = &loop_state.mention_pending {
+            let at = *since + MENTION_DEBOUNCE;
+            if at > Instant::now() {
+                deadline = Some(deadline.map_or(at, |d| d.min(at)));
+            }
+        }
+        if loop_state.recovery_job.is_none()
+            && loop_state.conversation_job.is_none()
+            && let Some((_, at)) = &loop_state.conversation_recovery
+        {
+            deadline = Some(deadline.map_or(*at, |d| d.min(*at)));
+        }
+        tokio::select! {
+            event = input.next() => {
+                let event = event.ok_or("terminal input closed")?.map_err(|e| format!("input: {e}"))?;
+                if let Some(metrics) = &mut frame_metrics { metrics.input_events += 1; }
+                input_pending.push_back((event, 1));
+            }
+            result = rx.recv() => {
+                match result {
+                    Ok(event) => worker_ready = Some(event),
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
+                        if let Some(metrics) = &mut frame_metrics {
+                            metrics.worker_event_queue_lagged += skipped;
+                        }
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => return Err("application event channel closed".into()),
+                }
+            }
+            _ = async {
+                match deadline {
+                    Some(at) => tokio::time::sleep_until(at.into()).await,
+                    None => std::future::pending::<()>().await,
+                }
+            } => {}
+        }
+        if let Some(metrics) = &mut frame_metrics {
+            metrics.wakeups += 1;
         }
     }
     if let Some((session, job)) = loop_state.title_job.take() {
@@ -847,7 +1064,8 @@ fn try_worker_event(
 /// Never await the owner on a key. The quiet period avoids owner-side blocking
 /// work for intermediate edits; aborting a JoinHandle alone cannot stop a
 /// request that the owner has already started. Only deliver exact-key results.
-async fn sync_mention(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+async fn sync_mention(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) -> bool {
+    let mut changed = false;
     let current = state.mention_request();
     if deck.mention_pending.as_ref().map(|(key, _)| key) != current.as_ref() {
         deck.mention_pending = current.clone().map(|key| (key, Instant::now()));
@@ -871,7 +1089,8 @@ async fn sync_mention(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState)
         let (key, job) = deck.mention_job.take().expect("finished mention job");
         match job.await {
             Ok(Ok(snapshot)) => {
-                if !state.apply_file_suggestions(key.clone(), snapshot) {
+                changed = state.apply_file_suggestions(key.clone(), snapshot);
+                if !changed {
                     deck.mention_failed = Some(key);
                 }
             }
@@ -894,6 +1113,7 @@ async fn sync_mention(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState)
             tokio::spawn(async move { owner.file_suggestions(query, MENTION_LIMIT).await }),
         ));
     }
+    changed
 }
 
 async fn poll_and_sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
@@ -1180,8 +1400,8 @@ async fn load_tab(app: &CoreApp, id: SessionId) -> Result<TuiState, CoreError> {
     Ok(state)
 }
 
-fn startup_failure(
-    terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>,
+fn startup_failure<W: Write>(
+    terminal: &mut Terminal<CrosstermBackend<W>>,
     failure: StartupFailure,
 ) -> Result<ExitCode, String> {
     use crossterm::event::{KeyCode, KeyModifiers};
@@ -1211,11 +1431,22 @@ pub fn interactive_ready() -> bool {
 /// Handle one Crossterm event: keys drive the open panel or the prompt,
 /// bracketed paste is one bounded input event, resize is picked up by the
 /// next draw (which re-queries the size).
+#[cfg(test)]
 async fn handle_event(
     app: &CoreApp,
     state: &mut TuiState,
     loop_state: &mut LoopState,
     cev: CEvent,
+) -> Result<(), String> {
+    handle_event_ticks(app, state, loop_state, cev, 1).await
+}
+
+async fn handle_event_ticks(
+    app: &CoreApp,
+    state: &mut TuiState,
+    loop_state: &mut LoopState,
+    cev: CEvent,
+    wheel_ticks: usize,
 ) -> Result<(), String> {
     let event = match cev {
         crossterm::event::Event::Key(key) => state.terminal_key(key).map(UiEvent::Key),
@@ -1283,21 +1514,27 @@ async fn handle_event(
                 // scrolling, but invalidate a held tab when it leaves the strip.
                 state.handle_mouse(mouse, area);
                 report_copy_request(state);
-                let outcome = state.scroll_transcript(mouse.kind == MouseEventKind::ScrollUp);
+                let outcome = state.wheel_transcript_at(
+                    mouse.kind == MouseEventKind::ScrollUp,
+                    wheel_ticks,
+                    Instant::now(),
+                );
                 apply_outcome(app, state, loop_state, outcome, false).await;
             } else {
-                let outcome = state.handle_mouse(mouse, area);
-                report_copy_request(state);
-                apply_mouse_outcome(
-                    app,
-                    state,
-                    loop_state,
-                    outcome,
-                    area,
-                    mouse.column,
-                    mouse.row,
-                )
-                .await;
+                for _ in 0..wheel_ticks {
+                    let outcome = state.handle_mouse(mouse, area);
+                    report_copy_request(state);
+                    apply_mouse_outcome(
+                        app,
+                        state,
+                        loop_state,
+                        outcome,
+                        area,
+                        mouse.column,
+                        mouse.row,
+                    )
+                    .await;
+                }
             }
         }
         Some(UiEvent::Resize) => state.clear_mouse_position(),
@@ -2456,7 +2693,7 @@ async fn handle_worker_event(
                     .history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
                     .await
                     .map_err(|e| e.to_string())?;
-                state.attach_page(&page);
+                state.refresh_completed_page(&page);
             }
             if compress {
                 report_compress_outcome(app, state, session).await?;
@@ -2557,6 +2794,16 @@ fn write_metrics(state: &TuiState, deck: &LoopState, frames: Option<&FrameMetric
         "frame_count": frames.map_or(0, |frames| frames.count),
         "frame_sum_ns": frames.map_or(0, |frames| frames.sum_ns),
         "frame_max_ns": frames.map_or(0, |frames| frames.max_ns),
+        "changed_frames": frames.map_or(0, |frames| frames.changed_frames),
+        "wakeups": frames.map_or(0, |frames| frames.wakeups),
+        "input_events": frames.map_or(0, |frames| frames.input_events),
+        "worker_events": frames.map_or(0, |frames| frames.worker_events),
+        "terminal_write_calls": frames.map_or(0, |frames| frames.writes.calls),
+        "terminal_flush_calls": frames.map_or(0, |frames| frames.writes.flush_calls),
+        "terminal_write_bytes": frames.map_or(0, |frames| frames.writes.bytes),
+        "terminal_write_sum_ns": frames.map_or(0, |frames| frames.writes.sum_ns),
+        "terminal_write_max_ns": frames.map_or(0, |frames| frames.writes.max_ns),
+        "frame_samples_ns": frames.map(|frames| &frames.frame_samples),
         "worker_event_queue_peak": frames.map_or(0, |frames| frames.worker_event_queue_peak),
         "worker_event_queue_lagged": frames.map_or(0, |frames| frames.worker_event_queue_lagged),
         "live_text_bytes_current": frames.map_or(0, |frames| frames.live_current.text_bytes),

@@ -21,6 +21,7 @@ import time
 import urllib.request
 
 scanner_release = threading.Event()
+wheel_release = threading.Event()
 
 
 def emit(value):
@@ -81,6 +82,9 @@ elif spec.get('sample') == 'rows-reflow':
     answer = '```text\n' + '\n'.join(
         f'ROW-{i:03}' + (' ' + 'x' * 90 if i <= 40 else '') for i in range(90)) + '\n```'
 catalog = json.loads((fixture / 'model-catalog.json').read_text())
+if spec.get('wheel_probe'):
+    template = catalog['models'][0]
+    catalog['models'].extend({**template, 'id':f'wheel-list-{n:02}', 'name':f'ZZ Wheel {n:02}'} for n in range(32))
 selected_model = 'fixture-scroll-11' if spec.get('models_interaction') else 'fixture-model-1'
 if spec.get('models_interaction'):
     # Identical test-only configured catalog on both sides; the normal eight
@@ -207,19 +211,21 @@ class Provider(BaseHTTPRequestHandler):
                     text = f'BOUNDED-VARIANT-{index}: completed.'
                 else:
                     shell_name = 'bash' if 'bash' in record['registered_tools'] else 'shell'
-                    valid = valid and index < 3 and shell_name in record['registered_tools']
+                    valid = valid and index < (5 if spec.get('wheel_probe') else 3) and shell_name in record['registered_tools']
                     schema = record['tool_schemas'].get(shell_name) or {}
                     valid = valid and ('command' in schema.get('properties', {}) or 'argv' in schema.get('properties', {}))
-                    expected_count = index
+                    expected_count = min(index, 2)
                     valid = valid and len(tool_results) == expected_count
                     outputs = {x.get('call_id'): str(x.get('output', '')) for x in tool_results}
-                    for i in range(index):
+                    for i in range(expected_count):
                         output = outputs.get(f'call_fixture_shell_{i}', '')
                         required = ['SHELL-SHORT'] if i == 0 else [f'SHELL-LINE-{n:02}' for n in range(1, 41)]
                         valid = valid and all(line in output for line in required) and 'permission denied' not in output.lower()
                     record['fixture_outputs_verified'] = valid
                     record['fixture_outputs'] = outputs
                     text = 'BOUNDED-SHELL: both real printf tools completed.'
+                    if spec.get('wheel_probe') and index >= 3:
+                        text = '```text\n' + ''.join(f'LIVE-{index}-{n:03}\n' for n in range(120)) + '```'
                 record['bounded_request_index'] = index
             record['valid'] = valid
         if spec.get('revert_redo'):
@@ -325,14 +331,38 @@ class Provider(BaseHTTPRequestHandler):
           ]
         payload = ''.join('event: ' + e['type'] + '\ndata: ' + json.dumps({**e, 'sequence_number': i}, ensure_ascii=False) + '\n\n'
                            for i, e in enumerate(events)).encode()
+        wheel_stream = spec.get('wheel_probe') and not is_title and index >= 3
         scanner_hold = spec.get('scanner') and not is_title and round_number == 0 and turn_number == 0
         prefix = ('event: response.created\ndata: ' + json.dumps({**events[0], 'sequence_number': 0}) + '\n\n').encode()
         self.send_response(200)
         self.send_header('Content-Type', 'text/event-stream')
-        self.send_header('Content-Length', str(len(payload)))
+        if not wheel_stream:
+            self.send_header('Content-Length', str(len(payload)))
         self.end_headers()
         try:
-            if scanner_hold:
+            if wheel_stream:
+                wheel_release.clear()
+                sequence = 0
+                def stream_event(event):
+                    nonlocal sequence
+                    self.wfile.write(('event: '+event['type']+'\ndata: '+json.dumps({**event,'sequence_number':sequence})+'\n\n').encode())
+                    self.wfile.flush()
+                    sequence += 1
+                for event in events[:3]:
+                    stream_event(event)
+                # A real Responses event burst followed by a held active stream.
+                # Both applications receive identical text deltas and cadence.
+                pieces = text.splitlines(keepends=True)
+                for n, piece in enumerate(pieces):
+                    stream_event({**events[3], 'delta':piece})
+                    if n == 60:
+                        emit({'kind':'wheel_stream_held','index':index,'at_ns':time.monotonic_ns()})
+                        wheel_release.wait(30)
+                    elif n > 60:
+                        time.sleep(.008)
+                for event in events[4:]:
+                    stream_event(event)
+            elif scanner_hold:
                 self.wfile.write(prefix)
                 self.wfile.flush()
                 emit({'kind': 'scanner_held', 'timeout_seconds': 60})
@@ -440,7 +470,9 @@ env = {'HOME': str(home), 'XDG_CONFIG_HOME': str(home / 'config'), 'XDG_CACHE_HO
        'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'OC_TEST_ALLOW_LOOPBACK': '1',
        'OPENCODE_TEST_HOME': str(home), 'OPENCODE_DISABLE_AUTOUPDATE': '1',
        'OPENCODE_DISABLE_MODELS_FETCH': 'true', 'OPENCODE_DISABLE_FILEWATCHER': 'true',
-       'OPENCODE_CONFIG_CONTENT': json.dumps(config), 'OPENCODE_CONFIG_PROJECT_DISABLE': 'true'}
+        'OPENCODE_CONFIG_CONTENT': json.dumps(config), 'OPENCODE_CONFIG_PROJECT_DISABLE': 'true'}
+if spec.get('wheel_probe') and spec['origin'] == 'oc':
+    env['OC_TUI_TEST_METRICS'] = spec['metrics_path']
 version = subprocess.run([spec['binary'], '--version'], env=env, cwd=project, capture_output=True, timeout=20)
 if spec.get('seed_root') and spec['origin'] == 'upstream':
     # Supported import CLI with real parent metadata; no source-rendered frame,
@@ -493,7 +525,7 @@ try:
                     except OSError:
                         break
                     if data:
-                        emit({'kind': 'output', 'generation': generation, 'data': base64.b64encode(data).decode()})
+                        emit({'kind': 'output', 'generation': generation, 'at_ns':time.monotonic_ns(), 'data': base64.b64encode(data).decode()})
                 if sys.stdin in ready:
                     data = os.read(sys.stdin.fileno(), 65536)
                     if not data:
@@ -556,8 +588,33 @@ try:
                                     observations.append({'database':str(database),'error_type':type(error).__name__})
                             emit({'kind':'sessions_snapshot','request_id':command['request_id'],
                                   'observed_at_ms':int(time.time()*1000), 'observations':observations})
+                        elif command['kind'] in ('wheel_sequence', 'glyph_sequence') and spec.get('wheel_probe'):
+                            def inject(command=command):
+                                start = time.monotonic()
+                                values = command.get('events', list(range(32)))
+                                for i, value in enumerate(values):
+                                    time.sleep(max(0, start+i/command['hz']-time.monotonic()))
+                                    data = (f"\x1b[<{65 if value > 0 else 64};{command['x']};{command['y']}M".encode()
+                                            if command['kind'] == 'wheel_sequence' else chr(0x6000+command['hz']+value).encode())
+                                    at = time.monotonic_ns()
+                                    os.write(master, data)
+                                    emit({'kind':'paced_input','request_id':command['request_id'],'index':i,'at_ns':at,
+                                          'base64':base64.b64encode(data).decode()})
+                                emit({'kind':'paced_input_done','request_id':command['request_id'],'at_ns':time.monotonic_ns()})
+                            threading.Thread(target=inject, daemon=True).start()
+                        elif command['kind'] == 'process_sample' and spec.get('wheel_probe'):
+                            stat = Path(f'/proc/{child.pid}/stat').read_text().rsplit(') ', 1)[1].split()
+                            status = dict(line.split(':', 1) for line in Path(f'/proc/{child.pid}/status').read_text().splitlines() if ':' in line)
+                            emit({'kind':'process_sample', 'request_id':command['request_id'], 'at_ns':time.monotonic_ns(),
+                                  'pid':child.pid, 'cpu_ticks':int(stat[11])+int(stat[12]), 'clock_ticks_per_second':os.sysconf('SC_CLK_TCK'),
+                                  'voluntary_context_switches':int(status['voluntary_ctxt_switches']),
+                                  'involuntary_context_switches':int(status['nonvoluntary_ctxt_switches'])})
+                        elif command['kind'] == 'release_wheel' and spec.get('wheel_probe'):
+                            wheel_release.set()
                         elif command['kind'] == 'input':
                             os.write(master, base64.b64decode(command['data']))
+                            if spec.get('wheel_probe'):
+                                emit({'kind':'input_written','at_ns':time.monotonic_ns(),'base64':command['data']})
                         elif command['kind'] == 'resize':
                             fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', command['rows'], command['columns'], 0, 0))
                             os.killpg(child.pid, signal.SIGWINCH)

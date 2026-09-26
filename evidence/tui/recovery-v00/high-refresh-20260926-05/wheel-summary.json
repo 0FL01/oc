@@ -1,0 +1,5827 @@
+{
+  "root": "/home/opencode/ai/oc/evidence/tui/recovery-v00/high-refresh-20260926-05",
+  "origins": {
+    "upstream": {
+      "status": "MEASURED",
+      "stages": [
+        {
+          "name": "wheel-shell-completed",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "verified_real_outputs": true,
+          "visible_markers": [
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": []
+        },
+        {
+          "name": "expanded-idle",
+          "start_ns": 1130142697637020,
+          "end_ns": 1130143708146653,
+          "window_ms": 1010.509633,
+          "cpu_ticks": 1,
+          "cpu_ms": 10,
+          "terminal_bytes": 0,
+          "main_thread_voluntary_context_switches": 14,
+          "main_thread_involuntary_context_switches": 15,
+          "visible_markers": [],
+          "visible_list_entries": []
+        },
+        {
+          "name": "wheel-165-single-up",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 165,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": 6.159085,
+          "raw_pty_last_write_after_last_input_ms": 19.184038,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 618.1231049999988,
+          "last_changed_cell_ms": 618.1231049999988,
+          "settle_after_last_input_ms": 618.1231049999988,
+          "terminal_chunks": 2,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-15",
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24",
+            "SHELL-LINE-25",
+            "SHELL-LINE-26",
+            "SHELL-LINE-27",
+            "SHELL-LINE-28",
+            "SHELL-LINE-29",
+            "SHELL-LINE-30",
+            "SHELL-LINE-31",
+            "SHELL-LINE-32",
+            "SHELL-LINE-33",
+            "SHELL-LINE-34",
+            "SHELL-LINE-35",
+            "SHELL-LINE-36",
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-165-burst-up",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 165,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 9.465172,
+              "direction": -1
+            },
+            {
+              "at_ms": 12.106951,
+              "direction": -1
+            },
+            {
+              "at_ms": 18.185814,
+              "direction": -1
+            },
+            {
+              "at_ms": 24.288344,
+              "direction": -1
+            },
+            {
+              "at_ms": 30.295209,
+              "direction": -1
+            },
+            {
+              "at_ms": 36.358861,
+              "direction": -1
+            },
+            {
+              "at_ms": 42.416072,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": 6.635712,
+          "raw_pty_last_write_after_last_input_ms": 15.996418,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 664.9665459999997,
+          "last_changed_cell_ms": 664.9665459999997,
+          "settle_after_last_input_ms": 622.5504739999997,
+          "terminal_chunks": 5,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-01",
+            "SHELL-LINE-02",
+            "SHELL-LINE-03",
+            "SHELL-LINE-04",
+            "SHELL-LINE-05",
+            "SHELL-LINE-06",
+            "SHELL-LINE-07",
+            "SHELL-LINE-08",
+            "SHELL-LINE-09",
+            "SHELL-LINE-10",
+            "SHELL-LINE-11",
+            "SHELL-LINE-12",
+            "SHELL-LINE-13",
+            "SHELL-LINE-14",
+            "SHELL-LINE-15",
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-165-reverse",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 165,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 6.081016,
+              "direction": -1
+            },
+            {
+              "at_ms": 12.148344,
+              "direction": -1
+            },
+            {
+              "at_ms": 18.236341,
+              "direction": 1
+            },
+            {
+              "at_ms": 24.260492,
+              "direction": 1
+            },
+            {
+              "at_ms": 30.359337,
+              "direction": 1
+            }
+          ],
+          "raw_pty_first_write_ms": 2.164689,
+          "raw_pty_last_write_after_last_input_ms": 20.311025,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 640.8829289999994,
+          "last_changed_cell_ms": 640.8829289999994,
+          "settle_after_last_input_ms": 610.5235919999994,
+          "terminal_chunks": 6,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-01",
+            "SHELL-LINE-02",
+            "SHELL-LINE-03",
+            "SHELL-LINE-04",
+            "SHELL-LINE-05",
+            "SHELL-LINE-06",
+            "SHELL-LINE-07",
+            "SHELL-LINE-08",
+            "SHELL-LINE-09",
+            "SHELL-LINE-10",
+            "SHELL-LINE-11",
+            "SHELL-LINE-12",
+            "SHELL-LINE-13",
+            "SHELL-LINE-14",
+            "SHELL-LINE-15",
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-165-top-edge",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 165,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 6.066355,
+              "direction": -1
+            },
+            {
+              "at_ms": 12.13326,
+              "direction": -1
+            },
+            {
+              "at_ms": 18.197052,
+              "direction": -1
+            },
+            {
+              "at_ms": 24.236056,
+              "direction": -1
+            },
+            {
+              "at_ms": 30.313988,
+              "direction": -1
+            },
+            {
+              "at_ms": 36.396458,
+              "direction": -1
+            },
+            {
+              "at_ms": 42.429031,
+              "direction": -1
+            },
+            {
+              "at_ms": 48.502879,
+              "direction": -1
+            },
+            {
+              "at_ms": 54.576434,
+              "direction": -1
+            },
+            {
+              "at_ms": 60.619414,
+              "direction": -1
+            },
+            {
+              "at_ms": 66.686609,
+              "direction": -1
+            },
+            {
+              "at_ms": 73.050113,
+              "direction": -1
+            },
+            {
+              "at_ms": 78.803847,
+              "direction": -1
+            },
+            {
+              "at_ms": 87.590919,
+              "direction": -1
+            },
+            {
+              "at_ms": 90.912882,
+              "direction": -1
+            },
+            {
+              "at_ms": 96.973568,
+              "direction": -1
+            },
+            {
+              "at_ms": 103.042698,
+              "direction": -1
+            },
+            {
+              "at_ms": 110.592967,
+              "direction": -1
+            },
+            {
+              "at_ms": 115.165402,
+              "direction": -1
+            },
+            {
+              "at_ms": 121.214251,
+              "direction": -1
+            },
+            {
+              "at_ms": 127.279144,
+              "direction": -1
+            },
+            {
+              "at_ms": 133.338058,
+              "direction": -1
+            },
+            {
+              "at_ms": 139.390492,
+              "direction": -1
+            },
+            {
+              "at_ms": 145.463087,
+              "direction": -1
+            },
+            {
+              "at_ms": 151.515821,
+              "direction": -1
+            },
+            {
+              "at_ms": 157.591219,
+              "direction": -1
+            },
+            {
+              "at_ms": 163.631656,
+              "direction": -1
+            },
+            {
+              "at_ms": 169.699163,
+              "direction": -1
+            },
+            {
+              "at_ms": 175.778997,
+              "direction": -1
+            },
+            {
+              "at_ms": 181.812464,
+              "direction": -1
+            },
+            {
+              "at_ms": 187.877237,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": 2.580566,
+          "raw_pty_last_write_after_last_input_ms": -151.954273,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 421.26253099999303,
+          "last_changed_cell_ms": 421.26253099999303,
+          "settle_after_last_input_ms": 233.38529399999302,
+          "terminal_chunks": 5,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-01",
+            "SHELL-LINE-02",
+            "SHELL-LINE-03",
+            "SHELL-LINE-04",
+            "SHELL-LINE-05",
+            "SHELL-LINE-06",
+            "SHELL-LINE-07",
+            "SHELL-LINE-08",
+            "SHELL-LINE-09",
+            "SHELL-LINE-10",
+            "SHELL-LINE-11",
+            "SHELL-LINE-12",
+            "SHELL-LINE-13"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-165-bottom-edge",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 165,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": 1
+            },
+            {
+              "at_ms": 7.122815,
+              "direction": 1
+            },
+            {
+              "at_ms": 12.105209,
+              "direction": 1
+            },
+            {
+              "at_ms": 18.160608,
+              "direction": 1
+            },
+            {
+              "at_ms": 24.23851,
+              "direction": 1
+            },
+            {
+              "at_ms": 30.294178,
+              "direction": 1
+            },
+            {
+              "at_ms": 36.37076,
+              "direction": 1
+            },
+            {
+              "at_ms": 42.404735,
+              "direction": 1
+            },
+            {
+              "at_ms": 48.466284,
+              "direction": 1
+            },
+            {
+              "at_ms": 54.851879,
+              "direction": 1
+            },
+            {
+              "at_ms": 60.636109,
+              "direction": 1
+            },
+            {
+              "at_ms": 66.669804,
+              "direction": 1
+            },
+            {
+              "at_ms": 72.710742,
+              "direction": 1
+            },
+            {
+              "at_ms": 78.774043,
+              "direction": 1
+            },
+            {
+              "at_ms": 84.82898,
+              "direction": 1
+            },
+            {
+              "at_ms": 90.929607,
+              "direction": 1
+            },
+            {
+              "at_ms": 96.955571,
+              "direction": 1
+            },
+            {
+              "at_ms": 103.03066,
+              "direction": 1
+            },
+            {
+              "at_ms": 110.681772,
+              "direction": 1
+            },
+            {
+              "at_ms": 115.148998,
+              "direction": 1
+            },
+            {
+              "at_ms": 121.198648,
+              "direction": 1
+            },
+            {
+              "at_ms": 127.263461,
+              "direction": 1
+            },
+            {
+              "at_ms": 133.329436,
+              "direction": 1
+            },
+            {
+              "at_ms": 139.38258,
+              "direction": 1
+            },
+            {
+              "at_ms": 145.450748,
+              "direction": 1
+            },
+            {
+              "at_ms": 151.510914,
+              "direction": 1
+            },
+            {
+              "at_ms": 157.570189,
+              "direction": 1
+            },
+            {
+              "at_ms": 163.631535,
+              "direction": 1
+            },
+            {
+              "at_ms": 169.682518,
+              "direction": 1
+            },
+            {
+              "at_ms": 175.74742,
+              "direction": 1
+            },
+            {
+              "at_ms": 181.804181,
+              "direction": 1
+            },
+            {
+              "at_ms": 187.867792,
+              "direction": 1
+            }
+          ],
+          "raw_pty_first_write_ms": 3.042281,
+          "raw_pty_last_write_after_last_input_ms": -104.209224,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 460.18301999999676,
+          "last_changed_cell_ms": 460.18301999999676,
+          "settle_after_last_input_ms": 272.31522799999675,
+          "terminal_chunks": 7,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24",
+            "SHELL-LINE-25",
+            "SHELL-LINE-26",
+            "SHELL-LINE-27",
+            "SHELL-LINE-28",
+            "SHELL-LINE-29",
+            "SHELL-LINE-30",
+            "SHELL-LINE-31",
+            "SHELL-LINE-32",
+            "SHELL-LINE-33",
+            "SHELL-LINE-34",
+            "SHELL-LINE-35",
+            "SHELL-LINE-36",
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "settled-165-idle",
+          "start_ns": 1130152986357211,
+          "end_ns": 1130153999500682,
+          "window_ms": 1013.143471,
+          "cpu_ticks": 0,
+          "cpu_ms": 0,
+          "terminal_bytes": 0,
+          "main_thread_voluntary_context_switches": 15,
+          "main_thread_involuntary_context_switches": 3,
+          "visible_markers": [],
+          "visible_list_entries": []
+        },
+        {
+          "name": "wheel-250-single-up",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": 1.610756,
+          "raw_pty_last_write_after_last_input_ms": 18.868574,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 534.173870999999,
+          "last_changed_cell_ms": 534.173870999999,
+          "settle_after_last_input_ms": 534.173870999999,
+          "terminal_chunks": 3,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-15",
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24",
+            "SHELL-LINE-25",
+            "SHELL-LINE-26",
+            "SHELL-LINE-27",
+            "SHELL-LINE-28",
+            "SHELL-LINE-29",
+            "SHELL-LINE-30",
+            "SHELL-LINE-31",
+            "SHELL-LINE-32",
+            "SHELL-LINE-33",
+            "SHELL-LINE-34",
+            "SHELL-LINE-35",
+            "SHELL-LINE-36",
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-250-burst-up",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 3.987864,
+              "direction": -1
+            },
+            {
+              "at_ms": 7.98858,
+              "direction": -1
+            },
+            {
+              "at_ms": 12.006459,
+              "direction": -1
+            },
+            {
+              "at_ms": 16.006453,
+              "direction": -1
+            },
+            {
+              "at_ms": 19.995991,
+              "direction": -1
+            },
+            {
+              "at_ms": 24.000652,
+              "direction": -1
+            },
+            {
+              "at_ms": 28.016298,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": 1.353648,
+          "raw_pty_last_write_after_last_input_ms": 5.070175,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 652.4895260000048,
+          "last_changed_cell_ms": 652.4895260000048,
+          "settle_after_last_input_ms": 624.4732280000048,
+          "terminal_chunks": 3,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-01",
+            "SHELL-LINE-02",
+            "SHELL-LINE-03",
+            "SHELL-LINE-04",
+            "SHELL-LINE-05",
+            "SHELL-LINE-06",
+            "SHELL-LINE-07",
+            "SHELL-LINE-08",
+            "SHELL-LINE-09",
+            "SHELL-LINE-10",
+            "SHELL-LINE-11",
+            "SHELL-LINE-12",
+            "SHELL-LINE-13",
+            "SHELL-LINE-14",
+            "SHELL-LINE-15",
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-250-reverse",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 5.223136,
+              "direction": -1
+            },
+            {
+              "at_ms": 8.007519,
+              "direction": -1
+            },
+            {
+              "at_ms": 11.999791,
+              "direction": 1
+            },
+            {
+              "at_ms": 16.009749,
+              "direction": 1
+            },
+            {
+              "at_ms": 19.991154,
+              "direction": 1
+            }
+          ],
+          "raw_pty_first_write_ms": 2.984075,
+          "raw_pty_last_write_after_last_input_ms": 13.9912,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 650.8527919999979,
+          "last_changed_cell_ms": 650.8527919999979,
+          "settle_after_last_input_ms": 630.8616379999978,
+          "terminal_chunks": 3,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-01",
+            "SHELL-LINE-02",
+            "SHELL-LINE-03",
+            "SHELL-LINE-04",
+            "SHELL-LINE-05",
+            "SHELL-LINE-06",
+            "SHELL-LINE-07",
+            "SHELL-LINE-08",
+            "SHELL-LINE-09",
+            "SHELL-LINE-10",
+            "SHELL-LINE-11",
+            "SHELL-LINE-12",
+            "SHELL-LINE-13",
+            "SHELL-LINE-14",
+            "SHELL-LINE-15",
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-250-top-edge",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 4.007896,
+              "direction": -1
+            },
+            {
+              "at_ms": 7.984564,
+              "direction": -1
+            },
+            {
+              "at_ms": 11.984096,
+              "direction": -1
+            },
+            {
+              "at_ms": 15.979223,
+              "direction": -1
+            },
+            {
+              "at_ms": 20.103163,
+              "direction": -1
+            },
+            {
+              "at_ms": 23.977507,
+              "direction": -1
+            },
+            {
+              "at_ms": 27.987836,
+              "direction": -1
+            },
+            {
+              "at_ms": 31.977643,
+              "direction": -1
+            },
+            {
+              "at_ms": 35.974623,
+              "direction": -1
+            },
+            {
+              "at_ms": 39.980365,
+              "direction": -1
+            },
+            {
+              "at_ms": 43.982391,
+              "direction": -1
+            },
+            {
+              "at_ms": 47.982294,
+              "direction": -1
+            },
+            {
+              "at_ms": 51.984031,
+              "direction": -1
+            },
+            {
+              "at_ms": 55.983734,
+              "direction": -1
+            },
+            {
+              "at_ms": 59.984479,
+              "direction": -1
+            },
+            {
+              "at_ms": 64.013106,
+              "direction": -1
+            },
+            {
+              "at_ms": 67.98795,
+              "direction": -1
+            },
+            {
+              "at_ms": 71.985901,
+              "direction": -1
+            },
+            {
+              "at_ms": 75.989019,
+              "direction": -1
+            },
+            {
+              "at_ms": 79.98105,
+              "direction": -1
+            },
+            {
+              "at_ms": 83.992762,
+              "direction": -1
+            },
+            {
+              "at_ms": 87.981938,
+              "direction": -1
+            },
+            {
+              "at_ms": 91.981021,
+              "direction": -1
+            },
+            {
+              "at_ms": 96.282308,
+              "direction": -1
+            },
+            {
+              "at_ms": 99.994268,
+              "direction": -1
+            },
+            {
+              "at_ms": 104.33888,
+              "direction": -1
+            },
+            {
+              "at_ms": 109.369356,
+              "direction": -1
+            },
+            {
+              "at_ms": 111.970642,
+              "direction": -1
+            },
+            {
+              "at_ms": 116.735517,
+              "direction": -1
+            },
+            {
+              "at_ms": 119.970989,
+              "direction": -1
+            },
+            {
+              "at_ms": 123.974127,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": 3.638279,
+          "raw_pty_last_write_after_last_input_ms": -86.293965,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 547.5126960000052,
+          "last_changed_cell_ms": 547.5126960000052,
+          "settle_after_last_input_ms": 423.5385690000052,
+          "terminal_chunks": 5,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-01",
+            "SHELL-LINE-02",
+            "SHELL-LINE-03",
+            "SHELL-LINE-04",
+            "SHELL-LINE-05",
+            "SHELL-LINE-06",
+            "SHELL-LINE-07",
+            "SHELL-LINE-08",
+            "SHELL-LINE-09",
+            "SHELL-LINE-10",
+            "SHELL-LINE-11",
+            "SHELL-LINE-12",
+            "SHELL-LINE-13"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 3
+        },
+        {
+          "name": "wheel-250-bottom-edge",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": 1
+            },
+            {
+              "at_ms": 3.99133,
+              "direction": 1
+            },
+            {
+              "at_ms": 7.98925,
+              "direction": 1
+            },
+            {
+              "at_ms": 13.396633,
+              "direction": 1
+            },
+            {
+              "at_ms": 15.999282,
+              "direction": 1
+            },
+            {
+              "at_ms": 20.004594,
+              "direction": 1
+            },
+            {
+              "at_ms": 24.009875,
+              "direction": 1
+            },
+            {
+              "at_ms": 28.6883,
+              "direction": 1
+            },
+            {
+              "at_ms": 32.012656,
+              "direction": 1
+            },
+            {
+              "at_ms": 36.00579,
+              "direction": 1
+            },
+            {
+              "at_ms": 40.000795,
+              "direction": 1
+            },
+            {
+              "at_ms": 44.923498,
+              "direction": 1
+            },
+            {
+              "at_ms": 47.991909,
+              "direction": 1
+            },
+            {
+              "at_ms": 51.992503,
+              "direction": 1
+            },
+            {
+              "at_ms": 55.983613,
+              "direction": 1
+            },
+            {
+              "at_ms": 59.997287,
+              "direction": 1
+            },
+            {
+              "at_ms": 63.989719,
+              "direction": 1
+            },
+            {
+              "at_ms": 67.986237,
+              "direction": 1
+            },
+            {
+              "at_ms": 71.989446,
+              "direction": 1
+            },
+            {
+              "at_ms": 75.993304,
+              "direction": 1
+            },
+            {
+              "at_ms": 81.400607,
+              "direction": 1
+            },
+            {
+              "at_ms": 83.990657,
+              "direction": 1
+            },
+            {
+              "at_ms": 87.995969,
+              "direction": 1
+            },
+            {
+              "at_ms": 92.000539,
+              "direction": 1
+            },
+            {
+              "at_ms": 96.924324,
+              "direction": 1
+            },
+            {
+              "at_ms": 99.991222,
+              "direction": 1
+            },
+            {
+              "at_ms": 103.991015,
+              "direction": 1
+            },
+            {
+              "at_ms": 108.35103,
+              "direction": 1
+            },
+            {
+              "at_ms": 111.991293,
+              "direction": 1
+            },
+            {
+              "at_ms": 115.997315,
+              "direction": 1
+            },
+            {
+              "at_ms": 119.994664,
+              "direction": 1
+            },
+            {
+              "at_ms": 126.340491,
+              "direction": 1
+            }
+          ],
+          "raw_pty_first_write_ms": 1.617625,
+          "raw_pty_last_write_after_last_input_ms": -75.050727,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 609.4064010000002,
+          "last_changed_cell_ms": 609.4064010000002,
+          "settle_after_last_input_ms": 483.0659100000002,
+          "terminal_chunks": 6,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24",
+            "SHELL-LINE-25",
+            "SHELL-LINE-26",
+            "SHELL-LINE-27",
+            "SHELL-LINE-28",
+            "SHELL-LINE-29",
+            "SHELL-LINE-30",
+            "SHELL-LINE-31",
+            "SHELL-LINE-32",
+            "SHELL-LINE-33",
+            "SHELL-LINE-34",
+            "SHELL-LINE-35",
+            "SHELL-LINE-36",
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 3
+        },
+        {
+          "name": "settled-250-idle",
+          "start_ns": 1130162565935596,
+          "end_ns": 1130163576435495,
+          "window_ms": 1010.499899,
+          "cpu_ticks": 1,
+          "cpu_ms": 10,
+          "terminal_bytes": 0,
+          "main_thread_voluntary_context_switches": 14,
+          "main_thread_involuntary_context_switches": 3,
+          "visible_markers": [],
+          "visible_list_entries": []
+        },
+        {
+          "name": "wheel-models-before",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "visible_markers": [
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24",
+            "SHELL-LINE-25",
+            "SHELL-LINE-26",
+            "SHELL-LINE-27",
+            "SHELL-LINE-28",
+            "SHELL-LINE-29",
+            "SHELL-LINE-30",
+            "SHELL-LINE-31",
+            "SHELL-LINE-32",
+            "SHELL-LINE-33",
+            "SHELL-LINE-34",
+            "SHELL-LINE-35",
+            "SHELL-LINE-36",
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": [
+            "ZZ Wheel 00",
+            "ZZ Wheel 01",
+            "ZZ Wheel 02",
+            "ZZ Wheel 03",
+            "ZZ Wheel 04",
+            "ZZ Wheel 05"
+          ]
+        },
+        {
+          "name": "wheel-models-up",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 3.966013,
+              "direction": -1
+            },
+            {
+              "at_ms": 8.34106,
+              "direction": -1
+            },
+            {
+              "at_ms": 11.979399,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": null,
+          "raw_pty_last_write_after_last_input_ms": null,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": null,
+          "last_changed_cell_ms": null,
+          "settle_after_last_input_ms": null,
+          "terminal_chunks": 0,
+          "cursor_before": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24",
+            "SHELL-LINE-25",
+            "SHELL-LINE-26",
+            "SHELL-LINE-27",
+            "SHELL-LINE-28",
+            "SHELL-LINE-29",
+            "SHELL-LINE-30",
+            "SHELL-LINE-31",
+            "SHELL-LINE-32",
+            "SHELL-LINE-33",
+            "SHELL-LINE-34",
+            "SHELL-LINE-35",
+            "SHELL-LINE-36",
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": [
+            "ZZ Wheel 00",
+            "ZZ Wheel 01",
+            "ZZ Wheel 02",
+            "ZZ Wheel 03",
+            "ZZ Wheel 04",
+            "ZZ Wheel 05"
+          ],
+          "observation_count": 3
+        },
+        {
+          "name": "wheel-models-down",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": 1
+            },
+            {
+              "at_ms": 3.986332,
+              "direction": 1
+            },
+            {
+              "at_ms": 8.07589,
+              "direction": 1
+            },
+            {
+              "at_ms": 11.981532,
+              "direction": 1
+            }
+          ],
+          "raw_pty_first_write_ms": 2.053862,
+          "raw_pty_last_write_after_last_input_ms": 6.833161,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 665.6991190000044,
+          "last_changed_cell_ms": 665.6991190000044,
+          "settle_after_last_input_ms": 653.7175870000044,
+          "terminal_chunks": 2,
+          "cursor_before": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24",
+            "SHELL-LINE-25",
+            "SHELL-LINE-26",
+            "SHELL-LINE-27",
+            "SHELL-LINE-28",
+            "SHELL-LINE-29",
+            "SHELL-LINE-30",
+            "SHELL-LINE-31",
+            "SHELL-LINE-32",
+            "SHELL-LINE-33",
+            "SHELL-LINE-34",
+            "SHELL-LINE-35",
+            "SHELL-LINE-36",
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": [
+            "ZZ Wheel 04",
+            "ZZ Wheel 05",
+            "ZZ Wheel 06",
+            "ZZ Wheel 07",
+            "ZZ Wheel 08",
+            "ZZ Wheel 09",
+            "ZZ Wheel 10",
+            "ZZ Wheel 11",
+            "ZZ Wheel 12",
+            "ZZ Wheel 13",
+            "ZZ Wheel 14",
+            "ZZ Wheel 15",
+            "ZZ Wheel 16",
+            "ZZ Wheel 17"
+          ],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-stream-detach",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 165,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 6.172747,
+              "direction": -1
+            },
+            {
+              "at_ms": 12.115134,
+              "direction": -1
+            },
+            {
+              "at_ms": 18.161059,
+              "direction": -1
+            },
+            {
+              "at_ms": 27.994876,
+              "direction": -1
+            },
+            {
+              "at_ms": 30.28775,
+              "direction": -1
+            },
+            {
+              "at_ms": 36.330159,
+              "direction": -1
+            },
+            {
+              "at_ms": 42.403123,
+              "direction": -1
+            },
+            {
+              "at_ms": 48.462519,
+              "direction": -1
+            },
+            {
+              "at_ms": 54.519298,
+              "direction": -1
+            },
+            {
+              "at_ms": 60.594888,
+              "direction": -1
+            },
+            {
+              "at_ms": 66.651728,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": 2.002236,
+          "raw_pty_last_write_after_last_input_ms": 1.211315,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 654.2851599999995,
+          "last_changed_cell_ms": 654.2851599999995,
+          "settle_after_last_input_ms": 587.6334319999994,
+          "terminal_chunks": 5,
+          "cursor_before": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "LIVE-3-000",
+            "LIVE-3-001",
+            "LIVE-3-002",
+            "LIVE-3-003",
+            "LIVE-3-004",
+            "LIVE-3-005",
+            "LIVE-3-006",
+            "LIVE-3-007",
+            "LIVE-3-008",
+            "LIVE-3-009",
+            "LIVE-3-010",
+            "LIVE-3-011",
+            "LIVE-3-012",
+            "LIVE-3-013",
+            "LIVE-3-014",
+            "LIVE-3-015",
+            "LIVE-3-016",
+            "LIVE-3-017",
+            "LIVE-3-018",
+            "LIVE-3-019",
+            "LIVE-3-020",
+            "LIVE-3-021",
+            "LIVE-3-022",
+            "LIVE-3-023"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "stream-detached-before",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "visible_markers": [
+            "LIVE-3-000",
+            "LIVE-3-001",
+            "LIVE-3-002",
+            "LIVE-3-003",
+            "LIVE-3-004",
+            "LIVE-3-005",
+            "LIVE-3-006",
+            "LIVE-3-007",
+            "LIVE-3-008",
+            "LIVE-3-009",
+            "LIVE-3-010",
+            "LIVE-3-011",
+            "LIVE-3-012",
+            "LIVE-3-013",
+            "LIVE-3-014",
+            "LIVE-3-015",
+            "LIVE-3-016",
+            "LIVE-3-017",
+            "LIVE-3-018",
+            "LIVE-3-019",
+            "LIVE-3-020",
+            "LIVE-3-021",
+            "LIVE-3-022",
+            "LIVE-3-023"
+          ],
+          "visible_list_entries": []
+        },
+        {
+          "name": "stream-detached-after",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "anchor_unchanged": true,
+          "last_live_row_visible": false,
+          "visible_markers": [
+            "LIVE-3-000",
+            "LIVE-3-001",
+            "LIVE-3-002",
+            "LIVE-3-003",
+            "LIVE-3-004",
+            "LIVE-3-005",
+            "LIVE-3-006",
+            "LIVE-3-007",
+            "LIVE-3-008",
+            "LIVE-3-009",
+            "LIVE-3-010",
+            "LIVE-3-011",
+            "LIVE-3-012",
+            "LIVE-3-013",
+            "LIVE-3-014",
+            "LIVE-3-015",
+            "LIVE-3-016",
+            "LIVE-3-017",
+            "LIVE-3-018",
+            "LIVE-3-019",
+            "LIVE-3-020",
+            "LIVE-3-021",
+            "LIVE-3-022",
+            "LIVE-3-023"
+          ],
+          "visible_list_entries": []
+        },
+        {
+          "name": "wheel-stream-3-repin",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": 1
+            },
+            {
+              "at_ms": 3.976789,
+              "direction": 1
+            },
+            {
+              "at_ms": 8.271245,
+              "direction": 1
+            },
+            {
+              "at_ms": 11.990105,
+              "direction": 1
+            },
+            {
+              "at_ms": 15.97799,
+              "direction": 1
+            },
+            {
+              "at_ms": 19.986587,
+              "direction": 1
+            },
+            {
+              "at_ms": 24.829129,
+              "direction": 1
+            },
+            {
+              "at_ms": 27.994396,
+              "direction": 1
+            },
+            {
+              "at_ms": 31.983523,
+              "direction": 1
+            },
+            {
+              "at_ms": 35.980942,
+              "direction": 1
+            },
+            {
+              "at_ms": 39.982678,
+              "direction": 1
+            },
+            {
+              "at_ms": 43.985996,
+              "direction": 1
+            },
+            {
+              "at_ms": 47.994172,
+              "direction": 1
+            },
+            {
+              "at_ms": 51.98372,
+              "direction": 1
+            },
+            {
+              "at_ms": 55.991115,
+              "direction": 1
+            },
+            {
+              "at_ms": 59.982224,
+              "direction": 1
+            },
+            {
+              "at_ms": 63.989909,
+              "direction": 1
+            },
+            {
+              "at_ms": 67.980278,
+              "direction": 1
+            },
+            {
+              "at_ms": 71.983656,
+              "direction": 1
+            },
+            {
+              "at_ms": 75.979804,
+              "direction": 1
+            },
+            {
+              "at_ms": 79.997925,
+              "direction": 1
+            },
+            {
+              "at_ms": 83.982044,
+              "direction": 1
+            },
+            {
+              "at_ms": 87.99039,
+              "direction": 1
+            },
+            {
+              "at_ms": 91.993178,
+              "direction": 1
+            },
+            {
+              "at_ms": 95.993381,
+              "direction": 1
+            },
+            {
+              "at_ms": 100.08868,
+              "direction": 1
+            },
+            {
+              "at_ms": 103.983764,
+              "direction": 1
+            },
+            {
+              "at_ms": 107.996367,
+              "direction": 1
+            },
+            {
+              "at_ms": 111.993175,
+              "direction": 1
+            },
+            {
+              "at_ms": 115.994151,
+              "direction": 1
+            },
+            {
+              "at_ms": 119.998289,
+              "direction": 1
+            },
+            {
+              "at_ms": 123.994508,
+              "direction": 1
+            },
+            {
+              "at_ms": 127.982392,
+              "direction": 1
+            },
+            {
+              "at_ms": 131.983469,
+              "direction": 1
+            },
+            {
+              "at_ms": 135.984312,
+              "direction": 1
+            },
+            {
+              "at_ms": 139.984166,
+              "direction": 1
+            },
+            {
+              "at_ms": 144.39007,
+              "direction": 1
+            },
+            {
+              "at_ms": 147.997693,
+              "direction": 1
+            },
+            {
+              "at_ms": 152.021231,
+              "direction": 1
+            },
+            {
+              "at_ms": 156.533687,
+              "direction": 1
+            },
+            {
+              "at_ms": 159.987248,
+              "direction": 1
+            },
+            {
+              "at_ms": 164.012779,
+              "direction": 1
+            },
+            {
+              "at_ms": 169.5182,
+              "direction": 1
+            },
+            {
+              "at_ms": 171.999947,
+              "direction": 1
+            },
+            {
+              "at_ms": 175.998939,
+              "direction": 1
+            },
+            {
+              "at_ms": 179.999814,
+              "direction": 1
+            },
+            {
+              "at_ms": 183.991284,
+              "direction": 1
+            },
+            {
+              "at_ms": 187.987131,
+              "direction": 1
+            },
+            {
+              "at_ms": 192.008267,
+              "direction": 1
+            },
+            {
+              "at_ms": 195.992987,
+              "direction": 1
+            },
+            {
+              "at_ms": 199.983746,
+              "direction": 1
+            },
+            {
+              "at_ms": 204.497654,
+              "direction": 1
+            },
+            {
+              "at_ms": 207.990534,
+              "direction": 1
+            },
+            {
+              "at_ms": 211.996757,
+              "direction": 1
+            },
+            {
+              "at_ms": 216.001617,
+              "direction": 1
+            },
+            {
+              "at_ms": 220.015071,
+              "direction": 1
+            },
+            {
+              "at_ms": 224.193553,
+              "direction": 1
+            },
+            {
+              "at_ms": 227.994327,
+              "direction": 1
+            },
+            {
+              "at_ms": 231.990123,
+              "direction": 1
+            },
+            {
+              "at_ms": 235.990157,
+              "direction": 1
+            },
+            {
+              "at_ms": 241.469568,
+              "direction": 1
+            },
+            {
+              "at_ms": 243.985717,
+              "direction": 1
+            },
+            {
+              "at_ms": 247.986432,
+              "direction": 1
+            },
+            {
+              "at_ms": 252.652959,
+              "direction": 1
+            }
+          ],
+          "raw_pty_first_write_ms": 1.814863,
+          "raw_pty_last_write_after_last_input_ms": -106.215997,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 461.6742060000033,
+          "last_changed_cell_ms": 461.6742060000033,
+          "settle_after_last_input_ms": 209.0212470000033,
+          "terminal_chunks": 10,
+          "cursor_before": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "LIVE-3-091",
+            "LIVE-3-092",
+            "LIVE-3-093",
+            "LIVE-3-094",
+            "LIVE-3-095",
+            "LIVE-3-096",
+            "LIVE-3-097",
+            "LIVE-3-098",
+            "LIVE-3-099",
+            "LIVE-3-100",
+            "LIVE-3-101",
+            "LIVE-3-102",
+            "LIVE-3-103",
+            "LIVE-3-104",
+            "LIVE-3-105",
+            "LIVE-3-106",
+            "LIVE-3-107",
+            "LIVE-3-108",
+            "LIVE-3-109",
+            "LIVE-3-110",
+            "LIVE-3-111",
+            "LIVE-3-112",
+            "LIVE-3-113",
+            "LIVE-3-114",
+            "LIVE-3-115",
+            "LIVE-3-116",
+            "LIVE-3-117",
+            "LIVE-3-118",
+            "LIVE-3-119"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "stream-sticky-before",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "visible_markers": [
+            "LIVE-4-029",
+            "LIVE-4-030",
+            "LIVE-4-031",
+            "LIVE-4-032",
+            "LIVE-4-033",
+            "LIVE-4-034",
+            "LIVE-4-035",
+            "LIVE-4-036",
+            "LIVE-4-037",
+            "LIVE-4-038",
+            "LIVE-4-039",
+            "LIVE-4-040",
+            "LIVE-4-041",
+            "LIVE-4-042",
+            "LIVE-4-043",
+            "LIVE-4-044",
+            "LIVE-4-045",
+            "LIVE-4-046",
+            "LIVE-4-047",
+            "LIVE-4-048",
+            "LIVE-4-049",
+            "LIVE-4-050",
+            "LIVE-4-051",
+            "LIVE-4-052",
+            "LIVE-4-053",
+            "LIVE-4-054",
+            "LIVE-4-055",
+            "LIVE-4-056",
+            "LIVE-4-057",
+            "LIVE-4-058",
+            "LIVE-4-059"
+          ],
+          "visible_list_entries": []
+        },
+        {
+          "name": "provider-burst-165",
+          "requested_hz": 165,
+          "injected_count": 32,
+          "painted_count": 32,
+          "utf8_event_to_pty_paint_ms": [
+            21.550681,
+            44.610747,
+            38.558102,
+            32.489164,
+            74.572165,
+            70.382546,
+            64.323101,
+            58.282005,
+            52.200597,
+            105.990997,
+            99.862929,
+            93.126936,
+            85.602846,
+            81.764055,
+            75.695348,
+            69.638356,
+            63.577989,
+            131.569104,
+            123.44486,
+            119.602755,
+            113.53018,
+            107.45417,
+            101.402107,
+            95.370684,
+            89.2783,
+            83.214979,
+            77.157478,
+            153.955715,
+            147.95513,
+            141.896726,
+            135.442356,
+            129.776064
+          ],
+          "p50_ms": 89.2783,
+          "p95_ms": 147.95513,
+          "max_ms": 153.955715,
+          "visible_markers": [],
+          "visible_list_entries": []
+        },
+        {
+          "name": "provider-burst-250",
+          "requested_hz": 250,
+          "injected_count": 32,
+          "painted_count": 32,
+          "utf8_event_to_pty_paint_ms": [
+            101.959707,
+            97.962978,
+            93.962764,
+            89.961829,
+            85.958471,
+            227.884501,
+            224.70937,
+            220.720544,
+            216.717165,
+            212.707497,
+            208.716166,
+            203.951502,
+            200.716911,
+            196.707503,
+            192.717625,
+            188.854808,
+            184.84536,
+            180.844956,
+            176.848229,
+            172.846242,
+            168.842802,
+            164.849279,
+            160.845891,
+            156.841841,
+            151.858346,
+            148.857217,
+            189.295493,
+            184.786673,
+            181.284007,
+            176.735529,
+            173.278253,
+            169.274643
+          ],
+          "p50_ms": 180.844956,
+          "p95_ms": 224.70937,
+          "max_ms": 227.884501,
+          "visible_markers": [],
+          "visible_list_entries": []
+        },
+        {
+          "name": "stream-sticky-after",
+          "cursor": {
+            "x": 23,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "anchor_unchanged": false,
+          "last_live_row_visible": true,
+          "visible_markers": [
+            "LIVE-4-092",
+            "LIVE-4-093",
+            "LIVE-4-094",
+            "LIVE-4-095",
+            "LIVE-4-096",
+            "LIVE-4-097",
+            "LIVE-4-098",
+            "LIVE-4-099",
+            "LIVE-4-100",
+            "LIVE-4-101",
+            "LIVE-4-102",
+            "LIVE-4-103",
+            "LIVE-4-104",
+            "LIVE-4-105",
+            "LIVE-4-106",
+            "LIVE-4-107",
+            "LIVE-4-108",
+            "LIVE-4-109",
+            "LIVE-4-110",
+            "LIVE-4-111",
+            "LIVE-4-112",
+            "LIVE-4-113",
+            "LIVE-4-114",
+            "LIVE-4-115",
+            "LIVE-4-116",
+            "LIVE-4-117",
+            "LIVE-4-118",
+            "LIVE-4-119"
+          ],
+          "visible_list_entries": []
+        },
+        {
+          "name": "wheel-stream-4-repin",
+          "cursor": {
+            "x": 23,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": 1
+            },
+            {
+              "at_ms": 4.005102,
+              "direction": 1
+            },
+            {
+              "at_ms": 8.019977,
+              "direction": 1
+            },
+            {
+              "at_ms": 12.006591,
+              "direction": 1
+            },
+            {
+              "at_ms": 16.783804,
+              "direction": 1
+            },
+            {
+              "at_ms": 20.006518,
+              "direction": 1
+            },
+            {
+              "at_ms": 24.002815,
+              "direction": 1
+            },
+            {
+              "at_ms": 28.021317,
+              "direction": 1
+            },
+            {
+              "at_ms": 32.009412,
+              "direction": 1
+            },
+            {
+              "at_ms": 36.041844,
+              "direction": 1
+            },
+            {
+              "at_ms": 40.005463,
+              "direction": 1
+            },
+            {
+              "at_ms": 44.007959,
+              "direction": 1
+            },
+            {
+              "at_ms": 47.99924,
+              "direction": 1
+            },
+            {
+              "at_ms": 51.979544,
+              "direction": 1
+            },
+            {
+              "at_ms": 56.005847,
+              "direction": 1
+            },
+            {
+              "at_ms": 59.998059,
+              "direction": 1
+            },
+            {
+              "at_ms": 64.014557,
+              "direction": 1
+            },
+            {
+              "at_ms": 68.009803,
+              "direction": 1
+            },
+            {
+              "at_ms": 72.014504,
+              "direction": 1
+            },
+            {
+              "at_ms": 76.014627,
+              "direction": 1
+            },
+            {
+              "at_ms": 80.010905,
+              "direction": 1
+            },
+            {
+              "at_ms": 84.159042,
+              "direction": 1
+            },
+            {
+              "at_ms": 88.017953,
+              "direction": 1
+            },
+            {
+              "at_ms": 92.037075,
+              "direction": 1
+            },
+            {
+              "at_ms": 96.128356,
+              "direction": 1
+            },
+            {
+              "at_ms": 100.026807,
+              "direction": 1
+            },
+            {
+              "at_ms": 104.021,
+              "direction": 1
+            },
+            {
+              "at_ms": 108.002517,
+              "direction": 1
+            },
+            {
+              "at_ms": 112.064374,
+              "direction": 1
+            },
+            {
+              "at_ms": 116.030546,
+              "direction": 1
+            },
+            {
+              "at_ms": 120.016718,
+              "direction": 1
+            },
+            {
+              "at_ms": 124.005545,
+              "direction": 1
+            },
+            {
+              "at_ms": 128.057257,
+              "direction": 1
+            },
+            {
+              "at_ms": 132.008116,
+              "direction": 1
+            },
+            {
+              "at_ms": 135.998255,
+              "direction": 1
+            },
+            {
+              "at_ms": 142.40971,
+              "direction": 1
+            },
+            {
+              "at_ms": 143.975928,
+              "direction": 1
+            },
+            {
+              "at_ms": 154.411792,
+              "direction": 1
+            },
+            {
+              "at_ms": 154.565224,
+              "direction": 1
+            },
+            {
+              "at_ms": 155.974565,
+              "direction": 1
+            },
+            {
+              "at_ms": 159.973498,
+              "direction": 1
+            },
+            {
+              "at_ms": 163.974543,
+              "direction": 1
+            },
+            {
+              "at_ms": 167.992373,
+              "direction": 1
+            },
+            {
+              "at_ms": 172.000669,
+              "direction": 1
+            },
+            {
+              "at_ms": 176.007383,
+              "direction": 1
+            },
+            {
+              "at_ms": 180.01715,
+              "direction": 1
+            },
+            {
+              "at_ms": 184.0079,
+              "direction": 1
+            },
+            {
+              "at_ms": 188.064078,
+              "direction": 1
+            },
+            {
+              "at_ms": 192.017892,
+              "direction": 1
+            },
+            {
+              "at_ms": 196.035181,
+              "direction": 1
+            },
+            {
+              "at_ms": 200.007774,
+              "direction": 1
+            },
+            {
+              "at_ms": 204.008017,
+              "direction": 1
+            },
+            {
+              "at_ms": 208.01408,
+              "direction": 1
+            },
+            {
+              "at_ms": 212.013563,
+              "direction": 1
+            },
+            {
+              "at_ms": 215.999544,
+              "direction": 1
+            },
+            {
+              "at_ms": 219.996453,
+              "direction": 1
+            },
+            {
+              "at_ms": 224.000774,
+              "direction": 1
+            },
+            {
+              "at_ms": 228.014258,
+              "direction": 1
+            },
+            {
+              "at_ms": 232.022733,
+              "direction": 1
+            },
+            {
+              "at_ms": 236.207064,
+              "direction": 1
+            },
+            {
+              "at_ms": 239.989571,
+              "direction": 1
+            },
+            {
+              "at_ms": 243.97351,
+              "direction": 1
+            },
+            {
+              "at_ms": 248.291432,
+              "direction": 1
+            },
+            {
+              "at_ms": 251.979355,
+              "direction": 1
+            }
+          ],
+          "raw_pty_first_write_ms": null,
+          "raw_pty_last_write_after_last_input_ms": null,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": null,
+          "last_changed_cell_ms": null,
+          "settle_after_last_input_ms": null,
+          "terminal_chunks": 0,
+          "cursor_before": {
+            "x": 23,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "LIVE-4-092",
+            "LIVE-4-093",
+            "LIVE-4-094",
+            "LIVE-4-095",
+            "LIVE-4-096",
+            "LIVE-4-097",
+            "LIVE-4-098",
+            "LIVE-4-099",
+            "LIVE-4-100",
+            "LIVE-4-101",
+            "LIVE-4-102",
+            "LIVE-4-103",
+            "LIVE-4-104",
+            "LIVE-4-105",
+            "LIVE-4-106",
+            "LIVE-4-107",
+            "LIVE-4-108",
+            "LIVE-4-109",
+            "LIVE-4-110",
+            "LIVE-4-111",
+            "LIVE-4-112",
+            "LIVE-4-113",
+            "LIVE-4-114",
+            "LIVE-4-115",
+            "LIVE-4-116",
+            "LIVE-4-117",
+            "LIVE-4-118",
+            "LIVE-4-119"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "final-settled-idle",
+          "start_ns": 1130189087946580,
+          "end_ns": 1130190099027684,
+          "window_ms": 1011.081104,
+          "cpu_ticks": 1,
+          "cpu_ms": 10,
+          "terminal_bytes": 0,
+          "main_thread_voluntary_context_switches": 21,
+          "main_thread_involuntary_context_switches": 22,
+          "visible_markers": [],
+          "visible_list_entries": []
+        }
+      ],
+      "process_window": {
+        "duration_ms": 47401.390664,
+        "cpu_ms": 1930,
+        "main_thread_voluntary_context_switches": 1290,
+        "main_thread_involuntary_context_switches": 1118
+      }
+    },
+    "oc": {
+      "status": "MEASURED",
+      "stages": [
+        {
+          "name": "wheel-shell-completed",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "verified_real_outputs": true,
+          "visible_markers": [
+            "SHELL-LINE-35",
+            "SHELL-LINE-36",
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": []
+        },
+        {
+          "name": "expanded-idle",
+          "start_ns": 1130213796736180,
+          "end_ns": 1130214807023429,
+          "window_ms": 1010.287249,
+          "cpu_ticks": 0,
+          "cpu_ms": 0,
+          "terminal_bytes": 0,
+          "main_thread_voluntary_context_switches": 0,
+          "main_thread_involuntary_context_switches": 0,
+          "visible_markers": [],
+          "visible_list_entries": []
+        },
+        {
+          "name": "wheel-165-single-up",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 165,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": 27.039328,
+          "raw_pty_last_write_after_last_input_ms": 51.946314,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 614.020377000008,
+          "last_changed_cell_ms": 614.020377000008,
+          "settle_after_last_input_ms": 614.020377000008,
+          "terminal_chunks": 8,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-13",
+            "SHELL-LINE-14",
+            "SHELL-LINE-15",
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24",
+            "SHELL-LINE-25",
+            "SHELL-LINE-26",
+            "SHELL-LINE-27",
+            "SHELL-LINE-28",
+            "SHELL-LINE-29",
+            "SHELL-LINE-30",
+            "SHELL-LINE-31",
+            "SHELL-LINE-32",
+            "SHELL-LINE-33",
+            "SHELL-LINE-34",
+            "SHELL-LINE-35",
+            "SHELL-LINE-36",
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-165-burst-up",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 165,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 6.0706,
+              "direction": -1
+            },
+            {
+              "at_ms": 12.135374,
+              "direction": -1
+            },
+            {
+              "at_ms": 18.20293,
+              "direction": -1
+            },
+            {
+              "at_ms": 24.256877,
+              "direction": -1
+            },
+            {
+              "at_ms": 31.119561,
+              "direction": -1
+            },
+            {
+              "at_ms": 36.35836,
+              "direction": -1
+            },
+            {
+              "at_ms": 42.424324,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": 21.408287,
+          "raw_pty_last_write_after_last_input_ms": 48.76873,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 670.5712559999956,
+          "last_changed_cell_ms": 670.5712559999956,
+          "settle_after_last_input_ms": 628.1469319999957,
+          "terminal_chunks": 4,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-01",
+            "SHELL-LINE-02",
+            "SHELL-LINE-03",
+            "SHELL-LINE-04",
+            "SHELL-LINE-05",
+            "SHELL-LINE-06",
+            "SHELL-LINE-07",
+            "SHELL-LINE-08",
+            "SHELL-LINE-09",
+            "SHELL-LINE-10",
+            "SHELL-LINE-11",
+            "SHELL-LINE-12",
+            "SHELL-LINE-13",
+            "SHELL-LINE-14",
+            "SHELL-LINE-15",
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-165-reverse",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 165,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 6.071153,
+              "direction": -1
+            },
+            {
+              "at_ms": 12.124408,
+              "direction": -1
+            },
+            {
+              "at_ms": 18.196983,
+              "direction": 1
+            },
+            {
+              "at_ms": 24.250468,
+              "direction": 1
+            },
+            {
+              "at_ms": 30.321149,
+              "direction": 1
+            }
+          ],
+          "raw_pty_first_write_ms": 20.899182,
+          "raw_pty_last_write_after_last_input_ms": 32.498128,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 693.844603000005,
+          "last_changed_cell_ms": 693.844603000005,
+          "settle_after_last_input_ms": 663.523454000005,
+          "terminal_chunks": 13,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-01",
+            "SHELL-LINE-02",
+            "SHELL-LINE-03",
+            "SHELL-LINE-04",
+            "SHELL-LINE-05",
+            "SHELL-LINE-06",
+            "SHELL-LINE-07",
+            "SHELL-LINE-08",
+            "SHELL-LINE-09",
+            "SHELL-LINE-10",
+            "SHELL-LINE-11",
+            "SHELL-LINE-12",
+            "SHELL-LINE-13",
+            "SHELL-LINE-14",
+            "SHELL-LINE-15",
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-165-top-edge",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 165,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 6.047737,
+              "direction": -1
+            },
+            {
+              "at_ms": 12.128925,
+              "direction": -1
+            },
+            {
+              "at_ms": 18.195039,
+              "direction": -1
+            },
+            {
+              "at_ms": 24.25155,
+              "direction": -1
+            },
+            {
+              "at_ms": 32.096353,
+              "direction": -1
+            },
+            {
+              "at_ms": 36.382678,
+              "direction": -1
+            },
+            {
+              "at_ms": 42.428733,
+              "direction": -1
+            },
+            {
+              "at_ms": 48.47074,
+              "direction": -1
+            },
+            {
+              "at_ms": 54.536864,
+              "direction": -1
+            },
+            {
+              "at_ms": 60.598523,
+              "direction": -1
+            },
+            {
+              "at_ms": 66.653321,
+              "direction": -1
+            },
+            {
+              "at_ms": 72.713276,
+              "direction": -1
+            },
+            {
+              "at_ms": 79.372073,
+              "direction": -1
+            },
+            {
+              "at_ms": 84.903643,
+              "direction": -1
+            },
+            {
+              "at_ms": 90.903067,
+              "direction": -1
+            },
+            {
+              "at_ms": 96.993629,
+              "direction": -1
+            },
+            {
+              "at_ms": 103.039934,
+              "direction": -1
+            },
+            {
+              "at_ms": 109.106059,
+              "direction": -1
+            },
+            {
+              "at_ms": 115.144151,
+              "direction": -1
+            },
+            {
+              "at_ms": 121.21291,
+              "direction": -1
+            },
+            {
+              "at_ms": 127.293395,
+              "direction": -1
+            },
+            {
+              "at_ms": 133.323557,
+              "direction": -1
+            },
+            {
+              "at_ms": 140.400033,
+              "direction": -1
+            },
+            {
+              "at_ms": 145.444239,
+              "direction": -1
+            },
+            {
+              "at_ms": 151.502591,
+              "direction": -1
+            },
+            {
+              "at_ms": 157.573143,
+              "direction": -1
+            },
+            {
+              "at_ms": 163.777025,
+              "direction": -1
+            },
+            {
+              "at_ms": 169.69054,
+              "direction": -1
+            },
+            {
+              "at_ms": 175.74678,
+              "direction": -1
+            },
+            {
+              "at_ms": 181.806505,
+              "direction": -1
+            },
+            {
+              "at_ms": 187.822886,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": 18.537075,
+          "raw_pty_last_write_after_last_input_ms": 13.816354,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 483.5501079999958,
+          "last_changed_cell_ms": 483.5501079999958,
+          "settle_after_last_input_ms": 295.7272219999958,
+          "terminal_chunks": 28,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-01",
+            "SHELL-LINE-02",
+            "SHELL-LINE-03",
+            "SHELL-LINE-04",
+            "SHELL-LINE-05",
+            "SHELL-LINE-06",
+            "SHELL-LINE-07",
+            "SHELL-LINE-08",
+            "SHELL-LINE-09",
+            "SHELL-LINE-10",
+            "SHELL-LINE-11",
+            "SHELL-LINE-12",
+            "SHELL-LINE-13",
+            "SHELL-LINE-14",
+            "SHELL-LINE-15"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-165-bottom-edge",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 165,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": 1
+            },
+            {
+              "at_ms": 6.052926,
+              "direction": 1
+            },
+            {
+              "at_ms": 12.101483,
+              "direction": 1
+            },
+            {
+              "at_ms": 18.176721,
+              "direction": 1
+            },
+            {
+              "at_ms": 24.229857,
+              "direction": 1
+            },
+            {
+              "at_ms": 30.395441,
+              "direction": 1
+            },
+            {
+              "at_ms": 36.353473,
+              "direction": 1
+            },
+            {
+              "at_ms": 42.419187,
+              "direction": 1
+            },
+            {
+              "at_ms": 48.481446,
+              "direction": 1
+            },
+            {
+              "at_ms": 54.536624,
+              "direction": 1
+            },
+            {
+              "at_ms": 61.219157,
+              "direction": 1
+            },
+            {
+              "at_ms": 66.655614,
+              "direction": 1
+            },
+            {
+              "at_ms": 72.754348,
+              "direction": 1
+            },
+            {
+              "at_ms": 78.781263,
+              "direction": 1
+            },
+            {
+              "at_ms": 84.851234,
+              "direction": 1
+            },
+            {
+              "at_ms": 90.89159,
+              "direction": 1
+            },
+            {
+              "at_ms": 99.142725,
+              "direction": 1
+            },
+            {
+              "at_ms": 103.023809,
+              "direction": 1
+            },
+            {
+              "at_ms": 109.075663,
+              "direction": 1
+            },
+            {
+              "at_ms": 115.154367,
+              "direction": 1
+            },
+            {
+              "at_ms": 121.28625,
+              "direction": 1
+            },
+            {
+              "at_ms": 128.822288,
+              "direction": 1
+            },
+            {
+              "at_ms": 135.130317,
+              "direction": 1
+            },
+            {
+              "at_ms": 139.396872,
+              "direction": 1
+            },
+            {
+              "at_ms": 145.442626,
+              "direction": 1
+            },
+            {
+              "at_ms": 151.509662,
+              "direction": 1
+            },
+            {
+              "at_ms": 157.568035,
+              "direction": 1
+            },
+            {
+              "at_ms": 163.629132,
+              "direction": 1
+            },
+            {
+              "at_ms": 169.709028,
+              "direction": 1
+            },
+            {
+              "at_ms": 175.742513,
+              "direction": 1
+            },
+            {
+              "at_ms": 181.806884,
+              "direction": 1
+            },
+            {
+              "at_ms": 188.21173,
+              "direction": 1
+            }
+          ],
+          "raw_pty_first_write_ms": 11.424604,
+          "raw_pty_last_write_after_last_input_ms": 34.924322,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 457.947233999992,
+          "last_changed_cell_ms": 457.947233999992,
+          "settle_after_last_input_ms": 269.73550399999203,
+          "terminal_chunks": 14,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24",
+            "SHELL-LINE-25",
+            "SHELL-LINE-26",
+            "SHELL-LINE-27",
+            "SHELL-LINE-28",
+            "SHELL-LINE-29",
+            "SHELL-LINE-30",
+            "SHELL-LINE-31",
+            "SHELL-LINE-32",
+            "SHELL-LINE-33",
+            "SHELL-LINE-34",
+            "SHELL-LINE-35",
+            "SHELL-LINE-36",
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "settled-165-idle",
+          "start_ns": 1130224067539192,
+          "end_ns": 1130225078060693,
+          "window_ms": 1010.521501,
+          "cpu_ticks": 0,
+          "cpu_ms": 0,
+          "terminal_bytes": 0,
+          "main_thread_voluntary_context_switches": 0,
+          "main_thread_involuntary_context_switches": 0,
+          "visible_markers": [],
+          "visible_list_entries": []
+        },
+        {
+          "name": "wheel-250-single-up",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": 26.892787,
+          "raw_pty_last_write_after_last_input_ms": 54.723646,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 564.3500810000114,
+          "last_changed_cell_ms": 564.3500810000114,
+          "settle_after_last_input_ms": 564.3500810000114,
+          "terminal_chunks": 4,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-13",
+            "SHELL-LINE-14",
+            "SHELL-LINE-15",
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24",
+            "SHELL-LINE-25",
+            "SHELL-LINE-26",
+            "SHELL-LINE-27",
+            "SHELL-LINE-28",
+            "SHELL-LINE-29",
+            "SHELL-LINE-30",
+            "SHELL-LINE-31",
+            "SHELL-LINE-32",
+            "SHELL-LINE-33",
+            "SHELL-LINE-34",
+            "SHELL-LINE-35",
+            "SHELL-LINE-36",
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-250-burst-up",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 3.997438,
+              "direction": -1
+            },
+            {
+              "at_ms": 8.063922,
+              "direction": -1
+            },
+            {
+              "at_ms": 12.007481,
+              "direction": -1
+            },
+            {
+              "at_ms": 15.989157,
+              "direction": -1
+            },
+            {
+              "at_ms": 19.987437,
+              "direction": -1
+            },
+            {
+              "at_ms": 25.728882,
+              "direction": -1
+            },
+            {
+              "at_ms": 28.159333,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": 25.766961,
+          "raw_pty_last_write_after_last_input_ms": 68.040229,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 644.524642000004,
+          "last_changed_cell_ms": 644.524642000004,
+          "settle_after_last_input_ms": 616.365309000004,
+          "terminal_chunks": 6,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-01",
+            "SHELL-LINE-02",
+            "SHELL-LINE-03",
+            "SHELL-LINE-04",
+            "SHELL-LINE-05",
+            "SHELL-LINE-06",
+            "SHELL-LINE-07",
+            "SHELL-LINE-08",
+            "SHELL-LINE-09",
+            "SHELL-LINE-10",
+            "SHELL-LINE-11",
+            "SHELL-LINE-12",
+            "SHELL-LINE-13",
+            "SHELL-LINE-14",
+            "SHELL-LINE-15",
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-250-reverse",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 4.971325,
+              "direction": -1
+            },
+            {
+              "at_ms": 7.997874,
+              "direction": -1
+            },
+            {
+              "at_ms": 12.000401,
+              "direction": 1
+            },
+            {
+              "at_ms": 16.000765,
+              "direction": 1
+            },
+            {
+              "at_ms": 19.998065,
+              "direction": 1
+            }
+          ],
+          "raw_pty_first_write_ms": 21.867369,
+          "raw_pty_last_write_after_last_input_ms": 50.647197,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 614.5201010000019,
+          "last_changed_cell_ms": 614.5201010000019,
+          "settle_after_last_input_ms": 594.5220360000019,
+          "terminal_chunks": 6,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-01",
+            "SHELL-LINE-02",
+            "SHELL-LINE-03",
+            "SHELL-LINE-04",
+            "SHELL-LINE-05",
+            "SHELL-LINE-06",
+            "SHELL-LINE-07",
+            "SHELL-LINE-08",
+            "SHELL-LINE-09",
+            "SHELL-LINE-10",
+            "SHELL-LINE-11",
+            "SHELL-LINE-12",
+            "SHELL-LINE-13",
+            "SHELL-LINE-14",
+            "SHELL-LINE-15",
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-250-top-edge",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 4.004471,
+              "direction": -1
+            },
+            {
+              "at_ms": 8.016913,
+              "direction": -1
+            },
+            {
+              "at_ms": 12.002305,
+              "direction": -1
+            },
+            {
+              "at_ms": 16.005262,
+              "direction": -1
+            },
+            {
+              "at_ms": 20.958331,
+              "direction": -1
+            },
+            {
+              "at_ms": 24.000532,
+              "direction": -1
+            },
+            {
+              "at_ms": 28.008547,
+              "direction": -1
+            },
+            {
+              "at_ms": 31.995992,
+              "direction": -1
+            },
+            {
+              "at_ms": 36.717402,
+              "direction": -1
+            },
+            {
+              "at_ms": 40.022609,
+              "direction": -1
+            },
+            {
+              "at_ms": 44.017044,
+              "direction": -1
+            },
+            {
+              "at_ms": 48.003547,
+              "direction": -1
+            },
+            {
+              "at_ms": 52.00315,
+              "direction": -1
+            },
+            {
+              "at_ms": 56.000459,
+              "direction": -1
+            },
+            {
+              "at_ms": 60.027273,
+              "direction": -1
+            },
+            {
+              "at_ms": 64.012094,
+              "direction": -1
+            },
+            {
+              "at_ms": 69.232876,
+              "direction": -1
+            },
+            {
+              "at_ms": 72.000083,
+              "direction": -1
+            },
+            {
+              "at_ms": 76.014878,
+              "direction": -1
+            },
+            {
+              "at_ms": 80.02035,
+              "direction": -1
+            },
+            {
+              "at_ms": 84.048296,
+              "direction": -1
+            },
+            {
+              "at_ms": 88.025074,
+              "direction": -1
+            },
+            {
+              "at_ms": 92.031577,
+              "direction": -1
+            },
+            {
+              "at_ms": 99.013781,
+              "direction": -1
+            },
+            {
+              "at_ms": 99.994267,
+              "direction": -1
+            },
+            {
+              "at_ms": 104.019089,
+              "direction": -1
+            },
+            {
+              "at_ms": 107.99112,
+              "direction": -1
+            },
+            {
+              "at_ms": 111.996652,
+              "direction": -1
+            },
+            {
+              "at_ms": 115.999609,
+              "direction": -1
+            },
+            {
+              "at_ms": 120.09075,
+              "direction": -1
+            },
+            {
+              "at_ms": 124.017073,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": 23.332786,
+          "raw_pty_last_write_after_last_input_ms": 24.297999,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 589.2947249999997,
+          "last_changed_cell_ms": 589.2947249999997,
+          "settle_after_last_input_ms": 465.27765199999976,
+          "terminal_chunks": 14,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-01",
+            "SHELL-LINE-02",
+            "SHELL-LINE-03",
+            "SHELL-LINE-04",
+            "SHELL-LINE-05",
+            "SHELL-LINE-06",
+            "SHELL-LINE-07",
+            "SHELL-LINE-08",
+            "SHELL-LINE-09",
+            "SHELL-LINE-10",
+            "SHELL-LINE-11",
+            "SHELL-LINE-12",
+            "SHELL-LINE-13",
+            "SHELL-LINE-14",
+            "SHELL-LINE-15"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 3
+        },
+        {
+          "name": "wheel-250-bottom-edge",
+          "cursor": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": 1
+            },
+            {
+              "at_ms": 6.350563,
+              "direction": 1
+            },
+            {
+              "at_ms": 8.022241,
+              "direction": 1
+            },
+            {
+              "at_ms": 12.702679,
+              "direction": 1
+            },
+            {
+              "at_ms": 17.892824,
+              "direction": 1
+            },
+            {
+              "at_ms": 20.358257,
+              "direction": 1
+            },
+            {
+              "at_ms": 23.998538,
+              "direction": 1
+            },
+            {
+              "at_ms": 27.989779,
+              "direction": 1
+            },
+            {
+              "at_ms": 31.993408,
+              "direction": 1
+            },
+            {
+              "at_ms": 35.987441,
+              "direction": 1
+            },
+            {
+              "at_ms": 39.99053,
+              "direction": 1
+            },
+            {
+              "at_ms": 43.992627,
+              "direction": 1
+            },
+            {
+              "at_ms": 49.796736,
+              "direction": 1
+            },
+            {
+              "at_ms": 51.995317,
+              "direction": 1
+            },
+            {
+              "at_ms": 56.011235,
+              "direction": 1
+            },
+            {
+              "at_ms": 60.591192,
+              "direction": 1
+            },
+            {
+              "at_ms": 63.985454,
+              "direction": 1
+            },
+            {
+              "at_ms": 67.989242,
+              "direction": 1
+            },
+            {
+              "at_ms": 71.99224,
+              "direction": 1
+            },
+            {
+              "at_ms": 75.995879,
+              "direction": 1
+            },
+            {
+              "at_ms": 79.992858,
+              "direction": 1
+            },
+            {
+              "at_ms": 83.995065,
+              "direction": 1
+            },
+            {
+              "at_ms": 87.991673,
+              "direction": 1
+            },
+            {
+              "at_ms": 91.998918,
+              "direction": 1
+            },
+            {
+              "at_ms": 95.999922,
+              "direction": 1
+            },
+            {
+              "at_ms": 99.98968,
+              "direction": 1
+            },
+            {
+              "at_ms": 103.991546,
+              "direction": 1
+            },
+            {
+              "at_ms": 107.997839,
+              "direction": 1
+            },
+            {
+              "at_ms": 111.981197,
+              "direction": 1
+            },
+            {
+              "at_ms": 116.25991,
+              "direction": 1
+            },
+            {
+              "at_ms": 119.995757,
+              "direction": 1
+            },
+            {
+              "at_ms": 123.987849,
+              "direction": 1
+            }
+          ],
+          "raw_pty_first_write_ms": 26.561878,
+          "raw_pty_last_write_after_last_input_ms": 40.059413,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 622.3447640000086,
+          "last_changed_cell_ms": 622.3447640000086,
+          "settle_after_last_input_ms": 498.3569150000086,
+          "terminal_chunks": 14,
+          "cursor_before": {
+            "x": 12,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24",
+            "SHELL-LINE-25",
+            "SHELL-LINE-26",
+            "SHELL-LINE-27",
+            "SHELL-LINE-28",
+            "SHELL-LINE-29",
+            "SHELL-LINE-30",
+            "SHELL-LINE-31",
+            "SHELL-LINE-32",
+            "SHELL-LINE-33",
+            "SHELL-LINE-34",
+            "SHELL-LINE-35",
+            "SHELL-LINE-36",
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 3
+        },
+        {
+          "name": "settled-250-idle",
+          "start_ns": 1130233777775950,
+          "end_ns": 1130234787143946,
+          "window_ms": 1009.367996,
+          "cpu_ticks": 0,
+          "cpu_ms": 0,
+          "terminal_bytes": 0,
+          "main_thread_voluntary_context_switches": 0,
+          "main_thread_involuntary_context_switches": 0,
+          "visible_markers": [],
+          "visible_list_entries": []
+        },
+        {
+          "name": "wheel-models-before",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "visible_markers": [
+            "SHELL-LINE-15",
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24",
+            "SHELL-LINE-25",
+            "SHELL-LINE-26",
+            "SHELL-LINE-27",
+            "SHELL-LINE-28",
+            "SHELL-LINE-29",
+            "SHELL-LINE-30",
+            "SHELL-LINE-31",
+            "SHELL-LINE-32",
+            "SHELL-LINE-33",
+            "SHELL-LINE-34",
+            "SHELL-LINE-35",
+            "SHELL-LINE-36",
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": [
+            "ZZ Wheel 00",
+            "ZZ Wheel 01",
+            "ZZ Wheel 02",
+            "ZZ Wheel 03",
+            "ZZ Wheel 04",
+            "ZZ Wheel 05"
+          ]
+        },
+        {
+          "name": "wheel-models-up",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 4.000314,
+              "direction": -1
+            },
+            {
+              "at_ms": 7.999906,
+              "direction": -1
+            },
+            {
+              "at_ms": 12.002785,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": 16.22413,
+          "raw_pty_last_write_after_last_input_ms": 21.088905,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": null,
+          "last_changed_cell_ms": null,
+          "settle_after_last_input_ms": null,
+          "terminal_chunks": 2,
+          "cursor_before": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-15",
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24",
+            "SHELL-LINE-25",
+            "SHELL-LINE-26",
+            "SHELL-LINE-27",
+            "SHELL-LINE-28",
+            "SHELL-LINE-29",
+            "SHELL-LINE-30",
+            "SHELL-LINE-31",
+            "SHELL-LINE-32",
+            "SHELL-LINE-33",
+            "SHELL-LINE-34",
+            "SHELL-LINE-35",
+            "SHELL-LINE-36",
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": [
+            "ZZ Wheel 00",
+            "ZZ Wheel 01",
+            "ZZ Wheel 02",
+            "ZZ Wheel 03",
+            "ZZ Wheel 04",
+            "ZZ Wheel 05"
+          ],
+          "observation_count": 3
+        },
+        {
+          "name": "wheel-models-down",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": 1
+            },
+            {
+              "at_ms": 3.98516,
+              "direction": 1
+            },
+            {
+              "at_ms": 7.986585,
+              "direction": 1
+            },
+            {
+              "at_ms": 11.989383,
+              "direction": 1
+            }
+          ],
+          "raw_pty_first_write_ms": 12.822628,
+          "raw_pty_last_write_after_last_input_ms": 14.973098,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 703.7986009999877,
+          "last_changed_cell_ms": 703.7986009999877,
+          "settle_after_last_input_ms": 691.8092179999877,
+          "terminal_chunks": 2,
+          "cursor_before": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "SHELL-LINE-15",
+            "SHELL-LINE-16",
+            "SHELL-LINE-17",
+            "SHELL-LINE-18",
+            "SHELL-LINE-19",
+            "SHELL-LINE-20",
+            "SHELL-LINE-21",
+            "SHELL-LINE-22",
+            "SHELL-LINE-23",
+            "SHELL-LINE-24",
+            "SHELL-LINE-25",
+            "SHELL-LINE-26",
+            "SHELL-LINE-27",
+            "SHELL-LINE-28",
+            "SHELL-LINE-29",
+            "SHELL-LINE-30",
+            "SHELL-LINE-31",
+            "SHELL-LINE-32",
+            "SHELL-LINE-33",
+            "SHELL-LINE-34",
+            "SHELL-LINE-35",
+            "SHELL-LINE-36",
+            "SHELL-LINE-37",
+            "SHELL-LINE-38",
+            "SHELL-LINE-39",
+            "SHELL-LINE-40"
+          ],
+          "visible_list_entries": [
+            "ZZ Wheel 04",
+            "ZZ Wheel 05",
+            "ZZ Wheel 06",
+            "ZZ Wheel 07",
+            "ZZ Wheel 08",
+            "ZZ Wheel 09",
+            "ZZ Wheel 10",
+            "ZZ Wheel 11",
+            "ZZ Wheel 12",
+            "ZZ Wheel 13",
+            "ZZ Wheel 14",
+            "ZZ Wheel 15",
+            "ZZ Wheel 16",
+            "ZZ Wheel 17"
+          ],
+          "observation_count": 4
+        },
+        {
+          "name": "wheel-stream-detach",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 165,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": -1
+            },
+            {
+              "at_ms": 6.063119,
+              "direction": -1
+            },
+            {
+              "at_ms": 12.718842,
+              "direction": -1
+            },
+            {
+              "at_ms": 18.207897,
+              "direction": -1
+            },
+            {
+              "at_ms": 26.419303,
+              "direction": -1
+            },
+            {
+              "at_ms": 30.301338,
+              "direction": -1
+            },
+            {
+              "at_ms": 36.404679,
+              "direction": -1
+            },
+            {
+              "at_ms": 42.423994,
+              "direction": -1
+            },
+            {
+              "at_ms": 48.486923,
+              "direction": -1
+            },
+            {
+              "at_ms": 54.54073,
+              "direction": -1
+            },
+            {
+              "at_ms": 60.603879,
+              "direction": -1
+            },
+            {
+              "at_ms": 66.671467,
+              "direction": -1
+            }
+          ],
+          "raw_pty_first_write_ms": 11.986839,
+          "raw_pty_last_write_after_last_input_ms": 1510.795414,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 701.3499340000126,
+          "last_changed_cell_ms": 701.3499340000126,
+          "settle_after_last_input_ms": 634.6784670000126,
+          "terminal_chunks": 61,
+          "cursor_before": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "LIVE-3-000",
+            "LIVE-3-001",
+            "LIVE-3-002",
+            "LIVE-3-003",
+            "LIVE-3-004",
+            "LIVE-3-005",
+            "LIVE-3-006",
+            "LIVE-3-007",
+            "LIVE-3-008",
+            "LIVE-3-009",
+            "LIVE-3-010",
+            "LIVE-3-011",
+            "LIVE-3-012",
+            "LIVE-3-013",
+            "LIVE-3-014",
+            "LIVE-3-015",
+            "LIVE-3-016",
+            "LIVE-3-017",
+            "LIVE-3-018",
+            "LIVE-3-019",
+            "LIVE-3-020",
+            "LIVE-3-021",
+            "LIVE-3-022",
+            "LIVE-3-023",
+            "LIVE-3-024"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "stream-detached-before",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "visible_markers": [
+            "LIVE-3-000",
+            "LIVE-3-001",
+            "LIVE-3-002",
+            "LIVE-3-003",
+            "LIVE-3-004",
+            "LIVE-3-005",
+            "LIVE-3-006",
+            "LIVE-3-007",
+            "LIVE-3-008",
+            "LIVE-3-009",
+            "LIVE-3-010",
+            "LIVE-3-011",
+            "LIVE-3-012",
+            "LIVE-3-013",
+            "LIVE-3-014",
+            "LIVE-3-015",
+            "LIVE-3-016",
+            "LIVE-3-017",
+            "LIVE-3-018",
+            "LIVE-3-019",
+            "LIVE-3-020",
+            "LIVE-3-021",
+            "LIVE-3-022",
+            "LIVE-3-023",
+            "LIVE-3-024"
+          ],
+          "visible_list_entries": []
+        },
+        {
+          "name": "stream-detached-after",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "anchor_unchanged": true,
+          "last_live_row_visible": false,
+          "visible_markers": [
+            "LIVE-3-000",
+            "LIVE-3-001",
+            "LIVE-3-002",
+            "LIVE-3-003",
+            "LIVE-3-004",
+            "LIVE-3-005",
+            "LIVE-3-006",
+            "LIVE-3-007",
+            "LIVE-3-008",
+            "LIVE-3-009",
+            "LIVE-3-010",
+            "LIVE-3-011",
+            "LIVE-3-012",
+            "LIVE-3-013",
+            "LIVE-3-014",
+            "LIVE-3-015",
+            "LIVE-3-016",
+            "LIVE-3-017",
+            "LIVE-3-018",
+            "LIVE-3-019",
+            "LIVE-3-020",
+            "LIVE-3-021",
+            "LIVE-3-022",
+            "LIVE-3-023",
+            "LIVE-3-024"
+          ],
+          "visible_list_entries": []
+        },
+        {
+          "name": "wheel-stream-3-repin",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": 1
+            },
+            {
+              "at_ms": 3.995717,
+              "direction": 1
+            },
+            {
+              "at_ms": 9.172983,
+              "direction": 1
+            },
+            {
+              "at_ms": 11.976143,
+              "direction": 1
+            },
+            {
+              "at_ms": 16.013463,
+              "direction": 1
+            },
+            {
+              "at_ms": 21.478544,
+              "direction": 1
+            },
+            {
+              "at_ms": 23.98625,
+              "direction": 1
+            },
+            {
+              "at_ms": 28.00483,
+              "direction": 1
+            },
+            {
+              "at_ms": 31.990072,
+              "direction": 1
+            },
+            {
+              "at_ms": 37.704326,
+              "direction": 1
+            },
+            {
+              "at_ms": 39.971131,
+              "direction": 1
+            },
+            {
+              "at_ms": 43.983673,
+              "direction": 1
+            },
+            {
+              "at_ms": 47.988213,
+              "direction": 1
+            },
+            {
+              "at_ms": 51.974135,
+              "direction": 1
+            },
+            {
+              "at_ms": 55.977804,
+              "direction": 1
+            },
+            {
+              "at_ms": 59.982595,
+              "direction": 1
+            },
+            {
+              "at_ms": 63.985973,
+              "direction": 1
+            },
+            {
+              "at_ms": 67.993468,
+              "direction": 1
+            },
+            {
+              "at_ms": 72.990704,
+              "direction": 1
+            },
+            {
+              "at_ms": 75.976229,
+              "direction": 1
+            },
+            {
+              "at_ms": 79.971515,
+              "direction": 1
+            },
+            {
+              "at_ms": 85.934685,
+              "direction": 1
+            },
+            {
+              "at_ms": 87.966654,
+              "direction": 1
+            },
+            {
+              "at_ms": 91.971907,
+              "direction": 1
+            },
+            {
+              "at_ms": 95.976327,
+              "direction": 1
+            },
+            {
+              "at_ms": 99.981398,
+              "direction": 1
+            },
+            {
+              "at_ms": 104.950931,
+              "direction": 1
+            },
+            {
+              "at_ms": 107.970979,
+              "direction": 1
+            },
+            {
+              "at_ms": 111.978172,
+              "direction": 1
+            },
+            {
+              "at_ms": 115.989184,
+              "direction": 1
+            },
+            {
+              "at_ms": 120.338773,
+              "direction": 1
+            },
+            {
+              "at_ms": 123.971493,
+              "direction": 1
+            },
+            {
+              "at_ms": 127.980881,
+              "direction": 1
+            },
+            {
+              "at_ms": 131.986813,
+              "direction": 1
+            },
+            {
+              "at_ms": 136.525728,
+              "direction": 1
+            },
+            {
+              "at_ms": 139.995533,
+              "direction": 1
+            },
+            {
+              "at_ms": 143.996999,
+              "direction": 1
+            },
+            {
+              "at_ms": 147.998525,
+              "direction": 1
+            },
+            {
+              "at_ms": 151.977847,
+              "direction": 1
+            },
+            {
+              "at_ms": 159.574886,
+              "direction": 1
+            },
+            {
+              "at_ms": 159.961599,
+              "direction": 1
+            },
+            {
+              "at_ms": 163.968703,
+              "direction": 1
+            },
+            {
+              "at_ms": 167.969889,
+              "direction": 1
+            },
+            {
+              "at_ms": 171.974178,
+              "direction": 1
+            },
+            {
+              "at_ms": 175.98013,
+              "direction": 1
+            },
+            {
+              "at_ms": 179.977079,
+              "direction": 1
+            },
+            {
+              "at_ms": 185.330642,
+              "direction": 1
+            },
+            {
+              "at_ms": 187.974864,
+              "direction": 1
+            },
+            {
+              "at_ms": 192.004992,
+              "direction": 1
+            },
+            {
+              "at_ms": 195.978125,
+              "direction": 1
+            },
+            {
+              "at_ms": 201.295061,
+              "direction": 1
+            },
+            {
+              "at_ms": 203.978803,
+              "direction": 1
+            },
+            {
+              "at_ms": 207.9952,
+              "direction": 1
+            },
+            {
+              "at_ms": 211.987933,
+              "direction": 1
+            },
+            {
+              "at_ms": 216.458986,
+              "direction": 1
+            },
+            {
+              "at_ms": 219.981221,
+              "direction": 1
+            },
+            {
+              "at_ms": 223.976105,
+              "direction": 1
+            },
+            {
+              "at_ms": 227.983191,
+              "direction": 1
+            },
+            {
+              "at_ms": 232.455995,
+              "direction": 1
+            },
+            {
+              "at_ms": 235.981054,
+              "direction": 1
+            },
+            {
+              "at_ms": 239.971252,
+              "direction": 1
+            },
+            {
+              "at_ms": 243.98026,
+              "direction": 1
+            },
+            {
+              "at_ms": 247.98537,
+              "direction": 1
+            },
+            {
+              "at_ms": 251.972034,
+              "direction": 1
+            }
+          ],
+          "raw_pty_first_write_ms": 13.078924,
+          "raw_pty_last_write_after_last_input_ms": 31.040322,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": 508.74517899999046,
+          "last_changed_cell_ms": 508.74517899999046,
+          "settle_after_last_input_ms": 256.77314499999045,
+          "terminal_chunks": 19,
+          "cursor_before": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "LIVE-3-091",
+            "LIVE-3-092",
+            "LIVE-3-093",
+            "LIVE-3-094",
+            "LIVE-3-095",
+            "LIVE-3-096",
+            "LIVE-3-097",
+            "LIVE-3-098",
+            "LIVE-3-099",
+            "LIVE-3-100",
+            "LIVE-3-101",
+            "LIVE-3-102",
+            "LIVE-3-103",
+            "LIVE-3-104",
+            "LIVE-3-105",
+            "LIVE-3-106",
+            "LIVE-3-107",
+            "LIVE-3-108",
+            "LIVE-3-109",
+            "LIVE-3-110",
+            "LIVE-3-111",
+            "LIVE-3-112",
+            "LIVE-3-113",
+            "LIVE-3-114",
+            "LIVE-3-115",
+            "LIVE-3-116",
+            "LIVE-3-117",
+            "LIVE-3-118",
+            "LIVE-3-119"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "stream-sticky-before",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "visible_markers": [
+            "LIVE-4-030",
+            "LIVE-4-031",
+            "LIVE-4-032",
+            "LIVE-4-033",
+            "LIVE-4-034",
+            "LIVE-4-035",
+            "LIVE-4-036",
+            "LIVE-4-037",
+            "LIVE-4-038",
+            "LIVE-4-039",
+            "LIVE-4-040",
+            "LIVE-4-041",
+            "LIVE-4-042",
+            "LIVE-4-043",
+            "LIVE-4-044",
+            "LIVE-4-045",
+            "LIVE-4-046",
+            "LIVE-4-047",
+            "LIVE-4-048",
+            "LIVE-4-049",
+            "LIVE-4-050",
+            "LIVE-4-051",
+            "LIVE-4-052",
+            "LIVE-4-053",
+            "LIVE-4-054",
+            "LIVE-4-055",
+            "LIVE-4-056",
+            "LIVE-4-057",
+            "LIVE-4-058",
+            "LIVE-4-059"
+          ],
+          "visible_list_entries": []
+        },
+        {
+          "name": "provider-burst-165",
+          "requested_hz": 165,
+          "injected_count": 32,
+          "painted_count": 32,
+          "utf8_event_to_pty_paint_ms": [
+            17.718712,
+            37.575914,
+            31.240864,
+            25.449053,
+            38.099141,
+            32.188171,
+            26.128034,
+            20.070773,
+            39.597898,
+            34.636487,
+            28.577203,
+            36.323508,
+            33.054014,
+            26.13162,
+            21.445093,
+            15.379559,
+            29.365981,
+            23.290984,
+            37.896907,
+            31.838354,
+            25.764918,
+            19.706475,
+            34.712543,
+            28.705016,
+            22.649467,
+            38.306705,
+            32.232298,
+            26.145182,
+            20.109192,
+            29.797111,
+            23.241699,
+            17.692523
+          ],
+          "p50_ms": 28.705016,
+          "p95_ms": 38.306705,
+          "max_ms": 39.597898,
+          "visible_markers": [],
+          "visible_list_entries": []
+        },
+        {
+          "name": "provider-burst-250",
+          "requested_hz": 250,
+          "injected_count": 32,
+          "painted_count": 32,
+          "utf8_event_to_pty_paint_ms": [
+            20.396615,
+            16.39566,
+            32.430084,
+            27.374612,
+            24.438019,
+            20.437145,
+            37.287479,
+            34.762676,
+            30.75982,
+            26.749591,
+            22.762566,
+            35.761231,
+            30.088028,
+            27.761646,
+            23.75426,
+            19.75563,
+            30.655633,
+            27.068662,
+            23.072774,
+            19.069987,
+            29.281114,
+            27.386872,
+            23.399867,
+            19.393355,
+            15.410177,
+            27.873674,
+            23.875783,
+            19.813186,
+            15.878251,
+            26.42326,
+            23.334959,
+            19.339843
+          ],
+          "p50_ms": 24.438019,
+          "p95_ms": 35.761231,
+          "max_ms": 37.287479,
+          "visible_markers": [],
+          "visible_list_entries": []
+        },
+        {
+          "name": "stream-sticky-after",
+          "cursor": {
+            "x": 23,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "anchor_unchanged": false,
+          "last_live_row_visible": true,
+          "visible_markers": [
+            "LIVE-4-092",
+            "LIVE-4-093",
+            "LIVE-4-094",
+            "LIVE-4-095",
+            "LIVE-4-096",
+            "LIVE-4-097",
+            "LIVE-4-098",
+            "LIVE-4-099",
+            "LIVE-4-100",
+            "LIVE-4-101",
+            "LIVE-4-102",
+            "LIVE-4-103",
+            "LIVE-4-104",
+            "LIVE-4-105",
+            "LIVE-4-106",
+            "LIVE-4-107",
+            "LIVE-4-108",
+            "LIVE-4-109",
+            "LIVE-4-110",
+            "LIVE-4-111",
+            "LIVE-4-112",
+            "LIVE-4-113",
+            "LIVE-4-114",
+            "LIVE-4-115",
+            "LIVE-4-116",
+            "LIVE-4-117",
+            "LIVE-4-118",
+            "LIVE-4-119"
+          ],
+          "visible_list_entries": []
+        },
+        {
+          "name": "wheel-stream-4-repin",
+          "cursor": {
+            "x": 23,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requested_hz": 250,
+          "sent": [
+            {
+              "at_ms": 0,
+              "direction": 1
+            },
+            {
+              "at_ms": 3.937769,
+              "direction": 1
+            },
+            {
+              "at_ms": 10.229614,
+              "direction": 1
+            },
+            {
+              "at_ms": 12.693124,
+              "direction": 1
+            },
+            {
+              "at_ms": 15.943638,
+              "direction": 1
+            },
+            {
+              "at_ms": 19.943241,
+              "direction": 1
+            },
+            {
+              "at_ms": 23.95335,
+              "direction": 1
+            },
+            {
+              "at_ms": 27.952391,
+              "direction": 1
+            },
+            {
+              "at_ms": 31.938765,
+              "direction": 1
+            },
+            {
+              "at_ms": 35.944256,
+              "direction": 1
+            },
+            {
+              "at_ms": 39.922626,
+              "direction": 1
+            },
+            {
+              "at_ms": 43.946016,
+              "direction": 1
+            },
+            {
+              "at_ms": 47.931246,
+              "direction": 1
+            },
+            {
+              "at_ms": 51.945371,
+              "direction": 1
+            },
+            {
+              "at_ms": 55.927909,
+              "direction": 1
+            },
+            {
+              "at_ms": 59.928484,
+              "direction": 1
+            },
+            {
+              "at_ms": 63.933594,
+              "direction": 1
+            },
+            {
+              "at_ms": 67.980238,
+              "direction": 1
+            },
+            {
+              "at_ms": 71.932299,
+              "direction": 1
+            },
+            {
+              "at_ms": 75.888656,
+              "direction": 1
+            },
+            {
+              "at_ms": 82.543188,
+              "direction": 1
+            },
+            {
+              "at_ms": 83.929325,
+              "direction": 1
+            },
+            {
+              "at_ms": 87.931782,
+              "direction": 1
+            },
+            {
+              "at_ms": 91.935321,
+              "direction": 1
+            },
+            {
+              "at_ms": 95.934553,
+              "direction": 1
+            },
+            {
+              "at_ms": 99.939634,
+              "direction": 1
+            },
+            {
+              "at_ms": 103.942282,
+              "direction": 1
+            },
+            {
+              "at_ms": 107.933081,
+              "direction": 1
+            },
+            {
+              "at_ms": 111.957361,
+              "direction": 1
+            },
+            {
+              "at_ms": 116.099078,
+              "direction": 1
+            },
+            {
+              "at_ms": 120.161205,
+              "direction": 1
+            },
+            {
+              "at_ms": 123.941237,
+              "direction": 1
+            },
+            {
+              "at_ms": 127.98045,
+              "direction": 1
+            },
+            {
+              "at_ms": 131.952952,
+              "direction": 1
+            },
+            {
+              "at_ms": 136.645649,
+              "direction": 1
+            },
+            {
+              "at_ms": 139.955692,
+              "direction": 1
+            },
+            {
+              "at_ms": 143.948716,
+              "direction": 1
+            },
+            {
+              "at_ms": 147.950913,
+              "direction": 1
+            },
+            {
+              "at_ms": 152.204408,
+              "direction": 1
+            },
+            {
+              "at_ms": 155.927404,
+              "direction": 1
+            },
+            {
+              "at_ms": 160.174019,
+              "direction": 1
+            },
+            {
+              "at_ms": 163.935653,
+              "direction": 1
+            },
+            {
+              "at_ms": 167.924279,
+              "direction": 1
+            },
+            {
+              "at_ms": 171.936531,
+              "direction": 1
+            },
+            {
+              "at_ms": 175.935855,
+              "direction": 1
+            },
+            {
+              "at_ms": 179.939493,
+              "direction": 1
+            },
+            {
+              "at_ms": 183.932805,
+              "direction": 1
+            },
+            {
+              "at_ms": 187.938939,
+              "direction": 1
+            },
+            {
+              "at_ms": 191.942397,
+              "direction": 1
+            },
+            {
+              "at_ms": 195.983222,
+              "direction": 1
+            },
+            {
+              "at_ms": 199.954812,
+              "direction": 1
+            },
+            {
+              "at_ms": 203.955929,
+              "direction": 1
+            },
+            {
+              "at_ms": 207.967999,
+              "direction": 1
+            },
+            {
+              "at_ms": 212.518102,
+              "direction": 1
+            },
+            {
+              "at_ms": 215.958332,
+              "direction": 1
+            },
+            {
+              "at_ms": 219.960689,
+              "direction": 1
+            },
+            {
+              "at_ms": 223.97263,
+              "direction": 1
+            },
+            {
+              "at_ms": 228.011152,
+              "direction": 1
+            },
+            {
+              "at_ms": 231.942652,
+              "direction": 1
+            },
+            {
+              "at_ms": 235.960643,
+              "direction": 1
+            },
+            {
+              "at_ms": 240.810536,
+              "direction": 1
+            },
+            {
+              "at_ms": 243.948351,
+              "direction": 1
+            },
+            {
+              "at_ms": 247.941574,
+              "direction": 1
+            },
+            {
+              "at_ms": 251.943801,
+              "direction": 1
+            }
+          ],
+          "raw_pty_first_write_ms": 14.523609,
+          "raw_pty_last_write_after_last_input_ms": 20.866622,
+          "frontend_observation_only": true,
+          "first_changed_cell_ms": null,
+          "last_changed_cell_ms": null,
+          "settle_after_last_input_ms": null,
+          "terminal_chunks": 18,
+          "cursor_before": {
+            "x": 23,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "editor_cursor_preserved": true,
+          "visible_markers": [
+            "LIVE-4-092",
+            "LIVE-4-093",
+            "LIVE-4-094",
+            "LIVE-4-095",
+            "LIVE-4-096",
+            "LIVE-4-097",
+            "LIVE-4-098",
+            "LIVE-4-099",
+            "LIVE-4-100",
+            "LIVE-4-101",
+            "LIVE-4-102",
+            "LIVE-4-103",
+            "LIVE-4-104",
+            "LIVE-4-105",
+            "LIVE-4-106",
+            "LIVE-4-107",
+            "LIVE-4-108",
+            "LIVE-4-109",
+            "LIVE-4-110",
+            "LIVE-4-111",
+            "LIVE-4-112",
+            "LIVE-4-113",
+            "LIVE-4-114",
+            "LIVE-4-115",
+            "LIVE-4-116",
+            "LIVE-4-117",
+            "LIVE-4-118",
+            "LIVE-4-119"
+          ],
+          "visible_list_entries": [],
+          "observation_count": 4
+        },
+        {
+          "name": "final-settled-idle",
+          "start_ns": 1130261196610373,
+          "end_ns": 1130262207501051,
+          "window_ms": 1010.890678,
+          "cpu_ticks": 0,
+          "cpu_ms": 0,
+          "terminal_bytes": 0,
+          "main_thread_voluntary_context_switches": 0,
+          "main_thread_involuntary_context_switches": 0,
+          "visible_markers": [],
+          "visible_list_entries": []
+        }
+      ],
+      "process_window": {
+        "duration_ms": 48410.764871,
+        "cpu_ms": 4250,
+        "main_thread_voluntary_context_switches": 313,
+        "main_thread_involuntary_context_switches": 2537
+      },
+      "scheduler": {
+        "session": "s-tui-18d8f982ef602ebd-3e1c0b-0",
+        "tab_count": 1,
+        "tab_ids": [
+          "s-tui-18d8f982ef602ebd-3e1c0b-0"
+        ],
+        "active_tab": 0,
+        "retained_bytes": 12226,
+        "window_rows": 11,
+        "window_total": 6,
+        "panel": "None",
+        "status": "Quit",
+        "frame_count": 286,
+        "frame_sum_ns": 4207354697,
+        "frame_max_ns": 38558824,
+        "changed_frames": 212,
+        "wakeups": 368,
+        "input_events": 415,
+        "worker_events": 265,
+        "terminal_write_calls": 171627,
+        "terminal_flush_calls": 860,
+        "terminal_write_bytes": 234770,
+        "terminal_write_sum_ns": 47631113,
+        "terminal_write_max_ns": 1555052,
+        "worker_event_queue_peak": 61,
+        "worker_event_queue_lagged": 0,
+        "live_text_bytes_current": 0,
+        "live_text_bytes_peak": 1331,
+        "live_reasoning_bytes_current": 0,
+        "live_reasoning_bytes_peak": 0,
+        "live_part_count_current": 0,
+        "live_part_count_peak": 2,
+        "markdown_cache_retained_bytes_current": 7401,
+        "markdown_cache_retained_bytes_peak": 7401,
+        "sample_count": 286,
+        "draw_mean_ms": 14.711030409090908,
+        "draw_p50_ms": 13.143281,
+        "draw_p95_ms": 24.441256,
+        "terminal_write_sum_ms": 47.631113,
+        "frame_origin_alignment": "relative to first instrumented draw; no external monotonic epoch in scheduler JSON"
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "name": "wheel-shell-completed",
+      "original_markers": [
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "native_markers": [
+        "SHELL-LINE-35",
+        "SHELL-LINE-36",
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "same_markers": false
+    },
+    {
+      "name": "wheel-165-single-up",
+      "original_markers": [
+        "SHELL-LINE-15",
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24",
+        "SHELL-LINE-25",
+        "SHELL-LINE-26",
+        "SHELL-LINE-27",
+        "SHELL-LINE-28",
+        "SHELL-LINE-29",
+        "SHELL-LINE-30",
+        "SHELL-LINE-31",
+        "SHELL-LINE-32",
+        "SHELL-LINE-33",
+        "SHELL-LINE-34",
+        "SHELL-LINE-35",
+        "SHELL-LINE-36",
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "native_markers": [
+        "SHELL-LINE-13",
+        "SHELL-LINE-14",
+        "SHELL-LINE-15",
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24",
+        "SHELL-LINE-25",
+        "SHELL-LINE-26",
+        "SHELL-LINE-27",
+        "SHELL-LINE-28",
+        "SHELL-LINE-29",
+        "SHELL-LINE-30",
+        "SHELL-LINE-31",
+        "SHELL-LINE-32",
+        "SHELL-LINE-33",
+        "SHELL-LINE-34",
+        "SHELL-LINE-35",
+        "SHELL-LINE-36",
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "same_markers": false,
+      "original_first_write_ms": 6.159085,
+      "native_first_write_ms": 27.039328,
+      "original_settle_ms": 19.184038,
+      "native_settle_ms": 51.946314
+    },
+    {
+      "name": "wheel-165-burst-up",
+      "original_markers": [
+        "SHELL-LINE-01",
+        "SHELL-LINE-02",
+        "SHELL-LINE-03",
+        "SHELL-LINE-04",
+        "SHELL-LINE-05",
+        "SHELL-LINE-06",
+        "SHELL-LINE-07",
+        "SHELL-LINE-08",
+        "SHELL-LINE-09",
+        "SHELL-LINE-10",
+        "SHELL-LINE-11",
+        "SHELL-LINE-12",
+        "SHELL-LINE-13",
+        "SHELL-LINE-14",
+        "SHELL-LINE-15",
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20"
+      ],
+      "native_markers": [
+        "SHELL-LINE-01",
+        "SHELL-LINE-02",
+        "SHELL-LINE-03",
+        "SHELL-LINE-04",
+        "SHELL-LINE-05",
+        "SHELL-LINE-06",
+        "SHELL-LINE-07",
+        "SHELL-LINE-08",
+        "SHELL-LINE-09",
+        "SHELL-LINE-10",
+        "SHELL-LINE-11",
+        "SHELL-LINE-12",
+        "SHELL-LINE-13",
+        "SHELL-LINE-14",
+        "SHELL-LINE-15",
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18"
+      ],
+      "same_markers": false,
+      "original_first_write_ms": 6.635712,
+      "native_first_write_ms": 21.408287,
+      "original_settle_ms": 15.996418,
+      "native_settle_ms": 48.76873
+    },
+    {
+      "name": "wheel-165-reverse",
+      "original_markers": [
+        "SHELL-LINE-01",
+        "SHELL-LINE-02",
+        "SHELL-LINE-03",
+        "SHELL-LINE-04",
+        "SHELL-LINE-05",
+        "SHELL-LINE-06",
+        "SHELL-LINE-07",
+        "SHELL-LINE-08",
+        "SHELL-LINE-09",
+        "SHELL-LINE-10",
+        "SHELL-LINE-11",
+        "SHELL-LINE-12",
+        "SHELL-LINE-13",
+        "SHELL-LINE-14",
+        "SHELL-LINE-15",
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22"
+      ],
+      "native_markers": [
+        "SHELL-LINE-01",
+        "SHELL-LINE-02",
+        "SHELL-LINE-03",
+        "SHELL-LINE-04",
+        "SHELL-LINE-05",
+        "SHELL-LINE-06",
+        "SHELL-LINE-07",
+        "SHELL-LINE-08",
+        "SHELL-LINE-09",
+        "SHELL-LINE-10",
+        "SHELL-LINE-11",
+        "SHELL-LINE-12",
+        "SHELL-LINE-13",
+        "SHELL-LINE-14",
+        "SHELL-LINE-15",
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24"
+      ],
+      "same_markers": false,
+      "original_first_write_ms": 2.164689,
+      "native_first_write_ms": 20.899182,
+      "original_settle_ms": 20.311025,
+      "native_settle_ms": 32.498128
+    },
+    {
+      "name": "wheel-165-top-edge",
+      "original_markers": [
+        "SHELL-LINE-01",
+        "SHELL-LINE-02",
+        "SHELL-LINE-03",
+        "SHELL-LINE-04",
+        "SHELL-LINE-05",
+        "SHELL-LINE-06",
+        "SHELL-LINE-07",
+        "SHELL-LINE-08",
+        "SHELL-LINE-09",
+        "SHELL-LINE-10",
+        "SHELL-LINE-11",
+        "SHELL-LINE-12",
+        "SHELL-LINE-13"
+      ],
+      "native_markers": [
+        "SHELL-LINE-01",
+        "SHELL-LINE-02",
+        "SHELL-LINE-03",
+        "SHELL-LINE-04",
+        "SHELL-LINE-05",
+        "SHELL-LINE-06",
+        "SHELL-LINE-07",
+        "SHELL-LINE-08",
+        "SHELL-LINE-09",
+        "SHELL-LINE-10",
+        "SHELL-LINE-11",
+        "SHELL-LINE-12",
+        "SHELL-LINE-13",
+        "SHELL-LINE-14",
+        "SHELL-LINE-15"
+      ],
+      "same_markers": false,
+      "original_first_write_ms": 2.580566,
+      "native_first_write_ms": 18.537075,
+      "original_settle_ms": -151.954273,
+      "native_settle_ms": 13.816354
+    },
+    {
+      "name": "wheel-165-bottom-edge",
+      "original_markers": [
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24",
+        "SHELL-LINE-25",
+        "SHELL-LINE-26",
+        "SHELL-LINE-27",
+        "SHELL-LINE-28",
+        "SHELL-LINE-29",
+        "SHELL-LINE-30",
+        "SHELL-LINE-31",
+        "SHELL-LINE-32",
+        "SHELL-LINE-33",
+        "SHELL-LINE-34",
+        "SHELL-LINE-35",
+        "SHELL-LINE-36",
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "native_markers": [
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24",
+        "SHELL-LINE-25",
+        "SHELL-LINE-26",
+        "SHELL-LINE-27",
+        "SHELL-LINE-28",
+        "SHELL-LINE-29",
+        "SHELL-LINE-30",
+        "SHELL-LINE-31",
+        "SHELL-LINE-32",
+        "SHELL-LINE-33",
+        "SHELL-LINE-34",
+        "SHELL-LINE-35",
+        "SHELL-LINE-36",
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "same_markers": false,
+      "original_first_write_ms": 3.042281,
+      "native_first_write_ms": 11.424604,
+      "original_settle_ms": -104.209224,
+      "native_settle_ms": 34.924322
+    },
+    {
+      "name": "wheel-250-single-up",
+      "original_markers": [
+        "SHELL-LINE-15",
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24",
+        "SHELL-LINE-25",
+        "SHELL-LINE-26",
+        "SHELL-LINE-27",
+        "SHELL-LINE-28",
+        "SHELL-LINE-29",
+        "SHELL-LINE-30",
+        "SHELL-LINE-31",
+        "SHELL-LINE-32",
+        "SHELL-LINE-33",
+        "SHELL-LINE-34",
+        "SHELL-LINE-35",
+        "SHELL-LINE-36",
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "native_markers": [
+        "SHELL-LINE-13",
+        "SHELL-LINE-14",
+        "SHELL-LINE-15",
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24",
+        "SHELL-LINE-25",
+        "SHELL-LINE-26",
+        "SHELL-LINE-27",
+        "SHELL-LINE-28",
+        "SHELL-LINE-29",
+        "SHELL-LINE-30",
+        "SHELL-LINE-31",
+        "SHELL-LINE-32",
+        "SHELL-LINE-33",
+        "SHELL-LINE-34",
+        "SHELL-LINE-35",
+        "SHELL-LINE-36",
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "same_markers": false,
+      "original_first_write_ms": 1.610756,
+      "native_first_write_ms": 26.892787,
+      "original_settle_ms": 18.868574,
+      "native_settle_ms": 54.723646
+    },
+    {
+      "name": "wheel-250-burst-up",
+      "original_markers": [
+        "SHELL-LINE-01",
+        "SHELL-LINE-02",
+        "SHELL-LINE-03",
+        "SHELL-LINE-04",
+        "SHELL-LINE-05",
+        "SHELL-LINE-06",
+        "SHELL-LINE-07",
+        "SHELL-LINE-08",
+        "SHELL-LINE-09",
+        "SHELL-LINE-10",
+        "SHELL-LINE-11",
+        "SHELL-LINE-12",
+        "SHELL-LINE-13",
+        "SHELL-LINE-14",
+        "SHELL-LINE-15",
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20"
+      ],
+      "native_markers": [
+        "SHELL-LINE-01",
+        "SHELL-LINE-02",
+        "SHELL-LINE-03",
+        "SHELL-LINE-04",
+        "SHELL-LINE-05",
+        "SHELL-LINE-06",
+        "SHELL-LINE-07",
+        "SHELL-LINE-08",
+        "SHELL-LINE-09",
+        "SHELL-LINE-10",
+        "SHELL-LINE-11",
+        "SHELL-LINE-12",
+        "SHELL-LINE-13",
+        "SHELL-LINE-14",
+        "SHELL-LINE-15",
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18"
+      ],
+      "same_markers": false,
+      "original_first_write_ms": 1.353648,
+      "native_first_write_ms": 25.766961,
+      "original_settle_ms": 5.070175,
+      "native_settle_ms": 68.040229
+    },
+    {
+      "name": "wheel-250-reverse",
+      "original_markers": [
+        "SHELL-LINE-01",
+        "SHELL-LINE-02",
+        "SHELL-LINE-03",
+        "SHELL-LINE-04",
+        "SHELL-LINE-05",
+        "SHELL-LINE-06",
+        "SHELL-LINE-07",
+        "SHELL-LINE-08",
+        "SHELL-LINE-09",
+        "SHELL-LINE-10",
+        "SHELL-LINE-11",
+        "SHELL-LINE-12",
+        "SHELL-LINE-13",
+        "SHELL-LINE-14",
+        "SHELL-LINE-15",
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22"
+      ],
+      "native_markers": [
+        "SHELL-LINE-01",
+        "SHELL-LINE-02",
+        "SHELL-LINE-03",
+        "SHELL-LINE-04",
+        "SHELL-LINE-05",
+        "SHELL-LINE-06",
+        "SHELL-LINE-07",
+        "SHELL-LINE-08",
+        "SHELL-LINE-09",
+        "SHELL-LINE-10",
+        "SHELL-LINE-11",
+        "SHELL-LINE-12",
+        "SHELL-LINE-13",
+        "SHELL-LINE-14",
+        "SHELL-LINE-15",
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24"
+      ],
+      "same_markers": false,
+      "original_first_write_ms": 2.984075,
+      "native_first_write_ms": 21.867369,
+      "original_settle_ms": 13.9912,
+      "native_settle_ms": 50.647197
+    },
+    {
+      "name": "wheel-250-top-edge",
+      "original_markers": [
+        "SHELL-LINE-01",
+        "SHELL-LINE-02",
+        "SHELL-LINE-03",
+        "SHELL-LINE-04",
+        "SHELL-LINE-05",
+        "SHELL-LINE-06",
+        "SHELL-LINE-07",
+        "SHELL-LINE-08",
+        "SHELL-LINE-09",
+        "SHELL-LINE-10",
+        "SHELL-LINE-11",
+        "SHELL-LINE-12",
+        "SHELL-LINE-13"
+      ],
+      "native_markers": [
+        "SHELL-LINE-01",
+        "SHELL-LINE-02",
+        "SHELL-LINE-03",
+        "SHELL-LINE-04",
+        "SHELL-LINE-05",
+        "SHELL-LINE-06",
+        "SHELL-LINE-07",
+        "SHELL-LINE-08",
+        "SHELL-LINE-09",
+        "SHELL-LINE-10",
+        "SHELL-LINE-11",
+        "SHELL-LINE-12",
+        "SHELL-LINE-13",
+        "SHELL-LINE-14",
+        "SHELL-LINE-15"
+      ],
+      "same_markers": false,
+      "original_first_write_ms": 3.638279,
+      "native_first_write_ms": 23.332786,
+      "original_settle_ms": -86.293965,
+      "native_settle_ms": 24.297999
+    },
+    {
+      "name": "wheel-250-bottom-edge",
+      "original_markers": [
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24",
+        "SHELL-LINE-25",
+        "SHELL-LINE-26",
+        "SHELL-LINE-27",
+        "SHELL-LINE-28",
+        "SHELL-LINE-29",
+        "SHELL-LINE-30",
+        "SHELL-LINE-31",
+        "SHELL-LINE-32",
+        "SHELL-LINE-33",
+        "SHELL-LINE-34",
+        "SHELL-LINE-35",
+        "SHELL-LINE-36",
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "native_markers": [
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24",
+        "SHELL-LINE-25",
+        "SHELL-LINE-26",
+        "SHELL-LINE-27",
+        "SHELL-LINE-28",
+        "SHELL-LINE-29",
+        "SHELL-LINE-30",
+        "SHELL-LINE-31",
+        "SHELL-LINE-32",
+        "SHELL-LINE-33",
+        "SHELL-LINE-34",
+        "SHELL-LINE-35",
+        "SHELL-LINE-36",
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "same_markers": false,
+      "original_first_write_ms": 1.617625,
+      "native_first_write_ms": 26.561878,
+      "original_settle_ms": -75.050727,
+      "native_settle_ms": 40.059413
+    },
+    {
+      "name": "wheel-models-before",
+      "original_markers": [
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24",
+        "SHELL-LINE-25",
+        "SHELL-LINE-26",
+        "SHELL-LINE-27",
+        "SHELL-LINE-28",
+        "SHELL-LINE-29",
+        "SHELL-LINE-30",
+        "SHELL-LINE-31",
+        "SHELL-LINE-32",
+        "SHELL-LINE-33",
+        "SHELL-LINE-34",
+        "SHELL-LINE-35",
+        "SHELL-LINE-36",
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "native_markers": [
+        "SHELL-LINE-15",
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24",
+        "SHELL-LINE-25",
+        "SHELL-LINE-26",
+        "SHELL-LINE-27",
+        "SHELL-LINE-28",
+        "SHELL-LINE-29",
+        "SHELL-LINE-30",
+        "SHELL-LINE-31",
+        "SHELL-LINE-32",
+        "SHELL-LINE-33",
+        "SHELL-LINE-34",
+        "SHELL-LINE-35",
+        "SHELL-LINE-36",
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "same_markers": false
+    },
+    {
+      "name": "wheel-models-up",
+      "original_markers": [
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24",
+        "SHELL-LINE-25",
+        "SHELL-LINE-26",
+        "SHELL-LINE-27",
+        "SHELL-LINE-28",
+        "SHELL-LINE-29",
+        "SHELL-LINE-30",
+        "SHELL-LINE-31",
+        "SHELL-LINE-32",
+        "SHELL-LINE-33",
+        "SHELL-LINE-34",
+        "SHELL-LINE-35",
+        "SHELL-LINE-36",
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "native_markers": [
+        "SHELL-LINE-15",
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24",
+        "SHELL-LINE-25",
+        "SHELL-LINE-26",
+        "SHELL-LINE-27",
+        "SHELL-LINE-28",
+        "SHELL-LINE-29",
+        "SHELL-LINE-30",
+        "SHELL-LINE-31",
+        "SHELL-LINE-32",
+        "SHELL-LINE-33",
+        "SHELL-LINE-34",
+        "SHELL-LINE-35",
+        "SHELL-LINE-36",
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "same_markers": false,
+      "original_first_write_ms": null,
+      "native_first_write_ms": 16.22413,
+      "original_settle_ms": null,
+      "native_settle_ms": 21.088905
+    },
+    {
+      "name": "wheel-models-down",
+      "original_markers": [
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24",
+        "SHELL-LINE-25",
+        "SHELL-LINE-26",
+        "SHELL-LINE-27",
+        "SHELL-LINE-28",
+        "SHELL-LINE-29",
+        "SHELL-LINE-30",
+        "SHELL-LINE-31",
+        "SHELL-LINE-32",
+        "SHELL-LINE-33",
+        "SHELL-LINE-34",
+        "SHELL-LINE-35",
+        "SHELL-LINE-36",
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "native_markers": [
+        "SHELL-LINE-15",
+        "SHELL-LINE-16",
+        "SHELL-LINE-17",
+        "SHELL-LINE-18",
+        "SHELL-LINE-19",
+        "SHELL-LINE-20",
+        "SHELL-LINE-21",
+        "SHELL-LINE-22",
+        "SHELL-LINE-23",
+        "SHELL-LINE-24",
+        "SHELL-LINE-25",
+        "SHELL-LINE-26",
+        "SHELL-LINE-27",
+        "SHELL-LINE-28",
+        "SHELL-LINE-29",
+        "SHELL-LINE-30",
+        "SHELL-LINE-31",
+        "SHELL-LINE-32",
+        "SHELL-LINE-33",
+        "SHELL-LINE-34",
+        "SHELL-LINE-35",
+        "SHELL-LINE-36",
+        "SHELL-LINE-37",
+        "SHELL-LINE-38",
+        "SHELL-LINE-39",
+        "SHELL-LINE-40"
+      ],
+      "same_markers": false,
+      "original_first_write_ms": 2.053862,
+      "native_first_write_ms": 12.822628,
+      "original_settle_ms": 6.833161,
+      "native_settle_ms": 14.973098
+    },
+    {
+      "name": "wheel-stream-detach",
+      "original_markers": [
+        "LIVE-3-000",
+        "LIVE-3-001",
+        "LIVE-3-002",
+        "LIVE-3-003",
+        "LIVE-3-004",
+        "LIVE-3-005",
+        "LIVE-3-006",
+        "LIVE-3-007",
+        "LIVE-3-008",
+        "LIVE-3-009",
+        "LIVE-3-010",
+        "LIVE-3-011",
+        "LIVE-3-012",
+        "LIVE-3-013",
+        "LIVE-3-014",
+        "LIVE-3-015",
+        "LIVE-3-016",
+        "LIVE-3-017",
+        "LIVE-3-018",
+        "LIVE-3-019",
+        "LIVE-3-020",
+        "LIVE-3-021",
+        "LIVE-3-022",
+        "LIVE-3-023"
+      ],
+      "native_markers": [
+        "LIVE-3-000",
+        "LIVE-3-001",
+        "LIVE-3-002",
+        "LIVE-3-003",
+        "LIVE-3-004",
+        "LIVE-3-005",
+        "LIVE-3-006",
+        "LIVE-3-007",
+        "LIVE-3-008",
+        "LIVE-3-009",
+        "LIVE-3-010",
+        "LIVE-3-011",
+        "LIVE-3-012",
+        "LIVE-3-013",
+        "LIVE-3-014",
+        "LIVE-3-015",
+        "LIVE-3-016",
+        "LIVE-3-017",
+        "LIVE-3-018",
+        "LIVE-3-019",
+        "LIVE-3-020",
+        "LIVE-3-021",
+        "LIVE-3-022",
+        "LIVE-3-023",
+        "LIVE-3-024"
+      ],
+      "same_markers": false,
+      "original_first_write_ms": 2.002236,
+      "native_first_write_ms": 11.986839,
+      "original_settle_ms": 1.211315,
+      "native_settle_ms": 1510.795414
+    },
+    {
+      "name": "wheel-stream-3-repin",
+      "original_markers": [
+        "LIVE-3-091",
+        "LIVE-3-092",
+        "LIVE-3-093",
+        "LIVE-3-094",
+        "LIVE-3-095",
+        "LIVE-3-096",
+        "LIVE-3-097",
+        "LIVE-3-098",
+        "LIVE-3-099",
+        "LIVE-3-100",
+        "LIVE-3-101",
+        "LIVE-3-102",
+        "LIVE-3-103",
+        "LIVE-3-104",
+        "LIVE-3-105",
+        "LIVE-3-106",
+        "LIVE-3-107",
+        "LIVE-3-108",
+        "LIVE-3-109",
+        "LIVE-3-110",
+        "LIVE-3-111",
+        "LIVE-3-112",
+        "LIVE-3-113",
+        "LIVE-3-114",
+        "LIVE-3-115",
+        "LIVE-3-116",
+        "LIVE-3-117",
+        "LIVE-3-118",
+        "LIVE-3-119"
+      ],
+      "native_markers": [
+        "LIVE-3-091",
+        "LIVE-3-092",
+        "LIVE-3-093",
+        "LIVE-3-094",
+        "LIVE-3-095",
+        "LIVE-3-096",
+        "LIVE-3-097",
+        "LIVE-3-098",
+        "LIVE-3-099",
+        "LIVE-3-100",
+        "LIVE-3-101",
+        "LIVE-3-102",
+        "LIVE-3-103",
+        "LIVE-3-104",
+        "LIVE-3-105",
+        "LIVE-3-106",
+        "LIVE-3-107",
+        "LIVE-3-108",
+        "LIVE-3-109",
+        "LIVE-3-110",
+        "LIVE-3-111",
+        "LIVE-3-112",
+        "LIVE-3-113",
+        "LIVE-3-114",
+        "LIVE-3-115",
+        "LIVE-3-116",
+        "LIVE-3-117",
+        "LIVE-3-118",
+        "LIVE-3-119"
+      ],
+      "same_markers": true,
+      "original_first_write_ms": 1.814863,
+      "native_first_write_ms": 13.078924,
+      "original_settle_ms": -106.215997,
+      "native_settle_ms": 31.040322
+    },
+    {
+      "name": "wheel-stream-4-repin",
+      "original_markers": [
+        "LIVE-4-092",
+        "LIVE-4-093",
+        "LIVE-4-094",
+        "LIVE-4-095",
+        "LIVE-4-096",
+        "LIVE-4-097",
+        "LIVE-4-098",
+        "LIVE-4-099",
+        "LIVE-4-100",
+        "LIVE-4-101",
+        "LIVE-4-102",
+        "LIVE-4-103",
+        "LIVE-4-104",
+        "LIVE-4-105",
+        "LIVE-4-106",
+        "LIVE-4-107",
+        "LIVE-4-108",
+        "LIVE-4-109",
+        "LIVE-4-110",
+        "LIVE-4-111",
+        "LIVE-4-112",
+        "LIVE-4-113",
+        "LIVE-4-114",
+        "LIVE-4-115",
+        "LIVE-4-116",
+        "LIVE-4-117",
+        "LIVE-4-118",
+        "LIVE-4-119"
+      ],
+      "native_markers": [
+        "LIVE-4-092",
+        "LIVE-4-093",
+        "LIVE-4-094",
+        "LIVE-4-095",
+        "LIVE-4-096",
+        "LIVE-4-097",
+        "LIVE-4-098",
+        "LIVE-4-099",
+        "LIVE-4-100",
+        "LIVE-4-101",
+        "LIVE-4-102",
+        "LIVE-4-103",
+        "LIVE-4-104",
+        "LIVE-4-105",
+        "LIVE-4-106",
+        "LIVE-4-107",
+        "LIVE-4-108",
+        "LIVE-4-109",
+        "LIVE-4-110",
+        "LIVE-4-111",
+        "LIVE-4-112",
+        "LIVE-4-113",
+        "LIVE-4-114",
+        "LIVE-4-115",
+        "LIVE-4-116",
+        "LIVE-4-117",
+        "LIVE-4-118",
+        "LIVE-4-119"
+      ],
+      "same_markers": true,
+      "original_first_write_ms": null,
+      "native_first_write_ms": 14.523609,
+      "original_settle_ms": null,
+      "native_settle_ms": 20.866622
+    }
+  ]
+}

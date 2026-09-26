@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-26T17:05:22+00:00
+State updated: 2026-09-26T20:51:22+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,37 +14,32 @@ Evidence target: evidence/T44/report.md
 
 ## Result
 
-Delivered c452180 behavior: Undo chooses preceding nonempty user text; Redo restores
-the whole saved staged tail without generation/tool replay/filesystem mutation.
-Durable owner-projected reverted count and boundary render a real card with hover,
-selection-protected click and configured shortcut hint. Click, slash, palette and
-shortcut use the same owner operation; errors retain card/boundary/draft. Admitted
-config sources project effective conversation shortcuts and reload/Location scope;
-editor Ctrl-minus remains editor undo. Branch invalidation/archive/DCP remain intact.
+Implemented demand-driven scheduling with bounded input/worker bursts and active
+animation deadlines; no idle redraw loop. Default wheel preserves three rows/tick
+and bounded temporal presentation; optional MacOS acceleration not claimed. Fixed
+real detached-completion jump by semantic durable message/part/row anchoring,
+retained older pages and expansion, preserving sticky bottom and explicit reset.
 
 ## Checks
 
-Full serial fmt/locked workspace tests/strict all-target Clippy/locked build,
-capture syntax/frontend/docs/progress/diff PASS: tool_0deab074e001sKzMIryMp9yIZ2.
-Real-owner five-turn test exercises all four Redo entry paths with zero extra
-provider calls. Paired source-built revert-redo-20260926-07 verifies three turns,
-Revert count2, selection guard, whole-tail click/shortcut/slash/palette/restart on
-both executables: four actual requests each, no extra action requests. All 58
-unmasked comparisons DIFFERENT. Evidence: recovery-v00/revert-redo-report.md.
+Final serial workspace fmt/locked tests/strict all-target Clippy/locked build,
+capture syntax/frontend/docs/progress/diff PASS: tool_0df7a262c0017rL2kcrdyCQPZi.
+Actual source-built high-refresh-20260926-05 confirms detached/sticky completion,
+Shell/list routing, 32/32 glyph paints per input rate and zero lagged worker events.
+Four idle windows: zero bytes/CPU ticks/main-thread context switches. Native input
+p95 38.307/35.761ms at requested165/250Hz; draw p95 24.441ms. These are PTY timing,
+not measured FPS. Failed earlier attempts remain immutable.
 
 ## Risks
 
-Three-turn pager capture does not qualify large-history loading. Optional custom
-shortcut paired capture not run (owner/binary tests cover config). Current profile,
-tps, palette differences persist; no VIS33/V09 exact PASS. Older step-Redo claims
-are historical and superseded. Owner 4bee144 adds compaction parity, preserved.
-Inherited .opencode/ untouched.
+44 full comparisons DIFFERENT, three active PNGs unstable. Exact external idle
+window/scheduler alignment, all-thread wakeups and large-history paired paging
+remain unqualified. No VIS31/VIS32/V09 complete claim. .opencode/ untouched.
 
 ## Next
 
-Deliver verified whole-tail/card slice, then implement high-refresh event-driven
-redraw and wheel qualification VIS31/VIS32; subsequently address 4bee144 session
-compaction requirements without removing existing DCP semantics.
+Deliver verified scheduling/anchor slice, then session compaction 4bee144 without
+removing DCP; preserve newer owner patch/permission/leader-pending requirements.
 
 
 Ready (до 5): T45, T46, T47

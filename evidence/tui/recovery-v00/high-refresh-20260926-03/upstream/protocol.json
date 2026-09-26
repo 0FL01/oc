@@ -1,0 +1,2376 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/high-refresh-20260926-03/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/high-refresh-20260926-03/upstream/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/high-refresh-20260926-03/upstream/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/high-refresh-20260926-03/upstream/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/high-refresh-20260926-03/upstream/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/high-refresh-20260926-03/upstream/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/high-refresh-20260926-03/upstream/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"share\": \"disabled\", \"update\": \"disable\", \"plugins\": [\"-opencode.models.dev\"], \"providers\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"package\": \"@opencode/ai/providers/openai/responses\", \"settings\": {\"baseURL\": \"http://127.0.0.1:39803/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-00\": {\"name\": \"ZZ Wheel 00\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-01\": {\"name\": \"ZZ Wheel 01\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-02\": {\"name\": \"ZZ Wheel 02\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-03\": {\"name\": \"ZZ Wheel 03\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-04\": {\"name\": \"ZZ Wheel 04\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-05\": {\"name\": \"ZZ Wheel 05\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-06\": {\"name\": \"ZZ Wheel 06\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-07\": {\"name\": \"ZZ Wheel 07\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-08\": {\"name\": \"ZZ Wheel 08\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-09\": {\"name\": \"ZZ Wheel 09\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-10\": {\"name\": \"ZZ Wheel 10\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-11\": {\"name\": \"ZZ Wheel 11\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-12\": {\"name\": \"ZZ Wheel 12\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-13\": {\"name\": \"ZZ Wheel 13\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-14\": {\"name\": \"ZZ Wheel 14\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-15\": {\"name\": \"ZZ Wheel 15\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-16\": {\"name\": \"ZZ Wheel 16\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-17\": {\"name\": \"ZZ Wheel 17\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-18\": {\"name\": \"ZZ Wheel 18\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-19\": {\"name\": \"ZZ Wheel 19\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-20\": {\"name\": \"ZZ Wheel 20\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-21\": {\"name\": \"ZZ Wheel 21\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-22\": {\"name\": \"ZZ Wheel 22\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-23\": {\"name\": \"ZZ Wheel 23\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-24\": {\"name\": \"ZZ Wheel 24\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-25\": {\"name\": \"ZZ Wheel 25\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-26\": {\"name\": \"ZZ Wheel 26\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-27\": {\"name\": \"ZZ Wheel 27\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-28\": {\"name\": \"ZZ Wheel 28\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-29\": {\"name\": \"ZZ Wheel 29\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-30\": {\"name\": \"ZZ Wheel 30\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"wheel-list-31\": {\"name\": \"ZZ Wheel 31\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}, \"default_agent\": \"build\", \"agents\": {\"fixture-shell\": {\"mode\": \"primary\", \"system\": \"You are the isolated T44 bounded fixture profile.\", \"color\": \"#5c9cf5\", \"permissions\": [{\"action\": \"*\", \"resource\": \"*\", \"effect\": \"deny\"}, {\"action\": \"shell\", \"resource\": \"printf 'SHELL-SHORT\\\\n'\", \"effect\": \"allow\"}, {\"action\": \"shell\", \"resource\": \"printf 'SHELL-LINE-%02d\\\\n' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40\", \"effect\": \"allow\"}]}}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "opencode v2.0.12",
+    "version_exit": 0
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547450023234,
+    "base64": "G10xMDtyZ2I6ZWVlZS9lZWVlL2VlZWUbXA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547450955869,
+    "base64": "G10xMTtyZ2I6MGEwYS8wYTBhLzBhMGEbXA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547455686552,
+    "base64": "G1sxOzFS"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547456158964,
+    "base64": "G1s/MTAxNjsyJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547456621431,
+    "base64": "G1s/MjAyNzswJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547457264169,
+    "base64": "G1s/MjAzMTswJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547458102401,
+    "base64": "G1s/MTAwNDsyJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547458463685,
+    "base64": "G1s/MjAwNDsyJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547458963278,
+    "base64": "G1s/MjAyNjsyJHk="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547459462769,
+    "base64": "G1s/MTsyYw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547459803793,
+    "base64": "G1sxOzFS"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547460285990,
+    "base64": "G1sxOzFS"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547497978329,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547502424876,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547504773933,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547516499820,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547516928947,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127547517218083,
+    "base64": "G1tJ"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127550368794891,
+    "base64": "L2FnZW50cw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127552748611857,
+    "base64": "DQ=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127555059085549,
+    "base64": "Zml4dHVyZS1zaGVsbA=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127557392175128,
+    "base64": "DQ=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127559703549375,
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127559703910118,
+    "base64": "DQ=="
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": false,
+    "operation": "title",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "3b91a41592ed596ebdd4c83240de317d2fc92ff8be4283901ddf9513e5c06955",
+    "registered_tools": [],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream"
+    ],
+    "tool_schemas": {},
+    "reasoning_effort": null
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title",
+    "response_text_sha256": "1d813e919dac6b6dd2b09b29e81ca7d93d503f841030b3118759525fd000beaa"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "fd82284012cb28dfbaf2b14230d6f0384f55eb277307141dab539e8fb00b3281",
+    "registered_tools": [
+      "shell"
+    ],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "tool_schemas": {
+      "shell": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "Shell command string to execute"
+          },
+          "workdir": {
+            "type": "string",
+            "description": "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead."
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Timeout in milliseconds. Set to 0 to disable the timeout. Defaults to 120000 for foreground commands. Background commands have no timeout by default."
+          },
+          "background": {
+            "type": "boolean",
+            "description": "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion."
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reasoning_effort": null,
+    "fixture_outputs_verified": true,
+    "fixture_outputs": {},
+    "bounded_request_index": 0
+  },
+  {
+    "kind": "fixture_tool_call",
+    "name": "shell",
+    "arguments": {
+      "command": "printf 'SHELL-SHORT\\n'",
+      "description": "Fixture short output"
+    },
+    "call_id": "call_fixture_shell_0"
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 1,
+    "request_sha256": "ace8f1f67cd645ad68a00b47b68e16e25a81006fd00ad0f7f0be13b76d291f10",
+    "registered_tools": [
+      "shell"
+    ],
+    "tool_result_count": 1,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "tool_schemas": {
+      "shell": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "Shell command string to execute"
+          },
+          "workdir": {
+            "type": "string",
+            "description": "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead."
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Timeout in milliseconds. Set to 0 to disable the timeout. Defaults to 120000 for foreground commands. Background commands have no timeout by default."
+          },
+          "background": {
+            "type": "boolean",
+            "description": "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion."
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reasoning_effort": null,
+    "fixture_outputs_verified": true,
+    "fixture_outputs": {
+      "call_fixture_shell_0": "[{'type': 'input_text', 'text': 'SHELL-SHORT\\n'}, {'type': 'input_text', 'text': 'Command exited with code 0.'}]"
+    },
+    "bounded_request_index": 1
+  },
+  {
+    "kind": "fixture_tool_call",
+    "name": "shell",
+    "arguments": {
+      "command": "printf 'SHELL-LINE-%02d\\n' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40",
+      "description": "Fixture long output"
+    },
+    "call_id": "call_fixture_shell_1"
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 1,
+    "request_sha256": "f122ac282e1e5790489bd6e83b1613b23f6e94b2c8bea4a1f72774ee5a8acecd",
+    "registered_tools": [
+      "shell"
+    ],
+    "tool_result_count": 2,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "tool_schemas": {
+      "shell": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "Shell command string to execute"
+          },
+          "workdir": {
+            "type": "string",
+            "description": "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead."
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Timeout in milliseconds. Set to 0 to disable the timeout. Defaults to 120000 for foreground commands. Background commands have no timeout by default."
+          },
+          "background": {
+            "type": "boolean",
+            "description": "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion."
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reasoning_effort": null,
+    "fixture_outputs_verified": true,
+    "fixture_outputs": {
+      "call_fixture_shell_0": "[{'type': 'input_text', 'text': 'SHELL-SHORT\\n'}, {'type': 'input_text', 'text': 'Command exited with code 0.'}]",
+      "call_fixture_shell_1": "[{'type': 'input_text', 'text': 'SHELL-LINE-01\\nSHELL-LINE-02\\nSHELL-LINE-03\\nSHELL-LINE-04\\nSHELL-LINE-05\\nSHELL-LINE-06\\nSHELL-LINE-07\\nSHELL-LINE-08\\nSHELL-LINE-09\\nSHELL-LINE-10\\nSHELL-LINE-11\\nSHELL-LINE-12\\nSHELL-LINE-13\\nSHELL-LINE-14\\nSHELL-LINE-15\\nSHELL-LINE-16\\nSHELL-LINE-17\\nSHELL-LINE-18\\nSHELL-LINE-19\\nSHELL-LINE-20\\nSHELL-LINE-21\\nSHELL-LINE-22\\nSHELL-LINE-23\\nSHELL-LINE-24\\nSHELL-LINE-25\\nSHELL-LINE-26\\nSHELL-LINE-27\\nSHELL-LINE-28\\nSHELL-LINE-29\\nSHELL-LINE-30\\nSHELL-LINE-31\\nSHELL-LINE-32\\nSHELL-LINE-33\\nSHELL-LINE-34\\nSHELL-LINE-35\\nSHELL-LINE-36\\nSHELL-LINE-37\\nSHELL-LINE-38\\nSHELL-LINE-39\\nSHELL-LINE-40\\n'}, {'type': 'input_text', 'text': 'Command exited with code 0.'}]"
+    },
+    "bounded_request_index": 2
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "4232375ba1fb520015b3563af5a3f9909ee9b23c8bee7949af1c3af8c4a70c8c"
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127563003337169,
+    "base64": "G1s8MDs4OzE2TQ=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127563003483759,
+    "base64": "G1s8MDs4OzE2bQ=="
+  },
+  {
+    "kind": "resize",
+    "columns": 120,
+    "rows": 80
+  },
+  {
+    "kind": "resize",
+    "columns": 120,
+    "rows": 40
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127569052391358,
+    "base64": "G1syMDB+Rk9DVVMtQQpGT0NVUy1CG1syMDF+"
+  },
+  {
+    "kind": "process_sample",
+    "request_id": "expanded-idle-start",
+    "at_ns": 1127571636900936,
+    "pid": 4022058,
+    "cpu_ticks": 176,
+    "clock_ticks_per_second": 100,
+    "voluntary_context_switches": 527,
+    "involuntary_context_switches": 825
+  },
+  {
+    "kind": "process_sample",
+    "request_id": "expanded-idle-end",
+    "at_ns": 1127572646761990,
+    "pid": 4022058,
+    "cpu_ticks": 177,
+    "clock_ticks_per_second": 100,
+    "voluntary_context_switches": 539,
+    "involuntary_context_switches": 836
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-single-up",
+    "index": 0,
+    "at_ns": 1127572888229034,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input_done",
+    "request_id": "wheel-165-single-up",
+    "at_ns": 1127572888322375
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-burst-up",
+    "index": 0,
+    "at_ns": 1127574822245278,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-burst-up",
+    "index": 1,
+    "at_ns": 1127574828265463,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-burst-up",
+    "index": 2,
+    "at_ns": 1127574834335705,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-burst-up",
+    "index": 3,
+    "at_ns": 1127574840609963,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-burst-up",
+    "index": 4,
+    "at_ns": 1127574846458330,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-burst-up",
+    "index": 5,
+    "at_ns": 1127574852515932,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-burst-up",
+    "index": 6,
+    "at_ns": 1127574858675868,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-burst-up",
+    "index": 7,
+    "at_ns": 1127574866029301,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input_done",
+    "request_id": "wheel-165-burst-up",
+    "at_ns": 1127574866132417
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-reverse",
+    "index": 0,
+    "at_ns": 1127576755347585,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-reverse",
+    "index": 1,
+    "at_ns": 1127576761406939,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-reverse",
+    "index": 2,
+    "at_ns": 1127576767480685,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-reverse",
+    "index": 3,
+    "at_ns": 1127576773543295,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-reverse",
+    "index": 4,
+    "at_ns": 1127576779599636,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-reverse",
+    "index": 5,
+    "at_ns": 1127576785659301,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input_done",
+    "request_id": "wheel-165-reverse",
+    "at_ns": 1127576785751910
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 0,
+    "at_ns": 1127578783530323,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 1,
+    "at_ns": 1127578789605782,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 2,
+    "at_ns": 1127578795643363,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 3,
+    "at_ns": 1127578801708067,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 4,
+    "at_ns": 1127578807795634,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 5,
+    "at_ns": 1127578813832125,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 6,
+    "at_ns": 1127578820056557,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 7,
+    "at_ns": 1127578826598910,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 8,
+    "at_ns": 1127578832030478,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 9,
+    "at_ns": 1127578838076423,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 10,
+    "at_ns": 1127578844160396,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 11,
+    "at_ns": 1127578850195272,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 12,
+    "at_ns": 1127578856252394,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 13,
+    "at_ns": 1127578862323887,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 14,
+    "at_ns": 1127578868369983,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 15,
+    "at_ns": 1127578875163043,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 16,
+    "at_ns": 1127578880499678,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 17,
+    "at_ns": 1127578886558963,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 18,
+    "at_ns": 1127578894944210,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 19,
+    "at_ns": 1127578898677693,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 20,
+    "at_ns": 1127578904752309,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 21,
+    "at_ns": 1127578910869231,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 22,
+    "at_ns": 1127578916873494,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 23,
+    "at_ns": 1127578922924336,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 24,
+    "at_ns": 1127578929697585,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 25,
+    "at_ns": 1127578935054923,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 26,
+    "at_ns": 1127578941108258,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 27,
+    "at_ns": 1127578949532244,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 28,
+    "at_ns": 1127578953227147,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 29,
+    "at_ns": 1127578959305811,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 30,
+    "at_ns": 1127578965351907,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-top-edge",
+    "index": 31,
+    "at_ns": 1127578971411722,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input_done",
+    "request_id": "wheel-165-top-edge",
+    "at_ns": 1127578971496579
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 0,
+    "at_ns": 1127580612705566,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 1,
+    "at_ns": 1127580618762969,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 2,
+    "at_ns": 1127580624823856,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 3,
+    "at_ns": 1127580630898422,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 4,
+    "at_ns": 1127580636955564,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 5,
+    "at_ns": 1127580646315569,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 6,
+    "at_ns": 1127580649073222,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 7,
+    "at_ns": 1127580655168131,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 8,
+    "at_ns": 1127580663083119,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 9,
+    "at_ns": 1127580667271247,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 10,
+    "at_ns": 1127580673324021,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 11,
+    "at_ns": 1127580680045833,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 12,
+    "at_ns": 1127580685442680,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 13,
+    "at_ns": 1127580691492441,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 14,
+    "at_ns": 1127580699505267,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 15,
+    "at_ns": 1127580703621355,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 16,
+    "at_ns": 1127580709682092,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 17,
+    "at_ns": 1127580716475051,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 18,
+    "at_ns": 1127580721808294,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 19,
+    "at_ns": 1127580727868960,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 20,
+    "at_ns": 1127580733926383,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 21,
+    "at_ns": 1127580740289023,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 22,
+    "at_ns": 1127580748059245,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 23,
+    "at_ns": 1127580753469502,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 24,
+    "at_ns": 1127580758166095,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 25,
+    "at_ns": 1127580768122519,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 26,
+    "at_ns": 1127580770283912,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 27,
+    "at_ns": 1127580776350769,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 28,
+    "at_ns": 1127580783079242,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 29,
+    "at_ns": 1127580788472963,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 30,
+    "at_ns": 1127580794533139,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-165-bottom-edge",
+    "index": 31,
+    "at_ns": 1127580800604212,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input_done",
+    "request_id": "wheel-165-bottom-edge",
+    "at_ns": 1127580800708619
+  },
+  {
+    "kind": "process_sample",
+    "request_id": "settled-165-idle-start",
+    "at_ns": 1127582396061921,
+    "pid": 4022058,
+    "cpu_ticks": 192,
+    "clock_ticks_per_second": 100,
+    "voluntary_context_switches": 796,
+    "involuntary_context_switches": 1105
+  },
+  {
+    "kind": "process_sample",
+    "request_id": "settled-165-idle-end",
+    "at_ns": 1127583408519174,
+    "pid": 4022058,
+    "cpu_ticks": 193,
+    "clock_ticks_per_second": 100,
+    "voluntary_context_switches": 804,
+    "involuntary_context_switches": 1111
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-single-up",
+    "index": 0,
+    "at_ns": 1127583676549129,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input_done",
+    "request_id": "wheel-250-single-up",
+    "at_ns": 1127583676645273
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-burst-up",
+    "index": 0,
+    "at_ns": 1127585512182437,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-burst-up",
+    "index": 1,
+    "at_ns": 1127585516189051,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-burst-up",
+    "index": 2,
+    "at_ns": 1127585520180632,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-burst-up",
+    "index": 3,
+    "at_ns": 1127585524188968,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-burst-up",
+    "index": 4,
+    "at_ns": 1127585532042024,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-burst-up",
+    "index": 5,
+    "at_ns": 1127585532220933,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-burst-up",
+    "index": 6,
+    "at_ns": 1127585536230671,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-burst-up",
+    "index": 7,
+    "at_ns": 1127585540185067,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input_done",
+    "request_id": "wheel-250-burst-up",
+    "at_ns": 1127585540267159
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-reverse",
+    "index": 0,
+    "at_ns": 1127587446752123,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-reverse",
+    "index": 1,
+    "at_ns": 1127587450754119,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-reverse",
+    "index": 2,
+    "at_ns": 1127587454758489,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-reverse",
+    "index": 3,
+    "at_ns": 1127587458757612,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-reverse",
+    "index": 4,
+    "at_ns": 1127587462750444,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-reverse",
+    "index": 5,
+    "at_ns": 1127587466778440,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input_done",
+    "request_id": "wheel-250-reverse",
+    "at_ns": 1127587466827945
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 0,
+    "at_ns": 1127589374330009,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 1,
+    "at_ns": 1127589378326747,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 2,
+    "at_ns": 1127589382322635,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 3,
+    "at_ns": 1127589386326114,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 4,
+    "at_ns": 1127589390327530,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 5,
+    "at_ns": 1127589394337067,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 6,
+    "at_ns": 1127589398320736,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 7,
+    "at_ns": 1127589402321962,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 8,
+    "at_ns": 1127589406338340,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 9,
+    "at_ns": 1127589410328709,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 10,
+    "at_ns": 1127589414335474,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 11,
+    "at_ns": 1127589418336407,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 12,
+    "at_ns": 1127589422339406,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 13,
+    "at_ns": 1127589426332770,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 14,
+    "at_ns": 1127589430353484,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 15,
+    "at_ns": 1127589434319577,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 16,
+    "at_ns": 1127589438333191,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 17,
+    "at_ns": 1127589442331753,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 18,
+    "at_ns": 1127589446331957,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 19,
+    "at_ns": 1127589450329927,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 20,
+    "at_ns": 1127589454329520,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 21,
+    "at_ns": 1127589458348593,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 22,
+    "at_ns": 1127589462325361,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 23,
+    "at_ns": 1127589468068910,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 24,
+    "at_ns": 1127589470326279,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 25,
+    "at_ns": 1127589474324380,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 26,
+    "at_ns": 1127589478327047,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 27,
+    "at_ns": 1127589482325479,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 28,
+    "at_ns": 1127589486325403,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 29,
+    "at_ns": 1127589490327709,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 30,
+    "at_ns": 1127589494331900,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-top-edge",
+    "index": 31,
+    "at_ns": 1127589498322718,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input_done",
+    "request_id": "wheel-250-top-edge",
+    "at_ns": 1127589498381278
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 0,
+    "at_ns": 1127590953693862,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 1,
+    "at_ns": 1127590957683961,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 2,
+    "at_ns": 1127590961685507,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 3,
+    "at_ns": 1127590965693883,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 4,
+    "at_ns": 1127590972571991,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 5,
+    "at_ns": 1127590973690244,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 6,
+    "at_ns": 1127590977722567,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 7,
+    "at_ns": 1127590981686766,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 8,
+    "at_ns": 1127590985702444,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 9,
+    "at_ns": 1127590989698932,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 10,
+    "at_ns": 1127590993693297,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 11,
+    "at_ns": 1127590997887753,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 12,
+    "at_ns": 1127591001706043,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 13,
+    "at_ns": 1127591005684805,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 14,
+    "at_ns": 1127591009705981,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 15,
+    "at_ns": 1127591015155637,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 16,
+    "at_ns": 1127591017688392,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 17,
+    "at_ns": 1127591021690988,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 18,
+    "at_ns": 1127591025694237,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 19,
+    "at_ns": 1127591031437185,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 20,
+    "at_ns": 1127591033685891,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 21,
+    "at_ns": 1127591037686816,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 22,
+    "at_ns": 1127591041685008,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 23,
+    "at_ns": 1127591045693303,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 24,
+    "at_ns": 1127591049684144,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 25,
+    "at_ns": 1127591053679579,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 26,
+    "at_ns": 1127591057677210,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 27,
+    "at_ns": 1127591061692267,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 28,
+    "at_ns": 1127591065687873,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 29,
+    "at_ns": 1127591071620587,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 30,
+    "at_ns": 1127591073688372,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-250-bottom-edge",
+    "index": 31,
+    "at_ns": 1127591077685089,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input_done",
+    "request_id": "wheel-250-bottom-edge",
+    "at_ns": 1127591077744969
+  },
+  {
+    "kind": "process_sample",
+    "request_id": "settled-250-idle-start",
+    "at_ns": 1127592536632419,
+    "pid": 4022058,
+    "cpu_ticks": 207,
+    "clock_ticks_per_second": 100,
+    "voluntary_context_switches": 1062,
+    "involuntary_context_switches": 1299
+  },
+  {
+    "kind": "process_sample",
+    "request_id": "settled-250-idle-end",
+    "at_ns": 1127593547571915,
+    "pid": 4022058,
+    "cpu_ticks": 207,
+    "clock_ticks_per_second": 100,
+    "voluntary_context_switches": 1071,
+    "involuntary_context_switches": 1310
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127593559969955,
+    "base64": "Aw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127593660293451,
+    "base64": "L21vZGVscw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127596017683708,
+    "base64": "DQ=="
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-models-up",
+    "index": 0,
+    "at_ns": 1127598865268635,
+    "base64": "G1s8NjQ7NjA7MjBN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-models-up",
+    "index": 1,
+    "at_ns": 1127598869270492,
+    "base64": "G1s8NjQ7NjA7MjBN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-models-up",
+    "index": 2,
+    "at_ns": 1127598873241672,
+    "base64": "G1s8NjQ7NjA7MjBN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-models-up",
+    "index": 3,
+    "at_ns": 1127598877246793,
+    "base64": "G1s8NjQ7NjA7MjBN"
+  },
+  {
+    "kind": "paced_input_done",
+    "request_id": "wheel-models-up",
+    "at_ns": 1127598877325913
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-models-down",
+    "index": 0,
+    "at_ns": 1127600314808337,
+    "base64": "G1s8NjU7NjA7MjBN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-models-down",
+    "index": 1,
+    "at_ns": 1127600318803763,
+    "base64": "G1s8NjU7NjA7MjBN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-models-down",
+    "index": 2,
+    "at_ns": 1127600322802244,
+    "base64": "G1s8NjU7NjA7MjBN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-models-down",
+    "index": 3,
+    "at_ns": 1127600326813546,
+    "base64": "G1s8NjU7NjA7MjBN"
+  },
+  {
+    "kind": "paced_input_done",
+    "request_id": "wheel-models-down",
+    "at_ns": 1127600326926275
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127602096614715,
+    "base64": "Gw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127604422910926,
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127604423351300,
+    "base64": "DQ=="
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 1,
+    "request_sha256": "4e2e781363755cd9d15f287743a4c415bedf33f5368e6bb69b07bd64f9419ce8",
+    "registered_tools": [
+      "shell"
+    ],
+    "tool_result_count": 2,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "tool_schemas": {
+      "shell": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "Shell command string to execute"
+          },
+          "workdir": {
+            "type": "string",
+            "description": "Working directory to execute the command in. Defaults to the current working directory. When possible, avoid changing directories in the command and set the working directory here instead."
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Timeout in milliseconds. Set to 0 to disable the timeout. Defaults to 120000 for foreground commands. Background commands have no timeout by default."
+          },
+          "background": {
+            "type": "boolean",
+            "description": "Run the command in the background and return immediately (useful for dev servers and long-running builds). You do not need to use '&' at the end of the command when using this parameter. You will be notified when it completes. DO NOT poll for completion."
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reasoning_effort": null,
+    "fixture_outputs_verified": true,
+    "fixture_outputs": {
+      "call_fixture_shell_0": "[{'type': 'input_text', 'text': 'SHELL-SHORT\\n'}, {'type': 'input_text', 'text': 'Command exited with code 0.'}]",
+      "call_fixture_shell_1": "[{'type': 'input_text', 'text': 'SHELL-LINE-01\\nSHELL-LINE-02\\nSHELL-LINE-03\\nSHELL-LINE-04\\nSHELL-LINE-05\\nSHELL-LINE-06\\nSHELL-LINE-07\\nSHELL-LINE-08\\nSHELL-LINE-09\\nSHELL-LINE-10\\nSHELL-LINE-11\\nSHELL-LINE-12\\nSHELL-LINE-13\\nSHELL-LINE-14\\nSHELL-LINE-15\\nSHELL-LINE-16\\nSHELL-LINE-17\\nSHELL-LINE-18\\nSHELL-LINE-19\\nSHELL-LINE-20\\nSHELL-LINE-21\\nSHELL-LINE-22\\nSHELL-LINE-23\\nSHELL-LINE-24\\nSHELL-LINE-25\\nSHELL-LINE-26\\nSHELL-LINE-27\\nSHELL-LINE-28\\nSHELL-LINE-29\\nSHELL-LINE-30\\nSHELL-LINE-31\\nSHELL-LINE-32\\nSHELL-LINE-33\\nSHELL-LINE-34\\nSHELL-LINE-35\\nSHELL-LINE-36\\nSHELL-LINE-37\\nSHELL-LINE-38\\nSHELL-LINE-39\\nSHELL-LINE-40\\n'}, {'type': 'input_text', 'text': 'Command exited with code 0.'}]"
+    },
+    "bounded_request_index": 3
+  },
+  {
+    "kind": "wheel_stream_held",
+    "index": 3,
+    "at_ns": 1127604521349204
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-detach",
+    "index": 0,
+    "at_ns": 1127604983341074,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-detach",
+    "index": 1,
+    "at_ns": 1127604989412207,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-detach",
+    "index": 2,
+    "at_ns": 1127604995472172,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-detach",
+    "index": 3,
+    "at_ns": 1127605001555944,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-detach",
+    "index": 4,
+    "at_ns": 1127605007620827,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-detach",
+    "index": 5,
+    "at_ns": 1127605013661203,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-detach",
+    "index": 6,
+    "at_ns": 1127605019723412,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-detach",
+    "index": 7,
+    "at_ns": 1127605025793323,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-detach",
+    "index": 8,
+    "at_ns": 1127605031867780,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-detach",
+    "index": 9,
+    "at_ns": 1127605037906153,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-detach",
+    "index": 10,
+    "at_ns": 1127605043957636,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-detach",
+    "index": 11,
+    "at_ns": 1127605050024172,
+    "base64": "G1s8NjQ7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input_done",
+    "request_id": "wheel-stream-detach",
+    "at_ns": 1127605050112815
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "29002d835adb1313ad6bd578f2a1474b9564972fa550a7b4a7ce154d42e38de8"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 0,
+    "at_ns": 1127611057837369,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 1,
+    "at_ns": 1127611061709069,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 2,
+    "at_ns": 1127611065716214,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 3,
+    "at_ns": 1127611069709017,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 4,
+    "at_ns": 1127611073709521,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 5,
+    "at_ns": 1127611077709054,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 6,
+    "at_ns": 1127611081705431,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 7,
+    "at_ns": 1127611085707369,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 8,
+    "at_ns": 1127611089709816,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 9,
+    "at_ns": 1127611093705623,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 10,
+    "at_ns": 1127611097702733,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 11,
+    "at_ns": 1127611101709035,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 12,
+    "at_ns": 1127611105720867,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 13,
+    "at_ns": 1127611109713099,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 14,
+    "at_ns": 1127611113702787,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 15,
+    "at_ns": 1127611117703842,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 16,
+    "at_ns": 1127611121707691,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 17,
+    "at_ns": 1127611125706613,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 18,
+    "at_ns": 1127611129706496,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 19,
+    "at_ns": 1127611134503240,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 20,
+    "at_ns": 1127611137726674,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 21,
+    "at_ns": 1127611141805476,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 22,
+    "at_ns": 1127611145711999,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 23,
+    "at_ns": 1127611149716089,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 24,
+    "at_ns": 1127611153709402,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 25,
+    "at_ns": 1127611157746301,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 26,
+    "at_ns": 1127611161707967,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 27,
+    "at_ns": 1127611165719418,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 28,
+    "at_ns": 1127611169709808,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 29,
+    "at_ns": 1127611174403716,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 30,
+    "at_ns": 1127611177711717,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 31,
+    "at_ns": 1127611181707915,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 32,
+    "at_ns": 1127611185705555,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 33,
+    "at_ns": 1127611190803542,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 34,
+    "at_ns": 1127611193700835,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 35,
+    "at_ns": 1127611197773718,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 36,
+    "at_ns": 1127611201705369,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 37,
+    "at_ns": 1127611205729218,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 38,
+    "at_ns": 1127611209707720,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 39,
+    "at_ns": 1127611213719210,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 40,
+    "at_ns": 1127611217729740,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 41,
+    "at_ns": 1127611221719007,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 42,
+    "at_ns": 1127611225720804,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 43,
+    "at_ns": 1127611229714048,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 44,
+    "at_ns": 1127611233712068,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 45,
+    "at_ns": 1127611237711340,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 46,
+    "at_ns": 1127611242374993,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 47,
+    "at_ns": 1127611245726590,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 48,
+    "at_ns": 1127611249715708,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 49,
+    "at_ns": 1127611253710653,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 50,
+    "at_ns": 1127611257955926,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 51,
+    "at_ns": 1127611261719343,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 52,
+    "at_ns": 1127611265765697,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 53,
+    "at_ns": 1127611269706602,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 54,
+    "at_ns": 1127611273706585,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 55,
+    "at_ns": 1127611280027213,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 56,
+    "at_ns": 1127611281710177,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 57,
+    "at_ns": 1127611285705605,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 58,
+    "at_ns": 1127611289705127,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 59,
+    "at_ns": 1127611293715446,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 60,
+    "at_ns": 1127611297717202,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 61,
+    "at_ns": 1127611302352292,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 62,
+    "at_ns": 1127611305760554,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input",
+    "request_id": "wheel-stream-3-repin",
+    "index": 63,
+    "at_ns": 1127611309718415,
+    "base64": "G1s8NjU7MjA7MTJN"
+  },
+  {
+    "kind": "paced_input_done",
+    "request_id": "wheel-stream-3-repin",
+    "at_ns": 1127611309817544
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127612545121869,
+    "base64": "Aw=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127612645592476,
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "kind": "input_written",
+    "at_ns": 1127612647896647,
+    "base64": "DQ=="
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": 0,
+    "termination": "natural"
+  }
+]

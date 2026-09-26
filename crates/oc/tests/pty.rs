@@ -6,6 +6,8 @@
 //! slave termios state — not render snapshots.
 
 use std::io::{Read, Write};
+#[path = "support/terminal.rs"]
+mod terminal;
 #[path = "support/title.rs"]
 mod title;
 use std::net::{TcpListener, TcpStream};
@@ -357,6 +359,8 @@ impl PtySession {
         if let Some((key, value)) = env_extra {
             cmd.env(key, value);
         }
+        // A resize is an event, not an invitation to poll the terminal size.
+        terminal::controlling_terminal(&mut cmd);
         let child = cmd.spawn().expect("spawn oc tui");
         drop(slave);
         let master_file: std::fs::File = master.into();

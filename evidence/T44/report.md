@@ -1,5 +1,21 @@
 # T44 — parity qualification remains open (2026-09-26)
 
+The VIS31/VIS32 implementation replaces unconditional polling/redraw with bounded
+event-driven scheduling and real active deadlines, preserving scanner clock cadence.
+Compatible wheel bursts keep three rows/tick and converge row-quantized over the
+active presentation window; settled views schedule no scroll timer. A real PTY
+capture exposed detached live completion jumping to bottom; the fix preserves the
+durable message/derived-part/row anchor and loaded older pages, while sticky follow
+and explicit session/conversation reset remain separate. Full final serial gate
+PASS: `tool_0df7a262c0017rL2kcrdyCQPZi`. Source-built paired
+[`high-refresh-20260926-05`](../tui/recovery-v00/high-refresh-20260926-05/report.md)
+confirms the fixed anchor, actual Shell/list wheel routing and concurrent streaming
+input, zero lagged worker events, and four settled idle windows with zero terminal
+bytes/CPU ticks/main-thread context switches. Native input-to-PTY-paint p95 is
+38.307/35.761ms for requested 165/250Hz input. Expanded-history draw p95 is 24.441ms,
+not 165/250FPS. All 44 exact comparisons remain DIFFERENT, three active PNG captures
+are unstable; large-history and all-thread wakeup qualification remain open.
+
 The c452180 whole-tail Redo/reverted-card amendment is implemented and verified by
 the serial workspace gate `tool_0deab074e001sKzMIryMp9yIZ2` and
 [`revert-redo-20260926-07`](../tui/recovery-v00/revert-redo-20260926-07/capture.lock.json).
@@ -66,7 +82,7 @@ Additional committed source `ae17373` aligns narrow Home footer and completed at
 
 For the **concurrent title** source slice, serialized workspace fmt, locked tests (zero failures), all-target Clippy `-D warnings`, locked build, docs/progress checks, capture JS/Python syntax and diff check **PASS**: `/home/opencode/.local/share/opencode/tool-output/tool_0da95f4fe001MFRpuvCuT6Lf82`. Prior short-Home gate: `/home/opencode/.local/share/opencode/tool-output/tool_0d9f9c9fa0017Tkc8g24VlrSNk`; prior Home footer gate: `/home/opencode/.local/share/opencode/tool-output/tool_0d9ed5ef0001ICIYpexUnLdJBu`. No code gate qualifies V09. Inherited untracked `.opencode/` was never inspected, modified or staged and prevents a literal clean-status V09 claim.
 
-**Current next work:** qualify remaining Message Actions exact frames and supported tool hover/expand behavior, correct successful Shell spacing, investigate same-state public replay with recorded durations, and qualify the T45-dependent mention inventory or a genuinely identical supported fixture. A future owner decision may be needed for genuinely irreconcilable truthful identity on required wide Home frames; do not presume such a decision now, modify the acceptance contract, or claim `TUI_PARITY_VERIFIED` while any required exact comparison fails. The earlier block checkpoint `progress/M9/T44/0055.md` is superseded by resumed active T44; it was not rewritten.
+**Current next work:** implement 4bee144 session compaction parity without removing DCP, then the newer owner apply_patch, permission approval and leader-pending presentation requirements. Continue exact-frame qualification, same-state public replay investigation and remaining high-refresh measurements without falsifying durations/version. T45 owns non-file mention exposure. A future owner decision may be needed for genuinely irreconcilable truthful identity on required wide Home frames; do not presume such a decision now, modify the acceptance contract, or claim `TUI_PARITY_VERIFIED` while any required exact comparison fails. The earlier block checkpoint `progress/M9/T44/0055.md` is superseded by resumed active T44; it was not rewritten.
 
 The historical first VIS10 foundation slice mapped painted user-message lines and hover shading. [`message-hover-20260926-01`](../tui/message-hover-20260926-01/report.md) observed the same normal-to-hover transition, with full frames DIFFERENT by two elapsed digits. At that checkpoint there was no menu or durable ID. The resumed implementation now carries durable owner IDs and real actions; see [current functional evidence](conversation-only-report.md). The earlier capture remains immutable and is not promoted to parity PASS.
 

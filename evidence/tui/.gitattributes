@@ -89,3 +89,5 @@ recovery-v00/sessions-live-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/sessions-live-*/*/*.vt binary
 recovery-v00/revert-redo-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/revert-redo-*/*/*.vt binary
+recovery-v00/high-refresh-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+recovery-v00/high-refresh-*/*/*.vt binary
