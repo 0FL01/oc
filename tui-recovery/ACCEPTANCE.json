@@ -75,7 +75,7 @@
       "id": "VIS06",
       "step": "V02",
       "title": "Data-driven chrome",
-      "expected": "Session title, model/provider display names, agent color, usage and known/unknown pricing come from actual DTOs, not renderer constants.",
+      "expected": "Session title, model/provider display names, agent color, usage and known/unknown pricing come from actual DTOs, not renderer constants. Prompt metadata uses pinned Locale.titlecase for the active agent display label: build → Build, build-yolo → Build-Yolo, preserving separators and existing casing elsewhere. Preserve the original agent ID, selection and color; model/provider/variant labels remain unchanged. Width fitting/truncation uses the painted label. Extend the existing prompt-metadata regression test and verify paired original/native full styled-cell/PNG frames for simple and hyphenated profile names.",
       "sources": [
         "P05",
         "P10",
