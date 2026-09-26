@@ -226,7 +226,7 @@
       "id": "VIS17",
       "step": "V06",
       "title": "Durable replay parity",
-      "expected": "Same session parts/cards/metadata render equivalently after page reload, session switch and process restart, with one durable owner.",
+      "expected": "Same session parts/cards/metadata render equivalently after page reload, session switch and process restart, with one durable owner. For a fresh session with a non-default profile and no explicit profile switch, the first user stripe matches pinned upstream during streaming, after completion/durable page replacement and after reopen. Both actual user and assistant message IDs retain the correct turn association and agent/color metadata; verify a real completed turn and history query, not synthetic rows or a renderer fallback. Paired full styled-cell/PNG frames and two sequential outgoing provider requests must show unchanged selected agent ID/digest (owner selection/log evidence) and that profile's instruction input, with no silent default-Build substitution under unchanged profile/config. No hard-coded profile/color or new immutable historical-color rule across explicit profile switches. UI color and stable profile instructions do not establish provider KV-cache reuse; do not publish credentials or raw live responses.",
       "sources": [
         "P01",
         "P06",
