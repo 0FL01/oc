@@ -205,9 +205,32 @@ R6: pending до full rerun на финальном code SHA; сохранить
 `progress.py` остаётся единственным task-state owner; R-status — детализация T44, не
 второй task tracker. `ACCEPTANCE.json` здесь содержит спецификации, а не PASS результаты.
 
+## Compaction parity — VIS34
+
+1. Проверить и переиспользовать session compaction runtime. Проследить `/compact`
+   и palette до владельца операции; устранять только подтверждённые расхождения
+   admission, safe-boundary execution, summary request, checkpoint и следующего
+   provider context. Это не DCP range compression и не `/dcp-compress`.
+2. Передавать в TUI действительные queued/running/completed/failed/cancelled
+   состояния, streamed summary и usage запроса, с корректным replay после reopen.
+3. Сверить divider rules, заголовок и Markdown body с pinned OC2. Running:
+   Braille spinner каждые 80 мс, либо `⋯` при `animations=false`; completed:
+   без spinner, с фактическим formatted in/out. Не подменять это text shimmer.
+4. Проверить ручной `/compact`, автоматический context-threshold trigger и
+   overflow recovery детерминированными runtime-сценариями; сохранить raw history,
+   causal tool pairs, DCP и conversation-only Revert invariants. Provider-native
+   completion, если поддержан активным route, отображается как `Provider compaction`
+   без придуманного summary body. `Instructions updated` — отдельное instruction
+   событие, а не статус compaction.
+5. Снять paired original/native styled-cell и PNG для queued/completed и running
+   frame sequence; проверить summary, следующий provider context, failure/cancel,
+   reopen и отсутствие animation wakeups после завершения.
+
+Pinned источники VIS34: U15–U17 в `SOURCES.json`.
+
 ## Обязательные результаты нового прохода
 
-V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS33 из ACCEPTANCE.json:
+V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS34 из ACCEPTANCE.json:
 1. Изолированный upstream reference + identical fixture/state для трёх пользовательских экранов.
 2. Исправленные UI event loop/keymap и диагностируемый MCP error без потери draft.
 3. Shell/sidebar/tabs/prompt/footer из реальных данных с геометрией эталона.

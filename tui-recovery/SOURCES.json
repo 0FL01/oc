@@ -273,6 +273,33 @@
       "locator": "23–59 stage; 61–75 clear",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/revert.ts#L23-L75",
       "purpose": "Single staged boundary cleared in full; filesystem restore is excluded by the native snapshots-disabled contract"
+    },
+    {
+      "id": "U15",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "866–889 compact command; 2084–2149 CompactionMessage; 2152–2164 CompactionQueued",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L2084-L2164",
+      "purpose": "Compact command and queued/running/completed/failed/cancelled presentation, spinner, divider rules, usage and summary"
+    },
+    {
+      "id": "U16",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/compaction.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "279–328 tail; 364–390 summary prompt; 469–574 request/native path; 595–794 summary execution and manual/automatic strategy",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/compaction.ts#L595-L794",
+      "purpose": "Compaction request, streamed summary, usage, checkpoint and native/summary strategy"
+    },
+    {
+      "id": "U17",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/runner/llm.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "79–143 compaction delivery/execution; 216–270 automatic trigger and overflow recovery; admission in session.ts:240–258 and inbox.ts:204–226",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/runner/llm.ts#L79-L143",
+      "purpose": "Safe-boundary manual admission/execution, automatic trigger and overflow recovery"
     }
   ],
   "external_primary_sources": [

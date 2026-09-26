@@ -456,6 +456,20 @@
       "mandatory": true,
       "execution_status": "NOT_RUN",
       "evidence": []
+    },
+    {
+      "id": "VIS34",
+      "step": "V06",
+      "title": "Session compaction command, lifecycle and animated transcript parity",
+      "expected": "Exercise /compact and palette against real owner operations, distinct from DCP compression. Verify pending compaction coalescing and safe-boundary delivery while preserving pending input. Compare queued, running, completed, failed and cancelled transcript states with pinned OC2: horizontal rules on both sides, spacing/theme roles, streaming Markdown summary, Braille spinner at 80 ms and animations-disabled ellipsis. Completed usage is actual compaction-request usage: input plus cache read/write, output plus reasoning, using compatible number formatting, never resulting context size. Verify checkpoint and next provider context, raw-history preservation, valid tool pairs and replay after reopen without tool reexecution. Cover automatic context-threshold compaction and overflow recovery with deterministic runtime evidence. Preserve DCP and conversation-only Revert invariants. Supported provider-native completion is Provider compaction without invented summary body. Instructions updated remains a separate instruction event. Require paired full styled-cell/PNG states and a running frame sequence; a static frame or working /dcp-compress does not qualify. No compaction animation deadlines remain after terminal state.",
+      "sources": [
+        "U15",
+        "U16",
+        "U17"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
     }
   ]
 }
