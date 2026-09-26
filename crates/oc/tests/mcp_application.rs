@@ -3049,12 +3049,22 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
         );
         std::thread::sleep(POLL);
     }
-    let first_requests = responses.requests().len();
+    // Automatic titles run concurrently with the main request. A late title
+    // must not be mistaken for a retry reaching the conversational provider.
+    let first_requests = responses
+        .requests()
+        .iter()
+        .filter(|body| !title::is_title(body))
+        .count();
     std::thread::sleep(Duration::from_millis(750));
     let from = tui.send_line("retry again in B");
     tui.wait_visible_after(from, "unsafe_retry");
     assert_eq!(
-        responses.requests().len(),
+        responses
+            .requests()
+            .iter()
+            .filter(|body| !title::is_title(body))
+            .count(),
         first_requests,
         "quarantine lost after local-only Location"
     );
@@ -3082,7 +3092,14 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
         tui.clear_draft_then_exit("retry again in B", Instant::now() + TIMEOUT)
             .success()
     );
-    assert_eq!(responses.requests().len(), first_requests);
+    assert_eq!(
+        responses
+            .requests()
+            .iter()
+            .filter(|body| !title::is_title(body))
+            .count(),
+        first_requests
+    );
 }
 
 #[test]
@@ -3196,11 +3213,19 @@ fn v07b_remote_unverified_result(tool: &str) {
         std::thread::sleep(POLL);
     }
     tui.wait_screen("MCP outcome unknown", TIMEOUT);
-    let first_requests = responses.requests().len();
+    let first_requests = responses
+        .requests()
+        .iter()
+        .filter(|body| !title::is_title(body))
+        .count();
     tui.send_line("explicit retry");
     tui.wait_screen("unsafe_retry", TIMEOUT);
     assert_eq!(
-        responses.requests().len(),
+        responses
+            .requests()
+            .iter()
+            .filter(|body| !title::is_title(body))
+            .count(),
         first_requests,
         "retry reached provider"
     );
@@ -3221,7 +3246,14 @@ fn v07b_remote_unverified_result(tool: &str) {
         tui.clear_draft_then_exit("explicit retry", Instant::now() + TIMEOUT)
             .success()
     );
-    assert_eq!(responses.requests().len(), first_requests);
+    assert_eq!(
+        responses
+            .requests()
+            .iter()
+            .filter(|body| !title::is_title(body))
+            .count(),
+        first_requests
+    );
 }
 
 #[test]

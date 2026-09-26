@@ -265,6 +265,7 @@ struct TextPoint {
 struct PaintedTranscript {
     area: Rect,
     rows: Vec<Line>,
+    user_targets: Vec<Option<crate::messages::UserMessageTarget>>,
     total: usize,
     scroll: usize,
 }
@@ -1787,6 +1788,16 @@ impl TuiState {
                     let pressed = self.exploration_down.take();
                     let exploration_pressed = pressed.is_some();
                     let reasoning_pressed = self.reasoning_down.take();
+                    // Resolve a user click only against the last painted,
+                    // still-current block. A selection/drag owns its release.
+                    // Application-owned actions are not available yet.
+                    if event.modifiers.is_empty()
+                        && self
+                            .user_message_target_at(area, event.column, event.row)
+                            .is_some()
+                    {
+                        return KeyOutcome::default();
+                    }
                     if event.modifiers.is_empty()
                         && let Some(tab) = pressed_tab
                         && self.tab_hit(area, event.column, event.row) == Some(tab)
@@ -2071,7 +2082,7 @@ impl TuiState {
         total: usize,
         scroll: usize,
     ) -> Vec<Line> {
-        self.paint_transcript_at(area, rows, total, scroll, None)
+        self.paint_transcript_at(area, rows, total, scroll, None, &[])
     }
 
     /// The terminal frame is the pointer's owner. The visible rows already
@@ -2083,8 +2094,22 @@ impl TuiState {
         total: usize,
         scroll: usize,
         frame: Option<Rect>,
+        user_targets: &[Option<crate::messages::UserMessageTarget>],
     ) -> Vec<Line> {
         let theme = Theme::dark();
+        let hovered_user = frame.and_then(|frame| {
+            let (x, y, owner) = self.last_mouse?;
+            if owner != frame
+                || self.panel != TuiPanel::None
+                || area != crate::shell::transcript_area(self, frame)
+                || !area.contains((x, y).into())
+                || self.transcript_overpainted(frame, x, y)
+                || x <= area.x
+            {
+                return None;
+            }
+            user_targets.get((y - area.y) as usize).copied().flatten()
+        });
         let hover_row = frame.and_then(|frame| {
             let (x, y, owner) = self.last_mouse?;
             if owner != frame
@@ -2112,7 +2137,12 @@ impl TuiState {
             .enumerate()
             .map(|(row, line)| {
                 let hovered;
-                let line = if hover_row == Some(row) {
+                let line = if hovered_user.is_some()
+                    && user_targets.get(row).copied().flatten() == hovered_user
+                {
+                    hovered = crate::messages::hover_user_content(line, theme);
+                    &hovered
+                } else if hover_row == Some(row) {
                     hovered = crate::messages::hover_collapsed_thought(line, theme);
                     &hovered
                 } else {
@@ -2147,10 +2177,12 @@ impl TuiState {
                 && previous.total == total
                 && previous.scroll == scroll
                 && previous.rows == rows
+                && previous.user_targets == user_targets
         }) {
             *painted = Some(PaintedTranscript {
                 area,
                 rows: rows.to_vec(),
+                user_targets: user_targets.to_vec(),
                 total,
                 scroll,
             });
@@ -2457,6 +2489,38 @@ impl TuiState {
             }
             _ => {}
         }
+    }
+
+    fn user_message_target_at(
+        &self,
+        frame: Rect,
+        x: u16,
+        y: u16,
+    ) -> Option<crate::messages::UserMessageTarget> {
+        let area = crate::shell::transcript_area(self, frame);
+        if self.panel != TuiPanel::None
+            || !area.contains((x, y).into())
+            || x <= area.x
+            || self.transcript_overpainted(frame, x, y)
+            || self.click.is_none_or(|click| click.count != 1)
+            || self.selection_gesture
+            || !matches!(self.selection_text(), Ok(None))
+        {
+            return None;
+        }
+        let (rows, total, scroll, targets) =
+            self.visible_transcript_at_viewport_with_targets(area.width, frame.width, area.height);
+        let painted = self.painted_transcript.borrow();
+        let painted = painted.as_ref()?;
+        if painted.area != area
+            || painted.total != total
+            || painted.scroll != scroll
+            || painted.rows != rows
+            || painted.user_targets != targets
+        {
+            return None;
+        }
+        targets.get((y - area.y) as usize).copied().flatten()
     }
 
     fn transcript_point(
@@ -2838,12 +2902,28 @@ impl TuiState {
         terminal_width: u16,
         height: u16,
     ) -> (Vec<Line>, usize, usize) {
+        let (lines, total, scroll, _) =
+            self.visible_transcript_at_viewport_with_targets(width, terminal_width, height);
+        (lines, total, scroll)
+    }
+
+    pub(crate) fn visible_transcript_at_viewport_with_targets(
+        &self,
+        width: u16,
+        terminal_width: u16,
+        height: u16,
+    ) -> (
+        Vec<Line>,
+        usize,
+        usize,
+        Vec<Option<crate::messages::UserMessageTarget>>,
+    ) {
         let rows = self.transcript_rows();
         let live_row = (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| {
             rows.len() - 1 - usize::from(self.active_turn.is_some() && self.live_preview_truncated)
         });
         let render = |height, scroll| {
-            crate::messages::visible_transcript_expanded(
+            crate::messages::visible_transcript_user_targets(
                 &rows,
                 Theme::dark(),
                 (width, terminal_width),
@@ -2862,7 +2942,7 @@ impl TuiState {
         } else if resized && previous.is_some_and(|view| view.requested_scroll == self.scroll) {
             let view = previous.expect("resized viewport");
             // Count-only indexing is needed on resize, not on every draw.
-            let (_, total) = render(0, 0);
+            let (_, total, _) = render(0, 0);
             let top = view
                 .total
                 .saturating_sub(view.height as usize)
@@ -2873,11 +2953,12 @@ impl TuiState {
         } else {
             self.scroll
         };
-        let (lines, total) = render(height as usize, scroll);
+        let (lines, total, targets) = render(height as usize, scroll);
         (
             lines,
             total,
             scroll.min(total.saturating_sub(height as usize)),
+            targets,
         )
     }
 
@@ -9836,7 +9917,7 @@ mod tests {
         toast.handle_mouse(mouse(MouseEventKind::Moved, x, y), area);
         let (rows, total, scroll) =
             toast.visible_transcript_at_viewport(rect.width, area.width, rect.height);
-        let painted = toast.paint_transcript_at(rect, &rows, total, scroll, Some(area));
+        let painted = toast.paint_transcript_at(rect, &rows, total, scroll, Some(area), &[]);
         assert_eq!(
             painted[(y - rect.y) as usize].spans()[1].style().fg,
             Some(ratatui::style::Color::Rgb(0x97, 0x68, 0x2c)),
@@ -10503,6 +10584,133 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn vis10_user_hover_and_click_follow_painted_identity_through_wrap_and_scroll() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        use ratatui::{Terminal, backend::TestBackend, widgets::Paragraph};
+
+        let mut state = fresh_state("user-hover-target").await;
+        let frame = Rect::new(0, 0, 40, 25);
+        state.attach_page(&page(
+            vec![
+                msg(10, Role::User, &"same content ".repeat(12)),
+                msg(11, Role::Assistant, "between"),
+                msg(20, Role::User, &"same content ".repeat(12)),
+            ],
+            3,
+            false,
+            false,
+        ));
+        let rect = crate::shell::transcript_area(&state, frame);
+        let (rows, total, scroll, targets) =
+            state.visible_transcript_at_viewport_with_targets(rect.width, frame.width, rect.height);
+        assert_eq!(rows.len(), targets.len());
+        let second = targets
+            .iter()
+            .enumerate()
+            .position(|(i, target)| {
+                target.is_some_and(|target| target.seq == 20)
+                    && rows[i].plain_text().contains("same")
+            })
+            .expect("second user block in painted viewport");
+        let first = targets
+            .iter()
+            .position(|target| target.is_some_and(|target| target.seq == 10));
+        assert!(
+            targets
+                .iter()
+                .filter(|target| target.is_some_and(|target| target.seq == 20))
+                .count()
+                > 2,
+            "wrapped content and both padding rows retain one identity"
+        );
+        let x = rect.x + 3;
+        let y = rect.y + second as u16;
+        state.observe_transcript_viewport(rect.width, frame.width, rect.height, total, scroll);
+        state.handle_mouse(selection_mouse(MouseEventKind::Moved, x, y), frame);
+        let painted = state.paint_transcript_at(rect, &rows, total, scroll, Some(frame), &targets);
+        let theme = super::Theme::dark();
+        let hover = theme.decrease(theme.user_message_background());
+        let mut terminal = Terminal::new(TestBackend::new(frame.width, frame.height)).unwrap();
+        terminal
+            .draw(|f| {
+                f.render_widget(
+                    Paragraph::new(crate::styled::Lines::from(painted).into_text()),
+                    rect,
+                )
+            })
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(
+            buffer[(rect.x, y)].bg,
+            theme.user_message_background(),
+            "agent border stays raised"
+        );
+        assert_eq!(buffer[(x, y)].bg, hover);
+        for (row, target) in targets.iter().enumerate() {
+            if target.is_some_and(|target| target.seq == 20) {
+                assert_eq!(
+                    buffer[(x, rect.y + row as u16)].bg,
+                    hover,
+                    "every visible line in the same user block is hovered"
+                );
+            }
+        }
+        if let Some(first) = first {
+            assert_eq!(
+                buffer[(x, rect.y + first as u16)].bg,
+                theme.user_message_background(),
+                "hover cannot bleed into an earlier message with the same text"
+            );
+        }
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+            frame,
+        );
+        assert_eq!(
+            state
+                .user_message_target_at(frame, x, y)
+                .map(|target| target.seq),
+            Some(20)
+        );
+        assert_eq!(
+            state.user_message_target_at(frame, rect.x, y),
+            None,
+            "border is not the inner box"
+        );
+        state.click = None;
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), x + 2, y),
+            frame,
+        );
+        assert_eq!(
+            state.user_message_target_at(frame, x, y),
+            None,
+            "selection suppresses actions"
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x + 2, y),
+            frame,
+        );
+        assert_eq!(state.user_message_target_at(frame, x, y), None);
+        assert_eq!(state.take_copy_request().as_deref(), Some("sa"));
+
+        // Even a previously painted coordinate cannot target a new viewport.
+        state.scroll = total;
+        assert_eq!(state.user_message_target_at(frame, x, y), None);
+        state.scroll = 0;
+        state.clear_mouse_position();
+        assert_eq!(state.user_message_target_at(frame, x, y), None);
+    }
+
+    #[tokio::test]
     async fn vis27_paired_word_and_line_selection_paint_explicit_source_cells() {
         use crossterm::event::{MouseButton, MouseEventKind};
         use ratatui::{Terminal, backend::TestBackend, style::Modifier, widgets::Paragraph};
@@ -10921,6 +11129,7 @@ mod tests {
         let painted = super::PaintedTranscript {
             area: rect,
             rows: vec![crate::styled::Line::plain(&large)],
+            user_targets: vec![],
             total: 1,
             scroll: 0,
         };

@@ -929,10 +929,11 @@ fn render_transcript(frame: &mut Frame<'_>, state: &TuiState, area: Rect, termin
     if area.height == 0 || area.width == 0 {
         return;
     }
-    let (lines, total, scroll) =
-        state.visible_transcript_at_viewport(area.width, terminal_width, area.height);
+    let (lines, total, scroll, targets) =
+        state.visible_transcript_at_viewport_with_targets(area.width, terminal_width, area.height);
     state.observe_transcript_viewport(area.width, terminal_width, area.height, total, scroll);
-    let lines = state.paint_transcript_at(area, &lines, total, scroll, Some(frame.area()));
+    let lines =
+        state.paint_transcript_at(area, &lines, total, scroll, Some(frame.area()), &targets);
     let text = crate::styled::Lines::from(lines).into_text();
     frame.render_widget(Paragraph::new(text), area);
 }

@@ -1625,7 +1625,7 @@ pub(crate) fn visible_transcript(
     agent_color: impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
 ) -> (Vec<Line>, usize) {
-    let (lines, total, _) = visible_transcript_indexed(
+    let (lines, total, _, _) = visible_transcript_indexed(
         rows,
         theme,
         (width, terminal_width),
@@ -1702,6 +1702,7 @@ pub(crate) fn reasoning_header_at(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn visible_transcript_expanded(
     rows: &[HistoryRow],
     theme: &Theme,
@@ -1711,7 +1712,7 @@ pub(crate) fn visible_transcript_expanded(
     cache: &RefCell<MarkdownCache>,
     expanded: &impl Fn(&str) -> bool,
 ) -> (Vec<Line>, usize) {
-    let (lines, total, _) = visible_transcript_indexed(
+    let (lines, total, _, _) = visible_transcript_indexed(
         rows,
         theme,
         widths,
@@ -1725,6 +1726,64 @@ pub(crate) fn visible_transcript_expanded(
         },
     );
     (lines, total)
+}
+
+/// A row identity produced while visiting the actual visible, wrapped user
+/// block. The ordinal distinguishes synthetic rows (which share i64::MAX);
+/// durable rows retain their sequence for later application-owned actions.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct UserMessageTarget {
+    pub seq: i64,
+    pub ordinal: usize,
+}
+
+/// Only the inner box receives the hover fill; the agent-colored left border
+/// and chip-specific surfaces remain as painted by upstream.
+pub(crate) fn hover_user_content(line: &Line, theme: &Theme) -> Line {
+    let base = theme.user_message_background();
+    let hover = theme.decrease(base);
+    let spans = line
+        .spans()
+        .iter()
+        .enumerate()
+        .map(|(index, span)| {
+            let style = span.style();
+            Span::styled(
+                span.content().to_owned(),
+                if !(index == 0 && span.content() == "┃") && style.bg == Some(base) {
+                    style.bg(hover)
+                } else {
+                    style
+                },
+            )
+        })
+        .collect();
+    Line::new(spans).with_style(line.style().bg(hover))
+}
+
+pub(crate) fn visible_transcript_user_targets(
+    rows: &[HistoryRow],
+    theme: &Theme,
+    widths: (u16, u16),
+    viewport: (usize, usize, Option<usize>),
+    agent_color: impl Fn(Option<&str>) -> Color,
+    cache: &RefCell<MarkdownCache>,
+    expanded: &impl Fn(&str) -> bool,
+) -> (Vec<Line>, usize, Vec<Option<UserMessageTarget>>) {
+    let (lines, total, _, targets) = visible_transcript_indexed(
+        rows,
+        theme,
+        widths,
+        viewport,
+        &agent_color,
+        cache,
+        ExplorationOptions {
+            expanded,
+            point: None,
+            retries: 2,
+        },
+    );
+    (lines, total, targets)
 }
 
 #[derive(Clone, Copy)]
@@ -1747,7 +1806,12 @@ fn visible_transcript_indexed(
     agent_color: &impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
     options: ExplorationOptions<'_>,
-) -> (Vec<Line>, usize, Option<TranscriptHit>) {
+) -> (
+    Vec<Line>,
+    usize,
+    Option<TranscriptHit>,
+    Vec<Option<UserMessageTarget>>,
+) {
     #[cfg(test)]
     INDEXED_TRAVERSALS.set(INDEXED_TRAVERSALS.get() + 1);
     let (width, terminal_width) = widths;
@@ -1815,6 +1879,7 @@ fn visible_transcript_indexed(
     let end = total.saturating_sub(scroll.min(total.saturating_sub(height)));
     let start = end.saturating_sub(height);
     let mut visible = Vec::with_capacity(height);
+    let mut user_targets = vec![None; height];
     if start == 0 {
         visible.push(Line::plain(""));
     }
@@ -1964,6 +2029,7 @@ fn visible_transcript_indexed(
                 },
             );
         } else {
+            let mut margin = row.role == "user" && index > 0;
             visit_row_blocks(
                 row,
                 (index, false),
@@ -1972,13 +2038,23 @@ fn visible_transcript_indexed(
                 &agent_color,
                 cache,
                 |lines| {
+                    let first = visible.len();
                     add_visible_lines(
                         lines,
                         Some(width),
                         (start, end),
                         &mut position,
                         &mut visible,
-                    )
+                    );
+                    if row.role == "user" && !margin {
+                        for slot in user_targets.iter_mut().take(visible.len()).skip(first) {
+                            *slot = Some(UserMessageTarget {
+                                seq: row.seq,
+                                ordinal: index,
+                            });
+                        }
+                    }
+                    margin = false;
                 },
             );
         }
@@ -1997,7 +2073,8 @@ fn visible_transcript_indexed(
             },
         );
     }
-    (visible, total, hit)
+    user_targets.resize(visible.len(), None);
+    (visible, total, hit, user_targets)
 }
 
 fn add_visible_lines(
@@ -3267,6 +3344,80 @@ mod tests {
             meta: None,
             tool: None,
         }
+    }
+
+    #[test]
+    fn vis10_user_hover_preserves_agent_border_and_chip_surfaces() {
+        let theme = Theme::dark();
+        let rows = user_block(
+            &user(
+                "text",
+                vec![Chip {
+                    kind: ChipKind::Skill,
+                    name: "inspect".into(),
+                }],
+            ),
+            theme,
+            50,
+            &|_| Color::Rgb(4, 5, 6),
+        );
+        let bg = theme.user_message_background();
+        let hover = theme.decrease(bg);
+        for row in rows {
+            let changed = hover_user_content(&row, theme);
+            assert_eq!(changed.spans()[0].style().fg, row.spans()[0].style().fg);
+            assert_eq!(changed.spans()[0].style().bg, Some(bg));
+            assert_eq!(changed.style().bg, Some(hover));
+            for (before, after) in row.spans().iter().zip(changed.spans()) {
+                assert_eq!(
+                    after.style().bg,
+                    if before.style().bg == Some(bg) && before.content() != "┃" {
+                        Some(hover)
+                    } else {
+                        before.style().bg
+                    }
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn vis10_indexed_user_targets_track_wrapped_pages_and_exclude_margins() {
+        let theme = Theme::dark();
+        let cache = RefCell::new(MarkdownCache::default());
+        let mut first = user(&"repeat ".repeat(22), vec![]);
+        first.seq = 12;
+        let mut second = user(&"repeat ".repeat(22), vec![]);
+        second.seq = 27;
+        let rows = [first, assistant("gap"), second];
+        let render = |scroll| {
+            visible_transcript_user_targets(
+                &rows,
+                theme,
+                (17, 40),
+                (7, scroll, None),
+                |_| Color::Reset,
+                &cache,
+                &|_| false,
+            )
+        };
+        let (_, total, _) = render(0);
+        let mut identities = Vec::new();
+        for scroll in 0..total {
+            let (lines, _, targets) = render(scroll);
+            assert_eq!(lines.len(), targets.len());
+            for (line, target) in lines.iter().zip(targets) {
+                if let Some(target) = target {
+                    assert!(matches!(target.seq, 12 | 27));
+                    assert_eq!(line.spans()[0].content(), "┃");
+                    identities.push(target.seq);
+                }
+                if line.plain_text().contains("gap") {
+                    assert!(target.is_none());
+                }
+            }
+        }
+        assert!(identities.contains(&12) && identities.contains(&27));
     }
 
     fn assistant(text: &str) -> HistoryRow {

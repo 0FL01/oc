@@ -56,6 +56,9 @@ if (args['ctrl-c'] !== undefined && !['true','false'].includes(args['ctrl-c']))
 const twoTurn = args['two-turn'] === 'true';
 if (args['two-turn'] !== undefined && !['true','false'].includes(args['two-turn']))
   throw Error('--two-turn must be true or false');
+const userHover = args['user-hover'] === 'true';
+if (args['user-hover'] !== undefined && !['true','false'].includes(args['user-hover']))
+  throw Error('--user-hover must be true or false');
 const modelsInteraction = args['models-interaction'] === 'true';
 if (args['models-interaction'] !== undefined && !['true','false'].includes(args['models-interaction']))
   throw Error('--models-interaction must be true or false');
@@ -102,6 +105,15 @@ if (scanner && !['true','false'].includes(args['scanner-cancel']))
 if (!scanner && args['scanner-cancel'] !== undefined)
   throw Error('--scanner-cancel requires --scanner true');
 const scannerCancel = args['scanner-cancel'] === 'true';
+if (userHover && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
+    args['agent-profile'] !== 'true' || Number(args.columns) !== 120 || Number(args.rows) !== 40 ||
+    !args.reference || !args.oc || args.matrix === 'true' || args.variants === 'true' ||
+    args['scroll-resize'] === 'true' || args['startup-error'] === 'true' || args['seed-root'] || args.session ||
+    args.tabs === 'vertical' || [explorationClick,tabClick,tabClose,tabCloseKey,tabRestart,
+      renameSession,regenerateTitle,sidebarPalette,autocomplete,autocompleteKeys,
+      ctrlC,twoTurn,modelsInteraction,mention,reasoningClick,reasoningSteps,
+      reasoningReleaseOnly,selectionCopy,toastOverlap,scanner].some(Boolean)))
+  throw Error('--user-hover true requires only paired Reader/tools 120x40 --geometry true --sidebar hide --agent-profile true');
 if (modelsInteraction && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
     args['agent-profile'] !== 'true' || ![120,160].includes(Number(args.columns)) ||
     Number(args.rows)!== (Number(args.columns)===120 ? 40 : 48) || !args.reference || !args.oc ||
@@ -1227,6 +1239,77 @@ try {
           'first same-session read, answer and title');
        if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');
         const completedStatus = await capture('session-wide-completed',done,'CAPTURED');
+        if(userHover) {
+           const prompt=fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim();
+           const checks=[];
+           const counts=()=>({transcript:logs.filter(e=>e.kind==='provider' && e.operation==='transcript').length,
+             completed_transcript:logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length,
+             title:logs.filter(e=>e.kind==='provider' && e.operation==='title').length,
+             completed_title:logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length,
+             invalid:logs.filter(e=>e.kind==='provider' && !e.valid).length});
+           const baseline=counts();
+           lock.user_hover ??= {};
+           lock.user_hover[origin]={status:'IN_PROGRESS',baseline,checks};
+           const save=()=>{
+             fs.writeFileSync(path.join(dir,'user-hover-checks.json'),JSON.stringify({baseline,checks},null,2)+'\n');
+             json('capture.lock.json',lock);
+           };
+           const target=f=>{
+             const matches=visibleMatches(f,prompt);
+             if(matches.length!==1) return {prompt_matches:matches,in_block:false};
+             const {x,y}=matches[0], border=x-3;
+             const inBlock=border>=0 && y>0 && y+1<f.rows &&
+               [y-1,y,y+1].every(row=>f.cells[row][border].symbol==='┃');
+             return {prompt_matches:matches,border:{x:border,y},in_block:inBlock,
+               point:{x:x+Math.floor([...prompt].length/2),y}};
+           };
+           const sameCounts=()=>canonical(counts())===canonical(baseline);
+           const before=await waitFor(f=>target(f).in_block && sameCounts(),
+             'unique painted user block before hover',12000);
+           const originalTarget=target(before);
+           const normal=await capture('message-hover-normal',before,'CAPTURED_USER_NORMAL');
+           const normalPredicates={completed_capture:completedStatus==='CAPTURED',
+             normal_capture:normal==='CAPTURED_USER_NORMAL',one_painted_user_block:originalTarget.in_block,
+             completed_real_read_and_title:baseline.transcript===2 && baseline.completed_transcript===2 &&
+               baseline.title===1 && baseline.completed_title===1 && baseline.invalid===0};
+           checks.push({stage:'normal',target:originalTarget,provider_counts:counts(),predicates:normalPredicates});save();
+           if(Object.values(normalPredicates).some(value=>!value)) throw Error('User hover normal-state predicate failed');
+           const point=target(await frame());
+           if(!point.in_block) throw Error('User block moved before mouse motion');
+           const column=point.point.x+1, row=point.point.y+1;
+           const move=`\x1b[<35;${column};${row}M`;
+           checks.push({stage:'motion',target:point,pty_column:column,pty_row:row,
+             move_base64:Buffer.from(move).toString('base64'),provider_counts:counts()});save();
+           send(move,'user_block_mouse_move');
+           const current=await waitFor(f=>{
+             const now=target(f);
+             return now.in_block && canonical(now.prompt_matches)===canonical(point.prompt_matches) &&
+               sameCounts() && sha(JSON.stringify(f))!==sha(JSON.stringify(before));
+           },'user hover frame changed after PTY motion',5000).catch(async e=>{
+             checks.push({stage:'hover-wait',reason:e.message,predicates:{frame_changed:false},
+               target:target(await frame()),provider_counts:counts()});save();
+             return frame();
+           });
+           const hovered=target(current), changed=[];
+           if(hovered.in_block && originalTarget.in_block) {
+             for(let y=originalTarget.point.y-1;y<=originalTarget.point.y+1;y++) {
+               for(let x=originalTarget.border.x;x<current.columns;x++) {
+                 if(canonical(before.cells[y][x])!==canonical(current.cells[y][x]))
+                   changed.push({x,y,before:before.cells[y][x],after:current.cells[y][x]});
+               }
+             }
+           }
+           const status=await capture('message-hover-hovered',current,'CAPTURED_USER_HOVER');
+           const predicates={stable_capture:status==='CAPTURED_USER_HOVER',
+             same_user_block:!!hovered.in_block && canonical(hovered.prompt_matches)===canonical(originalTarget.prompt_matches),
+             user_block_styled_change:changed.some(c=>c.before.bg!==c.after.bg || c.before.fg!==c.after.fg),
+             provider_unchanged:sameCounts(),no_actions_dialog:!current.text.includes('Message Actions')};
+           checks.push({stage:'hover',target:hovered,changed_user_block_cells:changed,
+             provider_counts:counts(),predicates});save();
+           if(Object.values(predicates).some(value=>!value)) throw Error('User hover observation failed: '+JSON.stringify(predicates));
+           lock.user_hover[origin].status='PASS';save();
+           lock.attempts.push({origin,status:'USER_HOVER_CHECKS_PASS',predicates});
+         }
         if(modelsInteraction) {
           const names=['Big Pickle','Ling 3.0 Flash Free','MiMo V2.5 Free','MiMo-V2.6-Flash Free',
             'Muse Spark 1.2 Free','Muse Spark 1.3 Free','Nemotron 3 Ultra Free',
@@ -2592,6 +2675,7 @@ try {
             if(toastOverlap && lock.toast_overlap?.[origin]) lock.toast_overlap[origin].status='FAILED';
            if(scanner && lock.scanner?.[origin]) lock.scanner[origin].status='FAILED';
            if(twoTurn && lock.two_turn?.[origin]) lock.two_turn[origin].status='FAILED';
+           if(userHover && lock.user_hover?.[origin]) lock.user_hover[origin].status='FAILED';
       await capture('failure-diagnostic',await frame(),'FAILED_STATE');
     } finally {
       if(scanner && !child.stdin.destroyed)

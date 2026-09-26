@@ -79,3 +79,5 @@ two-escape-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 two-escape-*/*/*.vt binary
 early-title-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 early-title-*/*/*.vt binary
+message-hover-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+message-hover-*/*/*.vt binary
