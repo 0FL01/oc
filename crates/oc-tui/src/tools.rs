@@ -17,8 +17,9 @@
 //!   `background.raised.base`, padding 1/2, header, body, error line;
 //! - shell (`index.tsx:2884-3037`): `$ <cmd>` (running: spinner, no `$`),
 //!   `cd <workdir> && ` prefix, output collapsed with
-//!   `[earlier output omitted]`, `Command exited with code N` /
-//!   `Command cancelled` / `Command timed out` (`index.tsx:2256-2259`);
+//!   `(N earlier lines)` for UI collapse, `Command exited with code N` /
+//!   finished notices after output (`core/src/shell/result.ts:29-32`,
+//!   `core/src/tool/plugin/shell.ts:77-85`);
 //! - apply_patch (`index.tsx:3388-3503`): per-file `# Created` /
 //!   `← Patched` / `# Deleted`, `# Patch failed` on error, diff lines with
 //!   `diff.text.*` / `diff.background.*` / `diff.lineNumber.text`;
@@ -32,13 +33,14 @@ use oc_adapters::patch::{DiffFileRender, DiffLineKind};
 use crate::history::ToolCard;
 use crate::styled::{self, Line, Span};
 use crate::theme::Theme;
+use unicode_segmentation::UnicodeSegmentation;
+use unicode_width::UnicodeWidthStr;
 
 /// Block-card inner padding: `padding 1/2` (`index.tsx:2784-2866`).
 pub const TOOL_PADDING: usize = 2;
 /// Inline icon column (`message-parts.tsx:18,213-219`).
 pub const TOOL_ICON_WIDTH: usize = 2;
-/// Output rows kept before the `[earlier output omitted]` marker
-/// (`index.tsx:2980-3037`).
+/// Shared command/output collapse budget (`index.tsx:2980`).
 pub const TOOL_OUTPUT_LINES: usize = 10;
 
 /// Static spinner fallback while animations are off
@@ -46,13 +48,13 @@ pub const TOOL_OUTPUT_LINES: usize = 10;
 pub const SPINNER: &str = "⋯";
 /// Output collapse marker (`index.tsx:2976`).
 pub const EARLIER_OUTPUT_OMITTED: &str = "[earlier output omitted]";
-/// Shell status strings (`index.tsx:2256-2259`).
-pub const COMMAND_CANCELLED: &str = "Command cancelled";
-/// Shell status strings (`index.tsx:2256-2259`).
-pub const COMMAND_TIMED_OUT: &str = "Command timed out";
-/// Shell status strings (`index.tsx:2256-2259`).
+/// Finished shell notice (`core/src/shell/result.ts:65`).
+pub const COMMAND_CANCELLED: &str = "Command cancelled.";
+/// Finished shell notice (`core/src/shell/result.ts:30`).
+pub const COMMAND_TIMED_OUT: &str = "Command timed out before completion.";
+/// Finished shell notice (`core/src/shell/result.ts:31`). Native success omits it.
 pub fn command_exited(code: i64) -> String {
-    format!("Command exited with code {code}")
+    format!("Command exited with code {code}.")
 }
 /// apply_patch failure header (`index.tsx:3496`, §6).
 pub const PATCH_FAILED: &str = "# Patch failed";
@@ -90,6 +92,8 @@ pub struct ShellRender {
     pub timed_out: bool,
     /// Runtime `[truncated]` marker.
     pub truncated: bool,
+    /// Process output's terminal newline, before native transport markers.
+    pub output_ends_with_newline: bool,
 }
 
 /// `apply_patch` card: bounded per-file hunks.
@@ -342,6 +346,17 @@ fn shell_render(value: Option<&serde_json::Value>, output: Option<&str>) -> Shel
         }
         rest = "";
     }
+    let mut captured = rest;
+    loop {
+        let next = ["\n[truncated]", "\n[timeout]", "\n[cancelled]"]
+            .iter()
+            .find_map(|marker| captured.strip_suffix(marker));
+        let Some(next) = next else {
+            break;
+        };
+        captured = next;
+    }
+    render.output_ends_with_newline = captured.ends_with('\n');
     let (stdout, stderr) = match rest.split_once("\n[stderr]\n") {
         Some((stdout, stderr)) => (stdout, Some(stderr)),
         None => (rest, None),
@@ -520,12 +535,10 @@ impl BlockFrame<'_> {
         }
     }
 
-    /// Left `┃` border. The inventory does not pin the block-tool border
-    /// color, so the neutral `border.base` role is used (undetermined
-    /// upstream detail, recorded in the report).
+    /// BlockTool explicitly uses background.base (`index.tsx:2804`).
     fn border_style(&self) -> ratatui::style::Style {
         ratatui::style::Style::default()
-            .fg(self.theme.border())
+            .fg(self.theme.background())
             .bg(self.bg)
     }
 
@@ -552,6 +565,17 @@ impl BlockFrame<'_> {
 }
 
 fn shell_block(shell: &ShellRender, card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
+    shell_block_expanded(shell, card, theme, width, false)
+}
+
+/// Session-local expansion exposes only the recorded preview, never missing bytes.
+pub(crate) fn shell_block_expanded(
+    shell: &ShellRender,
+    card: &ToolCard,
+    theme: &Theme,
+    width: u16,
+    expanded: bool,
+) -> Vec<Line> {
     let frame = BlockFrame::new(theme, width);
     let mut out = vec![frame.row(&[])];
     let running = is_running(&card.state);
@@ -574,40 +598,56 @@ fn shell_block(shell: &ShellRender, card: &ToolCard, theme: &Theme, width: u16) 
             .fg(theme.text())
             .bg(frame.bg),
     ));
-    out.push(frame.row(&header));
+    let input = header.iter().map(Span::content).collect::<String>();
+    let (input, command_lines, _) = collapse_shell_command(&input, width, running);
+    let input_chars = input.chars().count();
+    let input = if expanded {
+        header.iter().map(Span::content).collect::<String>()
+    } else {
+        input
+    };
+    let inner = if width == 0 {
+        usize::MAX
+    } else {
+        (width as usize).saturating_sub(3).max(1)
+    };
+    for raw in input.split('\n') {
+        for line in styled::wrap_line_limited(
+            &Line::styled(
+                raw,
+                ratatui::style::Style::default()
+                    .fg(theme.text())
+                    .bg(frame.bg),
+            ),
+            inner,
+            usize::MAX,
+        ) {
+            out.push(frame.row(line.spans()));
+        }
+    }
 
     let muted = frame.body_style();
     let error = ratatui::style::Style::default()
         .fg(theme.error())
         .bg(frame.bg);
-    // Status line: exact upstream shell strings where our recorded output
-    // maps to them (`index.tsx:2256-2259`).
-    if !running {
-        let status = if card.state == "unknown" {
-            Some("Outcome unknown (operation was interrupted)".to_string())
-        } else if card.state == "cancelled" {
-            Some(COMMAND_CANCELLED.to_string())
-        } else if shell.timed_out {
-            Some(COMMAND_TIMED_OUT.to_string())
-        } else if let Some(code) = shell.exit {
-            Some(command_exited(code))
-        } else if shell.signal {
-            Some("exit signal".to_string())
-        } else {
-            None
-        };
-        if let Some(status) = status {
-            out.push(frame.row(&[Span::styled(status, muted)]));
-        }
-    }
     // Running shell cards show the spinner header only: our runtime records
     // the complete argv before the call appears, so the upstream
     // `Writing command…` placeholder (`index.tsx:3001-3003`, for a command
     // still streaming) has nothing to describe here.
     if !running {
-        let omitted = shell.stdout.len().saturating_sub(TOOL_OUTPUT_LINES);
-        if omitted > 0 {
-            out.push(frame.row(&[Span::styled(EARLIER_OUTPUT_OMITTED, muted)]));
+        let mut output = shell_output(shell, card);
+        if !expanded {
+            let max_lines = TOOL_OUTPUT_LINES.saturating_sub(command_lines + 1).max(1);
+            let max_chars = TOOL_OUTPUT_LINES
+                * (width as usize)
+                    .saturating_sub(6 + usize::from(running) * 2)
+                    .max(20);
+            let chars = max_chars.saturating_sub(input_chars + 2).max(1);
+            collapse_shell_tail(&mut output, max_lines, chars);
+        }
+        if !output.is_empty() {
+            // ShellDisplay's inner box gap=1, only when an output child exists.
+            out.push(frame.row(&[]));
         }
         // An error outcome colors the whole recorded output; a successful one
         // keeps stdout muted (`index.tsx:2784-2866` error line).
@@ -616,25 +656,156 @@ fn shell_block(shell: &ShellRender, card: &ToolCard, theme: &Theme, width: u16) 
         } else {
             muted
         };
-        for line in shell.stdout.iter().skip(omitted) {
-            if card.state == "cancelled" && line == "error: cancelled" {
-                // The status row already says `Command cancelled`.
-                continue;
+        for (line, stderr) in output {
+            let line = Line::styled(line, if stderr { error } else { stdout_style });
+            for wrapped in styled::wrap_line_limited(&line, inner, usize::MAX) {
+                out.push(frame.row(wrapped.spans()));
             }
-            out.push(frame.row(&[Span::styled(line.clone(), stdout_style)]));
-        }
-        if !shell.stderr.is_empty() {
-            out.push(frame.row(&[Span::styled("[stderr]", muted)]));
-            for line in &shell.stderr {
-                out.push(frame.row(&[Span::styled(line.clone(), error)]));
-            }
-        }
-        if shell.truncated || card.output_truncated {
-            out.push(frame.row(&[Span::styled("[truncated]", muted)]));
         }
     }
     out.push(frame.row(&[]));
     out
+}
+
+/// Tool/plugin/shell.ts:77–85 returns captured output followed by a notice;
+/// ToolPart (:2471–2475) joins those text parts with a newline before collapse.
+/// Owner fee0123 overrides original success presentation: a zero exit stays in
+/// metadata, without a generated notice or empty-output placeholder. Recorded
+/// stdout (including any status prose) remains untouched.
+fn shell_output(shell: &ShellRender, card: &ToolCard) -> Vec<(String, bool)> {
+    let mut output = shell
+        .stdout
+        .iter()
+        .map(|line| (line.clone(), false))
+        .collect::<Vec<_>>();
+    if !shell.stderr.is_empty() {
+        output.push(("[stderr]".to_string(), false));
+        output.extend(shell.stderr.iter().map(|line| (line.clone(), true)));
+    }
+    let status = if card.state == "unknown" {
+        Some("Outcome unknown (operation was interrupted)".to_string())
+    } else if card.state == "cancelled" {
+        Some(COMMAND_CANCELLED.to_string())
+    } else if shell.timed_out {
+        Some(COMMAND_TIMED_OUT.to_string())
+    } else if let Some(code) = shell.exit.filter(|code| *code != 0) {
+        Some(command_exited(code))
+    } else if shell.signal {
+        Some("exit signal".to_string())
+    } else {
+        None
+    };
+    if output.is_empty() && (shell.exit.is_some_and(|code| code != 0) || shell.signal) {
+        output.push(("(no output)".to_string(), false));
+    }
+    if shell.truncated || card.output_truncated {
+        output.push(("[truncated]".to_string(), false));
+    } else if status.is_some() && !output.is_empty() && shell.output_ends_with_newline {
+        // Retain the captured terminal newline before ToolPart's join newline.
+        output.push((String::new(), false));
+    }
+    if let Some(status) = status {
+        output.push((status, is_error_state(&card.state) || shell.timed_out));
+    }
+    output
+}
+
+/// Port of util/collapse-tool-output.ts:51–80 (grapheme/display-cell command limit).
+fn collapse_shell_command(input: &str, width: u16, running: bool) -> (String, usize, bool) {
+    let line_width = (width as usize)
+        .saturating_sub(6 + usize::from(running) * 2)
+        .max(20);
+    let mut visible = Vec::new();
+    let mut lines = 1;
+    let mut cells = 0;
+    for segment in input.graphemes(true) {
+        let next = UnicodeWidthStr::width(segment);
+        if segment == "\n" || cells + next > line_width {
+            if lines >= 2 {
+                if cells >= line_width {
+                    visible.pop();
+                }
+                return (format!("{}…", visible.concat()), lines, true);
+            }
+            lines += 1;
+            cells = 0;
+        }
+        visible.push(segment);
+        cells += next;
+    }
+    (input.to_string(), lines, false)
+}
+
+/// Port of collapseTail (:83–95), retaining stderr styles on the visible tail.
+fn collapse_shell_tail(output: &mut Vec<(String, bool)>, max_lines: usize, max_chars: usize) {
+    let chars = output
+        .iter()
+        .map(|(line, _)| line.chars().count())
+        .sum::<usize>()
+        + output.len().saturating_sub(1);
+    if output.len() <= max_lines && chars <= max_chars {
+        return;
+    }
+    let count = output
+        .len()
+        .saturating_sub(max_lines.saturating_sub(1))
+        .max(1);
+    let label = format!(
+        "({count} earlier {})",
+        if count == 1 { "line" } else { "lines" }
+    );
+    output.drain(..count.min(output.len()));
+    let available = max_chars.saturating_sub(label.chars().count() + 1);
+    let retained = output
+        .iter()
+        .map(|(line, _)| line.chars().count())
+        .sum::<usize>()
+        + output.len().saturating_sub(1);
+    let mut discard = retained.saturating_sub(available);
+    while discard > 0 && !output.is_empty() {
+        let len = output[0].0.chars().count();
+        if discard > len {
+            output.remove(0);
+            discard -= len + 1;
+        } else {
+            output[0].0 = output[0].0.chars().skip(discard).collect();
+            discard = 0;
+        }
+    }
+    if available == 0 {
+        output.clear();
+    }
+    output.insert(0, (label, false));
+}
+
+pub(crate) fn shell_expandable(card: &ToolCard, width: u16) -> bool {
+    let ToolRender::Shell(shell) = &card.render else {
+        return false;
+    };
+    let input = format!(
+        "{}{}{}",
+        if is_running(&card.state) { "" } else { "$ " },
+        shell
+            .cwd
+            .as_ref()
+            .map_or(String::new(), |cwd| format!("cd {cwd} && ")),
+        shell.command
+    );
+    let (input, lines, overflow) = collapse_shell_command(&input, width, is_running(&card.state));
+    let output = if is_running(&card.state) {
+        Vec::new()
+    } else {
+        shell_output(shell, card)
+    };
+    let rows = output.len();
+    let chars =
+        output.iter().map(|(s, _)| s.chars().count()).sum::<usize>() + rows.saturating_sub(1);
+    overflow
+        || rows > TOOL_OUTPUT_LINES.saturating_sub(lines + 1).max(1)
+        || chars
+            > (TOOL_OUTPUT_LINES * (width as usize).saturating_sub(6).max(20))
+                .saturating_sub(input.chars().count() + 2)
+                .max(1)
 }
 
 fn patch_block(patch: &PatchRender, card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
@@ -902,22 +1073,8 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
         Span::styled(label, style),
     ];
     let mut out = vec![Line::new(spans)];
-    if !running
-        && !failed
-        && let InlineRender::Read { path } = inline
-    {
-        out.push(Line::new(vec![
-            pad.clone(),
-            Span::styled(
-                format!("{:<TOOL_ICON_WIDTH$}", ""),
-                ratatui::style::Style::default().fg(theme.text_muted()),
-            ),
-            Span::styled(
-                format!("↳ Loaded {path}"),
-                ratatui::style::Style::default().fg(theme.text_muted()),
-            ),
-        ]));
-    }
+    // Read's Loaded rows require upstream metadata.loaded (:3097–3121).
+    // Our recorded operation has no such metadata; a path is not evidence of it.
     if failed {
         for line in card.output_preview.lines().take(TOOL_OUTPUT_LINES) {
             if line.is_empty() {
@@ -988,11 +1145,17 @@ fn inline_label(inline: &InlineRender) -> String {
         // Our glob/grep take no path argument, so the upstream ` in <path>`
         // clause is omitted instead of being invented.
         InlineRender::Glob { pattern, matches } => match matches {
-            Some(count) => format!("Glob \"{pattern}\" ({count} matches)"),
+            Some(count) => format!(
+                "Glob \"{pattern}\" ({count} {})",
+                if *count == 1 { "match" } else { "matches" }
+            ),
             None => format!("Glob \"{pattern}\""),
         },
         InlineRender::Grep { pattern, matches } => match matches {
-            Some(count) => format!("Grep \"{pattern}\" ({count} matches)"),
+            Some(count) => format!(
+                "Grep \"{pattern}\" ({count} {})",
+                if *count == 1 { "match" } else { "matches" }
+            ),
             None => format!("Grep \"{pattern}\""),
         },
         InlineRender::WebFetch { url } => format!("WebFetch {url}"),
@@ -1109,7 +1272,7 @@ mod tests {
                 "┃".to_string(),
             ]
         );
-        assert_eq!(buffer[(0, 2)].fg, theme.border());
+        assert_eq!(buffer[(0, 2)].fg, theme.background());
         assert_eq!(buffer[(0, 2)].bg, theme.user_message_background());
         assert_eq!(buffer[(3, 2)].symbol(), "⋯");
         assert_eq!(buffer[(3, 2)].fg, theme.text());
@@ -1128,7 +1291,7 @@ mod tests {
                 String::new(),
                 "┃".to_string(),
                 "┃  $ cd src && ls -la".to_string(),
-                "┃  Command exited with code 0".to_string(),
+                "┃".to_string(),
                 "┃  file1".to_string(),
                 "┃  file2".to_string(),
                 "┃  [stderr]".to_string(),
@@ -1149,8 +1312,36 @@ mod tests {
             serde_json::json!({"argv": ["pwd"]}),
             Some("exit 0\n/tmp\n"),
         );
-        let (rows, _) = render(&plain, 40, 4);
-        assert_eq!(rows[2], "┃  $ pwd");
+        let (rows, _) = render(&plain, 40, 6);
+        assert_eq!(rows, ["", "┃", "┃  $ pwd", "┃", "┃  /tmp", "┃"]);
+
+        for (output, expected) in [
+            ("exit 0", vec!["", "┃", "┃  $ true", "┃"]),
+            (
+                "exit 0\nCommand exited with code 0.\n",
+                vec![
+                    "",
+                    "┃",
+                    "┃  $ true",
+                    "┃",
+                    "┃  Command exited with code 0.",
+                    "┃",
+                ],
+            ),
+        ] {
+            let card = make_card(
+                "bash",
+                "completed",
+                serde_json::json!({"argv":["true"]}),
+                Some(output),
+            );
+            let (rows, _) = render(&card, 60, expected.len() as u16);
+            assert_eq!(rows, expected);
+            let ToolRender::Shell(shell) = &card.render else {
+                panic!("shell")
+            };
+            assert_eq!(shell.exit, Some(0));
+        }
     }
 
     /// apply_patch update card: `← Patched <path>` with hunk header and
@@ -1331,7 +1522,7 @@ mod tests {
     }
 
     /// Inline tools (`message-parts.tsx:176-253`, `index.tsx:2688-2759`):
-    /// pending spinner + label, terminal labels, the ungrouped `↳ Loaded` read row, and
+    /// pending spinner + label, terminal labels without invented Loaded metadata, and
     /// the generic `✓/✗ <tool> <args>` with the error text visible.
     #[test]
     fn golden_inline_tool_running_and_completed() {
@@ -1376,10 +1567,7 @@ mod tests {
                     .collect::<String>()
             })
             .collect::<Vec<_>>();
-        assert_eq!(
-            individual,
-            ["     Read src/main.rs", "     ↳ Loaded src/main.rs"]
-        );
+        assert_eq!(individual, ["     Read src/main.rs"]);
 
         let glob = make_card(
             "glob",
@@ -1456,7 +1644,7 @@ mod tests {
     }
 
     /// Error and cancelled block cards keep the recorded error text visible
-    /// with the upstream status strings (`index.tsx:2256-2259`).
+    /// with the finished-result notices (`core/src/shell/result.ts:29-32,65`).
     #[test]
     fn golden_error_and_cancelled_cards() {
         let theme = Theme::dark();
@@ -1466,17 +1654,18 @@ mod tests {
             serde_json::json!({"argv": ["false"]}),
             Some("error: invalid arguments for bash: missing argv"),
         );
-        let (rows, buffer) = render(&failed, 60, 4);
+        let (rows, buffer) = render(&failed, 60, 5);
         assert_eq!(
             rows,
             vec![
                 String::new(),
                 "┃".to_string(),
                 "┃  $ false".to_string(),
+                "┃".to_string(),
                 "┃  error: invalid arguments for bash: missing argv".to_string(),
             ]
         );
-        assert_eq!(buffer[(3, 3)].fg, theme.error());
+        assert_eq!(buffer[(3, 4)].fg, theme.error());
 
         let cancelled = make_card(
             "bash",
@@ -1484,17 +1673,21 @@ mod tests {
             serde_json::json!({"argv": ["sleep", "100"]}),
             Some("error: cancelled"),
         );
-        let (rows, buffer) = render(&cancelled, 60, 4);
+        let (rows, buffer) = render(&cancelled, 60, 7);
         assert_eq!(
             rows,
             vec![
                 String::new(),
                 "┃".to_string(),
                 "┃  $ sleep 100".to_string(),
-                "┃  Command cancelled".to_string(),
+                "┃".to_string(),
+                "┃  error: cancelled".to_string(),
+                "┃  Command cancelled.".to_string(),
+                "┃".to_string(),
             ]
         );
-        assert_eq!(buffer[(3, 3)].fg, theme.text_muted());
+        assert_eq!(buffer[(3, 4)].fg, theme.error());
+        assert_eq!(buffer[(3, 5)].fg, theme.error());
 
         let timed_out = make_card(
             "bash",
@@ -1502,8 +1695,20 @@ mod tests {
             serde_json::json!({"argv": ["sleep", "100"]}),
             Some("exit signal\n\n[timeout]"),
         );
-        let (rows, _) = render(&timed_out, 60, 4);
-        assert_eq!(rows[3], "┃  Command timed out");
+        let (rows, _) = render(&timed_out, 60, 7);
+        assert_eq!(rows[5], "┃  Command timed out before completion.");
+
+        let exited = make_card(
+            "bash",
+            "failed",
+            serde_json::json!({"argv":["false"]}),
+            Some("exit 7\nfailed output\n"),
+        );
+        let (rows, _) = render(&exited, 60, 8);
+        assert_eq!(
+            &rows[4..7],
+            ["┃  failed output", "┃", "┃  Command exited with code 7."]
+        );
     }
 
     /// Subagent card (`index.tsx:3173-3205`): `<Agent> Subagent — <desc> ·
@@ -1660,20 +1865,242 @@ mod tests {
     /// (`index.tsx:2976,2980-3037`).
     #[test]
     fn shell_output_collapses_with_the_upstream_marker() {
+        // Genuine printf output captured in bounded-shell-06/upstream/
+        // bounded-shell-completed.txt:19–25. Native argv stays unquoted.
+        // Owner fee0123 omits the original notice and its blank separator:
+        // native retains lines 35–40 (34 omitted), original 37–40 (36 omitted).
         let mut output = String::from("exit 0\n");
-        for index in 0..(TOOL_OUTPUT_LINES + 3) {
-            output.push_str(&format!("line {index}\n"));
+        for index in 1..=40 {
+            output.push_str(&format!("SHELL-LINE-{index:02}\n"));
         }
+        let argv = std::iter::once("printf".to_string())
+            .chain(std::iter::once("SHELL-LINE-%02d\\n".to_string()))
+            .chain((1..=40).map(|i| i.to_string()))
+            .collect::<Vec<_>>();
         let card = make_card(
             "bash",
             "completed",
-            serde_json::json!({"argv": ["seq"]}),
+            serde_json::json!({"argv": argv}),
             Some(&output),
         );
-        let (rows, _) = render(&card, 60, 15);
-        assert!(rows.contains(&"┃  [earlier output omitted]".to_string()));
-        assert!(!rows.contains(&"┃  line 0".to_string()));
-        assert!(rows.contains(&format!("┃  line {}", TOOL_OUTPUT_LINES + 2)));
+        let (rows, _) = render(&card, 114, 14);
+        assert_eq!(
+            &rows[5..13],
+            [
+                "┃  (34 earlier lines)",
+                "┃  SHELL-LINE-35",
+                "┃  SHELL-LINE-36",
+                "┃  SHELL-LINE-37",
+                "┃  SHELL-LINE-38",
+                "┃  SHELL-LINE-39",
+                "┃  SHELL-LINE-40",
+                "┃"
+            ]
+        );
+        assert!(
+            !rows.join("\n").contains("'SHELL-LINE"),
+            "do not fake shell quoting for native argv"
+        );
+        let history = [tool_row(&card)];
+        let cache = std::cell::RefCell::new(crate::messages::MarkdownCache::default());
+        for expanded in [false, true, false] {
+            let full = crate::messages::transcript_with_expansion(
+                &history,
+                Theme::dark(),
+                114,
+                120,
+                |_| Theme::dark().text(),
+                Some(&cache),
+                &|_| expanded,
+            );
+            let (visible, total) = crate::messages::visible_transcript_expanded(
+                &history,
+                Theme::dark(),
+                (114, 120),
+                (100, 0, None),
+                |_| Theme::dark().text(),
+                &cache,
+                &|_| expanded,
+            );
+            let full = full
+                .iter()
+                .flat_map(|line| {
+                    styled::wrap_line(line, 114)
+                        .into_iter()
+                        .map(|wrapped| wrapped.with_style(line.style()))
+                })
+                .collect::<Vec<_>>();
+            assert_eq!(total, full.len() + 1);
+            assert_eq!(&visible[1..], full.as_slice());
+            let text = full
+                .iter()
+                .map(Line::plain_text)
+                .collect::<Vec<_>>()
+                .join("\n");
+            assert_eq!(text.contains("SHELL-LINE-01"), expanded);
+            assert_eq!(text.contains("(34 earlier lines)"), !expanded);
+            assert!(!text.contains("Command exited with code 0."));
+            let tail = full
+                .iter()
+                .rev()
+                .take(4)
+                .map(|line| line.plain_text().trim_end().to_string())
+                .collect::<Vec<_>>();
+            assert_eq!(
+                tail,
+                [
+                    "┃",
+                    "┃  SHELL-LINE-40",
+                    "┃  SHELL-LINE-39",
+                    "┃  SHELL-LINE-38"
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn vis16_shell_expansion_hit_and_indexed_render_agree() {
+        use crate::messages::{
+            MarkdownCache, exploration_header_at, transcript_with_expansion,
+            visible_transcript_expanded,
+        };
+        use std::cell::RefCell;
+        let theme = Theme::dark();
+        let output = format!(
+            "exit 0\n{}\n[truncated]\n",
+            (0..18)
+                .map(|i| format!("retained line {i}"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+        let mut card = make_card(
+            "bash",
+            "completed",
+            serde_json::json!({"argv":["seq"]}),
+            Some(&output),
+        );
+        card.output_truncated = true;
+        let rows = [tool_row(&card)];
+        let cache = RefCell::new(MarkdownCache::default());
+        for width in [40, 80] {
+            assert!(shell_expandable(&card, width));
+            for expanded in [false, true, false] {
+                let full = transcript_with_expansion(
+                    &rows,
+                    theme,
+                    width,
+                    width,
+                    |_| theme.text(),
+                    Some(&cache),
+                    &|_| expanded,
+                );
+                let full: Vec<_> = full
+                    .iter()
+                    .flat_map(|line| {
+                        styled::wrap_line(line, width as usize)
+                            .into_iter()
+                            .map(|wrapped| wrapped.with_style(line.style()))
+                    })
+                    .collect();
+                let (visible, total) = visible_transcript_expanded(
+                    &rows,
+                    theme,
+                    (width, width),
+                    (100, 0, None),
+                    |_| theme.text(),
+                    &cache,
+                    &|_| expanded,
+                );
+                assert_eq!(total, full.len() + 1);
+                assert_eq!(&visible[1..], full.as_slice(), "styled full/indexed rows");
+                assert_eq!(
+                    visible
+                        .iter()
+                        .skip(1)
+                        .map(Line::plain_text)
+                        .collect::<Vec<_>>(),
+                    full.iter().map(Line::plain_text).collect::<Vec<_>>()
+                );
+                let text = full
+                    .iter()
+                    .map(Line::plain_text)
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                assert_eq!(text.contains("retained line 0"), expanded);
+                assert!(text.contains("retained line 17") && text.contains("[truncated]"));
+                assert!(!text.contains("Command exited with code 0."));
+                assert_eq!(
+                    exploration_header_at(
+                        &rows,
+                        theme,
+                        (width, width),
+                        (100, 0, None),
+                        |_| theme.text(),
+                        &cache,
+                        (&|_| expanded, (5, 3))
+                    ),
+                    Some(card.op.clone())
+                );
+                assert_eq!(
+                    exploration_header_at(
+                        &rows,
+                        theme,
+                        (width, width),
+                        (100, 0, None),
+                        |_| theme.text(),
+                        &cache,
+                        (&|_| expanded, (5, 1))
+                    ),
+                    None
+                );
+                let hover = crate::messages::hover_tool_content(&visible[3], theme);
+                assert_eq!(
+                    crate::messages::tool_hover_range(&visible, theme, 3),
+                    2..visible.len()
+                );
+                assert_eq!(hover.plain_text(), visible[3].plain_text());
+                assert_eq!(
+                    hover.style().bg,
+                    Some(theme.decrease(theme.background_raised()))
+                );
+                assert_eq!(hover.spans()[0].style().fg, Some(theme.background()));
+                for scroll in [0, 5] {
+                    let (page, count) = visible_transcript_expanded(
+                        &rows,
+                        theme,
+                        (width, width),
+                        (4, scroll, None),
+                        |_| theme.text(),
+                        &cache,
+                        &|_| expanded,
+                    );
+                    let end = total - scroll.min(total.saturating_sub(4));
+                    assert_eq!(count, total);
+                    assert_eq!(page.as_slice(), &visible[end.saturating_sub(4)..end]);
+                }
+            }
+        }
+        let short = make_card(
+            "bash",
+            "completed",
+            serde_json::json!({"argv":["true"]}),
+            Some("exit 0"),
+        );
+        assert!(!shell_expandable(&short, 80));
+        let long = make_card(
+            "bash",
+            "completed",
+            serde_json::json!({"argv":["界".repeat(80)]}),
+            Some("exit 0"),
+        );
+        assert!(shell_expandable(&long, 40));
+        let ToolRender::Shell(shell) = &long.render else {
+            panic!("shell")
+        };
+        let collapsed = shell_block_expanded(shell, &long, theme, 40, false);
+        let expanded = shell_block_expanded(shell, &long, theme, 40, true);
+        assert!(collapsed.iter().any(|line| line.plain_text().contains('…')));
+        assert!(expanded.len() > collapsed.len());
     }
 
     /// Unused theme tokens are still resolved (guards against a renderer that

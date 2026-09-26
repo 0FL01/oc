@@ -1,5 +1,18 @@
 # T44 — parity qualification remains open (2026-09-26)
 
+Latest verified source slice implements profile titlecase/silent success, real
+Ctrl+T variant cycling, and supported Shell/Explored hover/expansion with required
+successful Shell spacing. Full workspace gate PASS:
+`tool_0dd8e54820010JHYPv5cQJpKAw`. Final source-built paired captures
+[`bounded-shell-09`](../tui/recovery-v00/bounded-shell-09/capture.lock.json) and
+[`bounded-variants-06`](../tui/recovery-v00/bounded-variants-06/capture.lock.json)
+pass behavioral checks; all full grid/PNG comparisons remain DIFFERENT. Actual
+request effort cycles absent/high/low/absent. Shell commands execute exactly twice
+and hover/expand/recollapse makes no further requests. Explicit owner suppression
+of synthetic exit-zero text is preserved despite the original's observed suffix;
+no empty successful-output placeholder is fabricated. Full factual evidence:
+[`bounded-evidence-report.md`](../tui/recovery-v00/bounded-evidence-report.md).
+
 **Owner decision 2026-09-26:** approved conversation/context-only `/undo`, `/redo` and
 Revert, snapshots disabled by default and no workspace/file/Git rollback. The former
 file-revert requirement is superseded, not satisfied by experimental snapshot code.

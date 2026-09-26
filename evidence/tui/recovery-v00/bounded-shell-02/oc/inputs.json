@@ -1,0 +1,47 @@
+[
+  {
+    "at_ms": 1790421306067,
+    "kind": "bounded_agents",
+    "base64": "L2FnZW50cw=="
+  },
+  {
+    "at_ms": 1790421309390,
+    "kind": "bounded_agents_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790421312131,
+    "kind": "bounded_agent_query",
+    "base64": "Zml4dHVyZS1zaGVsbA=="
+  },
+  {
+    "at_ms": 1790421314730,
+    "kind": "bounded_agent_select",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790421317680,
+    "kind": "bounded_prompt",
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "at_ms": 1790421317680,
+    "kind": "bounded_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790421320718,
+    "kind": "bounded_shell_hover",
+    "base64": "G1s8MzU7ODsxNU0="
+  },
+  {
+    "at_ms": 1790421323814,
+    "kind": "bounded_shell_down",
+    "base64": "G1s8MDs4OzE1TQ=="
+  },
+  {
+    "at_ms": 1790421323814,
+    "kind": "bounded_shell_up",
+    "base64": "G1s8MDs4OzE1bQ=="
+  }
+]

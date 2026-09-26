@@ -8,10 +8,16 @@ import {spawn, spawnSync} from 'node:child_process';
 import readline from 'node:readline';
 import {fileURLToPath} from 'node:url';
 import {probeMessageActions} from './message_actions.mjs';
+import {probeBounded} from './bounded.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
 const args = Object.fromEntries(process.argv.slice(2).map((v, i, a) => v.startsWith('--') ? [v.slice(2), a[i+1]] : null).filter(Boolean));
+const boundedMode = args['bounded-mode'];
+if(boundedMode && (!['variants','shell'].includes(boundedMode) || args.geometry!=='true' || args.sidebar!=='hide' ||
+    Number(args.columns)!==120 || Number(args.rows)!==40 || !args.reference || !args.oc || args.sample!=='short' ||
+    Object.entries(args).some(([k,v])=>v==='true' && !['geometry','build-oc'].includes(k))))
+  throw Error('--bounded-mode variants|shell requires exclusive paired short 120x40 geometry sidebar hide');
 const tools = path.resolve(args.tools || '/home/opencode/.cache/opencode-tmp/opencode/t44-reference');
 process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(tools, 'browsers');
 const require = createRequire(path.join(tools, 'package.json'));
@@ -239,6 +245,7 @@ const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.str
 const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
+    ...(boundedMode ? {bounded_mode:boundedMode,bounded_probe_sha256:sha(fs.readFileSync(path.join(here,'bounded.mjs')))} : {}),
    models_interaction:modelsInteraction, ...(messageActions ? {message_actions:true,...(messageForkRevert?{message_fork_revert:true}:{})} : {}), protocol: sha(fs.readFileSync(path.join(here,'bridge.py')))}));
 const commands = [];
 commands.push({argv:[process.execPath,...process.argv.slice(1)],role:'capture runner invocation',exit_code:null});
@@ -337,7 +344,7 @@ try {
     const spec = {binary, origin, columns: profile.columns, rows: profile.rows, isolated_root: isolated, fixture,
       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,
       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
-      agent_profile: args['agent-profile'] === 'true',
+       agent_profile: args['agent-profile'] === 'true', bounded_mode:boundedMode,
        seed_root: args['seed-root'], session: args.session, tab_restart: tabRestart || renameSession,
           regenerate_title: regenerateTitle, two_turn:twoTurn || (messageActions && origin==='oc'), models_interaction:modelsInteraction,
         ...(scanner ? {scanner:true, animations:scannerAnimation} : {})};
@@ -831,7 +838,12 @@ try {
         lock.mention[origin]={status:'IN_PROGRESS',checks:mentionChecks};
         await probeMention('home');
       }
-       if(scanner) {
+        if(boundedMode) {
+          const checks=await probeBounded({mode:boundedMode,origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
+            resize:async(rows)=>{profile.rows=rows;await page.evaluate(rows=>term.resize(120,rows),rows);child.stdin.write(JSON.stringify({kind:'resize',columns:120,rows})+'\n');},
+            prompt:fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()});
+          lock.bounded ??= {}; lock.bounded[origin]=checks; json('capture.lock.json',lock);
+        } else if(scanner) {
          const stages = scannerAnimation ? ['forward','end-hold','reverse','start-hold'] : ['fallback'];
           const observations=[], checks={animation:scannerAnimation, cancel:scannerCancel,
             observations, pause_attempts:[], stages:{}, predicates:{}, release:null};

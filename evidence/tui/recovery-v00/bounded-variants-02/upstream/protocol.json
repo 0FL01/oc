@@ -1,0 +1,317 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/bounded-variants-02/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/bounded-variants-02/upstream/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/bounded-variants-02/upstream/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/bounded-variants-02/upstream/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/bounded-variants-02/upstream/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/bounded-variants-02/upstream/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/bounded-variants-02/upstream/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"share\": \"disabled\", \"update\": \"disable\", \"plugins\": [\"-opencode.models.dev\"], \"providers\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"package\": \"@opencode/ai/providers/openai/responses\", \"settings\": {\"baseURL\": \"http://127.0.0.1:44329/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}, \"variants\": [{\"id\": \"fast\", \"settings\": {\"reasoningEffort\": \"high\"}}, {\"id\": \"none\", \"settings\": {\"reasoningEffort\": \"low\"}}]}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}, \"default_agent\": \"fixture-reader\", \"agents\": {\"fixture-reader\": {\"mode\": \"primary\", \"system\": \"You are the isolated T44 bounded fixture profile.\", \"color\": \"#5c9cf5\", \"permissions\": [{\"action\": \"*\", \"resource\": \"*\", \"effect\": \"deny\"}, {\"action\": \"read\", \"resource\": \"*\", \"effect\": \"allow\"}]}}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "opencode v2.0.12",
+    "version_exit": 0
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": false,
+    "operation": "title",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "3c5e960f1d093817d5c8ce04597d7eeb435bb601e1c6a977a45f80b766e326c4",
+    "registered_tools": [],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream"
+    ],
+    "tool_schemas": {},
+    "reasoning_effort": null
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title",
+    "response_text_sha256": "1d813e919dac6b6dd2b09b29e81ca7d93d503f841030b3118759525fd000beaa"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "d500713fa4324b67c3571dfc5993d5325446336d5c49b7cda1916c5b52390cd5",
+    "registered_tools": [
+      "read"
+    ],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "tool_schemas": {
+      "read": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File or directory to read"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "The line or directory entry to start reading from (1-based)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2000,
+            "description": "The maximum number of lines or directory entries to read (defaults to 2000)"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reasoning_effort": null,
+    "bounded_request_index": 0
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "bab5a1c180b84451f07b1e587f20eae53a4b582b5795d65b830b90e5b56b0f7d"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 1,
+    "round_number": 0,
+    "request_sha256": "b6a7701b9f2b0686785015059558afd041edd1722b0433e353a53ec7133e47d0",
+    "registered_tools": [
+      "read"
+    ],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "reasoning",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "tool_schemas": {
+      "read": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File or directory to read"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "The line or directory entry to start reading from (1-based)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2000,
+            "description": "The maximum number of lines or directory entries to read (defaults to 2000)"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reasoning_effort": "high",
+    "bounded_request_index": 1
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "3ab62d2f97471ee243b326e9f7dbccc95536c4c32b12db86488b78d2f5aaa5f0"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 2,
+    "round_number": 0,
+    "request_sha256": "1fb64929e0946b01c0cdfda34c93e08fe848012546c3da2b1adb83ebecaea31a",
+    "registered_tools": [
+      "read"
+    ],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "reasoning",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "tool_schemas": {
+      "read": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File or directory to read"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "The line or directory entry to start reading from (1-based)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2000,
+            "description": "The maximum number of lines or directory entries to read (defaults to 2000)"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reasoning_effort": "low",
+    "bounded_request_index": 2
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "35590d2d4d52583a6d50c98a18b25c1475c33ffc835b5958b2fc5c6a76d3dc34"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 3,
+    "round_number": 0,
+    "request_sha256": "2c62e02686b01a2050a8e52ef66725a4f4ed0877893da2214978e3ed7913105f",
+    "registered_tools": [
+      "read"
+    ],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "tool_schemas": {
+      "read": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File or directory to read"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "The line or directory entry to start reading from (1-based)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2000,
+            "description": "The maximum number of lines or directory entries to read (defaults to 2000)"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reasoning_effort": null,
+    "bounded_request_index": 3
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "0ff1ee152672792d841daead53ef2ab97c06ecea641a9746ce142ea78545591a"
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": 130,
+    "termination": "forced_stop"
+  }
+]

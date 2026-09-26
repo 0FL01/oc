@@ -1,0 +1,91 @@
+{
+  "mode": "shell",
+  "origin": "oc",
+  "status": "FAILED",
+  "stages": [
+    {
+      "name": "bounded-profile-selected",
+      "predicates": {
+        "titlecased": true,
+        "no_success_toast": true,
+        "no_requests": true
+      },
+      "counts": {
+        "transcript": 0,
+        "title": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    },
+    {
+      "name": "bounded-shell-completed",
+      "predicates": {
+        "exact_requests": true,
+        "two_calls": true,
+        "verified_outputs": true,
+        "no_synthetic_exit": true
+      },
+      "counts": {
+        "transcript": 3,
+        "title": 1,
+        "completed": 4,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    },
+    {
+      "name": "bounded-shell-hover",
+      "predicates": {
+        "hover_changed": true,
+        "no_requests": true
+      },
+      "counts": {
+        "transcript": 3,
+        "title": 1,
+        "completed": 4,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    },
+    {
+      "name": "bounded-shell-expanded",
+      "predicates": {
+        "last_line_visible": true,
+        "no_requests": true
+      },
+      "counts": {
+        "transcript": 3,
+        "title": 1,
+        "completed": 4,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 5,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    }
+  ],
+  "reason": "Timed out waiting for recollapsed real Shell output"
+}

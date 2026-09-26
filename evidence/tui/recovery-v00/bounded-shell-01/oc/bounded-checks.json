@@ -1,0 +1,29 @@
+{
+  "mode": "shell",
+  "origin": "oc",
+  "status": "FAILED",
+  "stages": [
+    {
+      "name": "bounded-profile-selected",
+      "predicates": {
+        "titlecased": true,
+        "no_success_toast": true,
+        "no_requests": true
+      },
+      "counts": {
+        "transcript": 0,
+        "title": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    }
+  ],
+  "reason": "Timed out waiting for real bash outputs and final answer"
+}

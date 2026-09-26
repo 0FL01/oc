@@ -180,6 +180,8 @@ pub enum PanelIntent {
         /// Optional variant name.
         variant: Option<String>,
     },
+    /// Cycle from the owner's current model/variant, never a stale UI snapshot.
+    CycleVariant,
     /// Apply a primary agent choice.
     SelectAgent {
         /// Agent profile id.
@@ -2206,6 +2208,30 @@ impl TuiState {
             crate::messages::collapsed_thought_header(rows.get(row)?, theme, (x - area.x) as usize)
                 .then_some(row)
         });
+        let hover_tool = frame.and_then(|frame| {
+            let (x, y, owner) = self.last_mouse?;
+            if owner != frame
+                || self.panel != TuiPanel::None
+                || area != crate::shell::transcript_area(self, frame)
+                || !area.contains((x, y).into())
+                || self.transcript_overpainted(frame, x, y)
+            {
+                return None;
+            }
+            let row = (y - area.y) as usize;
+            let range = crate::messages::tool_hover_range(rows, theme, row);
+            let block = rows.get(row)?.style().bg == Some(theme.background_raised());
+            let header = rows.get(range.start)?.plain_text();
+            // Reject other painted surfaces before another indexed hit lookup.
+            // Text is only a cheap candidate filter: the owner hit still decides.
+            if !block
+                && !header.trim_start().starts_with("→ Explored")
+                && !header.trim_start().starts_with("⋯ Exploring")
+            {
+                return None;
+            }
+            self.exploration_hit(frame, x, y).map(|_| range)
+        });
         let selected = self.selection.as_ref().filter(|selected| {
             selected.painted.area == area
                 && selected.painted.total == total
@@ -2225,6 +2251,12 @@ impl TuiState {
                     &hovered
                 } else if hover_row == Some(row) {
                     hovered = crate::messages::hover_collapsed_thought(line, theme);
+                    &hovered
+                } else if hover_tool
+                    .as_ref()
+                    .is_some_and(|range| range.contains(&row))
+                {
+                    hovered = crate::messages::hover_tool_content(line, theme);
                     &hovered
                 } else {
                     line
@@ -3788,6 +3820,7 @@ impl TuiState {
                 | KeyAction::Quit
                 | KeyAction::Commands
                 | KeyAction::Agents
+                | KeyAction::CycleVariant
                 | KeyAction::Rename
         ) {
             self.leader = None;
@@ -3807,6 +3840,14 @@ impl TuiState {
         match action {
             KeyAction::Commands => self.run_command(CommandAction::OpenCommands),
             KeyAction::Agents => self.run_command(CommandAction::OpenAgents),
+            KeyAction::CycleVariant if self.is_busy() => KeyOutcome {
+                note: Some("turn active; action unavailable".into()),
+                ..Default::default()
+            },
+            KeyAction::CycleVariant => KeyOutcome {
+                intent: Some(PanelIntent::CycleVariant),
+                ..Default::default()
+            },
             KeyAction::Rename => self.run_command(CommandAction::RenameSession { title: None }),
             KeyAction::Leader => {
                 self.leader = Some(Instant::now());
@@ -8698,6 +8739,38 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn variant_cycle_keeps_draft_and_modal_focus_and_refuses_pending_submit() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("cycle-focus"));
+        state.apply_catalog(snapshot());
+        type_text(&mut state, "unchanged draft").await;
+        assert_eq!(
+            state.handle_key(KeyAction::CycleVariant).await.intent,
+            Some(PanelIntent::CycleVariant)
+        );
+        assert_eq!(state.input(), "unchanged draft");
+        assert_eq!(state.panel(), &TuiPanel::None);
+        assert!(inbox.try_recv().is_err());
+        state.handle_key(KeyAction::Agents).await;
+        assert_eq!(state.handle_key(KeyAction::CycleVariant).await.intent, None);
+        assert_eq!(state.panel(), &TuiPanel::Agents);
+        state.handle_key(KeyAction::Cancel).await;
+        state.handle_key(KeyAction::Enter).await;
+        let Some(oc_core::core_app::InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+            panic!("submit")
+        };
+        let result = state.handle_key(KeyAction::CycleVariant).await;
+        assert_eq!(result.intent, None);
+        assert_eq!(
+            result.note.as_deref(),
+            Some("turn active; action unavailable")
+        );
+        assert_eq!(state.input(), "unchanged draft");
+        assert!(inbox.try_recv().is_err());
+        drop(ack);
+    }
+
+    #[tokio::test]
     async fn v04_modal_search_scroll_focus_and_draft() {
         use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
         use ratatui::{Terminal, backend::TestBackend};
@@ -9051,6 +9124,14 @@ mod tests {
                 .expect("header visible");
             let x = transcript.x + 4;
             let y = transcript.y + row as u16;
+            state.handle_mouse(event(MouseEventKind::Moved, x, y), area);
+            let painted = state.paint_transcript_at(transcript, &lines, total, 0, Some(area), &[]);
+            assert_ne!(painted[row], lines[row], "Explored header hover must paint");
+            assert_eq!(painted[row].plain_text(), lines[row].plain_text());
+            assert!(
+                state.exploration_expanded.is_empty(),
+                "hover does not expand"
+            );
             assert!(
                 !state
                     .transcript_lines(80, 80)
@@ -9086,6 +9167,10 @@ mod tests {
                 "text selection cannot toggle"
             );
             state.panel = TuiPanel::Help(None);
+            assert_eq!(
+                state.paint_transcript_at(transcript, &lines, total, 0, Some(area), &[]),
+                lines
+            );
             click(&mut state, area, x, y);
             assert!(state.exploration_expanded.is_empty());
             state.close_panel();
@@ -10195,6 +10280,169 @@ mod tests {
             state.reasoning_expanded.len(),
             1,
             "uncovered running header works"
+        );
+    }
+
+    #[tokio::test]
+    async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_surface() {
+        use crate::theme::Theme;
+        use crossterm::event::{MouseButton, MouseEventKind};
+        let mut state = fresh_state("shell-mouse").await;
+        let result = format!(
+            "exit 0\n{}",
+            (0..30)
+                .map(|i| format!("recorded output {i}\n"))
+                .collect::<String>()
+        );
+        let card = crate::history::card_from_row(&oc_core::queries::ToolOpView {
+            rowid: 1,
+            op: "shell-op".into(),
+            name: "bash".into(),
+            state: "completed".into(),
+            input: Some(r#"{"argv":["fixture"]}"#.into()),
+            output_bytes: result.len() as i64,
+            output: Some(result),
+            output_truncated: false,
+        });
+        state.window.push_row(crate::history::HistoryRow {
+            message_id: None,
+            seq: 1,
+            role: "tool".into(),
+            text: String::new(),
+            agent: None,
+            agent_color_index: None,
+            chips: vec![],
+            reasoning: None,
+            meta: None,
+            tool: Some(card),
+        });
+        let frame = ratatui::layout::Rect::new(0, 0, 80, 48);
+        let area = crate::shell::transcript_area(&state, frame);
+        let (rows, total, scroll) =
+            state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+        state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &[]);
+        let row = rows
+            .iter()
+            .position(|line| line.plain_text().contains("$ fixture"))
+            .unwrap();
+        let (x, y) = (area.x + 5, area.y + row as u16);
+        let mouse = |kind| selection_mouse(kind, x, y);
+        state.handle_mouse(mouse(MouseEventKind::Moved), frame);
+        let hover = state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &[]);
+        assert_eq!(
+            hover[row].style().bg,
+            Some(Theme::dark().decrease(Theme::dark().background_raised()))
+        );
+        assert_eq!(hover[row].plain_text(), rows[row].plain_text());
+        assert!(state.exploration_expanded.is_empty());
+        // Hover is owned by the exact frame and is blocked by painted overlays.
+        let other_frame = ratatui::layout::Rect::new(0, 0, 81, 48);
+        assert_eq!(
+            state.paint_transcript_at(area, &rows, total, scroll, Some(other_frame), &[]),
+            rows
+        );
+        state.panel = TuiPanel::Help(None);
+        assert_eq!(
+            state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &[]),
+            rows
+        );
+        for kind in [
+            MouseEventKind::Down(MouseButton::Left),
+            MouseEventKind::Up(MouseButton::Left),
+        ] {
+            state.handle_mouse(mouse(kind), frame);
+        }
+        assert!(state.exploration_expanded.is_empty());
+        state.close_panel();
+        state.push_note("cover shell");
+        let toast = crate::shell::toast_rect(&state, frame).unwrap();
+        if area.contains((toast.x + 1, toast.y + 1).into()) {
+            state.handle_mouse(
+                selection_mouse(MouseEventKind::Moved, toast.x + 1, toast.y + 1),
+                frame,
+            );
+            assert_eq!(
+                state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &[]),
+                rows
+            );
+        }
+        state.note = None;
+        for expanded in [true, false, true, false] {
+            state.click = None; // independent clicks, rather than word/line selection
+            state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left)), frame);
+            state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left)), frame);
+            assert_eq!(state.exploration_expanded.contains("shell-op"), expanded);
+            let (visible, count, offset) =
+                state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+            assert_eq!(
+                visible
+                    .iter()
+                    .any(|line| line.plain_text().contains("recorded output 0")),
+                expanded
+            );
+            state.paint_transcript_at(area, &visible, count, offset, Some(frame), &[]);
+        }
+        state.click = None;
+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left)), frame);
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), x + 3, y),
+            frame,
+        );
+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left)), frame);
+        assert!(
+            state.exploration_expanded.is_empty(),
+            "selection owns the release"
+        );
+
+        // A standalone Read with a recorded truncated result is not expandable;
+        // neither hover nor clicks invent recoverable full-file contents.
+        state.attach_page(&page(vec![], 0, false, false));
+        let card = crate::history::card_from_row(&oc_core::queries::ToolOpView {
+            rowid: 2,
+            op: "read-op".into(),
+            name: "read".into(),
+            state: "completed".into(),
+            input: Some(r#"{"path":"fixture.txt"}"#.into()),
+            output_bytes: 1000,
+            output: Some("private file body".into()),
+            output_truncated: true,
+        });
+        state.window.push_row(crate::history::HistoryRow {
+            message_id: None,
+            seq: 2,
+            role: "tool".into(),
+            text: String::new(),
+            agent: None,
+            agent_color_index: None,
+            chips: vec![],
+            reasoning: None,
+            meta: None,
+            tool: Some(card),
+        });
+        let (rows, total, scroll) =
+            state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+        let row = rows
+            .iter()
+            .position(|line| line.plain_text().contains("Read fixture.txt"))
+            .unwrap();
+        let y = area.y + row as u16;
+        state.handle_mouse(selection_mouse(MouseEventKind::Moved, x, y), frame);
+        assert_eq!(
+            state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &[]),
+            rows
+        );
+        for kind in [
+            MouseEventKind::Down(MouseButton::Left),
+            MouseEventKind::Up(MouseButton::Left),
+        ] {
+            state.handle_mouse(selection_mouse(kind, x, y), frame);
+        }
+        assert!(state.exploration_expanded.is_empty());
+        assert!(
+            !state
+                .transcript_lines(80, 80)
+                .iter()
+                .any(|line| line.plain_text().contains("private file body"))
         );
     }
 

@@ -3644,13 +3644,15 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     pty.wait_visible_after(off, "echo: A per model preference", DEADLINE);
     wait_idle(&pty);
     pty.send(b"/agents\rt39agent\r");
-    wait_screen_row(&pty, "agent: t39agent", DEADLINE);
+    wait_screen_row(&pty, "T39agent ·", DEADLINE);
+    dismissed(&pty, "Select agent");
     choose_model(&mut pty, "T39 model"); // agent-specific override
     let off = submit(&mut pty, "A second agent override");
     pty.wait_visible_after(off, "echo: A second agent override", DEADLINE);
     wait_idle(&pty);
     pty.send(b"/agents\rplain\r");
-    wait_screen_row(&pty, "agent: plain", DEADLINE);
+    wait_screen_row(&pty, "Plain ·", DEADLINE);
+    dismissed(&pty, "Select agent");
     let off = submit(&mut pty, "A first agent restored");
     pty.wait_visible_after(off, "echo: A first agent restored", DEADLINE);
     pty.send(b"/quit\r");
@@ -3676,7 +3678,8 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     pty.wait_visible_after(off, "echo: A cleared preference", DEADLINE);
     wait_idle(&pty);
     pty.send(b"/agents\rt39agent\r");
-    wait_screen_row(&pty, "agent: t39agent", DEADLINE);
+    wait_screen_row(&pty, "T39agent ·", DEADLINE);
+    dismissed(&pty, "Select agent");
     let off = submit(&mut pty, "A second agent restart");
     pty.wait_visible_after(off, "echo: A second agent restart", DEADLINE);
     wait_idle(&pty);
@@ -3793,7 +3796,14 @@ fn aud29_pty_panels_change_runtime_state() {
     wait_screen_row(&pty, "Select agent", DEADLINE);
     wait_screen_row(&pty, "t39agent", DEADLINE);
     pty.send(b"\r");
-    pty.wait_visible("agent: t39agent", DEADLINE);
+    wait_screen_row(&pty, "T39agent ·", DEADLINE);
+    dismissed(&pty, "Select agent");
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|row| row.contains("agent: t39agent"))
+    );
 
     let off = submit(&mut pty, "hello agent");
     pty.wait_visible_after(off, "echo: hello agent", DEADLINE);

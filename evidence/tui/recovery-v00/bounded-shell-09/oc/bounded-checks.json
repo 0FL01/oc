@@ -1,0 +1,112 @@
+{
+  "mode": "shell",
+  "origin": "oc",
+  "status": "PASS",
+  "stages": [
+    {
+      "name": "bounded-profile-selected",
+      "predicates": {
+        "titlecased": true,
+        "no_success_toast": true,
+        "no_requests": true
+      },
+      "counts": {
+        "transcript": 0,
+        "title": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    },
+    {
+      "name": "bounded-shell-completed",
+      "predicates": {
+        "exact_requests": true,
+        "two_calls": true,
+        "verified_outputs": true,
+        "owner_success_status": true,
+        "complete_output_budget": true
+      },
+      "counts": {
+        "transcript": 3,
+        "title": 1,
+        "completed": 4,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    },
+    {
+      "name": "bounded-shell-hover",
+      "predicates": {
+        "hover_changed": true,
+        "no_requests": true
+      },
+      "counts": {
+        "transcript": 3,
+        "title": 1,
+        "completed": 4,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    },
+    {
+      "name": "bounded-shell-expanded",
+      "predicates": {
+        "last_line_visible": true,
+        "no_requests": true
+      },
+      "counts": {
+        "transcript": 3,
+        "title": 1,
+        "completed": 4,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 5,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    },
+    {
+      "name": "bounded-shell-recollapsed",
+      "predicates": {
+        "first_line_hidden": true,
+        "no_requests": true
+      },
+      "counts": {
+        "transcript": 3,
+        "title": 1,
+        "completed": 4,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    }
+  ],
+  "exit_zero_text_visible": false
+}

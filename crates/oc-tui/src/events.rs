@@ -18,6 +18,8 @@ pub enum KeyAction {
     Interrupt,
     /// Open the native agent selector.
     Agents,
+    /// Cycle the effective model's declared variants without opening a dialog.
+    CycleVariant,
     /// Open the focused session-title editor.
     Rename,
     /// Modal page navigation.
@@ -122,6 +124,7 @@ pub fn map_key(event: KeyEvent) -> Option<KeyAction> {
         };
     }
     match (event.code, event.modifiers) {
+        (KeyCode::Char('t'), KeyModifiers::CONTROL) => Some(KeyAction::CycleVariant),
         (KeyCode::Char('x'), KeyModifiers::CONTROL) => Some(KeyAction::Leader),
         (KeyCode::Char('n'), KeyModifiers::CONTROL) => Some(KeyAction::Down),
         (KeyCode::Char('b'), KeyModifiers::CONTROL) => Some(KeyAction::Left),
@@ -213,6 +216,23 @@ mod tests {
             Some(KeyAction::Interrupt)
         );
         assert_eq!(map_key(key(KeyCode::Char('a'))), Some(KeyAction::Char('a')));
+        assert_eq!(
+            map_key(KeyEvent::new(KeyCode::Char('t'), KeyModifiers::CONTROL)),
+            Some(KeyAction::CycleVariant)
+        );
+        for kind in [
+            crossterm::event::KeyEventKind::Repeat,
+            crossterm::event::KeyEventKind::Release,
+        ] {
+            assert_eq!(
+                map_key(KeyEvent::new_with_kind(
+                    KeyCode::Char('t'),
+                    KeyModifiers::CONTROL,
+                    kind
+                )),
+                None
+            );
+        }
     }
 
     #[test]

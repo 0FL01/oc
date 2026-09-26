@@ -1,0 +1,739 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-26T11:22:59.073Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "3469703ea7664d33e792189ddbb3bd1a3be5928916ba5621bcc48864a2ae2b28",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "cf31d3e05d9023648ec65d540cdc9a95d34975b24a9451369859b20c4a41c7f9"
+  },
+  "fixture_sha256": "315c30437c5f30a55d8febb4b17a6239dfadf5d8729907c1e9412080658b2ee1",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "83af88057f837b3d6fd84eb2f6d7f8425fca563b",
+    "tree": "623b1ff9e0762db875c87de7b7ca2c6718ee5b69",
+    "dirty_diff_sha256": "41b4a4175ed525dd0c7b8b25014dcce2983d5110ee63d37a30eeddcf3fa6cbd4",
+    "source_manifest_sha256": "194a55a3476ac7fba049c51014856b06e7dc17d02e1e7b0f2fae2bc57782e7d2",
+    "build_provenance": "Existing binary; build/source association not attested by this run",
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "a0a02e7eab829854010328b7df584a67e730aea647f0b3e61c9a0fc7371c8be3",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-profile-selected",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-profile-selected",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-request-0",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-request-0",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-cycle-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-cycle-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-request-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-request-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-cycle-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-cycle-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-request-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-request-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-cycle-3",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-cycle-3",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-request-3",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-request-3",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2ea8a4c21d10154ab1f69128bca7ed938d3aa39599de1422dda41188b318f1cf",
+      "png_sha256": "c2c7693f909cdf33385dd05690a362d343d76dc1d5316efc659d0502fc3f29ba",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-profile-selected",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "bc6b0d3b3f00736381d1b24492b414ce75ef6fca00468fdc09cf575e4197e677",
+      "png_sha256": "91a246c879bde2a88317f9188981d3b38101be72123957437d22b6a1bed2db72",
+      "render_sha256": "c613ec5bda73a9fc48abe1969f5bec222b48102496c7026cc055b29b6fa0a276",
+      "path": "upstream/bounded-profile-selected"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-variant-request-0",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "758df0cb2115248a6b4c991d8252080f46f149423c69563f731297b2d58822e3",
+      "png_sha256": "688c585933b8eeeb76dcbb7d9685493a706f1923b660cbe65cb2a505db89e4e3",
+      "render_sha256": "a2b5fb253669b55518ea68aa2553ffef925438d0db99ded7e15a6914d4b1a66f",
+      "path": "upstream/bounded-variant-request-0"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-variant-cycle-1",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "a3ec4d5f1531c033a1afd4e7ed23bd1b0fbf45fa5e644d6fc5e36187d027438a",
+      "png_sha256": "e2deb2e3e8b3651db858d9736fd3f13ccf0b2cf594a019e3b5b16ad31d3846ae",
+      "render_sha256": "e338836cc26af9faa17e1107d3cf264258a9e8319c343e0b3a3a201ab318e371",
+      "path": "upstream/bounded-variant-cycle-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-variant-request-1",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "637bf705ceb5d072a16aa34b451dd00fae549c87c6e2c8e2bc15226a9abe0568",
+      "png_sha256": "a56c8a28e9fd90b548466c255cfefab542113f2e650a1cbe3a5b4db1c72b7c93",
+      "render_sha256": "31a6b577a97422a208a2a29cb77aa2a751db895f742877b1b5575c97a58f9307",
+      "path": "upstream/bounded-variant-request-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-variant-cycle-2",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "a476319a0cc5069a3e9b0f015668b291acf2a9c97e292f4736d1b4d87261078c",
+      "png_sha256": "843c6562b2c9ea4df632fadb17a30522c908b57b2725208d6a9c6eebc5c01599",
+      "render_sha256": "84b526b304a4af058b583b2a9353bf6f27c4d1116bc5497b9c3ca23b1c80df5f",
+      "path": "upstream/bounded-variant-cycle-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-variant-request-2",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "0c6e9d506c1834793718fbb480a8f8f69e89c7a30e5bedf77097d76680a985aa",
+      "png_sha256": "c081c72a8b0d1aba10d2e97a6896282547ca7711317ce3adaf1fd9b634da66ba",
+      "render_sha256": "a43a49ea1aaaac824fcf8abbe7877f1899ff0aa7add0239ca84a6a0fa5f1274a",
+      "path": "upstream/bounded-variant-request-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-variant-cycle-3",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "02207481dc1a44022f0877d24fe8ce1f4277fdad0e69ae7c67a2519bf2abf157",
+      "png_sha256": "8e21e30e01ff1c7c1a02aa41d8c964aff537a6aff69867b1628dd450ffb0c522",
+      "render_sha256": "bc83e4d62bf1fa42db87be9e17252978b2fbf849cd09952466c64243e6798f5a",
+      "path": "upstream/bounded-variant-cycle-3"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-variant-request-3",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "4e83e0d9a78649ad764f91d8f8f879ddbb09872089a1c80600417b80226b9452",
+      "png_sha256": "f8f1fb1c794b2550447e3bede86fdd6fa125267423dceb88d10f1d8af4028d87",
+      "render_sha256": "a7723b8ca204e1c5ad09a569a4f95a16dc168ccbc4829ba4cc79147fbe7206c6",
+      "path": "upstream/bounded-variant-request-3"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e565d4005d61c32e792f6fdf52c0558319f8bc2526f8bccc8c84cdde68b59367",
+      "png_sha256": "6aa211b712c06639166ad58257482b1cc1012329c22798d32627edd8190f2d7e",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-profile-selected",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2be875749c1ece499aee41cf2897db9c75d7094705d381ee1b1d07c6bcd4630a",
+      "png_sha256": "4956474dcb344954a1b2dd12a63a5047938520b973f38df97df5a25102306472",
+      "render_sha256": "689f3ac9d5c637be83d4fb85c750cfe88409bcca68431d62da71fbeb76cdd849",
+      "path": "oc/bounded-profile-selected"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-variant-request-0",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "0753cc1c2184046d9bee19db963b64e3c74f8c768d5e124feb4e98f558aba516",
+      "png_sha256": "39a0e5936410c24c6bc6bd98c747adf685f5ff35170340018939b9456c48f0d4",
+      "render_sha256": "3659896f22b74e858c5f3ad20ccb556b7f71a6e8ae720152541f2e126068d251",
+      "path": "oc/bounded-variant-request-0"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-variant-cycle-1",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "7f519bca0e78179a65f25a52ee1b53e47055d5406d8b7a765cc0a666375fa28f",
+      "png_sha256": "f6ba9dd5f4987d56a03b907d34d6767ac119aca092c78e1376f424c87354db24",
+      "render_sha256": "a7d35af77600760ecd18a5a43fc67703ec8edc3f9e6079bc4e4466ac193b6d37",
+      "path": "oc/bounded-variant-cycle-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-variant-request-1",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "df418be96d0d0658c7770166d82641864d93ff854a190ae70051fa18c4944dba",
+      "png_sha256": "2e97338ee311f89f759f0e806252cec1f362875ce931079085c5a62f128e2bf7",
+      "render_sha256": "bb7da19acd772eb940489a8e96a2c07d1e7b7430fe414f751846755d89860ca2",
+      "path": "oc/bounded-variant-request-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-variant-cycle-2",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "7b95823db10f86aa40cb8a14a378e2aecf89184ffe4a24262cd5d912758f9c72",
+      "png_sha256": "4410a75a8e595337e58e83f4c08b9383a84656660be957d82630a5d9c3f98fea",
+      "render_sha256": "c0e3a3437fd034875e462852ddfd927c7d137f8814b8328645878ef92913be7b",
+      "path": "oc/bounded-variant-cycle-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-variant-request-2",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "bdd39f1e9b68daf7747ceb618cd298e9f4744e2877da1a45eb20da5674e93804",
+      "png_sha256": "3d75297cc962b8fb2e1b5346b469b8b865b53001b66a6aabce6851b062859c9d",
+      "render_sha256": "c6ce7f9c50d47c3dfc954de519f7927ddc67287f87249e275c6b6c8fe4dd176b",
+      "path": "oc/bounded-variant-request-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-variant-cycle-3",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "05afbbbe023c8611c64afc92b39c0a92e299c21678815e5e72ad58ed057cd2c0",
+      "png_sha256": "4cfc2ad60754aae2643a615fba082c26095c5e73216473d9d4832cce7e8fff7b",
+      "render_sha256": "0217914960590e8594e1b91968532f7b7b4693c16e55f3fa50b0946380a841e7",
+      "path": "oc/bounded-variant-cycle-3"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-variant-request-3",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "607f3729613fb66c5730d73129b3b636d561c336a78af8116e6239311e91bdd1",
+      "png_sha256": "9f7d36695f76ea23577beb96b804d29b0f5aeaa080e8f9154be8328f63fd0ec1",
+      "render_sha256": "8e8eea812c012a8521c940024fbb6dbb164bd8322d1b50c5adb902ace4dc5575",
+      "path": "oc/bounded-variant-request-3"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "bounded": {
+    "upstream": {
+      "mode": "variants",
+      "origin": "upstream",
+      "status": "PASS",
+      "stages": [
+        {
+          "name": "bounded-profile-selected",
+          "predicates": {
+            "titlecased": true,
+            "no_success_toast": true,
+            "no_requests": true
+          },
+          "counts": {
+            "transcript": 0,
+            "title": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-variant-request-0",
+          "predicates": {
+            "valid_request": true,
+            "actual_effort": true,
+            "no_extra_requests": true
+          },
+          "counts": {
+            "transcript": 1,
+            "title": 1,
+            "completed": 2,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-variant-cycle-1",
+          "predicates": {
+            "titlecased": true,
+            "no_success_toast": true
+          },
+          "counts": {
+            "transcript": 1,
+            "title": 1,
+            "completed": 2,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-variant-request-1",
+          "predicates": {
+            "valid_request": true,
+            "actual_effort": true,
+            "no_extra_requests": true
+          },
+          "counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed": 3,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-variant-cycle-2",
+          "predicates": {
+            "titlecased": true,
+            "no_success_toast": true
+          },
+          "counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed": 3,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-variant-request-2",
+          "predicates": {
+            "valid_request": true,
+            "actual_effort": true,
+            "no_extra_requests": true
+          },
+          "counts": {
+            "transcript": 3,
+            "title": 1,
+            "completed": 4,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-variant-cycle-3",
+          "predicates": {
+            "titlecased": true,
+            "no_success_toast": true
+          },
+          "counts": {
+            "transcript": 3,
+            "title": 1,
+            "completed": 4,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-variant-request-3",
+          "predicates": {
+            "valid_request": true,
+            "actual_effort": true,
+            "no_extra_requests": true
+          },
+          "counts": {
+            "transcript": 4,
+            "title": 1,
+            "completed": 5,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        }
+      ]
+    },
+    "oc": {
+      "mode": "variants",
+      "origin": "oc",
+      "status": "PASS",
+      "stages": [
+        {
+          "name": "bounded-profile-selected",
+          "predicates": {
+            "titlecased": true,
+            "no_success_toast": true,
+            "no_requests": true
+          },
+          "counts": {
+            "transcript": 0,
+            "title": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-variant-request-0",
+          "predicates": {
+            "valid_request": true,
+            "actual_effort": true,
+            "no_extra_requests": true
+          },
+          "counts": {
+            "transcript": 1,
+            "title": 1,
+            "completed": 2,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-variant-cycle-1",
+          "predicates": {
+            "titlecased": true,
+            "no_success_toast": true
+          },
+          "counts": {
+            "transcript": 1,
+            "title": 1,
+            "completed": 2,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-variant-request-1",
+          "predicates": {
+            "valid_request": true,
+            "actual_effort": true,
+            "no_extra_requests": true
+          },
+          "counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed": 3,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-variant-cycle-2",
+          "predicates": {
+            "titlecased": true,
+            "no_success_toast": true
+          },
+          "counts": {
+            "transcript": 2,
+            "title": 1,
+            "completed": 3,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-variant-request-2",
+          "predicates": {
+            "valid_request": true,
+            "actual_effort": true,
+            "no_extra_requests": true
+          },
+          "counts": {
+            "transcript": 3,
+            "title": 1,
+            "completed": 4,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-variant-cycle-3",
+          "predicates": {
+            "titlecased": true,
+            "no_success_toast": true
+          },
+          "counts": {
+            "transcript": 3,
+            "title": 1,
+            "completed": 4,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-variant-request-3",
+          "predicates": {
+            "valid_request": true,
+            "actual_effort": true,
+            "no_extra_requests": true
+          },
+          "counts": {
+            "transcript": 4,
+            "title": 1,
+            "completed": 5,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        }
+      ]
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-26T11:24:09.446Z",
+  "exit_code": 1
+}

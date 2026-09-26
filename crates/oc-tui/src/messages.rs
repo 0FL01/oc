@@ -521,6 +521,8 @@ pub(crate) fn transcript_with_expansion(
                     out.push(exploration_member(member, theme));
                 }
             }
+        } else if let Some(lines) = shell_entry(row, theme, width, expanded) {
+            out.extend(lines);
         } else {
             out.extend(render_row(
                 row,
@@ -534,6 +536,87 @@ pub(crate) fn transcript_with_expansion(
         }
     }
     out
+}
+
+fn shell_entry(
+    row: &HistoryRow,
+    theme: &Theme,
+    width: u16,
+    expanded: &dyn Fn(&str) -> bool,
+) -> Option<Vec<Line>> {
+    let card = row.tool.as_ref().filter(|_| row.role == "tool")?;
+    let crate::tools::ToolRender::Shell(shell) = &card.render else {
+        return None;
+    };
+    let mut lines = vec![Line::plain("")];
+    lines.extend(crate::tools::shell_block_expanded(
+        shell,
+        card,
+        theme,
+        width,
+        expanded(&card.op),
+    ));
+    Some(lines.into_iter().map(sanitize_line).collect())
+}
+
+/// BlockTool hover darkens the whole raised box; exploration hover changes text only.
+/// Call only after an eligible operation hit from exploration_header_at.
+pub(crate) fn tool_hover_range(rows: &[Line], theme: &Theme, row: usize) -> std::ops::Range<usize> {
+    let block = |line: &Line| line.style().bg == Some(theme.background_raised());
+    let mut start = row;
+    let mut end = (row + 1).min(rows.len());
+    if rows.get(row).is_some_and(block) {
+        while start > 0 && block(&rows[start - 1]) {
+            start -= 1;
+        }
+        while end < rows.len() && block(&rows[end]) {
+            end += 1;
+        }
+    } else {
+        // Wrapped exploration headers have a spacer above and either a spacer
+        // or an icon-bearing member below. The hit already excludes members.
+        while start > 0 && !rows[start - 1].plain_text().trim().is_empty() {
+            start -= 1;
+        }
+        while end < rows.len() {
+            let text = rows[end].plain_text();
+            if text.trim().is_empty() || text.trim_start().starts_with(['→', '⋯']) {
+                break;
+            }
+            end += 1;
+        }
+    }
+    start..end
+}
+
+pub(crate) fn hover_tool_content(line: &Line, theme: &Theme) -> Line {
+    let bg = theme.background_raised();
+    if line.style().bg == Some(bg) {
+        let hover = theme.decrease(bg);
+        return Line::new(
+            line.spans()
+                .iter()
+                .map(|span| Span::styled(span.content(), span.style().bg(hover)))
+                .collect(),
+        )
+        .with_style(line.style().bg(hover));
+    }
+    Line::new(
+        line.spans()
+            .iter()
+            .map(|span| {
+                Span::styled(
+                    span.content(),
+                    if span.style().fg == Some(theme.text_muted()) {
+                        span.style().fg(theme.text())
+                    } else {
+                        span.style()
+                    },
+                )
+            })
+            .collect(),
+    )
+    .with_style(line.style())
 }
 
 /// The upstream grouping path is ["reasoning"] only for adjacent part entries.
@@ -1641,7 +1724,7 @@ pub(crate) fn visible_transcript(
     (lines, total)
 }
 
-/// Map one visible text cell to the first operation of its exploration group.
+/// Map a visible exploration header or expandable Shell box to its operation.
 /// Uses the same index, wrapping and sticky scroll slice as the painted frame;
 /// only viewport rows are materialized, even for long histories.
 pub(crate) fn exploration_header_at(
@@ -1849,6 +1932,10 @@ fn visible_transcript_indexed(
                     .len();
                 }
             }
+        } else if let Some(lines) = shell_entry(row, theme, width, options.expanded) {
+            for line in lines {
+                total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
+            }
         } else if row.role == "assistant" && width > 0 {
             visit_assistant_indexed(
                 row,
@@ -1982,6 +2069,24 @@ fn visible_transcript_indexed(
                     );
                 }
             }
+        } else if let Some(lines) = shell_entry(row, theme, width, options.expanded) {
+            if let Some((x, y)) = options.point
+                && let Some(card) = &row.tool
+                && crate::tools::shell_expandable(card, width)
+                && x < width as usize
+                && start + y > position
+                && start + y < position + lines.len()
+                && start + y < end
+            {
+                hit = Some(TranscriptHit::Exploration(card.op.clone()));
+            }
+            add_visible_lines(
+                lines,
+                Some(width),
+                (start, end),
+                &mut position,
+                &mut visible,
+            );
         } else if row.role == "assistant" && width > 0 {
             if let Some((x, y)) = options.point
                 && let Some(reasoning) = row
@@ -2090,6 +2195,9 @@ fn add_visible_lines(
     for line in lines {
         let wrapped = if let Some(width) = width {
             styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS)
+                .into_iter()
+                .map(|wrapped| wrapped.with_style(line.style()))
+                .collect()
         } else {
             vec![line]
         };

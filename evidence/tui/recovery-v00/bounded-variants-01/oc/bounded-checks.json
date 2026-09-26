@@ -1,0 +1,132 @@
+{
+  "mode": "variants",
+  "origin": "oc",
+  "status": "FAILED",
+  "stages": [
+    {
+      "name": "bounded-profile-selected",
+      "predicates": {
+        "titlecased": true,
+        "no_success_toast": true,
+        "no_requests": true
+      },
+      "counts": {
+        "transcript": 0,
+        "title": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    },
+    {
+      "name": "bounded-variant-request-0",
+      "predicates": {
+        "valid_request": true,
+        "actual_effort": true,
+        "no_extra_requests": true
+      },
+      "counts": {
+        "transcript": 1,
+        "title": 1,
+        "completed": 2,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    },
+    {
+      "name": "bounded-variant-cycle-1",
+      "predicates": {
+        "titlecased": true,
+        "no_success_toast": true
+      },
+      "counts": {
+        "transcript": 1,
+        "title": 1,
+        "completed": 2,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    },
+    {
+      "name": "bounded-variant-request-1",
+      "predicates": {
+        "valid_request": true,
+        "actual_effort": true,
+        "no_extra_requests": true
+      },
+      "counts": {
+        "transcript": 2,
+        "title": 1,
+        "completed": 3,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    },
+    {
+      "name": "bounded-variant-cycle-2",
+      "predicates": {
+        "titlecased": true,
+        "no_success_toast": true
+      },
+      "counts": {
+        "transcript": 2,
+        "title": 1,
+        "completed": 3,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    },
+    {
+      "name": "bounded-variant-request-2",
+      "predicates": {
+        "valid_request": true,
+        "actual_effort": true,
+        "no_extra_requests": true
+      },
+      "counts": {
+        "transcript": 3,
+        "title": 1,
+        "completed": 4,
+        "invalid": 0
+      },
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "status": "CAPTURED_BOUNDED"
+    }
+  ],
+  "reason": "Timed out waiting for bounded variant 3"
+}

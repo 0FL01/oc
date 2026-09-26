@@ -1,0 +1,67 @@
+[
+  {
+    "at_ms": 1790421111736,
+    "kind": "bounded_agents",
+    "base64": "L2FnZW50cw=="
+  },
+  {
+    "at_ms": 1790421111736,
+    "kind": "bounded_agents_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790421114134,
+    "kind": "bounded_agent_query",
+    "base64": "Zml4dHVyZS1yZWFkZXI="
+  },
+  {
+    "at_ms": 1790421116637,
+    "kind": "bounded_agent_select",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790421119455,
+    "kind": "bounded_prompt",
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "at_ms": 1790421119455,
+    "kind": "bounded_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790421122262,
+    "kind": "bounded_ctrl_t",
+    "base64": "FA=="
+  },
+  {
+    "at_ms": 1790421125162,
+    "kind": "bounded_prompt",
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "at_ms": 1790421125163,
+    "kind": "bounded_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790421127957,
+    "kind": "bounded_ctrl_t",
+    "base64": "FA=="
+  },
+  {
+    "at_ms": 1790421130759,
+    "kind": "bounded_prompt",
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "at_ms": 1790421130759,
+    "kind": "bounded_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790421133566,
+    "kind": "bounded_ctrl_t",
+    "base64": "FA=="
+  }
+]

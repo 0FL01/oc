@@ -33,6 +33,12 @@ second_prompt = ('Second same-session model check?' if spec.get('models_interact
                  else 'Second same-session spacing check?')
 profile_id = 'Reader' if spec.get('agent_profile') else None
 profile_prompt = 'You are the isolated T44 paired reader.' if profile_id else None
+bounded = spec.get('bounded_mode')
+if bounded:
+    profile_id = 'fixture-shell' if bounded == 'shell' else 'fixture-reader'
+    profile_prompt = 'You are the isolated T44 bounded fixture profile.'
+shell_commands = ["printf 'SHELL-SHORT\\n'", "printf 'SHELL-LINE-%02d\\n' " + ' '.join(str(i) for i in range(1, 41))]
+bounded_requests = 0
 answer = (fixture / 'transcript.md').read_text().strip()
 if spec.get('sample') == 'short':
     answer = 'GEOMETRY-SHORT: one short answer.'
@@ -66,7 +72,7 @@ class Provider(BaseHTTPRequestHandler):
         pass
 
     def do_POST(self):
-        global transcript_round, title_round
+        global transcript_round, title_round, bounded_requests
         body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
         serialized = json.dumps(body, ensure_ascii=False)
         valid = self.path == '/v1/responses' and body.get('stream') is True
@@ -117,7 +123,37 @@ class Provider(BaseHTTPRequestHandler):
                    'registered_tools': [x.get('name') for x in body.get('tools', [])],
                    'tool_result_count': len(tool_results),
                    'fixture_content_returned': any('fixture-content' in str(x.get('output', '')) for x in tool_results),
-                  'request_top_level_keys': sorted(body)}
+                   'request_top_level_keys': sorted(body)}
+        if bounded:
+            tools = body.get('tools', [])
+            record['tool_schemas'] = {x.get('name'): x.get('parameters') for x in tools}
+            record['reasoning_effort'] = body.get('reasoning', {}).get('effort')
+            if is_title:
+                valid = valid and title_round == 1
+            else:
+                index = bounded_requests
+                bounded_requests += 1
+                if bounded == 'variants':
+                    expected = [None, 'high', 'low', None]
+                    valid = valid and index < 4 and not tool_results and record['reasoning_effort'] == expected[index]
+                    text = f'BOUNDED-VARIANT-{index}: completed.'
+                else:
+                    shell_name = 'bash' if 'bash' in record['registered_tools'] else 'shell'
+                    valid = valid and index < 3 and shell_name in record['registered_tools']
+                    schema = record['tool_schemas'].get(shell_name) or {}
+                    valid = valid and ('command' in schema.get('properties', {}) or 'argv' in schema.get('properties', {}))
+                    expected_count = index
+                    valid = valid and len(tool_results) == expected_count
+                    outputs = {x.get('call_id'): str(x.get('output', '')) for x in tool_results}
+                    for i in range(index):
+                        output = outputs.get(f'call_fixture_shell_{i}', '')
+                        required = ['SHELL-SHORT'] if i == 0 else [f'SHELL-LINE-{n:02}' for n in range(1, 41)]
+                        valid = valid and all(line in output for line in required) and 'permission denied' not in output.lower()
+                    record['fixture_outputs_verified'] = valid
+                    record['fixture_outputs'] = outputs
+                    text = 'BOUNDED-SHELL: both real printf tools completed.'
+                record['bounded_request_index'] = index
+            record['valid'] = valid
         emit(record)
         if not valid:
             self.send_error(400, 'fixture contract rejected')
@@ -131,7 +167,18 @@ class Provider(BaseHTTPRequestHandler):
         else:
             item = {'id': 'msg_fixture_2' if (spec.get('two_turn') or spec.get('models_interaction')) and second else 'msg_fixture',
                     'type': 'message', 'role': 'assistant', 'status': 'completed',
-                 'content': [{'type': 'output_text', 'text': text, 'annotations': []}]}
+                  'content': [{'type': 'output_text', 'text': text, 'annotations': []}]}
+        if bounded == 'shell' and not is_title and index < 2:
+            arguments = {'command': shell_commands[index], 'description': 'Fixture short output' if index == 0 else 'Fixture long output'}
+            if 'argv' in schema.get('properties', {}):
+                arguments = {'argv': ['printf', 'SHELL-SHORT\\n'] if index == 0 else
+                             ['printf', 'SHELL-LINE-%02d\\n', *[str(i) for i in range(1, 41)]]}
+            record_call = {'kind': 'fixture_tool_call', 'name': shell_name, 'arguments': arguments,
+                           'call_id': f'call_fixture_shell_{index}'}
+            emit(record_call)
+            item = {'id': f'fc_fixture_shell_{index}', 'type': 'function_call', 'status': 'completed',
+                    'call_id': record_call['call_id'], 'name': shell_name, 'arguments': json.dumps(arguments)}
+            text = ''
         response = {'id': 'resp_fixture_2' if (spec.get('two_turn') or spec.get('models_interaction')) and second else 'resp_fixture', 'object': 'response', 'created_at': 1700000000,
                     'model': body.get('model'), 'status': 'in_progress', 'output': [],
                     'error': None, 'incomplete_details': None}
@@ -235,7 +282,7 @@ if spec.get('sample') == 'tools':
     (project / 'fixture-note.txt').write_text('fixture-content\n')
 settings = {'baseURL': f'http://127.0.0.1:{server.server_port}/v1', 'apiKey': 'fixture-not-a-secret'}
 models = {m['id']: {k: v for k, v in m.items() if k not in ('id', 'variants')} for m in catalog['models']}
-if spec.get('variants'):
+if spec.get('variants') or bounded == 'variants':
     variants = json.loads((fixture / 'variant-dialog.json').read_text())
     # Equivalent native input shapes; original v2 uses id/settings arrays while
     # native config retains the documented named object form.
@@ -251,9 +298,15 @@ if spec['origin'] == 'upstream':
         # v2.0.12 schema/config.ts and schema/config/agent.ts: actual custom
         # primary profile, not a painted Build label. The color is the pinned
         # dark opencode categorical[0] hue.blue.200.
-        config['default_agent'] = profile_id
+        config['default_agent'] = 'build' if bounded else profile_id
         config['agents'] = {profile_id: {'mode': 'primary', 'system': profile_prompt,
-                                         'color': '#5c9cf5'}}
+                                          'color': '#5c9cf5'}}
+        if bounded:
+            config['agents'][profile_id]['permissions'] = [
+                {'action': '*', 'resource': '*', 'effect': 'deny'},
+                *[{'action': 'shell', 'resource': command, 'effect': 'allow'} for command in shell_commands]] if bounded == 'shell' else [
+                    {'action': '*', 'resource': '*', 'effect': 'deny'},
+                    {'action': 'read', 'resource': '*', 'effect': 'allow'}]
     cli_config = {'theme': {'name': 'opencode', 'mode': 'dark'}, 'animations': spec.get('animations', False),
                    'session': {'sidebar': spec.get('sidebar', 'auto'), 'tps': False},
                    'tabs': {'layout': spec.get('tabs', 'horizontal')},
@@ -268,8 +321,15 @@ else:
         config['animations'] = spec['animations']
     if profile_id:
         # Native inline definitions use singular `agent` and `prompt`.
-        config['default_agent'] = profile_id
+        config['default_agent'] = 'build' if bounded else profile_id
         config['agent'] = {profile_id: {'mode': 'primary', 'prompt': profile_prompt}}
+        if bounded:
+            config['agent']['build'] = {'mode': 'primary', 'prompt': 'Initial isolated fixture profile.'}
+        if bounded == 'shell':
+            # Native bash is argv-only. Authorize its exact boundary-preserving
+            # resource strings, not a general shell or printf wildcard.
+            resources = shell_commands
+            config['permissions'] = {'*': 'deny', 'bash': {'*': 'deny', **{command: 'allow' for command in resources}}}
     argv = [spec['binary'], 'tui']
     cli_config = {
         'session': {'sidebar': spec.get('sidebar', 'auto')},

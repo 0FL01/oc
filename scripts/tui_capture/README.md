@@ -42,6 +42,37 @@ exit `2` denotes a runner blocker. Neither is parity success.
 
 ## What is captured
 
+### Bounded variant and Shell modes
+
+`--bounded-mode variants|shell` requires paired explicit binaries, `--geometry
+true --sample short --sidebar hide --columns 120 --rows 40`, with no other
+interaction mode. It creates opt-in isolated lowercase fixture profiles and
+selects them from Build through the real `/agents` dialog. The selected frame
+checks titlecased metadata and absence of the successful `agent: …` toast.
+
+* `variants`: the declared `variant-dialog.json` catalog (`fast=high`,
+  `none=low`) is cycled with Ctrl+T. Four actual transcript requests must carry
+  effort absent → high → low → absent, plus exactly one title request. Nine full
+  frames per side: home, selected profile, four completed requests, three cycle
+  states.
+* `shell`: two real tool calls print one short line and 40 numbered lines.
+  The fixture inspects registered tool names and schemas before issuing calls;
+  pinned v2.0.12 advertises `shell(command, …)`, native `bash(argv, …)`.
+  Each profile permits only the exact fixture command resources. The provider
+  accepts three transcript requests (two calls followed by the final answer)
+  and one title request, verifies the returned fixture lines, and rejects extra
+  requests. No model-generated prose is used to select a tool. Native executes
+  direct `printf` argv; original executes equivalent quoted shell commands.
+  Completed, hover, expanded and recollapsed frames are captured. Expansion
+  resizes both real PTYs to 120×80 to show all 40 lines; recollapse restores
+  120×40. Six frames per side including home and selected profile.
+
+`bounded-checks.json`, `protocol.json`, and recorded PTY inputs distinguish
+behavioral PASS from unmasked styled-grid/cursor and PNG equality. Successful
+real original Shell output includes `Command exited with code 0.`; native omits
+that text. This observed difference is retained. Previous attempts are immutable.
+See `evidence/tui/recovery-v00/bounded-evidence-report.md` for actual runs/counts.
+
 * 160 × 48 real PTY; xterm.js 6.0.0 / Unicode11 addon / Chromium 145.0.7632.6,
   14px DejaVu Sans Mono, device scale 1. Pixel geometry is measured from the
   terminal DOM, independently of the cell geometry supplied to both PTYs.

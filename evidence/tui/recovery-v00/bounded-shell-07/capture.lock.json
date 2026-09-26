@@ -1,0 +1,406 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-26T11:39:51.288Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "3469703ea7664d33e792189ddbb3bd1a3be5928916ba5621bcc48864a2ae2b28",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "cf31d3e05d9023648ec65d540cdc9a95d34975b24a9451369859b20c4a41c7f9"
+  },
+  "fixture_sha256": "4c97467dbf8e3d8d1096c80bd37d42c570ce9693de919e016151242af9a4df21",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "83af88057f837b3d6fd84eb2f6d7f8425fca563b",
+    "tree": "623b1ff9e0762db875c87de7b7ca2c6718ee5b69",
+    "dirty_diff_sha256": "2e30d8b2622f82541a6128627fba20fb566a3917eabe112ed27d7e6090766949",
+    "source_manifest_sha256": "c37f85ac158c5a64a92ce2ead5255e667d408e019d063228e0bd99e9ab78afc5",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "e4408563be30acbd806667e52e0103939ceedf98c0456bc0ff773c107e4559bf",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "FAILED",
+      "reason": "Bounded predicate failed: bounded-shell-completed"
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-profile-selected",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-profile-selected",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-shell-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-shell-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-shell-hover",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "bounded-shell-hover",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "bounded-shell-expanded",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "bounded-shell-expanded",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "bounded-shell-recollapsed",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "bounded-shell-recollapsed",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "failure-diagnostic",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "failure-diagnostic",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "5feb181d36981a1ea411fa7c1845898d9909e3d978813fb3f41709c8239ed012",
+      "png_sha256": "085a0b0fad846eacf90a6706bf724f35279d9a7e861945bb6b75fa1175c2269c",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-profile-selected",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e5c7dda246e813a52393294cc7c0b7cdb37a138566291e36708a126f0f5e03a9",
+      "png_sha256": "c1e87d072b38e81a6b84ad4b2345d7b65291c35eac34ce8d28ddf338f5f92df7",
+      "render_sha256": "c613ec5bda73a9fc48abe1969f5bec222b48102496c7026cc055b29b6fa0a276",
+      "path": "upstream/bounded-profile-selected"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-shell-completed",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "90a8097ea737b42763b99f5ff8b5029ee410bc60f1768669a58e0fe2e96b6ffa",
+      "png_sha256": "8fc39cdc09c4a051dc1a057fb1b07726866e5304072177dbd22eb1e27b77057a",
+      "render_sha256": "2a35451d13a1a99761257234a18fb4398ce46e23dfcc3c32cae580690fae2d0c",
+      "path": "upstream/bounded-shell-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-shell-hover",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "25b553f4934d609f7b1d9fe807de71a6abfa190e9819c3e5aaece506994b904b",
+      "png_sha256": "10e7a7bf20de95ca44edc548d23a20c70db6bdf629be948b82e1e93d5a9327d3",
+      "render_sha256": "81a7f157557bdaf6425a6ca92f51970bd6f7bd805faeb0bad1128b0a78b36541",
+      "path": "upstream/bounded-shell-hover"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-shell-expanded",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "443d74622714d162e205846a6a8166108c0439f79f9e5ed89952b85818f9205a",
+      "cells_sha256": "94cce23139ddd4c1b0a77ba70a7b6d7210b72e1b3951575e08cd26c33522d6f0",
+      "png_sha256": "fc849e11b8480f665ca3b9e035a22886a326df330709e253eb62339187878e86",
+      "render_sha256": "9f33226b8df4bc8f179713d9b2edc8188d1a666a49c7ef2a87985846368833aa",
+      "path": "upstream/bounded-shell-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-shell-recollapsed",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "7ea8ba875ca5da25a696998d1edfd8b89390e9a3610d933b836b71897a2beeb2",
+      "png_sha256": "10e7a7bf20de95ca44edc548d23a20c70db6bdf629be948b82e1e93d5a9327d3",
+      "render_sha256": "e55ebaf68163c04eaf8d2cdf3c7fe4f134a26a2f0443539d108216ed764944b3",
+      "path": "upstream/bounded-shell-recollapsed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "9431b77015960c541926fae69c6efb340d4798fe8002932def9f418bc9f0bba8",
+      "png_sha256": "b788437524ee9a7f7de190af77c5beac33c70fb08d3ddfdc032835cc3fde5c16",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-profile-selected",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "95c3586d99862e13fbec54354b53afdd8b02728fe793e93a88fe14c0af2210c0",
+      "png_sha256": "29e43c7d31ced96af1eed41d3393c80aedf273bf68fe00c07dfa62b0c83ca11d",
+      "render_sha256": "689f3ac9d5c637be83d4fb85c750cfe88409bcca68431d62da71fbeb76cdd849",
+      "path": "oc/bounded-profile-selected"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-shell-completed",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "53ad1d487595c580514513e8f06737a1c828690e340ba2d8caf0e19b6e863d49",
+      "png_sha256": "1b5a9a9d89deefd7679c165b1a7743d8e2f6f568ab232ab3139f829bce6d879d",
+      "render_sha256": "dcf77d8281aa941f76ae0f3de1108a9b0561fa59dfb378658d9bb4bed4f6c4e4",
+      "path": "oc/bounded-shell-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "failure-diagnostic",
+      "status": "FAILED_STATE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "66e0c044acddbf4b8a58180b04d209350c4cf56a7ab1f1318b9b999c966e64f3",
+      "png_sha256": "1b5a9a9d89deefd7679c165b1a7743d8e2f6f568ab232ab3139f829bce6d879d",
+      "render_sha256": "d2c7613081ec1b1a313f795794853b6d0ed92d96a49c171fffb39cb13d5fb916",
+      "path": "oc/failure-diagnostic"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "bounded": {
+    "upstream": {
+      "mode": "shell",
+      "origin": "upstream",
+      "status": "PASS",
+      "stages": [
+        {
+          "name": "bounded-profile-selected",
+          "predicates": {
+            "titlecased": true,
+            "no_success_toast": true,
+            "no_requests": true
+          },
+          "counts": {
+            "transcript": 0,
+            "title": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-shell-completed",
+          "predicates": {
+            "exact_requests": true,
+            "two_calls": true,
+            "verified_outputs": true,
+            "native_no_synthetic_exit": true
+          },
+          "counts": {
+            "transcript": 3,
+            "title": 1,
+            "completed": 4,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-shell-hover",
+          "predicates": {
+            "hover_changed": true,
+            "no_requests": true
+          },
+          "counts": {
+            "transcript": 3,
+            "title": 1,
+            "completed": 4,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-shell-expanded",
+          "predicates": {
+            "last_line_visible": true,
+            "no_requests": true
+          },
+          "counts": {
+            "transcript": 3,
+            "title": 1,
+            "completed": 4,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        },
+        {
+          "name": "bounded-shell-recollapsed",
+          "predicates": {
+            "first_line_hidden": true,
+            "no_requests": true
+          },
+          "counts": {
+            "transcript": 3,
+            "title": 1,
+            "completed": 4,
+            "invalid": 0
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "status": "CAPTURED_BOUNDED"
+        }
+      ],
+      "exit_zero_text_visible": true
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-26T11:40:37.800Z",
+  "exit_code": 1
+}

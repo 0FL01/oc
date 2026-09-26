@@ -1419,6 +1419,7 @@ async fn apply_intent_with_origin(
                 | PanelIntent::ActivateTab { .. }
                 | PanelIntent::SelectModel { .. }
                 | PanelIntent::ChooseModel { .. }
+                | PanelIntent::CycleVariant
                 | PanelIntent::SelectAgent { .. }
                 | PanelIntent::Compress { .. }
                 | PanelIntent::ReloadConfiguration
@@ -1550,6 +1551,37 @@ async fn apply_intent_with_origin(
         }
         PanelIntent::ChooseModel { variant, .. } => {
             let snapshot = selection(app, state, SelectionAction::Variant(variant)).await?;
+            state.model_choice_applied(snapshot);
+        }
+        PanelIntent::CycleVariant => {
+            if state.is_busy() {
+                return Err("turn active; action unavailable".into());
+            }
+            let current = selection(app, state, SelectionAction::Current).await?;
+            // Pinned model-preference.ts:67–75: declared order, default first,
+            // stale names and the last named variant return to default.
+            let named: Vec<_> = current
+                .models
+                .iter()
+                .find(|model| model.id == current.model_id)
+                .into_iter()
+                .flat_map(|model| &model.variants)
+                .filter(|variant| !variant.disabled && variant.name != "default")
+                .map(|variant| variant.name.as_str())
+                .collect();
+            if named.is_empty() {
+                state.apply_catalog(current);
+                return Ok(());
+            }
+            let next = match current.variant.as_deref().filter(|name| *name != "default") {
+                None => Some(named[0].to_string()),
+                Some(value) => named
+                    .iter()
+                    .position(|name| *name == value)
+                    .and_then(|index| named.get(index + 1))
+                    .map(|name| name.to_string()),
+            };
+            let snapshot = selection(app, state, SelectionAction::Variant(next)).await?;
             state.model_choice_applied(snapshot);
         }
         PanelIntent::NewSession => {
@@ -1687,13 +1719,8 @@ async fn apply_intent_with_origin(
         }
         PanelIntent::SelectAgent { id } => {
             let snapshot = selection(app, state, SelectionAction::Agent(id)).await?;
-            let note = match &snapshot.agent_id {
-                Some(agent) => format!("agent: {agent}"),
-                None => "agent: none".to_string(),
-            };
             state.apply_catalog(snapshot);
             state.close_panel();
-            state.push_note(&note);
         }
         PanelIntent::SwitchSession { id } => {
             // The worker is single-turn: refuse the switch while a turn runs
@@ -3719,6 +3746,408 @@ mod tests {
         assert_eq!(state.active_model_label(), Some(("second".into(), None)));
         assert_eq!(state.note(), None);
         worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn selecting_agent_updates_owner_and_draft_without_selection_toast() {
+        use oc_core::queries::{AgentEntry, ModelEntry};
+        for existing_note in [None, Some("unrelated warning")] {
+            let (app, mut inbox, _) = CoreApp::channel(4);
+            let mut state = TuiState::new(app.clone(), SessionId::new("agent-selection").unwrap());
+            let mut selected = catalog();
+            selected.models.push(ModelEntry {
+                id: selected.model_id.clone(),
+                display_name: "Fixture".into(),
+                provider_name: "fixture".into(),
+                price: None,
+                variants: Vec::new(),
+                context: 0,
+                context_known: false,
+                output: 0,
+                output_known: false,
+            });
+            selected.agents = ["build", "build-yolo"]
+                .into_iter()
+                .enumerate()
+                .map(|(color_index, id)| AgentEntry {
+                    id: id.into(),
+                    color_index,
+                    description: String::new(),
+                    model: None,
+                    variant: None,
+                })
+                .collect();
+            selected.agent_id = Some("build".into());
+            state.apply_catalog(selected.clone());
+            state.restore_prompt("preserved draft".into());
+            if let Some(note) = existing_note {
+                state.push_note(note);
+            }
+            state.handle_key(oc_tui::events::KeyAction::Agents).await;
+            let worker = tokio::spawn(async move {
+                let Some(InboxMsg::SessionSelection { action, ack, .. }) = inbox.recv().await
+                else {
+                    panic!("selection")
+                };
+                assert_eq!(action, SelectionAction::Agent("build-yolo".into()));
+                selected.agent_id = Some("build-yolo".into());
+                ack.send(Ok(selected)).unwrap();
+                assert!(inbox.try_recv().is_err());
+            });
+            apply_intent(
+                &app,
+                &mut state,
+                &mut LoopState::default(),
+                PanelIntent::SelectAgent {
+                    id: "build-yolo".into(),
+                },
+            )
+            .await
+            .unwrap();
+            assert_eq!(state.active_agent(), Some("build-yolo"));
+            assert_eq!(state.input(), "preserved draft");
+            assert_eq!(state.panel(), &oc_tui::app::TuiPanel::None);
+            assert_eq!(state.note(), existing_note);
+            worker.await.unwrap();
+        }
+        // Owner failures stay errors and leave the dialog/draft available.
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new_home(app.clone());
+        state.apply_catalog(catalog());
+        state.restore_prompt("retry draft".into());
+        state.handle_key(oc_tui::events::KeyAction::Agents).await;
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
+                panic!("Home selection")
+            };
+            ack.send(Err(CoreError::Application("unknown agent".into())))
+                .unwrap();
+        });
+        let error = apply_intent(
+            &app,
+            &mut state,
+            &mut LoopState::default(),
+            PanelIntent::SelectAgent {
+                id: "missing".into(),
+            },
+        )
+        .await
+        .unwrap_err();
+        assert!(error.contains("unknown agent"));
+        assert_eq!(state.panel(), &oc_tui::app::TuiPanel::Agents);
+        assert_eq!(state.input(), "retry draft");
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn variant_cycle_uses_owner_order_and_stale_default_rules_in_home_and_session() {
+        use oc_core::queries::{ModelEntry, VariantEntry};
+        for home in [true, false] {
+            for (current, expected) in [
+                (None, Some("zeta")),
+                (Some("default"), Some("zeta")),
+                (Some("zeta"), Some("alpha")),
+                (Some("alpha"), None),
+                (Some("retired"), None),
+            ] {
+                let (app, mut inbox, _) = CoreApp::channel(4);
+                let mut state = if home {
+                    TuiState::new_home(app.clone())
+                } else {
+                    TuiState::new(app.clone(), SessionId::new("cycle-owner").unwrap())
+                };
+                // Deliberately stale/empty UI: the owner chooses the next variant.
+                state.apply_catalog(catalog());
+                state.restore_prompt("next accepted prompt".into());
+                state.push_note("unrelated warning");
+                let mut selected = catalog();
+                selected.models = vec![ModelEntry {
+                    id: selected.model_id.clone(),
+                    display_name: "Dynamic model".into(),
+                    provider_name: "fixture".into(),
+                    price: None,
+                    variants: [
+                        ("default", false),
+                        ("zeta", false),
+                        ("disabled", true),
+                        ("alpha", false),
+                    ]
+                    .into_iter()
+                    .map(|(name, disabled)| VariantEntry {
+                        name: name.into(),
+                        disabled,
+                        reasoning_effort: Some(name.into()),
+                    })
+                    .collect(),
+                    context: 0,
+                    context_known: false,
+                    output: 0,
+                    output_known: false,
+                }];
+                selected.variant = current.map(str::to_string);
+                let worker = tokio::spawn(async move {
+                    for action_expected in [
+                        SelectionAction::Current,
+                        SelectionAction::Variant(expected.map(str::to_string)),
+                    ] {
+                        let (action, ack) = match inbox.recv().await.unwrap() {
+                            InboxMsg::HomeSelection { action, ack } if home => (action, ack),
+                            InboxMsg::SessionSelection {
+                                action,
+                                ack,
+                                home: false,
+                                ..
+                            } if !home => (action, ack),
+                            _ => panic!("selection scope"),
+                        };
+                        assert_eq!(action, action_expected);
+                        if let SelectionAction::Variant(value) = action {
+                            selected.variant = value;
+                        }
+                        ack.send(Ok(selected.clone())).unwrap();
+                    }
+                    assert!(inbox.try_recv().is_err(), "cycle must not submit");
+                });
+                let intent = state
+                    .handle_key(oc_tui::events::KeyAction::CycleVariant)
+                    .await
+                    .intent
+                    .unwrap();
+                apply_intent(&app, &mut state, &mut LoopState::default(), intent)
+                    .await
+                    .unwrap();
+                assert_eq!(
+                    state.active_model_label(),
+                    Some(("Dynamic model".into(), expected.map(str::to_string)))
+                );
+                assert_eq!(state.input(), "next accepted prompt");
+                assert_eq!(state.panel(), &oc_tui::app::TuiPanel::None);
+                assert_eq!(state.note(), Some("unrelated warning"));
+                worker.await.unwrap();
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn variant_cycle_missing_models_or_named_variants_is_noop_and_child_is_readonly() {
+        use oc_core::queries::{ModelEntry, VariantEntry};
+        for missing_model in [true, false] {
+            let (app, mut inbox, _) = CoreApp::channel(4);
+            let mut state = TuiState::new_home(app.clone());
+            let mut selected = catalog();
+            if !missing_model {
+                selected.models.push(ModelEntry {
+                    id: selected.model_id.clone(),
+                    display_name: "No variants".into(),
+                    provider_name: "fixture".into(),
+                    price: None,
+                    variants: vec![
+                        VariantEntry {
+                            name: "default".into(),
+                            disabled: false,
+                            reasoning_effort: None,
+                        },
+                        VariantEntry {
+                            name: "disabled".into(),
+                            disabled: true,
+                            reasoning_effort: None,
+                        },
+                    ],
+                    context: 0,
+                    context_known: false,
+                    output: 0,
+                    output_known: false,
+                });
+            }
+            let worker = tokio::spawn(async move {
+                let Some(InboxMsg::HomeSelection { action, ack }) = inbox.recv().await else {
+                    panic!("current")
+                };
+                assert_eq!(action, SelectionAction::Current);
+                ack.send(Ok(selected)).unwrap();
+                inbox
+            });
+            apply_intent(
+                &app,
+                &mut state,
+                &mut LoopState::default(),
+                PanelIntent::CycleVariant,
+            )
+            .await
+            .unwrap();
+            let mut inbox = worker.await.unwrap();
+            assert!(inbox.try_recv().is_err());
+            let mut deck = LoopState {
+                read_only: true,
+                ..Default::default()
+            };
+            assert!(
+                apply_intent(&app, &mut state, &mut deck, PanelIntent::CycleVariant)
+                    .await
+                    .unwrap_err()
+                    .contains("read-only")
+            );
+            assert!(inbox.try_recv().is_err());
+        }
+    }
+
+    #[tokio::test]
+    async fn variant_cycle_persists_and_next_real_request_uses_selected_overlay() {
+        use std::collections::BTreeMap;
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        std::fs::create_dir(&project).unwrap();
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        std::fs::write(
+            project.join("opencode.json"),
+            serde_json::json!({
+                "model":"fixture/m", "provider":{"fixture":{"npm":"@ai-sdk/openai",
+                    "options":{"baseURL":format!("http://{address}/v1"),"apiKey":"fixture-key"},
+                    "models":{"m":{"variants":{"custom":{"reasoningEffort":"high"}}}}}}
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let server = std::thread::spawn(move || {
+            listener.set_nonblocking(true).unwrap();
+            let deadline = std::time::Instant::now() + Duration::from_secs(15);
+            let mut requests = Vec::<serde_json::Value>::new();
+            while requests.len() < 2 && std::time::Instant::now() < deadline {
+                let mut socket = match listener.accept() {
+                    Ok((socket, _)) => socket,
+                    Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                        std::thread::sleep(Duration::from_millis(5));
+                        continue;
+                    }
+                    Err(error) => panic!("fake provider: {error}"),
+                };
+                socket
+                    .set_read_timeout(Some(Duration::from_secs(5)))
+                    .unwrap();
+                let mut bytes = Vec::new();
+                let mut chunk = [0; 4096];
+                let end = loop {
+                    let n = socket.read(&mut chunk).unwrap();
+                    assert!(n > 0);
+                    bytes.extend_from_slice(&chunk[..n]);
+                    if let Some(pos) = bytes.windows(4).position(|part| part == b"\r\n\r\n") {
+                        break pos + 4;
+                    }
+                };
+                let length: usize = String::from_utf8_lossy(&bytes[..end])
+                    .lines()
+                    .find_map(|line| {
+                        let (name, value) = line.split_once(':')?;
+                        name.eq_ignore_ascii_case("content-length")
+                            .then(|| value.trim().parse().unwrap())
+                    })
+                    .unwrap();
+                while bytes.len() < end + length {
+                    let n = socket.read(&mut chunk).unwrap();
+                    assert!(n > 0);
+                    bytes.extend_from_slice(&chunk[..n]);
+                }
+                requests.push(serde_json::from_slice(&bytes[end..end + length]).unwrap());
+                let item = serde_json::json!({"type":"message","role":"assistant","id":"a","status":"completed","content":[{"type":"output_text","text":"done"}]});
+                let sse = format!(
+                    "data: {}\n\ndata: {}\n\n",
+                    serde_json::json!({"type":"response.output_item.done","item":item}),
+                    serde_json::json!({"type":"response.completed","response":{"status":"completed","output":[item],"usage":{"input_tokens":1,"output_tokens":1}}})
+                );
+                write!(socket, "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{sse}", sse.len()).unwrap();
+            }
+            assert_eq!(requests.len(), 2);
+            requests
+        });
+        let env = BTreeMap::from([
+            ("HOME".into(), root.path().to_string_lossy().to_string()),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]);
+        let data = root.path().join("data");
+        let (app, guard, _) =
+            oc_adapters::application::spawn_with_env(&project, &data, env.clone())
+                .await
+                .unwrap();
+        let session = SessionId::new("cycle-wire").unwrap();
+        app.create_session(session.clone()).await.unwrap();
+        app.rename_session(session.clone(), "Already titled".into())
+            .await
+            .unwrap();
+        let mut state = TuiState::new(app.clone(), session.clone());
+        let mut deck = LoopState::default();
+        apply_intent(&app, &mut state, &mut deck, PanelIntent::CycleVariant)
+            .await
+            .unwrap();
+        assert_eq!(
+            app.session_selection(session.clone(), false, SelectionAction::Current)
+                .await
+                .unwrap()
+                .variant
+                .as_deref(),
+            Some("custom")
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+
+        let (app, guard, _) = oc_adapters::application::spawn_with_env(&project, &data, env)
+            .await
+            .unwrap();
+        let mut state = TuiState::new(app.clone(), session.clone());
+        state.apply_catalog(
+            app.session_selection(session.clone(), false, SelectionAction::Current)
+                .await
+                .unwrap(),
+        );
+        assert_eq!(
+            state.active_model_label().unwrap().1.as_deref(),
+            Some("custom")
+        );
+        let mut events = app.subscribe();
+        for (index, prompt) in ["named variant request", "default variant request"]
+            .into_iter()
+            .enumerate()
+        {
+            if index == 1 {
+                apply_intent(&app, &mut state, &mut deck, PanelIntent::CycleVariant)
+                    .await
+                    .unwrap();
+            }
+            state.handle_paste(prompt);
+            state.handle_key(KeyAction::Enter).await;
+            loop {
+                let event = tokio::time::timeout(Duration::from_secs(10), events.recv())
+                    .await
+                    .unwrap()
+                    .unwrap();
+                let finished = matches!(event, CoreEvent::TurnFinished { .. });
+                assert!(!matches!(event, CoreEvent::TurnFailed { .. }), "{event:?}");
+                state.poll_submission();
+                handle_worker_event(&app, &mut state, &mut deck, &session, event)
+                    .await
+                    .unwrap();
+                if finished {
+                    break;
+                }
+            }
+        }
+        assert_eq!(
+            app.session_selection(session, false, SelectionAction::Current)
+                .await
+                .unwrap()
+                .variant,
+            None
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        let requests = server.join().unwrap();
+        assert_eq!(requests[0]["model"], "m");
+        assert_eq!(requests[1]["model"], "m");
+        assert_eq!(requests[0]["reasoning"]["effort"], "high");
+        assert!(requests[1]["reasoning"]["effort"].is_null());
     }
 
     fn append_tab(app: &CoreApp, deck: &mut LoopState, state: &mut TuiState, id: &str) {

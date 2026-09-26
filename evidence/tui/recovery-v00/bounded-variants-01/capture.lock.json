@@ -1,0 +1,361 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-26T11:10:35.699Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "6819d1ab7cd7e07bace70e9d178441c805428e641660650234ee6971bdcfef4e",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "c75ab0e025021a6e92cc98e9eff9d37006de81e16db0fd3839def84a6dccae4b"
+  },
+  "fixture_sha256": "2d9e6c266d93502dee44305bd3da70a5268d481ef6e9340b4569c49368d4968b",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "83af88057f837b3d6fd84eb2f6d7f8425fca563b",
+    "tree": "623b1ff9e0762db875c87de7b7ca2c6718ee5b69",
+    "dirty_diff_sha256": "f1826f0157f9e9197d7a9d12880220884c8e9f47f49ec874e768f6bbadda8430",
+    "source_manifest_sha256": "fcd5b7a294d68b4ca01da19843434e4d4a9c072de7145498a66d9ba732345ce5",
+    "build_provenance": "Existing binary; build/source association not attested by this run",
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "a0a02e7eab829854010328b7df584a67e730aea647f0b3e61c9a0fc7371c8be3",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "FAILED",
+      "reason": "Timed out waiting for bounded variant 3"
+    },
+    {
+      "origin": "oc",
+      "status": "FAILED",
+      "reason": "Timed out waiting for bounded variant 3"
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-profile-selected",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-profile-selected",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-request-0",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-request-0",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-cycle-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-cycle-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-request-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-request-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-cycle-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-cycle-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-request-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-variant-request-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "failure-diagnostic",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "failure-diagnostic",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e0c4fc280452d82ee0665d2e4cb3d941d8c34970afcf98d3a9e366f73c3e6ae2",
+      "png_sha256": "93db1ef2ef5d17662788384e647d0c2485e796e766b313b4ae6d8a2bdb7441fe",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-profile-selected",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "32eff1022bc6eba638d372e47cf1c5dd7d9d7579fb259cfeebbd3e55bbedf8d9",
+      "png_sha256": "93db1ef2ef5d17662788384e647d0c2485e796e766b313b4ae6d8a2bdb7441fe",
+      "render_sha256": "c613ec5bda73a9fc48abe1969f5bec222b48102496c7026cc055b29b6fa0a276",
+      "path": "upstream/bounded-profile-selected"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-variant-request-0",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c456c3d37fe38c2c9c328a21c029139e85112fd1ecac171e121ea6e14b5922e5",
+      "png_sha256": "33e17558e5bbab41dc474966782523a9621bf0a4be9b26bb02bb2811b8d0b630",
+      "render_sha256": "a2b5fb253669b55518ea68aa2553ffef925438d0db99ded7e15a6914d4b1a66f",
+      "path": "upstream/bounded-variant-request-0"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-variant-cycle-1",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "9b04867a9f37f523295df05ff0ae00e8900ec201d81260890c9f0d26f39f232a",
+      "png_sha256": "9d3292a4b9f4291d26cd56088c012b3ec6f926a38555ff6734ee3240223d3dfb",
+      "render_sha256": "e338836cc26af9faa17e1107d3cf264258a9e8319c343e0b3a3a201ab318e371",
+      "path": "upstream/bounded-variant-cycle-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-variant-request-1",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "41cf9d7901bc1321c322f2af66c6228f86cd08c13693f04b4a690d52f9a7d0e6",
+      "png_sha256": "cd3929daf6b79427097b9ca75700905f23f5f97a185382e40f23b56b0317675f",
+      "render_sha256": "31a6b577a97422a208a2a29cb77aa2a751db895f742877b1b5575c97a58f9307",
+      "path": "upstream/bounded-variant-request-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-variant-cycle-2",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "bc85664035752e0929bde414ef44724354741e39098efbae1e75ac1c0de02ce0",
+      "png_sha256": "0cacb705c2e81601a3506a0355b0a04c9db8783f2ef6b89e65857578caf19089",
+      "render_sha256": "84b526b304a4af058b583b2a9353bf6f27c4d1116bc5497b9c3ca23b1c80df5f",
+      "path": "upstream/bounded-variant-cycle-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-variant-request-2",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "9b30559c880491530eb5af4163d617f6c6de0dd69ede10b8dd72af6722d63413",
+      "png_sha256": "eb332d19647b6b338d4e76df605b29d09d2f45e434b74c844f7ecd715b3678a9",
+      "render_sha256": "a43a49ea1aaaac824fcf8abbe7877f1899ff0aa7add0239ca84a6a0fa5f1274a",
+      "path": "upstream/bounded-variant-request-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "failure-diagnostic",
+      "status": "FAILED_STATE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "bbca0a62ff6c65738dd4916deaa58a954ac67ebf7a24280af0f285bcdf558d37",
+      "png_sha256": "3230c9db4e54c32bd48103fe769d6977622c4291526d65bc68778d21b2da1dc2",
+      "render_sha256": "13aad3d0b5dff7fa6e35a0af9cf592e65060e4b75bfec1730e74b052b497ee86",
+      "path": "upstream/failure-diagnostic"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "4a1ff9619ae6f27606cd8edc0f2cf87c7d2933b3557b159595c722d0260b4526",
+      "png_sha256": "82c2741e3d8f7004bec6fb9c2221769eb9a3bf02bd8f79f1211e13bb4c44a3a4",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-profile-selected",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "b5a545ab81f31fb5d4674d3885305c434b041ad7876aeaa55b25d8cb9bd0941a",
+      "png_sha256": "82c2741e3d8f7004bec6fb9c2221769eb9a3bf02bd8f79f1211e13bb4c44a3a4",
+      "render_sha256": "689f3ac9d5c637be83d4fb85c750cfe88409bcca68431d62da71fbeb76cdd849",
+      "path": "oc/bounded-profile-selected"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-variant-request-0",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "70cb80668153650b4238f768a587a4f2e5ecf74f5cf8f73d720cbff5495ffb58",
+      "png_sha256": "a8735fc77b1bab6008db3ebb585c9b976575f21295faca5c258d4cc5eb1598fa",
+      "render_sha256": "3659896f22b74e858c5f3ad20ccb556b7f71a6e8ae720152541f2e126068d251",
+      "path": "oc/bounded-variant-request-0"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-variant-cycle-1",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "b12f177faa3c0c9888fa0d8b4d8ad63ec3bbf3a36d3672db3ea2e56f2a3c92f9",
+      "png_sha256": "1a3fc43e71dd86bfb19866b4cd429097f32b48398630553a47fab16ea00bb884",
+      "render_sha256": "a7d35af77600760ecd18a5a43fc67703ec8edc3f9e6079bc4e4466ac193b6d37",
+      "path": "oc/bounded-variant-cycle-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-variant-request-1",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "6752d7e967a2dee2b77abfd817ca157c58f2695a8bb79951150e3ed960463557",
+      "png_sha256": "114cfe850e11f1ab2bedb132547f596d8b37614a0d6e662df98b0b53598897f4",
+      "render_sha256": "bb7da19acd772eb940489a8e96a2c07d1e7b7430fe414f751846755d89860ca2",
+      "path": "oc/bounded-variant-request-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-variant-cycle-2",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "66309efa096554dc0b7c06ac2b9d7f2e22c45ed0e6b8da8dcf9a30613dd53689",
+      "png_sha256": "7fe31f83c97f3070439e805affb8b11cfa3f42dce2deae31b481215b8cd97baa",
+      "render_sha256": "c0e3a3437fd034875e462852ddfd927c7d137f8814b8328645878ef92913be7b",
+      "path": "oc/bounded-variant-cycle-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-variant-request-2",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "af7f6c79b55123f979a4e8f2c218688af7687e29bcc95395b8150e61cab7e9d1",
+      "png_sha256": "07e2d67ec45fb94186bc152eb4309530676673a158473ed77735e8824797f88f",
+      "render_sha256": "c6ce7f9c50d47c3dfc954de519f7927ddc67287f87249e275c6b6c8fe4dd176b",
+      "path": "oc/bounded-variant-request-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "failure-diagnostic",
+      "status": "FAILED_STATE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "06a4d170c9db66e4c978a421fa90b964601652f35edc8e04f49c08679462afa6",
+      "png_sha256": "58090984290e3c75f7b0887e7c467964fa0f0e9fc23c748f4897429543645061",
+      "render_sha256": "d2c7613081ec1b1a313f795794853b6d0ed92d96a49c171fffb39cb13d5fb916",
+      "path": "oc/failure-diagnostic"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-26T11:13:02.218Z",
+  "exit_code": 1
+}

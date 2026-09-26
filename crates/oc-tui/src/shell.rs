@@ -1291,6 +1291,8 @@ fn metadata_line(
     let agent = layout::shows_agent_metadata(terminal_width)
         .then(|| state.active_agent())
         .flatten();
+    let agent_label = agent.map(crate::messages::Locale::titlecase);
+    let display_agent = agent_label.as_deref();
     let model = state.active_model_label();
     let provider = layout::shows_agent_metadata(terminal_width)
         .then(|| state.active_provider())
@@ -1309,7 +1311,7 @@ fn metadata_line(
     let short_provider = provider.rsplit(" / ").next().unwrap_or(provider);
     let fits = |auto, provider: &str| {
         let mut parts = Vec::new();
-        if let Some(agent) = agent.filter(|agent| !agent.is_empty()) {
+        if let Some(agent) = display_agent.filter(|agent| !agent.is_empty()) {
             parts.push(agent);
         }
         if auto {
@@ -1340,7 +1342,7 @@ fn metadata_line(
     .unwrap_or_else(|| {
         // `Locale.truncateWidth`, including the upstream minimum of nine
         // cells and trimming whitespace just before the ellipsis.
-        let prefix = agent.map_or(0, |agent| UnicodeWidthStr::width(agent) + 3);
+        let prefix = display_agent.map_or(0, |agent| UnicodeWidthStr::width(agent) + 3);
         let suffix = variant
             .as_ref()
             .map_or(0, |variant| UnicodeWidthStr::width(variant.as_str()) + 3);
@@ -1366,7 +1368,7 @@ fn metadata_line(
     let mut spans: Vec<Span<'static>> = Vec::new();
     if let Some(agent) = agent {
         spans.push(Span::styled(
-            agent.to_string(),
+            agent_label.clone().unwrap_or_default(),
             Style::default().fg(state.agent_color(Some(agent))),
         ));
     }
@@ -2420,9 +2422,9 @@ mod tests {
         let (y, row) = rows
             .iter()
             .enumerate()
-            .find(|(_, row)| row.contains("x · a"))
+            .find(|(_, row)| row.contains("X · a"))
             .expect("Home metadata");
-        let start = UnicodeWidthStr::width(&row[..row.find("x · a").unwrap()]);
+        let start = UnicodeWidthStr::width(&row[..row.find("X · a").unwrap()]);
         let white = Color::Rgb(255, 255, 255);
         assert_eq!(
             buffer[(start as u16, y as u16)].fg,
@@ -2483,11 +2485,11 @@ mod tests {
         let (y, row) = rows
             .iter()
             .enumerate()
-            .find(|(_, row)| row.contains("x · a"))
+            .find(|(_, row)| row.contains("X · a"))
             .expect("Home prompt metadata");
-        let x = UnicodeWidthStr::width(&row[..row.find("x · a").unwrap()]) as u16;
+        let x = UnicodeWidthStr::width(&row[..row.find("X · a").unwrap()]) as u16;
         for (offset, symbol, fg) in [
-            (0, "x", theme.categorical_agents()[0]),
+            (0, "X", theme.categorical_agents()[0]),
             (1, " ", Color::Rgb(255, 255, 255)),
             (2, "·", theme.text_muted()),
             (3, " ", Color::Rgb(255, 255, 255)),
@@ -2558,7 +2560,7 @@ mod tests {
             let locate = |needle: &str| rows.iter().position(|row| row.contains(needle));
             assert_eq!(locate("█▀▀█ █▀▀█"), Some(height as usize - 11));
             assert_eq!(locate("Ask anything…"), Some(height as usize - 5));
-            assert_eq!(locate("x · a"), Some(height as usize - 3));
+            assert_eq!(locate("X · a"), Some(height as usize - 3));
         }
     }
 
@@ -3923,7 +3925,7 @@ mod tests {
         state.apply_catalog(snapshot);
         for width in [44, 80, 120, 160] {
             let metadata = metadata_line(&state, Theme::dark(), width, width).unwrap();
-            assert_eq!(metadata.to_string(), "x · a ludka2");
+            assert_eq!(metadata.to_string(), "X · a ludka2");
         }
         assert!(
             state
@@ -3990,16 +3992,41 @@ mod tests {
         };
         assert_eq!(
             metadata(60),
-            "x auto · 模型 Very Long Model Name Organization / Short"
+            "X auto · 模型 Very Long Model Name Organization / Short"
         );
         assert_eq!(
             metadata(50),
-            "x · 模型 Very Long Model Name Organization / Short"
+            "X · 模型 Very Long Model Name Organization / Short"
         );
-        assert_eq!(metadata(39), "x · 模型 Very Long Model Name Short");
-        assert_eq!(metadata(32), "x · 模型 Very Long Model Name");
-        assert_eq!(metadata(13), "x · 模型 Ver…");
+        assert_eq!(metadata(39), "X · 模型 Very Long Model Name Short");
+        assert_eq!(metadata(32), "X · 模型 Very Long Model Name");
+        assert_eq!(metadata(13), "X · 模型 Ver…");
         assert_eq!(UnicodeWidthStr::width(metadata(13).as_str()), 13);
+        // Fit exactly the painted label, preserving the donor's word boundaries.
+        for (id, label) in [
+            ("build", "Build"),
+            ("build-yolo", "Build-Yolo"),
+            ("ßeta", "ßEta"),
+        ] {
+            let mut snapshot = catalog();
+            snapshot.agents[0].id = id.into();
+            snapshot.agent_id = Some(id.into());
+            snapshot.models[0].display_name = "Very Long Model Name".into();
+            snapshot.variant = None;
+            state.apply_catalog(snapshot);
+            let budget = UnicodeWidthStr::width(label) as u16 + 12;
+            let line = metadata_line(&state, theme, budget, 120).unwrap();
+            assert_eq!(line.to_string(), format!("{label} · Very Lon…"));
+            assert_eq!(line.width(), budget as usize);
+            assert_eq!(line.spans[0].style.fg, Some(state.agent_color(Some(id))));
+            assert_eq!(state.active_agent(), Some(id));
+            assert!(
+                !metadata_line(&state, theme, budget, 43)
+                    .unwrap()
+                    .to_string()
+                    .contains(label)
+            );
+        }
     }
 
     #[tokio::test]
@@ -4014,9 +4041,9 @@ mod tests {
         state.apply_catalog(snapshot);
         let row = screen(&state, 44, 48)
             .into_iter()
-            .find(|line| line.contains("x · a"))
+            .find(|line| line.contains("X · a"))
             .expect("metadata row");
-        assert!(row.contains("x · a"));
+        assert!(row.contains("X · a"));
         assert!(
             !row.contains('P'),
             "provider must be omitted at 44 columns: {row}"
@@ -4044,7 +4071,7 @@ mod tests {
         expected[16] = "  ┃".to_string();
         expected[17] = "  ┃".to_string();
         expected[18] = "  ┃".to_string();
-        expected[19] = "  ┃  x · a ludka2 · low".to_string();
+        expected[19] = "  ┃  X · a ludka2 · low".to_string();
         expected[20] = format!("  ╹{}", "▀".repeat(75));
         expected[21] = format!("  {}", right_aligned(hints, 76));
         expected[22] = String::new();
@@ -4068,7 +4095,7 @@ mod tests {
         expected[32] = "  ┃".to_string();
         expected[33] = "  ┃".to_string();
         expected[34] = "  ┃".to_string();
-        expected[35] = "  ┃  x · a ludka2 · low".to_string();
+        expected[35] = "  ┃  X · a ludka2 · low".to_string();
         expected[36] = format!("  ╹{}", "▀".repeat(115));
         expected[37] = format!("  {}", right_aligned(hints, 116));
         expected[39] = "  Native runtime  ○ UI".to_string();
@@ -4083,7 +4110,7 @@ mod tests {
         let state = golden_state().await;
         for width in [44, 60, 80, 120] {
             let frame = screen(&state, width, 24).join("\n");
-            assert!(frame.contains("x · a ludka2 · low"), "{width}:\n{frame}");
+            assert!(frame.contains("X · a ludka2 · low"), "{width}:\n{frame}");
             assert!(frame.contains("ctrl+p commands"), "{width}:\n{frame}");
         }
         assert!(layout::sidebar_auto(121));
@@ -4095,7 +4122,7 @@ mod tests {
         let narrow = screen(&state, 43, 24);
         assert!(narrow[16].starts_with(" ┃"), "{:?}", narrow[16]);
         assert!(narrow[19].contains("┃ a"), "{:?}", narrow[19]);
-        assert!(!narrow[19].contains("x ·"), "{:?}", narrow[19]);
+        assert!(!narrow[19].contains("X ·"), "{:?}", narrow[19]);
         assert!(!narrow[19].contains("ludka2"), "{:?}", narrow[19]);
         assert!(!narrow.join("\n").contains("ctrl+p commands"));
 

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-26T10:38:10+00:00
+State updated: 2026-09-26T11:56:36+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,32 +14,34 @@ Evidence target: evidence/T44/report.md
 
 ## Result
 
-Owner resumed the approved conversation-only plan. Removed experimental filesystem
-snapshots; delivered durable identities, Undo/Redo/Revert boundaries and incremental
-DCP context revisions, branch invalidation without archive deletion, Message Actions
-and independent root Fork with saved historical context. Files/Git remain untouched.
-Snapshots default off, false aliases accepted, true unsupported. Full evidence:
-evidence/T44/conversation-only-report.md.
+Implemented prompt profile titlecase using the existing Locale helper and painted
+width; successful profile changes are silent while errors remain visible. Ctrl+T
+cycles freshly queried, owner-persisted declared variants and the next request uses
+the selected overlay. Shell/Explored hover and repeated supported expansion use
+painted targets; normal Read is not advertised as expandable. Successful Shell has
+one bordered blank separator only with actual output, no generated exit-zero text
+or empty-output placeholder. Recorded output and error diagnostics remain intact.
 
 ## Checks
 
-Final serial fmt/locked workspace tests/strict all-target Clippy/build, capture
-syntax/xterm frontend, docs/progress and diff PASS: tool_0dd439272001QBBRuIC8o4FhaP.
-Real paired -06 verifies Copy and native two undo/two redo/source Revert/Fork/retained
-fork Revert with unchanged provider count. Unmasked frames remain DIFFERENT; no
-VIS10/V09 qualification claimed.
+Serial workspace fmt/locked tests/strict all-target Clippy/locked build, capture
+syntax/xterm frontend, docs/progress/diff PASS: tool_0dd8e54820010JHYPv5cQJpKAw.
+Final source-built paired bounded-shell-09 and bounded-variants-06 pass behavior
+with real tools/profile/effort requests; all unmasked comparisons DIFFERENT.
+See evidence/tui/recovery-v00/bounded-evidence-report.md for exact commands.
 
 ## Risks
 
-Missing legacy context explicitly unavailable. Fork bounded. OSC52 does not prove OS
-clipboard readback. Independent owner docs through 96cb835 preserved; inherited
-.opencode/ never inspected/staged. T44 ACTIVE, not TUI_PARITY_VERIFIED.
+Observed original success suffix differs from explicitly required native behavior;
+the experiment adding it was removed and historical captures retained. No masking,
+no invented missing output. OS clipboard readback and final exact matrix remain
+open. Inherited .opencode/ untouched; T44 ACTIVE, not TUI_PARITY_VERIFIED.
 
 ## Next
 
-Commit/push verified implementation milestone, then continue the smallest unresolved
-T44 requirement including successful Shell spacing and hover/expand parity. Preserve
-failed immutable captures; do not weaken remaining exact comparisons.
+Deliver this verified source slice, then implement the smallest remaining T44
+requirement: Sessions dialog or high-refresh event-driven redraw, with real effects
+and bounded paired qualification. Do not weaken unrelated exact comparisons.
 
 
 Ready (до 5): T45, T46, T47

@@ -1,0 +1,277 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-26T11:17:21.712Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "037ae5e486f5c0e546de643494bd962c9573b57a2eae58ff44fd1e6fc5b8da0b",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "7c70164d43f7a2791582916b7319b8e32180c693492dc679949380654e11b423"
+  },
+  "fixture_sha256": "ef3862315f2f9d538d6be462b126d90a580dc2bdaac902ed9b65f07730a4b10a",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "83af88057f837b3d6fd84eb2f6d7f8425fca563b",
+    "tree": "623b1ff9e0762db875c87de7b7ca2c6718ee5b69",
+    "dirty_diff_sha256": "9aa554859e0e288dd036652e8b1d91089117dccd711febfc44627c569fbf036f",
+    "source_manifest_sha256": "9ea09983272c834eeb807984c7bcb99c4c493fa3abbacd62dddd46768b968461",
+    "build_provenance": "Existing binary; build/source association not attested by this run",
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "a0a02e7eab829854010328b7df584a67e730aea647f0b3e61c9a0fc7371c8be3",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "FAILED",
+      "reason": "Bounded predicate failed: bounded-shell-completed"
+    },
+    {
+      "origin": "oc",
+      "status": "FAILED",
+      "reason": "Timed out waiting for recollapsed real Shell output"
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-profile-selected",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-profile-selected",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-shell-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-shell-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "failure-diagnostic",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "failure-diagnostic",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "bounded-shell-hover",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "bounded-shell-hover",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "bounded-shell-expanded",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "bounded-shell-expanded",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "5f05274711947e76d7fe93d43f967cb719582e51bcb423a23d2cc0aef1fbe6ba",
+      "png_sha256": "052cb2d257681dde63c1d2d540a5b155a5527c3c7fbab935d9afae95ebbfc869",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-profile-selected",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f5f8043368f3f13a12149186b2c754a17b90f16dee82277aa8fa199646bd03a4",
+      "png_sha256": "052cb2d257681dde63c1d2d540a5b155a5527c3c7fbab935d9afae95ebbfc869",
+      "render_sha256": "c613ec5bda73a9fc48abe1969f5bec222b48102496c7026cc055b29b6fa0a276",
+      "path": "upstream/bounded-profile-selected"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "bounded-shell-completed",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "71582b64776b1909f830a8dd44f09fc0adb9ddc55f0ec7fe370a127f68006cb4",
+      "png_sha256": "391271477308af2c8e27ba88f9618aca32ebc8337175b5eba1a6fdb2be4b5a94",
+      "render_sha256": "2a35451d13a1a99761257234a18fb4398ce46e23dfcc3c32cae580690fae2d0c",
+      "path": "upstream/bounded-shell-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "failure-diagnostic",
+      "status": "FAILED_STATE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "cbee5b9b7d2d87e729a02a3c06fb0cc461461b728e27c0a8d19ed6dd8e543b1e",
+      "png_sha256": "391271477308af2c8e27ba88f9618aca32ebc8337175b5eba1a6fdb2be4b5a94",
+      "render_sha256": "13aad3d0b5dff7fa6e35a0af9cf592e65060e4b75bfec1730e74b052b497ee86",
+      "path": "upstream/failure-diagnostic"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3709ddc399ab0b3e37f20818f1fc2265a925e49ae137f771d7a44c9e0711137f",
+      "png_sha256": "df1a86bed7a994d23784d9450f1ccba3e6c336b1764f5c414d9c23e00dcf3d47",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-profile-selected",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "907038a6eef2848105637c57146ddd926ead5f56ccb5999aaf382f8fe1206aad",
+      "png_sha256": "df1a86bed7a994d23784d9450f1ccba3e6c336b1764f5c414d9c23e00dcf3d47",
+      "render_sha256": "689f3ac9d5c637be83d4fb85c750cfe88409bcca68431d62da71fbeb76cdd849",
+      "path": "oc/bounded-profile-selected"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-shell-completed",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "5d5b184b2f4f4426c2c4a042fefa6624a02cb4db86baf44d33ca3f67af00abe6",
+      "png_sha256": "64cfe905306f488c3005b23bacbabe90a879c112e04a69e2a2c8c79184c9f9d7",
+      "render_sha256": "dcf77d8281aa941f76ae0f3de1108a9b0561fa59dfb378658d9bb4bed4f6c4e4",
+      "path": "oc/bounded-shell-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-shell-hover",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3e066e617c7c7700403ab6a2f437bc5ed4f8f18f3aa6f0933656df6a4e401b4f",
+      "png_sha256": "c5c9907829ce3b564bf65c9cdc90130daefebb41e33635bdfbbb5aa80b89513f",
+      "render_sha256": "e9dd1d6604104a6ed26300d13d43590120908ddd1cff9492e1b683c74624aaaf",
+      "path": "oc/bounded-shell-hover"
+    },
+    {
+      "origin": "oc",
+      "scenario": "bounded-shell-expanded",
+      "status": "CAPTURED_BOUNDED",
+      "environment_id": "443d74622714d162e205846a6a8166108c0439f79f9e5ed89952b85818f9205a",
+      "cells_sha256": "4d7f6a638afbc963fffe2efeca02f93b13874b4ad5987dbb1bba34ad0eb9bba4",
+      "png_sha256": "acfd3d62540e32bde4c57a19c9c0943f75e9c82b9d214ae9d45702f879b60500",
+      "render_sha256": "f8bf9d54a5b6adc625485c727e9e53b9361e1b698c3d170e6d6d847a1c1176a9",
+      "path": "oc/bounded-shell-expanded"
+    },
+    {
+      "origin": "oc",
+      "scenario": "failure-diagnostic",
+      "status": "FAILED_STATE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d95f59bde371772c24d3b879851a35a6f477a75c0248531b3a61fc31c996bcdf",
+      "png_sha256": "64cfe905306f488c3005b23bacbabe90a879c112e04a69e2a2c8c79184c9f9d7",
+      "render_sha256": "d2c7613081ec1b1a313f795794853b6d0ed92d96a49c171fffb39cb13d5fb916",
+      "path": "oc/failure-diagnostic"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-26T11:18:50.663Z",
+  "exit_code": 1
+}

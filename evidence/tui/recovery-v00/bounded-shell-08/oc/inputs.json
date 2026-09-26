@@ -1,0 +1,57 @@
+[
+  {
+    "at_ms": 1790422899142,
+    "kind": "bounded_agents",
+    "base64": "L2FnZW50cw=="
+  },
+  {
+    "at_ms": 1790422901484,
+    "kind": "bounded_agents_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790422903807,
+    "kind": "bounded_agent_query",
+    "base64": "Zml4dHVyZS1zaGVsbA=="
+  },
+  {
+    "at_ms": 1790422906100,
+    "kind": "bounded_agent_select",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790422908784,
+    "kind": "bounded_prompt",
+    "base64": "G1syMDB+0JrQsNC60LjQtSDRgtC10LHQtSDRgtGD0LvRiyDQtNC+0YHRgtGD0L/QvdGLPxtbMjAxfg=="
+  },
+  {
+    "at_ms": 1790422908785,
+    "kind": "bounded_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790422911454,
+    "kind": "bounded_shell_hover",
+    "base64": "G1s8MzU7ODsxNk0="
+  },
+  {
+    "at_ms": 1790422914476,
+    "kind": "bounded_shell_down",
+    "base64": "G1s8MDs4OzE2TQ=="
+  },
+  {
+    "at_ms": 1790422914476,
+    "kind": "bounded_shell_up",
+    "base64": "G1s8MDs4OzE2bQ=="
+  },
+  {
+    "at_ms": 1790422919360,
+    "kind": "bounded_shell_down",
+    "base64": "G1s8MDs4OzE2TQ=="
+  },
+  {
+    "at_ms": 1790422919360,
+    "kind": "bounded_shell_up",
+    "base64": "G1s8MDs4OzE2bQ=="
+  }
+]
