@@ -212,7 +212,7 @@
       "id": "VIS16",
       "step": "V06",
       "title": "Tool cards and partial patch",
-      "expected": "Live real operation events create correctly ordered cards/hunks/error/unknown/truncation. Incomplete/partial patch is never displayed as full success. Eligible Explored groups and long-output Shell blocks match upstream normal/hover/click-expanded/second-click-recollapsed full styled-cell and PNG frames, including scroll and actual recorded output after reopen; hover only highlights. Ordinary Read does not falsely offer full-file expansion and an upstream/tool-truncated result is not presented as recoverable data.",
+      "expected": "Live real operation events create correctly ordered cards/hunks/error/unknown/truncation. Incomplete/partial patch is never displayed as full success. Eligible Explored groups and long-output Shell blocks match upstream normal/hover/click-expanded/second-click-recollapsed full styled-cell and PNG frames, including scroll and actual recorded output after reopen; hover only highlights. Ordinary Read does not falsely offer full-file expansion and an upstream/tool-truncated result is not presented as recoverable data. Successful completed Shell tool cards omit synthesized exit-zero status and match upstream's one-row bordered command/output gap when output is non-empty, without a phantom separator for empty output. Verify one-line/multiline/empty output in paired full frames and replay/reopen; retain actual process output, recorded exit/output metadata and visible abnormal outcomes. Update the existing divergent Shell golden.",
       "sources": [
         "P08",
         "P10",
