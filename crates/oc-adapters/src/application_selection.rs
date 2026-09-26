@@ -181,6 +181,51 @@ pub(super) fn for_turn(
     }
 }
 
+/// Bounded, read-only fork selection: preserve this session's other agent
+/// drafts while pinning the currently effective choice and legacy epoch.
+pub(super) fn fork_choice(
+    db: &Db,
+    c: &Composition,
+    fallback: &Effective,
+    session: &str,
+) -> Result<String, CoreError> {
+    let mut choice = match db
+        .get_pref_bounded(&session_key(c, session), 64 * 1024)
+        .map_err(app_error)?
+    {
+        crate::storage::BoundedPref::Missing => SessionChoice::default(),
+        crate::storage::BoundedPref::TooLarge => {
+            return Err(app_error("fork selection budget exceeded"));
+        }
+        crate::storage::BoundedPref::Value(raw) => {
+            serde_json::from_str(&raw).map_err(|_| app_error("malformed fork selection"))?
+        }
+    };
+    let selected = if choice.epoch >= fallback.legacy_epoch && !choice.models.is_empty() {
+        resolve(db, c, fallback, &choice)?
+    } else {
+        fallback.clone()
+    };
+    // Validate without changing the source, Home drafts or global preferences.
+    let (selected, _) = fresh(
+        c,
+        fallback,
+        session,
+        FreshSelection {
+            agent_id: selected.agent_id,
+            model_id: selected.model_id,
+            variant: selected.variant,
+        },
+    )?;
+    choice.agent = selected.agent_id.clone();
+    choice.models.insert(
+        selected.agent_id.clone().unwrap_or_default(),
+        model(&selected),
+    );
+    choice.epoch = fallback.legacy_epoch;
+    serde_json::to_string(&choice).map_err(app_error)
+}
+
 /// Prevalidate an explicit Home choice and encode its session preference for
 /// the same transaction that accepts the new root's first user message.
 pub(super) fn fresh(

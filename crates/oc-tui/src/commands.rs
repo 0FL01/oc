@@ -13,6 +13,8 @@ pub const COMMAND_ARGS_MAX: usize = 512;
 /// Dispatched built-in command.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CommandAction {
+    UndoConversation,
+    RedoConversation,
     /// Search genuine native commands.
     OpenCommands,
     /// Toggle the existing native sidebar.
@@ -34,7 +36,9 @@ pub enum CommandAction {
     /// Palette/shortcut open the editor; slash args request a direct rename.
     /// A bare `/rename` is reported unavailable by the composer until title
     /// generation is implemented by the application owner.
-    RenameSession { title: Option<String> },
+    RenameSession {
+        title: Option<String>,
+    },
     /// Open the primary agent selector.
     OpenAgents,
     /// Open the session list.
@@ -171,6 +175,22 @@ pub const COMMANDS_BINDING: &str = "ctrl+p";
 pub const AGENTS_BINDING: &str = "shift+tab";
 
 pub const REGISTRY: &[CommandSpec] = &[
+    CommandSpec {
+        id: "session.undo",
+        title: "Undo",
+        group: "Session",
+        shortcuts: &[],
+        aliases: &["undo"],
+        action: CommandAction::UndoConversation,
+    },
+    CommandSpec {
+        id: "session.redo",
+        title: "Redo",
+        group: "Session",
+        shortcuts: &[],
+        aliases: &["redo"],
+        action: CommandAction::RedoConversation,
+    },
     CommandSpec {
         id: "commands.show",
         title: "Show command palette",

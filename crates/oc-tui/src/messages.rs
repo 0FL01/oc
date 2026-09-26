@@ -1730,9 +1730,10 @@ pub(crate) fn visible_transcript_expanded(
 
 /// A row identity produced while visiting the actual visible, wrapped user
 /// block. The ordinal distinguishes synthetic rows (which share i64::MAX);
-/// durable rows retain their sequence for later application-owned actions.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Owner actions must use `message_id`; sequence/ordinal only identify presentation.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct UserMessageTarget {
+    pub message_id: Option<std::sync::Arc<oc_core::session::MessageId>>,
     pub seq: i64,
     pub ordinal: usize,
 }
@@ -2049,6 +2050,7 @@ fn visible_transcript_indexed(
                     if row.role == "user" && !margin {
                         for slot in user_targets.iter_mut().take(visible.len()).skip(first) {
                             *slot = Some(UserMessageTarget {
+                                message_id: row.message_id.clone(),
                                 seq: row.seq,
                                 ordinal: index,
                             });
@@ -3334,6 +3336,7 @@ mod tests {
 
     fn user(text: &str, chips: Vec<Chip>) -> HistoryRow {
         HistoryRow {
+            message_id: None,
             seq: 1,
             role: "user".to_string(),
             text: text.to_string(),
@@ -3387,8 +3390,14 @@ mod tests {
         let cache = RefCell::new(MarkdownCache::default());
         let mut first = user(&"repeat ".repeat(22), vec![]);
         first.seq = 12;
+        first.message_id = Some(std::sync::Arc::new(oc_core::session::MessageId(
+            "opaque-first".into(),
+        )));
         let mut second = user(&"repeat ".repeat(22), vec![]);
         second.seq = 27;
+        second.message_id = Some(std::sync::Arc::new(oc_core::session::MessageId(
+            "opaque-second".into(),
+        )));
         let rows = [first, assistant("gap"), second];
         let render = |scroll| {
             visible_transcript_user_targets(
@@ -3407,8 +3416,16 @@ mod tests {
             let (lines, _, targets) = render(scroll);
             assert_eq!(lines.len(), targets.len());
             for (line, target) in lines.iter().zip(targets) {
-                if let Some(target) = target {
+                if let Some(target) = &target {
                     assert!(matches!(target.seq, 12 | 27));
+                    assert_eq!(
+                        target.message_id.as_ref().unwrap().0,
+                        if target.seq == 12 {
+                            "opaque-first"
+                        } else {
+                            "opaque-second"
+                        }
+                    );
                     assert_eq!(line.spans()[0].content(), "┃");
                     identities.push(target.seq);
                 }
@@ -3422,6 +3439,7 @@ mod tests {
 
     fn assistant(text: &str) -> HistoryRow {
         HistoryRow {
+            message_id: None,
             seq: 2,
             role: "assistant".to_string(),
             text: text.to_string(),
@@ -4240,6 +4258,7 @@ mod tests {
             output_truncated: truncated,
         });
         HistoryRow {
+            message_id: None,
             seq: 3,
             role: "tool".to_string(),
             text: String::new(),

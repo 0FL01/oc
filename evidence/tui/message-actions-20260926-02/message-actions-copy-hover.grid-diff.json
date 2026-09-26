@@ -1,0 +1,123 @@
+{
+  "kind": "grid",
+  "status": "FAIL",
+  "scope": "frame equality only; capture provenance is not attested",
+  "scenario": "message-actions-copy-hover",
+  "fixture_sha256": "83884b4b38ead79fe3bbbdf01c739ffc16043d5ec23c82a80110a8e92ca09aec",
+  "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+  "reference_sha256": "c77bf95dcd6f70f22c696055e1234cb695c49f33e0c9bc7d3623eb9c282ac30d",
+  "actual_sha256": "76195fadb7ff90fb8bdbba2e87e79a1f4b40a8511b8dba8679d9a081efe3b459",
+  "reference_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "actual_commit": "1f759dda28b5cae7e2f5b960659a091a32a1c9a3",
+  "cells_checked": 4800,
+  "different_cells": 14,
+  "cursor_differs": false,
+  "difference_bbox_inclusive": [
+    59,
+    16,
+    72,
+    16
+  ],
+  "samples": [
+    {
+      "x": 59,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 60,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 61,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 62,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 63,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 64,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 65,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 66,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 67,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 68,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 69,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 70,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 71,
+      "y": 16,
+      "different_fields": [
+        "symbol",
+        "fg"
+      ]
+    },
+    {
+      "x": 72,
+      "y": 16,
+      "different_fields": [
+        "symbol",
+        "fg"
+      ]
+    }
+  ]
+}

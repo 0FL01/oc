@@ -114,7 +114,7 @@ pub fn render_test(state: &TuiState, width: u16, height: u16) -> Vec<String> {
 pub fn panel_lines(state: &TuiState) -> Vec<String> {
     const ROWS: usize = 8;
     match state.panel() {
-        TuiPanel::Commands => state
+        TuiPanel::Commands | TuiPanel::MessageActions { .. } => state
             .modal_options()
             .iter()
             .map(|o| o.title.clone())
@@ -266,6 +266,7 @@ mod tests {
 
     fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
         HistoryMessage {
+            id: oc_core::session::MessageId(format!("fixture-{seq}")),
             turn: None,
             model_switch: None,
             seq,

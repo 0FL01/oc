@@ -103,6 +103,10 @@ struct ToastExpiry {
 /// Open TUI panel (bounded view state; one at a time).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TuiPanel {
+    MessageActions {
+        message: oc_core::session::MessageId,
+        seq: i64,
+    },
     /// Genuine native command registry.
     Commands,
     /// No panel (chat view).
@@ -130,6 +134,16 @@ pub enum TuiPanel {
 /// Work the panel asked the binary to apply through the application API.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PanelIntent {
+    ChangeConversation {
+        action: oc_core::queries::ConversationAction,
+    },
+    ForkMessage {
+        message: oc_core::session::MessageId,
+    },
+    CopyMessage {
+        message: oc_core::session::MessageId,
+        seq: i64,
+    },
     /// Load the model/agent catalog snapshot.
     LoadCatalog,
     /// Rebuild the current Location without replacing the session or draft.
@@ -340,6 +354,7 @@ impl LivePart {
     ) -> HistoryRow {
         match self {
             LivePart::Text(text) => HistoryRow {
+                message_id: None,
                 seq: i64::MAX,
                 role: "assistant".to_string(),
                 text: text.clone(),
@@ -351,6 +366,7 @@ impl LivePart {
                 tool: None,
             },
             LivePart::Reasoning { text, duration_ms } => HistoryRow {
+                message_id: None,
                 seq: i64::MAX,
                 role: "assistant".to_string(),
                 text: String::new(),
@@ -369,6 +385,7 @@ impl LivePart {
                 tool: None,
             },
             LivePart::Tool { card, .. } => HistoryRow {
+                message_id: None,
                 seq: i64::MAX,
                 role: "tool".to_string(),
                 text: String::new(),
@@ -446,7 +463,11 @@ pub struct TuiState {
     pub(crate) home_example: &'static str,
     viewport: std::cell::Cell<Option<TranscriptViewport>>,
     painted_transcript: std::cell::RefCell<Option<PaintedTranscript>>,
+    paint_generation: std::cell::Cell<u64>,
+    message_down: Option<(oc_core::session::MessageId, u64, Rect)>,
     clipboard_mode: ClipboardMode,
+    /// Owner availability, when known. Fresh/reopened views let the owner decide.
+    conversation_available: Option<(bool, bool)>,
     /// Last successful owner projection, independent of manual/test overrides.
     owner_clipboard_mode: Option<oc_core::queries::TerminalCopyMode>,
     pending_copy: Option<String>,
@@ -604,7 +625,10 @@ impl TuiState {
             home_example: HOME_EXAMPLES[index],
             viewport: std::cell::Cell::new(None),
             painted_transcript: std::cell::RefCell::new(None),
+            paint_generation: std::cell::Cell::new(0),
+            message_down: None,
             clipboard_mode: ClipboardMode::default(),
+            conversation_available: None,
             owner_clipboard_mode: None,
             pending_copy: None,
             selection: None,
@@ -946,6 +970,7 @@ impl TuiState {
     }
 
     pub fn set_session(&mut self, session: SessionId) {
+        self.conversation_available = None;
         self.close_panel();
         self.slash_selected = 0;
         self.slash_dismissed = None;
@@ -1067,6 +1092,17 @@ impl TuiState {
                 current,
             };
         let options = match &self.panel {
+            TuiPanel::MessageActions { .. } => [
+                ("jump", "Jump to", "view message in session"),
+                ("revert", "Revert", "undo messages and restore prompt"),
+                ("copy", "Copy", "message text to clipboard"),
+                ("fork", "Fork", "create a new session"),
+            ]
+            .into_iter()
+            .map(|(value, title, description)| {
+                item(value.into(), title.into(), "", description.into(), false)
+            })
+            .collect(),
             TuiPanel::Commands => {
                 let mut options = Vec::new();
                 // Use the last rendered terminal width and the same rail allocation
@@ -1200,6 +1236,28 @@ impl TuiState {
     }
 
     pub fn command_unavailable(&self, action: &CommandAction) -> Option<&'static str> {
+        if matches!(
+            action,
+            CommandAction::UndoConversation | CommandAction::RedoConversation
+        ) {
+            if self.session.is_none() {
+                return Some("no session yet");
+            }
+            if self.parent_id.is_some() {
+                return Some("child session is read-only");
+            }
+            if self.status == TuiStatus::PendingSubmission {
+                return Some("submission pending");
+            }
+            if let Some((undo, redo)) = self.conversation_available {
+                if *action == CommandAction::UndoConversation && !undo {
+                    return Some("nothing to undo");
+                }
+                if *action == CommandAction::RedoConversation && !redo {
+                    return Some("nothing to redo");
+                }
+            }
+        }
         if *action == CommandAction::CloseTab {
             let (tabs, index, _) = self.tab_presentation();
             if tabs.is_empty() || (index >= tabs.len() && !self.home) {
@@ -1537,6 +1595,8 @@ impl TuiState {
             CommandAction::NewSession
                 | CommandAction::CloseTab
                 | CommandAction::ReloadConfiguration
+                | CommandAction::UndoConversation
+                | CommandAction::RedoConversation
         ) {
             // The binary clears these drafts only after its owner accepts the
             // intent. An optimistic removal would lose `/new` on refusal.
@@ -1598,6 +1658,7 @@ impl TuiState {
 
     /// Newest page becomes the whole window; scroll pins to the newest row.
     pub fn attach_page(&mut self, page: &HistoryPage) {
+        self.clear_transcript_selection();
         self.exploration_down = None;
         self.exploration_expanded.clear();
         self.reasoning_down = None;
@@ -1611,6 +1672,7 @@ impl TuiState {
 
     /// Add an older page at the front of the window.
     pub fn prepend_page(&mut self, page: &HistoryPage) {
+        self.clear_transcript_selection();
         self.viewport.set(None);
         self.window.prepend_older(page);
         self.prune_reasoning();
@@ -1618,6 +1680,7 @@ impl TuiState {
 
     /// Add a newer page at the back of the window.
     pub fn append_page(&mut self, page: &HistoryPage) {
+        self.clear_transcript_selection();
         self.viewport.set(None);
         self.window.append_newer(page);
         self.prune_reasoning();
@@ -1663,6 +1726,12 @@ impl TuiState {
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
         use crate::dialog::DialogHit;
+        if matches!(
+            event.kind,
+            MouseEventKind::Down(_) | MouseEventKind::Drag(_)
+        ) {
+            self.message_down = None;
+        }
         let pointer_down = self.reasoning_pointer_down;
         match event.kind {
             MouseEventKind::Down(_) | MouseEventKind::Drag(_) => {
@@ -1745,6 +1814,7 @@ impl TuiState {
             // A drag started on a header belongs to text selection; it must
             // never activate the header on release, even if it returns there.
             if matches!(event.kind, MouseEventKind::Drag(_)) {
+                self.message_down = None;
                 self.exploration_down = None;
                 self.reasoning_down = None;
                 self.tab_down = None;
@@ -1760,6 +1830,10 @@ impl TuiState {
                     self.reasoning_down = None;
                 }
                 MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
+                    self.message_down = self
+                        .painted_user_message_target_at(area, event.column, event.row)
+                        .and_then(|target| target.message_id)
+                        .map(|id| ((*id).clone(), self.paint_generation.get(), area));
                     self.tab_down = self.tab_hit(area, event.column, event.row);
                     self.exploration_down = self
                         .exploration_hit(area, event.column, event.row)
@@ -1784,18 +1858,25 @@ impl TuiState {
                         });
                 }
                 MouseEventKind::Up(MouseButton::Left) => {
+                    let message_pressed = self.message_down.take();
                     let pressed_tab = self.tab_down.take();
                     let pressed = self.exploration_down.take();
                     let exploration_pressed = pressed.is_some();
                     let reasoning_pressed = self.reasoning_down.take();
                     // Resolve a user click only against the last painted,
                     // still-current block. A selection/drag owns its release.
-                    // Application-owned actions are not available yet.
                     if event.modifiers.is_empty()
-                        && self
-                            .user_message_target_at(area, event.column, event.row)
-                            .is_some()
+                        && let Some(target) =
+                            self.user_message_target_at(area, event.column, event.row)
+                        && let Some(message) = target.message_id
+                        && message_pressed
+                            == Some(((*message).clone(), self.paint_generation.get(), area))
                     {
+                        self.select.reset();
+                        self.panel = TuiPanel::MessageActions {
+                            message: (*message).clone(),
+                            seq: target.seq,
+                        };
                         return KeyOutcome::default();
                     }
                     if event.modifiers.is_empty()
@@ -2108,7 +2189,7 @@ impl TuiState {
             {
                 return None;
             }
-            user_targets.get((y - area.y) as usize).copied().flatten()
+            user_targets.get((y - area.y) as usize).cloned().flatten()
         });
         let hover_row = frame.and_then(|frame| {
             let (x, y, owner) = self.last_mouse?;
@@ -2138,7 +2219,7 @@ impl TuiState {
             .map(|(row, line)| {
                 let hovered;
                 let line = if hovered_user.is_some()
-                    && user_targets.get(row).copied().flatten() == hovered_user
+                    && user_targets.get(row).cloned().flatten() == hovered_user
                 {
                     hovered = crate::messages::hover_user_content(line, theme);
                     &hovered
@@ -2179,6 +2260,8 @@ impl TuiState {
                 && previous.rows == rows
                 && previous.user_targets == user_targets
         }) {
+            self.paint_generation
+                .set(self.paint_generation.get().wrapping_add(1));
             *painted = Some(PaintedTranscript {
                 area,
                 rows: rows.to_vec(),
@@ -2238,15 +2321,64 @@ impl TuiState {
         self.pending_copy.take()
     }
 
+    /// Exact owner text, never a wrapped or locally shortened preview.
+    pub fn copy_message_text(&mut self, text: String) -> Result<(), String> {
+        if self.clipboard_mode == ClipboardMode::Disabled {
+            return Err("clipboard configuration unavailable".into());
+        }
+        if text.len() > MAX_SELECTION_BYTES {
+            return Err("Message exceeds clipboard size limit".into());
+        }
+        self.pending_copy = Some(text);
+        Ok(())
+    }
+
+    pub fn restore_prompt(&mut self, text: String) {
+        self.input = text;
+        self.editor.clear();
+        self.editor.cursor = self.input.len();
+        self.input_revision += 1;
+    }
+
+    pub fn conversation_applied(
+        &mut self,
+        snapshot: &oc_core::queries::ConversationSnapshot,
+        page: &HistoryPage,
+    ) {
+        let draft = snapshot.draft.clone().unwrap_or_else(|| {
+            if matches!(
+                dispatch(self.input.trim()),
+                Some(CommandAction::UndoConversation | CommandAction::RedoConversation)
+            ) {
+                String::new()
+            } else {
+                self.input.clone()
+            }
+        });
+        self.set_session(snapshot.session.clone());
+        self.attach_page(page);
+        self.restore_prompt(draft);
+        self.conversation_available = Some((snapshot.can_undo, snapshot.can_redo));
+        self.dcp = DcpPanelState::default();
+    }
+
     /// The binary reports the actual asynchronous clipboard write outcome.
     pub fn report_clipboard_result(&mut self, result: Result<(), String>) {
         match result {
-            Ok(()) => self.push_transient_note("Copied to clipboard", NoteVariant::Info),
+            Ok(()) => {
+                if matches!(self.panel, TuiPanel::MessageActions { .. }) {
+                    self.close_panel();
+                }
+                self.push_transient_note("Copied to clipboard", NoteVariant::Info);
+            }
             Err(error) => self.push_transient_note(&error, NoteVariant::Error),
         }
     }
 
     fn clear_transcript_selection(&mut self) {
+        self.message_down = None;
+        self.paint_generation
+            .set(self.paint_generation.get().wrapping_add(1));
         self.selection = None;
         self.selection_gesture = false;
         self.click = None;
@@ -2508,6 +2640,23 @@ impl TuiState {
         {
             return None;
         }
+        self.painted_user_message_target_at(frame, x, y)
+    }
+
+    fn painted_user_message_target_at(
+        &self,
+        frame: Rect,
+        x: u16,
+        y: u16,
+    ) -> Option<crate::messages::UserMessageTarget> {
+        let area = crate::shell::transcript_area(self, frame);
+        if self.panel != TuiPanel::None
+            || !area.contains((x, y).into())
+            || x <= area.x
+            || self.transcript_overpainted(frame, x, y)
+        {
+            return None;
+        }
         let (rows, total, scroll, targets) =
             self.visible_transcript_at_viewport_with_targets(area.width, frame.width, area.height);
         let painted = self.painted_transcript.borrow();
@@ -2520,7 +2669,7 @@ impl TuiState {
         {
             return None;
         }
-        targets.get((y - area.y) as usize).copied().flatten()
+        targets.get((y - area.y) as usize).cloned().flatten()
     }
 
     fn transcript_point(
@@ -2806,6 +2955,7 @@ impl TuiState {
         if live {
             rows.push(HistoryRow {
                 seq: i64::MAX,
+                message_id: None,
                 role: "assistant".to_string(),
                 text: self.live_text.clone(),
                 agent: self.active_agent.clone(),
@@ -2829,6 +2979,7 @@ impl TuiState {
         if self.active_turn.is_some() && self.live_preview_truncated {
             rows.push(HistoryRow {
                 seq:i64::MAX,role:"assistant".into(),text:"[Live preview truncated; durable parts remain available through history and /cards]".into(),
+                message_id: None,
                 agent:None,agent_color_index:None,chips:Vec::new(),reasoning:None,meta:None,tool:None,
             });
         }
@@ -4072,6 +4223,9 @@ impl TuiState {
                     self.prune_reasoning();
                 }
                 self.compress_turn = pending.compress.then(|| turn.clone());
+                if !pending.compress {
+                    self.conversation_available = Some((true, false));
+                }
                 self.live_text.clear();
                 self.live_reasoning.clear();
                 self.live_parts.clear();
@@ -4107,6 +4261,21 @@ impl TuiState {
         if let Some(reason) = self.command_unavailable(&action) {
             return KeyOutcome {
                 note: Some(reason.into()),
+                ..KeyOutcome::default()
+            };
+        }
+        if matches!(
+            action,
+            CommandAction::UndoConversation | CommandAction::RedoConversation
+        ) {
+            return KeyOutcome {
+                intent: Some(PanelIntent::ChangeConversation {
+                    action: if action == CommandAction::UndoConversation {
+                        oc_core::queries::ConversationAction::Undo
+                    } else {
+                        oc_core::queries::ConversationAction::Redo
+                    },
+                }),
                 ..KeyOutcome::default()
             };
         }
@@ -4158,6 +4327,9 @@ impl TuiState {
         self.leader = None;
         let mut outcome = KeyOutcome::default();
         match action {
+            CommandAction::UndoConversation | CommandAction::RedoConversation => {
+                unreachable!("returned before modal reset")
+            }
             CommandAction::OpenCommands => {
                 self.panel = TuiPanel::Commands;
             }
@@ -4342,6 +4514,7 @@ impl TuiState {
                         | TuiPanel::Agents
                         | TuiPanel::Sessions
                         | TuiPanel::Skills
+                        | TuiPanel::MessageActions { .. }
                 ) =>
             {
                 let count = self.modal_options().len();
@@ -4557,6 +4730,35 @@ impl TuiState {
     fn panel_enter(&mut self) -> KeyOutcome {
         let mut outcome = KeyOutcome::default();
         match self.panel.clone() {
+            TuiPanel::MessageActions { message, seq } => {
+                if !self
+                    .window
+                    .rows()
+                    .iter()
+                    .any(|row| row.role == "user" && row.message_id.as_deref() == Some(&message))
+                {
+                    outcome.note =
+                        Some("message is no longer in the current history window".into());
+                    return outcome;
+                }
+                let options = self.modal_options();
+                match options
+                    .get(self.select.cursor)
+                    .map(|option| option.value.as_str())
+                {
+                    Some("jump") => self.close_panel(),
+                    Some("revert") => {
+                        outcome.intent = Some(PanelIntent::ChangeConversation {
+                            action: oc_core::queries::ConversationAction::Revert { message },
+                        })
+                    }
+                    Some("copy") => {
+                        outcome.intent = Some(PanelIntent::CopyMessage { message, seq })
+                    }
+                    Some("fork") => outcome.intent = Some(PanelIntent::ForkMessage { message }),
+                    _ => {}
+                }
+            }
             TuiPanel::Commands => {
                 let options = self.modal_options();
                 if let Some(option) = options.get(self.select.cursor)
@@ -4777,6 +4979,7 @@ impl TuiState {
             self.turn_usage = None;
             self.window.push_row(HistoryRow {
                 seq: i64::MAX,
+                message_id: None,
                 role: "assistant".to_string(),
                 text: text.to_string(),
                 agent: self.active_agent.clone(),
@@ -4816,6 +5019,7 @@ impl TuiState {
             self.turn_usage = None;
             self.window.push_row(HistoryRow {
                 seq: i64::MAX,
+                message_id: None,
                 role: "assistant".to_string(),
                 text: partial.to_string(),
                 agent: self.active_agent.clone(),
@@ -5234,6 +5438,7 @@ fn card_row(card: &ToolCard) -> HistoryRow {
     // Diff first: a long operation id must never push the diff off a narrow
     // panel row.
     HistoryRow {
+        message_id: None,
         seq: i64::MAX,
         role: String::new(),
         text: format!(
@@ -5254,6 +5459,7 @@ fn card_row(card: &ToolCard) -> HistoryRow {
 /// (`routes/session/index.tsx:1934-1985`).
 fn footer_row(agent: Option<String>, meta: AssistantMeta) -> HistoryRow {
     HistoryRow {
+        message_id: None,
         seq: i64::MAX,
         role: "assistant".to_string(),
         text: String::new(),
@@ -5474,6 +5680,7 @@ mod tests {
 
     fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
         HistoryMessage {
+            id: oc_core::session::MessageId(format!("fixture-{seq}")),
             turn: None,
             model_switch: None,
             seq,
@@ -8806,6 +9013,7 @@ mod tests {
                 output_truncated: false,
             });
             state.window.push_row(crate::history::HistoryRow {
+                message_id: None,
                 seq: i as i64 + 1,
                 role: "tool".into(),
                 text: String::new(),
@@ -10007,6 +10215,7 @@ mod tests {
                 output_truncated: false,
             });
             state.window.push_row(crate::history::HistoryRow {
+                message_id: None,
                 seq: i + 1,
                 role: "tool".into(),
                 text: String::new(),
@@ -10608,17 +10817,17 @@ mod tests {
             .iter()
             .enumerate()
             .position(|(i, target)| {
-                target.is_some_and(|target| target.seq == 20)
+                target.as_ref().is_some_and(|target| target.seq == 20)
                     && rows[i].plain_text().contains("same")
             })
             .expect("second user block in painted viewport");
         let first = targets
             .iter()
-            .position(|target| target.is_some_and(|target| target.seq == 10));
+            .position(|target| target.as_ref().is_some_and(|target| target.seq == 10));
         assert!(
             targets
                 .iter()
-                .filter(|target| target.is_some_and(|target| target.seq == 20))
+                .filter(|target| target.as_ref().is_some_and(|target| target.seq == 20))
                 .count()
                 > 2,
             "wrapped content and both padding rows retain one identity"
@@ -10647,7 +10856,7 @@ mod tests {
         );
         assert_eq!(buffer[(x, y)].bg, hover);
         for (row, target) in targets.iter().enumerate() {
-            if target.is_some_and(|target| target.seq == 20) {
+            if target.as_ref().is_some_and(|target| target.seq == 20) {
                 assert_eq!(
                     buffer[(x, rect.y + row as u16)].bg,
                     hover,
@@ -10671,11 +10880,35 @@ mod tests {
             frame,
         );
         assert_eq!(
-            state
-                .user_message_target_at(frame, x, y)
-                .map(|target| target.seq),
-            Some(20)
+            state.panel(),
+            &TuiPanel::MessageActions {
+                message: oc_core::session::MessageId("fixture-20".into()),
+                seq: 20
+            }
         );
+        assert_eq!(
+            state
+                .modal_options()
+                .iter()
+                .map(|o| o.title.as_str())
+                .collect::<Vec<_>>(),
+            ["Jump to", "Revert", "Copy", "Fork"]
+        );
+        state.select.cursor = 1;
+        assert_eq!(
+            state.panel_enter().intent,
+            Some(PanelIntent::ChangeConversation {
+                action: oc_core::queries::ConversationAction::Revert {
+                    message: oc_core::session::MessageId("fixture-20".into())
+                }
+            })
+        );
+        assert!(
+            matches!(state.panel(), TuiPanel::MessageActions { .. }),
+            "owner result owns dismissal"
+        );
+        state.close_panel();
+        state.paint_transcript_at(rect, &rows, total, scroll, Some(frame), &targets);
         assert_eq!(
             state.user_message_target_at(frame, rect.x, y),
             None,
@@ -10700,6 +10933,11 @@ mod tests {
             frame,
         );
         assert_eq!(state.user_message_target_at(frame, x, y), None);
+        assert_eq!(
+            state.panel(),
+            &TuiPanel::None,
+            "drag cannot open Message Actions"
+        );
         assert_eq!(state.take_copy_request().as_deref(), Some("sa"));
 
         // Even a previously painted coordinate cannot target a new viewport.
@@ -10708,6 +10946,242 @@ mod tests {
         state.scroll = 0;
         state.clear_mouse_position();
         assert_eq!(state.user_message_target_at(frame, x, y), None);
+    }
+
+    #[tokio::test]
+    async fn vis10_painted_target_rejects_identity_change_and_distinguishes_live_echo() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        let mut state = fresh_state("identity-ownership").await;
+        let frame = Rect::new(0, 0, 70, 28);
+        let mut message = msg(9, Role::User, "identical visible text");
+        message.id = oc_core::session::MessageId("owner-original".into());
+        state.attach_page(&page(vec![message.clone()], 1, false, false));
+        let area = crate::shell::transcript_area(&state, frame);
+        let (lines, total, scroll, targets) =
+            state.visible_transcript_at_viewport_with_targets(area.width, frame.width, area.height);
+        state.observe_transcript_viewport(area.width, frame.width, area.height, total, scroll);
+        state.paint_transcript_at(area, &lines, total, scroll, Some(frame), &targets);
+        let y = area.y + targets.iter().position(Option::is_some).unwrap() as u16;
+        let x = area.x + 3;
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+            frame,
+        );
+        assert_eq!(
+            state.panel(),
+            &TuiPanel::MessageActions {
+                message: message.id.clone(),
+                seq: 9
+            }
+        );
+        let click = state.click;
+        state.close_panel();
+        state.paint_transcript_at(area, &lines, total, scroll, Some(frame), &targets);
+        state.click = click;
+        assert_eq!(
+            state
+                .user_message_target_at(frame, x, y)
+                .unwrap()
+                .message_id
+                .as_deref(),
+            Some(&message.id)
+        );
+
+        message.id = oc_core::session::MessageId("owner-replacement".into());
+        // Keep the old paint and click intact: only durable identity changes.
+        state.window.reset(&page(vec![message], 1, false, false));
+        assert!(
+            state.user_message_target_at(frame, x, y).is_none(),
+            "identical pixels/sequence cannot authorize a stale owner identity"
+        );
+        state.window.push_synthetic("user", "live echo", None, None);
+        let (lines, total, scroll, targets) =
+            state.visible_transcript_at_viewport_with_targets(area.width, frame.width, area.height);
+        state.observe_transcript_viewport(area.width, frame.width, area.height, total, scroll);
+        state.paint_transcript_at(area, &lines, total, scroll, Some(frame), &targets);
+        let live_row = targets
+            .iter()
+            .position(|t| t.as_ref().is_some_and(|t| t.seq == i64::MAX))
+            .unwrap();
+        state.click = None;
+        state.handle_mouse(
+            selection_mouse(
+                MouseEventKind::Down(MouseButton::Left),
+                x,
+                area.y + live_row as u16,
+            ),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(
+                MouseEventKind::Up(MouseButton::Left),
+                x,
+                area.y + live_row as u16,
+            ),
+            frame,
+        );
+        let target = state
+            .user_message_target_at(frame, x, area.y + live_row as u16)
+            .unwrap();
+        assert!(
+            target.message_id.is_none(),
+            "echo may hover but has no durable action owner"
+        );
+        assert_eq!(
+            state.panel(),
+            &TuiPanel::None,
+            "live echo cannot open owner actions"
+        );
+        assert!(
+            targets.iter().flatten().filter(|t| t.seq == 9).all(|t| t
+                .message_id
+                .as_ref()
+                .unwrap()
+                .0
+                == "owner-replacement")
+        );
+    }
+
+    #[tokio::test]
+    async fn message_press_receipt_rejects_other_release_repaint_and_history_replacement() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        let mut state = fresh_state("press-identity").await;
+        let frame = Rect::new(0, 0, 90, 35);
+        let first = msg(1, Role::User, "first target");
+        let second = msg(2, Role::User, "second target");
+        for replacement in [0, 1, 2] {
+            state.attach_page(&page(vec![first.clone(), second.clone()], 2, false, false));
+            let area = crate::shell::transcript_area(&state, frame);
+            let (rows, total, scroll, targets) = state.visible_transcript_at_viewport_with_targets(
+                area.width,
+                frame.width,
+                area.height,
+            );
+            state.observe_transcript_viewport(area.width, frame.width, area.height, total, scroll);
+            state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &targets);
+            let y1 = area.y
+                + targets
+                    .iter()
+                    .position(|t| t.as_ref().is_some_and(|t| t.seq == 1))
+                    .unwrap() as u16;
+            let y2 = area.y
+                + targets
+                    .iter()
+                    .position(|t| t.as_ref().is_some_and(|t| t.seq == 2))
+                    .unwrap() as u16;
+            let x = area.x + 4;
+            state.handle_mouse(
+                selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y1),
+                frame,
+            );
+            let release_y = if replacement != 0 {
+                let mut swapped = first.clone();
+                swapped.id = oc_core::session::MessageId("different-owner".into());
+                let next_page = page(vec![swapped, second.clone()], 2, false, false);
+                if replacement == 1 {
+                    state.attach_page(&next_page);
+                } else {
+                    // Repaint replaces A with B before release without a view reset.
+                    state.window.reset(&next_page);
+                }
+                let (rows, total, scroll, targets) = state
+                    .visible_transcript_at_viewport_with_targets(
+                        area.width,
+                        frame.width,
+                        area.height,
+                    );
+                state.observe_transcript_viewport(
+                    area.width,
+                    frame.width,
+                    area.height,
+                    total,
+                    scroll,
+                );
+                state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &targets);
+                y1
+            } else {
+                y2
+            };
+            state.handle_mouse(
+                selection_mouse(MouseEventKind::Up(MouseButton::Left), x, release_y),
+                frame,
+            );
+            assert_eq!(state.panel(), &TuiPanel::None);
+        }
+    }
+
+    #[tokio::test]
+    async fn message_actions_focus_intents_clipboard_result_and_escape() {
+        use oc_core::session::MessageId;
+        let mut state = fresh_state("message-actions").await;
+        let message = msg(4, Role::User, "stored prompt");
+        state.attach_page(&page(vec![message.clone()], 1, false, false));
+        state.restore_prompt("unfinished draft".into());
+        state.panel = TuiPanel::MessageActions {
+            message: message.id.clone(),
+            seq: 4,
+        };
+        state.handle_key(KeyAction::Down).await;
+        state.handle_key(KeyAction::Down).await;
+        assert_eq!(state.select.cursor, 2);
+        for (key, cursor) in [
+            (KeyAction::Home, 0),
+            (KeyAction::End, 3),
+            (KeyAction::Up, 2),
+            (KeyAction::PageUp, 0),
+            (KeyAction::PageDown, 2),
+        ] {
+            state.handle_key(key).await;
+            assert_eq!(state.select.cursor, cursor);
+        }
+        assert_eq!(
+            state.handle_key(KeyAction::Enter).await.intent,
+            Some(PanelIntent::CopyMessage {
+                message: message.id.clone(),
+                seq: 4
+            })
+        );
+        state
+            .copy_message_text("exact owner text\n".into())
+            .unwrap();
+        assert_eq!(
+            state.take_copy_request().as_deref(),
+            Some("exact owner text\n")
+        );
+        state.report_clipboard_result(Err("unavailable".into()));
+        assert!(matches!(state.panel(), TuiPanel::MessageActions { .. }));
+        assert_eq!(state.input(), "unfinished draft");
+        state.report_clipboard_result(Ok(()));
+        assert_eq!(state.panel(), &TuiPanel::None);
+        state.panel = TuiPanel::MessageActions {
+            message: message.id.clone(),
+            seq: 4,
+        };
+        state.handle_key(KeyAction::End).await;
+        assert_eq!(
+            state.handle_key(KeyAction::Enter).await.intent,
+            Some(PanelIntent::ForkMessage {
+                message: message.id.clone()
+            })
+        );
+        state.handle_key(KeyAction::Cancel).await;
+        assert_eq!(state.panel(), &TuiPanel::None);
+        assert_eq!(state.input(), "unfinished draft");
+        state.panel = TuiPanel::MessageActions {
+            message: MessageId("stale".into()),
+            seq: 4,
+        };
+        assert!(state.panel_enter().intent.is_none());
+        assert!(
+            state
+                .copy_message_text("x".repeat(super::MAX_SELECTION_BYTES + 1))
+                .is_err()
+        );
+        assert!(state.take_copy_request().is_none());
     }
 
     #[tokio::test]

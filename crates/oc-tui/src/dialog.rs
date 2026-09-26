@@ -481,6 +481,36 @@ impl SelectList {
             if option.current {
                 line(frame, area.x + 2, y, 1, "●", style);
             }
+            if title == "Message Actions" {
+                // Donor descriptions follow the title inline; these are not
+                // right-aligned shortcut/footer labels.
+                let title_width = ratatui::text::Line::raw(option.title.as_str()).width() as u16;
+                line(
+                    frame,
+                    area.x + 4,
+                    y,
+                    area.width - 8,
+                    &option.title,
+                    if active {
+                        style.add_modifier(Modifier::BOLD)
+                    } else {
+                        style
+                    },
+                );
+                line(
+                    frame,
+                    area.x + 4 + title_width,
+                    y,
+                    area.width.saturating_sub(8 + title_width),
+                    &format!(" {}", option.footer),
+                    if active {
+                        style.add_modifier(Modifier::BOLD)
+                    } else {
+                        style.fg(muted)
+                    },
+                );
+                continue;
+            }
             let right = if flat && !option.category.is_empty() {
                 format!(
                     "{}{}{}",
@@ -544,6 +574,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     let title = match state.panel() {
         TuiPanel::None => return,
         TuiPanel::Commands => "Commands",
+        TuiPanel::MessageActions { .. } => "Message Actions",
         TuiPanel::Model => "Select model",
         TuiPanel::Variant => "Select variant",
         TuiPanel::Agents => "Select agent",

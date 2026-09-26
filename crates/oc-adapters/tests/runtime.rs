@@ -914,6 +914,67 @@ fn params<'c>(
 static NO_CANCEL: AtomicBool = AtomicBool::new(false);
 
 #[tokio::test]
+async fn runtime_shell_timeout_and_cancellation_have_typed_terminal_states() {
+    for cancelled in [false, true] {
+        let (harness, generation) = make_harness(allow_all());
+        let runtime = runtime_of(&harness, generation, Vec::new());
+        runtime.create_session("shell-state").unwrap();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let marker = harness._project.path().join("marker");
+        let cancellation = if cancelled {
+            let flag = cancel.clone();
+            Some(std::thread::spawn(move || {
+                let started = std::time::Instant::now();
+                while !marker.exists() && started.elapsed() < Duration::from_secs(5) {
+                    std::thread::sleep(Duration::from_millis(5));
+                }
+                flag.store(true, Ordering::Release);
+            }))
+        } else {
+            None
+        };
+        let batch = sse_tool_call(
+            "effect",
+            "bash",
+            &serde_json::json!({"argv":["/bin/sh","-c","printf partial > marker; sleep 5"],"timeout_ms":if cancelled {5000} else {100}}),
+        ) + &sse_completed();
+        let (base, _, _) = Fake::start_recording(
+            vec![batch, sse_delta("done") + &sse_completed()],
+            Duration::ZERO,
+        );
+        let report = runtime
+            .run_turn(params(
+                "shell-state",
+                "write then interrupt",
+                &harness,
+                provider_of(&base),
+                &cancel,
+            ))
+            .await
+            .unwrap();
+        if let Some(thread) = cancellation {
+            thread.join().unwrap();
+        }
+        let expected = if cancelled { "cancelled" } else { "timed_out" };
+        assert_eq!(report.calls[0].state, expected);
+        assert_eq!(
+            report.status,
+            if cancelled {
+                TurnStatus::Cancelled
+            } else {
+                TurnStatus::Completed
+            }
+        );
+        let operation = harness.db.list_tool_ops("shell-state").unwrap().remove(0);
+        assert_eq!(operation.state, expected);
+        assert_eq!(
+            std::fs::read(harness._project.path().join("marker")).unwrap(),
+            b"partial"
+        );
+    }
+}
+
+#[tokio::test]
 async fn accepted_model_switch_is_public_only_and_does_not_add_provider_requests() {
     let (mut harness, generation) = make_harness(allow_all());
     harness.catalog.models.get_mut("m").unwrap()["variants"] = serde_json::json!({"default": {}});

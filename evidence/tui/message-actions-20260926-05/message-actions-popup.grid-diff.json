@@ -1,0 +1,123 @@
+{
+  "kind": "grid",
+  "status": "FAIL",
+  "scope": "frame equality only; capture provenance is not attested",
+  "scenario": "message-actions-popup",
+  "fixture_sha256": "02c983179d57a4ea5014a260f0f4de95d79b7a9c011a43b2b157b0fad4bc8ce2",
+  "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+  "reference_sha256": "41b8d77d1813de559b9be305048ecbafdebecd4f1d57996bbcb44e0d8244861d",
+  "actual_sha256": "8f553737a0a81dbd2018065619792c67c249046590a531858db75b180e86e978",
+  "reference_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "actual_commit": "fee0123a05007155f7253330f89a262951c23749",
+  "cells_checked": 4800,
+  "different_cells": 14,
+  "cursor_differs": false,
+  "difference_bbox_inclusive": [
+    59,
+    16,
+    72,
+    16
+  ],
+  "samples": [
+    {
+      "x": 59,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 60,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 61,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 62,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 63,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 64,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 65,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 66,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 67,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 68,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 69,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 70,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 71,
+      "y": 16,
+      "different_fields": [
+        "symbol",
+        "fg"
+      ]
+    },
+    {
+      "x": 72,
+      "y": 16,
+      "different_fields": [
+        "symbol",
+        "fg"
+      ]
+    }
+  ]
+}

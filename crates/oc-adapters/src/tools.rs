@@ -893,6 +893,17 @@ fn patch_file_result(file: &FileResult) -> String {
 }
 
 async fn tool_bash(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
+    execute_bash_typed(ctx, call).await.1
+}
+
+/// Preserve supervised process semantics independently of formatted output.
+pub(crate) async fn execute_bash_typed(
+    ctx: &ToolContext<'_>,
+    call: &ToolCall,
+) -> (&'static str, String) {
+    if let Err(error) = ctx.policy.check_call(call) {
+        return ("failed", format!("error: {error}"));
+    }
     let argv: Vec<String> = call
         .arguments
         .get("argv")
@@ -904,13 +915,17 @@ async fn tool_bash(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
         })
         .unwrap_or_default();
     if argv.is_empty() {
-        return "error: invalid arguments for bash: missing argv".to_string();
+        return (
+            "failed",
+            "error: invalid arguments for bash: missing argv".to_string(),
+        );
     }
     let cwd = call
         .arguments
         .get("cwd")
         .and_then(|v| v.as_str())
-        .unwrap_or(".");
+        .unwrap_or(".")
+        .to_string();
     let timeout_ms = call
         .arguments
         .get("timeout_ms")
@@ -922,11 +937,41 @@ async fn tool_bash(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
         kill_grace: Duration::from_millis(500),
         retain_cap: crate::shell::RETAIN_CAP_BYTES,
     };
-    match ctx
-        .shell
-        .execute(ctx.parent_env, &argv, cwd, None, limits, ctx.cancel)
-    {
-        Ok(outcome) => {
+    let shell = ctx.shell.clone();
+    let env = ctx.parent_env.clone();
+    let cancel = std::sync::Arc::new(AtomicBool::new(
+        ctx.cancel.load(std::sync::atomic::Ordering::Acquire),
+    ));
+    struct CancelOnDrop(std::sync::Arc<AtomicBool>);
+    impl Drop for CancelOnDrop {
+        fn drop(&mut self) {
+            self.0.store(true, std::sync::atomic::Ordering::Release);
+        }
+    }
+    let _cleanup = CancelOnDrop(cancel.clone());
+    let owned_cancel = cancel.clone();
+    let mut task = tokio::task::spawn_blocking(move || {
+        shell.execute(&env, &argv, &cwd, None, limits, &owned_cancel)
+    });
+    let result = loop {
+        tokio::select! {
+            result = &mut task => break result,
+            () = tokio::time::sleep(Duration::from_millis(5)) => {
+                if ctx.cancel.load(std::sync::atomic::Ordering::Acquire) { cancel.store(true,std::sync::atomic::Ordering::Release); }
+            }
+        }
+    };
+    match result {
+        Ok(Ok(outcome)) => {
+            let state = if outcome.cancelled {
+                "cancelled"
+            } else if outcome.timed_out {
+                "timed_out"
+            } else if outcome.code == Some(0) {
+                "completed"
+            } else {
+                "failed"
+            };
             let mut text = String::new();
             match outcome.code {
                 Some(code) => text.push_str(&format!("exit {code}\n")),
@@ -943,9 +988,20 @@ async fn tool_bash(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
             if outcome.timed_out {
                 text.push_str("\n[timeout]");
             }
-            text
+            if outcome.cancelled {
+                text.push_str("\n[cancelled]");
+            }
+            (state, text)
         }
-        Err(e) => format!("error: {e}"),
+        Ok(Err(e)) => (
+            if matches!(e, crate::shell::ShellError::Reap) {
+                "unknown"
+            } else {
+                "failed"
+            },
+            format!("error: {e}"),
+        ),
+        Err(_) => ("unknown", "error: shell worker failed".into()),
     }
 }
 

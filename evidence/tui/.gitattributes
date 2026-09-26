@@ -81,3 +81,5 @@ early-title-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 early-title-*/*/*.vt binary
 message-hover-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 message-hover-*/*/*.vt binary
+message-actions-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+message-actions-*/*/*.vt binary

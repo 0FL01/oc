@@ -1,0 +1,693 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-26T10:00:29.420Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "0b7f1e3a936b880ab638226a02aada01d12d3cfb6b0bdfff6785ffed186b315f",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "b17abde5d053fa31f4f4708c81c1740b89580792df7d2efa9f9c647ed42154e5",
+    "message_actions.mjs": "964ffa7c9527dbc1311f075f2ccdd7c47db7071c18fe618cba0428e659095308"
+  },
+  "fixture_sha256": "83884b4b38ead79fe3bbbdf01c739ffc16043d5ec23c82a80110a8e92ca09aec",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "fee0123a05007155f7253330f89a262951c23749",
+    "tree": "ecbdc29f6a003c8a6766df60f0c8922c6f4f7829",
+    "dirty_diff_sha256": "7d79e520c60945a7ff3aa5223367c951f69eda35e2980fa22e049a61d66f767d",
+    "source_manifest_sha256": "203f8a37b47ecd3c3b9db46a57310d17fc7b4a537348340ba86da6d5650288ff",
+    "build_provenance": "Existing binary; build/source association not attested by this run",
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "5ceb43799e1f5aac9e60184e360e03e0307ad374828d49aad153781fb8407081",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "message-actions-user-hover",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "message-actions-user-hover",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "message-actions-popup",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "message-actions-popup",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "message-actions-copy-hover",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "message-actions-copy-hover",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "message-actions-copy-after",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "message-actions-copy-after",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "native-conversation-undo-one",
+      "mode": "grid",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    },
+    {
+      "scenario": "native-conversation-undo-one",
+      "mode": "png",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    },
+    {
+      "scenario": "native-conversation-undo-two",
+      "mode": "grid",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    },
+    {
+      "scenario": "native-conversation-undo-two",
+      "mode": "png",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    },
+    {
+      "scenario": "native-conversation-redo-one",
+      "mode": "grid",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    },
+    {
+      "scenario": "native-conversation-redo-one",
+      "mode": "png",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    },
+    {
+      "scenario": "native-conversation-redo-two",
+      "mode": "grid",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    },
+    {
+      "scenario": "native-conversation-redo-two",
+      "mode": "png",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "a23e990a0282c9c00523d7f7431c84bf7b2b8c691c0b347b9938638686569ed1",
+      "png_sha256": "c4f88ae9751cb9bc5595875329cbfe65180c2a2c5ab72f85dea3e55ac831c439",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "058d561701c717f73b4b1fb124dbc48b1e75d37bf43d311611d0524116b64a8c",
+      "png_sha256": "52fb598e68d8137fa2735d7d7e6f980db2f969ea53fbc0208206f8abe26c1679",
+      "render_sha256": "31f31f7967a9b188338e122ceec9ca19a46a316b78492e4ee12ffd5204ba486e",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "message-actions-user-hover",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f0f9f57d5d641ff2059b6cbbc250bf4d2ed36a43f9d172e24ec3e7785d142646",
+      "png_sha256": "a4fa2630002dba1ecc8c64a996bd2f088c9c6232797bd3620d7ddb6994805a13",
+      "render_sha256": "3ec96add836e9c1809da2c143922fd16d022bd29837ce1f7733a72c170f16c1c",
+      "path": "upstream/message-actions-user-hover"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "message-actions-popup",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c64556ee624ba52c5fbaa92907f6118d789dc434312a82fbe4c8ace1157f9990",
+      "png_sha256": "6f7265d54b108c24df3922d6e3159935955670843e83a521b7c88840cd2485f8",
+      "render_sha256": "bb6fdb411e83829fb7b5b88c146dbede8d6d90d40c7590ce3dea2dd7bc270863",
+      "path": "upstream/message-actions-popup"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "message-actions-copy-hover",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "fdfe5c35caf838c1bf7ba428905c0012075def393b6367fe5f4cc1a97d90585b",
+      "png_sha256": "62354d1630a04eb2bd554abb55a3ea6d97b539751dca16bf531a60f6c41ad599",
+      "render_sha256": "37280c08a58074512918dbc8b11a1d0d2759ff6a55360d816b7d05642688fd35",
+      "path": "upstream/message-actions-copy-hover"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "message-actions-copy-after",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "587f2b44ae8daa306a4f5053095806422a2030689a50d905b4291969f9d9a2bf",
+      "png_sha256": "52fb598e68d8137fa2735d7d7e6f980db2f969ea53fbc0208206f8abe26c1679",
+      "render_sha256": "d537a25b8e6b175f26cdc99de690abfd126f7aa1dd8b0b00537876d7eca266d2",
+      "path": "upstream/message-actions-copy-after"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2902f4489491266d235c746fa2e7908ce3a5c9b02117d05b662d57ee4eb52cad",
+      "png_sha256": "191be76e966940793c62029598c009b471ac1178f1834c1de0b3c6c758557439",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "26b64ad0d7b75063450b70cf26d436ab95e0a5860f79465194967d35c6d7fa5e",
+      "png_sha256": "4fc6904726f258b36d7a2ca6c6bce29ebcad144e6ef271afe5cb92388e71eb00",
+      "render_sha256": "bbcb61aa1a235504674a1c080c5988494874fc609d68d829d07af90a21840b16",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "message-actions-user-hover",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "227699b5a4c2489ad666d354b1457394cd44d76f6ccde1f17c78a64377f9ed36",
+      "png_sha256": "389760977956ed8175f8723bf453ee4e7791be189f402f51003ae124a4aba6e7",
+      "render_sha256": "947863de3b15b1d1a3d211cb8e97f748bafc1eb2324b24ab1d2cbc0a6f87a373",
+      "path": "oc/message-actions-user-hover"
+    },
+    {
+      "origin": "oc",
+      "scenario": "message-actions-popup",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c1df731cf3505835104d091fb0d1ee68e9f164d618316923717de93e7d31e36a",
+      "png_sha256": "1c10b5af3b55dab92ccf04b6b3e77d7b45b5d0ca380693887bfe1a9bc9a6cb22",
+      "render_sha256": "7614ebf4af32c19b667b18afcf2968e7e9dfea1db7afdd9f9edf27a05ad5366d",
+      "path": "oc/message-actions-popup"
+    },
+    {
+      "origin": "oc",
+      "scenario": "message-actions-copy-hover",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "b4fed5092dce89e9eed1033cb92e14edd31efa503a098fbf4a7af8c7ea6e4c9d",
+      "png_sha256": "dbcf999a61886fc9ded09bcfb632a61c3cc90e8b38a6fb9e28157006183750d9",
+      "render_sha256": "2d722e03c627556f941f5ce99698c357e7e8c78fa4f429ee8cf1494d083328ee",
+      "path": "oc/message-actions-copy-hover"
+    },
+    {
+      "origin": "oc",
+      "scenario": "message-actions-copy-after",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "9d49bfe453b654bcebae0cf9f95fc701fef59ab67fc6226086227b05cae5fb1a",
+      "png_sha256": "f99008b990e657c6e022f2d2a9645e4b262799dff872de8c63a860e425ee2da2",
+      "render_sha256": "5e88f9d7dc591f273c553b03f5ca79002e08a43ac776d4cdc934614aef3e3b3e",
+      "path": "oc/message-actions-copy-after"
+    },
+    {
+      "origin": "oc",
+      "scenario": "native-conversation-undo-one",
+      "status": "CAPTURED_NATIVE_APPROVED_DIVERGENCE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "5d50a328f54b365cbff595b1e70c4e25b861c75403ffa444b365d0f76c0402f5",
+      "png_sha256": "16e62d90ee26528143d8c47e343d6ea68da55f0798ac4f5a7ecdf5a7c7572e1e",
+      "render_sha256": "8e387070684f899eb2e817630839049371bba8a59fbc3df32e8c7bb142064632",
+      "path": "oc/native-conversation-undo-one"
+    },
+    {
+      "origin": "oc",
+      "scenario": "native-conversation-undo-two",
+      "status": "CAPTURED_NATIVE_APPROVED_DIVERGENCE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d046319321966a98e4c78deace0a6f7b2df2a2e8f8a8953366e631ecaec39dbd",
+      "png_sha256": "3358b8492eafd9df5f3bf0181acd0719f839ffb584fa128b971fafe6f9bf15a3",
+      "render_sha256": "10fb0d1c172ca90ee600175d85397cfed908a7b6ea563f5aef5c7013a27c775d",
+      "path": "oc/native-conversation-undo-two"
+    },
+    {
+      "origin": "oc",
+      "scenario": "native-conversation-redo-one",
+      "status": "CAPTURED_NATIVE_APPROVED_DIVERGENCE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "b4b834a5e6386aea2271abb0f3dd234caf076cc47b3f0ac521736b1339ca8197",
+      "png_sha256": "4fc6904726f258b36d7a2ca6c6bce29ebcad144e6ef271afe5cb92388e71eb00",
+      "render_sha256": "5328ece5b32b43e76e016a8a7193e521277736824c6eea5f88c4ea4014722858",
+      "path": "oc/native-conversation-redo-one"
+    },
+    {
+      "origin": "oc",
+      "scenario": "native-conversation-redo-two",
+      "status": "CAPTURED_NATIVE_APPROVED_DIVERGENCE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "b31397a8fbec30c3b1200f30fcc0100195872cd68367338fdaea3eb2ff3de56b",
+      "png_sha256": "e57a2e6a65a2f9ae2c1e9610aa312925f0ed9973fc7a2336d1f4125fdd508255",
+      "render_sha256": "2e43ac1684e9ad21f4611cd03a31a0489728f890457fcfc00ec56558e86db64d",
+      "path": "oc/native-conversation-redo-two"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "message_actions": {
+    "upstream": {
+      "status": "PASS",
+      "checks": [
+        {
+          "stage": "hover",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 9,
+            "y": 3
+          },
+          "bytes_base64": "G1s8MzU7MTA7NE0="
+        },
+        {
+          "stage": "click",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 9,
+            "y": 3
+          },
+          "bytes_base64": "G1s8MDsxMDs0TRtbPDA7MTA7NG0="
+        },
+        {
+          "stage": "popup",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "options": [
+            {
+              "label": "Jump to",
+              "x": 34,
+              "y": 15
+            },
+            {
+              "label": "Revert",
+              "x": 34,
+              "y": 16
+            },
+            {
+              "label": "Copy",
+              "x": 34,
+              "y": 17
+            },
+            {
+              "label": "Fork",
+              "x": 34,
+              "y": 18
+            }
+          ],
+          "provider_unchanged": true
+        },
+        {
+          "stage": "hover",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 34,
+            "y": 17
+          },
+          "bytes_base64": "G1s8MzU7MzU7MThN"
+        },
+        {
+          "stage": "click",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 34,
+            "y": 17
+          },
+          "bytes_base64": "G1s8MDszNTsxOE0bWzwwOzM1OzE4bQ=="
+        },
+        {
+          "stage": "copy-effect",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "predicates": {
+            "dialog_closed": true,
+            "osc52_exact_prompt": true,
+            "provider_unchanged": true
+          },
+          "copy_feedback": false,
+          "osc52_payloads": [
+            "Какие тебе тулы доступны?"
+          ],
+          "system_clipboard": "NOT_VERIFIED_BY_PTY"
+        }
+      ],
+      "native_conversation": {
+        "status": "NOT_RUN"
+      },
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "oc": {
+      "status": "PASS",
+      "checks": [
+        {
+          "stage": "hover",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 9,
+            "y": 3
+          },
+          "bytes_base64": "G1s8MzU7MTA7NE0="
+        },
+        {
+          "stage": "click",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 9,
+            "y": 3
+          },
+          "bytes_base64": "G1s8MDsxMDs0TRtbPDA7MTA7NG0="
+        },
+        {
+          "stage": "popup",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "options": [
+            {
+              "label": "Jump to",
+              "x": 34,
+              "y": 15
+            },
+            {
+              "label": "Revert",
+              "x": 34,
+              "y": 16
+            },
+            {
+              "label": "Copy",
+              "x": 34,
+              "y": 17
+            },
+            {
+              "label": "Fork",
+              "x": 34,
+              "y": 18
+            }
+          ],
+          "provider_unchanged": true
+        },
+        {
+          "stage": "hover",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 34,
+            "y": 17
+          },
+          "bytes_base64": "G1s8MzU7MzU7MThN"
+        },
+        {
+          "stage": "click",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 34,
+            "y": 17
+          },
+          "bytes_base64": "G1s8MDszNTsxOE0bWzwwOzM1OzE4bQ=="
+        },
+        {
+          "stage": "copy-effect",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "predicates": {
+            "dialog_closed": true,
+            "osc52_exact_prompt": true,
+            "provider_unchanged": true
+          },
+          "copy_feedback": true,
+          "osc52_payloads": [
+            "Какие тебе тулы доступны?"
+          ],
+          "system_clipboard": "NOT_VERIFIED_BY_PTY"
+        },
+        {
+          "stage": "undo-one",
+          "provider_counts": {
+            "requests": 5,
+            "completed": 5,
+            "invalid": 0
+          },
+          "predicates": {
+            "first_answer_visible": true,
+            "second_answer_visible": false,
+            "restored_draft": "Second same-session spacing check?",
+            "zero_extra_provider_calls": true
+          },
+          "cursor": {
+            "x": 39,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "undo-two",
+          "provider_counts": {
+            "requests": 5,
+            "completed": 5,
+            "invalid": 0
+          },
+          "predicates": {
+            "first_answer_visible": false,
+            "second_answer_visible": false,
+            "restored_draft": "Какие тебе тулы доступны?",
+            "zero_extra_provider_calls": true
+          },
+          "cursor": {
+            "x": 30,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "redo-one",
+          "provider_counts": {
+            "requests": 5,
+            "completed": 5,
+            "invalid": 0
+          },
+          "predicates": {
+            "first_answer_visible": true,
+            "second_answer_visible": false,
+            "restored_draft": null,
+            "zero_extra_provider_calls": true
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "redo-two",
+          "provider_counts": {
+            "requests": 5,
+            "completed": 5,
+            "invalid": 0
+          },
+          "predicates": {
+            "first_answer_visible": true,
+            "second_answer_visible": true,
+            "restored_draft": null,
+            "zero_extra_provider_calls": true
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "native_conversation": {
+        "status": "PASS",
+        "baseline": {
+          "requests": 5,
+          "completed": 5,
+          "invalid": 0
+        }
+      },
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-26T10:01:46.593Z",
+  "exit_code": 1
+}

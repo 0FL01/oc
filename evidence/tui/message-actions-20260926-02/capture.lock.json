@@ -1,0 +1,701 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-26T09:35:34.872Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "0b7f1e3a936b880ab638226a02aada01d12d3cfb6b0bdfff6785ffed186b315f",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "b17abde5d053fa31f4f4708c81c1740b89580792df7d2efa9f9c647ed42154e5",
+    "message_actions.mjs": "964ffa7c9527dbc1311f075f2ccdd7c47db7071c18fe618cba0428e659095308"
+  },
+  "fixture_sha256": "83884b4b38ead79fe3bbbdf01c739ffc16043d5ec23c82a80110a8e92ca09aec",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "1f759dda28b5cae7e2f5b960659a091a32a1c9a3",
+    "tree": "5c0bbcf3fbd6fcbbeb9b9b475f23bc7a3904e918",
+    "dirty_diff_sha256": "694cba859c4328ef50613242d078444c5f649743d0f0233b1fbd7a23cb8f22ff",
+    "source_manifest_sha256": "fe1cab2c4eb3c38def2b0c957ed64c04fedc4e62c3613b191f84a07aaf1c46de",
+    "build_provenance": "Existing binary; build/source association not attested by this run",
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "6adcd8339f8a294d73241ec012220d77026056969f828c4f505b1b802d0b1153",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "upstream",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "origin": "oc",
+      "status": "EXECUTED",
+      "provider_contract": true
+    },
+    {
+      "scenario": "home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "grid",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "session-wide-completed",
+      "mode": "png",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "message-actions-user-hover",
+      "mode": "grid",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "message-actions-user-hover",
+      "mode": "png",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "message-actions-popup",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "message-actions-popup",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "message-actions-copy-hover",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "message-actions-copy-hover",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "message-actions-copy-after",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "message-actions-copy-after",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "native-conversation-undo-one",
+      "mode": "grid",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    },
+    {
+      "scenario": "native-conversation-undo-one",
+      "mode": "png",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    },
+    {
+      "scenario": "native-conversation-undo-two",
+      "mode": "grid",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    },
+    {
+      "scenario": "native-conversation-undo-two",
+      "mode": "png",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    },
+    {
+      "scenario": "native-conversation-redo-one",
+      "mode": "grid",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    },
+    {
+      "scenario": "native-conversation-redo-one",
+      "mode": "png",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    },
+    {
+      "scenario": "native-conversation-redo-two",
+      "mode": "grid",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    },
+    {
+      "scenario": "native-conversation-redo-two",
+      "mode": "png",
+      "status": "NATIVE_ONLY_APPROVED_DIVERGENCE"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "31cc875b6ab6ba2bdc8a85dc8cc6f81a27148c853f242c105490685f34b2af39",
+      "png_sha256": "2519c0324aa953ba4524acd39b3d5a5d6d389cb8dcd00d37dbdaef095a4741e0",
+      "render_sha256": "fe774fc36f87dc8687c0df340f78e6f260385bf4f5264686d1994152476271cc",
+      "path": "upstream/home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d31fe985e4613894c6cea06242b54be2b53793894be74360fb2758608c3ac763",
+      "png_sha256": "fb363261b4b7e11e603ece1fb380ef7f79783f54ff4fde5353aae182dcbadb7d",
+      "render_sha256": "31f31f7967a9b188338e122ceec9ca19a46a316b78492e4ee12ffd5204ba486e",
+      "path": "upstream/session-wide-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "message-actions-user-hover",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "8336870bb4600149c30f794e31fd2d73fc0201f3aac968945845a83b99a3235a",
+      "png_sha256": "1fb418f7c862d6b9c5db8116a1a5ed9ff34d9cfe479bc575e073a5553eb4d953",
+      "render_sha256": "3ec96add836e9c1809da2c143922fd16d022bd29837ce1f7733a72c170f16c1c",
+      "path": "upstream/message-actions-user-hover"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "message-actions-popup",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2c8d33ca434b0bfc462726f590b6c2f7112cf8fadd0284ffe5e77c1692a93622",
+      "png_sha256": "9242b13bb887c8c602a50058912c363ad0e2c1f44ac9260bb639718a45f0a944",
+      "render_sha256": "bb6fdb411e83829fb7b5b88c146dbede8d6d90d40c7590ce3dea2dd7bc270863",
+      "path": "upstream/message-actions-popup"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "message-actions-copy-hover",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c77bf95dcd6f70f22c696055e1234cb695c49f33e0c9bc7d3623eb9c282ac30d",
+      "png_sha256": "7d3ab87ec6ecd7f9b4569959bcfa4466ec4ac80e105330d0f9f1fc086e2795ae",
+      "render_sha256": "37280c08a58074512918dbc8b11a1d0d2759ff6a55360d816b7d05642688fd35",
+      "path": "upstream/message-actions-copy-hover"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "message-actions-copy-after",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c14ad9cc4f38dea502d6b3430bcb1141667c15c961be3adeb127aae84f30d3b3",
+      "png_sha256": "fb363261b4b7e11e603ece1fb380ef7f79783f54ff4fde5353aae182dcbadb7d",
+      "render_sha256": "d537a25b8e6b175f26cdc99de690abfd126f7aa1dd8b0b00537876d7eca266d2",
+      "path": "upstream/message-actions-copy-after"
+    },
+    {
+      "origin": "oc",
+      "scenario": "home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "64b07c153d0f34d2ef42d7747c9d6a0f8131d1d98c597796b0f66ee7b228c0bc",
+      "png_sha256": "9b8cb659e75fb27e6bacdd566e5673fa927526884d6d0bc2bf597000e3feb1ab",
+      "render_sha256": "b171b9c9288d065b1b289d37146e92079ff31a9b8866489ea948d02b9a2cd6c4",
+      "path": "oc/home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "session-wide-completed",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "210290700fc1e4559381f9473f2824ef468a5a80a5c81631158480dcced4efbd",
+      "png_sha256": "fb363261b4b7e11e603ece1fb380ef7f79783f54ff4fde5353aae182dcbadb7d",
+      "render_sha256": "bbcb61aa1a235504674a1c080c5988494874fc609d68d829d07af90a21840b16",
+      "path": "oc/session-wide-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "message-actions-user-hover",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "bfda04a4e394059c17f1060031627cdb0da923fcead5da49f37063605cf2ad0e",
+      "png_sha256": "1fb418f7c862d6b9c5db8116a1a5ed9ff34d9cfe479bc575e073a5553eb4d953",
+      "render_sha256": "947863de3b15b1d1a3d211cb8e97f748bafc1eb2324b24ab1d2cbc0a6f87a373",
+      "path": "oc/message-actions-user-hover"
+    },
+    {
+      "origin": "oc",
+      "scenario": "message-actions-popup",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "fdc5d397cde528e0fe6ce31666bf6a6c3c757734d60facef69fb927092dbf7f0",
+      "png_sha256": "593fbf6a42de30cfe92c9ada262743887a0316023be37eaf7af1c73475ef6a44",
+      "render_sha256": "7614ebf4af32c19b667b18afcf2968e7e9dfea1db7afdd9f9edf27a05ad5366d",
+      "path": "oc/message-actions-popup"
+    },
+    {
+      "origin": "oc",
+      "scenario": "message-actions-copy-hover",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "76195fadb7ff90fb8bdbba2e87e79a1f4b40a8511b8dba8679d9a081efe3b459",
+      "png_sha256": "e9117773f08a7ea365e32d5f4048a2637818b17d600c1baef36cc596f69ed63e",
+      "render_sha256": "2d722e03c627556f941f5ce99698c357e7e8c78fa4f429ee8cf1494d083328ee",
+      "path": "oc/message-actions-copy-hover"
+    },
+    {
+      "origin": "oc",
+      "scenario": "message-actions-copy-after",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f49db1e83d52b87107c47678b71c63c054ffb930656aa7b9c24a325ac1345edf",
+      "png_sha256": "e9117773f08a7ea365e32d5f4048a2637818b17d600c1baef36cc596f69ed63e",
+      "render_sha256": "2a92cb63044ea8b1d813b2f297aa6dfa06a80706ba3c6c61dd82a0e8fc9ef2af",
+      "path": "oc/message-actions-copy-after"
+    },
+    {
+      "origin": "oc",
+      "scenario": "native-conversation-undo-one",
+      "status": "CAPTURED_NATIVE_APPROVED_DIVERGENCE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d0aa95e3fcc73030cf703051a590f8a3f133f18eac464794584dfb4c7b7b9dc2",
+      "png_sha256": "8fa235ec0eb694ce5cf80c0e9e9dfe80752f677bb3a41b23a9c95f7d63612c6c",
+      "render_sha256": "8e387070684f899eb2e817630839049371bba8a59fbc3df32e8c7bb142064632",
+      "path": "oc/native-conversation-undo-one"
+    },
+    {
+      "origin": "oc",
+      "scenario": "native-conversation-undo-two",
+      "status": "CAPTURED_NATIVE_APPROVED_DIVERGENCE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "6ccf8ba894e2fa7d459980c7416bc5c6f6af4704ca07af0e1c0192072d20d25c",
+      "png_sha256": "53cefc23f383a46a9c7138a1b1a181349f77166f4c04609fd8f3286841433687",
+      "render_sha256": "10fb0d1c172ca90ee600175d85397cfed908a7b6ea563f5aef5c7013a27c775d",
+      "path": "oc/native-conversation-undo-two"
+    },
+    {
+      "origin": "oc",
+      "scenario": "native-conversation-redo-one",
+      "status": "CAPTURED_NATIVE_APPROVED_DIVERGENCE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "0c34ad6f044eb05185494584c30b2ec4b7f8a262f66d47cb07a5b86604491b25",
+      "png_sha256": "fb363261b4b7e11e603ece1fb380ef7f79783f54ff4fde5353aae182dcbadb7d",
+      "render_sha256": "5328ece5b32b43e76e016a8a7193e521277736824c6eea5f88c4ea4014722858",
+      "path": "oc/native-conversation-redo-one"
+    },
+    {
+      "origin": "oc",
+      "scenario": "native-conversation-redo-two",
+      "status": "CAPTURED_NATIVE_APPROVED_DIVERGENCE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "0470621a7958aeb6a618b524bd9626501812d8fdccd07ec26ce6df0f7f439c0c",
+      "png_sha256": "17316ee6a22242c82c779279e10365fe0be06f6944e0910fcdec41528704ebeb",
+      "render_sha256": "2e43ac1684e9ad21f4611cd03a31a0489728f890457fcfc00ec56558e86db64d",
+      "path": "oc/native-conversation-redo-two"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "message_actions": {
+    "upstream": {
+      "status": "PASS",
+      "checks": [
+        {
+          "stage": "hover",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 9,
+            "y": 3
+          },
+          "bytes_base64": "G1s8MzU7MTA7NE0="
+        },
+        {
+          "stage": "click",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 9,
+            "y": 3
+          },
+          "bytes_base64": "G1s8MDsxMDs0TRtbPDA7MTA7NG0="
+        },
+        {
+          "stage": "popup",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "options": [
+            {
+              "label": "Jump to",
+              "x": 34,
+              "y": 15
+            },
+            {
+              "label": "Revert",
+              "x": 34,
+              "y": 16
+            },
+            {
+              "label": "Copy",
+              "x": 34,
+              "y": 17
+            },
+            {
+              "label": "Fork",
+              "x": 34,
+              "y": 18
+            }
+          ],
+          "provider_unchanged": true
+        },
+        {
+          "stage": "hover",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 34,
+            "y": 17
+          },
+          "bytes_base64": "G1s8MzU7MzU7MThN"
+        },
+        {
+          "stage": "click",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 34,
+            "y": 17
+          },
+          "bytes_base64": "G1s8MDszNTsxOE0bWzwwOzM1OzE4bQ=="
+        },
+        {
+          "stage": "copy-effect",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "predicates": {
+            "dialog_closed": true,
+            "osc52_exact_prompt": true,
+            "provider_unchanged": true
+          },
+          "copy_feedback": false,
+          "osc52_payloads": [
+            "Какие тебе тулы доступны?"
+          ],
+          "system_clipboard": "NOT_VERIFIED_BY_PTY"
+        }
+      ],
+      "native_conversation": {
+        "status": "NOT_RUN"
+      },
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    },
+    "oc": {
+      "status": "FAILED_COPY_EFFECT",
+      "checks": [
+        {
+          "stage": "hover",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 9,
+            "y": 3
+          },
+          "bytes_base64": "G1s8MzU7MTA7NE0="
+        },
+        {
+          "stage": "click",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 9,
+            "y": 3
+          },
+          "bytes_base64": "G1s8MDsxMDs0TRtbPDA7MTA7NG0="
+        },
+        {
+          "stage": "popup",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "options": [
+            {
+              "label": "Jump to",
+              "x": 34,
+              "y": 15
+            },
+            {
+              "label": "Revert",
+              "x": 34,
+              "y": 16
+            },
+            {
+              "label": "Copy",
+              "x": 34,
+              "y": 17
+            },
+            {
+              "label": "Fork",
+              "x": 34,
+              "y": 18
+            }
+          ],
+          "provider_unchanged": true
+        },
+        {
+          "stage": "hover",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 34,
+            "y": 17
+          },
+          "bytes_base64": "G1s8MzU7MzU7MThN"
+        },
+        {
+          "stage": "click",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "point": {
+            "x": 34,
+            "y": 17
+          },
+          "bytes_base64": "G1s8MDszNTsxOE0bWzwwOzM1OzE4bQ=="
+        },
+        {
+          "stage": "copy-failed",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "reason": "Timed out waiting for real Copy result",
+          "visible_text": "   Какие инструменты доступны ас +                                                                                      \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  Какие тебе тулы доступны?                                                                                          \n  ┃                                                                                                                     \n                                                                                                                        \n     → Explored — 1 read                                                                                                \n                                                                                                                        \n     GEOMETRY-SHORT: tool read completed.                                                                               \n                                                                                                                        \n     Reader · MiMo-V2.6-Flash                                                                                           \n                                  Message Actions                                  esc                                  \n                                                                                                                        \n                                  Search                                                                                \n                                                                                                                        \n                                  Jump to view message in session                                                       \n                                  Revert undo messages and restore prompt                                               \n                                  Copy message text to clipboard                                                        \n                                  Fork create a new session                                                             \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃                                                                                                                     \n  ┃                                                                                                                     \n  ┃  Reader · MiMo-V2.6-Flash Free OpenCode Zen                                                                         \n  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  \n  /…/.cache/opencode-tmp/opencode/t44-reference/runs/message-actions-20260926-02/project    6.8K (3%)  ctrl+p commands  \n                                                                                                                        "
+        },
+        {
+          "stage": "copy-effect",
+          "provider_counts": {
+            "requests": 3,
+            "completed": 3,
+            "invalid": 0
+          },
+          "predicates": {
+            "dialog_closed": false,
+            "osc52_exact_prompt": false,
+            "provider_unchanged": true
+          },
+          "copy_feedback": false,
+          "osc52_payloads": [],
+          "system_clipboard": "NOT_VERIFIED_BY_PTY"
+        },
+        {
+          "stage": "undo-one",
+          "provider_counts": {
+            "requests": 5,
+            "completed": 5,
+            "invalid": 0
+          },
+          "predicates": {
+            "first_answer_visible": true,
+            "second_answer_visible": false,
+            "restored_draft": "Second same-session spacing check?",
+            "zero_extra_provider_calls": true
+          },
+          "cursor": {
+            "x": 39,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "undo-two",
+          "provider_counts": {
+            "requests": 5,
+            "completed": 5,
+            "invalid": 0
+          },
+          "predicates": {
+            "first_answer_visible": false,
+            "second_answer_visible": false,
+            "restored_draft": "Какие тебе тулы доступны?",
+            "zero_extra_provider_calls": true
+          },
+          "cursor": {
+            "x": 30,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "redo-one",
+          "provider_counts": {
+            "requests": 5,
+            "completed": 5,
+            "invalid": 0
+          },
+          "predicates": {
+            "first_answer_visible": true,
+            "second_answer_visible": false,
+            "restored_draft": null,
+            "zero_extra_provider_calls": true
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "redo-two",
+          "provider_counts": {
+            "requests": 5,
+            "completed": 5,
+            "invalid": 0
+          },
+          "predicates": {
+            "first_answer_visible": true,
+            "second_answer_visible": true,
+            "restored_draft": null,
+            "zero_extra_provider_calls": true
+          },
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        }
+      ],
+      "native_conversation": {
+        "status": "PASS",
+        "baseline": {
+          "requests": 5,
+          "completed": 5,
+          "invalid": 0
+        }
+      },
+      "baseline": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-26T09:36:55.007Z",
+  "exit_code": 1
+}

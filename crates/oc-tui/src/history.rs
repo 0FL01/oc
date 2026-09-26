@@ -16,7 +16,7 @@ use crate::tools::ToolRender;
 
 /// Max rows retained by the window.
 pub const WINDOW_ROWS: usize = 240;
-/// Max retained bytes (`role.len() + text.len()`) in the window.
+/// Max retained payload bytes (including durable identity and presentation metadata).
 pub const WINDOW_BYTES: usize = 256 * 1024;
 /// Max preview chars per card field.
 pub const CARD_PREVIEW: usize = 512;
@@ -26,6 +26,8 @@ pub const CARD_FILES: usize = 5;
 /// One history row with its durable sequence number.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HistoryRow {
+    /// Storage-owned identity shared by derived rows; absent for live/synthetic rows.
+    pub message_id: Option<std::sync::Arc<oc_core::session::MessageId>>,
     /// Message sequence (ordering key for paging); `i64::MAX` for synthetic
     /// rows that are not committed yet.
     pub seq: i64,
@@ -131,12 +133,13 @@ impl HistoryWindow {
         self.rows.is_empty()
     }
 
-    /// Sum of `role.len() + text.len()` over retained rows.
+    /// Retained payload bytes; shared IDs are conservatively counted per row.
     pub fn retained_bytes(&self) -> usize {
         self.rows
             .iter()
             .map(|row| {
                 row.role.len()
+                    + row.message_id.as_ref().map_or(0, |id| id.0.len())
                     + row.text.len()
                     + row.agent.as_ref().map_or(0, String::len)
                     + row.reasoning.as_ref().map_or(0, |r| r.text.len())
@@ -176,6 +179,7 @@ impl HistoryWindow {
         agent_color_index: Option<usize>,
     ) {
         self.rows.push(HistoryRow {
+            message_id: None,
             seq: i64::MAX,
             role: role.to_string(),
             text: text.to_string(),
@@ -212,6 +216,7 @@ impl HistoryWindow {
             self.rows.insert(
                 index,
                 HistoryRow {
+                    message_id: None,
                     seq: i64::MAX,
                     role: "model_switch".into(),
                     text,
@@ -248,8 +253,12 @@ impl HistoryWindow {
     }
 }
 
-fn row_from_page(row: &HistoryMessage) -> HistoryRow {
+fn row_from_page(
+    row: &HistoryMessage,
+    message_id: &std::sync::Arc<oc_core::session::MessageId>,
+) -> HistoryRow {
     HistoryRow {
+        message_id: Some(message_id.clone()),
         seq: row.seq,
         role: if row.model_switch.is_some() {
             "model_switch".into()
@@ -306,26 +315,28 @@ pub(crate) fn model_switch_text(notice: &oc_core::queries::ModelSwitchNotice) ->
 
 fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
     use oc_core::queries::TranscriptPart;
+    let message_id = std::sync::Arc::new(row.id.clone());
     if row.model_switch.is_some() {
-        return vec![row_from_page(row)];
+        return vec![row_from_page(row, &message_id)];
     }
     let Some(turn) = &row.turn else {
-        return vec![row_from_page(row)];
+        return vec![row_from_page(row, &message_id)];
     };
     let mut rows = Vec::new();
     if turn.legacy_text_only {
-        rows.push(row_from_page(row));
-        let mut notice = row_from_page(row);
+        rows.push(row_from_page(row, &message_id));
+        let mut notice = row_from_page(row, &message_id);
         notice.text = "[Legacy text-only history: reasoning and part order were not recorded; tool records remain available in /cards]".into();
         notice.role = "assistant".into();
         rows.push(notice);
         return rows;
     }
     if row.role == Role::User {
-        rows.push(row_from_page(row));
+        rows.push(row_from_page(row, &message_id));
     }
     // Avoid cloning the aggregate message once per projected part.
     let empty_row = || HistoryRow {
+        message_id: Some(message_id.clone()),
         seq: row.seq,
         role: "assistant".to_string(),
         text: String::new(),
@@ -538,6 +549,7 @@ mod tests {
 
     fn row(seq: i64, role: Role, text: &str) -> HistoryMessage {
         HistoryMessage {
+            id: oc_core::session::MessageId(format!("fixture-{seq}")),
             turn: None,
             model_switch: None,
             seq,
@@ -589,6 +601,42 @@ mod tests {
             "Switched model to Catalog Name (high)"
         );
         assert_eq!(window.rows()[3].text, "next");
+    }
+
+    #[test]
+    fn durable_identity_is_shared_by_derived_rows_and_absent_from_synthetic_rows() {
+        use oc_core::queries::{HistoryTurn, TranscriptPart};
+        let mut message = row(71, Role::Assistant, "aggregate");
+        message.id = oc_core::session::MessageId("opaque-durable-id".into());
+        message.turn = Some(HistoryTurn {
+            parts: vec![
+                TranscriptPart::Text("first".into()),
+                TranscriptPart::Text("second".into()),
+            ],
+            ..Default::default()
+        });
+        let mut window = super::HistoryWindow::new();
+        window.reset(&page(vec![message.clone()], 1, false, false));
+        assert!(window.rows().len() >= 2);
+        let id = window.rows()[0].message_id.as_ref().unwrap();
+        for derived in window.rows() {
+            assert_eq!(derived.message_id.as_deref(), Some(&message.id));
+            assert!(std::sync::Arc::ptr_eq(
+                id,
+                derived.message_id.as_ref().unwrap()
+            ));
+        }
+        window.push_synthetic("user", "live", None, None);
+        assert!(window.rows().last().unwrap().message_id.is_none());
+        window.insert_before_live_user("switch".into());
+        assert!(window.rows()[window.len() - 2].message_id.is_none());
+        let mut oversized = row(72, Role::User, "small text");
+        oversized.id.0 = "x".repeat(super::WINDOW_BYTES + 1);
+        window.reset(&page(vec![oversized], 1, false, false));
+        assert!(
+            window.is_empty(),
+            "identity bytes participate in the retained cap"
+        );
     }
 
     #[test]

@@ -1,0 +1,207 @@
+{
+  "status": "FAILED_COPY_EFFECT",
+  "checks": [
+    {
+      "stage": "hover",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "point": {
+        "x": 9,
+        "y": 3
+      },
+      "bytes_base64": "G1s8MzU7MTA7NE0="
+    },
+    {
+      "stage": "click",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "point": {
+        "x": 9,
+        "y": 3
+      },
+      "bytes_base64": "G1s8MDsxMDs0TRtbPDA7MTA7NG0="
+    },
+    {
+      "stage": "popup",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "options": [
+        {
+          "label": "Jump to",
+          "x": 34,
+          "y": 15
+        },
+        {
+          "label": "Revert",
+          "x": 34,
+          "y": 16
+        },
+        {
+          "label": "Copy",
+          "x": 34,
+          "y": 17
+        },
+        {
+          "label": "Fork",
+          "x": 34,
+          "y": 18
+        }
+      ],
+      "provider_unchanged": true
+    },
+    {
+      "stage": "hover",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "point": {
+        "x": 34,
+        "y": 17
+      },
+      "bytes_base64": "G1s8MzU7MzU7MThN"
+    },
+    {
+      "stage": "click",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "point": {
+        "x": 34,
+        "y": 17
+      },
+      "bytes_base64": "G1s8MDszNTsxOE0bWzwwOzM1OzE4bQ=="
+    },
+    {
+      "stage": "copy-failed",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "reason": "Timed out waiting for real Copy result",
+      "visible_text": "   Какие инструменты доступны ас +                                                                                      \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  Какие тебе тулы доступны?                                                                                          \n  ┃                                                                                                                     \n                                                                                                                        \n     → Explored — 1 read                                                                                                \n                                                                                                                        \n     GEOMETRY-SHORT: tool read completed.                                                                               \n                                                                                                                        \n     Reader · MiMo-V2.6-Flash                                                                                           \n                                  Message Actions                                  esc                                  \n                                                                                                                        \n                                  Search                                                                                \n                                                                                                                        \n                                  Jump to view message in session                                                       \n                                  Revert undo messages and restore prompt                                               \n                                  Copy message text to clipboard                                                        \n                                  Fork create a new session                                                             \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃                                                                                                                     \n  ┃                                                                                                                     \n  ┃  Reader · MiMo-V2.6-Flash Free OpenCode Zen                                                                         \n  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  \n  /…/.cache/opencode-tmp/opencode/t44-reference/runs/message-actions-20260926-02/project    6.8K (3%)  ctrl+p commands  \n                                                                                                                        "
+    },
+    {
+      "stage": "copy-effect",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "predicates": {
+        "dialog_closed": false,
+        "osc52_exact_prompt": false,
+        "provider_unchanged": true
+      },
+      "copy_feedback": false,
+      "osc52_payloads": [],
+      "system_clipboard": "NOT_VERIFIED_BY_PTY"
+    },
+    {
+      "stage": "undo-one",
+      "provider_counts": {
+        "requests": 5,
+        "completed": 5,
+        "invalid": 0
+      },
+      "predicates": {
+        "first_answer_visible": true,
+        "second_answer_visible": false,
+        "restored_draft": "Second same-session spacing check?",
+        "zero_extra_provider_calls": true
+      },
+      "cursor": {
+        "x": 39,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "undo-two",
+      "provider_counts": {
+        "requests": 5,
+        "completed": 5,
+        "invalid": 0
+      },
+      "predicates": {
+        "first_answer_visible": false,
+        "second_answer_visible": false,
+        "restored_draft": "Какие тебе тулы доступны?",
+        "zero_extra_provider_calls": true
+      },
+      "cursor": {
+        "x": 30,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "redo-one",
+      "provider_counts": {
+        "requests": 5,
+        "completed": 5,
+        "invalid": 0
+      },
+      "predicates": {
+        "first_answer_visible": true,
+        "second_answer_visible": false,
+        "restored_draft": null,
+        "zero_extra_provider_calls": true
+      },
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "redo-two",
+      "provider_counts": {
+        "requests": 5,
+        "completed": 5,
+        "invalid": 0
+      },
+      "predicates": {
+        "first_answer_visible": true,
+        "second_answer_visible": true,
+        "restored_draft": null,
+        "zero_extra_provider_calls": true
+      },
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    }
+  ],
+  "native_conversation": {
+    "status": "PASS",
+    "baseline": {
+      "requests": 5,
+      "completed": 5,
+      "invalid": 0
+    }
+  },
+  "baseline": {
+    "requests": 3,
+    "completed": 3,
+    "invalid": 0
+  }
+}

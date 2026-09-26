@@ -185,6 +185,10 @@ fn page(older: usize) -> HistoryPage {
                 ..HistoryTurn::default()
             });
             HistoryMessage {
+                id: oc_core::session::MessageId(format!(
+                    "fixture-{:08}",
+                    i64::from(seq) + older as i64
+                )),
                 seq: i64::from(seq) + older as i64,
                 role,
                 text,

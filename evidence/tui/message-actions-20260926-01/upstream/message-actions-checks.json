@@ -1,0 +1,124 @@
+{
+  "status": "FAILED_COPY_EFFECT",
+  "checks": [
+    {
+      "stage": "hover",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "point": {
+        "x": 9,
+        "y": 3
+      },
+      "bytes_base64": "G1s8MzU7MTA7NE0="
+    },
+    {
+      "stage": "click",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "point": {
+        "x": 9,
+        "y": 3
+      },
+      "bytes_base64": "G1s8MDsxMDs0TRtbPDA7MTA7NG0="
+    },
+    {
+      "stage": "popup",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "options": [
+        {
+          "label": "Jump to",
+          "x": 34,
+          "y": 15
+        },
+        {
+          "label": "Revert",
+          "x": 34,
+          "y": 16
+        },
+        {
+          "label": "Copy",
+          "x": 34,
+          "y": 17
+        },
+        {
+          "label": "Fork",
+          "x": 34,
+          "y": 18
+        }
+      ],
+      "provider_unchanged": true
+    },
+    {
+      "stage": "hover",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "point": {
+        "x": 34,
+        "y": 17
+      },
+      "bytes_base64": "G1s8MzU7MzU7MThN"
+    },
+    {
+      "stage": "click",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "point": {
+        "x": 34,
+        "y": 17
+      },
+      "bytes_base64": "G1s8MDszNTsxOE0bWzwwOzM1OzE4bQ=="
+    },
+    {
+      "stage": "copy-failed",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "reason": "Timed out waiting for real Copy result",
+      "visible_text": "   Какие инструменты доступны ас +                                                                                      \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃  Какие тебе тулы доступны?                                                                                          \n  ┃                                                                                                                     \n                                                                                                                        \n     → Explored — 1 read                                                                                                \n                                                                                                                        \n     GEOMETRY-SHORT: tool read completed.                                                                               \n                                                                                                                        \n     Reader · MiMo-V2.6-Flash Free · 141ms                                                                              \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n                                                                                                                        \n  ┃                                                                                                                     \n  ┃                                                                                                                     \n  ┃                                                                                                                     \n  ┃  Reader · MiMo-V2.6-Flash Free OpenCode Zen                                                                         \n  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  \n  /…/.cache/opencode-tmp/opencode/t44-reference/runs/message-actions-20260926-01/project    6.8K (3%)  ctrl+p commands  \n                                                                                                                        "
+    },
+    {
+      "stage": "copy-effect",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "predicates": {
+        "dialog_closed": true,
+        "copy_feedback": false,
+        "osc52_exact_prompt": true,
+        "provider_unchanged": true
+      },
+      "osc52_payloads": [
+        "Какие тебе тулы доступны?"
+      ],
+      "system_clipboard": "NOT_VERIFIED_BY_PTY"
+    }
+  ],
+  "native_conversation": {
+    "status": "NOT_RUN"
+  },
+  "baseline": {
+    "requests": 3,
+    "completed": 3,
+    "invalid": 0
+  }
+}

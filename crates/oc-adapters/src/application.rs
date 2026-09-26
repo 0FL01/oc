@@ -30,6 +30,12 @@ use crate::storage::{Db, StorageError};
 use crate::trace;
 use crate::tui_workspace::{AgentEntry as WorkspaceAgent, WorkspaceError, WorkspaceRegistry};
 
+#[cfg(test)]
+#[path = "application_conversation_tests.rs"]
+mod conversation_tests;
+#[cfg(test)]
+#[path = "application_fork_tests.rs"]
+mod fork_tests;
 #[path = "application_selection.rs"]
 mod selection;
 #[path = "application_tab_deck.rs"]
@@ -1293,6 +1299,47 @@ fn query(
     message: InboxMsg,
 ) {
     match message {
+        InboxMsg::ChangeConversation {
+            session,
+            action,
+            ack,
+        } => {
+            let result = (|| {
+                if runtime.turn_active() {
+                    return Err(CoreError::TurnBusy);
+                }
+                runtime
+                    .open_session(&session.0)
+                    .map_err(|_| CoreError::SessionNotFound)?;
+                let snapshot = db.change_conversation(&session.0, action)?;
+                runtime.conversation_changed(&session.0);
+                Ok(snapshot)
+            })();
+            let _ = ack.send(result);
+        }
+        InboxMsg::ForkSession {
+            source,
+            before,
+            ack,
+        } => {
+            let result = (|| {
+                if runtime.turn_active() {
+                    return Err(CoreError::TurnBusy);
+                }
+                runtime
+                    .open_session(&source.0)
+                    .map_err(|_| CoreError::SessionNotFound)?;
+                let choice = selection::fork_choice(db, composition, effective, &source.0)?;
+                db.fork_session(
+                    &source.0,
+                    &before.0,
+                    runtime.location(),
+                    &composition.catalog.provider,
+                    &choice,
+                )
+            })();
+            let _ = ack.send(result);
+        }
         InboxMsg::Create { id, ack } => {
             let result = runtime.create_session(&id.0).map_err(app_error);
             if result.is_ok() {
@@ -1382,7 +1429,7 @@ fn query(
                 .open_session(&session.0)
                 .map_err(app_error)
                 .and_then(|()| {
-                    db.read_history_full(&session.0)
+                    db.conversation_history_full(&session.0)
                         .map_err(app_error)
                         .map(|rows| {
                             rows.into_iter()
@@ -1414,68 +1461,76 @@ fn query(
                 let limit = limit.min(HISTORY_PAGE_LIMIT);
                 let (mut page, ascending) = match after_seq {
                     Some(after) => (
-                        db.read_history_after(&session.0, limit, after)
+                        db.read_history_after_typed(&session.0, limit, after)
                             .map_err(app_error)?,
                         true,
                     ),
                     None => (
-                        db.read_history_page(&session.0, limit, before_seq)
+                        db.read_history_page_typed(&session.0, limit, before_seq)
                             .map_err(app_error)?,
                         false,
                     ),
                 };
                 let has_newer = if ascending {
-                    matches!((page.last(), max), (Some((seq, ..)), Some(max)) if *seq < max)
+                    matches!((page.last(), max), (Some(row), Some(max)) if row.seq < max)
                 } else {
-                    matches!((page.first(), max), (Some((seq, ..)), Some(max)) if *seq < max)
+                    matches!((page.first(), max), (Some(row), Some(max)) if row.seq < max)
                 };
                 let has_older = if ascending {
-                    matches!((page.first(), min), (Some((seq, ..)), Some(min)) if *seq > min)
+                    matches!((page.first(), min), (Some(row), Some(min)) if row.seq > min)
                 } else {
-                    matches!((page.last(), min), (Some((seq, ..)), Some(min)) if *seq > min)
+                    matches!((page.last(), min), (Some(row), Some(min)) if row.seq > min)
                 };
                 if !ascending {
                     page.reverse();
                 }
                 let rows = page
                     .into_iter()
-                    .map(|(seq, role, text)| {
-                        let model_switch = if role == "model_switch" {
-                            let notice = serde_json::from_str(&text)
-                                .map_err(|_| app_error("invalid model switch notice"))?;
-                            Some(project_model_switch(notice, &composition.catalog))
-                        } else {
-                            None
-                        };
-                        Ok(HistoryMessage {
-                            turn: if model_switch.is_some() {
+                    .map(
+                        |crate::storage::HistoryPageRow {
+                             id,
+                             seq,
+                             role,
+                             text,
+                         }| {
+                            let model_switch = if role == "model_switch" {
+                                let notice = serde_json::from_str(&text)
+                                    .map_err(|_| app_error("invalid model switch notice"))?;
+                                Some(project_model_switch(notice, &composition.catalog))
+                            } else {
                                 None
-                            } else {
-                                db.history_turn(&session.0, seq)
-                                    .map_err(app_error)?
-                                    .or_else(|| {
-                                        (role == "assistant").then(|| {
-                                            oc_core::queries::HistoryTurn {
-                                                legacy_text_only: true,
-                                                ..Default::default()
-                                            }
+                            };
+                            Ok(HistoryMessage {
+                                id,
+                                turn: if model_switch.is_some() {
+                                    None
+                                } else {
+                                    db.history_turn(&session.0, seq)
+                                        .map_err(app_error)?
+                                        .or_else(|| {
+                                            (role == "assistant").then(|| {
+                                                oc_core::queries::HistoryTurn {
+                                                    legacy_text_only: true,
+                                                    ..Default::default()
+                                                }
+                                            })
                                         })
-                                    })
-                            },
-                            model_switch,
-                            seq,
-                            role: if role == "user" {
-                                Role::User
-                            } else {
-                                Role::Assistant
-                            },
-                            text: if role == "model_switch" {
-                                String::new()
-                            } else {
-                                text
-                            },
-                        })
-                    })
+                                },
+                                model_switch,
+                                seq,
+                                role: if role == "user" {
+                                    Role::User
+                                } else {
+                                    Role::Assistant
+                                },
+                                text: if role == "model_switch" {
+                                    String::new()
+                                } else {
+                                    text
+                                },
+                            })
+                        },
+                    )
                     .collect::<Result<Vec<_>, CoreError>>()?;
                 Ok(HistoryPage {
                     parent_id: db.session_meta(&session.0).map_err(app_error)?.parent_id,
@@ -1672,9 +1727,9 @@ fn query(
             let result = (|| -> Result<DcpSnapshot, CoreError> {
                 runtime.open_session(&session.0).map_err(app_error)?;
                 let stats = runtime.dcp_stats();
-                let blocks = crate::dcp::load_blocks(db, &session.0)
-                    .map_err(|error| app_error(error.to_string()))?
-                    .len();
+                let saved_blocks = crate::dcp::load_blocks(db, &session.0)
+                    .map_err(|error| app_error(error.to_string()))?;
+                let blocks = saved_blocks.len();
                 let turns_since_compress = runtime
                     .dcp_turn_state(&session.0)
                     .map(|state| state.turns_since_compress)
@@ -1698,8 +1753,14 @@ fn query(
                     // estimate instead of a silent zero.
                     active.bytes / 4
                 } else {
+                    let positions = db
+                        .block_positions(&session.0, after_seq)
+                        .map_err(app_error)?;
+                    let projected =
+                        crate::dcp::project_active_rows(&active.rows, &saved_blocks, &positions)
+                            .map_err(app_error)?;
                     let mut text = String::new();
-                    for (_, _, body) in &active.rows {
+                    for (_, _, body) in &projected {
                         if text.len() >= ESTIMATE_BYTES {
                             break;
                         }
@@ -1789,6 +1850,12 @@ async fn worker(
             },
             other => other,
         };
+        if let InboxMsg::ChangeConversation { session, .. } = &message {
+            title_work
+                .lock()
+                .expect("title work mutex")
+                .cancel(&session.0);
+        }
         match message {
             InboxMsg::Shutdown => break 'worker,
             InboxMsg::CancelTitle { session, ack } => {
@@ -1944,6 +2011,7 @@ async fn worker(
                 };
                 tokio::pin!(operation);
                 let mut shutdown = false;
+                let mut conversation_change = None;
                 let result = loop {
                     tokio::select! {
                         result = &mut operation => break result,
@@ -1956,10 +2024,35 @@ async fn worker(
                                 cancel.store(true, Ordering::Relaxed);
                                 let _ = ack.send(Ok(()));
                             }
+                            Some(command @ InboxMsg::ChangeConversation { .. }) => {
+                                if conversation_change.is_none() {
+                                    cancel.store(true, Ordering::Relaxed);
+                                    if let InboxMsg::ChangeConversation { session: target, .. } = &command {
+                                        title_work.lock().expect("title work mutex").cancel(&target.0);
+                                    }
+                                    conversation_change = Some(command);
+                                } else if let InboxMsg::ChangeConversation { ack, .. } = command {
+                                    let _ = ack.send(Err(CoreError::TurnBusy));
+                                }
+                            }
                             Some(command) => query(db, runtime, composition, effective, registry, sessions, home_choices, location_epoch, suggestion_queue, command),
                         },
                     }
                 };
+                if let Some(command) = conversation_change {
+                    query(
+                        db,
+                        runtime,
+                        composition,
+                        effective,
+                        registry,
+                        sessions,
+                        home_choices,
+                        location_epoch,
+                        suggestion_queue,
+                        command,
+                    );
+                }
                 let _ = ack.send(result);
                 if shutdown {
                     break 'worker;
@@ -2106,6 +2199,7 @@ async fn worker(
                 let mut ack = Some(ack);
                 let mut turn = None;
                 let mut shutdown = false;
+                let mut conversation_change = None;
                 let result;
                 {
                     let operation = async {
@@ -2371,6 +2465,17 @@ async fn worker(
                                     cancel.store(true, Ordering::Relaxed);
                                     let _ = ack.send(Ok(()));
                                 }
+                                Some(command @ InboxMsg::ChangeConversation { .. }) => {
+                                    if conversation_change.is_none() {
+                                        if let InboxMsg::ChangeConversation { session: target, .. } = &command {
+                                            title_work.lock().expect("title work mutex").cancel(&target.0);
+                                        }
+                                        cancel.store(true, Ordering::Relaxed);
+                                        conversation_change = Some(command);
+                                    } else if let InboxMsg::ChangeConversation { ack, .. } = command {
+                                        let _ = ack.send(Err(CoreError::TurnBusy));
+                                    }
+                                }
                                 Some(command) => query(
                                     db,
                                     runtime,
@@ -2467,6 +2572,20 @@ async fn worker(
                         },
                     };
                     let _ = events.send(event);
+                }
+                if let Some(command) = conversation_change {
+                    query(
+                        db,
+                        runtime,
+                        composition,
+                        effective,
+                        registry,
+                        sessions,
+                        home_choices,
+                        location_epoch,
+                        suggestion_queue,
+                        command,
+                    );
                 }
                 if shutdown {
                     break;
@@ -3319,6 +3438,27 @@ mod reload_tests {
         );
         assert_eq!(marker.rows[0].text, "");
         assert_eq!(app.read_history(session.clone()).await.unwrap().len(), 4);
+        let all = app
+            .history_page(session.clone(), None, None, 10)
+            .await
+            .unwrap();
+        let durable = app.read_history(session.clone()).await.unwrap();
+        assert_eq!(
+            all.rows
+                .iter()
+                .filter(|r| r.model_switch.is_none())
+                .map(|r| &r.id)
+                .collect::<Vec<_>>(),
+            durable.iter().map(|r| &r.id).collect::<Vec<_>>()
+        );
+        let forward = app
+            .history_page(session.clone(), None, Some(marker.rows[0].seq), 10)
+            .await
+            .unwrap();
+        assert_eq!(
+            forward.rows,
+            vec![user.rows[0].clone(), newer.rows[0].clone()]
+        );
         app.shutdown().await.unwrap();
         guard.join().await.unwrap();
         config["provider"]["fixture"]["models"]["new"]["name"] = serde_json::json!("Renamed Later");
@@ -3328,6 +3468,14 @@ mod reload_tests {
             .history_page(session, None, None, 10)
             .await
             .unwrap();
+        assert_eq!(
+            replay
+                .rows
+                .iter()
+                .map(|r| (&r.id, r.seq))
+                .collect::<Vec<_>>(),
+            all.rows.iter().map(|r| (&r.id, r.seq)).collect::<Vec<_>>()
+        );
         assert_eq!(
             replay
                 .rows

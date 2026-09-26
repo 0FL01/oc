@@ -9,6 +9,30 @@ use std::collections::BTreeMap;
 use crate::domain::SessionId;
 use crate::session::Role;
 
+/// Move only the durable conversation and saved provider context.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConversationAction {
+    Undo,
+    Redo,
+    Revert { message: crate::session::MessageId },
+}
+
+/// Result after the owner has stopped execution and committed the new point.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConversationSnapshot {
+    pub session: SessionId,
+    pub draft: Option<String>,
+    pub can_undo: bool,
+    pub can_redo: bool,
+}
+
+/// Durable independent root plus the selected user text, still unsent.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ForkSessionSnapshot {
+    pub session: SessionId,
+    pub prompt: String,
+}
+
 /// One Location-verified session ID, without enumerating the archive.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SessionProbe {
@@ -83,6 +107,8 @@ pub enum SessionSelectionAction {
 /// One committed history row with its durable sequence number.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HistoryMessage {
+    /// Exact storage-owned message identity, independent of paging sequence.
+    pub id: crate::session::MessageId,
     /// Message sequence (ordering key for paging).
     pub seq: i64,
     /// `user` / `assistant`.

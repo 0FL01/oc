@@ -22,6 +22,42 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 use thiserror::Error;
 
+#[path = "storage_conversation.rs"]
+mod conversation;
+#[path = "storage_fork.rs"]
+mod fork;
+
+/// Bounded page projection retaining the exact persisted message identity.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HistoryPageRow {
+    pub id: oc_core::session::MessageId,
+    pub seq: i64,
+    pub role: String,
+    pub text: String,
+}
+
+// Bound newly projected identity allocations even for malformed/legacy stores.
+const HISTORY_PAGE_ID_BYTES: usize = 256 * 1024;
+
+fn page_message_id(
+    row: &rusqlite::Row<'_>,
+    remaining: &mut usize,
+) -> rusqlite::Result<oc_core::session::MessageId> {
+    let id = row.get_ref(3)?.as_str()?;
+    if id.trim().is_empty() || id.len() > *remaining {
+        return Err(rusqlite::Error::FromSqlConversionFailure(
+            3,
+            rusqlite::types::Type::Text,
+            Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "invalid or oversized history message identity",
+            )),
+        ));
+    }
+    *remaining -= id.len();
+    Ok(oc_core::session::MessageId(id.to_owned()))
+}
+
 /// Product blob quota reference (2 GiB, see `examples/oc-rs.toml`).
 pub const DEFAULT_BLOB_QUOTA_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 /// Schema version applied by T04.
@@ -402,6 +438,7 @@ impl Db {
         conn.pragma_update(None, "synchronous", "FULL")?;
         conn.pragma_update(None, "foreign_keys", "ON")?;
         apply_schema(&conn)?;
+        Self::conversation_schema(&conn)?;
         // Same journal, indexed anchor lookup: history paging must not parse
         // every archived turn. Legacy non-JSON results are excluded safely.
         conn.execute_batch("CREATE INDEX IF NOT EXISTS turns_display_anchor ON turns(session_id, COALESCE(json_extract(result,'$.assistant_message'),json_extract(result,'$.user_message'))) WHERE json_valid(result)")?;
@@ -743,7 +780,7 @@ impl Db {
         let conn = self.conn.lock().expect("db mutex");
         let count: Option<i64> = conn
             .query_row(
-                "SELECT COUNT(*) FROM messages WHERE session_id = ?1",
+                "SELECT COUNT(*) FROM conversation_messages WHERE session_id = ?1",
                 params![session],
                 |row| row.get(0),
             )
@@ -763,18 +800,39 @@ impl Db {
         limit: usize,
         before_seq: Option<i64>,
     ) -> Result<Vec<(i64, String, String)>, StorageError> {
+        Ok(self
+            .read_history_page_typed(session, limit, before_seq)?
+            .into_iter()
+            .map(|row| (row.seq, row.role, row.text))
+            .collect())
+    }
+
+    /// Newest-first bounded page with exact durable IDs.
+    pub fn read_history_page_typed(
+        &self,
+        session: &str,
+        limit: usize,
+        before_seq: Option<i64>,
+    ) -> Result<Vec<HistoryPageRow>, StorageError> {
         let limit = (limit.min(HISTORY_PAGE_MAX) as i64).max(0);
         let conn = self.conn.lock().expect("db mutex");
         let mut stmt = conn.prepare_cached(
-            "SELECT seq, role, text FROM messages
+            "SELECT seq, role, text, id FROM conversation_messages
              WHERE session_id = ?1 AND (?2 IS NULL OR seq < ?2)
              ORDER BY seq DESC LIMIT ?3",
         )?;
+        let mut remaining = HISTORY_PAGE_ID_BYTES;
         let rows = stmt.query_map(params![session, before_seq, limit], |row| {
+            let id = page_message_id(row, &mut remaining)?;
             let seq: i64 = row.get(0)?;
             let role: String = row.get(1)?;
             let text: String = row.get(2)?;
-            Ok((seq, role, text))
+            Ok(HistoryPageRow {
+                id,
+                seq,
+                role,
+                text,
+            })
         })?;
         let mut out = Vec::new();
         for row in rows {
@@ -793,15 +851,35 @@ impl Db {
         limit: usize,
         after_seq: i64,
     ) -> Result<Vec<(i64, String, String)>, StorageError> {
+        Ok(self
+            .read_history_after_typed(session, limit, after_seq)?
+            .into_iter()
+            .map(|row| (row.seq, row.role, row.text))
+            .collect())
+    }
+
+    /// Oldest-first bounded page with exact durable IDs.
+    pub fn read_history_after_typed(
+        &self,
+        session: &str,
+        limit: usize,
+        after_seq: i64,
+    ) -> Result<Vec<HistoryPageRow>, StorageError> {
         let limit = (limit.min(HISTORY_PAGE_MAX) as i64).max(0);
         let conn = self.conn.lock().expect("db mutex");
         let mut stmt = conn.prepare_cached(
-            "SELECT seq, role, text FROM messages
+            "SELECT seq, role, text, id FROM conversation_messages
                    WHERE session_id = ?1 AND seq > ?2
              ORDER BY seq ASC LIMIT ?3",
         )?;
+        let mut remaining = HISTORY_PAGE_ID_BYTES;
         let rows = stmt.query_map(params![session, after_seq, limit], |row| {
-            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+            Ok(HistoryPageRow {
+                id: page_message_id(row, &mut remaining)?,
+                seq: row.get(0)?,
+                role: row.get(1)?,
+                text: row.get(2)?,
+            })
         })?;
         let mut out = Vec::new();
         for row in rows {
@@ -851,7 +929,7 @@ impl Db {
         let conn = self.conn.lock().expect("db mutex");
         let bounds: Option<(Option<i64>, Option<i64>)> = conn
             .query_row(
-                "SELECT MIN(seq), MAX(seq) FROM messages WHERE session_id = ?1",
+                "SELECT MIN(seq), MAX(seq) FROM conversation_messages WHERE session_id = ?1",
                 params![session],
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
@@ -876,10 +954,10 @@ impl Db {
             "SELECT id, turn_id, name, state, input,
                     CASE WHEN length(CAST(output AS BLOB)) > ?4
                          THEN substr(output, 1, ?4) ELSE output END,
-                    length(CAST(output AS BLOB)), rowid
-               FROM tool_operations
-              WHERE session_id = ?1 AND (?2 IS NULL OR rowid < ?2)
-              ORDER BY rowid DESC LIMIT ?3",
+                    length(CAST(output AS BLOB)), archive_rowid
+               FROM conversation_tools
+              WHERE session_id = ?1 AND (?2 IS NULL OR archive_rowid < ?2)
+              ORDER BY archive_rowid DESC LIMIT ?3",
         )?;
         let rows = stmt.query_map(
             params![session, before_rowid, limit, TOOL_OP_PREVIEW_BYTES as i64],
@@ -1006,7 +1084,7 @@ impl Db {
         let conn = self.conn.lock().expect("db mutex");
         let bounds: Option<(Option<i64>, Option<i64>)> = conn
             .query_row(
-                "SELECT MIN(rowid), MAX(rowid) FROM tool_operations WHERE session_id = ?1",
+                "SELECT MIN(archive_rowid), MAX(archive_rowid) FROM conversation_tools WHERE session_id = ?1",
                 params![session],
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
@@ -1023,7 +1101,7 @@ impl Db {
         let conn = self.conn.lock().expect("db mutex");
         let count: Option<i64> = conn
             .query_row(
-                "SELECT COUNT(*) FROM tool_operations WHERE session_id = ?1",
+                "SELECT COUNT(*) FROM conversation_tools WHERE session_id = ?1",
                 params![session],
                 |row| row.get(0),
             )
@@ -1148,10 +1226,10 @@ impl Db {
         let mut cursor = after_seq;
         loop {
             let mut stmt = conn.prepare_cached(
-                "SELECT id, role, seq, length(CAST(text AS BLOB)), text FROM messages
+                "SELECT id, role, seq, length(CAST(text AS BLOB)), text FROM conversation_messages
                        WHERE session_id = ?1 AND seq > ?2 AND role != 'model_switch'
                     AND NOT EXISTS (SELECT 1 FROM compression_members cm
-                                     WHERE cm.message_id = messages.id)
+                                     WHERE cm.message_id = conversation_messages.id)
                   ORDER BY seq ASC LIMIT ?3",
             )?;
             let page: Vec<(String, String, i64, i64, String)> = stmt
@@ -1184,10 +1262,10 @@ impl Db {
                 // Exact remaining totals without materialising any text.
                 let (extra_rows, extra_bytes): (i64, i64) = conn.query_row(
                     "SELECT COUNT(*), COALESCE(SUM(length(CAST(text AS BLOB))), 0)
-                       FROM messages
+                       FROM conversation_messages
                       WHERE session_id = ?1 AND seq > ?2
                         AND NOT EXISTS (SELECT 1 FROM compression_members cm
-                                         WHERE cm.message_id = messages.id)",
+                                         WHERE cm.message_id = conversation_messages.id)",
                     params![session, cursor],
                     |row| Ok((row.get(0)?, row.get(1)?)),
                 )?;
@@ -1228,10 +1306,10 @@ impl Db {
         let mut upper: Option<i64> = None;
         loop {
             let mut stmt = conn.prepare_cached(
-                "SELECT rowid, result, prompt FROM turns
+                "SELECT archive_rowid, result, prompt FROM conversation_turns
                   WHERE session_id = ?1 AND result IS NOT NULL
-                    AND (?2 IS NULL OR rowid < ?2)
-                  ORDER BY rowid DESC LIMIT ?3",
+                    AND (?2 IS NULL OR archive_rowid < ?2)
+                  ORDER BY archive_rowid DESC LIMIT ?3",
             )?;
             let batch: Vec<(i64, String, Option<String>)> = stmt
                 .query_map(params![session, upper, page], |row| {
@@ -1282,6 +1360,20 @@ impl Db {
             Self::require_session(&conn, session)?;
         }
         Ok(out)
+    }
+
+    /// Active conversation archive for explicit owner actions; raw archival
+    /// callers retain `read_history_full`.
+    pub(crate) fn conversation_history_full(
+        &self,
+        session: &str,
+    ) -> Result<Vec<(String, String, String)>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Self::require_session(&conn, session)?;
+        let mut stmt = conn.prepare_cached("SELECT id,role,text FROM conversation_messages WHERE session_id=?1 AND role!='model_switch' ORDER BY seq")?;
+        Ok(stmt
+            .query_map([session], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+            .collect::<Result<Vec<_>, _>>()?)
     }
 
     /// Delete a compression block with its membership (compensation only).
@@ -1488,11 +1580,12 @@ impl Db {
         model: &oc_core::queries::ModelRef,
     ) -> Result<AcceptedTurn, StorageError> {
         use oc_core::queries::ModelRef;
+        Self::conversation_admit(conn, turn, session)?;
         Self::insert_turn(conn, turn, session, prompt)?;
         // The event journal, unlike the picker preference or later turn
         // checkpoint, records the model of the last *accepted* prompt.
         let prior: Option<String> = conn.query_row(
-            "SELECT payload FROM events WHERE session_id=?1 AND kind='accepted_model' ORDER BY seq DESC LIMIT 1",
+            "SELECT a.model_ref FROM turn_acceptances a JOIN conversation_messages m ON m.id=a.user_message WHERE a.session_id=?1 ORDER BY m.seq DESC LIMIT 1",
             [session], |row| row.get(0),
         ).optional()?;
         let mut switch = None;
@@ -1519,8 +1612,13 @@ impl Db {
             "INSERT INTO events(session_id,kind,payload) VALUES (?1,'accepted_model',?2)",
             params![session, reference],
         )?;
+        let user_message = Self::insert_message(conn, session, "user", user_text)?;
+        conn.execute(
+            "INSERT INTO turn_acceptances(turn_id,session_id,user_message,model_ref) VALUES (?1,?2,?3,?4)",
+            params![turn,session,user_message,reference],
+        )?;
         Ok(AcceptedTurn {
-            user_message: Self::insert_message(conn, session, "user", user_text)?,
+            user_message,
             model_switch: switch,
         })
     }
@@ -1562,10 +1660,16 @@ impl Db {
     ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let session: String =
-            tx.query_row("SELECT session_id FROM turns WHERE id = ?1", [turn], |r| {
-                r.get(0)
-            })?;
+        let (session, existing_status): (String, String) = tx.query_row(
+            "SELECT session_id,status FROM turns WHERE id = ?1",
+            [turn],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )?;
+        // First settlement owns the assistant row, wire journal and saved
+        // context atomically. Retries cannot replace any of those artifacts.
+        if existing_status != "started" {
+            return Ok(());
+        }
         let mut result = result.map(str::to_owned);
         if let Some(text) = assistant {
             let message = Self::insert_message(&tx, &session, "assistant", text)?;
@@ -1590,6 +1694,7 @@ impl Db {
             "INSERT INTO events(session_id, kind, payload) VALUES (?1, 'turn_finished', ?2)",
             params![session, turn],
         )?;
+        Self::conversation_complete(&tx, turn, &session)?;
         tx.commit()?;
         Ok(())
     }
@@ -1597,10 +1702,13 @@ impl Db {
     /// Persist a completed generation before dispatch, without finishing its turn.
     pub(crate) fn checkpoint_turn(&self, turn: &str, result: &str) -> Result<(), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        conn.execute(
+        let affected = conn.execute(
             "UPDATE turns SET result = ?1 WHERE id = ?2 AND status = 'started'",
             params![result, turn],
         )?;
+        if affected != 1 {
+            return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
+        }
         Ok(())
     }
 
@@ -1615,12 +1723,23 @@ impl Db {
     ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        tx.execute(
-            "UPDATE tool_operations SET state = ?1, output = ?2 WHERE id = ?3",
-            params![state, output, op],
+        let started: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM turns WHERE id=?1 AND status='started')",
+            [turn],
+            |r| r.get(0),
         )?;
+        if !started {
+            return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
+        }
+        let affected = tx.execute(
+            "UPDATE tool_operations SET state = ?1, output = ?2 WHERE id = ?3 AND turn_id=?4 AND state='started'",
+            params![state, output, op,turn],
+        )?;
+        if affected != 1 {
+            return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
+        }
         tx.execute(
-            "UPDATE turns SET result = ?1 WHERE id = ?2",
+            "UPDATE turns SET result = ?1 WHERE id = ?2 AND status='started'",
             params![log, turn],
         )?;
         tx.commit()?;
@@ -1693,7 +1812,7 @@ impl Db {
     ) -> Result<Option<(Option<String>, i64)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         conn.query_row(
-            "SELECT title, COALESCE((SELECT MAX(seq) FROM events WHERE session_id = sessions.id AND kind = 'session_updated'), 0) FROM sessions WHERE id = ?1 AND parent_id IS NULL",
+            "SELECT title, COALESCE((SELECT MAX(seq) FROM events WHERE session_id = sessions.id AND kind IN ('session_updated','conversation_changed')), 0) FROM sessions WHERE id = ?1 AND parent_id IS NULL",
             params![session],
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
@@ -1715,7 +1834,7 @@ impl Db {
         if expected == Some(title) {
             let unchanged = tx
                 .query_row(
-                    "SELECT 1 FROM sessions WHERE id = ?1 AND parent_id IS NULL AND title IS ?2 AND COALESCE((SELECT MAX(seq) FROM events WHERE session_id = sessions.id AND kind = 'session_updated'), 0) = ?3",
+                    "SELECT 1 FROM sessions WHERE id = ?1 AND parent_id IS NULL AND title IS ?2 AND COALESCE((SELECT MAX(seq) FROM events WHERE session_id = sessions.id AND kind IN ('session_updated','conversation_changed')), 0) = ?3",
                     params![session, expected, expected_event],
                     |_| Ok(()),
                 )
@@ -1724,7 +1843,7 @@ impl Db {
             return Ok(unchanged);
         }
         let affected = tx.execute(
-            "UPDATE sessions SET title = ?4 WHERE id = ?1 AND parent_id IS NULL AND title IS ?2 AND title IS NOT ?4 AND COALESCE((SELECT MAX(seq) FROM events WHERE session_id = sessions.id AND kind = 'session_updated'), 0) = ?3",
+            "UPDATE sessions SET title = ?4 WHERE id = ?1 AND parent_id IS NULL AND title IS ?2 AND title IS NOT ?4 AND COALESCE((SELECT MAX(seq) FROM events WHERE session_id = sessions.id AND kind IN ('session_updated','conversation_changed')), 0) = ?3",
             params![session, expected, expected_event, title],
         )?;
         if affected == 0 {
@@ -1747,7 +1866,7 @@ impl Db {
     ) -> Result<Option<String>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let first: Option<(i64, String)> = conn.query_row(
-            "SELECT seq, substr(text, 1, 2048) FROM messages WHERE session_id=?1 AND role='user' ORDER BY seq ASC LIMIT 1",
+            "SELECT seq, substr(text, 1, 2048) FROM conversation_messages WHERE session_id=?1 AND role='user' ORDER BY seq ASC LIMIT 1",
             params![session], |row| Ok((row.get(0)?, row.get(1)?)),
         ).optional()?;
         let Some((first_seq, first)) = first else {
@@ -1758,7 +1877,7 @@ impl Db {
         }
         let original = format!("Original request:\n{first}");
         let mut stmt = conn.prepare_cached(
-            "SELECT role, substr(text, 1, 2048) FROM messages WHERE session_id=?1 AND seq != ?2 AND role IN ('user','assistant') ORDER BY seq DESC LIMIT 12"
+            "SELECT role, substr(text, 1, 2048) FROM conversation_messages WHERE session_id=?1 AND seq != ?2 AND role IN ('user','assistant') ORDER BY seq DESC LIMIT 12"
         )?;
         let rows = stmt.query_map(params![session, first_seq], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
@@ -1959,10 +2078,16 @@ impl Db {
                  session_id TEXT NOT NULL REFERENCES sessions(id),
                  call_id TEXT NOT NULL, occurrence INTEGER NOT NULL,
                  action TEXT NOT NULL,
-                 PRIMARY KEY(session_id, call_id, occurrence));
-             INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (2, 't17');",
+                  PRIMARY KEY(session_id, call_id, occurrence));
+             CREATE TABLE IF NOT EXISTS compression_identity(singleton INTEGER PRIMARY KEY CHECK(singleton=1), high_water INTEGER NOT NULL);
+             INSERT INTO compression_identity(singleton,high_water) SELECT 1,COALESCE(MAX(CAST(SUBSTR(id,2) AS INTEGER)),0) FROM compression_blocks WHERE true
+               ON CONFLICT(singleton) DO UPDATE SET high_water=MAX(high_water,excluded.high_water);
+             CREATE TRIGGER IF NOT EXISTS compression_identity_insert AFTER INSERT ON compression_blocks BEGIN
+               UPDATE compression_identity SET high_water=MAX(high_water,CAST(SUBSTR(NEW.id,2) AS INTEGER)) WHERE singleton=1;
+             END;
+              INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (2, 't17');",
         )?;
-        Ok(())
+        Self::install_context_tracking(&conn)
     }
 
     /// Persist one compression block with explicit membership rows.
@@ -1984,7 +2109,7 @@ impl Db {
         // Block ids are a global sequence: per-session COUNT would hand a
         // second session the same `b0001` and violate the primary key.
         let max: Option<i64> = tx.query_row(
-            "SELECT MAX(CAST(SUBSTR(id, 2) AS INTEGER)) FROM compression_blocks",
+            "SELECT high_water FROM compression_identity WHERE singleton=1",
             [],
             |row| row.get(0),
         )?;
@@ -2074,7 +2199,7 @@ impl Db {
             )
             .optional()?;
         let max: Option<i64> = conn.query_row(
-            "SELECT MAX(CAST(SUBSTR(id, 2) AS INTEGER)) FROM compression_blocks",
+            "SELECT high_water FROM compression_identity WHERE singleton=1",
             [],
             |row| row.get(0),
         )?;
@@ -2105,7 +2230,7 @@ impl Db {
         Self::require_session(&tx, session)?;
 
         let max: Option<i64> = tx.query_row(
-            "SELECT MAX(CAST(SUBSTR(id, 2) AS INTEGER)) FROM compression_blocks",
+            "SELECT high_water FROM compression_identity WHERE singleton=1",
             [],
             |row| row.get(0),
         )?;
@@ -2408,7 +2533,7 @@ impl Db {
     ) -> Result<(), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let n = conn
-            .prepare_cached("UPDATE tool_operations SET state = ?1, output = ?2 WHERE id = ?3")?
+            .prepare_cached("UPDATE tool_operations SET state = ?1, output = ?2 WHERE id = ?3 AND (turn_id IS NULL OR EXISTS(SELECT 1 FROM turns WHERE turns.id=tool_operations.turn_id AND turns.status='started'))")?
             .execute(params![state, output, op])?;
         if n == 0 {
             return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
@@ -2444,6 +2569,11 @@ impl Db {
             "INSERT INTO events(session_id,kind,payload) SELECT session_id,'turn_unknown',id FROM turns WHERE id=?1",
             [turn],
         )?;
+        let session: String =
+            tx.query_row("SELECT session_id FROM turns WHERE id=?1", [turn], |r| {
+                r.get(0)
+            })?;
+        Self::conversation_complete(&tx, turn, &session)?;
         tx.commit()?;
         Ok(())
     }
@@ -2459,6 +2589,14 @@ impl Db {
             .prepare_cached("UPDATE tool_operations SET state = 'unknown' WHERE state = 'started'")?
             .execute([])?;
         tx.execute("INSERT INTO events(session_id, kind, payload) SELECT session_id, 'turn_unknown', id FROM turns WHERE status = 'started'", [])?;
+        let interrupted: Vec<(String, String)> = {
+            let mut stmt = tx.prepare("SELECT id,session_id FROM turns WHERE status='started'")?;
+            stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+                .collect::<Result<Vec<_>, _>>()?
+        };
+        for (turn, session) in interrupted {
+            Self::conversation_complete(&tx, &turn, &session)?;
+        }
         tx.execute(
             "UPDATE turns SET status = 'unknown' WHERE status = 'started'",
             [],
@@ -2781,7 +2919,12 @@ fn apply_schema(conn: &Connection) -> Result<(), StorageError> {
            UNIQUE(session_id, seq));
          CREATE TABLE IF NOT EXISTS turns(
            id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id),
-           status TEXT NOT NULL, prompt TEXT NOT NULL, result TEXT);
+            status TEXT NOT NULL, prompt TEXT NOT NULL, result TEXT);
+          CREATE TABLE IF NOT EXISTS turn_acceptances(
+            turn_id TEXT PRIMARY KEY REFERENCES turns(id),
+            session_id TEXT NOT NULL REFERENCES sessions(id),
+            user_message TEXT NOT NULL UNIQUE REFERENCES messages(id),
+            model_ref TEXT NOT NULL);
          CREATE TABLE IF NOT EXISTS tool_operations(
            id TEXT PRIMARY KEY, session_id TEXT NOT NULL, turn_id TEXT,
            name TEXT NOT NULL, state TEXT NOT NULL, input TEXT, output TEXT);
@@ -2794,6 +2937,87 @@ fn apply_schema(conn: &Connection) -> Result<(), StorageError> {
          INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (1, 't04');",
     )?;
     apply_child_session_schema(conn)?;
+    apply_turn_acceptance_schema(conn)
+}
+
+const TURN_ACCEPTANCE_SCHEMA_VERSION: i64 = 4;
+const MAX_ACCEPTANCE_MIGRATION_FIELD_BYTES: i64 = 65536;
+
+/// Recover admissions, including turns with no checkpoint, in one ordered
+/// journal pass. Retain only one session's current admission, never combinations
+/// of later events. The index, backfill and completion marker commit together.
+/// Total journal size is not a retained-memory bound; only each pending field
+/// is bounded, so a large valid database can still finish migration.
+fn apply_turn_acceptance_schema(conn: &Connection) -> Result<(), StorageError> {
+    let tx = conn.unchecked_transaction()?;
+    if tx.query_row(
+        "SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version=?1)",
+        [TURN_ACCEPTANCE_SCHEMA_VERSION],
+        |r| r.get::<_, bool>(0),
+    )? {
+        return Ok(());
+    }
+    tx.execute_batch("CREATE INDEX IF NOT EXISTS events_session_seq ON events(session_id,seq)")?;
+    let budget_error = || {
+        StorageError::Io(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "turn acceptance migration budget exceeded",
+        ))
+    };
+    {
+        let mut stmt = tx.prepare(
+            "SELECT CASE WHEN length(CAST(e.session_id AS BLOB))<=?1 THEN e.session_id END,e.kind,
+                    CASE WHEN length(CAST(e.payload AS BLOB))<=?1 THEN e.payload END,
+                    t.id IS NOT NULL AND a.turn_id IS NULL
+             FROM events e INDEXED BY events_session_seq
+             LEFT JOIN messages m ON e.kind='message' AND m.id=e.payload AND m.session_id=e.session_id
+             LEFT JOIN turns t ON e.kind='turn_started' AND t.id=e.payload AND t.session_id=e.session_id
+             LEFT JOIN turn_acceptances a ON a.turn_id=t.id
+             WHERE e.kind IN ('turn_started','turn_finished','accepted_model')
+                OR (e.kind='message' AND m.role='user')
+             ORDER BY e.session_id,e.seq")?;
+        let mut rows = stmt.query([MAX_ACCEPTANCE_MIGRATION_FIELD_BYTES])?;
+        let mut session = String::new();
+        let mut admission: Option<(String, Option<String>)> = None;
+        while let Some(row) = rows.next()? {
+            let current = row.get::<_, Option<String>>(0)?.ok_or_else(budget_error)?;
+            if current != session {
+                session = current;
+                admission = None;
+            }
+            let kind: String = row.get(1)?;
+            match kind.as_str() {
+                "turn_started" => {
+                    admission = if row.get::<_, bool>(3)? {
+                        Some((
+                            row.get::<_, Option<String>>(2)?.ok_or_else(budget_error)?,
+                            None,
+                        ))
+                    } else {
+                        None
+                    };
+                }
+                "turn_finished" => admission = None,
+                "accepted_model" => {
+                    if let Some((_, model)) = &mut admission {
+                        *model = Some(row.get::<_, Option<String>>(2)?.ok_or_else(budget_error)?);
+                    }
+                }
+                "message" => {
+                    if let Some((turn, Some(model))) = admission.take() {
+                        let user = row.get::<_, Option<String>>(2)?.ok_or_else(budget_error)?;
+                        tx.execute("INSERT OR IGNORE INTO turn_acceptances(turn_id,session_id,user_message,model_ref) VALUES (?1,?2,?3,?4)",params![turn,session,user,model])?;
+                    }
+                }
+                _ => unreachable!("filtered admission journal"),
+            }
+        }
+    }
+    tx.execute(
+        "INSERT INTO schema_migrations(version,applied_at) VALUES (?1,'t44-fork')",
+        [TURN_ACCEPTANCE_SCHEMA_VERSION],
+    )?;
+    tx.commit()?;
     Ok(())
 }
 
@@ -2803,7 +3027,7 @@ mod tests {
         Db, SESSION_LOCATION_PREFIX, SessionMeta, StorageError, StoredDeck, TAB_ADOPTION_VALUE,
         tab_adoption_key, tab_deck_key,
     };
-    use rusqlite::OptionalExtension as _;
+    use rusqlite::{OptionalExtension as _, params};
     use std::fs;
     use std::os::unix::fs::PermissionsExt as _;
     use std::path::Path;
@@ -2856,6 +3080,237 @@ mod tests {
         // Keep the name in the test log without moving the dir.
         let _ = name;
         dir
+    }
+
+    #[test]
+    fn legacy_acceptance_migration_is_linear_atomic_and_one_time() {
+        let tmp = tempfile::tempdir().unwrap();
+        const TURNS: i64 = 1024;
+        {
+            let db = Db::open(tmp.path()).unwrap();
+            db.create_session("a").unwrap();
+            db.create_session("b").unwrap();
+            let mut conn = db.conn.lock().unwrap();
+            let tx = conn.transaction().unwrap();
+            // All associations are missing, not merely one row in a modern DB.
+            // Sessions interleave globally, and every third turn has no log.
+            for n in 0..TURNS {
+                let session = if n % 2 == 0 { "a" } else { "b" };
+                let turn = format!("legacy-{n}");
+                let user = format!("legacy-user-{n}");
+                let status = if n % 3 == 0 { "unknown" } else { "completed" };
+                let result = (status == "completed")
+                    .then(|| serde_json::json!({"turn_id":turn,"user_message":user}).to_string());
+                tx.execute("INSERT INTO turns(id,session_id,status,prompt,result) VALUES (?1,?2,?3,'prompt',?4)",params![turn,session,status,result]).unwrap();
+                tx.execute("INSERT INTO messages(id,session_id,seq,role,text) VALUES (?1,?2,?3,'user','prompt')",params![user,session,n*2+1]).unwrap();
+                tx.execute("INSERT INTO messages(id,session_id,seq,role,text) VALUES (?1,?2,?3,'model_switch','notice')",params![format!("notice-{n}"),session,n*2]).unwrap();
+                // Latest acceptance before the first user wins. An assistant
+                // notice between acceptance and user must not reset admission.
+                for (kind, payload) in [
+                    ("turn_started", turn.clone()),
+                    (
+                        "accepted_model",
+                        serde_json::to_string(&test_model()).unwrap(),
+                    ),
+                    (
+                        "accepted_model",
+                        serde_json::to_string(&oc_core::queries::ModelRef {
+                            id: format!("model-{n}"),
+                            ..test_model()
+                        })
+                        .unwrap(),
+                    ),
+                    ("message", format!("notice-{n}")),
+                    ("message", user),
+                ] {
+                    tx.execute(
+                        "INSERT INTO events(session_id,kind,payload) VALUES (?1,?2,?3)",
+                        params![session, kind, payload],
+                    )
+                    .unwrap();
+                }
+                if status == "completed" {
+                    tx.execute("INSERT INTO events(session_id,kind,payload) VALUES (?1,'turn_finished',?2)",params![session,turn]).unwrap();
+                }
+            }
+            tx.execute_batch("DELETE FROM schema_migrations WHERE version=4;
+                DROP INDEX events_session_seq;
+                CREATE TRIGGER fail_acceptance BEFORE INSERT ON turn_acceptances WHEN NEW.turn_id='legacy-512' BEGIN SELECT RAISE(ABORT,'injected'); END;").unwrap();
+            tx.commit().unwrap();
+            assert!(super::apply_turn_acceptance_schema(&conn).is_err());
+            assert_eq!(
+                conn.query_row("SELECT count(*) FROM turn_acceptances", [], |r| r
+                    .get::<_, i64>(0))
+                    .unwrap(),
+                0
+            );
+            assert!(
+                !conn
+                    .query_row(
+                        "SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version=4)",
+                        [],
+                        |r| r.get::<_, bool>(0)
+                    )
+                    .unwrap()
+            );
+            assert!(!conn.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='index' AND name='events_session_seq')",[],|r|r.get::<_,bool>(0)).unwrap());
+            conn.execute_batch("DROP TRIGGER fail_acceptance").unwrap();
+        }
+        let start = std::time::Instant::now();
+        {
+            let db = Db::open(tmp.path()).unwrap();
+            // Generous guard: the former join already exceeded 20s at 400
+            // turns. This fixture should take milliseconds, not cubic work.
+            assert!(
+                start.elapsed() < Duration::from_secs(15),
+                "migration took {:?}",
+                start.elapsed()
+            );
+            let conn = db.conn.lock().unwrap();
+            assert_eq!(
+                conn.query_row("SELECT count(*) FROM turn_acceptances", [], |r| r
+                    .get::<_, i64>(0))
+                    .unwrap(),
+                TURNS
+            );
+            let wrong: i64 = conn.query_row("SELECT count(*) FROM turn_acceptances a JOIN turns t ON t.id=a.turn_id WHERE a.session_id!=t.session_id OR a.user_message!='legacy-user-' || substr(t.id,8) OR json_extract(a.model_ref,'$.id')!='model-' || substr(t.id,8)",[],|r|r.get(0)).unwrap();
+            assert_eq!(wrong, 0);
+            let unknown: i64 = conn.query_row("SELECT count(*) FROM turn_acceptances a JOIN turns t ON t.id=a.turn_id WHERE t.status='unknown' AND t.result IS NULL",[],|r|r.get(0)).unwrap();
+            assert_eq!(unknown, (TURNS + 2) / 3);
+            // A marked migration must never repeat backfill work on reopen.
+            conn.execute_batch("DELETE FROM turn_acceptances WHERE turn_id='legacy-0'; CREATE TRIGGER no_backfill BEFORE INSERT ON turn_acceptances BEGIN SELECT RAISE(ABORT,'repeated migration'); END;").unwrap();
+        }
+        let db = Db::open(tmp.path()).unwrap();
+        assert_eq!(
+            db.conn
+                .lock()
+                .unwrap()
+                .query_row("SELECT count(*) FROM turn_acceptances", [], |r| r
+                    .get::<_, i64>(0))
+                .unwrap(),
+            TURNS - 1
+        );
+    }
+
+    #[test]
+    fn legacy_acceptance_migration_bounds_payload_and_rolls_back() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db = Db::open(tmp.path()).unwrap();
+        db.create_session("source").unwrap();
+        for (turn, model) in [
+            ("first", test_model()),
+            (
+                "oversized",
+                oc_core::queries::ModelRef {
+                    id: "m".repeat(super::MAX_ACCEPTANCE_MIGRATION_FIELD_BYTES as usize + 1),
+                    ..test_model()
+                },
+            ),
+        ] {
+            db.accept_turn(turn, "source", "prompt", "prompt", &model)
+                .unwrap();
+        }
+        let conn = db.conn.lock().unwrap();
+        conn.execute_batch(
+            "DELETE FROM turn_acceptances; DELETE FROM schema_migrations WHERE version=4;",
+        )
+        .unwrap();
+        assert!(
+            matches!(super::apply_turn_acceptance_schema(&conn), Err(StorageError::Io(error)) if error.to_string()=="turn acceptance migration budget exceeded")
+        );
+        assert_eq!(
+            conn.query_row("SELECT count(*) FROM turn_acceptances", [], |r| r
+                .get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+        assert!(
+            !conn
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version=4)",
+                    [],
+                    |r| r.get::<_, bool>(0)
+                )
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn legacy_acceptance_migration_accepts_large_aggregate_and_reopens_once() {
+        let tmp = tempfile::tempdir().unwrap();
+        const TURNS: i64 = 1040;
+        let model = serde_json::to_string(&oc_core::queries::ModelRef {
+            id: "m".repeat(65_000),
+            ..test_model()
+        })
+        .unwrap();
+        assert!(model.len() < super::MAX_ACCEPTANCE_MIGRATION_FIELD_BYTES as usize);
+        // Few rows with individually valid bounded references keep fixture
+        // cost low while crossing the former global processed-byte cutoff.
+        assert!(TURNS as usize * model.len() > 64 * 1024 * 1024);
+        {
+            let db = Db::open(tmp.path()).unwrap();
+            let mut conn = db.conn.lock().unwrap();
+            let tx = conn.transaction().unwrap();
+            tx.execute(
+                "INSERT INTO sessions(id,created_at) VALUES ('source','fixture')",
+                [],
+            )
+            .unwrap();
+            for n in 0..TURNS {
+                let turn = format!("turn-{n}");
+                let user = format!("user-{n}");
+                tx.execute(
+                "INSERT INTO turns(id,session_id,status,prompt) VALUES (?1,'source','unknown','p')",
+                [&turn],
+            )
+            .unwrap();
+                tx.execute("INSERT INTO messages(id,session_id,seq,role,text) VALUES (?1,'source',?2,'user','p')",params![user,n]).unwrap();
+                for (kind, payload) in [
+                    ("turn_started", &turn),
+                    ("accepted_model", &model),
+                    ("message", &user),
+                ] {
+                    tx.execute(
+                        "INSERT INTO events(session_id,kind,payload) VALUES ('source',?1,?2)",
+                        params![kind, payload],
+                    )
+                    .unwrap();
+                }
+            }
+            tx.execute("DELETE FROM schema_migrations WHERE version=4", [])
+                .unwrap();
+            tx.commit().unwrap();
+        }
+        {
+            // Opening the legacy database must migrate its entire valid journal.
+            let db = Db::open(tmp.path()).unwrap();
+            let conn = db.conn.lock().unwrap();
+            assert_eq!(
+                conn.query_row("SELECT count(*) FROM turn_acceptances", [], |r| r
+                    .get::<_, i64>(0))
+                    .unwrap(),
+                TURNS
+            );
+            let preserved: i64 = conn.query_row("SELECT count(*) FROM turn_acceptances a JOIN turns t ON t.id=a.turn_id AND t.session_id=a.session_id JOIN messages m ON m.id=a.user_message AND m.session_id=a.session_id WHERE a.model_ref=?1 AND a.user_message='user-' || substr(a.turn_id,6)",[&model],|r|r.get(0)).unwrap();
+            assert_eq!(preserved, TURNS);
+            assert!(
+                conn.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version=4)",
+                    [],
+                    |r| r.get::<_, bool>(0)
+                )
+                .unwrap()
+            );
+            // A rerun would require this explicitly named journal index. Removing
+            // it only in the fixture proves reopen skips the marked migration,
+            // without deleting any recovered admission associations.
+            conn.execute_batch("DROP INDEX events_session_seq").unwrap();
+        }
+        let db = Db::open(tmp.path()).unwrap();
+        let conn = db.conn.lock().unwrap();
+        let preserved: i64 = conn.query_row("SELECT count(*) FROM turn_acceptances WHERE model_ref=?1 AND session_id='source' AND user_message='user-' || substr(turn_id,6)",[&model],|r|r.get(0)).unwrap();
+        assert_eq!(preserved, TURNS);
     }
 
     #[test]
@@ -3267,6 +3722,66 @@ mod tests {
     }
 
     #[test]
+    fn typed_history_ids_are_exact_bounded_and_stable_across_paging_and_reopen() {
+        let tmp = tmp_root("history-identities");
+        let root = tmp.path().join("data");
+        let expected = {
+            let db = Db::open(&root).unwrap();
+            db.create_session("s").unwrap();
+            for _ in 0..super::HISTORY_PAGE_MAX + 3 {
+                db.append_message("s", "user", "same text").unwrap();
+            }
+            // Identity is opaque: it must not be reconstructed from sequence.
+            db.conn
+                .lock()
+                .unwrap()
+                .execute("UPDATE messages SET id='opaque-owner-id' WHERE seq=2", [])
+                .unwrap();
+            let tail = db.read_history_page_typed("s", usize::MAX, None).unwrap();
+            assert_eq!(tail.len(), super::HISTORY_PAGE_MAX);
+            assert!(db.read_history_page_typed("s", 0, None).unwrap().is_empty());
+            assert!(db.read_history_page_typed("missing", 1, None).is_err());
+            let mut all = tail.clone();
+            all.extend(
+                db.read_history_page_typed("s", 10, Some(tail.last().unwrap().seq))
+                    .unwrap(),
+            );
+            all.reverse();
+            assert_eq!(all[1].id.0, "opaque-owner-id");
+            let forward = db
+                .read_history_after_typed("s", usize::MAX, all[2].seq)
+                .unwrap();
+            assert_eq!(forward, all[3..]);
+            let tuples = db.read_history_after("s", usize::MAX, all[2].seq).unwrap();
+            assert_eq!(
+                tuples,
+                forward
+                    .iter()
+                    .map(|r| (r.seq, r.role.clone(), r.text.clone()))
+                    .collect::<Vec<_>>()
+            );
+            all
+        };
+        let db = Db::open(&root).unwrap();
+        let head = db.read_history_after_typed("s", 3, 0).unwrap();
+        assert_eq!(head, expected[..3]);
+        assert_eq!(
+            db.read_history_after_typed("s", usize::MAX, head[2].seq)
+                .unwrap(),
+            expected[3..]
+        );
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE messages SET id=?1 WHERE seq=1",
+                ["x".repeat(super::HISTORY_PAGE_ID_BYTES + 1)],
+            )
+            .unwrap();
+        assert!(db.read_history_after_typed("s", 1, 0).is_err());
+    }
+
+    #[test]
     fn prefs_roundtrip() {
         let tmp = tmp_root("prefs");
         let db = Db::open(&tmp.path().join("data")).expect("open");
@@ -3316,7 +3831,7 @@ mod tests {
         };
         let db = Db::open(&root).expect("reopen");
         assert_eq!(session_columns(&db), fresh, "reopen keeps the schema");
-        assert_eq!(migrations(&db), vec![1, 3]);
+        assert_eq!(migrations(&db), vec![1, 3, 4]);
         let conn = db.conn.lock().expect("db mutex");
         let applied: String = conn
             .query_row(
@@ -3345,7 +3860,7 @@ mod tests {
             .expect("legacy schema");
         }
         let db = Db::open(&root).expect("open legacy");
-        assert_eq!(migrations(&db), vec![1, 3]);
+        assert_eq!(migrations(&db), vec![1, 3, 4]);
         let legacy = db.session_meta("legacy").expect("legacy meta");
         assert_eq!(
             legacy,

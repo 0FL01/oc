@@ -1,0 +1,54 @@
+{
+  "status": "FAILED",
+  "checks": [
+    {
+      "stage": "hover",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "point": {
+        "x": 9,
+        "y": 3
+      },
+      "bytes_base64": "G1s8MzU7MTA7NE0="
+    },
+    {
+      "stage": "click",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "point": {
+        "x": 9,
+        "y": 3
+      },
+      "bytes_base64": "G1s8MDsxMDs0TRtbPDA7MTA7NG0="
+    },
+    {
+      "stage": "failed",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "reason": "Timed out waiting for Message Actions popup"
+    }
+  ],
+  "native_conversation": {
+    "status": "FAILED",
+    "baseline": {
+      "requests": 5,
+      "completed": 5,
+      "invalid": 0
+    },
+    "reason": "Timed out waiting for native undo-one"
+  },
+  "baseline": {
+    "requests": 3,
+    "completed": 3,
+    "invalid": 0
+  }
+}

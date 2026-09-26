@@ -7,6 +7,7 @@ import {createRequire} from 'node:module';
 import {spawn, spawnSync} from 'node:child_process';
 import readline from 'node:readline';
 import {fileURLToPath} from 'node:url';
+import {probeMessageActions} from './message_actions.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
@@ -57,6 +58,19 @@ const twoTurn = args['two-turn'] === 'true';
 if (args['two-turn'] !== undefined && !['true','false'].includes(args['two-turn']))
   throw Error('--two-turn must be true or false');
 const userHover = args['user-hover'] === 'true';
+const messageActions = args['message-actions'] === 'true';
+const messageForkRevert = args['message-fork-revert'] === 'true';
+if(args['message-fork-revert'] !== undefined && !['true','false'].includes(args['message-fork-revert']))
+  throw Error('--message-fork-revert must be true or false');
+if(messageForkRevert && !messageActions) throw Error('--message-fork-revert requires --message-actions true');
+if (args['message-actions'] !== undefined && !['true','false'].includes(args['message-actions']))
+  throw Error('--message-actions must be true or false');
+if (messageActions && (args.geometry !== 'true' || args.sample !== 'tools' || args.sidebar !== 'hide' ||
+    args['agent-profile'] !== 'true' || Number(args.columns)!==120 || Number(args.rows)!==40 ||
+    !args.reference || !args.oc || args['build-oc']==='true' ||
+    Object.entries(args).some(([k,v])=>v==='true' && !['message-actions','message-fork-revert','geometry','agent-profile'].includes(k)) ||
+    args['seed-root'] || args.session || args.tabs==='vertical'))
+  throw Error('--message-actions true requires exclusive paired Reader/tools 120x40 geometry profile, existing binaries');
 if (args['user-hover'] !== undefined && !['true','false'].includes(args['user-hover']))
   throw Error('--user-hover must be true or false');
 const modelsInteraction = args['models-interaction'] === 'true';
@@ -225,7 +239,7 @@ const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.str
 const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
-  models_interaction:modelsInteraction, protocol: sha(fs.readFileSync(path.join(here,'bridge.py')))}));
+   models_interaction:modelsInteraction, ...(messageActions ? {message_actions:true,...(messageForkRevert?{message_fork_revert:true}:{})} : {}), protocol: sha(fs.readFileSync(path.join(here,'bridge.py')))}));
 const commands = [];
 commands.push({argv:[process.execPath,...process.argv.slice(1)],role:'capture runner invocation',exit_code:null});
 const execute = (argv, options={}) => {
@@ -248,7 +262,7 @@ const sourceManifest = Object.fromEntries([...new Set(sourcePaths.stdout.split('
   .map(name => [name,sha(fs.readFileSync(path.join(repo,name)))]));
 json('source-manifest.json', sourceManifest);
 const lock = {schema_version: 1, started: new Date().toISOString(), runner_version: 1,
-  runner_hashes: Object.fromEntries(['capture.mjs','frontend.js','bridge.py'].map(n => [n, sha(fs.readFileSync(path.join(here,n)))])),
+   runner_hashes: Object.fromEntries(['capture.mjs','frontend.js','bridge.py',...(messageActions?['message_actions.mjs']:[])].map(n => [n, sha(fs.readFileSync(path.join(here,n)))])),
   fixture_sha256: fixtureSha, fixture_files: fixtureFiles, oc: {commit, tree, dirty_diff_sha256: sha(diff),
     source_manifest_sha256: sha(canonical(sourceManifest))},
   sources: {upstream_commit: '2670273ff17da96f85c5826ced57aa1b368754fa'}, attempts: [], captures: []};
@@ -325,7 +339,7 @@ try {
       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
       agent_profile: args['agent-profile'] === 'true',
        seed_root: args['seed-root'], session: args.session, tab_restart: tabRestart || renameSession,
-         regenerate_title: regenerateTitle, two_turn:twoTurn, models_interaction:modelsInteraction,
+          regenerate_title: regenerateTitle, two_turn:twoTurn || (messageActions && origin==='oc'), models_interaction:modelsInteraction,
         ...(scanner ? {scanner:true, animations:scannerAnimation} : {})};
     fs.writeFileSync(path.join(dir,'bridge-spec.json'), JSON.stringify(spec, null, 2));
     lock[origin] = {...lock[origin], executable_path: binary, executable_sha256: hash};
@@ -1231,14 +1245,22 @@ try {
          (Number(args.columns) < 64 ? f.text.includes('Reader · MiMo-V2.6-Flash Free') :
            /MiMo-V2.6-Flash Free · \d/.test(f.text)) &&
          logs.some(e => e.kind==='provider_completed' && e.operation==='transcript') &&
-          (!(reasoningClick || reasoningSteps || selectionCopy || toastOverlap || modelsInteraction) || logs.some(e=>e.kind==='provider_completed' && e.operation==='title')), 'completed transcript');
+           (!(reasoningClick || reasoningSteps || selectionCopy || toastOverlap || modelsInteraction || messageActions) || logs.some(e=>e.kind==='provider_completed' && e.operation==='title')), 'completed transcript');
        if(twoTurn) done=await waitFor(f=>f.text.includes('GEOMETRY-SHORT: tool read completed.') &&
           /Reader · MiMo-V2.6-Flash Free · \d/.test(f.text) &&
           logs.filter(e=>e.kind==='provider_completed' && e.operation==='transcript').length===2 &&
           logs.filter(e=>e.kind==='provider_completed' && e.operation==='title').length===1,
           'first same-session read, answer and title');
        if(done.text.includes('opaque-fixture-must-not-display')) throw Error('opaque reasoning leaked to the terminal');
-        const completedStatus = await capture('session-wide-completed',done,'CAPTURED');
+         const completedStatus = await capture('session-wide-completed',done,'CAPTURED');
+         if(messageActions) {
+           const checks=await probeMessageActions({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,chunks,
+             forkRevert:messageForkRevert,
+             prompt:fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()});
+           lock.message_actions ??= {}; lock.message_actions[origin]=checks;
+           if(checks.status!=='PASS') result=1;
+           json('capture.lock.json',lock);
+         }
         if(userHover) {
            const prompt=fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim();
            const checks=[];
@@ -2738,7 +2760,10 @@ try {
       const actual=path.join(output,'oc',(paired?.scenario ?? scenario)+'.'+ext);
       if(paired?.phase_match==='EXACT_INDICATOR' && paired.scenario!==scenario)
         throw Error('Accepted scanner phase must have canonical scenario: '+scenario);
-      if (!fs.existsSync(ref)||!fs.existsSync(actual)) {lock.attempts.push({scenario,mode,status:'BLOCKED',reason:'Missing actual capture'});result=1;continue;}
+       if(messageActions && scenario.startsWith('native-conversation-')) {
+         lock.attempts.push({scenario,mode,status:'NATIVE_ONLY_APPROVED_DIVERGENCE'});continue;
+       }
+       if (!fs.existsSync(ref)||!fs.existsSync(actual)) {lock.attempts.push({scenario,mode,status:'BLOCKED',reason:'Missing actual capture'});result=1;continue;}
       const r=execute(['/usr/bin/python3',path.join(repo,'tui-recovery/scripts/compare_frames.py'),mode,ref,actual,'--report',path.join(output,scenario+'.'+mode+'-diff.json')]);
       lock.attempts.push({scenario,mode,status:paired?.phase_match==='UNMATCHED_PHASE' ? 'UNMATCHED_PHASE' :
         r.status===0?'EQUAL':r.status===1?'DIFFERENT':'INVALID',

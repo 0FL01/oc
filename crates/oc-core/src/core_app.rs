@@ -309,6 +309,18 @@ impl MockProvider {
 
 /// Commands consumed by the single application owner (native or scripted).
 pub enum InboxMsg {
+    /// Stop execution before moving to a saved conversation point.
+    ChangeConversation {
+        session: SessionId,
+        action: crate::queries::ConversationAction,
+        ack: oneshot::Sender<Result<crate::queries::ConversationSnapshot, CoreError>>,
+    },
+    /// Copy settled history strictly before this exact user message.
+    ForkSession {
+        source: SessionId,
+        before: MessageId,
+        ack: oneshot::Sender<Result<crate::queries::ForkSessionSnapshot, CoreError>>,
+    },
     /// Create or open a session according to the owner's storage contract.
     Create {
         /// Session id.
@@ -564,6 +576,40 @@ pub struct WorkerGuard {
 }
 
 impl CoreApp {
+    /// Restore a saved conversation point without replaying external effects.
+    pub async fn change_conversation(
+        &self,
+        session: SessionId,
+        action: crate::queries::ConversationAction,
+    ) -> Result<crate::queries::ConversationSnapshot, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ChangeConversation {
+                session,
+                action,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+    /// Create an independently routable root without submitting its restored draft.
+    pub async fn fork_session(
+        &self,
+        source: SessionId,
+        before: MessageId,
+    ) -> Result<crate::queries::ForkSessionSnapshot, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ForkSession {
+                source,
+                before,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
     /// Build the existing application boundary for an adapter-owned worker.
     pub fn channel(
         capacity: usize,
@@ -1350,6 +1396,12 @@ fn elapsed_ms(started: std::time::Instant) -> u64 {
 fn scripted_unsupported(message: InboxMsg) {
     let error = || CoreError::Application("query unsupported by scripted worker".to_string());
     match message {
+        InboxMsg::ChangeConversation { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::ForkSession { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::History { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
@@ -1414,6 +1466,23 @@ fn scripted_unsupported(message: InboxMsg) {
         | InboxMsg::ProbeSession { .. }
         | InboxMsg::Read { .. }
         | InboxMsg::Shutdown => {}
+    }
+}
+
+#[cfg(test)]
+mod fork_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn scripted_fork_is_explicitly_unsupported_and_creates_nothing() {
+        let (app, guard) = CoreApp::spawn(MockProvider::echo());
+        assert!(
+            matches!(app.fork_session(SessionId("source".into()), MessageId("m0001".into())).await,
+            Err(CoreError::Application(reason)) if reason.contains("unsupported"))
+        );
+        assert!(app.list_sessions().await.unwrap().is_empty());
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
     }
 }
 
@@ -1829,5 +1898,22 @@ mod tests {
         app.cancel(sid("s-q")).await.expect("cancel");
         app.shutdown().await.expect("shutdown");
         guard.join().await.expect("join");
+    }
+
+    #[tokio::test]
+    async fn scripted_conversation_is_explicitly_unsupported() {
+        let (app, guard) = CoreApp::spawn(MockProvider::fixed(vec!["answer".into()], 1));
+        app.create_session(sid("conversation")).await.unwrap();
+        for action in [
+            crate::queries::ConversationAction::Undo,
+            crate::queries::ConversationAction::Redo,
+        ] {
+            assert!(
+                matches!(app.change_conversation(sid("conversation"), action).await,
+                Err(CoreError::Application(reason)) if reason.contains("unsupported"))
+            );
+        }
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
     }
 }

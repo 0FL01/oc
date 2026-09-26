@@ -523,6 +523,20 @@ fn assemble_with_reader(
             reason: "root must be an object".to_string(),
         })?;
 
+        for field in ["snapshot", "snapshots"] {
+            if let Some(value) = obj.get(field) {
+                let enabled = value.as_bool().ok_or_else(|| ConfigError::Invalid {
+                    field: field.to_string(),
+                    reason: "must be a boolean".to_string(),
+                })?;
+                if enabled {
+                    return Err(ConfigError::UnsupportedCapability {
+                        field: field.to_string(),
+                        reason: "filesystem snapshots are unsupported; conversation undo does not change files".to_string(),
+                    });
+                }
+            }
+        }
         if let Some(mode) = terminal_copy_value(obj)? {
             terminal_copy_source = Some(source.path.clone());
             terminal_copy = Some(mode);
@@ -1423,6 +1437,51 @@ mod tests {
             defaults.providers["fixture"].options.native_fallback_limits,
             crate::models::FallbackLimits::default()
         );
+    }
+
+    #[test]
+    fn conversation_snapshots_default_off_and_false_aliases_are_safe() {
+        for raw in [
+            serde_json::json!({}),
+            serde_json::json!({"snapshot":false}),
+            serde_json::json!({"snapshots":false}),
+            serde_json::json!({"snapshot":false,"snapshots":false}),
+        ] {
+            assemble(
+                &[Source {
+                    path: "fixture".into(),
+                    trusted: true,
+                    text: raw.to_string(),
+                }],
+                &BTreeMap::new(),
+                None,
+            )
+            .unwrap();
+        }
+        for field in ["snapshot", "snapshots"] {
+            for value in [serde_json::json!(true), serde_json::json!("false")] {
+                let raw = serde_json::json!({field:value});
+                let error = assemble(
+                    &[Source {
+                        path: "fixture".into(),
+                        trusted: true,
+                        text: raw.to_string(),
+                    }],
+                    &BTreeMap::new(),
+                    None,
+                )
+                .unwrap_err();
+                if value == true {
+                    assert!(
+                        matches!(error,ConfigError::UnsupportedCapability { field:actual,.. } if actual==field)
+                    );
+                } else {
+                    assert!(
+                        matches!(error,ConfigError::Invalid { field:actual,.. } if actual==field)
+                    );
+                }
+            }
+        }
     }
 
     use super::{

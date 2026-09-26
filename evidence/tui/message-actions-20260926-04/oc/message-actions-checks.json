@@ -1,0 +1,282 @@
+{
+  "status": "FAILED",
+  "checks": [
+    {
+      "stage": "hover",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "point": {
+        "x": 9,
+        "y": 3
+      },
+      "bytes_base64": "G1s8MzU7MTA7NE0="
+    },
+    {
+      "stage": "click",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "point": {
+        "x": 9,
+        "y": 3
+      },
+      "bytes_base64": "G1s8MDsxMDs0TRtbPDA7MTA7NG0="
+    },
+    {
+      "stage": "popup",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "options": [
+        {
+          "label": "Jump to",
+          "x": 34,
+          "y": 15
+        },
+        {
+          "label": "Revert",
+          "x": 34,
+          "y": 16
+        },
+        {
+          "label": "Copy",
+          "x": 34,
+          "y": 17
+        },
+        {
+          "label": "Fork",
+          "x": 34,
+          "y": 18
+        }
+      ],
+      "provider_unchanged": true
+    },
+    {
+      "stage": "hover",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "point": {
+        "x": 34,
+        "y": 17
+      },
+      "bytes_base64": "G1s8MzU7MzU7MThN"
+    },
+    {
+      "stage": "click",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "point": {
+        "x": 34,
+        "y": 17
+      },
+      "bytes_base64": "G1s8MDszNTsxOE0bWzwwOzM1OzE4bQ=="
+    },
+    {
+      "stage": "copy-effect",
+      "provider_counts": {
+        "requests": 3,
+        "completed": 3,
+        "invalid": 0
+      },
+      "predicates": {
+        "dialog_closed": true,
+        "osc52_exact_prompt": true,
+        "provider_unchanged": true
+      },
+      "copy_feedback": true,
+      "osc52_payloads": [
+        "Какие тебе тулы доступны?"
+      ],
+      "system_clipboard": "NOT_VERIFIED_BY_PTY"
+    },
+    {
+      "stage": "undo-one",
+      "provider_counts": {
+        "requests": 5,
+        "completed": 5,
+        "invalid": 0
+      },
+      "predicates": {
+        "first_answer_visible": true,
+        "second_answer_visible": false,
+        "restored_draft": "Second same-session spacing check?",
+        "zero_extra_provider_calls": true
+      },
+      "cursor": {
+        "x": 39,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "undo-two",
+      "provider_counts": {
+        "requests": 5,
+        "completed": 5,
+        "invalid": 0
+      },
+      "predicates": {
+        "first_answer_visible": false,
+        "second_answer_visible": false,
+        "restored_draft": "Какие тебе тулы доступны?",
+        "zero_extra_provider_calls": true
+      },
+      "cursor": {
+        "x": 30,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "redo-one",
+      "provider_counts": {
+        "requests": 5,
+        "completed": 5,
+        "invalid": 0
+      },
+      "predicates": {
+        "first_answer_visible": true,
+        "second_answer_visible": false,
+        "restored_draft": null,
+        "zero_extra_provider_calls": true
+      },
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "redo-two",
+      "provider_counts": {
+        "requests": 5,
+        "completed": 5,
+        "invalid": 0
+      },
+      "predicates": {
+        "first_answer_visible": true,
+        "second_answer_visible": true,
+        "restored_draft": null,
+        "zero_extra_provider_calls": true
+      },
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "click",
+      "provider_counts": {
+        "requests": 5,
+        "completed": 5,
+        "invalid": 0
+      },
+      "point": {
+        "x": 9,
+        "y": 13
+      },
+      "bytes_base64": "G1s8MDsxMDsxNE0bWzwwOzEwOzE0bQ=="
+    },
+    {
+      "stage": "click",
+      "provider_counts": {
+        "requests": 5,
+        "completed": 5,
+        "invalid": 0
+      },
+      "point": {
+        "x": 34,
+        "y": 18
+      },
+      "bytes_base64": "G1s8MDszNTsxOU0bWzwwOzM1OzE5bQ=="
+    },
+    {
+      "stage": "fork-root",
+      "provider_counts": {
+        "requests": 5,
+        "completed": 5,
+        "invalid": 0
+      },
+      "predicates": {
+        "new_tab_header": true,
+        "first_answer_retained": true,
+        "selected_turn_absent": true,
+        "selected_prompt_restored": true,
+        "no_subagent_chrome": true,
+        "zero_extra_provider_calls": true
+      },
+      "cursor": {
+        "x": 39,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "click",
+      "provider_counts": {
+        "requests": 5,
+        "completed": 5,
+        "invalid": 0
+      },
+      "point": {
+        "x": 9,
+        "y": 3
+      },
+      "bytes_base64": "G1s8MDsxMDs0TRtbPDA7MTA7NG0="
+    },
+    {
+      "stage": "click",
+      "provider_counts": {
+        "requests": 5,
+        "completed": 5,
+        "invalid": 0
+      },
+      "point": {
+        "x": 34,
+        "y": 16
+      },
+      "bytes_base64": "G1s8MDszNTsxN00bWzwwOzM1OzE3bQ=="
+    }
+  ],
+  "native_conversation": {
+    "status": "PASS",
+    "baseline": {
+      "requests": 5,
+      "completed": 5,
+      "invalid": 0
+    }
+  },
+  "baseline": {
+    "requests": 3,
+    "completed": 3,
+    "invalid": 0
+  },
+  "native_fork_revert": {
+    "status": "FAILED",
+    "baseline": {
+      "requests": 5,
+      "completed": 5,
+      "invalid": 0
+    },
+    "reason": "Timed out waiting for native Revert hides fork turn and restores prompt"
+  }
+}

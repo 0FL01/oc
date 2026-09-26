@@ -1491,7 +1491,7 @@ impl<'a> Runtime<'a> {
         // transcript: ranges may address rows the provider projection has
         // already dropped, so the addressed history is materialised here
         // (never on the per-turn path).
-        let history = self.db.read_history_full(session)?;
+        let history = self.db.conversation_history_full(session)?;
         let messages = map_messages(&history)?;
         let op = format!(
             "compress-{session}-{}",
@@ -1589,6 +1589,19 @@ impl<'a> Runtime<'a> {
             projected,
             blocks,
         })
+    }
+
+    /// Saved DCP preferences were restored by the owner; refresh lazy caches.
+    pub(crate) fn conversation_changed(&self, session: &str) {
+        let prefix = format!("dcp.nudge.{session}\0");
+        let restored = self.db.conversation_nudges(session).unwrap_or_default();
+        let mut states = self.nudge_state.lock().expect("nudge lock");
+        states.retain(|key, _| !key.starts_with(&prefix));
+        for (key, raw) in restored {
+            if let Ok(state) = serde_json::from_str(&raw) {
+                states.insert(key, state);
+            }
+        }
     }
 
     /// Active rows only (prune-bounded, no block placement).
@@ -3018,6 +3031,9 @@ impl<'a> Runtime<'a> {
                 rejection
             } else {
                 match unit {
+                    Assembled::Call(call) if call.name == "bash" => {
+                        crate::tools::execute_bash_typed(ctx, call).await
+                    }
                     Assembled::Call(call) if is_builtin(&call.name) => {
                         let output = execute_batch(ctx, vec![guarded]).await.remove(0).output;
                         (output_state(&output), output)

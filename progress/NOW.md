@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-26T08:01:14+00:00
+State updated: 2026-09-26T10:38:10+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,19 +14,32 @@ Evidence target: evidence/T44/report.md
 
 ## Result
 
-Owner clarified and approved conversation/context-only /undo, /redo and Message Actions Revert, then explicitly requested plan edits, commit and push. Updated GOAL, T44 goal/amendment/work guide and VIS10 acceptance; no product code implemented or resumed. Authoritative plan: tui-recovery/T44_CONTRACT_AMENDMENT.md, 2026-09-26 conversation-only section. Undo moves back one user/agent turn; redo forward one saved turn without provider/tool replay; new accepted input cuts normal redo of the old tail. Restore causal LLM/DCP projection, retain raw history and persist boundary across restart. Workspace/files/modes/Git remain unchanged. Snapshots default off; false aliases accepted; true unsupported. Prior file-preimage plan is superseded, not a pending requirement.
+Owner resumed the approved conversation-only plan. Removed experimental filesystem
+snapshots; delivered durable identities, Undo/Redo/Revert boundaries and incremental
+DCP context revisions, branch invalidation without archive deletion, Message Actions
+and independent root Fork with saved historical context. Files/Git remain untouched.
+Snapshots default off, false aliases accepted, true unsupported. Full evidence:
+evidence/T44/conversation-only-report.md.
 
 ## Checks
 
-Documentation/acceptance validation and staged diff review are required before this documentation-only commit. Prior 577ce84 full code gate remains historical evidence only; current dirty Rust/snapshot correction is unqualified and no Cargo gate is claimed. Delivery status is determined by Git, not this pre-commit note.
+Final serial fmt/locked workspace tests/strict all-target Clippy/build, capture
+syntax/xterm frontend, docs/progress and diff PASS: tool_0dd439272001QBBRuIC8o4FhaP.
+Real paired -06 verifies Copy and native two undo/two redo/source Revert/Fork/retained
+fork Revert with unchanged provider count. Unmasked frames remain DIFFERENT; no
+VIS10/V09 qualification claimed.
 
 ## Risks
 
-Independent owner docs commits through 2429a85 are preserved. Parked identity/fork/migration/snapshot/shell changes and untracked Rust modules remain unstaged; no reset or automatic cleanup. Inherited .opencode/ not inspected/staged. No implementation PASS, no TUI_PARITY_VERIFIED. Approved difference supersedes filesystem Revert and original clear-all redo only; unrelated parity/quality gates unchanged.
+Missing legacy context explicitly unavailable. Fork bounded. OSC52 does not prove OS
+clipboard readback. Independent owner docs through 96cb835 preserved; inherited
+.opencode/ never inspected/staged. T44 ACTIVE, not TUI_PARITY_VERIFIED.
 
 ## Next
 
-Deliver only reviewed planning/docs/journal changes. Product implementation stays parked until separately resumed. On resumption remove snapshot-specific hunks, not identity/fork or independent shell fixes; implement owner conversation boundary/context versions and commands under the approved plan. Verify actual provider context/DCP boundary, stepwise redo without requests/tools, restart/branch behavior and workspace/Git immutability. No filesystem checkpoints, preimage journal or file rollback.
+Commit/push verified implementation milestone, then continue the smallest unresolved
+T44 requirement including successful Shell spacing and hover/expand parity. Preserve
+failed immutable captures; do not weaken remaining exact comparisons.
 
 
 Ready (до 5): T45, T46, T47

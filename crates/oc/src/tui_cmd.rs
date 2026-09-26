@@ -155,6 +155,11 @@ async fn run_stages(data_dir: &Path, session_opt: Option<String>) -> Result<u8, 
 /// Loop-local application state that is not part of the view-model.
 #[derive(Default)]
 struct LoopState {
+    conversation_job: Option<tokio::task::JoinHandle<Result<ConversationResult, String>>>,
+    conversation_recovery: Option<(SessionId, std::time::Instant)>,
+    recovery_job: Option<ConversationRefresh>,
+    #[cfg(test)]
+    copy_transport: Option<CopyTransport>,
     mention_pending: Option<(MentionRequest, Instant)>,
     mention_job: Option<(
         MentionRequest,
@@ -194,6 +199,63 @@ struct LoopState {
     /// A child requested by --session is a standalone history view. Never
     /// submit a turn or promote it into the Location's root-tab preference.
     read_only: bool,
+}
+
+enum ConversationResult {
+    Changed(oc_core::queries::ConversationSnapshot, ConversationRefresh),
+    Forked(oc_core::queries::ForkSessionSnapshot, ConversationRefresh),
+}
+
+#[cfg(test)]
+type CopyTransport = fn(&str) -> Result<(), String>;
+
+type ConversationRefresh = tokio::task::JoinHandle<(
+    Result<oc_core::queries::HistoryPage, String>,
+    Result<CatalogSnapshot, String>,
+)>;
+
+fn conversation_refresh(app: CoreApp, session: SessionId) -> ConversationRefresh {
+    tokio::spawn(async move {
+        let page = app
+            .history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
+            .await
+            .map_err(|e| e.to_string());
+        let catalog = app
+            .session_selection(session, false, SelectionAction::Current)
+            .await
+            .map_err(|e| e.to_string());
+        (page, catalog)
+    })
+}
+
+async fn apply_conversation_refresh(state: &mut TuiState, refresh: ConversationRefresh) -> bool {
+    match refresh.await {
+        Ok((page, catalog)) => {
+            let success = page.is_ok() && catalog.is_ok();
+            match page {
+                Ok(page) => state.attach_page(&page),
+                Err(error) => state.push_transient_note(
+                    &format!("Conversation saved; history refresh failed: {error}"),
+                    NoteVariant::Error,
+                ),
+            }
+            match catalog {
+                Ok(catalog) => state.apply_catalog(catalog),
+                Err(error) => state.push_transient_note(
+                    &format!("Conversation saved; metadata refresh failed: {error}"),
+                    NoteVariant::Error,
+                ),
+            }
+            success
+        }
+        Err(_) => {
+            state.push_transient_note(
+                "Conversation saved; refresh interrupted",
+                NoteVariant::Error,
+            );
+            false
+        }
+    }
 }
 
 impl LoopState {
@@ -485,6 +547,101 @@ impl LoopState {
     }
 }
 
+async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+    if deck
+        .conversation_recovery
+        .as_ref()
+        .is_some_and(|(session, _)| state.attached_session() != Some(session))
+    {
+        deck.conversation_recovery = None;
+        if let Some(job) = deck.recovery_job.take() {
+            job.abort();
+        }
+    }
+    if deck
+        .recovery_job
+        .as_ref()
+        .is_some_and(|job| job.is_finished())
+    {
+        let job = deck.recovery_job.take().expect("finished refresh");
+        if apply_conversation_refresh(state, job).await {
+            deck.conversation_recovery = None;
+        } else if let Some((_, retry)) = &mut deck.conversation_recovery {
+            *retry = std::time::Instant::now() + std::time::Duration::from_secs(1);
+        }
+        deck.sync_tabs(state);
+    }
+    if deck.conversation_job.is_none()
+        && deck.recovery_job.is_none()
+        && let Some((session, retry)) = &deck.conversation_recovery
+        && *retry <= std::time::Instant::now()
+    {
+        if state.attached_session() == Some(session) {
+            deck.recovery_job = Some(conversation_refresh(app.clone(), session.clone()));
+        } else {
+            deck.conversation_recovery = None;
+        }
+    }
+    if !deck
+        .conversation_job
+        .as_ref()
+        .is_some_and(|job| job.is_finished())
+    {
+        return;
+    }
+    let job = deck
+        .conversation_job
+        .take()
+        .expect("finished conversation job");
+    match job
+        .await
+        .unwrap_or_else(|_| Err("conversation operation interrupted".into()))
+    {
+        Ok(ConversationResult::Changed(snapshot, refresh)) => {
+            if state.attached_session() != Some(&snapshot.session) {
+                return;
+            }
+            state.conversation_applied(&snapshot, &Default::default());
+            if !apply_conversation_refresh(state, refresh).await {
+                deck.conversation_recovery = Some((
+                    snapshot.session,
+                    std::time::Instant::now() + std::time::Duration::from_secs(1),
+                ));
+            }
+            deck.cards_before = None;
+            deck.dcp_seen = false;
+            deck.sync_tabs(state);
+        }
+        Ok(ConversationResult::Forked(snapshot, refresh)) => {
+            let before = deck.snapshot(state);
+            let mut next = TuiState::new(app.clone(), snapshot.session.clone());
+            next.restore_prompt(snapshot.prompt);
+            state.close_panel();
+            if let Some(old) = deck.active_tab.take() {
+                deck.tabs[old] = Some(std::mem::replace(state, next));
+                deck.tab_cards_before[old] = deck.cards_before;
+            } else {
+                deck.home = Some(std::mem::replace(state, next));
+            }
+            deck.active_tab = Some(deck.tabs.len());
+            deck.tabs.push(None);
+            deck.tab_cards_before.push(None);
+            deck.cards_before = None;
+            deck.dcp_seen = false;
+            deck.sync_tabs(state);
+            deck.save_if_changed(app, state, &before).await;
+            if !apply_conversation_refresh(state, refresh).await {
+                deck.conversation_recovery = Some((
+                    snapshot.session,
+                    std::time::Instant::now() + std::time::Duration::from_secs(1),
+                ));
+            }
+            deck.sync_tabs(state);
+        }
+        Err(error) => state.push_transient_note(&error, NoteVariant::Error),
+    }
+}
+
 async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, String> {
     let _term = enter()?;
     if std::env::var_os(PANIC_PROBE_ENV).is_some() {
@@ -504,6 +661,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
         state.tick_toast(Instant::now());
         poll_and_sync(app, &mut state, &mut loop_state).await;
         sync_mention(app, &mut state, &mut loop_state).await;
+        finish_conversation(app, &mut state, &mut loop_state).await;
         if loop_state.reload_job.is_some() {
             if loop_state.reload_painted
                 && loop_state
@@ -637,6 +795,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
     if let Some((_, job)) = loop_state.mention_job.take() {
         job.abort();
     }
+    settle_conversation(app, &mut state, &mut loop_state).await;
     reconcile_exit(app, &mut state, &mut loop_state).await?;
     if let Some(metrics) = frame_metrics.as_mut() {
         metrics.sample_views(&state, &loop_state);
@@ -650,6 +809,17 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>) -> Result<u8, Strin
         let _ = job.await;
     }
     Ok(0)
+}
+
+async fn settle_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+    while deck
+        .conversation_job
+        .as_ref()
+        .is_some_and(|job| !job.is_finished())
+    {
+        tokio::task::yield_now().await;
+    }
+    finish_conversation(app, state, deck).await;
 }
 
 /// A lagged receiver stops this frame's drain, as before; record the number
@@ -1044,7 +1214,7 @@ async fn handle_event(
     cev: CEvent,
 ) -> Result<(), String> {
     let event = map_event(cev);
-    if loop_state.reload_job.is_some() {
+    if loop_state.reload_job.is_some() || loop_state.conversation_job.is_some() {
         match event {
             Some(UiEvent::Key(KeyAction::Interrupt | KeyAction::Quit)) => {
                 // Bypass modal/editor focus, but leave owner reload intact for
@@ -1134,8 +1304,12 @@ async fn handle_event(
 fn report_copy_request(state: &mut TuiState) {
     // Apply to the view that produced the selection before a mouse outcome
     // can swap the active tab. Never log the selected transcript text.
+    report_copy_request_with(state, crate::clipboard::copy);
+}
+
+fn report_copy_request_with(state: &mut TuiState, copy: impl FnOnce(&str) -> Result<(), String>) {
     if let Some(text) = state.take_copy_request() {
-        state.report_clipboard_result(crate::clipboard::copy(&text));
+        state.report_clipboard_result(copy(&text));
     }
 }
 
@@ -1230,6 +1404,9 @@ async fn apply_intent_with_origin(
     intent: PanelIntent,
     typed_new: bool,
 ) -> Result<(), String> {
+    if loop_state.conversation_job.is_some() {
+        return Err("conversation operation pending".into());
+    }
     if loop_state.reload_job.is_some() {
         return Err("configuration reload pending".into());
     }
@@ -1245,11 +1422,74 @@ async fn apply_intent_with_origin(
                 | PanelIntent::SelectAgent { .. }
                 | PanelIntent::Compress { .. }
                 | PanelIntent::ReloadConfiguration
+                | PanelIntent::ChangeConversation { .. }
+                | PanelIntent::ForkMessage { .. }
         )
     {
         return Err("child session: read-only history; saved tabs are unchanged".into());
     }
     match intent {
+        PanelIntent::ChangeConversation { action } => {
+            if loop_state.conversation_recovery.is_some() || loop_state.recovery_job.is_some() {
+                return Err("conversation refresh pending".into());
+            }
+            let session = require_session(state)?;
+            if *state.status() == TuiStatus::PendingSubmission {
+                return Err("submission pending".into());
+            }
+            let owner = app.clone();
+            loop_state.conversation_job = Some(tokio::spawn(async move {
+                let snapshot = owner
+                    .change_conversation(session.clone(), action)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                let refresh = conversation_refresh(owner, session);
+                Ok(ConversationResult::Changed(snapshot, refresh))
+            }));
+        }
+        PanelIntent::ForkMessage { message } => {
+            if loop_state.conversation_recovery.is_some() || loop_state.recovery_job.is_some() {
+                return Err("conversation refresh pending".into());
+            }
+            if state.is_busy() {
+                return Err("turn active; fork unavailable".into());
+            }
+            if !loop_state.can_open_session() {
+                return Err("tab limit reached".into());
+            }
+            let session = require_session(state)?;
+            let owner = app.clone();
+            loop_state.conversation_job = Some(tokio::spawn(async move {
+                let snapshot = owner
+                    .fork_session(session, message)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                let refresh = conversation_refresh(owner, snapshot.session.clone());
+                Ok(ConversationResult::Forked(snapshot, refresh))
+            }));
+        }
+        PanelIntent::CopyMessage { message, seq } => {
+            let session = require_session(state)?;
+            // Fetch the owner row again: HistoryWindow/rendering can shorten text.
+            let page = app
+                .history_page(session, seq.checked_add(1), None, 1)
+                .await
+                .map_err(|e| e.to_string())?;
+            let row = page
+                .rows
+                .into_iter()
+                .find(|row| row.id == message && row.role == oc_core::session::Role::User)
+                .ok_or("message is no longer active")?;
+            state.copy_message_text(row.text)?;
+            #[cfg(test)]
+            if let Some(copy) = loop_state.copy_transport {
+                report_copy_request_with(state, copy);
+            } else {
+                report_copy_request(state);
+            }
+            #[cfg(not(test))]
+            report_copy_request(state);
+        }
         PanelIntent::ReloadConfiguration => {
             if state.is_busy()
                 || loop_state.tabs.iter().flatten().any(TuiState::is_busy)
@@ -2219,6 +2459,7 @@ mod tests {
             rows: vec![HistoryMessage {
                 seq: 1,
                 role: Role::Assistant,
+                id: oc_core::session::MessageId("cached-assistant".into()),
                 text: "# cached markdown".into(),
                 turn: None,
                 model_switch: None,
@@ -2877,6 +3118,544 @@ mod tests {
             commands: Vec::new(),
             command_descriptions: Default::default(),
         }
+    }
+
+    #[tokio::test]
+    async fn accepted_conversation_survives_refresh_failure_and_retries_queries_only() {
+        use oc_core::queries::{ConversationAction, ConversationSnapshot, HistoryPage};
+        for action in [
+            ConversationAction::Undo,
+            ConversationAction::Redo,
+            ConversationAction::Revert {
+                message: oc_core::session::MessageId("user".into()),
+            },
+        ] {
+            for history_failure in [true, false] {
+                let (app, mut inbox, _) = CoreApp::channel(8);
+                let session = SessionId::new("receipt").unwrap();
+                let mut state = TuiState::new(app.clone(), session.clone());
+                state.session_title = Some("future title".into());
+                state.restore_prompt("draft before ACK".into());
+                let mut deck = LoopState::default();
+                apply_intent(
+                    &app,
+                    &mut state,
+                    &mut deck,
+                    PanelIntent::ChangeConversation {
+                        action: action.clone(),
+                    },
+                )
+                .await
+                .unwrap();
+                let worker = tokio::spawn(async move {
+                    let Some(InboxMsg::ChangeConversation { ack, session, .. }) =
+                        inbox.recv().await
+                    else {
+                        panic!("mutation once")
+                    };
+                    ack.send(Ok(ConversationSnapshot {
+                        session,
+                        draft: Some("owner restored".into()),
+                        can_undo: false,
+                        can_redo: true,
+                    }))
+                    .unwrap();
+                    let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
+                        panic!("history")
+                    };
+                    ack.send(if history_failure {
+                        Err(CoreError::Shutdown)
+                    } else {
+                        Ok(HistoryPage::default())
+                    })
+                    .unwrap();
+                    let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+                        panic!("selection")
+                    };
+                    ack.send(if history_failure {
+                        Ok(catalog())
+                    } else {
+                        Err(CoreError::Shutdown)
+                    })
+                    .unwrap();
+                    inbox
+                });
+                settle_conversation(&app, &mut state, &mut deck).await;
+                let mut inbox = worker.await.unwrap();
+                assert_eq!(state.input(), "owner restored");
+                assert!(
+                    state.session_title.is_none(),
+                    "future projection invalidated"
+                );
+                assert_eq!(
+                    state.command_unavailable(&CommandAction::UndoConversation),
+                    Some("nothing to undo")
+                );
+                assert!(deck.conversation_recovery.is_some());
+                deck.conversation_recovery.as_mut().unwrap().1 = std::time::Instant::now();
+                finish_conversation(&app, &mut state, &mut deck).await;
+                let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
+                    panic!("refresh only")
+                };
+                ack.send(Ok(HistoryPage::default())).unwrap();
+                let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+                    panic!("refresh only")
+                };
+                ack.send(Ok(catalog())).unwrap();
+                while !deck.recovery_job.as_ref().unwrap().is_finished() {
+                    tokio::task::yield_now().await;
+                }
+                finish_conversation(&app, &mut state, &mut deck).await;
+                assert!(deck.conversation_recovery.is_none());
+                assert_eq!(state.input(), "owner restored");
+                assert!(inbox.try_recv().is_err());
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn quit_pending_fork_saves_accepted_identity_even_when_refresh_fails() {
+        use oc_core::queries::{ForkSessionSnapshot, HistoryPage};
+        for history_failure in [true, false] {
+            let (app, mut inbox, _) = CoreApp::channel(8);
+            let source = SessionId::new("source").unwrap();
+            let fork = SessionId::new("created-once").unwrap();
+            let mut state = TuiState::new(app.clone(), source.clone());
+            let mut deck = LoopState {
+                tabs: vec![None],
+                tab_cards_before: vec![None],
+                active_tab: Some(0),
+                location: Some("fixture-location".into()),
+                ..Default::default()
+            };
+            apply_intent(
+                &app,
+                &mut state,
+                &mut deck,
+                PanelIntent::ForkMessage {
+                    message: oc_core::session::MessageId("selected".into()),
+                },
+            )
+            .await
+            .unwrap();
+            handle_event(
+                &app,
+                &mut state,
+                &mut deck,
+                CEvent::Key(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL)),
+            )
+            .await
+            .unwrap();
+            assert_eq!(*state.status(), TuiStatus::Quit);
+            let worker = tokio::spawn(async move {
+                let Some(InboxMsg::ForkSession { ack, .. }) = inbox.recv().await else {
+                    panic!("one creation")
+                };
+                ack.send(Ok(ForkSessionSnapshot {
+                    session: fork,
+                    prompt: "unsent selected prompt".into(),
+                }))
+                .unwrap();
+                let mut saved = None;
+                let mut history_seen = false;
+                let mut selection_seen = false;
+                while saved.is_none() || !history_seen || !selection_seen {
+                    match inbox.recv().await.unwrap() {
+                        InboxMsg::SaveTabDeck { mut deck, ack } => {
+                            deck.revision = Some("saved-revision".into());
+                            saved = Some(deck.clone());
+                            ack.send(Ok(deck)).unwrap();
+                        }
+                        InboxMsg::History { ack, .. } => {
+                            history_seen = true;
+                            ack.send(if history_failure {
+                                Err(CoreError::Shutdown)
+                            } else {
+                                Ok(HistoryPage::default())
+                            })
+                            .unwrap();
+                        }
+                        InboxMsg::SessionSelection { ack, .. } => {
+                            selection_seen = true;
+                            ack.send(if history_failure {
+                                Ok(catalog())
+                            } else {
+                                Err(CoreError::Shutdown)
+                            })
+                            .unwrap();
+                        }
+                        _ => panic!("no second mutation or submission"),
+                    }
+                }
+                (saved.unwrap(), inbox)
+            });
+            settle_conversation(&app, &mut state, &mut deck).await;
+            let (saved, mut inbox) = worker.await.unwrap();
+            assert_eq!(
+                saved.sessions,
+                vec![source, SessionId::new("created-once").unwrap()]
+            );
+            assert_eq!(saved.active.as_ref(), state.attached_session());
+            assert_eq!(state.input(), "unsent selected prompt");
+            assert_eq!(
+                deck.snapshot(&state),
+                saved,
+                "persisted deck is restart input"
+            );
+            assert!(inbox.is_empty());
+            let expected_sessions = saved.sessions.clone();
+            let worker = tokio::spawn(async move {
+                let Some(InboxMsg::TabDeck { ack }) = inbox.recv().await else {
+                    panic!("restart deck")
+                };
+                ack.send(Ok(saved)).unwrap();
+                for expected in expected_sessions {
+                    let Some(InboxMsg::History { session, ack, .. }) = inbox.recv().await else {
+                        panic!("restart history")
+                    };
+                    assert_eq!(session, expected);
+                    ack.send(Ok(HistoryPage::default())).unwrap();
+                    let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+                        panic!("restart catalog")
+                    };
+                    ack.send(Ok(catalog())).unwrap();
+                }
+                let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
+                    panic!("restart Home")
+                };
+                ack.send(Ok(catalog())).unwrap();
+                assert!(inbox.try_recv().is_err(), "restart never recreates fork");
+            });
+            let (_, restarted) = restore_initial(&app, None).await.unwrap();
+            assert_eq!(restarted.tabs.len(), 2);
+            assert_eq!(
+                restarted.tabs[1].as_ref().unwrap().attached_session(),
+                Some(&SessionId::new("created-once").unwrap())
+            );
+            worker.await.unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn conversation_commands_wait_for_owner_then_refresh_without_submission() {
+        use oc_core::queries::{ConversationAction, ConversationSnapshot, HistoryPage};
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let session = SessionId::new("conversation-ui").unwrap();
+        let mut state = TuiState::new(app.clone(), session.clone());
+        let mut deck = LoopState::default();
+        state.handle_paste("/undo");
+        let intent = state.handle_key(KeyAction::Enter).await.intent.unwrap();
+        assert_eq!(
+            intent,
+            PanelIntent::ChangeConversation {
+                action: ConversationAction::Undo
+            }
+        );
+        apply_intent(&app, &mut state, &mut deck, intent)
+            .await
+            .unwrap();
+        assert_eq!(state.input(), "/undo", "draft is retained until owner ACK");
+        let Some(InboxMsg::ChangeConversation { action, ack, .. }) = inbox.recv().await else {
+            panic!("typed undo")
+        };
+        assert_eq!(action, ConversationAction::Undo);
+        ack.send(Ok(ConversationSnapshot {
+            session: session.clone(),
+            draft: Some("original prompt".into()),
+            can_undo: false,
+            can_redo: true,
+        }))
+        .unwrap();
+        let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
+            panic!("history refresh")
+        };
+        ack.send(Ok(HistoryPage {
+            title: Some("Retained title".into()),
+            ..Default::default()
+        }))
+        .unwrap();
+        let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+            panic!("metadata refresh")
+        };
+        ack.send(Ok(catalog())).unwrap();
+        while !deck.conversation_job.as_ref().unwrap().is_finished() {
+            tokio::task::yield_now().await;
+        }
+        finish_conversation(&app, &mut state, &mut deck).await;
+        assert_eq!(state.input(), "original prompt");
+        assert_eq!(state.session_title.as_deref(), Some("Retained title"));
+        assert_eq!(
+            state.command_unavailable(&CommandAction::UndoConversation),
+            Some("nothing to undo")
+        );
+        assert_eq!(
+            state.command_unavailable(&CommandAction::RedoConversation),
+            None
+        );
+        state.restore_prompt("/redo".into());
+        let intent = state.handle_key(KeyAction::Enter).await.intent.unwrap();
+        assert_eq!(
+            intent,
+            PanelIntent::ChangeConversation {
+                action: ConversationAction::Redo
+            }
+        );
+        apply_intent(&app, &mut state, &mut deck, intent)
+            .await
+            .unwrap();
+        let Some(InboxMsg::ChangeConversation { action, ack, .. }) = inbox.recv().await else {
+            panic!("typed redo, never Submit")
+        };
+        assert_eq!(action, ConversationAction::Redo);
+        ack.send(Err(CoreError::Shutdown)).unwrap();
+        while !deck.conversation_job.as_ref().unwrap().is_finished() {
+            tokio::task::yield_now().await;
+        }
+        finish_conversation(&app, &mut state, &mut deck).await;
+        assert_eq!(
+            state.input(),
+            "/redo",
+            "async failure retains editable draft"
+        );
+        assert_eq!(state.session_title.as_deref(), Some("Retained title"));
+        assert!(
+            inbox.try_recv().is_err(),
+            "no provider/submission or extra queries"
+        );
+    }
+
+    #[tokio::test]
+    async fn message_copy_keyboard_drains_transport_and_preserves_dialog_on_failure() {
+        use crossterm::event::{MouseButton, MouseEvent};
+        use oc_core::queries::{HistoryMessage, HistoryPage};
+        use oc_core::session::{MessageId, Role};
+        use ratatui::{Terminal, backend::TestBackend, layout::Rect};
+        for succeeds in [false, true] {
+            let (app, mut inbox, _) = CoreApp::channel(8);
+            let mut state = TuiState::new(app.clone(), SessionId::new("copy-dialog").unwrap());
+            let row = HistoryMessage {
+                id: MessageId("copy-id".into()),
+                seq: 4,
+                role: Role::User,
+                text: "COPY STORED PROMPT".into(),
+                turn: None,
+                model_switch: None,
+            };
+            state.attach_page(&HistoryPage {
+                rows: vec![row.clone()],
+                ..Default::default()
+            });
+            state.restore_prompt("unfinished draft".into());
+            let mut terminal = Terminal::new(TestBackend::new(100, 30)).unwrap();
+            terminal.draw(|frame| render_frame(frame, &state)).unwrap();
+            let buffer = terminal.backend().buffer();
+            let y = (0..30)
+                .find(|&y| {
+                    (0..100)
+                        .map(|x| buffer[(x, y)].symbol())
+                        .collect::<String>()
+                        .contains("COPY STORED PROMPT")
+                })
+                .unwrap();
+            for kind in [
+                MouseEventKind::Down(MouseButton::Left),
+                MouseEventKind::Up(MouseButton::Left),
+            ] {
+                state.handle_mouse(
+                    MouseEvent {
+                        kind,
+                        column: 6,
+                        row: y,
+                        modifiers: KeyModifiers::NONE,
+                    },
+                    Rect::new(0, 0, 100, 30),
+                );
+            }
+            assert!(matches!(state.panel(), TuiPanel::MessageActions { .. }));
+            fn success(text: &str) -> Result<(), String> {
+                assert_eq!(text, "COPY STORED PROMPT");
+                Ok(())
+            }
+            fn failure(text: &str) -> Result<(), String> {
+                assert_eq!(text, "COPY STORED PROMPT");
+                Err("transport failed".into())
+            }
+            let mut deck = LoopState {
+                copy_transport: Some(if succeeds { success } else { failure }),
+                ..Default::default()
+            };
+            let worker = tokio::spawn(async move {
+                let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
+                    panic!("exact text query")
+                };
+                ack.send(Ok(HistoryPage {
+                    rows: vec![row],
+                    ..Default::default()
+                }))
+                .unwrap();
+            });
+            for code in [KeyCode::Down, KeyCode::Down, KeyCode::Enter] {
+                handle_event(
+                    &app,
+                    &mut state,
+                    &mut deck,
+                    CEvent::Key(KeyEvent::new(code, KeyModifiers::NONE)),
+                )
+                .await
+                .unwrap();
+            }
+            worker.await.unwrap();
+            assert!(state.take_copy_request().is_none());
+            assert_eq!(state.input(), "unfinished draft");
+            assert_eq!(
+                matches!(state.panel(), TuiPanel::MessageActions { .. }),
+                !succeeds
+            );
+            assert_eq!(
+                state.note_variant(),
+                Some(if succeeds {
+                    NoteVariant::Info
+                } else {
+                    NoteVariant::Error
+                })
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn copy_message_queries_exact_owner_row_instead_of_window_preview() {
+        use oc_core::queries::{HistoryMessage, HistoryPage};
+        use oc_core::session::{MessageId, Role};
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let mut state = TuiState::new(app.clone(), SessionId::new("copy-ui").unwrap());
+        let text = "full public user text\n".repeat(500);
+        let expected = text.clone();
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::History {
+                before_seq,
+                limit,
+                ack,
+                ..
+            }) = inbox.recv().await
+            else {
+                panic!("owner history")
+            };
+            assert_eq!(before_seq, Some(43));
+            assert_eq!(limit, 1);
+            ack.send(Ok(HistoryPage {
+                rows: vec![HistoryMessage {
+                    id: MessageId("opaque-user".into()),
+                    seq: 42,
+                    role: Role::User,
+                    text,
+                    turn: None,
+                    model_switch: None,
+                }],
+                ..Default::default()
+            }))
+            .unwrap();
+        });
+        fn record_copy(text: &str) -> Result<(), String> {
+            assert_eq!(text, "full public user text\n".repeat(500));
+            Ok(())
+        }
+        let mut deck = LoopState {
+            copy_transport: Some(record_copy),
+            ..Default::default()
+        };
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::CopyMessage {
+                message: MessageId("opaque-user".into()),
+                seq: 42,
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(expected, "full public user text\n".repeat(500));
+        assert!(
+            state.take_copy_request().is_none(),
+            "transport drained the request"
+        );
+        assert_eq!(state.note_variant(), Some(NoteVariant::Info));
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn fork_owner_result_adopts_real_root_with_unsent_prompt_and_preserved_source() {
+        use oc_core::queries::{ForkSessionSnapshot, HistoryPage};
+        use oc_core::session::MessageId;
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let source = SessionId::new("fork-source").unwrap();
+        let fork = SessionId::new("fork-owner-root").unwrap();
+        let mut state = TuiState::new(app.clone(), source.clone());
+        state.restore_prompt("unfinished source draft".into());
+        let mut deck = LoopState {
+            tabs: vec![None],
+            tab_cards_before: vec![Some(7)],
+            active_tab: Some(0),
+            cards_before: Some(7),
+            save_disabled: true,
+            ..Default::default()
+        };
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::ForkMessage {
+                message: MessageId("selected-user".into()),
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.attached_session(), Some(&source));
+        let Some(InboxMsg::ForkSession {
+            source: received,
+            before: message,
+            ack,
+        }) = inbox.recv().await
+        else {
+            panic!("real fork")
+        };
+        assert_eq!(received, source);
+        assert_eq!(message.0, "selected-user");
+        ack.send(Ok(ForkSessionSnapshot {
+            session: fork.clone(),
+            prompt: "selected public prompt".into(),
+        }))
+        .unwrap();
+        let Some(InboxMsg::History { session, ack, .. }) = inbox.recv().await else {
+            panic!("fork history")
+        };
+        assert_eq!(session, fork);
+        ack.send(Ok(HistoryPage {
+            title: Some("Fork title".into()),
+            ..Default::default()
+        }))
+        .unwrap();
+        let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+            panic!("fork selection")
+        };
+        ack.send(Ok(catalog())).unwrap();
+        while !deck.conversation_job.as_ref().unwrap().is_finished() {
+            tokio::task::yield_now().await;
+        }
+        finish_conversation(&app, &mut state, &mut deck).await;
+        assert_eq!(state.attached_session(), Some(&fork));
+        assert_eq!(state.input(), "selected public prompt");
+        assert_eq!(state.session_title.as_deref(), Some("Fork title"));
+        assert_eq!(
+            deck.tabs[0].as_ref().unwrap().input(),
+            "unfinished source draft"
+        );
+        assert_eq!(deck.tab_cards_before[0], Some(7));
+        assert_eq!(deck.snapshot(&state).sessions, vec![source, fork]);
+        assert!(
+            inbox.try_recv().is_err(),
+            "unsent prompt and disabled deck safeguard"
+        );
     }
 
     #[tokio::test]
@@ -3983,6 +4762,7 @@ mod tests {
             rows: vec![HistoryMessage {
                 seq: 1,
                 role: Role::User,
+                id: oc_core::session::MessageId("viewport-user".into()),
                 text: "first viewport marker".into(),
                 turn: None,
                 model_switch: None,

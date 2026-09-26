@@ -1042,6 +1042,7 @@ mod tests {
 
     fn tool_row(card: &ToolCard) -> HistoryRow {
         HistoryRow {
+            message_id: None,
             seq: i64::MAX,
             role: "tool".to_string(),
             text: String::new(),
