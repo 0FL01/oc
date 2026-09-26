@@ -1,6 +1,14 @@
 # T44 — parity qualification remains open (2026-09-26)
 
-**Status: ACTIVE, not `TUI_PARITY_VERIFIED`.** An initial checkpoint incorrectly classified all remaining T44 work as externally blocked. Independent review found safe narrower-geometry and replay investigations still available; T44 was restarted and the immutable block checkpoint retained as historical evidence, not a current disposition. This report does not change `GOAL.md`, the mandatory VIS01–VIS28 specifications, or any failed comparator. Pinned original: opencode v2.0.12 commit `2670273ff17da96f85c5826ced57aa1b368754fa`, executable SHA-256 `2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a`. The Rust workspace's real version is `0.1.0` (`Cargo.toml`, `shell.rs` uses `CARGO_PKG_VERSION`).
+**Owner decision 2026-09-26:** approved conversation/context-only `/undo`, `/redo` and
+Revert, snapshots disabled by default and no workspace/file/Git rollback. The former
+file-revert requirement is superseded, not satisfied by experimental snapshot code.
+Approved contract/work plan: `tui-recovery/T44_CONTRACT_AMENDMENT.md`. This is a
+documentation-only delivery; identity/fork/snapshot Rust work remains parked and
+unqualified. Future resumption removes reviewed snapshot-specific hunks rather than
+implements a preimage journal. All unrelated open parity requirements remain open.
+
+**Status: ACTIVE in task registry, implementation PAUSED, not `TUI_PARITY_VERIFIED`.** An initial checkpoint incorrectly classified all remaining T44 work as externally blocked. Independent review found safe narrower-geometry and replay investigations still available; T44 was restarted and the immutable block checkpoint retained as historical evidence, not a current disposition. The owner amendment above changes only the approved undo/redo requirement; prior failed comparators are unmodified and unrelated mandatory specifications remain required. Pinned original: opencode v2.0.12 commit `2670273ff17da96f85c5826ced57aa1b368754fa`, executable SHA-256 `2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a`. The Rust workspace's real version is `0.1.0` (`Cargo.toml`, `shell.rs` uses `CARGO_PKG_VERSION`).
 
 ## Known exact-gate differences and tested alternative
 

@@ -2,7 +2,7 @@
 
 Status: active
 Source: user instructions 2026-09-21 and reviewed recovery amendment 2026-09-22, reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`).
-Last updated: 2026-09-24
+Last updated: 2026-09-26
 
 ## Objective
 
@@ -18,6 +18,12 @@ supersedes the weaker self-authored interpretation below. Execute V00–V09 from
 VIS01–VIS28 in [ACCEPTANCE.json](../../tui-recovery/ACCEPTANCE.json), and
 [SAFETY_REGRESSIONS](../../tui-recovery/SAFETY_REGRESSIONS.md). These are specifications,
 not executed results or a second task engine. `progress.py` remains the task-state owner.
+
+Owner-approved exception (2026-09-26): Undo/Redo/Revert are **conversation/context-only**,
+never filesystem rollback; snapshots are off by default and no file-checkpoint engine
+is required. `/redo` is one saved turn forward, not original clear-all staging. See the
+conversation-only section of the amendment for the exact contract and work plan.
+This documents approval, not implementation or permission to resume parked code.
 
 ## Frozen Contract
 
@@ -58,7 +64,7 @@ not executed results or a second task engine. `progress.py` remains the task-sta
   - User message recon: pinned `opencode/packages/tui/src/routes/session/index.tsx:2307–2345` changes the hovered user's block background and opens `Message Actions` on mouse-up unless text is selected; `dialog-message.tsx:23–88` defines Jump to (dismisses the dialog for the already visible message), Revert (stage undo, refill the prompt), Copy (actual clipboard text) and Fork (new session before the selected user message; `dialog-fork.tsx:21–53`). Native `crates/oc-tui/src/app.rs` has no user-message hit target or Message Actions panel. Revert/Fork need real application-owned operations and post-action verification; missing capabilities cannot be faked by a visual-only menu (C5).
   - Variant-cycle recon: pinned OC2 binds Ctrl+T to `variant.cycle` (`opencode/packages/tui/src/config/keybind.ts:172`); `app.tsx:900–905` invokes the active model's cycle, `context/local.tsx:472–498` gets its declared variants and persists the choice, and `model-preference.ts:67–75` cycles from default through named variants back to default. Variants are provider/model supplied (often reasoning-effort levels), not a hard-coded global allowlist. Native variant choice exists via its picker/`variant.list`, but `crates/oc-tui/src/events.rs::map_key` has no Ctrl+T mapping; its `ToggleThinking` only expands/collapses displayed reasoning.
   - Ctrl+C recon (2026-09-25): pinned `opencode/packages/tui/src/config/keybind.ts:48,202`, `component/prompt/index.tsx:944–949` and `app.tsx:1233–1240` bind prompt clear while the focused prompt is nonempty and app exit when empty; `ui/dialog.tsx:134–153` owns modal Ctrl+C. Native `crates/oc-tui/src/app.rs:3585–3588` instead quits unconditionally; `crates/oc/tests/pty_t39.rs::v07_raw_modifiers_release_and_modal_interrupt_keep_exact_draft` currently asserts that incorrect behavior.
-  - Acceptance: Ctrl+T follows the pinned active-model variant cycle: default → declared named variants in upstream order → default; update the active/persisted preference without changing model or submitting, and prove the next accepted provider request receives the selected variant (including `reasoning.effort` when declared). No named variant is a no-op; use dynamic catalog values, never hard-coded levels. Keymap table tests mirror upstream defaults + PTY tests exercise each dialog; replace the contrary PTY assertion: Ctrl+C clears a nonempty focused prompt without exiting or submitting, and Ctrl+C on the empty root prompt exits; modal Ctrl+C retains modal focus semantics. In an existing multi-message session, paired normal/hover/dialog frames and real effects verify user-message click vs text selection, Esc/focus, Jump to, Revert including file changes, Copy and Fork including session/reopen state; unresolved application-owned actions leave this criterion open rather than appearing to work. Paired original/native frames for VIS25/VIS26 trigger, filtered query and after-Tab states; VIS27 verifies upstream mouse selection/copy modes and clipboard feedback; VIS28 verifies the running indicator's animation and state transitions.
+  - Acceptance: Ctrl+T follows the pinned active-model variant cycle: default → declared named variants in upstream order → default; update the active/persisted preference without changing model or submitting, and prove the next accepted provider request receives the selected variant (including `reasoning.effort` when declared). No named variant is a no-op; use dynamic catalog values, never hard-coded levels. Keymap table tests mirror upstream defaults + PTY tests exercise each dialog; replace the contrary PTY assertion: Ctrl+C clears a nonempty focused prompt without exiting or submitting, and Ctrl+C on the empty root prompt exits; modal Ctrl+C retains modal focus semantics. In an existing multi-message session, paired normal/hover/dialog frames and real effects verify user-message click vs text selection, Esc/focus, Jump to, conversation/context-only Revert and stepwise /undo and /redo with unchanged workspace/Git state (owner amendment 2026-09-26), Copy and Fork including session/reopen state; unresolved application-owned actions leave this criterion open rather than appearing to work. Paired original/native frames for VIS25/VIS26 trigger, filtered query and after-Tab states; VIS27 verifies upstream mouse selection/copy modes and clipboard feedback; VIS28 verifies the running indicator's animation and state transitions.
   - Primary evidence: keymap test + dialog snapshots + paired running-indicator frame sequence (VIS28).
   - Status: pending
   - Evidence:

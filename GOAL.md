@@ -65,6 +65,17 @@ Code Mode, JS/TS/WASM plugin host, cloud orchestrator) не меняются.
 
 Не превращать browser `enabled:false` в true автоматически. Не переносить OpenProxy внутрь `oc` и не редактировать его deployment.
 
+## Owner scope amendment (2026-09-26)
+
+В T44 утверждены conversation/context-only `/undo`, `/redo` и Message Actions Revert:
+не изменять workspace/files/Git, не реализовывать файловые checkpoints. Snapshots off
+по умолчанию; системный Git для файлов остаётся под контролем пользователя. Пошаговый
+redo и точное восстановление сохранённой LLM/DCP-проекции — сознательное отличие от
+оригинала с включёнными snapshots. Контракт и план:
+[T44 amendment](tui-recovery/T44_CONTRACT_AMENDMENT.md#owner-amendment-2026-09-26-conversation-only-undoredo).
+Прежнее R5/VIS10 требование отката файлов superseded владельцем, остальные gates сохраняются.
+Утверждение плана не является claim реализации; припаркованный код пока не возобновлён.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

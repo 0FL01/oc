@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-25T19:00:15+00:00
+State updated: 2026-09-26T08:01:14+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,19 +14,19 @@ Evidence target: evidence/T44/report.md
 
 ## Result
 
-T44 remains ACTIVE, not TUI_PARITY_VERIFIED. Implementation slice ae17373 fixes narrow Home visibility/centering and one-row completed assistant footer geometry without falsifying version or time. Original/native 63x24 Home in home-visibility-20260925-06 matches the entire styled grid and PNG; the 44x24 final paired Home and completed-session frames in -10 remain DIFFERENT (random example and real elapsed digits). Prior checkpoint 0055's claim that all remaining T44 work is externally blocked was too broad and is historical, superseded by this active checkpoint.
+Owner clarified and approved conversation/context-only /undo, /redo and Message Actions Revert, then explicitly requested plan edits, commit and push. Updated GOAL, T44 goal/amendment/work guide and VIS10 acceptance; no product code implemented or resumed. Authoritative plan: tui-recovery/T44_CONTRACT_AMENDMENT.md, 2026-09-26 conversation-only section. Undo moves back one user/agent turn; redo forward one saved turn without provider/tool replay; new accepted input cuts normal redo of the old tail. Restore causal LLM/DCP projection, retain raw history and persist boundary across restart. Workspace/files/modes/Git remain unchanged. Snapshots default off; false aliases accepted; true unsupported. Prior file-preimage plan is superseded, not a pending requirement.
 
 ## Checks
 
-Serial full gate PASS: workspace fmt, locked tests (zero failures), all-target Clippy -D warnings, locked build, docs/progress checks, capture JS/Python syntax and diff check. Full output /home/opencode/.local/share/opencode/tool-output/tool_0d9ed5ef0001ICIYpexUnLdJBu. Full-grid/PNG comparator and actual provider receipts recorded in evidence/tui/home-visibility-report.md and immutable paired attempts -01 through -10. These local checks do not satisfy final V09.
+Documentation/acceptance validation and staged diff review are required before this documentation-only commit. Prior 577ce84 full code gate remains historical evidence only; current dirty Rust/snapshot correction is unqualified and no Cargo gate is claimed. Delivery status is determined by Git, not this pre-commit note.
 
 ## Risks
 
-Original wide Home reports truthful 2.0.12 while Rust reports truthful 0.1.0; independent elapsed time, randomized Home examples and T45-owned non-file @ inventory prevent blanket pixel PASS. Integrations/Settings, next-prompt durable model-switch event and OS clipboard destination still require qualification. Inherited untracked .opencode/ is not inspected or staged. No contract, screenshot or identity was modified to make a comparison pass.
+Independent owner docs commits through 2429a85 are preserved. Parked identity/fork/migration/snapshot/shell changes and untracked Rust modules remain unstaged; no reset or automatic cleanup. Inherited .opencode/ not inspected/staged. No implementation PASS, no TUI_PARITY_VERIFIED. Approved difference supersedes filesystem Revert and original clear-all redo only; unrelated parity/quality gates unchanged.
 
 ## Next
 
-Continue an independent source-backed T44 outcome: investigate identical durable replay of actual timestamp metadata without synthesizing timing, or implement a missing real action without fake menu entries; verify against the pinned original with paired full-frame grids and PNG. Then complete all mandatory VIS01-VIS28/V09 on final SHA. Any irreconcilable exact-wide-Home identity and independent-clock qualification needs an owner contract decision, not agent masking. Keep T44 active while independent work exists.
+Deliver only reviewed planning/docs/journal changes. Product implementation stays parked until separately resumed. On resumption remove snapshot-specific hunks, not identity/fork or independent shell fixes; implement owner conversation boundary/context versions and commands under the approved plan. Verify actual provider context/DCP boundary, stepwise redo without requests/tools, restart/branch behavior and workspace/Git immutability. No filesystem checkpoints, preimage journal or file rollback.
 
 
 Ready (до 5): T45, T46, T47

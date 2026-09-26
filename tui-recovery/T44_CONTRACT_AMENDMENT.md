@@ -8,6 +8,73 @@
 числом. Новая пользовательская инструкция имеет приоритет над self-authored запретом
 «не добавлять requirements from reviews». При этом случайные советы не становятся scope.
 
+## Owner amendment 2026-09-26: conversation-only Undo/Redo
+
+**Утверждено владельцем:** `/undo` и `/redo` возвращают разговор и прошлые точки
+LLM-контекста, **не изменяя workspace, файлы, права, Git index/HEAD или внешние эффекты**.
+Файловую историю владелец контролирует обычным системным Git через shell. Это сознательное
+отличие от оригинала с включёнными snapshots; отменяет прежнее требование R5/VIS10
+«Revert including file changes». Остальные требования T44 не отменяются.
+
+Источник решения: уточнение владельца «НЕ ТРОГАТЬ содержимое воркспейса, файлы и т.п»,
+привычный режим `"snapshot": false`, затем «План утверждаю вноси правки в план работ
+и коммит пуш». Этот delivery — документы и план, **не разрешение автоматически
+возобновить припаркованную реализацию** и не claim рабочего undo.
+
+### Поведение
+
+- `/undo` перемещает активную границу на один пользовательский ход назад: запрос и
+  весь последующий ответ агента с tool steps перестают входить в активный разговор
+  и следующий provider context. Исходный запрос возвращается в prompt для редактирования.
+- `/redo` перемещает границу на один сохранённый ход вперёд. В отличие от pinned
+  оригинала, снимающего всю staged-границу, это пошаговый redo. Записанные ответы и
+  контекст возвращаются **без генерации, provider-вызова и повторного исполнения tools**.
+- Revert из Message Actions устанавливает ту же conversation-only границу перед
+  выбранным user message и восстанавливает его prompt; никогда не восстанавливает файлы.
+- Новая принятая отправка после undo создаёт новую активную ветку и прекращает обычный
+  redo старого хвоста. Raw messages/turns/events сохраняются; не удалять архив ради UI.
+- История, tool-call/result пары и DCP-проекция (summary blocks, pruning/exclusions)
+  используют одну причинную границу. Более поздняя summary не может вернуть отменённый
+  ход в старый контекст. Состояние undo/redo и контекстная точка переживают restart.
+- Это восстановление сохранённого клиентского контекста, не удалённой памяти/KV-cache
+  LLM-сервера. Workspace может оставаться новым при старом разговоре — намеренно.
+- При активном выполнении сначала interrupt и дождаться остановки/cleanup, затем
+  переключать границу; не допускать поздних событий в неверную активную проекцию.
+- Snapshots выключены по умолчанию, файловый capture/restore не реализуется.
+  Принимать `snapshot:false` и `snapshots:false`; `true` даёт явную диагностику
+  неподдерживаемых файловых snapshots, не скрытое включение. Legacy snapshot-ссылки
+  не являются разрешением на файловое восстановление.
+
+### RECON и план исполнения после отдельного возобновления
+
+Pinned `opencode/packages/core/src/config/normalize.ts:70–91` нормализует `snapshot`
+в `snapshots`; `config/plugin/snapshot.ts:15–18` применяет настройку;
+`snapshot.ts:115–118` прекращает capture при выключении. TUI `routes/session/index.tsx:898–945`
+сохраняет Undo/Redo, вызывая `revert.stage`/`revert.clear`. В `session/revert.ts:23–75`
+файловое восстановление отделено от изменения границы; наш путь вообще не вызывает restore.
+
+1. Разобрать припаркованный diff по reviewed hunks. Убрать экспериментальные whole-tree
+   snapshot hooks/module/storage/workers; **не заменять их preimage-журналом**. Сохранить
+   независимые identity/fork изменения и полезные shell fixes для отдельной qualification.
+2. В application/storage owner добавить долговечную активную границу/ветку и ссылки
+   на уже сохранённые сообщения и версии контекстной проекции. Не копировать весь
+   диалог на каждый ход, не сканировать/хешировать workspace.
+3. Согласовать history paging, следующий provider input и DCP versions с этой границей.
+   Tool results возвращаются как история, не как задания для повторного исполнения.
+4. Добавить typed owner операции и `/undo`/`/redo`/Message Actions Revert в TUI;
+   показывать доступность и результат настоящих операций, не visual-only placeholders.
+5. Проверить пошаговые undo/redo, новую ветку, restart, DCP crossing boundary, отсутствие
+   provider/tool вызовов при redo, causal tool pairs и остановку активного выполнения.
+   Проверить неизменность workspace bytes/modes и пользовательского Git index/HEAD.
+   Сравнивать применимые UI frames с оригиналом при отключённых snapshots; пошаговый
+   redo квалифицировать отдельно как approved difference, без масок и ложного parity PASS.
+
+Expected paths: `oc-core` typed operations/queries, `oc-adapters` application/storage/runtime/DCP
+and config, `oc-tui` commands/app/history; remove only reviewed experimental snapshot code.
+Targeted owner/provider/PTY tests, затем affected-crate checks и обязательные workspace gates.
+Текущий статус: **план утверждён, реализация pending/paused**. Файловый undo, full-tree
+checkpoints, preimage storage, staged filesystem Revert/Clear и автоматический Git вне scope.
+
 ## Owner amendment 2026-09-24: inline autocomplete
 
 Новая инструкция владельца (2026-09-24) добавляет в R5 два обязательных элемента.

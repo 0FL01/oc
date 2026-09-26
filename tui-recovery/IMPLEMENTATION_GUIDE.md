@@ -16,6 +16,12 @@ UI reference: `anomalyco/opencode@2670273ff17da96f85c5826ced57aa1b368754fa`
 Сверить каждый finding с новым HEAD: уже исправленное не откатывать. Обновить активный
 T44 goal: `verified` должен означать проверенное внешним эталоном, а не собственным expected.
 
+Owner amendment 2026-09-26: перед Message Actions/Revert применять утверждённый
+conversation-only Undo/Redo plan из `T44_CONTRACT_AMENDMENT.md`. Не строить Git/native
+файловые snapshots или preimage-журнал: `/undo`/`/redo` меняют историю и версию
+LLM/DCP-контекста, workspace/Git остаются неизменными. Припаркованный экспериментальный
+snapshot diff разобрать после отдельного возобновления; эта правка плана не выполняет код.
+
 Каждый slice: воспроизводящий пример → наблюдаемый failure → минимальное исправление →
 targeted test → парный визуальный артефакт, когда он применим → checkpoint/commit.
 Все результаты связывать с code SHA и tree/diff hash. Не менять код после qualification
