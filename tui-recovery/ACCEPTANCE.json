@@ -410,6 +410,35 @@
       "mandatory": true,
       "execution_status": "NOT_RUN",
       "evidence": []
+    },
+    {
+      "id": "VIS31",
+      "step": "V06",
+      "title": "Demand-driven high-refresh rendering and idle efficiency",
+      "expected": "On the actual binary through PTY, wait for input, worker updates and real active-animation deadlines; do not unconditionally poll or draw. Paint only dirty visible state, coalescing bursts while bounding work so input, worker events and paints progress. After the view and pending deadlines settle, a stable idle interval has no periodic redraws or wakeups; the upstream scanner cadence remains independent of render pacing. Record measurement window, render attempts, changed frames/terminal writes, event-to-paint latency distribution, draw/write durations, queue behavior, wakeups and process CPU time. Exercise active changes with requested 6.06 ms (165 Hz) and faster frame budgets where measured render and terminal costs permit. A configured/requested cadence is not measured FPS or proof of physical terminal refresh. Set numeric latency/CPU thresholds from a recorded baseline; do not infer FPS from draw duration or configuration alone.",
+      "sources": [
+        "P08",
+        "P09",
+        "U09"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS32",
+      "step": "V06",
+      "title": "Responsive wheel scrolling and live viewport anchoring",
+      "expected": "In the cell-based Crossterm path, preserve wheel displacement and pinned upstream default speed semantics where the protocol permits; inspect the pinned MacOSScrollAccel implementation before claiming its acceleration parity. Bound input work and coalesce compatible wheel bursts without losing displacement, changing direction/boundary semantics, starving paints/workers or replaying stale input as a long catch-up. While the target offset is unsettled, animate toward it using active frame deadlines only, promptly rebase on reversed input and stop scheduling when settled. Motion remains row-quantized; directional wheel events do not provide pixel scroll deltas. While scrolled away from bottom, keep the visible message anchor stable during streaming and history paging; at bottom preserve sticky follow. In PTY verify transcript/Shell/list-dialog routing without editor-focus changes, single and fast/reversed ticks, both history edges, and a live stream; measure event-to-paint latency and settle time at 165 Hz and faster requested budgets. No periodic work remains after scrolling settles.",
+      "sources": [
+        "P08",
+        "P09",
+        "U04",
+        "U10"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
     }
   ]
 }

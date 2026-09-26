@@ -219,6 +219,24 @@
       "locator": "mentionTriggerIndex; slashTriggerIndex",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/prompt/display.ts",
       "purpose": "Trigger rules for @ (start/after space, no spaces in query) and /"
+    },
+    {
+      "id": "U09",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/app.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "renderer targetFps configuration",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/app.tsx",
+      "purpose": "Pinned TUI target frame rate; configured cadence, not measured output FPS"
+    },
+    {
+      "id": "U10",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/util/scroll.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "getScrollAcceleration; CustomSpeedScroll",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/util/scroll.ts",
+      "purpose": "Pinned scroll speed default and optional acceleration selection"
     }
   ],
   "external_primary_sources": [
