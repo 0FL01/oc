@@ -23,14 +23,21 @@ LLM-контекста, **не изменяя workspace, файлы, права,
 
 ### Поведение
 
-- `/undo` перемещает активную границу на один пользовательский ход назад: запрос и
+- `/undo` выбирает последнее предшествующее user message с непустым текстом, как OC2: запрос и
   весь последующий ответ агента с tool steps перестают входить в активный разговор
   и следующий provider context. Исходный запрос возвращается в prompt для редактирования.
-- `/redo` перемещает границу на один сохранённый ход вперёд. В отличие от pinned
-  оригинала, снимающего всю staged-границу, это пошаговый redo. Записанные ответы и
-  контекст возвращаются **без генерации, provider-вызова и повторного исполнения tools**.
+- Утверждённое уточнение паритета: `/redo`, palette `session.redo`, настроенный shortcut
+  (по умолчанию `ctrl+x r`) и клик по карточке reverted снимают **всю staged-границу**
+  и возвращают весь сохранённый хвост, как pinned OC2. Это заменяет прежний пошаговый
+  Redo. Ответы и контекст возвращаются **без генерации, provider-вызова и повторного
+  исполнения tools**; запрет восстановления workspace/файлов/Git сохраняется.
 - Revert из Message Actions устанавливает ту же conversation-only границу перед
   выбранным user message и восстанавливает его prompt; никогда не восстанавливает файлы.
+- VIS33 проверяет путь user-message click → Message Actions → Revert → reverted block
+  → Redo. Карточка показывает количество отменённых user messages из durable owner,
+  hover и keymap-derived hint; выделение текста блокирует восстановление по клику.
+  Успешный Redo убирает карточку целиком; ошибка сохраняет committed boundary и feedback.
+  Состояние/счётчик восстанавливаются при reopen, не выводятся из одной страницы истории.
 - Новая принятая отправка после undo создаёт новую активную ветку и прекращает обычный
   redo старого хвоста. Raw messages/turns/events сохраняются; не удалять архив ради UI.
 - История, tool-call/result пары и DCP-проекция (summary blocks, pruning/exclusions)
@@ -63,11 +70,23 @@ Pinned `opencode/packages/core/src/config/normalize.ts:70–91` нормализ
    Tool results возвращаются как история, не как задания для повторного исполнения.
 4. Добавить typed owner операции и `/undo`/`/redo`/Message Actions Revert в TUI;
    показывать доступность и результат настоящих операций, не visual-only placeholders.
-5. Проверить пошаговые undo/redo, новую ветку, restart, DCP crossing boundary, отсутствие
+5. Проверить последовательные undo и whole-tail redo, новую ветку, restart, DCP crossing boundary, отсутствие
    provider/tool вызовов при redo, causal tool pairs и остановку активного выполнения.
    Проверить неизменность workspace bytes/modes и пользовательского Git index/HEAD.
-   Сравнивать применимые UI frames с оригиналом при отключённых snapshots; пошаговый
-   redo квалифицировать отдельно как approved difference, без масок и ложного parity PASS.
+   Сравнивать применимые UI frames с оригиналом при отключённых snapshots; минимум три
+   завершённых user turns и отмена нескольких сообщений различают whole-tail и one-turn
+   Redo. Отдельно проверить клик карточки, shortcut, slash и palette без масок/ложного PASS.
+
+### Pinned references для VIS33
+
+Commit: `2670273ff17da96f85c5826ced57aa1b368754fa` (OC2 v2.0.12).
+
+- [User click / selection guard](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L2307-L2342).
+- [Message Actions / Revert](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/dialog-message.tsx#L23-L49).
+- [Undo / Redo commands](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L898-L945).
+- [Reverted block click / hover / hint](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L2172-L2250).
+- [Keybindings](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/config/keybind.ts#L189-L190); default leader is `ctrl+x` at line 41.
+- [Owner stage / clear](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/revert.ts#L23-L75).
 
 Expected paths: `oc-core` typed operations/queries, `oc-adapters` application/storage/runtime/DCP
 and config, `oc-tui` commands/app/history; remove only reviewed experimental snapshot code.
@@ -188,7 +207,7 @@ R6: pending до full rerun на финальном code SHA; сохранить
 
 ## Обязательные результаты нового прохода
 
-V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS28 из ACCEPTANCE.json:
+V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS33 из ACCEPTANCE.json:
 1. Изолированный upstream reference + identical fixture/state для трёх пользовательских экранов.
 2. Исправленные UI event loop/keymap и диагностируемый MCP error без потери draft.
 3. Shell/sidebar/tabs/prompt/footer из реальных данных с геометрией эталона.

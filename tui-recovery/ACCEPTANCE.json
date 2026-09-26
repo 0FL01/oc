@@ -132,7 +132,7 @@
       "id": "VIS10",
       "step": "V04",
       "title": "Modal focus and backdrop",
-      "expected": "Cell styles reflect correct backdrop/surface, dimensions60/88/116 constrained by width; Esc restores draft/focus and does not quit app. Successful agent selection closes Select agent, restores prompt draft/focus and updates actual selection/metadata without an agent-selection success toast, matching pinned upstream; verify paired before/after full frames and the selected agent while preserving error feedback and unrelated existing warnings. In an existing multi-message session, hovering the user message changes only its block as upstream; mouse-up without selected text opens the matching Message Actions dialog, text selection does not. Jump to dismisses for the already visible message. Owner amendment 2026-09-26: Revert moves the active conversation/LLM-context boundary before the selected user message and refills the prompt, never restoring files; /undo moves one user/agent turn backward and /redo one saved turn forward without provider calls or tool reexecution. Raw history is retained, DCP summaries/pruning obey the restored context version, restart retains the boundary, and a new accepted prompt after undo invalidates normal redo of the old tail. Workspace content/modes and user Git index/HEAD remain unchanged; snapshots default off, snapshot:false and snapshots:false are accepted, true reports unsupported. Copy requests a clipboard write with the exact message text (verify the destination separately where supported, per VIS27), Fork creates a real session before that user message with the prompt restored. Paired normal/hover/dialog styled-cell and PNG frames against original with snapshots disabled plus post-action session/context, unchanged-workspace and clipboard evidence are required; stepwise redo is an approved difference verified separately, not a fabricated parity PASS. Missing owner actions cannot be represented by inert menu entries.",
+      "expected": "Cell styles reflect correct backdrop/surface, dimensions60/88/116 constrained by width; Esc restores draft/focus and does not quit app. Successful agent selection closes Select agent, restores prompt draft/focus and updates actual selection/metadata without an agent-selection success toast, matching pinned upstream; verify paired before/after full frames and the selected agent while preserving error feedback and unrelated existing warnings. In an existing multi-message session, hovering the user message changes only its block as upstream; mouse-up without selected text opens the matching Message Actions dialog, text selection does not. Jump to dismisses for the already visible message. Owner amendment 2026-09-26: Revert moves the active conversation/LLM-context boundary before the selected user message and refills the prompt, never restoring files; /undo targets the last preceding nonempty-text user message, and all Redo entry points clear the entire staged boundary and restore the saved tail without provider calls or tool reexecution, matching original clear-all behavior per VIS33 and superseding the earlier one-turn Redo exception. Raw history is retained, DCP summaries/pruning obey the restored context version, restart retains the boundary, and a new accepted prompt after undo invalidates normal redo of the old tail. Workspace content/modes and user Git index/HEAD remain unchanged; snapshots default off, snapshot:false and snapshots:false are accepted, true reports unsupported. Copy requests a clipboard write with the exact message text (verify the destination separately where supported, per VIS27), Fork creates a real session before that user message with the prompt restored. Paired normal/hover/dialog styled-cell and PNG frames against original with snapshots disabled plus post-action session/context, unchanged-workspace and clipboard evidence are required. Missing owner actions cannot be represented by inert menu entries.",
       "sources": [
         "P05",
         "P07",
@@ -435,6 +435,23 @@
         "P09",
         "U04",
         "U10"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS33",
+      "step": "V04",
+      "title": "Message Revert and original-compatible clickable Redo marker",
+      "expected": "In a real session with at least three completed user turns, click an earlier delivered user message without selected text and activate Revert in Message Actions. Verify modal dismissal, restored prompt and committed conversation/context boundary hiding multiple user messages, with no workspace/Git changes. Show the upstream-shaped N message(s) reverted block with truthful restorable-user-message count from the durable owner, hover and a keymap-derived restore hint (default ctrl+x r or /redo to restore). In separate action runs, marker click, configured shortcut, /redo and palette Redo must each clear the entire staged boundary, restore the whole saved tail and remove the marker, not restore only one turn. Selected text prevents marker-click restoration; owner failure preserves the boundary/block and reports an error. Verify durable count/boundary after session switch/reopen and invalidation of normal old-tail redo after a new accepted prompt. Restore saved messages/tool pairs/context without provider calls or tool reexecution. Compare full styled-cell/PNG frames with pinned OC2 under snapshots disabled; preserve truthful conversation-only menu wording, never promise file restoration. Pinned source URLs/locators are in U11-U14 and the T44 spec/amendment; older stepwise-Redo reports do not qualify this corrected contract.",
+      "sources": [
+        "P08",
+        "P09",
+        "U11",
+        "U12",
+        "U13",
+        "U14"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",

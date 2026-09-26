@@ -237,6 +237,42 @@
       "locator": "getScrollAcceleration; CustomSpeedScroll",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/util/scroll.ts",
       "purpose": "Pinned scroll speed default and optional acceleration selection"
+    },
+    {
+      "id": "U11",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/dialog-message.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "lines 23–49; Message Actions Revert",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/dialog-message.tsx#L23-L49",
+      "purpose": "Selected-message stage, prompt restoration and modal dismissal"
+    },
+    {
+      "id": "U12",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "163–174 boundary partitions; 898–945 Undo/Redo; 1320–1325 user-message count; 2172–2250 reverted block; 2307–2342 user click",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L2172-L2250",
+      "purpose": "Whole-tail Redo from command or clickable marker, selection guard, hover and count/hint"
+    },
+    {
+      "id": "U13",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/config/keybind.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "41 default leader ctrl+x; 189–190 Undo/Redo bindings",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/config/keybind.ts#L189-L190",
+      "purpose": "Default leader-u/leader-r entry points and keymap-derived restore hint"
+    },
+    {
+      "id": "U14",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/revert.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "23–59 stage; 61–75 clear",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/revert.ts#L23-L75",
+      "purpose": "Single staged boundary cleared in full; filesystem restore is excluded by the native snapshots-disabled contract"
     }
   ],
   "external_primary_sources": [
