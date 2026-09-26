@@ -145,11 +145,12 @@
     {
       "id": "VIS11",
       "step": "V05",
-      "title": "Keyboard modifiers and events",
-      "expected": "Ctrl/Alt do not leak printable chars; Press/Repeat/Release rules tested, leader shortcuts correct per focus, no duplicate submission. In a real PTY, Ctrl+C clears a nonempty focused prompt without exiting or sending a provider request; Ctrl+C on an empty root prompt exits; in a modal it clears the focused search or dismisses the modal without exiting.",
+      "title": "Keyboard modifiers, events and leader pending presentation",
+      "expected": "Ctrl/Alt do not leak printable chars; Press/Repeat/Release rules tested, leader shortcuts correct per focus, no duplicate submission. In a real PTY, Ctrl+C clears a nonempty focused prompt without exiting or sending a provider request; Ctrl+C on an empty root prompt exits; in a modal it clears the focused search or dismisses the modal without exiting. Real leader input must reproduce pinned OC2 composer/metadata muted presentation and normal restoration on sequence resolution/cancellation/idle expiry without another key. Verify default/configured leader and timeout precedence (leader.timeout, legacy leader_timeout, default 2000 ms), focused routing and successful/invalid/repeated-key/Escape/Backspace behavior against the original oracle. Pending alone preserves the complete draft and sends no provider request; a matched chord performs only its command. Compare full paired styled-cell/PNG normal/pending/restored frames: prompt text/model muted, prompt/agent highlight border.base, provider/variant original roles. Do not invent whole-transcript dimming, fade animation, crop/mask qualification or constant polling; text-only grids and native-only goldens do not prove color parity.",
       "sources": [
         "P07",
-        "U02"
+        "U02",
+        "U24"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",

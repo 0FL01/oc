@@ -236,6 +236,24 @@ Model dialog: `Select model`, query/search, current-dot отдельно от fo
 
 ## V05. Keymap, focus и настоящий multiline editor
 
+Leader pending presentation — VIS11, source U24:
+- Использовать реальное pending-sequence state, а не flash по факту Ctrl+X.
+- Передать muted state в existing composer/metadata renderer: text/model → text.muted,
+  prompt/agent highlight → border.base; provider/variant сохраняют original roles.
+  Не затемнять весь transcript глобальной opacity и не добавлять fade animation.
+- Переиспользовать UI deadline/tick для expiry и restoration redraw без input.
+  Не добавлять constant polling, отдельный animation engine или timer на widget.
+- Провести effective timeout из admitted TUI config: leader.timeout → legacy
+  leader_timeout → default 2000 ms, как pinned donor. Chord resolution и presentation
+  используют один effective lifecycle/timeout, включая configured leader/remap.
+- На pinned original установить successful/invalid next-key, Escape, Backspace,
+  repeated leader и focus-layer semantics; не копировать непроверенную native
+  обработку как oracle. Pending state не меняет полный draft и не submit input;
+  matched chord выполняет только своё действие.
+- Проверить normal → pending → restored, idle timeout и effective timeout precedence.
+  Полные paired styled-cell/PNG плюс actual PTY lifecycle/effects; text-only grid
+  и native golden не квалифицируют color parity. Не создавать новый task/acceptance ID.
+
 Не копировать только подписи. U02 — источник defaults, плюс component-specific layers.
 Действия одинаковы для hotkey/palette/slash entry. Focus priority: активный modal →
 completion/permission prompt → editor → session/global. У каждого события один consumer.

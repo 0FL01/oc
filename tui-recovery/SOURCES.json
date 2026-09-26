@@ -354,6 +354,15 @@
       "locator": "5–15 mode; routes/session/index.tsx:243–259 once autoaccept; component/dialog-config.tsx:114–122 Settings; config/keybind.ts:275 fullscreen; cli/src/commands/commands.ts:26–35 flags; cli/src/run/noninteractive.ts:135–149 headless consumer",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/permission.tsx#L5-L15",
       "purpose": "Real prompt/autoaccept mode controls and nonpersistent once consumers, distinct from Always grants"
+    },
+    {
+      "id": "U24",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/prompt/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "192–193 leader-muted; 1556–1560 highlight; 1736–1742 text; 1827–1832 metadata; component/prompt/metadata.tsx:42–79 roles; context/keymap.tsx:137–145 timeout,312–315 pending source",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/index.tsx#L192-L193",
+      "purpose": "Leader pending composer/metadata muting and configured timed-leader registration; following-key lifecycle requires pinned original verification"
     }
   ],
   "external_primary_sources": [
