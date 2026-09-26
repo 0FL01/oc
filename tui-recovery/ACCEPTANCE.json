@@ -338,7 +338,7 @@
       "id": "VIS25",
       "step": "V05",
       "title": "Slash autocomplete overlay",
-      "expected": "Typing / in the prompt opens an inline filtered list of built-in and current-generation workspace commands in both session and Home; Up/Ctrl+P and Down/Ctrl+N move the selection; Tab completes; Enter executes an argument-free built-in or inserts '/alias ' for an argument-taking/workspace command; Esc closes the list without discarding the draft; a space between trigger and cursor hides the list and an empty filter shows the no-match state. Paired original/native styled-cell/PNG frames for trigger, filtered query and after Tab.",
+      "expected": "Typing / in the prompt opens an inline filtered list of built-in and current-generation workspace commands in both session and Home; Up/Ctrl+P and Down/Ctrl+N move the selection; Tab completes; Enter executes an argument-free built-in or inserts '/alias ' for an argument-taking/workspace command; Esc closes the list without discarding the draft; a space between trigger and cursor hides the list and an empty filter shows the no-match state. Paired original/native styled-cell/PNG frames for trigger, filtered query and after Tab. The canonical built-in session-list command is /sessions, with upstream aliases /resume and /continue; /session is absent from both built-in dispatch and autocomplete, not merely hidden in the renderer. Internal session.list remains unchanged.",
       "sources": [
         "U07",
         "U08"
@@ -392,6 +392,20 @@
       "sources": [
         "U02",
         "U05"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS30",
+      "step": "V04",
+      "title": "Sessions metadata and actions parity",
+      "expected": "The Sessions dialog uses real stored root-session titles with upstream fallback instead of router IDs, groups/orders by truthful update time with Today/date labels, and matches conditional project context, search and current marker. Paired full styled-cell/PNG frames cover named sessions on multiple days, search, selection, Esc and reopen. Confirm real selected-session rename, double-confirmed delete and current-directory/all-projects behavior with durable results, preserving Location and busy safeguards; no inert footer shortcuts. Use bounded application-owned metadata without changing ID-only list_sessions consumers. Missing legacy last-update data requires an evidenced migration/fallback decision before parity closure; never infer dates from IDs or label creation time as update time.",
+      "sources": [
+        "P07",
+        "P10",
+        "U01"
       ],
       "mandatory": true,
       "execution_status": "NOT_RUN",
