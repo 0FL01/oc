@@ -1,0 +1,1047 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "stage": "initial-owned-root",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "initial-owned-root",
+        "observed_at_ms": 1790434879140,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+            "table": "session_v2",
+            "columns": [
+              "agent",
+              "cost",
+              "directory",
+              "fork_boundary",
+              "fork_session_id",
+              "id",
+              "idle_outcome",
+              "metadata",
+              "model",
+              "parent_id",
+              "path",
+              "permission",
+              "project_id",
+              "resume_attempts",
+              "revert",
+              "share_url",
+              "slug",
+              "summary_additions",
+              "summary_deletions",
+              "summary_diffs",
+              "summary_files",
+              "time_archived",
+              "time_compacting",
+              "time_created",
+              "time_idle",
+              "time_suspended",
+              "time_updated",
+              "time_viewed",
+              "title",
+              "tokens_cache_read",
+              "tokens_cache_write",
+              "tokens_input",
+              "tokens_output",
+              "tokens_reasoning",
+              "version",
+              "workspace_id"
+            ],
+            "rows": []
+          }
+        ]
+      }
+    },
+    {
+      "stage": "other-root-generated-db",
+      "provider_counts": {
+        "requests": 2,
+        "completed": 2,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "other-root-generated-db",
+        "observed_at_ms": 1790434891737,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+            "table": "session_v2",
+            "columns": [
+              "agent",
+              "cost",
+              "directory",
+              "fork_boundary",
+              "fork_session_id",
+              "id",
+              "idle_outcome",
+              "metadata",
+              "model",
+              "parent_id",
+              "path",
+              "permission",
+              "project_id",
+              "resume_attempts",
+              "revert",
+              "share_url",
+              "slug",
+              "summary_additions",
+              "summary_deletions",
+              "summary_diffs",
+              "summary_files",
+              "time_archived",
+              "time_compacting",
+              "time_created",
+              "time_idle",
+              "time_suspended",
+              "time_updated",
+              "time_viewed",
+              "title",
+              "tokens_cache_read",
+              "tokens_cache_write",
+              "tokens_input",
+              "tokens_output",
+              "tokens_reasoning",
+              "version",
+              "workspace_id"
+            ],
+            "rows": [
+              {
+                "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+                "title": "VIS30-LUNAR lunar geology discussion",
+                "parent_id": null,
+                "time_created": 1790434879241,
+                "time_updated": 1790434889000,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+                "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "first-root-generated-db",
+      "provider_counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "first-root-generated-db",
+        "observed_at_ms": 1790434911824,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+            "table": "session_v2",
+            "columns": [
+              "agent",
+              "cost",
+              "directory",
+              "fork_boundary",
+              "fork_session_id",
+              "id",
+              "idle_outcome",
+              "metadata",
+              "model",
+              "parent_id",
+              "path",
+              "permission",
+              "project_id",
+              "resume_attempts",
+              "revert",
+              "share_url",
+              "slug",
+              "summary_additions",
+              "summary_deletions",
+              "summary_diffs",
+              "summary_files",
+              "time_archived",
+              "time_compacting",
+              "time_created",
+              "time_idle",
+              "time_suspended",
+              "time_updated",
+              "time_viewed",
+              "title",
+              "tokens_cache_read",
+              "tokens_cache_write",
+              "tokens_input",
+              "tokens_output",
+              "tokens_reasoning",
+              "version",
+              "workspace_id"
+            ],
+            "rows": [
+              {
+                "id": "ses_f21c39343ffep67oEvM1AykBu7",
+                "title": "VIS30-OCEAN ocean currents discussion",
+                "parent_id": null,
+                "time_created": 1790434897099,
+                "time_updated": 1790434909234,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+              },
+              {
+                "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+                "title": "VIS30-LUNAR lunar geology discussion",
+                "parent_id": null,
+                "time_created": 1790434879241,
+                "time_updated": 1790434889000,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+                "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "second-root-generated-db",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "second-root-generated-db",
+        "observed_at_ms": 1790434926888,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+            "table": "session_v2",
+            "columns": [
+              "agent",
+              "cost",
+              "directory",
+              "fork_boundary",
+              "fork_session_id",
+              "id",
+              "idle_outcome",
+              "metadata",
+              "model",
+              "parent_id",
+              "path",
+              "permission",
+              "project_id",
+              "resume_attempts",
+              "revert",
+              "share_url",
+              "slug",
+              "summary_additions",
+              "summary_deletions",
+              "summary_diffs",
+              "summary_files",
+              "time_archived",
+              "time_compacting",
+              "time_created",
+              "time_idle",
+              "time_suspended",
+              "time_updated",
+              "time_viewed",
+              "title",
+              "tokens_cache_read",
+              "tokens_cache_write",
+              "tokens_input",
+              "tokens_output",
+              "tokens_reasoning",
+              "version",
+              "workspace_id"
+            ],
+            "rows": [
+              {
+                "id": "ses_f21c34747ffeMvhTDvUQPJKlE9",
+                "title": "Forest ecology discussion VIS30-FOREST",
+                "parent_id": null,
+                "time_created": 1790434916549,
+                "time_updated": 1790434924476,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+              },
+              {
+                "id": "ses_f21c39343ffep67oEvM1AykBu7",
+                "title": "VIS30-OCEAN ocean currents discussion",
+                "parent_id": null,
+                "time_created": 1790434897099,
+                "time_updated": 1790434909234,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+              },
+              {
+                "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+                "title": "VIS30-LUNAR lunar geology discussion",
+                "parent_id": null,
+                "time_created": 1790434879241,
+                "time_updated": 1790434889000,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+                "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "all-open",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "all-scope",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "all-before-actions",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "all-before-actions",
+        "observed_at_ms": 1790434934741,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+            "table": "session_v2",
+            "columns": [
+              "agent",
+              "cost",
+              "directory",
+              "fork_boundary",
+              "fork_session_id",
+              "id",
+              "idle_outcome",
+              "metadata",
+              "model",
+              "parent_id",
+              "path",
+              "permission",
+              "project_id",
+              "resume_attempts",
+              "revert",
+              "share_url",
+              "slug",
+              "summary_additions",
+              "summary_deletions",
+              "summary_diffs",
+              "summary_files",
+              "time_archived",
+              "time_compacting",
+              "time_created",
+              "time_idle",
+              "time_suspended",
+              "time_updated",
+              "time_viewed",
+              "title",
+              "tokens_cache_read",
+              "tokens_cache_write",
+              "tokens_input",
+              "tokens_output",
+              "tokens_reasoning",
+              "version",
+              "workspace_id"
+            ],
+            "rows": [
+              {
+                "id": "ses_f21c34747ffeMvhTDvUQPJKlE9",
+                "title": "Forest ecology discussion VIS30-FOREST",
+                "parent_id": null,
+                "time_created": 1790434916549,
+                "time_updated": 1790434924476,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+              },
+              {
+                "id": "ses_f21c39343ffep67oEvM1AykBu7",
+                "title": "VIS30-OCEAN ocean currents discussion",
+                "parent_id": null,
+                "time_created": 1790434897099,
+                "time_updated": 1790434909234,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+              },
+              {
+                "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+                "title": "VIS30-LUNAR lunar geology discussion",
+                "parent_id": null,
+                "time_created": 1790434879241,
+                "time_updated": 1790434889000,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+                "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "cwd-scope",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "search-first",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "entered-first",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "reopen-first",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "escape-first",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "reopen-after-escape",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "selected-all-scope",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "selected-second",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "rename-dialog",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "rename-input",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "rename-return",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "renamed-db",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "renamed-db",
+        "observed_at_ms": 1790434969319,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+            "table": "session_v2",
+            "columns": [
+              "agent",
+              "cost",
+              "directory",
+              "fork_boundary",
+              "fork_session_id",
+              "id",
+              "idle_outcome",
+              "metadata",
+              "model",
+              "parent_id",
+              "path",
+              "permission",
+              "project_id",
+              "resume_attempts",
+              "revert",
+              "share_url",
+              "slug",
+              "summary_additions",
+              "summary_deletions",
+              "summary_diffs",
+              "summary_files",
+              "time_archived",
+              "time_compacting",
+              "time_created",
+              "time_idle",
+              "time_suspended",
+              "time_updated",
+              "time_viewed",
+              "title",
+              "tokens_cache_read",
+              "tokens_cache_write",
+              "tokens_input",
+              "tokens_output",
+              "tokens_reasoning",
+              "version",
+              "workspace_id"
+            ],
+            "rows": [
+              {
+                "id": "ses_f21c34747ffeMvhTDvUQPJKlE9",
+                "title": "Forest ecology discussion VIS30-FOREST",
+                "parent_id": null,
+                "time_created": 1790434916549,
+                "time_updated": 1790434924476,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+              },
+              {
+                "id": "ses_f21c39343ffep67oEvM1AykBu7",
+                "title": "VIS30-OCEAN ocean currents discussion",
+                "parent_id": null,
+                "time_created": 1790434897099,
+                "time_updated": 1790434909234,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+              },
+              {
+                "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+                "title": "VIS30 Renamed lunar geology",
+                "parent_id": null,
+                "time_created": 1790434879241,
+                "time_updated": 1790434966535,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+                "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "rename-reopened",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "renamed-search",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "entered-selected-root",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "entered-selected-db",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "entered-selected-db",
+        "observed_at_ms": 1790434980374,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+            "table": "session_v2",
+            "columns": [
+              "agent",
+              "cost",
+              "directory",
+              "fork_boundary",
+              "fork_session_id",
+              "id",
+              "idle_outcome",
+              "metadata",
+              "model",
+              "parent_id",
+              "path",
+              "permission",
+              "project_id",
+              "resume_attempts",
+              "revert",
+              "share_url",
+              "slug",
+              "summary_additions",
+              "summary_deletions",
+              "summary_diffs",
+              "summary_files",
+              "time_archived",
+              "time_compacting",
+              "time_created",
+              "time_idle",
+              "time_suspended",
+              "time_updated",
+              "time_viewed",
+              "title",
+              "tokens_cache_read",
+              "tokens_cache_write",
+              "tokens_input",
+              "tokens_output",
+              "tokens_reasoning",
+              "version",
+              "workspace_id"
+            ],
+            "rows": [
+              {
+                "id": "ses_f21c34747ffeMvhTDvUQPJKlE9",
+                "title": "Forest ecology discussion VIS30-FOREST",
+                "parent_id": null,
+                "time_created": 1790434916549,
+                "time_updated": 1790434924476,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+              },
+              {
+                "id": "ses_f21c39343ffep67oEvM1AykBu7",
+                "title": "VIS30-OCEAN ocean currents discussion",
+                "parent_id": null,
+                "time_created": 1790434897099,
+                "time_updated": 1790434909234,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+              },
+              {
+                "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+                "title": "VIS30 Renamed lunar geology",
+                "parent_id": null,
+                "time_created": 1790434879241,
+                "time_updated": 1790434966535,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+                "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "selected-root-reopen",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "selected-root-cwd",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "selected-root-all",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "return-current-search",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "returned-current",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "return-current-reopen",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "delete-selected-search",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "delete-confirm",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "armed-db",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "armed-db",
+        "observed_at_ms": 1790435007003,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+            "table": "session_v2",
+            "columns": [
+              "agent",
+              "cost",
+              "directory",
+              "fork_boundary",
+              "fork_session_id",
+              "id",
+              "idle_outcome",
+              "metadata",
+              "model",
+              "parent_id",
+              "path",
+              "permission",
+              "project_id",
+              "resume_attempts",
+              "revert",
+              "share_url",
+              "slug",
+              "summary_additions",
+              "summary_deletions",
+              "summary_diffs",
+              "summary_files",
+              "time_archived",
+              "time_compacting",
+              "time_created",
+              "time_idle",
+              "time_suspended",
+              "time_updated",
+              "time_viewed",
+              "title",
+              "tokens_cache_read",
+              "tokens_cache_write",
+              "tokens_input",
+              "tokens_output",
+              "tokens_reasoning",
+              "version",
+              "workspace_id"
+            ],
+            "rows": [
+              {
+                "id": "ses_f21c34747ffeMvhTDvUQPJKlE9",
+                "title": "Forest ecology discussion VIS30-FOREST",
+                "parent_id": null,
+                "time_created": 1790434916549,
+                "time_updated": 1790434924476,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+              },
+              {
+                "id": "ses_f21c39343ffep67oEvM1AykBu7",
+                "title": "VIS30-OCEAN ocean currents discussion",
+                "parent_id": null,
+                "time_created": 1790434897099,
+                "time_updated": 1790434909234,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+              },
+              {
+                "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+                "title": "VIS30 Renamed lunar geology",
+                "parent_id": null,
+                "time_created": 1790434879241,
+                "time_updated": 1790434966535,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+                "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "delete-after",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "deleted-db",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "deleted-db",
+        "observed_at_ms": 1790435009847,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+            "table": "session_v2",
+            "columns": [
+              "agent",
+              "cost",
+              "directory",
+              "fork_boundary",
+              "fork_session_id",
+              "id",
+              "idle_outcome",
+              "metadata",
+              "model",
+              "parent_id",
+              "path",
+              "permission",
+              "project_id",
+              "resume_attempts",
+              "revert",
+              "share_url",
+              "slug",
+              "summary_additions",
+              "summary_deletions",
+              "summary_diffs",
+              "summary_files",
+              "time_archived",
+              "time_compacting",
+              "time_created",
+              "time_idle",
+              "time_suspended",
+              "time_updated",
+              "time_viewed",
+              "title",
+              "tokens_cache_read",
+              "tokens_cache_write",
+              "tokens_input",
+              "tokens_output",
+              "tokens_reasoning",
+              "version",
+              "workspace_id"
+            ],
+            "rows": [
+              {
+                "id": "ses_f21c34747ffeMvhTDvUQPJKlE9",
+                "title": "Forest ecology discussion VIS30-FOREST",
+                "parent_id": null,
+                "time_created": 1790434916549,
+                "time_updated": 1790434924476,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+              },
+              {
+                "id": "ses_f21c39343ffep67oEvM1AykBu7",
+                "title": "VIS30-OCEAN ocean currents discussion",
+                "parent_id": null,
+                "time_created": 1790434897099,
+                "time_updated": 1790434909234,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "all-after-delete",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "cwd-after-delete",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "final-escape",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    }
+  ],
+  "multi_day": "INCOMPLETE: no genuine archived public record supplied; timestamps never seeded",
+  "preexisting_fixture_rows": [],
+  "fixtures": [
+    {
+      "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+      "title": "VIS30-LUNAR lunar geology discussion",
+      "parent_id": null,
+      "time_created": 1790434879241,
+      "time_updated": 1790434889000,
+      "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+      "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76",
+      "marker": "VIS30-LUNAR",
+      "prompt": "Discuss lunar geology in one short sentence. Include VIS30-LUNAR exactly. Do not use tools."
+    },
+    {
+      "id": "ses_f21c39343ffep67oEvM1AykBu7",
+      "title": "VIS30-OCEAN ocean currents discussion",
+      "parent_id": null,
+      "time_created": 1790434897099,
+      "time_updated": 1790434909234,
+      "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+      "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b",
+      "marker": "VIS30-OCEAN",
+      "prompt": "Discuss ocean currents in one short sentence. Include VIS30-OCEAN exactly. Do not use tools."
+    },
+    {
+      "id": "ses_f21c34747ffeMvhTDvUQPJKlE9",
+      "title": "Forest ecology discussion VIS30-FOREST",
+      "parent_id": null,
+      "time_created": 1790434916549,
+      "time_updated": 1790434924476,
+      "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+      "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b",
+      "marker": "VIS30-FOREST",
+      "prompt": "Discuss forest ecology in one short sentence. Include VIS30-FOREST exactly. Do not use tools."
+    }
+  ],
+  "baseline": {
+    "requests": 6,
+    "completed": 6,
+    "invalid": 0
+  },
+  "selected_fixture": {
+    "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+    "title": "VIS30-LUNAR lunar geology discussion",
+    "parent_id": null,
+    "time_created": 1790434879241,
+    "time_updated": 1790434889000,
+    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+    "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+  },
+  "scope": "CURRENT_DAY_FUNCTIONAL; multi-day incomplete"
+}

@@ -929,6 +929,13 @@ async fn load_stages(
                     _ => return Err("tabs.layout must be horizontal or vertical".into()),
                 };
             }
+            if let Some(v) = value.pointer("/tabs/scope") {
+                tui_chrome.sessions_all_projects = match v.as_str() {
+                    Some("global") => true,
+                    Some("cwd") => false,
+                    _ => return Err("tabs.scope must be global or cwd".into()),
+                };
+            }
             if let Some(v) = value.pointer("/tabs/indicators") {
                 tui_chrome.tab_indicators = match v.as_str() {
                     Some("status") => oc_core::queries::TabIndicators::Status,

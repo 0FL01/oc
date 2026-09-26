@@ -1,0 +1,133 @@
+{
+  "status": "FAILED",
+  "checks": [
+    {
+      "stage": "initial-owned-root",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "initial-owned-root",
+        "observed_at_ms": 1790427324480,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/upstream/home/data/opencode/opencode.db",
+            "table": "session_v2",
+            "columns": [
+              "agent",
+              "cost",
+              "directory",
+              "fork_boundary",
+              "fork_session_id",
+              "id",
+              "idle_outcome",
+              "metadata",
+              "model",
+              "parent_id",
+              "path",
+              "permission",
+              "project_id",
+              "resume_attempts",
+              "revert",
+              "share_url",
+              "slug",
+              "summary_additions",
+              "summary_deletions",
+              "summary_diffs",
+              "summary_files",
+              "time_archived",
+              "time_compacting",
+              "time_created",
+              "time_idle",
+              "time_suspended",
+              "time_updated",
+              "time_viewed",
+              "title",
+              "tokens_cache_read",
+              "tokens_cache_write",
+              "tokens_input",
+              "tokens_output",
+              "tokens_reasoning",
+              "version",
+              "workspace_id"
+            ],
+            "rows": []
+          }
+        ]
+      }
+    },
+    {
+      "stage": "failure-db",
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "failure-db",
+        "observed_at_ms": 1790427435226,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/upstream/home/data/opencode/opencode.db",
+            "table": "session_v2",
+            "columns": [
+              "agent",
+              "cost",
+              "directory",
+              "fork_boundary",
+              "fork_session_id",
+              "id",
+              "idle_outcome",
+              "metadata",
+              "model",
+              "parent_id",
+              "path",
+              "permission",
+              "project_id",
+              "resume_attempts",
+              "revert",
+              "share_url",
+              "slug",
+              "summary_additions",
+              "summary_deletions",
+              "summary_diffs",
+              "summary_files",
+              "time_archived",
+              "time_compacting",
+              "time_created",
+              "time_idle",
+              "time_suspended",
+              "time_updated",
+              "time_viewed",
+              "title",
+              "tokens_cache_read",
+              "tokens_cache_write",
+              "tokens_input",
+              "tokens_output",
+              "tokens_reasoning",
+              "version",
+              "workspace_id"
+            ],
+            "rows": [
+              {
+                "id": "ses_f22371f6fffeGFIib7huiKwEoM",
+                "title": null,
+                "parent_id": null,
+                "time_created": 1790427324580,
+                "time_updated": 1790427324645,
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/other-project",
+                "project_id": "86d579c3c8789257e9b828b7e1a2d21319b7fe08"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "multi_day": "INCOMPLETE: no genuine archived public record supplied; timestamps never seeded",
+  "reason": "Timed out waiting for other-root-generated"
+}

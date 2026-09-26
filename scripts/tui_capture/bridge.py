@@ -15,6 +15,10 @@ import subprocess
 import sys
 import termios
 import threading
+import shlex
+import sqlite3
+import time
+import urllib.request
 
 scanner_release = threading.Event()
 
@@ -26,6 +30,29 @@ def emit(value):
 
 output_lock = threading.Lock()
 spec = json.loads(Path(sys.argv[1]).read_text())
+live = {}
+if spec.get('sessions_interaction'):
+    # Secrets stay inside this bridge; neither config nor launch evidence contains them.
+    for line in (Path(__file__).resolve().parents[2] / '.local/live.env').read_text().splitlines():
+        tokens = shlex.split(line, comments=True)
+        if tokens and '=' in tokens[-1]:
+            key, value = tokens[-1].split('=', 1)
+            live[key] = value
+    if not all(live.get(k) for k in ('LUDKA2_API_URL', 'LUDKA2_API_KEY', 'OC_TEST_MODEL')):
+        raise RuntimeError('Missing bounded live prerequisites')
+live_requests = 0
+prior_live_requests = 0
+if spec.get('sessions_interaction'):
+    for protocol in Path(sys.argv[1]).resolve().parents[2].glob('*/**/protocol.json'):
+        try:
+            prior_spec = json.loads((protocol.parent / 'bridge-spec.json').read_text())
+            if prior_spec.get('sessions_campaign', 'legacy') != spec.get('sessions_campaign', 'legacy'):
+                continue
+            events = json.loads(protocol.read_text())
+            prior_live_requests += sum(e.get('kind') == 'provider' and e.get('valid') is True and
+                                       'live_request_index' in e for e in events)
+        except (OSError, ValueError):
+            pass
 root = Path(spec['isolated_root'])
 fixture = Path(spec['fixture'])
 prompt = (fixture / 'input.txt').read_text().strip()
@@ -72,8 +99,49 @@ class Provider(BaseHTTPRequestHandler):
         pass
 
     def do_POST(self):
-        global transcript_round, title_round, bounded_requests
+        global transcript_round, title_round, bounded_requests, live_requests
         body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+        if spec.get('sessions_interaction'):
+            system = str(body.get('instructions', '')) + json.dumps([x for x in body.get('input', []) if x.get('role') in ('system', 'developer')])
+            is_title = 'title generator' in system.lower() or (not body.get('tools') and 'title' in system.lower())
+            with round_lock:
+                live_requests += 1
+                index = live_requests
+            emit({'kind':'provider', 'operation':'title' if is_title else 'transcript',
+                  'model':body.get('model'), 'valid':self.path == '/v1/responses' and index <= 8 and prior_live_requests + index <= 24,
+                  'request_sha256':hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest(),
+                  'live_request_index':index})
+            if index > 8 or prior_live_requests + index > 24 or self.path != '/v1/responses':
+                self.send_error(400, 'bounded live limit'); return
+            body['model'] = live['OC_TEST_MODEL']
+            body['max_output_tokens'] = 2048 if is_title else 1024
+            body['reasoning'] = {'effort':'low'}
+            url = live['LUDKA2_API_URL'].rstrip('/')
+            if not url.endswith('/responses'): url += '/responses'
+            request = urllib.request.Request(url, data=json.dumps(body).encode(), headers={
+                'Authorization':'Bearer ' + live['LUDKA2_API_KEY'], 'Content-Type':'application/json'})
+            try:
+                with urllib.request.urlopen(request, timeout=90) as response:
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'text/event-stream'); self.end_headers()
+                    title_text = ''
+                    completed = False
+                    for line in response:
+                        self.wfile.write(line); self.wfile.flush()
+                        if line.startswith(b'data: '):
+                            try: event = json.loads(line[6:])
+                            except ValueError: continue
+                            if is_title and event.get('type') == 'response.output_text.delta':
+                                title_text += event.get('delta', '')
+                            completed |= event.get('type') == 'response.completed'
+                    emit({'kind':'provider_completed' if completed else 'provider_incomplete',
+                          'operation':'title' if is_title else 'transcript',
+                          'live_request_index':index, **({'generated_title':title_text} if is_title else {})})
+            except Exception as error:
+                # Do not emit URLs, headers, bodies or arbitrary remote exceptions.
+                emit({'kind':'provider_error', 'error_type':type(error).__name__, 'live_request_index':index,
+                      **({'http_status':error.code} if isinstance(error, urllib.error.HTTPError) else {})})
+            return
         serialized = json.dumps(body, ensure_ascii=False)
         valid = self.path == '/v1/responses' and body.get('stream') is True
         # Title requests are real upstream auxiliary operations, not another transcript.
@@ -276,12 +344,16 @@ server = ThreadingHTTPServer(('127.0.0.1', 0), Provider)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 home = root / spec['origin'] / 'home'
 project = root / 'project'
+if spec.get('sessions_interaction'):
+    project = root / 'other-project'
 for path in [home, project, *[home / x for x in ('config/opencode', 'cache', 'data', 'state')]]:
     path.mkdir(parents=True, exist_ok=True)
 if spec.get('sample') == 'tools':
     (project / 'fixture-note.txt').write_text('fixture-content\n')
 settings = {'baseURL': f'http://127.0.0.1:{server.server_port}/v1', 'apiKey': 'fixture-not-a-secret'}
 models = {m['id']: {k: v for k, v in m.items() if k not in ('id', 'variants')} for m in catalog['models']}
+if spec.get('sessions_interaction'):
+    models = {'fixture-model-1': {**models['fixture-model-1'], 'name':live['OC_TEST_MODEL'], 'limit':{'context':32000,'output':1024}}}
 if spec.get('variants') or bounded == 'variants':
     variants = json.loads((fixture / 'variant-dialog.json').read_text())
     # Equivalent native input shapes; original v2 uses id/settings arrays while
@@ -373,7 +445,8 @@ if spec.get('seed_root') and spec['origin'] == 'upstream':
               'exit_code': imported.returncode, 'stdout': imported.stdout.decode(), 'stderr': imported.stderr.decode()})
         if imported.returncode: raise RuntimeError('supported session import failed')
 emit({'kind': 'launch', 'argv': argv, 'cwd': str(project), 'env': env,
-      'version': version.stdout.decode().strip(), 'version_exit': version.returncode})
+       'version': version.stdout.decode().strip(), 'version_exit': version.returncode,
+       **({'sessions_resume':spec.get('sessions_resume',False)} if spec.get('sessions_interaction') else {})})
 master, slave = pty.openpty()
 fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', spec['rows'], spec['columns'], 0, 0))
 
@@ -414,7 +487,28 @@ try:
                     while b'\n' in pending:
                         line, pending = pending.split(b'\n', 1)
                         command = json.loads(line)
-                        if command['kind'] == 'input':
+                        if command['kind'] == 'sessions_snapshot' and spec.get('sessions_interaction'):
+                            observations = []
+                            for database in (home / 'data').rglob('*'):
+                                if database.suffix not in ('.db', '.sqlite', '.sqlite3'): continue
+                                try:
+                                    with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as connection:
+                                        connection.row_factory = sqlite3.Row
+                                        tables = {r[0] for r in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+                                        for table in ('session', 'session_v2', 'sessions'):
+                                            if table not in tables: continue
+                                            columns = {r[1] for r in connection.execute(f'PRAGMA table_info({table})')}
+                                            wanted = [c for c in ('id','title','parent_id','created_at','updated_at','time_created','time_updated','directory','location','project_id','subpath') if c in columns]
+                                            rows = [dict(r) for r in connection.execute(f"SELECT {','.join(wanted)} FROM {table} ORDER BY id")]
+                                            if table == 'sessions' and 'prefs' in tables:
+                                                locations = dict(connection.execute("SELECT substr(key,22), value FROM prefs WHERE key LIKE 'tui.session_location.%'"))
+                                                for row in rows: row['directory'] = locations.get(row['id'])
+                                            observations.append({'database':str(database), 'table':table, 'columns':sorted(columns), 'rows':rows})
+                                except sqlite3.Error as error:
+                                    observations.append({'database':str(database),'error_type':type(error).__name__})
+                            emit({'kind':'sessions_snapshot','request_id':command['request_id'],
+                                  'observed_at_ms':int(time.time()*1000), 'observations':observations})
+                        elif command['kind'] == 'input':
                             os.write(master, base64.b64decode(command['data']))
                         elif command['kind'] == 'resize':
                             fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', command['rows'], command['columns'], 0, 0))
@@ -495,13 +589,16 @@ try:
             os.close(master)
             emit({'kind': 'exit', 'generation': generation, 'code': child.returncode,
                   'termination': 'forced_stop' if forced else 'natural'})
-        if forced or not spec.get('tab_restart'):
+        if forced or not (spec.get('tab_restart') or spec.get('sessions_interaction')):
             break
         # The same bridge/server/config/project and XDG roots survive the first exit.
         command = json.loads(sys.stdin.readline())
         if command.get('kind') != 'relaunch' or generation:
             break
         generation += 1
+        if spec.get('sessions_interaction'):
+            project = root / 'project'
+            project.mkdir(parents=True, exist_ok=True)
         emit({'kind': 'relaunch', 'generation': generation, 'argv': argv, 'cwd': str(project)})
 finally:
     scanner_release.set()

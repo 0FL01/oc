@@ -1,0 +1,35 @@
+{
+  "status": "FAILED",
+  "checks": [
+    {
+      "stage": "initial-owned-root",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "initial-owned-root",
+        "observed_at_ms": 1790427103591,
+        "observations": []
+      }
+    },
+    {
+      "stage": "failure-db",
+      "provider_counts": {
+        "requests": 9,
+        "completed": 0,
+        "invalid": 1
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "failure-db",
+        "observed_at_ms": 1790427214521,
+        "observations": []
+      }
+    }
+  ],
+  "multi_day": "INCOMPLETE: no genuine archived public record supplied; timestamps never seeded",
+  "reason": "Timed out waiting for other-root-generated"
+}

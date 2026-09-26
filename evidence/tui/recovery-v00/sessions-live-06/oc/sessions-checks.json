@@ -1,0 +1,197 @@
+{
+  "status": "FAILED",
+  "checks": [
+    {
+      "stage": "initial-owned-root",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "initial-owned-root",
+        "observed_at_ms": 1790429851928,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/oc/home/data/oc/oc.sqlite",
+            "table": "sessions",
+            "columns": [
+              "agent",
+              "created_at",
+              "id",
+              "model",
+              "parent_id",
+              "title",
+              "updated_at"
+            ],
+            "rows": []
+          }
+        ]
+      }
+    },
+    {
+      "stage": "other-root-generated-db",
+      "provider_counts": {
+        "requests": 2,
+        "completed": 2,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "other-root-generated-db",
+        "observed_at_ms": 1790429860853,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/oc/home/data/oc/oc.sqlite",
+            "table": "sessions",
+            "columns": [
+              "agent",
+              "created_at",
+              "id",
+              "model",
+              "parent_id",
+              "title",
+              "updated_at"
+            ],
+            "rows": [
+              {
+                "id": "s-tui-18d8e276da26b6ae-36d1c9-0",
+                "title": "VIS30-LUNAR explores lunar geology briefly.",
+                "parent_id": null,
+                "created_at": "1790429851",
+                "updated_at": "1790429858.110",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/other-project"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "first-root-generated-db",
+      "provider_counts": {
+        "requests": 4,
+        "completed": 4,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "first-root-generated-db",
+        "observed_at_ms": 1790429876389,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/oc/home/data/oc/oc.sqlite",
+            "table": "sessions",
+            "columns": [
+              "agent",
+              "created_at",
+              "id",
+              "model",
+              "parent_id",
+              "title",
+              "updated_at"
+            ],
+            "rows": [
+              {
+                "id": "s-tui-18d8e276da26b6ae-36d1c9-0",
+                "title": "VIS30-LUNAR explores lunar geology briefly.",
+                "parent_id": null,
+                "created_at": "1790429851",
+                "updated_at": "1790429858.110",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/other-project"
+              },
+              {
+                "id": "s-tui-18d8e27a0524fcbd-36d28c-0",
+                "title": "Ocean Currents Discussion VIS30-OCEAN",
+                "parent_id": null,
+                "created_at": "1790429865",
+                "updated_at": "1790429873.907",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/project"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "failure-db",
+      "provider_counts": {
+        "requests": 6,
+        "completed": 5,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "failure-db",
+        "observed_at_ms": 1790429991893,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/oc/home/data/oc/oc.sqlite",
+            "table": "sessions",
+            "columns": [
+              "agent",
+              "created_at",
+              "id",
+              "model",
+              "parent_id",
+              "title",
+              "updated_at"
+            ],
+            "rows": [
+              {
+                "id": "s-tui-18d8e276da26b6ae-36d1c9-0",
+                "title": "VIS30-LUNAR explores lunar geology briefly.",
+                "parent_id": null,
+                "created_at": "1790429851",
+                "updated_at": "1790429858.110",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/other-project"
+              },
+              {
+                "id": "s-tui-18d8e27a0524fcbd-36d28c-0",
+                "title": "Ocean Currents Discussion VIS30-OCEAN",
+                "parent_id": null,
+                "created_at": "1790429865",
+                "updated_at": "1790429873.907",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/project"
+              },
+              {
+                "id": "s-tui-18d8e27db034d566-36d28c-1",
+                "title": null,
+                "parent_id": null,
+                "created_at": "1790429881",
+                "updated_at": "1790429885.527",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/project"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "multi_day": "INCOMPLETE: no genuine archived public record supplied; timestamps never seeded",
+  "preexisting_fixture_rows": [],
+  "fixtures": [
+    {
+      "id": "s-tui-18d8e276da26b6ae-36d1c9-0",
+      "title": "VIS30-LUNAR explores lunar geology briefly.",
+      "parent_id": null,
+      "created_at": "1790429851",
+      "updated_at": "1790429858.110",
+      "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/other-project",
+      "marker": "VIS30-LUNAR",
+      "prompt": "Discuss lunar geology in one short sentence. Include VIS30-LUNAR exactly. Do not use tools."
+    },
+    {
+      "id": "s-tui-18d8e27a0524fcbd-36d28c-0",
+      "title": "Ocean Currents Discussion VIS30-OCEAN",
+      "parent_id": null,
+      "created_at": "1790429865",
+      "updated_at": "1790429873.907",
+      "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/project",
+      "marker": "VIS30-OCEAN",
+      "prompt": "Discuss ocean currents in one short sentence. Include VIS30-OCEAN exactly. Do not use tools."
+    }
+  ],
+  "reason": "Timed out waiting for second-root-generated"
+}

@@ -85,3 +85,5 @@ message-actions-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 message-actions-*/*/*.vt binary
 recovery-v00/bounded-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/bounded-*/*/*.vt binary
+recovery-v00/sessions-live-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+recovery-v00/sessions-live-*/*/*.vt binary

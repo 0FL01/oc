@@ -1056,11 +1056,23 @@ fn submit(pty: &mut PtySession, text: &str) -> usize {
 /// status before starting the next idle action, rather than racing that event.
 fn wait_idle(pty: &PtySession) {
     let start = Instant::now();
-    while render_screen(&pty.snapshot())
-        .rows()
-        .iter()
-        .any(|row| row.contains("esc interrupt") || row.contains("submission pending"))
-    {
+    let mut idle_since = None;
+    loop {
+        let busy = render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|row| row.contains("esc interrupt") || row.contains("submission pending"));
+        if busy {
+            idle_since = None;
+        } else {
+            // Cell diffs can expose echo text before the busy/footer update.
+            // Observe idle across a complete redraw interval, not one stale
+            // grid sample, before dispatching an idle-only navigation action.
+            let since = idle_since.get_or_insert_with(Instant::now);
+            if since.elapsed() >= Duration::from_millis(100) {
+                return;
+            }
+        }
         assert!(start.elapsed() < DEADLINE, "turn did not become idle");
         std::thread::sleep(POLL);
     }
@@ -2920,6 +2932,8 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
         pty.wait_visible(READY, DEADLINE);
         choose_model(&mut pty, "T39 alt");
         choose_variant(&mut pty, "fast");
+        pty.send(b"/rename Retained selection root\r");
+        wait_screen_row(&pty, "Retained selection root", DEADLINE);
         pty.send(b"/quit\r");
         assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
         let before = {
@@ -2945,9 +2959,9 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
         if !retired_model {
             pty.wait_visible(READY, DEADLINE);
             pty.send(b"/continue\r");
-            wait_screen_row(&pty, "Switch session", DEADLINE);
-            pty.send(b"retired\r");
-            dismissed(&pty, "Switch session");
+            wait_screen_row(&pty, "Sessions", DEADLINE);
+            pty.send(b"Retained selection root\r");
+            dismissed(&pty, "Sessions");
         }
         wait_screen_row(&pty, "unavailable", DEADLINE);
         if !retired_model {
@@ -3404,6 +3418,271 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
 /// All new-session entry points call the real app operation; busy variants of
 /// those same routes keep the current session, draft and provider turn intact.
 #[test]
+fn sessions_enter_renamed_foreign_root_preserves_deck_draft_and_uses_target_config() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "local-open-root", None);
+    pty.wait_visible(READY, DEADLINE);
+    pty.send(b"/rename Local return target\r");
+    wait_screen_row(&pty, "Local return target", DEADLINE);
+    let conn = rusqlite::Connection::open(pty.data_dir().join("oc.sqlite")).unwrap();
+    let foreign = fixture.root.path().join("other-project");
+    std::fs::create_dir_all(&foreign).unwrap();
+    std::fs::write(
+        foreign.join("opencode.json"),
+        serde_json::json!({"model":format!("fixture/{ALT_MODEL}")}).to_string(),
+    )
+    .unwrap();
+    conn.execute_batch("INSERT INTO sessions(id,created_at,title) VALUES ('foreign-open-root','1','Foreign open target'); INSERT INTO messages(id,session_id,seq,role,text) VALUES ('foreign-user','foreign-open-root',1,'user','foreign history question'),('foreign-answer','foreign-open-root',2,'assistant','foreign history canary');").unwrap();
+    conn.execute("INSERT INTO prefs(key,value,updated_at) VALUES ('tui.session_location.foreign-open-root',?1,'1')",[foreign.to_str().unwrap()]).unwrap();
+    pty.send(b"local roundtrip draft\x18l");
+    wait_screen_row(&pty, "Sessions", DEADLINE);
+    pty.send(b"\x01\x1b[200~Foreign open target\x1b[201~\x12");
+    wait_screen_row(&pty, "Rename session", DEADLINE);
+    pty.send(b"\x03Renamed foreign open target\r");
+    dismissed(&pty, "Rename session");
+    wait_screen_row(&pty, "local roundtrip draft", DEADLINE);
+    pty.send(b"\x18l");
+    wait_screen_row(&pty, "Sessions", DEADLINE);
+    pty.send(b"\x1b[200~Renamed foreign open target\x1b[201~\r");
+    dismissed(&pty, "Sessions");
+    wait_screen_row(&pty, "foreign history canary", DEADLINE);
+    wait_screen_row(&pty, "other-project", DEADLINE);
+    assert!(
+        fixture.requests.lock().unwrap().is_empty(),
+        "opening an existing root is provider-free"
+    );
+    assert_eq!(
+        conn.query_row("SELECT count(*) FROM sessions", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        2
+    );
+    let off = submit(&mut pty, "target configuration request");
+    pty.wait_visible_after(off, "echo: target configuration request", DEADLINE);
+    wait_idle(&pty);
+    assert_eq!(fixture.wait_requests(1)[0]["model"], ALT_MODEL);
+    pty.send(b"\x18l");
+    wait_screen_row(&pty, "Sessions", DEADLINE);
+    pty.send(b"\x1b[200~Local return target\x1b[201~\r");
+    dismissed(&pty, "Sessions");
+    wait_screen_row(&pty, "local roundtrip draft", DEADLINE);
+    assert_eq!(
+        conn.query_row("SELECT count(*) FROM sessions", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        2
+    );
+    let saved: String = conn
+        .query_row(
+            "SELECT value FROM prefs WHERE key=?1",
+            [format!(
+                "tui.selection.tab_deck:{}",
+                serde_json::json!([foreign.to_str().unwrap()])
+            )],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&saved).unwrap()["sessions"],
+        serde_json::json!(["foreign-open-root"])
+    );
+    pty.send(b"\x03/quit\r");
+    let (status, _) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored());
+}
+
+#[test]
+fn sessions_all_projects_selected_actions_keep_current_location_and_draft() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "local-current", None);
+    pty.wait_visible(READY, DEADLINE);
+    let conn = rusqlite::Connection::open(pty.data_dir().join("oc.sqlite")).unwrap();
+    let foreign = fixture.root.path().join("foreign-project");
+    std::fs::create_dir_all(&foreign).unwrap();
+    let foreign = foreign.to_str().unwrap();
+    conn.execute_batch("INSERT INTO sessions(id,created_at,title) VALUES ('foreign-listed','1','Foreign selected target'); INSERT INTO sessions(id,created_at,parent_id) VALUES ('foreign-child','1','foreign-listed');").unwrap();
+    conn.execute("INSERT INTO prefs(key,value,updated_at) VALUES ('tui.session_location.foreign-listed',?1,'1')",[foreign]).unwrap();
+    conn.execute("INSERT INTO prefs(key,value,updated_at) VALUES (?1,?2,'1')",rusqlite::params![format!("tui.selection.tab_deck:{}",serde_json::json!([foreign])),serde_json::json!({"version":1,"sessions":["foreign-listed"],"active":"foreign-listed"}).to_string()]).unwrap();
+    pty.send(b"local draft preserved\x18l");
+    wait_screen_row(&pty, "Sessions", DEADLINE);
+    pty.send(b"\x01");
+    wait_screen_row(&pty, "Foreign selected target", DEADLINE);
+    pty.send(b"\x1b[200~Foreign selected target\x1b[201~\x12");
+    wait_screen_row(&pty, "Rename session", DEADLINE);
+    pty.send(b"\x03Renamed foreign root\r");
+    dismissed(&pty, "Rename session");
+    wait_screen_row(&pty, "local draft preserved", DEADLINE);
+    assert_eq!(
+        conn.query_row(
+            "SELECT title FROM sessions WHERE id='foreign-listed'",
+            [],
+            |r| r.get::<_, String>(0)
+        )
+        .unwrap(),
+        "Renamed foreign root"
+    );
+    pty.send(b"\x18l");
+    wait_screen_row(&pty, "Sessions", DEADLINE);
+    pty.send(b"\x1b[200~Renamed foreign root\x1b[201~\x04");
+    wait_screen_row(&pty, "Press ctrl+d again to confirm", DEADLINE);
+    pty.send(b"\x04");
+    wait_screen_row(&pty, "No sessions found", DEADLINE);
+    assert_eq!(
+        conn.query_row(
+            "SELECT count(*) FROM sessions WHERE id IN ('foreign-listed','foreign-child')",
+            [],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
+        0
+    );
+    assert_eq!(
+        conn.query_row(
+            "SELECT count(*) FROM sessions WHERE id='local-current'",
+            [],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
+        1
+    );
+    let saved: String = conn
+        .query_row(
+            "SELECT value FROM prefs WHERE key=?1",
+            [format!(
+                "tui.selection.tab_deck:{}",
+                serde_json::json!([foreign])
+            )],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&saved).unwrap()["sessions"],
+        serde_json::json!([])
+    );
+    pty.send(b"\x1b");
+    dismissed(&pty, "Sessions");
+    wait_screen_row(&pty, "local draft preserved", DEADLINE);
+    assert!(fixture.requests.lock().unwrap().is_empty());
+    pty.send(b"\x03/quit\r");
+    let (status, _) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored());
+}
+
+#[test]
+fn sessions_bracketed_paste_queries_owner_for_root_outside_first_fifty() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "sessions-paste-current", None);
+    pty.wait_visible(READY, DEADLINE);
+    let conn = rusqlite::Connection::open(pty.data_dir().join("oc.sqlite")).unwrap();
+    let location: String = conn
+        .query_row(
+            "SELECT value FROM prefs WHERE key='tui.session_location.sessions-paste-current'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    for i in 0..61 {
+        let id = format!("reverse-{:02}", 61 - i);
+        let title = if i == 0 {
+            "Unique oldest pasted target".to_string()
+        } else {
+            format!("Recent root {i}")
+        };
+        conn.execute(
+            "INSERT INTO sessions(id,created_at,title) VALUES (?1,strftime('%s','now'),?2)",
+            rusqlite::params![id, title],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO prefs(key,value,updated_at) VALUES (?1,?2,'1')",
+            rusqlite::params![format!("tui.session_location.{id}"), location],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO events(session_id,kind,payload) VALUES (?1,'session_created','{}')",
+            [id],
+        )
+        .unwrap();
+    }
+    pty.send(b"/sessions\r");
+    wait_screen_row(&pty, "Sessions", DEADLINE);
+    wait_screen_absent(&pty, "Unique oldest pasted target");
+    pty.send(b"\x1b[200~Unique oldest pasted target\x1b[201~");
+    wait_screen_row(&pty, "Unique oldest pasted target", DEADLINE);
+    pty.send(b"\x12");
+    wait_screen_row(&pty, "Rename session", DEADLINE);
+    pty.send(b"\x03Paste reached selected root\r");
+    dismissed(&pty, "Rename session");
+    assert_eq!(
+        conn.query_row(
+            "SELECT title FROM sessions WHERE id='reverse-61'",
+            [],
+            |r| r.get::<_, String>(0)
+        )
+        .unwrap(),
+        "Paste reached selected root"
+    );
+    assert!(fixture.requests.lock().unwrap().is_empty());
+    pty.send(b"/quit\r");
+    let (status, _) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored());
+}
+
+#[test]
+fn sessions_selected_rename_and_confirmed_delete_reach_real_owner_without_provider_work() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "sessions-actions", None);
+    pty.wait_visible(READY, DEADLINE);
+    pty.send(b"/sessions\r");
+    wait_screen_row(&pty, "Sessions", DEADLINE);
+    pty.send(b"\x12"); // pinned Ctrl+R acts on the selected row
+    wait_screen_row(&pty, "Rename session", DEADLINE);
+    pty.send(b"\x03Real selected title\r");
+    wait_screen_row(&pty, "Real selected title", DEADLINE);
+    dismissed(&pty, "Rename session");
+    let conn = rusqlite::Connection::open(pty.data_dir().join("oc.sqlite")).unwrap();
+    assert_eq!(
+        conn.query_row(
+            "SELECT title FROM sessions WHERE id='sessions-actions'",
+            [],
+            |r| r.get::<_, String>(0)
+        )
+        .unwrap(),
+        "Real selected title"
+    );
+    pty.send(b"/sessions\r");
+    wait_screen_row(&pty, "Sessions", DEADLINE);
+    pty.send(b"\x04");
+    wait_screen_row(&pty, "Press ctrl+d again to confirm", DEADLINE);
+    assert_eq!(
+        conn.query_row("SELECT count(*) FROM sessions", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
+    pty.send(b"\x1b");
+    dismissed(&pty, "Sessions");
+    pty.send(b"/sessions\r");
+    wait_screen_row(&pty, "Real selected title", DEADLINE);
+    pty.send(b"\x04");
+    wait_screen_row(&pty, "Press ctrl+d again to confirm", DEADLINE);
+    pty.send(b"\x04");
+    wait_screen_row(&pty, "█▀▀█ █▀▀█", DEADLINE);
+    assert_eq!(
+        conn.query_row("SELECT count(*) FROM sessions", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+    assert!(fixture.requests.lock().unwrap().is_empty());
+    pty.send(b"/sessions\r");
+    wait_screen_row(&pty, "No sessions available", DEADLINE);
+    pty.send(b"\x04\x12\r"); // empty actions and Enter have no target
+    wait_screen_row(&pty, "No sessions available", DEADLINE);
+    pty.send(b"\x1b");
+    dismissed(&pty, "Sessions");
+    pty.send(b"/quit\r");
+    let (status, out) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && contains(&out, ALT_LEAVE) && pty.restored());
+}
+
+#[test]
 fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(fixture.clone(), "v04-new", None);
@@ -3428,6 +3707,10 @@ fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle
     wait_screen_row(&pty, "T39 alt fixture · fast", DEADLINE);
     let off = submit(&mut pty, "original session");
     pty.wait_visible_after(off, "echo: original session", DEADLINE);
+    wait_idle(&pty);
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    pty.send(b"/rename Original session root\r");
+    wait_screen_row(&pty, "Original session root", DEADLINE);
     let routes: &[&[u8]] = &[b"/new\r", b"/clear\r", b"\x18n", b"\x10New session\r"];
     for (i, route) in routes.iter().enumerate() {
         wait_idle(&pty);
@@ -3457,8 +3740,8 @@ fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle
     }
     wait_idle(&pty);
     pty.send(b"/continue\r");
-    wait_screen_row(&pty, "Switch session", DEADLINE);
-    pty.send(b"v04-new\r");
+    wait_screen_row(&pty, "Sessions", DEADLINE);
+    pty.send(b"Original session root\r");
     wait_screen_row(&pty, "echo: original session", DEADLINE);
     let off = submit(&mut pty, "slow stream");
     fixture.wait_requests(6);
@@ -3618,13 +3901,24 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     let off = submit(&mut pty, "A named none");
     pty.wait_visible_after(off, "echo: A named none", DEADLINE);
     wait_idle(&pty);
-    pty.send(b"/continue\rscope-b\r");
-    dismissed(&pty, "Switch session");
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    pty.send(b"/rename Scoped alpha root\r");
+    wait_screen_row(&pty, "Scoped alpha root", DEADLINE);
+    pty.send(b"/continue\r");
+    wait_screen_row(&pty, "Sessions", DEADLINE);
+    // A is focused and newest after its real title update. B is the only
+    // other root and must still receive its genuine automatic first title.
+    pty.send(b"\x1b[B\r");
+    dismissed(&pty, "Sessions");
     wait_screen_row(&pty, "T39 model fixture", DEADLINE);
     let off = submit(&mut pty, "B different model");
     pty.wait_visible_after(off, "echo: B different model", DEADLINE);
     wait_idle(&pty);
-    pty.send(b"/continue\rscope-a\r");
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    pty.send(b"/rename Scoped beta root\r");
+    wait_screen_row(&pty, "Scoped beta root", DEADLINE);
+    pty.send(b"/continue\rScoped alpha root\r");
+    dismissed(&pty, "Sessions");
     wait_screen_row(&pty, "echo: A named none", DEADLINE);
     pty.send(b"/variants\r");
     wait_screen_row(&pty, "● none", DEADLINE);
@@ -3659,7 +3953,7 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
 
     let mut pty = PtySession::spawn(fixture.clone(), "scope-a", None);
-    pty.wait_visible("Fixture session title", DEADLINE);
+    pty.wait_visible("Scoped alpha root", DEADLINE);
     pty.send(b"/thinking\r");
     wait_screen_row(&pty, "● none", DEADLINE);
     pty.send(b"\r");
@@ -3683,7 +3977,8 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     let off = submit(&mut pty, "A second agent restart");
     pty.wait_visible_after(off, "echo: A second agent restart", DEADLINE);
     wait_idle(&pty);
-    pty.send(b"/continue\rscope-b\r");
+    pty.send(b"/continue\rScoped beta root\r");
+    dismissed(&pty, "Sessions");
     wait_screen_row(&pty, "echo: B different model", DEADLINE);
     let off = submit(&mut pty, "B restart unchanged");
     pty.wait_visible_after(off, "echo: B restart unchanged", DEADLINE);
@@ -3830,7 +4125,7 @@ fn aud29_pty_panels_change_runtime_state() {
 
     // Session switch: the attached session (and its history) really changes.
     pty.send(b"/sessions\r");
-    wait_screen_row(&pty, "Switch session", DEADLINE);
+    wait_screen_row(&pty, "Sessions", DEADLINE);
     pty.send(b"\x1b[B"); // Down: cursor moves off the first id
     pty.send(b"\r");
     pty.wait_visible(READY, DEADLINE);
@@ -3936,7 +4231,7 @@ fn aud30_pty_paste_resize_error_recovery() {
         !render_screen(&pty.snapshot())
             .rows()
             .iter()
-            .any(|r| r.contains("Switch session"))
+            .any(|r| r.contains("Sessions"))
     );
     pty.send(&[0x7f; 9]); // refused /sessions leaves the draft available for editing
     pty.wait_visible_after(off, "answer:slow stream", DEADLINE);
@@ -3991,6 +4286,15 @@ fn aud31_pty_bounded_backing_state() {
         seed_session(&data_dir, &project, &format!("s-other-{i:02}"), 60);
     }
     seed_tool_ops(&data_dir, "s-long39", 260);
+    // Persist an actual unique title. The picker orders by real update time,
+    // so an ID-based Down shortcut no longer identifies this exact root.
+    let conn = rusqlite::Connection::open(data_dir.join("oc.sqlite")).unwrap();
+    conn.execute(
+        "UPDATE sessions SET title=?1 WHERE id=?2",
+        ["Bounded short window zero", "s-other-00"],
+    )
+    .unwrap();
+    drop(conn);
     let metrics = fixture.root.path().join("metrics.json");
 
     let mut pty = PtySession::spawn(fixture.clone(), "s-long39", Some(&metrics));
@@ -4011,9 +4315,9 @@ fn aud31_pty_bounded_backing_state() {
 
     // Switch sessions: the window is replaced, not accumulated.
     pty.send(b"/sessions\r");
-    wait_screen_row(&pty, "Switch session", DEADLINE);
-    pty.send(b"\x1b[B"); // Down: cursor moves off the first id
-    pty.send(b"\r");
+    wait_screen_row(&pty, "Sessions", DEADLINE);
+    pty.send(b"Bounded short window zero\r");
+    dismissed(&pty, "Sessions");
     pty.wait_visible(READY, DEADLINE);
     pty.send(b"/quit\r");
     let (status, _) = pty.wait_exit(DEADLINE);
@@ -4039,7 +4343,7 @@ fn aud31_pty_bounded_backing_state() {
     assert_eq!(
         value["session"].as_str(),
         Some("s-other-00"),
-        "switch landed on the next session"
+        "title search resumed the exact requested root"
     );
 }
 

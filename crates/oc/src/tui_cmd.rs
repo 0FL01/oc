@@ -155,6 +155,10 @@ async fn run_stages(data_dir: &Path, session_opt: Option<String>) -> Result<u8, 
 /// Loop-local application state that is not part of the view-model.
 #[derive(Default)]
 struct LoopState {
+    /// Bounded prompt drafts for picker Location round trips. Views and
+    /// configuration are rebuilt from the newly accepted owner receipt.
+    picker_drafts: std::collections::BTreeMap<String, Vec<(Option<SessionId>, String)>>,
+    picker_pending_tabs: std::collections::HashSet<SessionId>,
     conversation_job: Option<tokio::task::JoinHandle<Result<ConversationResult, String>>>,
     conversation_recovery: Option<(SessionId, std::time::Instant)>,
     recovery_job: Option<ConversationRefresh>,
@@ -1260,9 +1264,7 @@ async fn handle_event(
         }
         Some(UiEvent::Paste(text)) => {
             let outcome = state.handle_paste(&text);
-            if let Some(note) = outcome.note {
-                state.push_note(&note);
-            }
+            apply_outcome(app, state, loop_state, outcome, false).await;
         }
         Some(UiEvent::Mouse(mouse)) => {
             let (cols, rows) =
@@ -1516,8 +1518,157 @@ async fn apply_intent_with_origin(
             state.apply_catalog(snapshot);
         }
         PanelIntent::LoadSessions => {
-            let ids = app.list_sessions().await.map_err(|e| e.to_string())?;
-            state.apply_sessions(ids.into_iter().map(|id| id.0).collect());
+            let context = app
+                .session_picker_context(state.session_scope_update())
+                .await
+                .map_err(|e| e.to_string())?;
+            state.apply_session_picker_context(context);
+            let entries = app
+                .session_list(state.session_search(), state.sessions_all_projects())
+                .await
+                .map_err(|e| e.to_string())?;
+            state.apply_session_entries(entries);
+        }
+        PanelIntent::RenameSelectedSession { id, title } => {
+            let target = SessionId::new(id.clone()).ok_or("bad session id")?;
+            let result = if loop_state.read_only || state.is_busy() {
+                Err(CoreError::TurnBusy)
+            } else {
+                app.picker_session_action(
+                    target,
+                    state.session_search(),
+                    state.sessions_all_projects(),
+                    oc_core::queries::SessionPickerAction::Rename(title.clone()),
+                )
+                .await
+                .map(|_| ())
+            };
+            match result {
+                Ok(()) => {
+                    state.selected_session_renamed(&id, title.clone());
+                    for parked in loop_state.tabs.iter_mut().flatten() {
+                        parked.selected_session_renamed(&id, title.clone());
+                    }
+                    loop_state.sync_tabs(state);
+                }
+                Err(error) => state.rename_session_rejected(error.to_string()),
+            }
+        }
+        PanelIntent::DeleteSelectedSession { id } => {
+            if loop_state.read_only || state.is_busy() || loop_state.conversation_job.is_some() {
+                state.session_delete_rejected(
+                    "turn active or read-only history; delete refused".into(),
+                );
+                return Ok(());
+            }
+            let target = SessionId::new(id.clone()).ok_or("bad session id")?;
+            let index = loop_state
+                .tabs
+                .iter()
+                .enumerate()
+                .find_map(|(index, parked)| {
+                    let view = if loop_state.active_tab == Some(index) {
+                        &*state
+                    } else {
+                        parked.as_ref()?
+                    };
+                    (view.attached_session() == Some(&target)).then_some(index)
+                });
+            // Prepare the replacement before destructive acceptance. The
+            // current view, draft and tab membership survive all refusals.
+            let home = if index == loop_state.active_tab
+                && index.is_some()
+                && loop_state.tabs.len() == 1
+                && loop_state.home.is_none()
+            {
+                let catalog = app
+                    .home_selection(SelectionAction::Current)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                let mut home = TuiState::new_home(app.clone());
+                home.apply_catalog(catalog);
+                Some(home)
+            } else {
+                None
+            };
+            if index.is_some() {
+                loop_state
+                    .save_checked(app, state)
+                    .await
+                    .map_err(|e| e.to_string())?;
+            }
+            match app
+                .picker_session_action(
+                    target.clone(),
+                    state.session_search(),
+                    state.sessions_all_projects(),
+                    oc_core::queries::SessionPickerAction::Delete,
+                )
+                .await
+            {
+                Err(error) => state.session_delete_rejected(error.to_string()),
+                Ok(oc_core::queries::SessionPickerResult::Renamed) => unreachable!("delete result"),
+                Ok(oc_core::queries::SessionPickerResult::Deleted(snapshot)) => {
+                    if loop_state.location.as_deref() == Some(snapshot.location.as_str())
+                        || index.is_some()
+                    {
+                        loop_state.revision = snapshot.revision;
+                    }
+                    if loop_state
+                        .conversation_recovery
+                        .as_ref()
+                        .is_some_and(|(owner, _)| owner == &target)
+                    {
+                        loop_state.conversation_recovery = None;
+                        if let Some(job) = loop_state.recovery_job.take() {
+                            job.abort();
+                        }
+                    }
+                    if loop_state
+                        .title_job
+                        .as_ref()
+                        .is_some_and(|(owner, _)| owner == &target)
+                        && let Some((_, job)) = loop_state.title_job.take()
+                    {
+                        job.abort();
+                    }
+                    if let Some(index) = index {
+                        if loop_state.active_tab == Some(index) {
+                            if loop_state.tabs.len() == 1 {
+                                if !loop_state.restore_home(state) {
+                                    *state = home.expect("replacement prepared before deletion");
+                                }
+                                loop_state.reset_deck();
+                            } else {
+                                loop_state
+                                    .activate(state, if index > 0 { index - 1 } else { 1 })?;
+                                loop_state.tabs.remove(index);
+                                loop_state.tab_cards_before.remove(index);
+                                if let Some(active) = &mut loop_state.active_tab
+                                    && *active > index
+                                {
+                                    *active -= 1;
+                                }
+                            }
+                        } else {
+                            loop_state.tabs.remove(index);
+                            loop_state.tab_cards_before.remove(index);
+                            if let Some(active) = &mut loop_state.active_tab
+                                && *active > index
+                            {
+                                *active -= 1;
+                            }
+                        }
+                        loop_state.sync_tabs(state);
+                    }
+                    // An unrelated deletion keeps modal search and prompt draft.
+                    let entries = app
+                        .session_list(state.session_search(), state.sessions_all_projects())
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    state.apply_session_entries(entries);
+                }
+            }
         }
         PanelIntent::LoadSkills => {
             let cards = app.skills().await.map_err(|e| e.to_string())?;
@@ -1617,6 +1768,14 @@ async fn apply_intent_with_origin(
         PanelIntent::ActivateTab { index } => {
             let before = loop_state.snapshot(state);
             loop_state.activate(state, index)?;
+            if let Some(session) = state.attached_session().cloned()
+                && loop_state.picker_pending_tabs.remove(&session)
+            {
+                if let Some(job) = loop_state.recovery_job.take() {
+                    job.abort();
+                }
+                loop_state.conversation_recovery = Some((session, std::time::Instant::now()));
+            }
             loop_state.save_if_changed(app, state, &before).await;
         }
         PanelIntent::CloseTab { index } => {
@@ -1725,12 +1884,11 @@ async fn apply_intent_with_origin(
         PanelIntent::SwitchSession { id } => {
             // The worker is single-turn: refuse the switch while a turn runs
             // instead of silently losing the active task.
-            if state.is_busy() {
+            if state.is_busy() || loop_state.conversation_job.is_some() {
                 return Err("turn active; session switch refused".to_string());
             }
-            let before = loop_state.snapshot(state);
             let target = SessionId::new(id).ok_or_else(|| "bad session id".to_string())?;
-            if let Some(index) = loop_state
+            let index = loop_state
                 .tabs
                 .iter()
                 .enumerate()
@@ -1741,26 +1899,63 @@ async fn apply_intent_with_origin(
                         parked.as_ref().expect("parked tab")
                     };
                     (view.attached_session() == Some(&target)).then_some(index)
-                })
+                });
+            if index.is_none()
+                && !state
+                    .session_entries()
+                    .iter()
+                    .find(|entry| entry.id == target)
+                    .is_some_and(|entry| {
+                        entry.directory.as_deref() != loop_state.location.as_deref()
+                    })
+                && !loop_state.can_open_session()
             {
-                loop_state.activate(state, index)?;
-                loop_state.save_if_changed(app, state, &before).await;
-                return Ok(());
-            }
-            if !loop_state.can_open_session() {
                 return Err("tab limit reached".into());
             }
-            let snapshot = app
-                .session_selection(target.clone(), false, SelectionAction::Current)
+            let receipt = app
+                .open_picker_session(
+                    target.clone(),
+                    state.session_search(),
+                    state.sessions_all_projects(),
+                    loop_state.snapshot(state),
+                )
                 .await
                 .map_err(|e| e.to_string())?;
-            let page = app
-                .history_page(target.clone(), None, None, HISTORY_PAGE_LIMIT)
-                .await
-                .map_err(|e| e.to_string())?;
+            if loop_state.location.as_deref().unwrap_or_default() != receipt.location {
+                adopt_picker_open(app, state, loop_state, receipt).await;
+                return Ok(());
+            }
+            loop_state.revision = receipt.deck.revision;
+            let pending_refresh = loop_state.picker_pending_tabs.remove(&target)
+                || loop_state
+                    .conversation_recovery
+                    .as_ref()
+                    .is_some_and(|(session, _)| session == &target);
+            if let Some(index) = index {
+                loop_state.activate(state, index)?;
+                // A healthy retained tab keeps its loaded older window and
+                // scroll state. A changed branch or incomplete view gets the
+                // already validated owner page instead.
+                let changed = state.history().total() != receipt.page.total
+                    || (!state.history().has_newer()
+                        && state.history().rows().last().map(|row| row.seq)
+                            != receipt.page.rows.last().map(|row| row.seq));
+                if pending_refresh || changed {
+                    state.attach_page(&receipt.page);
+                    if let Some(job) = loop_state.recovery_job.take() {
+                        job.abort();
+                    }
+                    loop_state.conversation_recovery = None;
+                } else if let Some(title) = receipt.page.title {
+                    state.selected_session_renamed(&target.0, title);
+                }
+                state.apply_catalog(receipt.catalog);
+                loop_state.sync_tabs(state);
+                return Ok(());
+            }
             let mut next = TuiState::new(app.clone(), target);
-            next.attach_page(&page);
-            next.apply_catalog(snapshot);
+            next.attach_page(&receipt.page);
+            next.apply_catalog(receipt.catalog);
             state.close_panel();
             if let Some(old) = loop_state.active_tab.take() {
                 loop_state.tabs[old] = Some(std::mem::replace(state, next));
@@ -1774,7 +1969,6 @@ async fn apply_intent_with_origin(
             loop_state.cards_before = None;
             loop_state.dcp_seen = false;
             loop_state.sync_tabs(state);
-            loop_state.save_if_changed(app, state, &before).await;
         }
         PanelIntent::SwitchLocation { path } => {
             // The application refuses a switch during a turn; the view-model
@@ -1971,6 +2165,113 @@ async fn finish_reload(
         state.push_warning(startup_notice(notice));
     }
     Ok(())
+}
+
+/// Adopt the accepted route before optional reads; keep bounded prompt drafts
+/// without carrying old Location views or configuration into the new owner.
+async fn adopt_picker_open(
+    app: &CoreApp,
+    state: &mut TuiState,
+    deck: &mut LoopState,
+    receipt: oc_core::queries::SessionPickerOpen,
+) {
+    let drafts = deck
+        .picker_drafts
+        .remove(&receipt.location)
+        .unwrap_or_default();
+    if let Some(location) = &deck.location {
+        let mut old = vec![(state.attached_session().cloned(), state.input().to_owned())];
+        old.extend(
+            deck.tabs
+                .iter()
+                .flatten()
+                .map(|view| (view.attached_session().cloned(), view.input().to_owned())),
+        );
+        if let Some(home) = &deck.home {
+            old.push((None, home.input().to_owned()));
+        }
+        if deck.picker_drafts.len() >= 4
+            && let Some(key) = deck.picker_drafts.keys().next().cloned()
+        {
+            deck.picker_drafts.remove(&key);
+        }
+        deck.picker_drafts.insert(location.clone(), old);
+    }
+    if let Some((_, job)) = deck.title_job.take() {
+        job.abort();
+    }
+    if let Some((_, job)) = deck.mention_job.take() {
+        job.abort();
+    }
+    if let Some(job) = deck.recovery_job.take() {
+        job.abort();
+    }
+    deck.conversation_recovery = None;
+    deck.mention_pending = None;
+    deck.mention_failed = None;
+    deck.reset_deck();
+    deck.picker_pending_tabs.clear();
+    deck.location = Some(receipt.location);
+    deck.revision = receipt.deck.revision;
+    deck.save_disabled = false;
+    deck.read_only = false;
+    let mut active = TuiState::new(app.clone(), receipt.session.clone());
+    active.attach_page(&receipt.page);
+    active.apply_catalog(receipt.catalog.clone());
+    if let Some((_, draft)) = drafts
+        .iter()
+        .find(|(id, _)| id.as_ref() == Some(&receipt.session))
+    {
+        active.restore_prompt(draft.clone());
+    }
+    // Adopt the accepted route before any optional parked-view refresh.
+    *state = active;
+    for session in receipt.deck.sessions {
+        if session == receipt.session {
+            deck.active_tab = Some(deck.tabs.len());
+            deck.tabs.push(None);
+        } else {
+            let mut view = TuiState::new(app.clone(), session.clone());
+            view.apply_catalog(receipt.catalog.clone());
+            if let Some((_, draft)) = drafts.iter().find(|(id, _)| id.as_ref() == Some(&session)) {
+                view.restore_prompt(draft.clone());
+            }
+            let page = app
+                .history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
+                .await;
+            let catalog = app
+                .session_selection(session.clone(), false, SelectionAction::Current)
+                .await;
+            match (page, catalog) {
+                (Ok(page), Ok(catalog)) => {
+                    view.attach_page(&page);
+                    view.apply_catalog(catalog);
+                }
+                _ => {
+                    deck.picker_pending_tabs.insert(session);
+                    view.push_note("Session opened; tab refresh pending");
+                }
+            }
+            deck.tabs.push(Some(view));
+        }
+        deck.tab_cards_before.push(None);
+    }
+    if deck.tabs.len() < MAX_TABS
+        && let Some((_, draft)) = drafts.iter().find(|(id, _)| id.is_none())
+    {
+        let mut home = TuiState::new_home(app.clone());
+        match app.home_selection(SelectionAction::Current).await {
+            Ok(catalog) => home.apply_catalog(catalog),
+            Err(_) => {
+                home.apply_catalog(receipt.catalog);
+                home.disable_clipboard_until_catalog();
+                home.push_note("Home selection refresh pending");
+            }
+        }
+        home.restore_prompt(draft.clone());
+        deck.home = Some(home);
+    }
+    deck.sync_tabs(state);
 }
 
 /// A published Location invalidates every old view, including the parked
@@ -5632,9 +5933,9 @@ mod tests {
                 assert_eq!(action, SelectionAction::Current);
                 ack.send(result).unwrap();
             }
-            let Some(InboxMsg::SessionSelection {
+            let Some(InboxMsg::OpenPickerSession {
                 session,
-                action,
+                old_deck,
                 ack,
                 ..
             }) = inbox.recv().await
@@ -5642,13 +5943,19 @@ mod tests {
                 panic!("Sessions reopen must query existing selection")
             };
             assert_eq!(session.0, "durable");
-            assert_eq!(action, SelectionAction::Current);
-            ack.send(Ok(catalog())).unwrap();
-            let Some(InboxMsg::History { session, ack, .. }) = inbox.recv().await else {
-                panic!("Sessions reopen must read durable history")
-            };
-            assert_eq!(session.0, "durable");
-            ack.send(Ok(Default::default())).unwrap();
+            ack.send(Ok(oc_core::queries::SessionPickerOpen {
+                session: session.clone(),
+                location: String::new(),
+                catalog: catalog(),
+                page: Default::default(),
+                deck: TabDeckSnapshot {
+                    sessions: vec![session.clone()],
+                    active: Some(session),
+                    ..Default::default()
+                },
+                previous_deck: old_deck,
+            }))
+            .unwrap();
         });
         let intent = PanelIntent::CloseTab { index: 0 };
         assert!(
@@ -5975,6 +6282,416 @@ mod tests {
             .unwrap();
         assert_eq!(deck.cards_before, Some(10));
         assert!(!state.cards_need_older());
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn sessions_query_uses_owner_metadata_and_scope_without_legacy_id_enumeration() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("root").unwrap());
+        let mut deck = LoopState::default();
+        state.handle_paste("/sessions");
+        state.handle_key(KeyAction::Enter).await;
+        state.handle_panel_key(KeyAction::Char('N'));
+        state.handle_panel_key(KeyAction::CtrlA);
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::SessionPickerContext { all_projects, ack }) = inbox.recv().await
+            else {
+                panic!("expected picker preferences");
+            };
+            assert_eq!(all_projects, Some(false));
+            ack.send(Ok(oc_core::queries::SessionPickerContext {
+                all_projects: false,
+                project_name: Some("project".into()),
+                canonical: Some("/project".into()),
+            }))
+            .unwrap();
+            let Some(InboxMsg::SessionList {
+                search,
+                all_projects,
+                ack,
+            }) = inbox.recv().await
+            else {
+                panic!("expected bounded metadata query");
+            };
+            assert_eq!(search, "N");
+            assert!(!all_projects);
+            ack.send(Ok(vec![oc_core::queries::SessionListEntry {
+                id: SessionId("root".into()),
+                title: "Named owner title".into(),
+                directory: Some("/project".into()),
+                created_at: "1".into(),
+                updated_at: Some("2".into()),
+                date_group: "Today".into(),
+                running: false,
+                worktree: None,
+            }]))
+            .unwrap();
+        });
+        apply_intent(&app, &mut state, &mut deck, PanelIntent::LoadSessions)
+            .await
+            .unwrap();
+        assert_eq!(state.modal_options()[0].title, "Named owner title");
+        assert_eq!(
+            state.handle_panel_key(KeyAction::Enter).intent,
+            Some(PanelIntent::SwitchSession { id: "root".into() })
+        );
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn picker_open_refusal_keeps_old_view_and_accepted_foreign_receipt_survives_refresh_failure()
+     {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId("a".into()));
+        state.restore_prompt("kept A draft".into());
+        let mut deck = LoopState {
+            location: Some("/a".into()),
+            revision: Some("old".into()),
+            ..LoopState::default()
+        };
+        deck.sync_tabs(&mut state);
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::OpenPickerSession {
+                session,
+                old_deck,
+                ack,
+                ..
+            }) = inbox.recv().await
+            else {
+                panic!("trusted picker open")
+            };
+            assert_eq!(session.0, "b");
+            assert_eq!(old_deck.location, "/a");
+            ack.send(Err(CoreError::LocationSwitch {
+                category: LocationSwitchFailure::Configuration,
+                detail: "invalid target".into(),
+            }))
+            .unwrap();
+            let Some(InboxMsg::OpenPickerSession {
+                session,
+                old_deck,
+                ack,
+                ..
+            }) = inbox.recv().await
+            else {
+                panic!("trusted picker open")
+            };
+            let mut target = catalog();
+            target.chrome.location = Some("/b".into());
+            ack.send(Ok(oc_core::queries::SessionPickerOpen {
+                session: session.clone(),
+                location: "/b".into(),
+                catalog: target,
+                page: Default::default(),
+                deck: TabDeckSnapshot {
+                    location: "/b".into(),
+                    revision: Some("accepted-b".into()),
+                    sessions: vec![session.clone(), SessionId("parked-b".into())],
+                    active: Some(session),
+                },
+                previous_deck: old_deck,
+            }))
+            .unwrap();
+            let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
+                panic!("parked history")
+            };
+            ack.send(Err(CoreError::Shutdown)).unwrap();
+            let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+                panic!("parked selection")
+            };
+            ack.send(Err(CoreError::Shutdown)).unwrap();
+            let Some(InboxMsg::OpenPickerSession {
+                session,
+                old_deck,
+                ack,
+                ..
+            }) = inbox.recv().await
+            else {
+                panic!("return route")
+            };
+            assert_eq!(old_deck.sessions.len(), 2);
+            assert_eq!(session.0, "a");
+            let mut target = catalog();
+            target.chrome.location = Some("/a".into());
+            ack.send(Ok(oc_core::queries::SessionPickerOpen {
+                session: session.clone(),
+                location: "/a".into(),
+                catalog: target,
+                page: Default::default(),
+                deck: TabDeckSnapshot {
+                    location: "/a".into(),
+                    revision: Some("accepted-a".into()),
+                    sessions: vec![session.clone()],
+                    active: Some(session),
+                },
+                previous_deck: old_deck,
+            }))
+            .unwrap();
+        });
+        let intent = PanelIntent::SwitchSession { id: "b".into() };
+        assert!(
+            apply_intent(&app, &mut state, &mut deck, intent.clone())
+                .await
+                .is_err()
+        );
+        assert_eq!(state.session().0, "a");
+        assert_eq!(state.input(), "kept A draft");
+        assert_eq!(deck.location.as_deref(), Some("/a"));
+        assert_eq!(deck.revision.as_deref(), Some("old"));
+        apply_intent(&app, &mut state, &mut deck, intent)
+            .await
+            .unwrap();
+        assert_eq!(state.session().0, "b");
+        assert_eq!(deck.location.as_deref(), Some("/b"));
+        assert_eq!(deck.revision.as_deref(), Some("accepted-b"));
+        assert_eq!(deck.tabs.len(), 2);
+        assert!(
+            deck.picker_pending_tabs
+                .contains(&SessionId("parked-b".into()))
+        );
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::SwitchSession { id: "a".into() },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.session().0, "a");
+        assert_eq!(state.input(), "kept A draft");
+        assert_eq!(deck.tabs.len(), 1);
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn picker_open_preserves_child_read_only_policy_without_owner_or_deck_changes() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId("child".into()));
+        state.attach_page(&oc_core::queries::HistoryPage {
+            parent_id: Some("parent".into()),
+            ..Default::default()
+        });
+        let mut deck = LoopState {
+            location: Some("/a".into()),
+            read_only: true,
+            save_disabled: true,
+            ..LoopState::default()
+        };
+        deck.sync_tabs(&mut state);
+        let before = deck.snapshot(&state);
+        assert!(
+            apply_intent(
+                &app,
+                &mut state,
+                &mut deck,
+                PanelIntent::SwitchSession {
+                    id: "parent".into(),
+                },
+            )
+            .await
+            .is_err()
+        );
+        assert_eq!(state.session().0, "child");
+        assert!(deck.read_only && deck.save_disabled);
+        assert_eq!(deck.snapshot(&state), before);
+        assert!(matches!(
+            inbox.try_recv(),
+            Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+        ));
+    }
+
+    #[tokio::test]
+    async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let row = |seq| oc_core::queries::HistoryMessage {
+            id: oc_core::session::MessageId(format!("m{seq}")),
+            seq,
+            role: Role::User,
+            text: format!("row {seq}"),
+            turn: None,
+            model_switch: None,
+        };
+        let mut state = TuiState::new(app.clone(), SessionId("kept".into()));
+        state.attach_page(&oc_core::queries::HistoryPage {
+            rows: vec![row(1)],
+            total: 200,
+            has_newer: true,
+            ..Default::default()
+        });
+        state.restore_prompt("retained draft".into());
+        let mut deck = LoopState {
+            location: Some("/a".into()),
+            ..Default::default()
+        };
+        deck.sync_tabs(&mut state);
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::OpenPickerSession {
+                session,
+                old_deck,
+                ack,
+                ..
+            }) = inbox.recv().await
+            else {
+                panic!("trusted picker route")
+            };
+            let mut catalog = catalog();
+            catalog.chrome.location = Some("/a".into());
+            ack.send(Ok(oc_core::queries::SessionPickerOpen {
+                session,
+                location: "/a".into(),
+                catalog,
+                page: oc_core::queries::HistoryPage {
+                    rows: vec![row(200)],
+                    total: 200,
+                    has_older: true,
+                    title: Some("real title".into()),
+                    ..Default::default()
+                },
+                deck: old_deck.clone(),
+                previous_deck: old_deck,
+            }))
+            .unwrap();
+        });
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::SwitchSession { id: "kept".into() },
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.history().rows()[0].seq, 1);
+        assert!(state.history().has_newer());
+        assert_eq!(state.input(), "retained draft");
+        assert_eq!(state.session_title.as_deref(), Some("real title"));
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn sessions_retained_views_read_latest_scope_and_only_ctrl_a_writes() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut a = TuiState::new(app.clone(), SessionId("a".into()));
+        let mut b = TuiState::new(app.clone(), SessionId("b".into()));
+        let mut deck = LoopState::default();
+        let worker = tokio::spawn(async move {
+            let mut scope = false;
+            for expected in [None, None, Some(true), None, Some(false), None] {
+                let Some(InboxMsg::SessionPickerContext { all_projects, ack }) = inbox.recv().await
+                else {
+                    panic!("scope")
+                };
+                assert_eq!(
+                    all_projects, expected,
+                    "only the explicit toggle may persist"
+                );
+                if let Some(value) = all_projects {
+                    scope = value;
+                }
+                ack.send(Ok(oc_core::queries::SessionPickerContext {
+                    all_projects: scope,
+                    project_name: None,
+                    canonical: None,
+                }))
+                .unwrap();
+                let Some(InboxMsg::SessionList {
+                    all_projects, ack, ..
+                }) = inbox.recv().await
+                else {
+                    panic!("query")
+                };
+                assert_eq!(all_projects, scope);
+                ack.send(Ok(Vec::new())).unwrap();
+            }
+        });
+        for state in [&mut a, &mut b] {
+            state.handle_paste("/sessions");
+            state.handle_key(KeyAction::Enter).await;
+            apply_intent(&app, state, &mut deck, PanelIntent::LoadSessions)
+                .await
+                .unwrap();
+        }
+        a.handle_panel_key(KeyAction::CtrlA);
+        apply_intent(&app, &mut a, &mut deck, PanelIntent::LoadSessions)
+            .await
+            .unwrap();
+        b.close_panel();
+        b.handle_paste("/sessions");
+        b.handle_key(KeyAction::Enter).await;
+        apply_intent(&app, &mut b, &mut deck, PanelIntent::LoadSessions)
+            .await
+            .unwrap();
+        assert!(b.sessions_all_projects());
+        b.handle_panel_key(KeyAction::CtrlA);
+        apply_intent(&app, &mut b, &mut deck, PanelIntent::LoadSessions)
+            .await
+            .unwrap();
+        a.close_panel();
+        a.handle_paste("/sessions");
+        a.handle_key(KeyAction::Enter).await;
+        apply_intent(&app, &mut a, &mut deck, PanelIntent::LoadSessions)
+            .await
+            .unwrap();
+        assert!(!a.sessions_all_projects());
+        worker.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn sessions_delete_changes_deck_only_after_owner_acceptance_and_adopts_survivor() {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId("current".into()));
+        state.restore_prompt("current draft".into());
+        let mut parked = TuiState::new(app.clone(), SessionId("survivor".into()));
+        parked.restore_prompt("survivor draft".into());
+        let mut deck = LoopState {
+            tabs: vec![Some(parked), None],
+            tab_cards_before: vec![None, None],
+            active_tab: Some(1),
+            ..LoopState::default()
+        };
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::PickerSessionAction { session, ack, .. }) = inbox.recv().await
+            else {
+                panic!("delete action")
+            };
+            assert_eq!(session.0, "current");
+            ack.send(Err(CoreError::SessionNotFound)).unwrap();
+            let Some(InboxMsg::PickerSessionAction { session, ack, .. }) = inbox.recv().await
+            else {
+                panic!("delete action")
+            };
+            assert_eq!(session.0, "current");
+            ack.send(Ok(oc_core::queries::SessionPickerResult::Deleted(
+                TabDeckSnapshot {
+                    location: "/project".into(),
+                    revision: Some("accepted".into()),
+                    sessions: vec![SessionId("survivor".into())],
+                    active: Some(SessionId("survivor".into())),
+                },
+            )))
+            .unwrap();
+            let Some(InboxMsg::SessionList { ack, .. }) = inbox.recv().await else {
+                panic!("refresh")
+            };
+            ack.send(Ok(Vec::new())).unwrap();
+        });
+        let intent = PanelIntent::DeleteSelectedSession {
+            id: "current".into(),
+        };
+        apply_intent(&app, &mut state, &mut deck, intent.clone())
+            .await
+            .unwrap();
+        assert_eq!(state.attached_session().unwrap().0, "current");
+        assert_eq!(state.input(), "current draft");
+        assert_eq!(deck.tabs.len(), 2);
+        apply_intent(&app, &mut state, &mut deck, intent)
+            .await
+            .unwrap();
+        assert_eq!(state.attached_session().unwrap().0, "survivor");
+        assert_eq!(state.input(), "survivor draft");
+        assert_eq!(deck.tabs.len(), 1);
+        assert_eq!(deck.active_tab, Some(0));
+        assert_eq!(deck.revision.as_deref(), Some("accepted"));
         worker.await.unwrap();
     }
 

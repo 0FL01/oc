@@ -28,6 +28,8 @@ pub enum KeyAction {
     PageDown,
     /// Modal first item.
     Home,
+    /// Ctrl+A retains editor Home semantics; Sessions owns scope switching.
+    CtrlA,
     /// Modal last item.
     End,
     /// Printable input.
@@ -129,7 +131,7 @@ pub fn map_key(event: KeyEvent) -> Option<KeyAction> {
         (KeyCode::Char('n'), KeyModifiers::CONTROL) => Some(KeyAction::Down),
         (KeyCode::Char('b'), KeyModifiers::CONTROL) => Some(KeyAction::Left),
         (KeyCode::Char('f'), KeyModifiers::CONTROL) => Some(KeyAction::Right),
-        (KeyCode::Char('a'), KeyModifiers::CONTROL) => Some(KeyAction::Home),
+        (KeyCode::Char('a'), KeyModifiers::CONTROL) => Some(KeyAction::CtrlA),
         (KeyCode::Char('e'), KeyModifiers::CONTROL) => Some(KeyAction::End),
         (KeyCode::Char('w'), KeyModifiers::CONTROL) => Some(KeyAction::WordBackspace),
         (KeyCode::Char('-'), KeyModifiers::CONTROL) => Some(KeyAction::Undo),

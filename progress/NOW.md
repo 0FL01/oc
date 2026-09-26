@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-26T11:56:36+00:00
+State updated: 2026-09-26T15:49:35+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,34 +14,36 @@ Evidence target: evidence/T44/report.md
 
 ## Result
 
-Implemented prompt profile titlecase using the existing Locale helper and painted
-width; successful profile changes are silent while errors remain visible. Ctrl+T
-cycles freshly queried, owner-persisted declared variants and the next request uses
-the selected overlay. Shell/Explored hover and repeated supported expansion use
-painted targets; normal Read is not advertised as expandable. Successful Shell has
-one bordered blank separator only with actual output, no generated exit-zero text
-or empty-output placeholder. Recorded output and error diagnostics remain intact.
+Implemented bounded owner metadata for Sessions while preserving ID-only legacy
+query. Canonical /sessions with /resume and /continue, no extra /session. Truthful
+titles, real update order and Today/date categories, current/running/worktree
+metadata, scope/search and selected rename/two-key confirmed delete have real
+owner effects. Listed foreign root Open validates owning Location/config/deck
+before publication; ordinary foreign history/rename protections remain. Delete
+is root-family atomic, preserves independent forks/shared metadata, and drains
+title work; stale tab scope cannot overwrite the owner preference.
 
 ## Checks
 
-Serial workspace fmt/locked tests/strict all-target Clippy/locked build, capture
-syntax/xterm frontend, docs/progress/diff PASS: tool_0dd8e54820010JHYPv5cQJpKAw.
-Final source-built paired bounded-shell-09 and bounded-variants-06 pass behavior
-with real tools/profile/effort requests; all unmasked comparisons DIFFERENT.
-See evidence/tui/recovery-v00/bounded-evidence-report.md for exact commands.
+Final serial workspace fmt/locked tests/strict all-target Clippy/locked build,
+capture syntax/frontend/docs/progress/diff PASS: tool_0de60cc67001Tsl2vZu7GUCjgE.
+Source-built paired sessions-live-11 verifies full current-day workflow, six real
+provider requests each and none during actions. All 62 unmasked comparisons remain
+DIFFERENT. Contrast regression fixes dark-on-red delete confirmation/plain labels.
+See evidence/tui/recovery-v00/sessions-correction-report.md.
 
 ## Risks
 
-Observed original success suffix differs from explicitly required native behavior;
-the experiment adding it was removed and historical captures retained. No masking,
-no invented missing output. OS clipboard readback and final exact matrix remain
-open. Inherited .opencode/ untouched; T44 ACTIVE, not TUI_PARITY_VERIFIED.
+Multi-day paired qualification remains unavailable in this current-day capture;
+legacy unknown update times are honestly unknown. No dates derived from IDs or
+relabelled creation time. No VIS30/V09 PASS. Earlier failing captures retained;
+inherited .opencode/ untouched. Owner c452180 amendment changes Redo to whole-tail.
 
 ## Next
 
-Deliver this verified source slice, then implement the smallest remaining T44
-requirement: Sessions dialog or high-refresh event-driven redraw, with real effects
-and bounded paired qualification. Do not weaken unrelated exact comparisons.
+Deliver verified Sessions slice, then implement c452180 original-compatible Undo,
+whole-tail Redo and clickable reverted card (VIS33), retaining conversation-only
+workspace immutability. High-refresh scheduling/wheel qualification remains open.
 
 
 Ready (до 5): T45, T46, T47

@@ -1,5 +1,16 @@
 # T44 — parity qualification remains open (2026-09-26)
 
+Sessions source slice passes the final serialized workspace gate
+`tool_0de60cc67001Tsl2vZu7GUCjgE`. Final source-built
+[`sessions-live-11`](../tui/recovery-v00/sessions-live-11/capture.lock.json) verifies
+search/scope/current and foreign Open/Esc/reopen/selected rename/confirmed delete
+on both executables without additional provider requests. All 62 full grid/PNG
+comparisons remain DIFFERENT; current-day behavior is verified, multi-day is not.
+Legacy unknown update times remain explicitly unavailable. Full diagnosis and
+evidence: [`sessions-correction-report.md`](../tui/recovery-v00/sessions-correction-report.md).
+Owner amendment `c452180` now requires whole-tail Redo and the real reverted card;
+the earlier delivered one-turn Redo is superseded and is not current acceptance.
+
 Latest verified source slice implements profile titlecase/silent success, real
 Ctrl+T variant cycling, and supported Shell/Explored hover/expansion with required
 successful Shell spacing. Full workspace gate PASS:

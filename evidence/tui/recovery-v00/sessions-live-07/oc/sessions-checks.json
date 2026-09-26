@@ -1,0 +1,75 @@
+{
+  "status": "FAILED",
+  "checks": [
+    {
+      "stage": "initial-owned-root",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "initial-owned-root",
+        "observed_at_ms": 1790430180450,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-07/oc/home/data/oc/oc.sqlite",
+            "table": "sessions",
+            "columns": [
+              "agent",
+              "created_at",
+              "id",
+              "model",
+              "parent_id",
+              "title",
+              "updated_at"
+            ],
+            "rows": []
+          }
+        ]
+      }
+    },
+    {
+      "stage": "failure-db",
+      "provider_counts": {
+        "requests": 2,
+        "completed": 1,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "failure-db",
+        "observed_at_ms": 1790430291383,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-07/oc/home/data/oc/oc.sqlite",
+            "table": "sessions",
+            "columns": [
+              "agent",
+              "created_at",
+              "id",
+              "model",
+              "parent_id",
+              "title",
+              "updated_at"
+            ],
+            "rows": [
+              {
+                "id": "s-tui-18d8e2c357d4f878-36e2df-0",
+                "title": null,
+                "parent_id": null,
+                "created_at": "1790430180",
+                "updated_at": "1790430185.685",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-07/other-project"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "multi_day": "INCOMPLETE: no genuine archived public record supplied; timestamps never seeded",
+  "preexisting_fixture_rows": [],
+  "reason": "Timed out waiting for other-root-generated"
+}

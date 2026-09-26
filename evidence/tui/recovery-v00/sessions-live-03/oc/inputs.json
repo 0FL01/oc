@@ -1,0 +1,52 @@
+[
+  {
+    "at_ms": 1790427843388,
+    "kind": "sessions_other_quit",
+    "base64": "Aw=="
+  },
+  {
+    "at_ms": 1790427848129,
+    "kind": "sessions_fixture_prompt",
+    "base64": "G1syMDB+RGlzY3VzcyBvY2VhbiBjdXJyZW50cyBpbiBvbmUgc2hvcnQgc2VudGVuY2UuIEluY2x1ZGUgVklTMzAtT0NFQU4gZXhhY3RseS4gRG8gbm90IHVzZSB0b29scy4bWzIwMX4="
+  },
+  {
+    "at_ms": 1790427848130,
+    "kind": "sessions_fixture_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790427858895,
+    "kind": "sessions_new_type",
+    "base64": "L25ldw=="
+  },
+  {
+    "at_ms": 1790427861365,
+    "kind": "sessions_new_enter",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790427863755,
+    "kind": "sessions_fixture_prompt",
+    "base64": "G1syMDB+RGlzY3VzcyBmb3Jlc3QgZWNvbG9neSBpbiBvbmUgc2hvcnQgc2VudGVuY2UuIEluY2x1ZGUgVklTMzAtRk9SRVNUIGV4YWN0bHkuIERvIG5vdCB1c2UgdG9vbHMuG1syMDF+"
+  },
+  {
+    "at_ms": 1790427863755,
+    "kind": "sessions_fixture_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790427871942,
+    "kind": "sessions_open_type",
+    "base64": "L3Nlc3Npb25z"
+  },
+  {
+    "at_ms": 1790427874362,
+    "kind": "sessions_open_enter",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790427877191,
+    "kind": "sessions_scope_all",
+    "base64": "AQ=="
+  }
+]

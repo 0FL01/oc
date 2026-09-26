@@ -160,9 +160,9 @@ pub fn panel_lines(state: &TuiState) -> Vec<String> {
         }
         TuiPanel::Sessions => {
             let mut out = vec!["sessions | enter resumes, esc closes".to_string()];
-            for (i, id) in state.sessions.iter().take(ROWS).enumerate() {
+            for (i, option) in state.modal_options().iter().take(ROWS).enumerate() {
                 let mark = if i == state.sessions_cursor { ">" } else { " " };
-                out.push(format!("{mark} {id}"));
+                out.push(format!("{mark} {} — {}", option.title, option.category));
             }
             out
         }
@@ -422,7 +422,12 @@ mod tests {
         state.apply_sessions(vec!["s-p".to_string(), "s-q".to_string()]);
         open(&mut state, "/sessions").await;
         let lines = panel_lines(&state);
-        assert!(lines.iter().any(|l| l.contains("> s-p")), "{lines:?}");
+        assert!(
+            lines
+                .iter()
+                .any(|l| l.contains("> New session — metadata unavailable")),
+            "{lines:?}"
+        );
 
         open(&mut state, "/skills").await;
         state.apply_skills(vec![oc_core::queries::SkillCard {

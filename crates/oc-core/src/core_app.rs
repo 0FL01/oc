@@ -334,6 +334,31 @@ pub enum InboxMsg {
         title: String,
         ack: oneshot::Sender<Result<(), CoreError>>,
     },
+    /// Explicitly remove a settled root family and its saved tab membership.
+    DeleteSession {
+        session: SessionId,
+        ack: oneshot::Sender<Result<crate::queries::TabDeckSnapshot, CoreError>>,
+    },
+    /// Act only on a root listed by the active Sessions scope/query. Unlike
+    /// regular session APIs, placement is resolved from the owner catalog.
+    PickerSessionAction {
+        session: SessionId,
+        search: String,
+        all_projects: bool,
+        action: crate::queries::SessionPickerAction,
+        ack: oneshot::Sender<Result<crate::queries::SessionPickerResult, CoreError>>,
+    },
+    OpenPickerSession {
+        session: SessionId,
+        search: String,
+        all_projects: bool,
+        old_deck: crate::queries::TabDeckSnapshot,
+        ack: oneshot::Sender<Result<crate::queries::SessionPickerOpen, CoreError>>,
+    },
+    SessionPickerContext {
+        all_projects: Option<bool>,
+        ack: oneshot::Sender<Result<crate::queries::SessionPickerContext, CoreError>>,
+    },
     /// Regenerate a bound root's title with its configured title agent.
     RegenerateTitle {
         session: SessionId,
@@ -377,6 +402,12 @@ pub enum InboxMsg {
     List {
         /// Query result; storage errors are not an empty list.
         ack: oneshot::Sender<Result<Vec<SessionId>, CoreError>>,
+    },
+    /// Bounded metadata query, separate from the legacy ID list.
+    SessionList {
+        search: String,
+        all_projects: bool,
+        ack: oneshot::Sender<Result<Vec<crate::queries::SessionListEntry>, CoreError>>,
     },
     /// Probe one ID through the application owner, including Location binding.
     ProbeSession {
@@ -678,6 +709,72 @@ impl CoreApp {
         result.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    pub async fn delete_session(
+        &self,
+        session: SessionId,
+    ) -> Result<crate::queries::TabDeckSnapshot, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::DeleteSession { session, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    pub async fn picker_session_action(
+        &self,
+        session: SessionId,
+        search: String,
+        all_projects: bool,
+        action: crate::queries::SessionPickerAction,
+    ) -> Result<crate::queries::SessionPickerResult, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::PickerSessionAction {
+                session,
+                search,
+                all_projects,
+                action,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    pub async fn open_picker_session(
+        &self,
+        session: SessionId,
+        search: String,
+        all_projects: bool,
+        old_deck: crate::queries::TabDeckSnapshot,
+    ) -> Result<crate::queries::SessionPickerOpen, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::OpenPickerSession {
+                session,
+                search,
+                all_projects,
+                old_deck,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    pub async fn session_picker_context(
+        &self,
+        all_projects: Option<bool>,
+    ) -> Result<crate::queries::SessionPickerContext, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::SessionPickerContext { all_projects, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Recompute a root title. The returned title is durable; no turn is added.
     pub async fn regenerate_title(&self, session: SessionId) -> Result<String, CoreError> {
         let (ack, result) = oneshot::channel();
@@ -830,6 +927,23 @@ impl CoreApp {
             .await
             .map_err(|_| CoreError::Shutdown)?;
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    pub async fn session_list(
+        &self,
+        search: String,
+        all_projects: bool,
+    ) -> Result<Vec<crate::queries::SessionListEntry>, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::SessionList {
+                search,
+                all_projects,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
     }
 
     /// Check one Location-bound ID without listing any other sessions.
@@ -1431,6 +1545,18 @@ fn scripted_unsupported(message: InboxMsg) {
         InboxMsg::RenameSession { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
+        InboxMsg::DeleteSession { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::PickerSessionAction { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::OpenPickerSession { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::SessionPickerContext { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::RegenerateTitle { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
@@ -1453,6 +1579,9 @@ fn scripted_unsupported(message: InboxMsg) {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::Dcp { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::SessionList { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::Compress { ack, .. } => {

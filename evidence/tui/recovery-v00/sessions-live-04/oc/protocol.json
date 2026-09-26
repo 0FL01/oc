@@ -1,0 +1,217 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/other-project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/oc/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/oc/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/oc/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/oc/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/oc/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/oc/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"provider\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"npm\": \"@ai-sdk/openai\", \"options\": {\"baseURL\": \"http://127.0.0.1:37673/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"ocg/muse-spark-1.3-contributor\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 32000, \"output\": 1024}}}}}, \"permissions\": {\"read\": \"allow\"}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "oc 0.1.0",
+    "version_exit": 0,
+    "sessions_resume": true
+  },
+  {
+    "kind": "sessions_snapshot",
+    "request_id": "initial-owned-root",
+    "observed_at_ms": 1790428078745,
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/oc/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "columns": [
+          "agent",
+          "created_at",
+          "id",
+          "model",
+          "parent_id",
+          "title",
+          "updated_at"
+        ],
+        "rows": [
+          {
+            "id": "s-tui-18d8e04505787b99-361dee-0",
+            "title": "Lunar Geology Discussion VIS30-LUNAR",
+            "parent_id": null,
+            "created_at": "1790427438",
+            "updated_at": "1790427445",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/other-project"
+          },
+          {
+            "id": "s-tui-18d8e04831815a8e-361e86-0",
+            "title": null,
+            "parent_id": null,
+            "created_at": "1790427452",
+            "updated_at": "1790427457",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/project"
+          },
+          {
+            "id": "s-tui-18d8e0a44bea6891-3635c4-0",
+            "title": "Ocean Currents Discussion",
+            "parent_id": null,
+            "created_at": "1790427848",
+            "updated_at": "1790427856",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/project"
+          },
+          {
+            "id": "s-tui-18d8e0a7ef4c1c44-3635c4-1",
+            "title": "Discuss Forest Ecology",
+            "parent_id": null,
+            "created_at": "1790427863",
+            "updated_at": "1790427869",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/project"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": 0,
+    "termination": "natural"
+  },
+  {
+    "kind": "relaunch",
+    "generation": 1,
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/project"
+  },
+  {
+    "kind": "sessions_snapshot",
+    "request_id": "all-before-actions",
+    "observed_at_ms": 1790428089375,
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/oc/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "columns": [
+          "agent",
+          "created_at",
+          "id",
+          "model",
+          "parent_id",
+          "title",
+          "updated_at"
+        ],
+        "rows": [
+          {
+            "id": "s-tui-18d8e04505787b99-361dee-0",
+            "title": "Lunar Geology Discussion VIS30-LUNAR",
+            "parent_id": null,
+            "created_at": "1790427438",
+            "updated_at": "1790427445",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/other-project"
+          },
+          {
+            "id": "s-tui-18d8e04831815a8e-361e86-0",
+            "title": null,
+            "parent_id": null,
+            "created_at": "1790427452",
+            "updated_at": "1790427457",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/project"
+          },
+          {
+            "id": "s-tui-18d8e0a44bea6891-3635c4-0",
+            "title": "Ocean Currents Discussion",
+            "parent_id": null,
+            "created_at": "1790427848",
+            "updated_at": "1790427856",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/project"
+          },
+          {
+            "id": "s-tui-18d8e0a7ef4c1c44-3635c4-1",
+            "title": "Discuss Forest Ecology",
+            "parent_id": null,
+            "created_at": "1790427863",
+            "updated_at": "1790427869",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/project"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "sessions_snapshot",
+    "request_id": "failure-db",
+    "observed_at_ms": 1790428138162,
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/oc/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "columns": [
+          "agent",
+          "created_at",
+          "id",
+          "model",
+          "parent_id",
+          "title",
+          "updated_at"
+        ],
+        "rows": [
+          {
+            "id": "s-tui-18d8e04505787b99-361dee-0",
+            "title": "Lunar Geology Discussion VIS30-LUNAR",
+            "parent_id": null,
+            "created_at": "1790427438",
+            "updated_at": "1790427445",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/other-project"
+          },
+          {
+            "id": "s-tui-18d8e04831815a8e-361e86-0",
+            "title": null,
+            "parent_id": null,
+            "created_at": "1790427452",
+            "updated_at": "1790427457",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/project"
+          },
+          {
+            "id": "s-tui-18d8e0a44bea6891-3635c4-0",
+            "title": "Ocean Currents Discussion",
+            "parent_id": null,
+            "created_at": "1790427848",
+            "updated_at": "1790427856",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/project"
+          },
+          {
+            "id": "s-tui-18d8e0a7ef4c1c44-3635c4-1",
+            "title": "Discuss Forest Ecology",
+            "parent_id": null,
+            "created_at": "1790427863",
+            "updated_at": "1790427869",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/project"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "exit",
+    "generation": 1,
+    "code": -15,
+    "termination": "forced_stop"
+  }
+]

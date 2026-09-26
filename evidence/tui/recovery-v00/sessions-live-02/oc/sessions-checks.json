@@ -1,0 +1,85 @@
+{
+  "status": "IN_PROGRESS",
+  "checks": [
+    {
+      "stage": "initial-owned-root",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "initial-owned-root",
+        "observed_at_ms": 1790427438879,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/oc/home/data/oc/oc.sqlite",
+            "table": "sessions",
+            "columns": [
+              "agent",
+              "created_at",
+              "id",
+              "model",
+              "parent_id",
+              "title",
+              "updated_at"
+            ],
+            "rows": []
+          }
+        ]
+      }
+    },
+    {
+      "stage": "other-root-generated-db",
+      "provider_counts": {
+        "requests": 2,
+        "completed": 2,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "other-root-generated-db",
+        "observed_at_ms": 1790427447876,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/oc/home/data/oc/oc.sqlite",
+            "table": "sessions",
+            "columns": [
+              "agent",
+              "created_at",
+              "id",
+              "model",
+              "parent_id",
+              "title",
+              "updated_at"
+            ],
+            "rows": [
+              {
+                "id": "s-tui-18d8e04505787b99-361dee-0",
+                "title": "Lunar Geology Discussion VIS30-LUNAR",
+                "parent_id": null,
+                "created_at": "1790427438",
+                "updated_at": "1790427445",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/other-project"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "multi_day": "INCOMPLETE: no genuine archived public record supplied; timestamps never seeded",
+  "fixtures": [
+    {
+      "id": "s-tui-18d8e04505787b99-361dee-0",
+      "title": "Lunar Geology Discussion VIS30-LUNAR",
+      "parent_id": null,
+      "created_at": "1790427438",
+      "updated_at": "1790427445",
+      "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-02/other-project",
+      "marker": "VIS30-LUNAR",
+      "prompt": "Discuss lunar geology in one short sentence. Include VIS30-LUNAR exactly. Do not use tools."
+    }
+  ]
+}

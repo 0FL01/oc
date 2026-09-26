@@ -1,0 +1,117 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-07/other-project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-07/oc/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-07/oc/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-07/oc/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-07/oc/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-07/oc/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-07/oc/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"provider\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"npm\": \"@ai-sdk/openai\", \"options\": {\"baseURL\": \"http://127.0.0.1:36537/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"ocg/muse-spark-1.3-contributor\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 32000, \"output\": 1024}}}}}, \"permissions\": {\"read\": \"allow\"}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "oc 0.1.0",
+    "version_exit": 0,
+    "sessions_resume": false
+  },
+  {
+    "kind": "sessions_snapshot",
+    "request_id": "initial-owned-root",
+    "observed_at_ms": 1790430180450,
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-07/oc/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "columns": [
+          "agent",
+          "created_at",
+          "id",
+          "model",
+          "parent_id",
+          "title",
+          "updated_at"
+        ],
+        "rows": []
+      }
+    ]
+  },
+  {
+    "kind": "provider",
+    "operation": "transcript",
+    "model": "fixture-model-1",
+    "valid": true,
+    "request_sha256": "84f128059a663e8d8fa3daf5a80c0e94ebe9f7b0d97d93ddeb0a7a319d69605d",
+    "live_request_index": 1
+  },
+  {
+    "kind": "provider",
+    "operation": "title",
+    "model": "fixture-model-1",
+    "valid": true,
+    "request_sha256": "05e404b2ef7f0bb88ad5fea6cdf20f3f3f1156eae8881e7cbdd151ff13870fbb",
+    "live_request_index": 2
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "live_request_index": 1
+  },
+  {
+    "kind": "provider_error",
+    "error_type": "BrokenPipeError",
+    "live_request_index": 2
+  },
+  {
+    "kind": "sessions_snapshot",
+    "request_id": "failure-db",
+    "observed_at_ms": 1790430291383,
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-07/oc/home/data/oc/oc.sqlite",
+        "table": "sessions",
+        "columns": [
+          "agent",
+          "created_at",
+          "id",
+          "model",
+          "parent_id",
+          "title",
+          "updated_at"
+        ],
+        "rows": [
+          {
+            "id": "s-tui-18d8e2c357d4f878-36e2df-0",
+            "title": null,
+            "parent_id": null,
+            "created_at": "1790430180",
+            "updated_at": "1790430185.685",
+            "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-07/other-project"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": -15,
+    "termination": "forced_stop"
+  }
+]

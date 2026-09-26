@@ -67,6 +67,30 @@ pub const SCHEMA_VERSION: i64 = 1;
 pub const CHILD_SESSION_SCHEMA_VERSION: i64 = 3;
 /// Preference namespace for root session Location ownership.
 pub(crate) const SESSION_LOCATION_PREFIX: &str = "tui.session_location.";
+
+/// Resolve actual repository ownership, including linked worktrees, without
+/// deriving a project identity from a session ID or frontend display path.
+pub(crate) fn session_project_root(directory: &Path) -> Option<PathBuf> {
+    let root = directory
+        .ancestors()
+        .find(|path| path.join(".git").exists())?;
+    let git = root.join(".git");
+    if git.is_dir() {
+        return std::fs::canonicalize(root).ok();
+    }
+    if std::fs::metadata(&git).ok()?.len() > 4096 {
+        return None;
+    }
+    let text = std::fs::read_to_string(git).ok()?;
+    let dir = root.join(text.trim().strip_prefix("gitdir: ")?);
+    let common = dir.join("commondir");
+    if std::fs::metadata(&common).ok()?.len() > 4096 {
+        return None;
+    }
+    let common =
+        std::fs::canonicalize(dir.join(std::fs::read_to_string(common).ok()?.trim())).ok()?;
+    std::fs::canonicalize(common.parent()?).ok()
+}
 const TAB_ADOPTION_PREFIX: &str = "tui.selection.tab_adoption:";
 const MAX_TAB_ADOPTIONS: usize = 16;
 const MAX_TAB_ADOPTION_KEY_BYTES: usize = 8192;
@@ -434,11 +458,19 @@ impl Db {
 
         let db_path = root.join("oc.sqlite");
         let conn = Connection::open(&db_path)?;
+        conn.create_scalar_function(
+            "oc_session_lower",
+            1,
+            rusqlite::functions::FunctionFlags::SQLITE_UTF8
+                | rusqlite::functions::FunctionFlags::SQLITE_DETERMINISTIC,
+            |context| Ok(context.get::<String>(0)?.to_lowercase()),
+        )?;
         conn.pragma_update(None, "journal_mode", "WAL")?;
         conn.pragma_update(None, "synchronous", "FULL")?;
         conn.pragma_update(None, "foreign_keys", "ON")?;
         apply_schema(&conn)?;
         Self::conversation_schema(&conn)?;
+        Self::session_list_schema(&conn)?;
         // Same journal, indexed anchor lookup: history paging must not parse
         // every archived turn. Legacy non-JSON results are excluded safely.
         conn.execute_batch("CREATE INDEX IF NOT EXISTS turns_display_anchor ON turns(session_id, COALESCE(json_extract(result,'$.assistant_message'),json_extract(result,'$.user_message'))) WHERE json_valid(result)")?;
@@ -735,6 +767,211 @@ impl Db {
             out.push(row?);
         }
         Ok(out)
+    }
+
+    fn session_list_schema(conn: &Connection) -> Result<(), StorageError> {
+        let has_updated = conn
+            .prepare("PRAGMA table_info(sessions)")?
+            .query_map([], |row| row.get::<_, String>(1))?
+            .collect::<Result<Vec<_>, _>>()?
+            .iter()
+            .any(|name| name == "updated_at");
+        if !has_updated {
+            // No truthful last-update fact exists for old rows. Do not backfill
+            // creation time, migration time, IDs or journal insertion order.
+            conn.execute_batch("ALTER TABLE sessions ADD COLUMN updated_at TEXT")?;
+        }
+        conn.execute_batch("BEGIN;
+            CREATE INDEX IF NOT EXISTS sessions_picker_updated ON sessions(parent_id, updated_at DESC, id);
+            DROP TRIGGER IF EXISTS sessions_picker_created;
+            DROP TRIGGER IF EXISTS sessions_picker_title;
+            DROP TRIGGER IF EXISTS sessions_picker_event;
+            CREATE TRIGGER sessions_picker_created AFTER INSERT ON sessions BEGIN
+                UPDATE sessions SET updated_at = strftime('%s','now') || substr(strftime('%f','now'),3) WHERE id = NEW.id;
+            END;
+            CREATE TRIGGER sessions_picker_title AFTER UPDATE OF title ON sessions BEGIN
+                UPDATE sessions SET updated_at = strftime('%s','now') || substr(strftime('%f','now'),3) WHERE id = NEW.id;
+            END;
+            CREATE TRIGGER sessions_picker_event AFTER INSERT ON events BEGIN
+                UPDATE sessions SET updated_at = strftime('%s','now') || substr(strftime('%f','now'),3) WHERE id = NEW.session_id;
+            END; COMMIT;")?;
+        Ok(())
+    }
+
+    /// At most 50 roots, ordered by observed update time; query before LIMIT.
+    pub fn session_list(
+        &self,
+        search: &str,
+        location: Option<&str>,
+    ) -> Result<Vec<oc_core::queries::SessionListEntry>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let mut stmt = conn.prepare_cached("SELECT s.id,
+            substr(COALESCE(s.title, CASE WHEN s.created_at != '' AND s.created_at NOT GLOB '*[^0-9]*'
+                THEN 'New session - ' || strftime('%Y-%m-%dT%H:%M:%fZ', CAST(s.created_at AS INTEGER), 'unixepoch')
+                ELSE 'New session — creation time unavailable' END),1,512) AS label,
+            p.value, s.created_at, s.updated_at,
+            CASE WHEN s.updated_at IS NULL OR s.updated_at = '' OR s.updated_at GLOB '*[^0-9.]*' THEN 'Update time unavailable'
+                 WHEN date(CAST(s.updated_at AS INTEGER),'unixepoch','localtime') = date('now','localtime') THEN 'Today'
+                 ELSE substr('SunMonTueWedThuFriSat', CAST(strftime('%w',CAST(s.updated_at AS INTEGER),'unixepoch','localtime') AS INTEGER)*3+1,3) || ' ' ||
+                      substr('JanFebMarAprMayJunJulAugSepOctNovDec', (CAST(strftime('%m',CAST(s.updated_at AS INTEGER),'unixepoch','localtime') AS INTEGER)-1)*3+1,3) ||
+                      strftime(' %d %Y',CAST(s.updated_at AS INTEGER),'unixepoch','localtime') END,
+            EXISTS(WITH RECURSIVE family(id) AS (SELECT s.id UNION SELECT c.id FROM sessions c JOIN family f ON c.parent_id=f.id)
+                SELECT 1 FROM turns t JOIN family f ON t.session_id=f.id WHERE t.status = 'started')
+            FROM sessions s LEFT JOIN prefs p ON p.key = 'tui.session_location.' || s.id
+            WHERE s.parent_id IS NULL AND (?1 IS NULL OR p.value = ?1)
+              AND instr(oc_session_lower(label), oc_session_lower(?2)) > 0
+            ORDER BY s.updated_at IS NULL, CAST(s.updated_at AS REAL) DESC,
+                COALESCE((SELECT MAX(e.seq) FROM events e WHERE e.session_id=s.id),0) DESC, s.id LIMIT 50")?;
+        let rows = stmt.query_map(params![location, search.trim()], |row| {
+            Ok(oc_core::queries::SessionListEntry {
+                id: oc_core::domain::SessionId(row.get(0)?),
+                title: row.get(1)?,
+                directory: row.get(2)?,
+                created_at: row.get(3)?,
+                updated_at: row.get(4)?,
+                date_group: row.get(5)?,
+                running: row.get(6)?,
+                worktree: None,
+            })
+        })?;
+        let mut entries = rows.collect::<Result<Vec<_>, _>>()?;
+        for entry in &mut entries {
+            if let Some(directory) = &entry.directory {
+                let directory = Path::new(directory);
+                if let Some(canonical) = session_project_root(directory)
+                    && let Some(root) = directory
+                        .ancestors()
+                        .find(|path| path.join(".git").exists())
+                    && !root.starts_with(&canonical)
+                {
+                    entry.worktree = root
+                        .file_name()
+                        .map(|name| name.to_string_lossy().chars().take(25).collect());
+                }
+            }
+        }
+        Ok(entries)
+    }
+
+    /// A real active turn on any parent_id descendant marks its root running.
+    pub fn session_family_running(&self, session: &str) -> Result<bool, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Ok(conn.query_row("WITH RECURSIVE family(id) AS (SELECT id FROM sessions WHERE id=?1 UNION SELECT c.id FROM sessions c JOIN family f ON c.parent_id=f.id)
+            SELECT EXISTS(SELECT 1 FROM turns t JOIN family f ON t.session_id=f.id WHERE t.status='started')", [session], |r| r.get(0))?)
+    }
+
+    /// Explicit deletion is the sole archive-removal operation. Descend only
+    /// parent_id edges: fork provenance never implies family membership.
+    pub fn delete_root_family(
+        &self,
+        session: &str,
+        location: &str,
+    ) -> Result<oc_core::queries::TabDeckSnapshot, StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM sessions s JOIN prefs p ON p.key='tui.session_location.'||s.id WHERE s.id=?1 AND s.parent_id IS NULL AND p.value=?2)", params![session,location], |r| r.get(0))?;
+        if !valid {
+            return Err(StorageError::SessionNotFound);
+        }
+        tx.execute_batch("CREATE TEMP TABLE IF NOT EXISTS deleting_family(id TEXT PRIMARY KEY); DELETE FROM deleting_family;")?;
+        tx.execute("INSERT INTO deleting_family WITH RECURSIVE family(id) AS (SELECT ?1 UNION SELECT s.id FROM sessions s JOIN family f ON s.parent_id=f.id) SELECT id FROM family", [session])?;
+        let busy: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM turns WHERE session_id IN deleting_family AND status='started')", [], |r| r.get(0))?;
+        if busy {
+            return Err(StorageError::Io(std::io::Error::other(
+                "session family active",
+            )));
+        }
+        let key = tab_deck_key(location);
+        let raw = match Self::get_pref_bounded_in(&tx, &key, MAX_TAB_DECK_BYTES)? {
+            BoundedPref::Missing => None,
+            BoundedPref::Value(raw) => Some(raw),
+            BoundedPref::TooLarge => return Err(invalid_stored_tab_deck()),
+        };
+        let mut deck = parse_stored_deck(raw.as_deref())?;
+        let pending = Self::tab_adoptions_in(&tx, location)?;
+        for id in &pending {
+            if !deck.sessions.contains(id) {
+                deck.sessions.push(id.clone());
+            }
+            deck.active = Some(id.clone());
+        }
+        if deck.sessions.len() > MAX_TABS
+            || (deck.active.is_none() && deck.sessions.len() == MAX_TABS)
+            || deck
+                .active
+                .as_ref()
+                .is_some_and(|id| !deck.sessions.contains(id))
+        {
+            return Err(invalid_stored_tab_deck());
+        }
+        let mut seen = HashSet::new();
+        for id in &deck.sessions {
+            let owned: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM sessions s JOIN prefs p ON p.key='tui.session_location.'||s.id WHERE s.id=?1 AND s.parent_id IS NULL AND p.value=?2)", params![id,location], |r|r.get(0))?;
+            if !valid_tab_id(id) || !seen.insert(id) || !owned {
+                return Err(invalid_stored_tab_deck());
+            }
+        }
+        if let Some(index) = deck.sessions.iter().position(|id| id == session) {
+            deck.sessions.remove(index);
+            if deck.active.as_deref() == Some(session) {
+                deck.active = deck.sessions.get(index.saturating_sub(1)).cloned();
+            }
+        }
+        let encoded = serde_json::to_string(&deck).map_err(|_| invalid_stored_tab_deck())?;
+        let accepted = oc_core::queries::TabDeckSnapshot {
+            location: location.into(),
+            revision: Some(pref_revision(&encoded)),
+            sessions: deck
+                .sessions
+                .into_iter()
+                .map(oc_core::domain::SessionId)
+                .collect(),
+            active: deck.active.map(oc_core::domain::SessionId),
+        };
+        tx.execute("INSERT INTO prefs(key,value,updated_at) VALUES (?1,?2,strftime('%s','now')) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at", params![key,encoded])?;
+        for id in pending {
+            tx.execute(
+                "DELETE FROM prefs WHERE key=?1",
+                [tab_adoption_key(location, &id)],
+            )?;
+        }
+        // Child tables before their foreign-key parents; optional DCP tables
+        // exist only after first DCP use. Shared blobs/context objects remain.
+        for table in [
+            "compression_members",
+            "conversation_points",
+            "conversation_exclusions",
+            "conversation_state",
+            "turn_acceptances",
+            "tool_operations",
+            "events",
+            "messages",
+            "turns",
+            "dcp_tool_projection",
+            "dcp_tool_projection_v2",
+            "prune_marks",
+            "compression_blocks",
+            "conversation_versions",
+        ] {
+            let exists: bool = tx.query_row(
+                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
+                [table],
+                |r| r.get(0),
+            )?;
+            if exists {
+                let predicate = if table == "compression_members" {
+                    "block_id IN (SELECT id FROM compression_blocks WHERE session_id IN deleting_family)"
+                } else {
+                    "session_id IN deleting_family"
+                };
+                tx.execute(&format!("DELETE FROM {table} WHERE {predicate}"), [])?;
+            }
+        }
+        tx.execute("DELETE FROM prefs WHERE key IN (SELECT 'tui.session_location.'||id FROM deleting_family) OR key IN (SELECT ?1||json_array(?2,id) FROM deleting_family) OR (substr(key,1,22)='tui.selection.session:' AND json_valid(substr(key,23)) AND json_extract(substr(key,23),'$[2]') IN deleting_family) OR EXISTS(SELECT 1 FROM deleting_family f WHERE substr(CAST(key AS BLOB),1,length(CAST('dcp.nudge.'||f.id||char(0) AS BLOB)))=CAST('dcp.nudge.'||f.id||char(0) AS BLOB))", params![TAB_ADOPTION_PREFIX,location])?;
+        tx.execute("DELETE FROM sessions WHERE id IN deleting_family", [])?;
+        tx.execute_batch("DELETE FROM deleting_family;")?;
+        tx.commit()?;
+        Ok(accepted)
     }
 
     /// Read one session's stored metadata; unknown ids are `SessionNotFound`.
@@ -1481,6 +1718,78 @@ impl Db {
         }
         tx.commit()?;
         Ok(true)
+    }
+
+    /// CAS-save both picker Location decks and retire included adoptions in
+    /// one transaction, without changing or copying any conversation records.
+    pub(crate) fn save_picker_decks(
+        &self,
+        decks: &mut [oc_core::queries::TabDeckSnapshot],
+    ) -> Result<(), oc_core::session::CoreError> {
+        use oc_core::session::CoreError;
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+            .map_err(|_| CoreError::TabDeckStorage)?;
+        for deck in decks.iter_mut() {
+            if deck.projected()
+                || deck.location.is_empty()
+                || deck.sessions.len() > MAX_TABS
+                || (deck.active.is_none() && deck.sessions.len() == MAX_TABS)
+                || deck
+                    .active
+                    .as_ref()
+                    .is_some_and(|id| !deck.sessions.contains(id))
+            {
+                return Err(CoreError::InvalidTabDeck);
+            }
+            let key = tab_deck_key(&deck.location);
+            let current = match Self::get_pref_bounded_in(&tx, &key, MAX_TAB_DECK_BYTES)
+                .map_err(|_| CoreError::TabDeckStorage)?
+            {
+                BoundedPref::Missing => None,
+                BoundedPref::Value(raw) => Some(raw),
+                BoundedPref::TooLarge => return Err(CoreError::StoredTabDeck),
+            };
+            if current.as_deref().map(pref_revision) != deck.revision {
+                return Err(CoreError::TabDeckConflict);
+            }
+            let mut seen = HashSet::new();
+            for id in &deck.sessions {
+                let valid:bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM sessions s JOIN prefs p ON p.key='tui.session_location.'||s.id WHERE s.id=?1 AND s.parent_id IS NULL AND p.value=?2)",params![id.0,deck.location],|r|r.get(0)).map_err(|_|CoreError::TabDeckStorage)?;
+                if !valid_tab_id(&id.0) || !seen.insert(&id.0) || !valid {
+                    return Err(CoreError::InvalidTabDeck);
+                }
+            }
+            let pending = Self::tab_adoptions_in(&tx, &deck.location)
+                .map_err(|_| CoreError::StoredTabDeck)?;
+            if pending
+                .iter()
+                .any(|id| !deck.sessions.iter().any(|session| &session.0 == id))
+            {
+                return Err(CoreError::TabDeckConflict);
+            }
+            let raw = serde_json::to_string(&StoredDeck {
+                version: 1,
+                sessions: deck.sessions.iter().map(|id| id.0.clone()).collect(),
+                active: deck.active.as_ref().map(|id| id.0.clone()),
+            })
+            .map_err(|_| CoreError::InvalidTabDeck)?;
+            if raw.len() > MAX_TAB_DECK_BYTES {
+                return Err(CoreError::InvalidTabDeck);
+            }
+            Self::upsert_pref(&tx, &key, &raw).map_err(|_| CoreError::TabDeckStorage)?;
+            for id in pending {
+                tx.execute(
+                    "DELETE FROM prefs WHERE key=?1",
+                    [tab_adoption_key(&deck.location, &id)],
+                )
+                .map_err(|_| CoreError::TabDeckStorage)?;
+            }
+            deck.revision = Some(pref_revision(&raw));
+        }
+        tx.commit().map_err(|_| CoreError::TabDeckStorage)?;
+        Ok(())
     }
 
     /// Atomically persist a selection and its associated model preference.
@@ -3562,6 +3871,177 @@ mod tests {
     }
 
     #[test]
+    fn session_picker_same_tick_orders_observed_activity_before_ids_and_limit() {
+        let tmp = tmp_root("picker-tied-time");
+        let db = Db::open(&tmp.path().join("data")).unwrap();
+        let ids: Vec<_> = (0..61)
+            .map(|i| format!("reverse-{:02}", (i * 37) % 61))
+            .collect();
+        for (i, id) in ids.iter().enumerate() {
+            db.create_session(id).unwrap();
+            if i == 0 {
+                db.rename_root_session(id, "Oldest real activity").unwrap();
+            }
+            // An actual millisecond may contain several mutations. Force one
+            // observed tick to exercise the persisted journal tie-breaker.
+            db.conn
+                .lock()
+                .unwrap()
+                .execute(
+                    "UPDATE sessions SET updated_at='1700000000.125' WHERE id=?1",
+                    [id],
+                )
+                .unwrap();
+        }
+        let rows = db.session_list("", None).unwrap();
+        assert_eq!(rows.len(), 50);
+        assert_eq!(
+            rows.iter()
+                .map(|entry| entry.id.0.clone())
+                .collect::<Vec<_>>(),
+            ids.iter().rev().take(50).cloned().collect::<Vec<_>>()
+        );
+        assert_eq!(db.session_list("Oldest", None).unwrap()[0].id.0, ids[0]);
+        assert!(rows[0].updated_at.as_deref().unwrap().contains('.'));
+    }
+
+    #[test]
+    fn session_picker_uses_checkout_common_directory_for_worktree_footer() {
+        let tmp = tmp_root("picker-worktree");
+        let project = tmp.path().join("canonical-project");
+        let worktree = tmp.path().join("feature-checkout");
+        let gitdir = project.join(".git/worktrees/feature-checkout");
+        std::fs::create_dir_all(&gitdir).unwrap();
+        std::fs::create_dir_all(worktree.join("nested")).unwrap();
+        std::fs::write(
+            worktree.join(".git"),
+            format!("gitdir: {}\n", gitdir.display()),
+        )
+        .unwrap();
+        std::fs::write(gitdir.join("commondir"), "../..\n").unwrap();
+        assert_eq!(
+            super::session_project_root(&worktree.join("nested")),
+            Some(project.clone())
+        );
+        let db = Db::open(&tmp.path().join("data")).unwrap();
+        db.create_bound_session("canonical", project.to_str().unwrap())
+            .unwrap();
+        db.create_bound_session("worktree", worktree.join("nested").to_str().unwrap())
+            .unwrap();
+        let entries = db.session_list("", None).unwrap();
+        assert_eq!(
+            entries
+                .iter()
+                .find(|entry| entry.id.0 == "canonical")
+                .unwrap()
+                .worktree,
+            None
+        );
+        assert_eq!(
+            entries
+                .iter()
+                .find(|entry| entry.id.0 == "worktree")
+                .unwrap()
+                .worktree
+                .as_deref(),
+            Some("feature-checkout")
+        );
+        assert_eq!(
+            db.session_list("", Some(project.to_str().unwrap()))
+                .unwrap()
+                .len(),
+            1
+        );
+    }
+
+    #[test]
+    fn session_picker_is_bounded_searches_before_limit_and_preserves_unknown_legacy_time() {
+        let tmp = tmp_root("session-picker");
+        let root = tmp.path().join("data");
+        let db = Db::open(&root).unwrap();
+        for i in 0..60 {
+            let id = format!("root-{i:02}");
+            db.create_session(&id).unwrap();
+            db.conn
+                .lock()
+                .unwrap()
+                .execute(
+                    "UPDATE sessions SET title=?2, created_at='0', updated_at=?3 WHERE id=?1",
+                    params![id, format!("Named {i}"), format!("{}", 86400 * (i + 1))],
+                )
+                .unwrap();
+            db.conn
+                .lock()
+                .unwrap()
+                .execute(
+                    "UPDATE sessions SET updated_at=?2 WHERE id=?1",
+                    params![id, format!("{}", 86400 * (i + 1) + 43200)],
+                )
+                .unwrap();
+        }
+        db.create_child_session("root-00", "child", None, None, Some("Named child"))
+            .unwrap();
+        let rows = db.session_list("", None).unwrap();
+        assert_eq!(rows.len(), 50);
+        assert_eq!(rows[0].id.0, "root-59");
+        assert!(rows[0].date_group.ends_with("1970"));
+        assert_eq!(db.session_list("Named 0", None).unwrap()[0].id.0, "root-00");
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE sessions SET title=NULL,updated_at=NULL WHERE id='root-00'",
+                [],
+            )
+            .unwrap();
+        db.conn
+            .lock()
+            .unwrap()
+            .execute("UPDATE sessions SET updated_at=NULL WHERE id='root-00'", [])
+            .unwrap();
+        let legacy = db.session_list("1970-01-01", None).unwrap();
+        assert_eq!(legacy.len(), 1);
+        assert_eq!(legacy[0].title, "New session - 1970-01-01T00:00:00.000Z");
+        assert_eq!(legacy[0].updated_at, None);
+        assert_eq!(legacy[0].date_group, "Update time unavailable");
+        drop(db);
+        let db = Db::open(&root).unwrap();
+        assert_eq!(
+            db.session_list("1970-01-01", None).unwrap()[0].updated_at,
+            None
+        );
+        db.append_message("root-00", "user", "real activity")
+            .unwrap();
+        assert_eq!(
+            db.session_list("1970-01-01", None).unwrap()[0].date_group,
+            "Today"
+        );
+        assert_eq!(db.list_sessions().unwrap().len(), 61);
+    }
+
+    #[test]
+    fn session_picker_migrates_old_schema_without_inventing_update_times() {
+        let tmp = tmp_root("session-picker-migration");
+        let root = tmp.path().join("data");
+        std::fs::create_dir_all(&root).unwrap();
+        let conn = rusqlite::Connection::open(root.join("oc.sqlite")).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE sessions(id TEXT PRIMARY KEY,created_at TEXT NOT NULL);
+            INSERT INTO sessions VALUES ('legacy','946684800');",
+        )
+        .unwrap();
+        drop(conn);
+        let db = Db::open(&root).unwrap();
+        let entry = db.session_list("", None).unwrap().remove(0);
+        assert_eq!(entry.title, "New session - 2000-01-01T00:00:00.000Z");
+        assert_eq!(entry.created_at, "946684800");
+        assert_eq!(entry.updated_at, None);
+        assert_eq!(entry.date_group, "Update time unavailable");
+        db.create_session("fresh").unwrap();
+        assert!(db.session_list("", None).unwrap()[0].updated_at.is_some());
+    }
+
+    #[test]
     fn durable_input_turn_event_roundtrip() {
         let tmp = tmp_root("durable");
         let db = Db::open(&tmp.path().join("data")).expect("open");
@@ -3805,7 +4285,15 @@ mod tests {
             let names: Vec<&str> = columns.iter().map(|(name, _)| name.as_str()).collect();
             assert_eq!(
                 names,
-                ["id", "created_at", "parent_id", "agent", "model", "title"]
+                [
+                    "id",
+                    "created_at",
+                    "parent_id",
+                    "agent",
+                    "model",
+                    "title",
+                    "updated_at"
+                ]
             );
             assert!(columns.iter().all(|(_, ty)| ty == "TEXT"));
             assert_eq!(db.list_sessions().expect("list"), Vec::<String>::new());

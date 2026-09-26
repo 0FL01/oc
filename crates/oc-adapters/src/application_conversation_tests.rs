@@ -232,6 +232,20 @@ async fn conversation_undo_cancels_held_explicit_title_without_late_write() {
 }
 
 async fn held_title_undo(explicit: bool) {
+    held_title_action(explicit, false).await;
+}
+
+#[tokio::test]
+async fn picker_delete_cancels_held_manual_title_and_allows_next_location_switch() {
+    held_title_action(true, true).await;
+}
+
+#[tokio::test]
+async fn picker_delete_cancels_held_automatic_title_and_allows_next_location_switch() {
+    held_title_action(false, true).await;
+}
+
+async fn held_title_action(explicit: bool, delete: bool) {
     let tmp = tempfile::tempdir().unwrap();
     let project = tmp.path().join("project");
     let data = tmp.path().join("data");
@@ -239,6 +253,9 @@ async fn held_title_undo(explicit: bool) {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let config = serde_json::json!({"model":"fixture/m","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}});
     std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
+    let other = tmp.path().join("other-location");
+    std::fs::create_dir_all(&other).unwrap();
+    std::fs::write(other.join("opencode.json"), config.to_string()).unwrap();
     {
         let db = Db::open(&data).unwrap();
         db.create_bound_session("s", &project.to_string_lossy())
@@ -289,14 +306,46 @@ async fn held_title_undo(explicit: bool) {
     if !explicit {
         finished(&mut events).await;
     }
-    let undone = timeout(
-        Duration::from_secs(2),
-        app.change_conversation(session.clone(), ConversationAction::Undo),
-    )
-    .await
-    .unwrap()
-    .unwrap();
-    assert_eq!(undone.draft.as_deref(), Some("removed title source canary"));
+    if delete {
+        timeout(
+            Duration::from_secs(2),
+            app.picker_session_action(
+                session.clone(),
+                String::new(),
+                false,
+                oc_core::queries::SessionPickerAction::Delete,
+            ),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert!(!app.list_sessions().await.unwrap().contains(&session));
+        let mut byte = [0u8; 1];
+        assert_eq!(
+            timeout(Duration::from_secs(2), held.read(&mut byte))
+                .await
+                .unwrap()
+                .unwrap(),
+            0,
+            "deleted root must release its held provider connection"
+        );
+        timeout(
+            Duration::from_secs(2),
+            app.switch_location_home(other.display().to_string()),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+    } else {
+        let undone = timeout(
+            Duration::from_secs(2),
+            app.change_conversation(session.clone(), ConversationAction::Undo),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!(undone.draft.as_deref(), Some("removed title source canary"));
+    }
     // Release the already accepted title only AFTER the boundary ACK. An
     // aborted socket may already be closed; either way no result can commit.
     let sse = format!(
@@ -319,6 +368,13 @@ async fn held_title_undo(explicit: bool) {
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
     let db = Db::open(&data).unwrap();
+    if delete {
+        assert!(matches!(
+            db.session_meta("s"),
+            Err(crate::storage::StorageError::SessionNotFound)
+        ));
+        return;
+    }
     assert_eq!(
         db.session_meta("s").unwrap().title.as_deref(),
         explicit.then_some("existing title")

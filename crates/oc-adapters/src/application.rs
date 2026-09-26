@@ -684,6 +684,12 @@ fn subagent_catalog(composition: &Composition) -> Option<SubagentCatalog> {
 enum WorkerOutcome {
     /// Inbox closed or an explicit shutdown was requested.
     Stop,
+    PickerOpen {
+        path: String,
+        session: SessionId,
+        old_deck: oc_core::queries::TabDeckSnapshot,
+        ack: oneshot::Sender<Result<oc_core::queries::SessionPickerOpen, CoreError>>,
+    },
     /// The owner asked to switch Location; the supervisor owns the rebuild.
     Switch {
         /// Target project path.
@@ -781,6 +787,97 @@ async fn start_worker(
         )
         .await?;
         match outcome {
+            WorkerOutcome::PickerOpen {
+                path,
+                session,
+                old_deck,
+                ack,
+            } => {
+                if path == runtime.location() {
+                    let receipt = prepare_picker_open(
+                        &db,
+                        &runtime,
+                        &composition,
+                        &mut effective,
+                        &mut registry,
+                        &mut sessions,
+                        &mut home_choices,
+                        &location_epoch,
+                        &suggestion_queue,
+                        &title_work,
+                        session,
+                        old_deck,
+                    );
+                    let _ = ack.send(receipt);
+                    continue;
+                }
+                let next = switch_target(
+                    &db,
+                    &path,
+                    &mut sessions,
+                    composition.parent_env.clone(),
+                    true,
+                )
+                .await;
+                let (next, next_composition, mut next_effective, mut next_registry, _, _) =
+                    match next {
+                        Ok(next) => next,
+                        Err(issue) => {
+                            let _ = ack.send(Err(CoreError::LocationSwitch {
+                                category: match issue.category {
+                                    SpawnFailure::Configuration
+                                    | SpawnFailure::MissingCredential => {
+                                        LocationSwitchFailure::Configuration
+                                    }
+                                    SpawnFailure::Storage => LocationSwitchFailure::Storage,
+                                    _ => LocationSwitchFailure::Runtime,
+                                },
+                                detail: issue.detail,
+                            }));
+                            continue;
+                        }
+                    };
+                let receipt = prepare_picker_open(
+                    &db,
+                    &next,
+                    &next_composition,
+                    &mut next_effective,
+                    &mut next_registry,
+                    &mut sessions,
+                    &mut home_choices,
+                    &location_epoch,
+                    &suggestion_queue,
+                    &title_work,
+                    session.clone(),
+                    old_deck,
+                );
+                let receipt = match receipt {
+                    Ok(receipt) => receipt,
+                    Err(error) => {
+                        let _ = next.shutdown_mcp().await;
+                        let _ = ack.send(Err(error));
+                        continue;
+                    }
+                };
+                // The route and both decks have committed. Cleanup cannot turn
+                // that accepted route back into a refusal or an old view.
+                let _ = runtime.shutdown_mcp().await;
+                while let Ok(result) = title_rx.try_recv() {
+                    commit_automatic_title(&db, &events, &title_work, result);
+                }
+                stop_automatic_titles(&title_work).await;
+                remote_retry_quarantined |= runtime.remote_retry_quarantined();
+                if remote_retry_quarantined {
+                    next.quarantine_remote_retries();
+                }
+                runtime = next;
+                composition = next_composition;
+                effective = next_effective;
+                registry = next_registry;
+                sessions.insert(path, session.0);
+                location_epoch.fetch_add(1, Ordering::SeqCst);
+                let _ = ack.send(Ok(receipt));
+            }
             WorkerOutcome::Stop => {
                 drain_automatic_titles(&db, &events, &title_work, &mut title_rx).await;
                 runtime
@@ -1283,9 +1380,142 @@ fn project_model_switch(
     notice
 }
 
-/// Handle one owner-only query or action. Never runs while a turn streams
-/// except for read-only snapshots.
+/// Prepare the selected root and atomically save the old and target decks.
+/// All fallible target reads precede the commit and Location publication.
 #[allow(clippy::too_many_arguments)]
+fn prepare_picker_open(
+    db: &Db,
+    runtime: &Runtime<'_>,
+    composition: &Composition,
+    effective: &mut Effective,
+    registry: &mut WorkspaceRegistry,
+    sessions: &mut BTreeMap<String, String>,
+    home_choices: &mut BTreeMap<String, Effective>,
+    location_epoch: &Arc<AtomicU64>,
+    suggestion_queue: &Arc<Mutex<SuggestionQueue>>,
+    title_work: &Mutex<AutomaticTitles>,
+    session: SessionId,
+    old_deck: oc_core::queries::TabDeckSnapshot,
+) -> Result<oc_core::queries::SessionPickerOpen, CoreError> {
+    runtime
+        .open_session(&session.0)
+        .map_err(|_| CoreError::SessionNotFound)?;
+    if db
+        .session_meta(&session.0)
+        .map_err(app_error)?
+        .parent_id
+        .is_some()
+    {
+        return Err(CoreError::SessionNotFound);
+    }
+    let selected = selection::apply(
+        db,
+        composition,
+        effective,
+        &session.0,
+        false,
+        oc_core::queries::SessionSelectionAction::Current,
+    )?;
+    // Current is a read projection: existing retired selections must remain
+    // visible and editable without rewriting preferences. Execution admission
+    // belongs to for_turn; the target workspace itself is already validated.
+    // Reuse the exact bounded owner history projection, including immutable
+    // message identities, conversation branches and turn/tool metadata.
+    let (ack, mut result) = oneshot::channel();
+    query(
+        db,
+        runtime,
+        composition,
+        effective,
+        registry,
+        sessions,
+        home_choices,
+        location_epoch,
+        suggestion_queue,
+        title_work,
+        InboxMsg::History {
+            session: session.clone(),
+            before_seq: None,
+            after_seq: None,
+            limit: HISTORY_PAGE_LIMIT,
+            ack,
+        },
+    );
+    let page = result
+        .try_recv()
+        .map_err(|_| app_error("picker history unavailable"))??;
+    let mut target = if old_deck.location == runtime.location() {
+        old_deck.clone()
+    } else {
+        tab_deck::load(db, runtime)?
+    };
+    if target.projected() {
+        return Err(CoreError::StoredTabDeck);
+    }
+    if !target.sessions.contains(&session) {
+        if target.sessions.len() >= crate::storage::MAX_TABS {
+            return Err(CoreError::InvalidTabDeck);
+        }
+        target.sessions.push(session.clone());
+    }
+    target.active = Some(session.clone());
+    let mut decks = if old_deck.location == runtime.location() {
+        vec![target]
+    } else {
+        vec![old_deck, target]
+    };
+    db.save_picker_decks(&mut decks)?;
+    sessions.insert(runtime.location().to_owned(), session.0.clone());
+    let deck = decks.last().expect("target").clone();
+    let previous_deck = decks.first().expect("old").clone();
+    Ok(oc_core::queries::SessionPickerOpen {
+        session,
+        location: runtime.location().into(),
+        catalog: selected.snapshot(composition),
+        page,
+        deck,
+        previous_deck,
+    })
+}
+
+fn picker_target(
+    db: &Db,
+    runtime: &Runtime<'_>,
+    composition: &Composition,
+    session: &SessionId,
+    search: &str,
+    all_projects: bool,
+) -> Result<String, CoreError> {
+    if runtime.turn_active() {
+        return Err(CoreError::TurnBusy);
+    }
+    let scope = match db
+        .get_pref("tui.session-list.allProjects")
+        .map_err(app_error)?
+        .as_deref()
+    {
+        Some("true") => true,
+        Some("false") => false,
+        _ => composition.tui_chrome.sessions_all_projects,
+    };
+    if scope != all_projects {
+        return Err(app_error("Sessions scope changed; reopen the picker"));
+    }
+    let location = db
+        .session_list(search, (!scope).then_some(runtime.location()))
+        .map_err(app_error)?
+        .into_iter()
+        .find(|entry| &entry.id == session)
+        .and_then(|entry| entry.directory)
+        .ok_or(CoreError::SessionNotFound)?;
+    if db.session_family_running(&session.0).map_err(app_error)? {
+        return Err(CoreError::TurnBusy);
+    }
+    Ok(location)
+}
+
+#[allow(clippy::too_many_arguments)]
+/// Handle one owner-only query or action; streaming admits read snapshots.
 fn query(
     db: &Db,
     runtime: &Runtime<'_>,
@@ -1296,9 +1526,13 @@ fn query(
     home_choices: &mut BTreeMap<String, Effective>,
     location_epoch: &Arc<AtomicU64>,
     suggestion_queue: &Arc<Mutex<SuggestionQueue>>,
+    title_work: &Mutex<AutomaticTitles>,
     message: InboxMsg,
 ) {
     match message {
+        InboxMsg::OpenPickerSession { ack, .. } => {
+            let _ = ack.send(Err(CoreError::TurnBusy));
+        }
         InboxMsg::ChangeConversation {
             session,
             action,
@@ -1355,6 +1589,11 @@ fn query(
             let result = (|| -> Result<(), CoreError> {
                 let title = normalized_session_title(&title)
                     .ok_or_else(|| app_error("invalid session title"))?;
+                if runtime.turn_active()
+                    || db.session_family_running(&session.0).map_err(app_error)?
+                {
+                    return Err(CoreError::TurnBusy);
+                }
                 runtime
                     .open_session(&session.0)
                     .map_err(|error| match error {
@@ -1381,8 +1620,103 @@ fn query(
         InboxMsg::RegenerateTitle { ack, .. } => {
             let _ = ack.send(Err(CoreError::TurnBusy));
         }
+        InboxMsg::DeleteSession { session, ack } => {
+            let result = (|| {
+                if runtime.turn_active() {
+                    return Err(CoreError::TurnBusy);
+                }
+                runtime
+                    .open_session(&session.0)
+                    .map_err(|_| CoreError::SessionNotFound)?;
+                if db
+                    .session_meta(&session.0)
+                    .map_err(app_error)?
+                    .parent_id
+                    .is_some()
+                {
+                    return Err(CoreError::SessionNotFound);
+                }
+                if tab_deck::load(db, runtime)?.projected() {
+                    return Err(CoreError::StoredTabDeck);
+                }
+                if db.session_family_running(&session.0).map_err(app_error)? {
+                    return Err(CoreError::TurnBusy);
+                }
+                let accepted = db
+                    .delete_root_family(&session.0, runtime.location())
+                    .map_err(app_error)?;
+                title_work
+                    .lock()
+                    .expect("title work mutex")
+                    .cancel(&session.0);
+                runtime.conversation_changed(&session.0);
+                sessions.retain(|_, id| id != &session.0);
+                // No fallible read after commit: success carries the prepared
+                // deck and the exact token written in the deletion transaction.
+                Ok(accepted)
+            })();
+            let _ = ack.send(result);
+        }
         InboxMsg::CancelTitle { ack, .. } => {
             let _ = ack.send(Err(CoreError::TurnBusy));
+        }
+        InboxMsg::PickerSessionAction {
+            session,
+            search,
+            all_projects,
+            action,
+            ack,
+        } => {
+            let result = (|| {
+                if runtime.turn_active() {
+                    return Err(CoreError::TurnBusy);
+                }
+                let scope = match db
+                    .get_pref("tui.session-list.allProjects")
+                    .map_err(app_error)?
+                    .as_deref()
+                {
+                    Some("true") => true,
+                    Some("false") => false,
+                    _ => composition.tui_chrome.sessions_all_projects,
+                };
+                if scope != all_projects {
+                    return Err(app_error("Sessions scope changed; reopen the picker"));
+                }
+                let listed = db
+                    .session_list(&search, (!scope).then_some(runtime.location()))
+                    .map_err(app_error)?;
+                let location = listed
+                    .into_iter()
+                    .find(|entry| entry.id == session)
+                    .and_then(|entry| entry.directory)
+                    .ok_or(CoreError::SessionNotFound)?;
+                if db.session_family_running(&session.0).map_err(app_error)? {
+                    return Err(CoreError::TurnBusy);
+                }
+                match action {
+                    oc_core::queries::SessionPickerAction::Rename(title) => {
+                        let title = normalized_session_title(&title)
+                            .ok_or_else(|| app_error("invalid session title"))?;
+                        db.rename_root_session(&session.0, title)
+                            .map_err(app_error)?;
+                        Ok(oc_core::queries::SessionPickerResult::Renamed)
+                    }
+                    oc_core::queries::SessionPickerAction::Delete => {
+                        let accepted = db
+                            .delete_root_family(&session.0, &location)
+                            .map_err(app_error)?;
+                        title_work
+                            .lock()
+                            .expect("title work mutex")
+                            .cancel(&session.0);
+                        runtime.conversation_changed(&session.0);
+                        sessions.retain(|_, id| id != &session.0);
+                        Ok(oc_core::queries::SessionPickerResult::Deleted(accepted))
+                    }
+                }
+            })();
+            let _ = ack.send(result);
         }
         InboxMsg::List { ack } => {
             let _ = ack.send(
@@ -1390,6 +1724,48 @@ fn query(
                     .map(|ids| ids.into_iter().map(SessionId).collect())
                     .map_err(app_error),
             );
+        }
+        InboxMsg::SessionList {
+            search,
+            all_projects,
+            ack,
+        } => {
+            let _ = ack.send(
+                db.session_list(&search, (!all_projects).then_some(runtime.location()))
+                    .map_err(app_error),
+            );
+        }
+        InboxMsg::SessionPickerContext { all_projects, ack } => {
+            let result = (|| {
+                if let Some(value) = all_projects {
+                    db.set_pref(
+                        "tui.session-list.allProjects",
+                        if value { "true" } else { "false" },
+                    )
+                    .map_err(app_error)?;
+                }
+                let all_projects = match db
+                    .get_pref("tui.session-list.allProjects")
+                    .map_err(app_error)?
+                    .as_deref()
+                {
+                    Some("true") => true,
+                    Some("false") => false,
+                    _ => composition.tui_chrome.sessions_all_projects,
+                };
+                let canonical =
+                    crate::storage::session_project_root(std::path::Path::new(runtime.location()))
+                        .or_else(|| std::fs::canonicalize(runtime.location()).ok());
+                Ok(oc_core::queries::SessionPickerContext {
+                    all_projects,
+                    project_name: canonical
+                        .as_ref()
+                        .and_then(|path| path.file_name())
+                        .map(|name| name.to_string_lossy().into_owned()),
+                    canonical: canonical.map(|path| path.to_string_lossy().into_owned()),
+                })
+            })();
+            let _ = ack.send(result);
         }
         InboxMsg::ProbeSession { id, ack } => {
             // A missing binding alone does not prove absence: an unbound row
@@ -1857,6 +2233,32 @@ async fn worker(
                 .cancel(&session.0);
         }
         match message {
+            InboxMsg::OpenPickerSession {
+                session,
+                search,
+                all_projects,
+                old_deck,
+                ack,
+            } => {
+                let target =
+                    picker_target(db, runtime, composition, &session, &search, all_projects);
+                match target {
+                    Ok(path) if old_deck.location == runtime.location() => {
+                        return Ok(WorkerOutcome::PickerOpen {
+                            path,
+                            session,
+                            old_deck,
+                            ack,
+                        });
+                    }
+                    Ok(_) => {
+                        let _ = ack.send(Err(CoreError::TabDeckConflict));
+                    }
+                    Err(error) => {
+                        let _ = ack.send(Err(error));
+                    }
+                }
+            }
             InboxMsg::Shutdown => break 'worker,
             InboxMsg::CancelTitle { session, ack } => {
                 let result = if title_work
@@ -2035,7 +2437,15 @@ async fn worker(
                                     let _ = ack.send(Err(CoreError::TurnBusy));
                                 }
                             }
-                            Some(command) => query(db, runtime, composition, effective, registry, sessions, home_choices, location_epoch, suggestion_queue, command),
+                            Some(command) => {
+                                query(db, runtime, composition, effective, registry, sessions, home_choices, location_epoch, suggestion_queue, title_work, command);
+                                if matches!(db.session_meta(&session.0), Err(StorageError::SessionNotFound)) {
+                                    cancel.store(true,Ordering::Relaxed);
+                                    // Dropping the pinned provider operation closes the
+                                    // held stream before processing another owner command.
+                                    break Err(app_error("title session deleted"));
+                                }
+                            },
                         },
                     }
                 };
@@ -2050,6 +2460,7 @@ async fn worker(
                         home_choices,
                         location_epoch,
                         suggestion_queue,
+                        title_work,
                         command,
                     );
                 }
@@ -2486,6 +2897,7 @@ async fn worker(
                                     home_choices,
                                     location_epoch,
                                     suggestion_queue,
+                                    title_work,
                                     command,
                                 ),
                             }
@@ -2584,6 +2996,7 @@ async fn worker(
                         home_choices,
                         location_epoch,
                         suggestion_queue,
+                        title_work,
                         command,
                     );
                 }
@@ -2601,6 +3014,7 @@ async fn worker(
                 home_choices,
                 location_epoch,
                 suggestion_queue,
+                title_work,
                 message,
             ),
         }

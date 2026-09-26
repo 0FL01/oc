@@ -2503,6 +2503,8 @@ fn retained_tab_mouse_add_restores_draft_and_home_submit_binds_one_new_root() {
     pty.wait_visible(READY, DEADLINE);
     submit(&mut pty, "first tab");
     wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    pty.send(b"/rename Original root\r");
+    wait_screen_row(&pty, "Original root", DEADLINE);
     pty.send(b"saved draft");
     wait_screen_row(&pty, "saved draft", DEADLINE);
 
@@ -2538,16 +2540,14 @@ fn retained_tab_mouse_add_restores_draft_and_home_submit_binds_one_new_root() {
     // The Sessions dialog must reuse the parked original rather than append
     // another view for the same durable ID.
     pty.send(b"/sessions\r");
-    wait_screen_row(&pty, "deck-original", DEADLINE);
-    // The list starts at the first row; the bullet marks the active session,
-    // not the keyboard cursor.
-    pty.send(b"\r");
+    wait_screen_row(&pty, "Sessions", DEADLINE);
+    pty.send(b"Original root\r");
     wait_screen_row(&pty, "first tab", DEADLINE);
     let started = Instant::now();
     while render_screen(&pty.snapshot())
         .rows()
         .iter()
-        .any(|row| row.contains("Switch session"))
+        .any(|row| row.contains("Sessions"))
     {
         assert!(started.elapsed() < DEADLINE, "Sessions dialog stayed open");
         std::thread::sleep(POLL);
@@ -2595,7 +2595,7 @@ fn hovered_close_reopens_durable_session_without_creating_a_root() {
     assert_eq!(journal_counts(&fixture).0, 1, "close is process-local");
 
     pty.send(b"/sessions\r");
-    wait_screen_row(&pty, "close-reopen", DEADLINE);
+    wait_screen_row(&pty, "Sessions", DEADLINE);
     pty.send(b"\r");
     wait_screen_row(&pty, "persisted before close", DEADLINE);
     wait_screen_row(&pty, "Fixture session title", DEADLINE);
@@ -2657,7 +2657,7 @@ fn keyboard_and_palette_close_tab_keep_the_root_durable_and_reopenable() {
     );
 
     pty.send(b"/sessions\r");
-    wait_screen_row(&pty, &root, DEADLINE);
+    wait_screen_row(&pty, "Sessions", DEADLINE);
     pty.send(b"\r");
     wait_screen_row(&pty, "keyboard close history", DEADLINE);
     assert_eq!(
@@ -2692,7 +2692,7 @@ fn keyboard_and_palette_close_tab_keep_the_root_durable_and_reopenable() {
     let mut restored = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
     wait_screen_row(&restored, "Ask anything", DEADLINE);
     restored.send(b"/sessions\r");
-    wait_screen_row(&restored, &root, DEADLINE);
+    wait_screen_row(&restored, "Sessions", DEADLINE);
     restored.send(b"\r");
     wait_screen_row(&restored, "keyboard close history", DEADLINE);
     quit(&mut restored);

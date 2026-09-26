@@ -155,17 +155,35 @@ pub enum PanelIntent {
     /// Load the newest tool-card page.
     LoadCards,
     /// Continue reading one card's durable result through the owning application.
-    LoadCardOutput { op: String, offset: usize },
+    LoadCardOutput {
+        op: String,
+        offset: usize,
+    },
     /// Create an empty application session and attach its Home route.
     NewSession,
     /// Activate a retained real tab by its zero-based deck index.
-    ActivateTab { index: usize },
+    ActivateTab {
+        index: usize,
+    },
     /// Close a retained tab; `tabs.len()` denotes the synthetic Home slot.
-    CloseTab { index: usize },
+    CloseTab {
+        index: usize,
+    },
     /// Apply the trimmed title to the attached session through the owner.
-    RenameSession { title: String },
+    RenameSession {
+        title: String,
+    },
     /// Apply a slash-supplied title without opening the editor; ACK clears the slash draft.
-    RenameSessionDirect { title: String },
+    RenameSessionDirect {
+        title: String,
+    },
+    RenameSelectedSession {
+        id: String,
+        title: String,
+    },
+    DeleteSelectedSession {
+        id: String,
+    },
     /// Bare slash command: ask the owner to generate a fresh title.
     RegenerateTitle,
     /// Select a model, restoring the owner's remembered variant preference.
@@ -521,6 +539,10 @@ pub struct TuiState {
     rename_input: String,
     rename_editor: crate::editor::Editor,
     rename_pending: Option<String>,
+    rename_selected: Option<String>,
+    session_delete_confirm: Option<String>,
+    session_project_name: Option<String>,
+    session_scope_pending: Option<bool>,
     rename_direct_pending: Option<(String, u64)>,
     regenerate_pending: Option<u64>,
     window: HistoryWindow,
@@ -577,6 +599,8 @@ pub struct TuiState {
     pub(crate) agents_cursor: usize,
     /// Session ids for the Sessions panel.
     pub(crate) sessions: Vec<String>,
+    session_entries: Vec<oc_core::queries::SessionListEntry>,
+    sessions_all_projects: bool,
     /// Sessions cursor.
     pub(crate) sessions_cursor: usize,
     sessions_loaded: bool,
@@ -666,6 +690,10 @@ impl TuiState {
             rename_input: String::new(),
             rename_editor: Default::default(),
             rename_pending: None,
+            rename_selected: None,
+            session_delete_confirm: None,
+            session_project_name: None,
+            session_scope_pending: None,
             rename_direct_pending: None,
             regenerate_pending: None,
             window: HistoryWindow::new(),
@@ -706,6 +734,8 @@ impl TuiState {
             active_agent: None,
             agents_cursor: 0,
             sessions: Vec::new(),
+            session_entries: Vec::new(),
+            sessions_all_projects: true,
             sessions_cursor: 0,
             sessions_loaded: false,
             skills: Vec::new(),
@@ -1092,6 +1122,8 @@ impl TuiState {
                 category: category.into(),
                 footer,
                 current,
+                running: false,
+                destructive: false,
             };
         let options = match &self.panel {
             TuiPanel::MessageActions { .. } => [
@@ -1203,13 +1235,25 @@ impl TuiState {
                 .sessions
                 .iter()
                 .map(|s| {
-                    item(
+                    let entry = self.session_entries.iter().find(|entry| &entry.id.0 == s);
+                    let mut option = item(
                         s.clone(),
-                        s.clone(),
-                        "Sessions",
-                        String::new(),
+                        entry.map_or_else(
+                            || "New session — metadata unavailable".into(),
+                            |entry| entry.title.clone(),
+                        ),
+                        entry.map_or("Update time unavailable", |entry| &entry.date_group),
+                        entry
+                            .and_then(|entry| entry.worktree.clone())
+                            .unwrap_or_default(),
                         self.attached_session().is_some_and(|id| s == &id.0),
-                    )
+                    );
+                    if self.session_delete_confirm.as_deref() == Some(s) {
+                        option.title = "Press ctrl+d again to confirm".into();
+                        option.destructive = true;
+                    }
+                    option.running = entry.is_some_and(|entry| entry.running);
+                    option
                 })
                 .collect(),
             TuiPanel::Skills => self
@@ -1333,6 +1377,7 @@ impl TuiState {
     }
 
     fn changed_modal_query(&mut self) {
+        self.session_delete_confirm = None;
         self.select.changed_query();
         if self.panel == TuiPanel::Variant && self.select.query.is_empty() {
             self.select.cursor = self
@@ -1710,6 +1755,8 @@ impl TuiState {
         self.rename_input.clear();
         self.rename_editor.clear();
         self.rename_pending = None;
+        self.rename_selected = None;
+        self.session_delete_confirm = None;
         self.card_output = None;
         self.card_scroll = 0;
         self.card_seen.set(0);
@@ -2101,6 +2148,9 @@ impl TuiState {
             MouseEventKind::Down(MouseButton::Left) => {
                 self.mouse_down = Some(hit);
                 if let DialogHit::Option(index) = hit {
+                    if self.select.cursor != index {
+                        self.session_delete_confirm = None;
+                    }
                     self.select.cursor = index;
                     self.sync_modal_cursor();
                 }
@@ -2109,6 +2159,7 @@ impl TuiState {
                 if let DialogHit::Option(index) = hit
                     && self.select.cursor != index
                 {
+                    self.session_delete_confirm = None;
                     self.select.cursor = index;
                     self.sync_modal_cursor();
                 }
@@ -3203,10 +3254,84 @@ impl TuiState {
 
     /// Apply the session list snapshot.
     pub fn apply_sessions(&mut self, sessions: Vec<String>) {
+        self.session_entries.clear();
         self.sessions = sessions;
         self.sessions_cursor = 0;
         self.sessions_loaded = true;
         self.sync_modal_cursor();
+    }
+
+    /// Apply the bounded application-owned root metadata page.
+    pub fn apply_session_entries(&mut self, entries: Vec<oc_core::queries::SessionListEntry>) {
+        self.sessions = entries.iter().map(|entry| entry.id.0.clone()).collect();
+        self.session_entries = entries;
+        self.sessions_loaded = true;
+        if self.select.query.is_empty() {
+            self.select.cursor = self
+                .sessions
+                .iter()
+                .position(|id| {
+                    self.attached_session()
+                        .is_some_and(|current| &current.0 == id)
+                })
+                .unwrap_or(0);
+            self.select.follow_selection();
+        }
+        self.sync_modal_cursor();
+    }
+
+    pub fn session_search(&self) -> String {
+        self.select.query.clone()
+    }
+
+    pub fn sessions_all_projects(&self) -> bool {
+        self.sessions_all_projects
+    }
+
+    pub fn session_entries(&self) -> &[oc_core::queries::SessionListEntry] {
+        &self.session_entries
+    }
+
+    pub fn sessions_title(&self) -> String {
+        if !self.sessions_all_projects
+            && let Some(name) = &self.session_project_name
+        {
+            return format!("Sessions for {name}");
+        }
+        "Sessions".into()
+    }
+
+    pub fn session_scope_update(&mut self) -> Option<bool> {
+        self.session_scope_pending.take()
+    }
+
+    pub fn apply_session_picker_context(
+        &mut self,
+        context: oc_core::queries::SessionPickerContext,
+    ) {
+        self.sessions_all_projects = context.all_projects;
+        self.session_project_name = context.project_name;
+    }
+
+    pub fn selected_session_rename(&self) -> Option<&str> {
+        self.rename_selected.as_deref()
+    }
+
+    pub fn selected_session_renamed(&mut self, id: &str, title: String) {
+        if self
+            .attached_session()
+            .is_some_and(|session| session.0 == id)
+        {
+            self.session_title = Some(title.clone());
+        }
+        if self.rename_selected.as_deref() == Some(id) {
+            self.close_panel();
+        }
+    }
+
+    pub fn session_delete_rejected(&mut self, message: String) {
+        self.session_delete_confirm = None;
+        self.apply_intent_error(message);
     }
 
     /// Apply the skill card snapshot (bodies never reach the view).
@@ -3292,6 +3417,7 @@ impl TuiState {
             self.changed_modal_query();
             return KeyOutcome {
                 note: (text.len() > kept).then(|| "modal search truncated at 512 bytes".into()),
+                intent: (self.panel == TuiPanel::Sessions).then_some(PanelIntent::LoadSessions),
                 ..KeyOutcome::default()
             };
         }
@@ -3729,6 +3855,11 @@ impl TuiState {
         if self.panel != TuiPanel::None {
             return self.handle_panel_key(action);
         }
+        let action = if action == KeyAction::CtrlA {
+            KeyAction::Home
+        } else {
+            action
+        };
         if let Some(options) = self.slash_options() {
             match action {
                 KeyAction::Up | KeyAction::Commands => {
@@ -3885,7 +4016,7 @@ impl TuiState {
                 self.editor.horizontal(&self.input, right, word, select);
                 KeyOutcome::default()
             }
-            KeyAction::Home | KeyAction::End => {
+            KeyAction::Home | KeyAction::CtrlA | KeyAction::End => {
                 self.editor
                     .line_edge(&self.input, action == KeyAction::End, false);
                 KeyOutcome::default()
@@ -4476,6 +4607,53 @@ impl TuiState {
     /// Panel navigation: Up/Down move the panel cursor, Enter chooses,
     /// Esc closes; text and paste belong to the focused modal search.
     pub fn handle_panel_key(&mut self, action: KeyAction) -> KeyOutcome {
+        if self.panel == TuiPanel::Sessions {
+            if matches!(action, KeyAction::Rename | KeyAction::DeleteOrQuit) {
+                let Some(id) = self.sessions.get(self.sessions_cursor).cloned() else {
+                    return KeyOutcome::default();
+                };
+                if action == KeyAction::DeleteOrQuit {
+                    if self.session_delete_confirm.as_ref() == Some(&id) {
+                        self.session_delete_confirm = None;
+                        return KeyOutcome {
+                            intent: Some(PanelIntent::DeleteSelectedSession { id }),
+                            ..KeyOutcome::default()
+                        };
+                    }
+                    self.session_delete_confirm = Some(id);
+                } else {
+                    self.rename_input = self
+                        .session_entries
+                        .iter()
+                        .find(|entry| entry.id.0 == id)
+                        .map(|entry| entry.title.clone())
+                        .unwrap_or_default();
+                    self.rename_editor.clear();
+                    self.rename_editor.cursor = self.rename_input.len();
+                    self.rename_pending = None;
+                    self.rename_selected = Some(id);
+                    self.session_delete_confirm = None;
+                    self.panel = TuiPanel::Rename;
+                }
+                return KeyOutcome::default();
+            }
+            // Matches donor onMove; search/scope changes also retire intent.
+            self.session_delete_confirm = None;
+        }
+        if self.panel == TuiPanel::Sessions && action == KeyAction::CtrlA {
+            self.sessions_all_projects = !self.sessions_all_projects;
+            self.session_scope_pending = Some(self.sessions_all_projects);
+            self.select.changed_query();
+            return KeyOutcome {
+                intent: Some(PanelIntent::LoadSessions),
+                ..KeyOutcome::default()
+            };
+        }
+        let action = if action == KeyAction::CtrlA {
+            KeyAction::Home
+        } else {
+            action
+        };
         if self.panel == TuiPanel::Rename {
             return self.handle_rename_key(action);
         }
@@ -4512,12 +4690,18 @@ impl TuiState {
                     self.select.query.push(c);
                 }
                 self.changed_modal_query();
-                return KeyOutcome::default();
+                return KeyOutcome {
+                    intent: (self.panel == TuiPanel::Sessions).then_some(PanelIntent::LoadSessions),
+                    ..KeyOutcome::default()
+                };
             }
             KeyAction::Backspace => {
                 self.select.query.pop();
                 self.changed_modal_query();
-                return KeyOutcome::default();
+                return KeyOutcome {
+                    intent: (self.panel == TuiPanel::Sessions).then_some(PanelIntent::LoadSessions),
+                    ..KeyOutcome::default()
+                };
             }
             KeyAction::Interrupt
                 if matches!(
@@ -4537,6 +4721,12 @@ impl TuiState {
                 } else {
                     self.select.reset();
                     self.changed_modal_query();
+                    if self.panel == TuiPanel::Sessions {
+                        return KeyOutcome {
+                            intent: Some(PanelIntent::LoadSessions),
+                            ..KeyOutcome::default()
+                        };
+                    }
                 }
                 return KeyOutcome::default();
             }
@@ -4635,8 +4825,9 @@ impl TuiState {
         }
         match action {
             KeyAction::Enter => {
-                if let Some(reason) =
-                    self.command_unavailable(&CommandAction::RenameSession { title: None })
+                if self.rename_selected.is_none()
+                    && let Some(reason) =
+                        self.command_unavailable(&CommandAction::RenameSession { title: None })
                 {
                     return KeyOutcome {
                         note: Some(reason.into()),
@@ -4659,7 +4850,13 @@ impl TuiState {
                 let title = self.rename_input.trim().to_string();
                 self.rename_pending = Some(title.clone());
                 KeyOutcome {
-                    intent: Some(PanelIntent::RenameSession { title }),
+                    intent: Some(match &self.rename_selected {
+                        Some(id) => PanelIntent::RenameSelectedSession {
+                            id: id.clone(),
+                            title,
+                        },
+                        None => PanelIntent::RenameSession { title },
+                    }),
                     ..KeyOutcome::default()
                 }
             }
@@ -10599,6 +10796,127 @@ mod tests {
         let outcome = state.handle_panel_key(KeyAction::Cancel);
         assert_eq!(outcome, KeyOutcome::default());
         assert_eq!(state.panel(), &TuiPanel::None);
+    }
+
+    #[tokio::test]
+    async fn sessions_metadata_keeps_owner_order_routes_ids_and_requeries_search_scope() {
+        let mut state = fresh_state("current-root").await;
+        state.chrome.location = Some("/work/project".into());
+        state.session_project_name = Some("project".into());
+        state.handle_paste("kept draft");
+        state.run_command(crate::commands::CommandAction::OpenSessions);
+        state.apply_session_entries(vec![
+            oc_core::queries::SessionListEntry {
+                id: SessionId("other-root".into()),
+                title: "Newest title".into(),
+                directory: Some("/work/project".into()),
+                created_at: "0".into(),
+                updated_at: Some("20".into()),
+                date_group: "Today".into(),
+                running: false,
+                worktree: None,
+            },
+            oc_core::queries::SessionListEntry {
+                id: SessionId("current-root".into()),
+                title: "Older title".into(),
+                directory: Some("/work/project".into()),
+                created_at: "0".into(),
+                updated_at: Some("10".into()),
+                date_group: "Thu Jan 01 1970".into(),
+                running: false,
+                worktree: None,
+            },
+        ]);
+        let options = state.modal_options();
+        assert_eq!(options[0].title, "Newest title");
+        assert!(options[1].current);
+        assert_eq!(state.select.cursor, 1);
+        assert_eq!(
+            state.handle_panel_key(KeyAction::Enter).intent,
+            Some(PanelIntent::SwitchSession {
+                id: "current-root".into()
+            })
+        );
+        assert_eq!(
+            state.handle_panel_key(KeyAction::Char('o')).intent,
+            Some(PanelIntent::LoadSessions)
+        );
+        assert_eq!(state.session_search(), "o");
+        assert_eq!(
+            state.handle_panel_key(KeyAction::CtrlA).intent,
+            Some(PanelIntent::LoadSessions)
+        );
+        assert!(!state.sessions_all_projects());
+        assert_eq!(state.sessions_title(), "Sessions for project");
+        assert_eq!(
+            state.handle_panel_key(KeyAction::Interrupt).intent,
+            Some(PanelIntent::LoadSessions)
+        );
+        assert_eq!(state.session_search(), "");
+        state.apply_session_entries(Vec::new());
+        assert_eq!(state.handle_panel_key(KeyAction::Enter).intent, None);
+        state.handle_panel_key(KeyAction::Cancel);
+        assert_eq!(state.input(), "kept draft");
+    }
+
+    #[tokio::test]
+    async fn sessions_selected_actions_confirm_exact_row_keep_draft_and_clear_on_move() {
+        use crate::commands::CommandAction;
+        let mut state = fresh_state("current").await;
+        state.handle_paste("draft survives");
+        state.run_command(CommandAction::OpenSessions);
+        state.apply_session_entries(vec![oc_core::queries::SessionListEntry {
+            id: SessionId("selected-other".into()),
+            title: "Actual title".into(),
+            directory: None,
+            created_at: "1".into(),
+            updated_at: Some("2".into()),
+            date_group: "Today".into(),
+            running: false,
+            worktree: Some("feature-checkout".into()),
+        }]);
+        assert_eq!(state.modal_options()[0].footer, "feature-checkout");
+        assert_eq!(state.handle_panel_key(KeyAction::DeleteOrQuit).intent, None);
+        assert!(state.modal_options()[0].destructive);
+        assert_eq!(
+            state.modal_options()[0].title,
+            "Press ctrl+d again to confirm"
+        );
+        state.handle_panel_key(KeyAction::Down);
+        assert!(!state.modal_options()[0].destructive);
+        assert_eq!(state.handle_panel_key(KeyAction::DeleteOrQuit).intent, None);
+        assert_eq!(
+            state.handle_panel_key(KeyAction::DeleteOrQuit).intent,
+            Some(PanelIntent::DeleteSelectedSession {
+                id: "selected-other".into()
+            })
+        );
+        state.session_delete_rejected("owner refused".into());
+        assert!(!state.modal_options()[0].destructive);
+        state.handle_panel_key(KeyAction::Rename);
+        assert_eq!(state.rename_title(), Some("Actual title"));
+        assert_eq!(state.selected_session_rename(), Some("selected-other"));
+        state.handle_panel_key(KeyAction::Interrupt);
+        state.handle_paste("Renamed other");
+        assert_eq!(
+            state.handle_panel_key(KeyAction::Enter).intent,
+            Some(PanelIntent::RenameSelectedSession {
+                id: "selected-other".into(),
+                title: "Renamed other".into()
+            })
+        );
+        state.rename_session_rejected("owner refused".into());
+        assert_eq!(state.panel(), &TuiPanel::Rename);
+        assert_eq!(state.rename_title(), Some("Renamed other"));
+        assert_eq!(state.input(), "draft survives");
+        state.handle_panel_key(KeyAction::Cancel);
+        assert_eq!(state.selected_session_rename(), None);
+        assert_eq!(state.input(), "draft survives");
+        state.run_command(CommandAction::OpenSessions);
+        state.apply_session_entries(Vec::new());
+        assert_eq!(state.handle_panel_key(KeyAction::Rename).intent, None);
+        assert_eq!(state.handle_panel_key(KeyAction::DeleteOrQuit).intent, None);
+        assert_eq!(state.panel(), &TuiPanel::Sessions);
     }
 
     #[tokio::test]

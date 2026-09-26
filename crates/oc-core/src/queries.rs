@@ -9,6 +9,52 @@ use std::collections::BTreeMap;
 use crate::domain::SessionId;
 use crate::session::Role;
 
+/// Bounded root-session picker projection; IDs remain routing keys.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SessionListEntry {
+    pub id: SessionId,
+    pub title: String,
+    pub directory: Option<String>,
+    pub created_at: String,
+    /// Absent for archives predating update-time recording.
+    pub updated_at: Option<String>,
+    pub date_group: String,
+    pub running: bool,
+    pub worktree: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SessionPickerContext {
+    pub all_projects: bool,
+    pub project_name: Option<String>,
+    /// Canonical owning checkout, or admitted Location directory without Git.
+    pub canonical: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SessionPickerAction {
+    Rename(String),
+    Delete,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SessionPickerResult {
+    Renamed,
+    Deleted(TabDeckSnapshot),
+}
+
+/// Published picker route. The selected root's bounded projection is prepared
+/// before acceptance, so frontend refresh failures cannot undo the route.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SessionPickerOpen {
+    pub session: SessionId,
+    pub location: String,
+    pub catalog: CatalogSnapshot,
+    pub page: HistoryPage,
+    pub deck: TabDeckSnapshot,
+    pub previous_deck: TabDeckSnapshot,
+}
+
 /// Move only the durable conversation and saved provider context.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConversationAction {
@@ -351,6 +397,8 @@ pub struct TuiChrome {
     pub vertical_tabs_width: u16,
     /// Upstream tab indicator presentation; status is the default.
     pub tab_indicators: TabIndicators,
+    /// tabs.scope == global; upstream defaults to cwd.
+    pub sessions_all_projects: bool,
     /// Explicit terminal.copy selection; absence uses the UI's platform default.
     pub terminal_copy: Option<TerminalCopyMode>,
     /// Explicit config.animations; absence enables interface animations.

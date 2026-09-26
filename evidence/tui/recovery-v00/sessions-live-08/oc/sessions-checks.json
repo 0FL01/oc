@@ -1,0 +1,440 @@
+{
+  "status": "FAILED",
+  "checks": [
+    {
+      "stage": "initial-owned-root",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "initial-owned-root",
+        "observed_at_ms": 1790430474675,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/oc/home/data/oc/oc.sqlite",
+            "table": "sessions",
+            "columns": [
+              "agent",
+              "created_at",
+              "id",
+              "model",
+              "parent_id",
+              "title",
+              "updated_at"
+            ],
+            "rows": [
+              {
+                "id": "s-tui-18d8e276da26b6ae-36d1c9-0",
+                "title": "VIS30-LUNAR explores lunar geology briefly.",
+                "parent_id": null,
+                "created_at": "1790429851",
+                "updated_at": "1790429858.110",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/other-project"
+              },
+              {
+                "id": "s-tui-18d8e27a0524fcbd-36d28c-0",
+                "title": "Ocean Currents Discussion VIS30-OCEAN",
+                "parent_id": null,
+                "created_at": "1790429865",
+                "updated_at": "1790429873.907",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/project"
+              },
+              {
+                "id": "s-tui-18d8e27db034d566-36d28c-1",
+                "title": null,
+                "parent_id": null,
+                "created_at": "1790429881",
+                "updated_at": "1790429885.527",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/project"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "all-open",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "all-scope",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "all-before-actions",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "all-before-actions",
+        "observed_at_ms": 1790430488391,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/oc/home/data/oc/oc.sqlite",
+            "table": "sessions",
+            "columns": [
+              "agent",
+              "created_at",
+              "id",
+              "model",
+              "parent_id",
+              "title",
+              "updated_at"
+            ],
+            "rows": [
+              {
+                "id": "s-tui-18d8e276da26b6ae-36d1c9-0",
+                "title": "VIS30-LUNAR explores lunar geology briefly.",
+                "parent_id": null,
+                "created_at": "1790429851",
+                "updated_at": "1790429858.110",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/other-project"
+              },
+              {
+                "id": "s-tui-18d8e27a0524fcbd-36d28c-0",
+                "title": "Ocean Currents Discussion VIS30-OCEAN",
+                "parent_id": null,
+                "created_at": "1790429865",
+                "updated_at": "1790429873.907",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/project"
+              },
+              {
+                "id": "s-tui-18d8e27db034d566-36d28c-1",
+                "title": null,
+                "parent_id": null,
+                "created_at": "1790429881",
+                "updated_at": "1790429885.527",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/project"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "cwd-scope",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "search-first",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "entered-first",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "reopen-first",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "escape-first",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "reopen-after-escape",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "selected-all-scope",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "selected-second",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "rename-dialog",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "rename-input",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "rename-return",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "renamed-db",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "renamed-db",
+        "observed_at_ms": 1790430525716,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/oc/home/data/oc/oc.sqlite",
+            "table": "sessions",
+            "columns": [
+              "agent",
+              "created_at",
+              "id",
+              "model",
+              "parent_id",
+              "title",
+              "updated_at"
+            ],
+            "rows": [
+              {
+                "id": "s-tui-18d8e276da26b6ae-36d1c9-0",
+                "title": "VIS30 Renamed forest ecology",
+                "parent_id": null,
+                "created_at": "1790429851",
+                "updated_at": "1790430522.882",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/other-project"
+              },
+              {
+                "id": "s-tui-18d8e27a0524fcbd-36d28c-0",
+                "title": "Ocean Currents Discussion VIS30-OCEAN",
+                "parent_id": null,
+                "created_at": "1790429865",
+                "updated_at": "1790429873.907",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/project"
+              },
+              {
+                "id": "s-tui-18d8e27db034d566-36d28c-1",
+                "title": null,
+                "parent_id": null,
+                "created_at": "1790429881",
+                "updated_at": "1790429885.527",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/project"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "rename-reopened",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "renamed-search",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "provider_unchanged": true,
+      "capture_status": "CAPTURED"
+    },
+    {
+      "stage": "failure-db",
+      "provider_counts": {
+        "requests": 0,
+        "completed": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "sessions_snapshot",
+        "request_id": "failure-db",
+        "observed_at_ms": 1790430550022,
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/oc/home/data/oc/oc.sqlite",
+            "table": "sessions",
+            "columns": [
+              "agent",
+              "created_at",
+              "id",
+              "model",
+              "parent_id",
+              "title",
+              "updated_at"
+            ],
+            "rows": [
+              {
+                "id": "s-tui-18d8e276da26b6ae-36d1c9-0",
+                "title": "VIS30 Renamed forest ecology",
+                "parent_id": null,
+                "created_at": "1790429851",
+                "updated_at": "1790430522.882",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/other-project"
+              },
+              {
+                "id": "s-tui-18d8e27a0524fcbd-36d28c-0",
+                "title": "Ocean Currents Discussion VIS30-OCEAN",
+                "parent_id": null,
+                "created_at": "1790429865",
+                "updated_at": "1790429873.907",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/project"
+              },
+              {
+                "id": "s-tui-18d8e27db034d566-36d28c-1",
+                "title": null,
+                "parent_id": null,
+                "created_at": "1790429881",
+                "updated_at": "1790429885.527",
+                "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/project"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "multi_day": "INCOMPLETE: no genuine archived public record supplied; timestamps never seeded",
+  "preexisting_fixture_rows": [
+    {
+      "id": "s-tui-18d8e276da26b6ae-36d1c9-0",
+      "title": "VIS30-LUNAR explores lunar geology briefly.",
+      "parent_id": null,
+      "created_at": "1790429851",
+      "updated_at": "1790429858.110",
+      "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/other-project"
+    },
+    {
+      "id": "s-tui-18d8e27a0524fcbd-36d28c-0",
+      "title": "Ocean Currents Discussion VIS30-OCEAN",
+      "parent_id": null,
+      "created_at": "1790429865",
+      "updated_at": "1790429873.907",
+      "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/project"
+    },
+    {
+      "id": "s-tui-18d8e27db034d566-36d28c-1",
+      "title": null,
+      "parent_id": null,
+      "created_at": "1790429881",
+      "updated_at": "1790429885.527",
+      "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/project"
+    }
+  ],
+  "fixtures": [
+    {
+      "id": "s-tui-18d8e276da26b6ae-36d1c9-0",
+      "title": "VIS30-LUNAR explores lunar geology briefly.",
+      "parent_id": null,
+      "created_at": "1790429851",
+      "updated_at": "1790429858.110",
+      "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/other-project"
+    },
+    {
+      "id": "s-tui-18d8e27a0524fcbd-36d28c-0",
+      "title": "Ocean Currents Discussion VIS30-OCEAN",
+      "parent_id": null,
+      "created_at": "1790429865",
+      "updated_at": "1790429873.907",
+      "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/project"
+    },
+    {
+      "id": "s-tui-18d8e276da26b6ae-36d1c9-0",
+      "title": "VIS30-LUNAR explores lunar geology briefly.",
+      "parent_id": null,
+      "created_at": "1790429851",
+      "updated_at": "1790429858.110",
+      "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/other-project"
+    }
+  ],
+  "prior_evidence": "/home/opencode/ai/oc/evidence/tui/recovery-v00/sessions-live-06/oc/sessions-checks.json",
+  "selected_row": "retained fixture-owned all root; actual generated title provenance in prior capture",
+  "baseline": {
+    "requests": 0,
+    "completed": 0,
+    "invalid": 0
+  },
+  "selected_fixture": {
+    "id": "s-tui-18d8e276da26b6ae-36d1c9-0",
+    "title": "VIS30-LUNAR explores lunar geology briefly.",
+    "parent_id": null,
+    "created_at": "1790429851",
+    "updated_at": "1790429858.110",
+    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-06/other-project"
+  },
+  "reason": "Timed out waiting for entered-selected-root"
+}

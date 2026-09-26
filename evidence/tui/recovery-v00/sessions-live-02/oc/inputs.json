@@ -1,0 +1,27 @@
+[
+  {
+    "at_ms": 1790427438926,
+    "kind": "sessions_fixture_prompt",
+    "base64": "G1syMDB+RGlzY3VzcyBsdW5hciBnZW9sb2d5IGluIG9uZSBzaG9ydCBzZW50ZW5jZS4gSW5jbHVkZSBWSVMzMC1MVU5BUiBleGFjdGx5LiBEbyBub3QgdXNlIHRvb2xzLhtbMjAxfg=="
+  },
+  {
+    "at_ms": 1790427438926,
+    "kind": "sessions_fixture_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1790427447926,
+    "kind": "sessions_other_quit",
+    "base64": "Aw=="
+  },
+  {
+    "at_ms": 1790427452550,
+    "kind": "sessions_fixture_prompt",
+    "base64": "G1syMDB+RGlzY3VzcyBvY2VhbiBjdXJyZW50cyBpbiBvbmUgc2hvcnQgc2VudGVuY2UuIEluY2x1ZGUgVklTMzAtT0NFQU4gZXhhY3RseS4gRG8gbm90IHVzZSB0b29scy4bWzIwMX4="
+  },
+  {
+    "at_ms": 1790427452550,
+    "kind": "sessions_fixture_submit",
+    "base64": "DQ=="
+  }
+]

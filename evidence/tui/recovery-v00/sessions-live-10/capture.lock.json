@@ -1,0 +1,2903 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-26T15:01:11.406Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "fa2344cee6f5ecbbd042f1e1700fb2c95c961d0ada4787b72567099a781da91e",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "c1d1fd65459cb502bc45fbe2b26cda56f745b70bae257de70ab971eedc96ac66",
+    "sessions.mjs": "3d28ad71a8a62cedc54b962ca4db347a5dff9868af3d8f7cadf10f6b62a2cbcd"
+  },
+  "fixture_sha256": "1eee6af9f59adfedf71b7230ebda56a8464c68e82e1f8ede1dc4f2ae628e0842",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "6444c54c58204f11eff7793dbe2de83445ca71f2",
+    "tree": "90593cf78c234f52331963c23dfd672f17275d36",
+    "dirty_diff_sha256": "d2a0764fed3c2106bceb85ece76219a4e263de00968a87b1e5e64528228f2753",
+    "source_manifest_sha256": "054fd41a79d890e6524dcaf481f52da3b6efc449ef4468e1c6ecc41dba9bbba9",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "688a29436b8136b333dd08d49f9123bce5035f4762cc9e8dc41e1b87acc29b02",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "sessions-other-root-generated",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-other-root-generated",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-first-root-generated",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-first-root-generated",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-second-root-generated",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-second-root-generated",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-all-open",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-all-open",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-all-scope",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-all-scope",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-cwd-scope",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-cwd-scope",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-search-first",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-search-first",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-entered-first",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-entered-first",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-reopen-first",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-reopen-first",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-escape-first",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-escape-first",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-reopen-after-escape",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-reopen-after-escape",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-selected-all-scope",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-selected-all-scope",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-selected-second",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-selected-second",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-rename-dialog",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-rename-dialog",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-rename-input",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-rename-input",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-rename-return",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-rename-return",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-rename-reopened",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-rename-reopened",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-renamed-search",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-renamed-search",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-entered-selected-root",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-entered-selected-root",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-selected-root-reopen",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-selected-root-reopen",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-selected-root-cwd",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-selected-root-cwd",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-selected-root-all",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-selected-root-all",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-return-current-search",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-return-current-search",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-returned-current",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-returned-current",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-return-current-reopen",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-return-current-reopen",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-delete-selected-search",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-delete-selected-search",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-delete-confirm",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-delete-confirm",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-delete-after",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-delete-after",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-all-after-delete",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-all-after-delete",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-cwd-after-delete",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-cwd-after-delete",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-final-escape",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "sessions-final-escape",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "sessions-other-root-generated",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "dbed7cefa20f11a4add68a71c78e299fdc957ce4aaffde69a44c787dea43d2b2",
+      "png_sha256": "cfc427a83473faaa880159f3e719a83c09e1647ad909ae0c4c4f0f6680f2b580",
+      "render_sha256": "b3b37d7cc44408f2131965f6954d385bdc4f09eb3f5f9412909f26cad21ca129",
+      "path": "upstream/sessions-other-root-generated"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-first-root-generated",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "45d17b627d05276c1abe50508dce463e27bcb49c718297a08072ca5b5d7dc162",
+      "png_sha256": "ed428cb1ca94de969b08b695f2eaa6c66b36d1198ac2d3e37d746c0aea7d6749",
+      "render_sha256": "5f5f849087608522b7265c976f38976ccdcb0c29c0a78b82dc8511405143a878",
+      "path": "upstream/sessions-first-root-generated"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-second-root-generated",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ec71f4390ce9c1c9d56e7c761c866f66e4b3911f90bc582437ae75b32794080d",
+      "png_sha256": "32d059fc47fe89f962381c89781c3fb614ec2025c1d474cdf1a75ba4944c84a2",
+      "render_sha256": "f1587bc56e38e39776aa5077b1d842d56bc26c24f23a6786d4309ce8db3f0ebe",
+      "path": "upstream/sessions-second-root-generated"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-all-open",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e0ba6e9cda06bdbba520fce115a3dddb6bc3a916340f131bd8a52f7cc355f5ef",
+      "png_sha256": "6bc38def40523ae22ab13673e46f1bc46c0fe566dbe80a2e67daa098f1ab0d23",
+      "render_sha256": "7eb2cbac48fe7c7882f08752aa071a77e7785da189829b20440fca94097fb1f8",
+      "path": "upstream/sessions-all-open"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-all-scope",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "9eaff5440ff29ac838370ca9b1cc8a1807494285eeee9056e4cf801aaed2b679",
+      "png_sha256": "f77f36835bfb5b82f562f39eccbd27c13b8427b7fe7d137788cf6c279e33e975",
+      "render_sha256": "9eaaf2f0cbcc18939b8d09d4deb9e6d01f58a27deef43d80b252e0215760fae7",
+      "path": "upstream/sessions-all-scope"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-cwd-scope",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "4f70b4dee5e6719566cbc4349b0777795b69ef27b7770e48691330262ea1256f",
+      "png_sha256": "6bc38def40523ae22ab13673e46f1bc46c0fe566dbe80a2e67daa098f1ab0d23",
+      "render_sha256": "9b1325266b15a8778c0f0048fe9c6ff0d9a8a316886445848480e98a2fe3f94a",
+      "path": "upstream/sessions-cwd-scope"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-search-first",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "64272126604f56197aac3a91de978cf4a79ace4ac49ecac8b240dcc626a69b05",
+      "png_sha256": "302d7e4953fb84467c757a7d4e87350ec654de498932d218d3820bdbbcc54d83",
+      "render_sha256": "dc44ad1b3761d167e156712bc6f4e06515b10f38586c39e77ef5cbc584ef5f1b",
+      "path": "upstream/sessions-search-first"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-entered-first",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c278ecd993dcf44d8fb885d6a82bc395bf84ba64bd01cd3fc1ce392c207e44ce",
+      "png_sha256": "86714433dbde728861f5f97b83433e51cbdabeda1cc1ae90aa2c9e110af04e6a",
+      "render_sha256": "377c184322defb0e92daa31242a079d06f4d5c1ebcc69f42b01d87f3e15eba6e",
+      "path": "upstream/sessions-entered-first"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-reopen-first",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "db7f53a44134e0b53621975c959ca5a2ffa9ed66fb758c1cc391c558a25cc788",
+      "png_sha256": "ef1c95270dcd0efd142e4679c45e8e8d04b51e32b3ee41ac65dc5f3f93dcb9fe",
+      "render_sha256": "d09efe68fd5b819733c66fe3eaa412161ca4c5ab956588c5c7762ece4a9a80ea",
+      "path": "upstream/sessions-reopen-first"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-escape-first",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "8aab228ec43d313f1af3dd9caea6dac726f46b45f7892f7a55f22a828883421e",
+      "png_sha256": "86714433dbde728861f5f97b83433e51cbdabeda1cc1ae90aa2c9e110af04e6a",
+      "render_sha256": "1a070eee4d97dd3482270e5e197d11c1ad5750603dc2090f670f85671ff9b4bf",
+      "path": "upstream/sessions-escape-first"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-reopen-after-escape",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "43f1055d23ebcb22f805b7304bfd6f3986dc43d08fe997d44ddf9e8f87852e78",
+      "png_sha256": "ef1c95270dcd0efd142e4679c45e8e8d04b51e32b3ee41ac65dc5f3f93dcb9fe",
+      "render_sha256": "43e624b735dd78f638e182d0593c3cf55179ba4d8dfe9fad5aa31ef64cccba00",
+      "path": "upstream/sessions-reopen-after-escape"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-selected-all-scope",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e117435ea677753444841cef0c2df9c85e2a6d358ab806578dd28f6e49bbb300",
+      "png_sha256": "61b7802ce8d92b61b554e45ccf97ad3178241b0713fe025f4e1e6501d78dc0e8",
+      "render_sha256": "ca998dffbf0f61807e7c6fc3fd9fd2e7bec1ae17ef7e589209f124b4e6ee3106",
+      "path": "upstream/sessions-selected-all-scope"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-selected-second",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3c26bfa38e144f1fd35045f24e25592193c8306398a262edfe2b4ad4ea0aee20",
+      "png_sha256": "927cb8dcfeac898e0a597cda27a6758c9cf74c8498627102fe912803b6eaebeb",
+      "render_sha256": "b46758d76735ee5781bf21eb18b7534c4993c1a3585ef6e4bc120e8693a0d6d7",
+      "path": "upstream/sessions-selected-second"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-rename-dialog",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3f591febb4aea813c75469d1cd6dbe0c211d8991245ce7db8d34be3d6a25ed97",
+      "png_sha256": "a66c3db32527276b36fbd7f44efd368eb558316999b7a8eeb8e5c43bbab8c010",
+      "render_sha256": "ea1342753f82d93a672b2ad4f4c323f866800dd50df476e053b1e1c4226c7af7",
+      "path": "upstream/sessions-rename-dialog"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-rename-input",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "03b42ad69ec4c067f33ed5584f20e36d26304497716f604ae602bc7c12560dc2",
+      "png_sha256": "f77ace486fd75016050a1ffc5ef125a050c4a0f38863458b12135734e8eb4799",
+      "render_sha256": "a5c5ce01c7e31d4da8115ed25b5922751894c3900cdab3c9f6693c4292e73f1c",
+      "path": "upstream/sessions-rename-input"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-rename-return",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2e749c8168d8ce56ce975145b11826ce5767fae84e29cf5fd7ad0091c36e9902",
+      "png_sha256": "86714433dbde728861f5f97b83433e51cbdabeda1cc1ae90aa2c9e110af04e6a",
+      "render_sha256": "a356223d55ce20e0b9e44a48ca2a0ef6e8174a9edf153c7bb0deb37c3ea6121e",
+      "path": "upstream/sessions-rename-return"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-rename-reopened",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e9e6c8790134a704a61874dc64b60e4890bc18ed789b7b950678c62b326d74be",
+      "png_sha256": "2dd774f98f937aef75d618c44ebf5417d8406cb6fa7e794aa448d6d128061501",
+      "render_sha256": "493e8660b70a221aedabad67d6a0653d845c21a597278145d69aec3453c97fae",
+      "path": "upstream/sessions-rename-reopened"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-renamed-search",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "b8c137c5b87ff64a591c8ddfda8dccd93f0c6bd475e3dfac1248d0a8b977e786",
+      "png_sha256": "7daaa39cb63d0160d3a43429990ccd08f4aa48a0341f47fc7619116546bdd651",
+      "render_sha256": "91064b415ae7ca1c3f75d9d9558c44e18b0448847daa1b0bd23a6fbedba0e420",
+      "path": "upstream/sessions-renamed-search"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-entered-selected-root",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "501758d3fe33541a30ad9cc164b3aa76f5433ae234829b9f2c9ededfc03cfe8c",
+      "png_sha256": "69e87d5b6eaf61b92d808d8db0ae0ba348784397321218e59594ca8bc6872721",
+      "render_sha256": "891194135175fad690356b52fc807981d5a64adc6033ab1524a6547df6109596",
+      "path": "upstream/sessions-entered-selected-root"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-selected-root-reopen",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "9ed3d13d12945bf43a644ac9de0c6668f8ebf293e1443418480a5a5c45be9d2f",
+      "png_sha256": "0bea3d8a4bac2bcd1634f4f22b36a0e2c3950bf9e4db29fc9c5032e5b9934546",
+      "render_sha256": "ec332e40ee6e04d8b8feedfa77321f8264b0b9b69b8770d81230c12ddae86c75",
+      "path": "upstream/sessions-selected-root-reopen"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-selected-root-cwd",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "a6384864f2ad754139dc4a6f504cbd00cf3a2d47808b4f74b70c15b49ab8fff1",
+      "png_sha256": "8309d7c86b86358f41ff7230b673f28ece973e8020588d95f07879643d4a0690",
+      "render_sha256": "9ade5cd86e654b50466da539609001007bc48c0160e750de3e382f17a469ac83",
+      "path": "upstream/sessions-selected-root-cwd"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-selected-root-all",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "0fd1049440e18ddad4f01b3291d88cbe4211f58be0bb822178279ce425d65b73",
+      "png_sha256": "0bea3d8a4bac2bcd1634f4f22b36a0e2c3950bf9e4db29fc9c5032e5b9934546",
+      "render_sha256": "292c02d31e3bef8f8bd54ef09ee3c80c37ae1570e6e9a418d5ca196165630bfa",
+      "path": "upstream/sessions-selected-root-all"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-return-current-search",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "169e5ce8bbc42e78c5fd2d84f623c0f1edb41e5bc9d799b5086d00b42ba2721e",
+      "png_sha256": "1e078484baf314d0c8f47334d056f38fec932395a76e6315d6bbe7ed512d3e16",
+      "render_sha256": "d810bc027d7baecb2ca9a45b938e02d63af694e91ffb49485558bc0246152f49",
+      "path": "upstream/sessions-return-current-search"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-returned-current",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "edf466790e06c229a6f8b58ced6738e110b67692217b75a6b7b12b8f4fb2ef65",
+      "png_sha256": "32c62b99293edacd3beb8cec6784b1729e981d8475085b6a939519be7b61867e",
+      "render_sha256": "f4fc87eb91cf9249cf78602797f59591b901f010ed294c2095fca55015bf3189",
+      "path": "upstream/sessions-returned-current"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-return-current-reopen",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "56d63969f925d4581a73192894108f0c9e007e2dcd855dec82738c008a869792",
+      "png_sha256": "6eb6ab9b37fbe9ebb61167a98a488fefaf579d23f9c651258aac3f21425984aa",
+      "render_sha256": "391947eefba673ad98d4f06cfca292879b00576b572d2070fe485049a4183272",
+      "path": "upstream/sessions-return-current-reopen"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-delete-selected-search",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "eb4b03b974ff09f558c7ee9508c7694f44d50439bd2b1c00b49e5a4934adbac9",
+      "png_sha256": "a98af53f79a31d0cb117c53f06d88ee6bb1a11b1d342a540c2a52b540ac7f8c0",
+      "render_sha256": "74f2c37ef571ceba882e6888b7efd8ca7032661f8737a1cfd8d48dd8c887e6b4",
+      "path": "upstream/sessions-delete-selected-search"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-delete-confirm",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "59e26bc5e03305604f1b038147a9906d85589e0ee7849db4326da3fb22903729",
+      "png_sha256": "2e72a6f3e6e9e04cbde1de375a30fca79244695863eb9e255b7ee3bccb6e43cf",
+      "render_sha256": "607348cbaae5791bb429af61db0f86a6106c99e942e95cbb58d43cbb1ce4f928",
+      "path": "upstream/sessions-delete-confirm"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-delete-after",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "72e298289d0f18d5bedf18c65ce1bb8676ad161dab55078d9d93640ac2e55dee",
+      "png_sha256": "2a94c7a5894679a4de89c11f8db0f1c8a4c542eb087da8d39407a369ab21e7d4",
+      "render_sha256": "19f8493a81cec6caf991255a282d58c895b916fe7d4e64ce0a9b7d3aa20d3e5b",
+      "path": "upstream/sessions-delete-after"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-all-after-delete",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "96bd0814f36304c27a448f785537d700392cbbe16d2cdfb7f5428d300289099f",
+      "png_sha256": "aed5864c54d21d40b891f5cf7dec9fd335a55ec3ed9ad3a625f5cc8a6f2173ff",
+      "render_sha256": "d8c2050e29be68d42daebba08dd388062b2d60cdf1252a84b2af54aad8694e3e",
+      "path": "upstream/sessions-all-after-delete"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-cwd-after-delete",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f9ded2f5dec394378de6b4cda91917cc436c1042de4a7d8e1e2e8fe3e9a43029",
+      "png_sha256": "d647aff00afa2efd02b9c9a682ac2b3067d9ccd92402c68f10a07dbaed0aeea2",
+      "render_sha256": "e468e3dc58d88c45f76c2199273129ec7687ea3b69cb9d426930d263c7789700",
+      "path": "upstream/sessions-cwd-after-delete"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "sessions-final-escape",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "1755f6ddfc41b55a73e893e7e84c60aae22b85637e3c34f72bfb39635521164b",
+      "png_sha256": "86714433dbde728861f5f97b83433e51cbdabeda1cc1ae90aa2c9e110af04e6a",
+      "render_sha256": "00ef8ef58f0ef2679804017e0541ed539af45630bb25b156c5a3ee21caa9141e",
+      "path": "upstream/sessions-final-escape"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-other-root-generated",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "1282a5d83d35f5d24f0b4f0eb6cf6449cf79b1925f2d3b9d50f0bd4f3181583d",
+      "png_sha256": "f47d6f3d4342fc38ae87ddee324be104cae40eb3824cee65b5f632025f99661e",
+      "render_sha256": "6ee4653578a36b00022da4ecbf0530a0ed3b0be16d1ce5abc7df34dad65400d5",
+      "path": "oc/sessions-other-root-generated"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-first-root-generated",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "57dbb253f1f36f984329965b3c76962b44c1f4f9b3441c067a017911711fb647",
+      "png_sha256": "a2d9d7872356f4615bfd2c6b1e08d0873b0436d98d083290c23f3d71b756a90f",
+      "render_sha256": "80dcc518bfc1c8a8f4d5f5b26251bb344c233d7cbde74276bceb8afe1732380d",
+      "path": "oc/sessions-first-root-generated"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-second-root-generated",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "73922e77aa00b5653c98305881c4af88c59e6244685868e873d4ff684aa30b70",
+      "png_sha256": "9bff3da369dad1bde82f1e554a3746d1deb3b403b5ad6ce7c68a5c2dad1aaa97",
+      "render_sha256": "75a22756b3ba1dfa7f35524234f540b5f02ea0a7acd606e13d24f98d1ce61a43",
+      "path": "oc/sessions-second-root-generated"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-all-open",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f33f36231ad9d17e243daddd32b25ed5ddb6912c09e2938d066a8bd55e45d33d",
+      "png_sha256": "f5123f687c9a5b5ef55c8af0d193454115b41fb7498167b902820053e6dfc5fb",
+      "render_sha256": "730a61f1d75bbed527d0de11df13fd0a69bb94c902217d08544ae5de7788dca0",
+      "path": "oc/sessions-all-open"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-all-scope",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d19f92811c95dd56cc9fe9e993d575f41186b03901dc81cca8998284439a3c54",
+      "png_sha256": "445dae8f04725633e07bc1b6d62623b581a9e0c63cce19d6334c346b25b1b742",
+      "render_sha256": "8044c9552dac4a04a4f58a3fc05b5e94d6c0fea97fee9686b1fbae0d0379c4ed",
+      "path": "oc/sessions-all-scope"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-cwd-scope",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "5764853257ee339b10ab9a765c590996785249edb5a73a2197ded46fc9403e30",
+      "png_sha256": "f5123f687c9a5b5ef55c8af0d193454115b41fb7498167b902820053e6dfc5fb",
+      "render_sha256": "1af5c909eb609db02486fdbb8efa0099b7b91c59b6c6fc4e8385223633681287",
+      "path": "oc/sessions-cwd-scope"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-search-first",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "1fab62c09df7b175c6bb5cb57717b9cfa3776c72f58c40df38ac0f9be9631d00",
+      "png_sha256": "d607f4c1ad7e3363843a9773a899cefc45d06089d2a16a23f1fd4c17f660e939",
+      "render_sha256": "9996912c1660f677e75a793bf1a733c966af07e16c6174fd0901a6149611bc29",
+      "path": "oc/sessions-search-first"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-entered-first",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d9cbf3a9fbb8e8f872ec5850405c8e9b92d349e61219f7047f6cb9889789a277",
+      "png_sha256": "658a7b49ce4a622943033a02e981843e2590d3aff7e1b33f0c7eca6f9a397b6f",
+      "render_sha256": "445f28cce5fc872dd12fdd401a9bb9924d91108b219c3c9b851bd8bb3c78f105",
+      "path": "oc/sessions-entered-first"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-reopen-first",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "6facd93dd50f94c1dba72c18dd222b327bb63e1b7ef028fae8a57f5697002cd1",
+      "png_sha256": "80961c7428bdde51ce32bd2e3f3280de0fecab168ca6b8babd7450edfe31415c",
+      "render_sha256": "3b9aa4cfff3787063ed67aee4cbd6af107268ad2dec58e89800ff73023f6ea4b",
+      "path": "oc/sessions-reopen-first"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-escape-first",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e943002a451eef490b87b2973667972a485c460412256c1e6950797e8bc1e21a",
+      "png_sha256": "658a7b49ce4a622943033a02e981843e2590d3aff7e1b33f0c7eca6f9a397b6f",
+      "render_sha256": "b8570bfe8bbfd5b016d3d266a977dd2fcc1186f2b2ac14999bd80321e55f39e3",
+      "path": "oc/sessions-escape-first"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-reopen-after-escape",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "462b0a64cad71af658a52092632049fa8ca66b2ef2c39f82b9ed9acb826e7c4e",
+      "png_sha256": "80961c7428bdde51ce32bd2e3f3280de0fecab168ca6b8babd7450edfe31415c",
+      "render_sha256": "4b832f18ae4409761401c326cf967116fe6439b2d03f2743eef8d51e1cee4795",
+      "path": "oc/sessions-reopen-after-escape"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-selected-all-scope",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ee6c95bd0075b72f0109db13498cd55dbc756c514371334be6b05e8912be9ae2",
+      "png_sha256": "c9b93d0b456ebb4797777f6288fbcea1de159c9aeb88326b3c9cf970a042904e",
+      "render_sha256": "07c14dfdaed041751d646a9af7eebd00f7146c35c697cbc964e533a8cb8967d3",
+      "path": "oc/sessions-selected-all-scope"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-selected-second",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "dfd2d2ae3b3fdc9a29435dacad6fc1abdfb0165b478ca0748919034227381373",
+      "png_sha256": "29cd054d1c69457293bc79267afe32ede9b70d7a8ab8531709d19ef4ed4c924f",
+      "render_sha256": "88cd51c8324af2fc70f9215279a28e6065eb9cbfe87081b92711f4adf0949261",
+      "path": "oc/sessions-selected-second"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-rename-dialog",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "7a658ddd74481b8b46a86b21621cee8c87f8a205b2fb4f0604e18859046118fd",
+      "png_sha256": "82d5044ae3c140d78d85c406f04c3a17adb2af1b5e03f63b7caf7342c3d886e9",
+      "render_sha256": "2d6a1128c7bc0821cc9734aa5ecb89f089e5ec3984c630ce76aa5e8f69c97e7d",
+      "path": "oc/sessions-rename-dialog"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-rename-input",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "db59bde98ddac35a227df8f508fba8b3b29cf3ad9bcd96c75183fbdcefec379c",
+      "png_sha256": "91866a18d0e3b439fd22d8ecae5d3b1a0420a00fb62521fbb9c21d9b52ff41ac",
+      "render_sha256": "b51a0aa4817afa9fa2b9b8bf82f1f389a558561bda7a7c08b17d425867810bca",
+      "path": "oc/sessions-rename-input"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-rename-return",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "4f68571da2c8e44e8bfadfbb084a38a3ad9d8f6f31d551184f7a6143ea950e8f",
+      "png_sha256": "658a7b49ce4a622943033a02e981843e2590d3aff7e1b33f0c7eca6f9a397b6f",
+      "render_sha256": "7167a86f4041bb2f4e6efa87155e053c3515168306083fd1e3cb5d74ed641817",
+      "path": "oc/sessions-rename-return"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-rename-reopened",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c6b6a3e8b60492f594a340ad63958d4e9991cd19a8ca20862333355f42fb308e",
+      "png_sha256": "36318ee0df3533a5b4c9601d56cad21f6de6c8f99c2ab3cec23c89494da9ce25",
+      "render_sha256": "2b0d302405d605eeccd17d6cfc78e5cc12b2cc225b0732672ed6b0d6fdb8bcbc",
+      "path": "oc/sessions-rename-reopened"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-renamed-search",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2db7caf06638deb921c016b35410d7a8194465d288b6186e02d5d68427fc2f57",
+      "png_sha256": "34a3f37090959ab94e8031db9504c6fb9053a125cd96143c8c5e9d01170c0d98",
+      "render_sha256": "1e593d626b634cc91a94762a0a47acbcc6f40873695107176c4c0125eefac655",
+      "path": "oc/sessions-renamed-search"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-entered-selected-root",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c5c2bf7634123a876179b6f2e264639636d4cec5b6bc7930d06918c362034af3",
+      "png_sha256": "6b6f3249a28cfcedb16a99368c6a8d599f8c0476d7f322156afdd888f3bc4d30",
+      "render_sha256": "b5a96ab3bcef8ac649f8d84652ca3541b7c2664543371e01ad836ddb89977c3b",
+      "path": "oc/sessions-entered-selected-root"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-selected-root-reopen",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "7b5f9c6fd3d09f5a07021282d8926e6f9ecad0cb5cab37a05f57cb68acd24480",
+      "png_sha256": "d7c2bff2b46c4ac64d313bd620aee673ea558dcc0d25f0b18120bc290937f48e",
+      "render_sha256": "fe462d5de2c991a95c2e4a09d6291cd58576383af1f620b54ad2729ffd8d5bbb",
+      "path": "oc/sessions-selected-root-reopen"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-selected-root-cwd",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "cdedfee67723a77f3561f5ab495fde85152ae8da5deb2b50228c628fa4538e1e",
+      "png_sha256": "44348f0deec3cf5802f63adf81a92c53d0a7fa511c537d0a74ce61f9416f175a",
+      "render_sha256": "468b3fd1ea8d166964c887e1d502299f8f9ae67177af30955f3a182d9a626723",
+      "path": "oc/sessions-selected-root-cwd"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-selected-root-all",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ec715285c42d37301327a134f0a36869cdbe1f9c3bb4da73465c17b533036b91",
+      "png_sha256": "d7c2bff2b46c4ac64d313bd620aee673ea558dcc0d25f0b18120bc290937f48e",
+      "render_sha256": "8a9ddc502172cf1776074230f67931d5f7e493a5ade6ff1e6b368a8723258ba2",
+      "path": "oc/sessions-selected-root-all"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-return-current-search",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "cac69b9ef0f69853748815a40a5f676c8873a5d9ca9945184dbf90dd9f351e4f",
+      "png_sha256": "082f051cc3c3c96a8655a9edf7b736dc4048677dce19110bfbeec9b8c16cbda4",
+      "render_sha256": "566c8155d5a030aaa8f023a9c3188e7d180fdb3a54fb832698ce1feddbfa34e0",
+      "path": "oc/sessions-return-current-search"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-returned-current",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "1721b61e26ce78cc424a1152fc5726c0221de1261ff31f4d4c5a7854a2156307",
+      "png_sha256": "658a7b49ce4a622943033a02e981843e2590d3aff7e1b33f0c7eca6f9a397b6f",
+      "render_sha256": "65184f3fb3fc69d531cb156c9e75cf8c9fe85f034e6e4b0bbfe5c69ee85299f2",
+      "path": "oc/sessions-returned-current"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-return-current-reopen",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "0f63af8b044339e3fb4dd22d40ff215f14315415c136e2492287964fffeeaa3f",
+      "png_sha256": "36318ee0df3533a5b4c9601d56cad21f6de6c8f99c2ab3cec23c89494da9ce25",
+      "render_sha256": "276959da0df8fca176174a942c1c12856cbc21015c4718f36e9a86e69e6ceb1b",
+      "path": "oc/sessions-return-current-reopen"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-delete-selected-search",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c9f22919236434854a7b3039c9c59ccef7ed91f33a2537e17bacc63f873a2e5c",
+      "png_sha256": "34a3f37090959ab94e8031db9504c6fb9053a125cd96143c8c5e9d01170c0d98",
+      "render_sha256": "dc78b20ec74bfce1b166645dd74de655bc3f1ba300e8180a578dceccd1d2ecfe",
+      "path": "oc/sessions-delete-selected-search"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-delete-confirm",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3428dcb76ffa0b3eac0ae2bafe0d63e84c9e806cce5b1b6ef8b4d9b8191c6a13",
+      "png_sha256": "78ef27fae7c0b4618f21d6e7aadf82a99f9b06716f368b60422b714928971774",
+      "render_sha256": "a101c8f405bdeb3b1eef8fd01d142f051b957698ab38952907e86cdd454369b2",
+      "path": "oc/sessions-delete-confirm"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-delete-after",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d161872a86d67f1517fa234d7ec157b04c828911fd60e92d54d611e371e17db0",
+      "png_sha256": "0bbba5e75cbad2c5797ce51a421abbfc28593c40545633c1b966f462af6a5310",
+      "render_sha256": "e4e8d2df548c95a7c6c0acb468f431ce3f95f3b71cc863b1004862f07e7a82f7",
+      "path": "oc/sessions-delete-after"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-all-after-delete",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "a84a94ab17c04e7f57e50eb886d81d2b1eccd1190480a072d24ab6c06f71fce6",
+      "png_sha256": "892488232b7ecfe6853bacf532520bb03c1c226c6831f30d81c0ab198c997a44",
+      "render_sha256": "bc68d7abf9fed714bd3fdd5f56e9719e5a95cca76cc151797e79a56df719ce3d",
+      "path": "oc/sessions-all-after-delete"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-cwd-after-delete",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "36947d5c3c969d09a12cd93e310d136c66dfa1c0c14ebf405c56cf7849a8d6b2",
+      "png_sha256": "80961c7428bdde51ce32bd2e3f3280de0fecab168ca6b8babd7450edfe31415c",
+      "render_sha256": "7bfad642839e30ebd059157870d062ef6f36e6e6be19f65f4d76a39afe4e73f0",
+      "path": "oc/sessions-cwd-after-delete"
+    },
+    {
+      "origin": "oc",
+      "scenario": "sessions-final-escape",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3e42bddcf2b371db070d3a024556723ffde2c0ff55dd59a215caa0f49508ebd8",
+      "png_sha256": "658a7b49ce4a622943033a02e981843e2590d3aff7e1b33f0c7eca6f9a397b6f",
+      "render_sha256": "a7da2612e5fb1d2d60525f9d8cccf0503baa1311e7ce33feaea1b91e30201732",
+      "path": "oc/sessions-final-escape"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "sessions_interaction": {
+    "upstream": {
+      "status": "PASS",
+      "checks": [
+        {
+          "stage": "initial-owned-root",
+          "provider_counts": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "initial-owned-root",
+            "observed_at_ms": 1790434879140,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+                "table": "session_v2",
+                "columns": [
+                  "agent",
+                  "cost",
+                  "directory",
+                  "fork_boundary",
+                  "fork_session_id",
+                  "id",
+                  "idle_outcome",
+                  "metadata",
+                  "model",
+                  "parent_id",
+                  "path",
+                  "permission",
+                  "project_id",
+                  "resume_attempts",
+                  "revert",
+                  "share_url",
+                  "slug",
+                  "summary_additions",
+                  "summary_deletions",
+                  "summary_diffs",
+                  "summary_files",
+                  "time_archived",
+                  "time_compacting",
+                  "time_created",
+                  "time_idle",
+                  "time_suspended",
+                  "time_updated",
+                  "time_viewed",
+                  "title",
+                  "tokens_cache_read",
+                  "tokens_cache_write",
+                  "tokens_input",
+                  "tokens_output",
+                  "tokens_reasoning",
+                  "version",
+                  "workspace_id"
+                ],
+                "rows": []
+              }
+            ]
+          }
+        },
+        {
+          "stage": "other-root-generated-db",
+          "provider_counts": {
+            "requests": 2,
+            "completed": 2,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "other-root-generated-db",
+            "observed_at_ms": 1790434891737,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+                "table": "session_v2",
+                "columns": [
+                  "agent",
+                  "cost",
+                  "directory",
+                  "fork_boundary",
+                  "fork_session_id",
+                  "id",
+                  "idle_outcome",
+                  "metadata",
+                  "model",
+                  "parent_id",
+                  "path",
+                  "permission",
+                  "project_id",
+                  "resume_attempts",
+                  "revert",
+                  "share_url",
+                  "slug",
+                  "summary_additions",
+                  "summary_deletions",
+                  "summary_diffs",
+                  "summary_files",
+                  "time_archived",
+                  "time_compacting",
+                  "time_created",
+                  "time_idle",
+                  "time_suspended",
+                  "time_updated",
+                  "time_viewed",
+                  "title",
+                  "tokens_cache_read",
+                  "tokens_cache_write",
+                  "tokens_input",
+                  "tokens_output",
+                  "tokens_reasoning",
+                  "version",
+                  "workspace_id"
+                ],
+                "rows": [
+                  {
+                    "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+                    "title": "VIS30-LUNAR lunar geology discussion",
+                    "parent_id": null,
+                    "time_created": 1790434879241,
+                    "time_updated": 1790434889000,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+                    "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "first-root-generated-db",
+          "provider_counts": {
+            "requests": 4,
+            "completed": 4,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "first-root-generated-db",
+            "observed_at_ms": 1790434911824,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+                "table": "session_v2",
+                "columns": [
+                  "agent",
+                  "cost",
+                  "directory",
+                  "fork_boundary",
+                  "fork_session_id",
+                  "id",
+                  "idle_outcome",
+                  "metadata",
+                  "model",
+                  "parent_id",
+                  "path",
+                  "permission",
+                  "project_id",
+                  "resume_attempts",
+                  "revert",
+                  "share_url",
+                  "slug",
+                  "summary_additions",
+                  "summary_deletions",
+                  "summary_diffs",
+                  "summary_files",
+                  "time_archived",
+                  "time_compacting",
+                  "time_created",
+                  "time_idle",
+                  "time_suspended",
+                  "time_updated",
+                  "time_viewed",
+                  "title",
+                  "tokens_cache_read",
+                  "tokens_cache_write",
+                  "tokens_input",
+                  "tokens_output",
+                  "tokens_reasoning",
+                  "version",
+                  "workspace_id"
+                ],
+                "rows": [
+                  {
+                    "id": "ses_f21c39343ffep67oEvM1AykBu7",
+                    "title": "VIS30-OCEAN ocean currents discussion",
+                    "parent_id": null,
+                    "time_created": 1790434897099,
+                    "time_updated": 1790434909234,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                    "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+                  },
+                  {
+                    "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+                    "title": "VIS30-LUNAR lunar geology discussion",
+                    "parent_id": null,
+                    "time_created": 1790434879241,
+                    "time_updated": 1790434889000,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+                    "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "second-root-generated-db",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "second-root-generated-db",
+            "observed_at_ms": 1790434926888,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+                "table": "session_v2",
+                "columns": [
+                  "agent",
+                  "cost",
+                  "directory",
+                  "fork_boundary",
+                  "fork_session_id",
+                  "id",
+                  "idle_outcome",
+                  "metadata",
+                  "model",
+                  "parent_id",
+                  "path",
+                  "permission",
+                  "project_id",
+                  "resume_attempts",
+                  "revert",
+                  "share_url",
+                  "slug",
+                  "summary_additions",
+                  "summary_deletions",
+                  "summary_diffs",
+                  "summary_files",
+                  "time_archived",
+                  "time_compacting",
+                  "time_created",
+                  "time_idle",
+                  "time_suspended",
+                  "time_updated",
+                  "time_viewed",
+                  "title",
+                  "tokens_cache_read",
+                  "tokens_cache_write",
+                  "tokens_input",
+                  "tokens_output",
+                  "tokens_reasoning",
+                  "version",
+                  "workspace_id"
+                ],
+                "rows": [
+                  {
+                    "id": "ses_f21c34747ffeMvhTDvUQPJKlE9",
+                    "title": "Forest ecology discussion VIS30-FOREST",
+                    "parent_id": null,
+                    "time_created": 1790434916549,
+                    "time_updated": 1790434924476,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                    "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+                  },
+                  {
+                    "id": "ses_f21c39343ffep67oEvM1AykBu7",
+                    "title": "VIS30-OCEAN ocean currents discussion",
+                    "parent_id": null,
+                    "time_created": 1790434897099,
+                    "time_updated": 1790434909234,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                    "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+                  },
+                  {
+                    "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+                    "title": "VIS30-LUNAR lunar geology discussion",
+                    "parent_id": null,
+                    "time_created": 1790434879241,
+                    "time_updated": 1790434889000,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+                    "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "all-open",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "all-scope",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "all-before-actions",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "all-before-actions",
+            "observed_at_ms": 1790434934741,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+                "table": "session_v2",
+                "columns": [
+                  "agent",
+                  "cost",
+                  "directory",
+                  "fork_boundary",
+                  "fork_session_id",
+                  "id",
+                  "idle_outcome",
+                  "metadata",
+                  "model",
+                  "parent_id",
+                  "path",
+                  "permission",
+                  "project_id",
+                  "resume_attempts",
+                  "revert",
+                  "share_url",
+                  "slug",
+                  "summary_additions",
+                  "summary_deletions",
+                  "summary_diffs",
+                  "summary_files",
+                  "time_archived",
+                  "time_compacting",
+                  "time_created",
+                  "time_idle",
+                  "time_suspended",
+                  "time_updated",
+                  "time_viewed",
+                  "title",
+                  "tokens_cache_read",
+                  "tokens_cache_write",
+                  "tokens_input",
+                  "tokens_output",
+                  "tokens_reasoning",
+                  "version",
+                  "workspace_id"
+                ],
+                "rows": [
+                  {
+                    "id": "ses_f21c34747ffeMvhTDvUQPJKlE9",
+                    "title": "Forest ecology discussion VIS30-FOREST",
+                    "parent_id": null,
+                    "time_created": 1790434916549,
+                    "time_updated": 1790434924476,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                    "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+                  },
+                  {
+                    "id": "ses_f21c39343ffep67oEvM1AykBu7",
+                    "title": "VIS30-OCEAN ocean currents discussion",
+                    "parent_id": null,
+                    "time_created": 1790434897099,
+                    "time_updated": 1790434909234,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                    "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+                  },
+                  {
+                    "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+                    "title": "VIS30-LUNAR lunar geology discussion",
+                    "parent_id": null,
+                    "time_created": 1790434879241,
+                    "time_updated": 1790434889000,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+                    "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "cwd-scope",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "search-first",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "entered-first",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "reopen-first",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "escape-first",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "reopen-after-escape",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "selected-all-scope",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "selected-second",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "rename-dialog",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "rename-input",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "rename-return",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "renamed-db",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "renamed-db",
+            "observed_at_ms": 1790434969319,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+                "table": "session_v2",
+                "columns": [
+                  "agent",
+                  "cost",
+                  "directory",
+                  "fork_boundary",
+                  "fork_session_id",
+                  "id",
+                  "idle_outcome",
+                  "metadata",
+                  "model",
+                  "parent_id",
+                  "path",
+                  "permission",
+                  "project_id",
+                  "resume_attempts",
+                  "revert",
+                  "share_url",
+                  "slug",
+                  "summary_additions",
+                  "summary_deletions",
+                  "summary_diffs",
+                  "summary_files",
+                  "time_archived",
+                  "time_compacting",
+                  "time_created",
+                  "time_idle",
+                  "time_suspended",
+                  "time_updated",
+                  "time_viewed",
+                  "title",
+                  "tokens_cache_read",
+                  "tokens_cache_write",
+                  "tokens_input",
+                  "tokens_output",
+                  "tokens_reasoning",
+                  "version",
+                  "workspace_id"
+                ],
+                "rows": [
+                  {
+                    "id": "ses_f21c34747ffeMvhTDvUQPJKlE9",
+                    "title": "Forest ecology discussion VIS30-FOREST",
+                    "parent_id": null,
+                    "time_created": 1790434916549,
+                    "time_updated": 1790434924476,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                    "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+                  },
+                  {
+                    "id": "ses_f21c39343ffep67oEvM1AykBu7",
+                    "title": "VIS30-OCEAN ocean currents discussion",
+                    "parent_id": null,
+                    "time_created": 1790434897099,
+                    "time_updated": 1790434909234,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                    "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+                  },
+                  {
+                    "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+                    "title": "VIS30 Renamed lunar geology",
+                    "parent_id": null,
+                    "time_created": 1790434879241,
+                    "time_updated": 1790434966535,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+                    "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "rename-reopened",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "renamed-search",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "entered-selected-root",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "entered-selected-db",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "entered-selected-db",
+            "observed_at_ms": 1790434980374,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+                "table": "session_v2",
+                "columns": [
+                  "agent",
+                  "cost",
+                  "directory",
+                  "fork_boundary",
+                  "fork_session_id",
+                  "id",
+                  "idle_outcome",
+                  "metadata",
+                  "model",
+                  "parent_id",
+                  "path",
+                  "permission",
+                  "project_id",
+                  "resume_attempts",
+                  "revert",
+                  "share_url",
+                  "slug",
+                  "summary_additions",
+                  "summary_deletions",
+                  "summary_diffs",
+                  "summary_files",
+                  "time_archived",
+                  "time_compacting",
+                  "time_created",
+                  "time_idle",
+                  "time_suspended",
+                  "time_updated",
+                  "time_viewed",
+                  "title",
+                  "tokens_cache_read",
+                  "tokens_cache_write",
+                  "tokens_input",
+                  "tokens_output",
+                  "tokens_reasoning",
+                  "version",
+                  "workspace_id"
+                ],
+                "rows": [
+                  {
+                    "id": "ses_f21c34747ffeMvhTDvUQPJKlE9",
+                    "title": "Forest ecology discussion VIS30-FOREST",
+                    "parent_id": null,
+                    "time_created": 1790434916549,
+                    "time_updated": 1790434924476,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                    "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+                  },
+                  {
+                    "id": "ses_f21c39343ffep67oEvM1AykBu7",
+                    "title": "VIS30-OCEAN ocean currents discussion",
+                    "parent_id": null,
+                    "time_created": 1790434897099,
+                    "time_updated": 1790434909234,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                    "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+                  },
+                  {
+                    "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+                    "title": "VIS30 Renamed lunar geology",
+                    "parent_id": null,
+                    "time_created": 1790434879241,
+                    "time_updated": 1790434966535,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+                    "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "selected-root-reopen",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "selected-root-cwd",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "selected-root-all",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "return-current-search",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "returned-current",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "return-current-reopen",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "delete-selected-search",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "delete-confirm",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "armed-db",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "armed-db",
+            "observed_at_ms": 1790435007003,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+                "table": "session_v2",
+                "columns": [
+                  "agent",
+                  "cost",
+                  "directory",
+                  "fork_boundary",
+                  "fork_session_id",
+                  "id",
+                  "idle_outcome",
+                  "metadata",
+                  "model",
+                  "parent_id",
+                  "path",
+                  "permission",
+                  "project_id",
+                  "resume_attempts",
+                  "revert",
+                  "share_url",
+                  "slug",
+                  "summary_additions",
+                  "summary_deletions",
+                  "summary_diffs",
+                  "summary_files",
+                  "time_archived",
+                  "time_compacting",
+                  "time_created",
+                  "time_idle",
+                  "time_suspended",
+                  "time_updated",
+                  "time_viewed",
+                  "title",
+                  "tokens_cache_read",
+                  "tokens_cache_write",
+                  "tokens_input",
+                  "tokens_output",
+                  "tokens_reasoning",
+                  "version",
+                  "workspace_id"
+                ],
+                "rows": [
+                  {
+                    "id": "ses_f21c34747ffeMvhTDvUQPJKlE9",
+                    "title": "Forest ecology discussion VIS30-FOREST",
+                    "parent_id": null,
+                    "time_created": 1790434916549,
+                    "time_updated": 1790434924476,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                    "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+                  },
+                  {
+                    "id": "ses_f21c39343ffep67oEvM1AykBu7",
+                    "title": "VIS30-OCEAN ocean currents discussion",
+                    "parent_id": null,
+                    "time_created": 1790434897099,
+                    "time_updated": 1790434909234,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                    "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+                  },
+                  {
+                    "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+                    "title": "VIS30 Renamed lunar geology",
+                    "parent_id": null,
+                    "time_created": 1790434879241,
+                    "time_updated": 1790434966535,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+                    "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "delete-after",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "deleted-db",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "deleted-db",
+            "observed_at_ms": 1790435009847,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/upstream/home/data/opencode/opencode.db",
+                "table": "session_v2",
+                "columns": [
+                  "agent",
+                  "cost",
+                  "directory",
+                  "fork_boundary",
+                  "fork_session_id",
+                  "id",
+                  "idle_outcome",
+                  "metadata",
+                  "model",
+                  "parent_id",
+                  "path",
+                  "permission",
+                  "project_id",
+                  "resume_attempts",
+                  "revert",
+                  "share_url",
+                  "slug",
+                  "summary_additions",
+                  "summary_deletions",
+                  "summary_diffs",
+                  "summary_files",
+                  "time_archived",
+                  "time_compacting",
+                  "time_created",
+                  "time_idle",
+                  "time_suspended",
+                  "time_updated",
+                  "time_viewed",
+                  "title",
+                  "tokens_cache_read",
+                  "tokens_cache_write",
+                  "tokens_input",
+                  "tokens_output",
+                  "tokens_reasoning",
+                  "version",
+                  "workspace_id"
+                ],
+                "rows": [
+                  {
+                    "id": "ses_f21c34747ffeMvhTDvUQPJKlE9",
+                    "title": "Forest ecology discussion VIS30-FOREST",
+                    "parent_id": null,
+                    "time_created": 1790434916549,
+                    "time_updated": 1790434924476,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                    "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+                  },
+                  {
+                    "id": "ses_f21c39343ffep67oEvM1AykBu7",
+                    "title": "VIS30-OCEAN ocean currents discussion",
+                    "parent_id": null,
+                    "time_created": 1790434897099,
+                    "time_updated": 1790434909234,
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+                    "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "all-after-delete",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "cwd-after-delete",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "final-escape",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        }
+      ],
+      "multi_day": "INCOMPLETE: no genuine archived public record supplied; timestamps never seeded",
+      "preexisting_fixture_rows": [],
+      "fixtures": [
+        {
+          "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+          "title": "VIS30-LUNAR lunar geology discussion",
+          "parent_id": null,
+          "time_created": 1790434879241,
+          "time_updated": 1790434889000,
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+          "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76",
+          "marker": "VIS30-LUNAR",
+          "prompt": "Discuss lunar geology in one short sentence. Include VIS30-LUNAR exactly. Do not use tools."
+        },
+        {
+          "id": "ses_f21c39343ffep67oEvM1AykBu7",
+          "title": "VIS30-OCEAN ocean currents discussion",
+          "parent_id": null,
+          "time_created": 1790434897099,
+          "time_updated": 1790434909234,
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+          "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b",
+          "marker": "VIS30-OCEAN",
+          "prompt": "Discuss ocean currents in one short sentence. Include VIS30-OCEAN exactly. Do not use tools."
+        },
+        {
+          "id": "ses_f21c34747ffeMvhTDvUQPJKlE9",
+          "title": "Forest ecology discussion VIS30-FOREST",
+          "parent_id": null,
+          "time_created": 1790434916549,
+          "time_updated": 1790434924476,
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+          "project_id": "1026665ff9d11b92ff8e4b34629b2a0689caf75b",
+          "marker": "VIS30-FOREST",
+          "prompt": "Discuss forest ecology in one short sentence. Include VIS30-FOREST exactly. Do not use tools."
+        }
+      ],
+      "baseline": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "selected_fixture": {
+        "id": "ses_f21c3d907ffehmmiw0ci2Chj5X",
+        "title": "VIS30-LUNAR lunar geology discussion",
+        "parent_id": null,
+        "time_created": 1790434879241,
+        "time_updated": 1790434889000,
+        "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+        "project_id": "f60d2393432c8924e79f8a0c6eb7f6d67e50fc76"
+      },
+      "scope": "CURRENT_DAY_FUNCTIONAL; multi-day incomplete"
+    },
+    "oc": {
+      "status": "PASS",
+      "checks": [
+        {
+          "stage": "initial-owned-root",
+          "provider_counts": {
+            "requests": 0,
+            "completed": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "initial-owned-root",
+            "observed_at_ms": 1790435021382,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/oc/home/data/oc/oc.sqlite",
+                "table": "sessions",
+                "columns": [
+                  "agent",
+                  "created_at",
+                  "id",
+                  "model",
+                  "parent_id",
+                  "title",
+                  "updated_at"
+                ],
+                "rows": []
+              }
+            ]
+          }
+        },
+        {
+          "stage": "other-root-generated-db",
+          "provider_counts": {
+            "requests": 2,
+            "completed": 2,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "other-root-generated-db",
+            "observed_at_ms": 1790435033910,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/oc/home/data/oc/oc.sqlite",
+                "table": "sessions",
+                "columns": [
+                  "agent",
+                  "created_at",
+                  "id",
+                  "model",
+                  "parent_id",
+                  "title",
+                  "updated_at"
+                ],
+                "rows": [
+                  {
+                    "id": "s-tui-18d8e72a760a9320-37f8ca-0",
+                    "title": "Lunar Geology Overview VIS30-LUNAR",
+                    "parent_id": null,
+                    "created_at": "1790435021",
+                    "updated_at": "1790435031.459",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "first-root-generated-db",
+          "provider_counts": {
+            "requests": 4,
+            "completed": 4,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "first-root-generated-db",
+            "observed_at_ms": 1790435048274,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/oc/home/data/oc/oc.sqlite",
+                "table": "sessions",
+                "columns": [
+                  "agent",
+                  "created_at",
+                  "id",
+                  "model",
+                  "parent_id",
+                  "title",
+                  "updated_at"
+                ],
+                "rows": [
+                  {
+                    "id": "s-tui-18d8e72a760a9320-37f8ca-0",
+                    "title": "Lunar Geology Overview VIS30-LUNAR",
+                    "parent_id": null,
+                    "created_at": "1790435021",
+                    "updated_at": "1790435031.459",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project"
+                  },
+                  {
+                    "id": "s-tui-18d8e72e7bf01172-37f974-0",
+                    "title": "Ocean Currents Overview VIS30-OCEAN",
+                    "parent_id": null,
+                    "created_at": "1790435038",
+                    "updated_at": "1790435045.917",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "second-root-generated-db",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "second-root-generated-db",
+            "observed_at_ms": 1790435062324,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/oc/home/data/oc/oc.sqlite",
+                "table": "sessions",
+                "columns": [
+                  "agent",
+                  "created_at",
+                  "id",
+                  "model",
+                  "parent_id",
+                  "title",
+                  "updated_at"
+                ],
+                "rows": [
+                  {
+                    "id": "s-tui-18d8e72a760a9320-37f8ca-0",
+                    "title": "Lunar Geology Overview VIS30-LUNAR",
+                    "parent_id": null,
+                    "created_at": "1790435021",
+                    "updated_at": "1790435031.459",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project"
+                  },
+                  {
+                    "id": "s-tui-18d8e72e7bf01172-37f974-0",
+                    "title": "Ocean Currents Overview VIS30-OCEAN",
+                    "parent_id": null,
+                    "created_at": "1790435038",
+                    "updated_at": "1790435045.917",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project"
+                  },
+                  {
+                    "id": "s-tui-18d8e731dcdb5363-37f974-1",
+                    "title": "VIS30-FOREST: Forest Ecology in One Sentence",
+                    "parent_id": null,
+                    "created_at": "1790435053",
+                    "updated_at": "1790435059.769",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "all-open",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "all-scope",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "all-before-actions",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "all-before-actions",
+            "observed_at_ms": 1790435070337,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/oc/home/data/oc/oc.sqlite",
+                "table": "sessions",
+                "columns": [
+                  "agent",
+                  "created_at",
+                  "id",
+                  "model",
+                  "parent_id",
+                  "title",
+                  "updated_at"
+                ],
+                "rows": [
+                  {
+                    "id": "s-tui-18d8e72a760a9320-37f8ca-0",
+                    "title": "Lunar Geology Overview VIS30-LUNAR",
+                    "parent_id": null,
+                    "created_at": "1790435021",
+                    "updated_at": "1790435031.459",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project"
+                  },
+                  {
+                    "id": "s-tui-18d8e72e7bf01172-37f974-0",
+                    "title": "Ocean Currents Overview VIS30-OCEAN",
+                    "parent_id": null,
+                    "created_at": "1790435038",
+                    "updated_at": "1790435045.917",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project"
+                  },
+                  {
+                    "id": "s-tui-18d8e731dcdb5363-37f974-1",
+                    "title": "VIS30-FOREST: Forest Ecology in One Sentence",
+                    "parent_id": null,
+                    "created_at": "1790435053",
+                    "updated_at": "1790435059.769",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "cwd-scope",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "search-first",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "entered-first",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "reopen-first",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "escape-first",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "reopen-after-escape",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "selected-all-scope",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "selected-second",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "rename-dialog",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "rename-input",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "rename-return",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "renamed-db",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "renamed-db",
+            "observed_at_ms": 1790435106075,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/oc/home/data/oc/oc.sqlite",
+                "table": "sessions",
+                "columns": [
+                  "agent",
+                  "created_at",
+                  "id",
+                  "model",
+                  "parent_id",
+                  "title",
+                  "updated_at"
+                ],
+                "rows": [
+                  {
+                    "id": "s-tui-18d8e72a760a9320-37f8ca-0",
+                    "title": "VIS30 Renamed lunar geology",
+                    "parent_id": null,
+                    "created_at": "1790435021",
+                    "updated_at": "1790435103.350",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project"
+                  },
+                  {
+                    "id": "s-tui-18d8e72e7bf01172-37f974-0",
+                    "title": "Ocean Currents Overview VIS30-OCEAN",
+                    "parent_id": null,
+                    "created_at": "1790435038",
+                    "updated_at": "1790435045.917",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project"
+                  },
+                  {
+                    "id": "s-tui-18d8e731dcdb5363-37f974-1",
+                    "title": "VIS30-FOREST: Forest Ecology in One Sentence",
+                    "parent_id": null,
+                    "created_at": "1790435053",
+                    "updated_at": "1790435059.769",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "rename-reopened",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "renamed-search",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "entered-selected-root",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "entered-selected-db",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "entered-selected-db",
+            "observed_at_ms": 1790435117220,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/oc/home/data/oc/oc.sqlite",
+                "table": "sessions",
+                "columns": [
+                  "agent",
+                  "created_at",
+                  "id",
+                  "model",
+                  "parent_id",
+                  "title",
+                  "updated_at"
+                ],
+                "rows": [
+                  {
+                    "id": "s-tui-18d8e72a760a9320-37f8ca-0",
+                    "title": "VIS30 Renamed lunar geology",
+                    "parent_id": null,
+                    "created_at": "1790435021",
+                    "updated_at": "1790435103.350",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project"
+                  },
+                  {
+                    "id": "s-tui-18d8e72e7bf01172-37f974-0",
+                    "title": "Ocean Currents Overview VIS30-OCEAN",
+                    "parent_id": null,
+                    "created_at": "1790435038",
+                    "updated_at": "1790435045.917",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project"
+                  },
+                  {
+                    "id": "s-tui-18d8e731dcdb5363-37f974-1",
+                    "title": "VIS30-FOREST: Forest Ecology in One Sentence",
+                    "parent_id": null,
+                    "created_at": "1790435053",
+                    "updated_at": "1790435059.769",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "selected-root-reopen",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "selected-root-cwd",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "selected-root-all",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "return-current-search",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "returned-current",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "return-current-reopen",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "delete-selected-search",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "delete-confirm",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "armed-db",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "armed-db",
+            "observed_at_ms": 1790435144629,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/oc/home/data/oc/oc.sqlite",
+                "table": "sessions",
+                "columns": [
+                  "agent",
+                  "created_at",
+                  "id",
+                  "model",
+                  "parent_id",
+                  "title",
+                  "updated_at"
+                ],
+                "rows": [
+                  {
+                    "id": "s-tui-18d8e72a760a9320-37f8ca-0",
+                    "title": "VIS30 Renamed lunar geology",
+                    "parent_id": null,
+                    "created_at": "1790435021",
+                    "updated_at": "1790435103.350",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project"
+                  },
+                  {
+                    "id": "s-tui-18d8e72e7bf01172-37f974-0",
+                    "title": "Ocean Currents Overview VIS30-OCEAN",
+                    "parent_id": null,
+                    "created_at": "1790435038",
+                    "updated_at": "1790435045.917",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project"
+                  },
+                  {
+                    "id": "s-tui-18d8e731dcdb5363-37f974-1",
+                    "title": "VIS30-FOREST: Forest Ecology in One Sentence",
+                    "parent_id": null,
+                    "created_at": "1790435053",
+                    "updated_at": "1790435059.769",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "delete-after",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "deleted-db",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "sessions_snapshot",
+            "request_id": "deleted-db",
+            "observed_at_ms": 1790435147412,
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/oc/home/data/oc/oc.sqlite",
+                "table": "sessions",
+                "columns": [
+                  "agent",
+                  "created_at",
+                  "id",
+                  "model",
+                  "parent_id",
+                  "title",
+                  "updated_at"
+                ],
+                "rows": [
+                  {
+                    "id": "s-tui-18d8e72e7bf01172-37f974-0",
+                    "title": "Ocean Currents Overview VIS30-OCEAN",
+                    "parent_id": null,
+                    "created_at": "1790435038",
+                    "updated_at": "1790435045.917",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project"
+                  },
+                  {
+                    "id": "s-tui-18d8e731dcdb5363-37f974-1",
+                    "title": "VIS30-FOREST: Forest Ecology in One Sentence",
+                    "parent_id": null,
+                    "created_at": "1790435053",
+                    "updated_at": "1790435059.769",
+                    "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "stage": "all-after-delete",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "cwd-after-delete",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        },
+        {
+          "stage": "final-escape",
+          "provider_counts": {
+            "requests": 6,
+            "completed": 6,
+            "invalid": 0
+          },
+          "provider_unchanged": true,
+          "capture_status": "CAPTURED"
+        }
+      ],
+      "multi_day": "INCOMPLETE: no genuine archived public record supplied; timestamps never seeded",
+      "preexisting_fixture_rows": [],
+      "fixtures": [
+        {
+          "id": "s-tui-18d8e72a760a9320-37f8ca-0",
+          "title": "Lunar Geology Overview VIS30-LUNAR",
+          "parent_id": null,
+          "created_at": "1790435021",
+          "updated_at": "1790435031.459",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project",
+          "marker": "VIS30-LUNAR",
+          "prompt": "Discuss lunar geology in one short sentence. Include VIS30-LUNAR exactly. Do not use tools."
+        },
+        {
+          "id": "s-tui-18d8e72e7bf01172-37f974-0",
+          "title": "Ocean Currents Overview VIS30-OCEAN",
+          "parent_id": null,
+          "created_at": "1790435038",
+          "updated_at": "1790435045.917",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+          "marker": "VIS30-OCEAN",
+          "prompt": "Discuss ocean currents in one short sentence. Include VIS30-OCEAN exactly. Do not use tools."
+        },
+        {
+          "id": "s-tui-18d8e731dcdb5363-37f974-1",
+          "title": "VIS30-FOREST: Forest Ecology in One Sentence",
+          "parent_id": null,
+          "created_at": "1790435053",
+          "updated_at": "1790435059.769",
+          "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/project",
+          "marker": "VIS30-FOREST",
+          "prompt": "Discuss forest ecology in one short sentence. Include VIS30-FOREST exactly. Do not use tools."
+        }
+      ],
+      "baseline": {
+        "requests": 6,
+        "completed": 6,
+        "invalid": 0
+      },
+      "selected_fixture": {
+        "id": "s-tui-18d8e72a760a9320-37f8ca-0",
+        "title": "Lunar Geology Overview VIS30-LUNAR",
+        "parent_id": null,
+        "created_at": "1790435021",
+        "updated_at": "1790435031.459",
+        "directory": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/sessions-live-10/other-project"
+      },
+      "scope": "CURRENT_DAY_FUNCTIONAL; multi-day incomplete"
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-26T15:06:04.601Z",
+  "exit_code": 1
+}

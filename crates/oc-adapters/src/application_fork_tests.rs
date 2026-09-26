@@ -208,6 +208,25 @@ async fn fork_owner_is_request_free_routes_rebased_tool_context_and_rejects_busy
         app.fork_session(source.clone(), boundary).await,
         Err(CoreError::TurnBusy)
     );
+    assert_eq!(
+        app.delete_session(source.clone()).await,
+        Err(CoreError::TurnBusy)
+    );
+    assert!(matches!(
+        app.open_picker_session(
+            source.clone(),
+            String::new(),
+            false,
+            app.tab_deck().await.unwrap()
+        )
+        .await,
+        Err(CoreError::TurnBusy)
+    ));
+    assert_eq!(
+        app.rename_session(source.clone(), "busy rename".into())
+            .await,
+        Err(CoreError::TurnBusy)
+    );
     let mut request = Vec::new();
     let mut buf = [0; 4096];
     let body = loop {
@@ -262,7 +281,7 @@ async fn fork_owner_is_request_free_routes_rebased_tool_context_and_rejects_busy
     }
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
-    let (app, guard, _) = spawn_with_env(&project, &data, env).await.unwrap();
+    let (app, guard, _) = spawn_with_env(&project, &data, env.clone()).await.unwrap();
     assert_eq!(
         app.read_history(fork.session.clone()).await.unwrap().len(),
         4
@@ -275,7 +294,7 @@ async fn fork_owner_is_request_free_routes_rebased_tool_context_and_rejects_busy
             .contains(&fork.session)
     );
     assert_eq!(
-        app.read_history(source)
+        app.read_history(source.clone())
             .await
             .unwrap()
             .iter()
@@ -283,6 +302,22 @@ async fn fork_owner_is_request_free_routes_rebased_tool_context_and_rejects_busy
             .collect::<Vec<_>>(),
         original.iter().map(|r| (&r.0, &r.2)).collect::<Vec<_>>()
     );
+    app.delete_session(source).await.unwrap();
+    assert_eq!(
+        app.read_history(fork.session.clone()).await.unwrap().len(),
+        4
+    );
+    assert!(
+        app.tab_deck()
+            .await
+            .unwrap()
+            .sessions
+            .contains(&fork.session)
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    let (app, guard, _) = spawn_with_env(&project, &data, env).await.unwrap();
+    assert_eq!(app.read_history(fork.session).await.unwrap().len(), 4);
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
 }

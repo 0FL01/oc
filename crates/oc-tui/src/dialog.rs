@@ -96,6 +96,8 @@ pub struct SelectOption {
     pub category: String,
     pub footer: String,
     pub current: bool,
+    pub running: bool,
+    pub destructive: bool,
 }
 
 #[derive(Default)]
@@ -105,6 +107,8 @@ pub struct SelectList {
     offset: Cell<usize>,
     follow_cursor: Cell<bool>,
     center_cursor: Cell<bool>,
+    footer_visible: Cell<bool>,
+    session_categories: Cell<bool>,
     cache: RefCell<Option<FilterCache>>,
 }
 
@@ -145,6 +149,11 @@ impl SelectList {
         options: Rc<Vec<SelectOption>>,
         panel: &TuiPanel,
     ) -> Rc<Vec<SelectOption>> {
+        if *panel == TuiPanel::Sessions {
+            // The application searches the archive before its bounded LIMIT,
+            // preserving update-time order rather than fuzzy relevance.
+            return options;
+        }
         if self.query.is_empty() {
             return options;
         }
@@ -252,7 +261,9 @@ impl SelectList {
         let mut rows = Vec::new();
         let mut category = "";
         for (i, option) in options.iter().enumerate() {
-            if self.query.is_empty() && option.category != category {
+            if (self.query.is_empty() || self.session_categories.get())
+                && option.category != category
+            {
                 if !rows.is_empty() {
                     rows.push(None); // separator
                 }
@@ -288,7 +299,7 @@ impl SelectList {
         size: DialogSize,
         options: &[SelectOption],
     ) {
-        let geo = self.geometry(area, size, options, false);
+        let geo = self.geometry(area, size, options, self.footer_visible.get());
         let max = geo.rows.len().saturating_sub(geo.list_height);
         self.offset
             .set(geo.offset.saturating_add_signed(delta).min(max));
@@ -304,7 +315,7 @@ impl SelectList {
         x: u16,
         y: u16,
     ) -> DialogHit {
-        let geo = self.geometry(area, size, options, false);
+        let geo = self.geometry(area, size, options, self.footer_visible.get());
         let rect = geo.rect;
         if !rect.contains((x, y).into()) {
             return DialogHit::Backdrop;
@@ -341,7 +352,11 @@ impl SelectList {
         footer: Option<&str>,
     ) {
         let theme = Theme::dark();
-        let flat = !self.query.is_empty();
+        self.footer_visible.set(footer.is_some());
+        let sessions = title == "Sessions" || title.starts_with("Sessions for ");
+        self.session_categories.set(sessions);
+        // Donor Sessions has skipFilter=true but does not opt into flat=true.
+        let flat = !sessions && !self.query.is_empty();
         let mut rows: Vec<(Option<usize>, String)> = Vec::new();
         let mut category = "";
         for (i, option) in options.iter().enumerate() {
@@ -393,9 +408,19 @@ impl SelectList {
             area.x + 4,
             area.y + 1,
             area.width - 11,
-            title,
+            if sessions { "Sessions" } else { title },
             Style::default().fg(text).add_modifier(Modifier::BOLD),
         );
+        if sessions && let Some(context) = title.strip_prefix("Sessions") {
+            line(
+                frame,
+                area.x + 12,
+                area.y + 1,
+                area.width.saturating_sub(19),
+                context,
+                Style::default().fg(muted),
+            );
+        }
         line(
             frame,
             area.right() - 7,
@@ -432,7 +457,13 @@ impl SelectList {
                 area.y + 5,
                 area.width - 8,
                 if self.query.is_empty() {
-                    "No items available"
+                    if sessions {
+                        "No sessions available"
+                    } else {
+                        "No items available"
+                    }
+                } else if sessions {
+                    "No sessions found"
                 } else {
                     "No results found"
                 },
@@ -456,14 +487,20 @@ impl SelectList {
             };
             let option = &options[*index];
             let active = *index == self.cursor;
-            let fg = if active {
+            let fg = if option.destructive {
+                slot(theme, "text.action.destructive.base")
+            } else if active {
                 slot(theme, "text.action.primary.$focused")
             } else if option.current {
                 slot(theme, "text.formfield.$selected")
             } else {
                 text
             };
-            let style = if active {
+            let style = if option.destructive {
+                Style::default()
+                    .fg(fg)
+                    .bg(slot(theme, "background.action.destructive.base"))
+            } else if active {
                 Style::default()
                     .fg(fg)
                     .bg(slot(theme, "background.action.primary.$focused"))
@@ -478,7 +515,9 @@ impl SelectList {
                 ),
                 Rect::new(area.x + 1, y, area.width - 2, 1),
             );
-            if option.current {
+            if option.running {
+                line(frame, area.x + 2, y, 1, crate::tools::SPINNER, style);
+            } else if option.current {
                 line(frame, area.x + 2, y, 1, "●", style);
             }
             if title == "Message Actions" {
@@ -511,7 +550,9 @@ impl SelectList {
                 );
                 continue;
             }
-            let right = if flat && !option.category.is_empty() {
+            let right = if sessions && flat && !option.category.is_empty() {
+                option.category.clone()
+            } else if flat && !option.category.is_empty() {
                 format!(
                     "{}{}{}",
                     option.category,
@@ -523,13 +564,22 @@ impl SelectList {
             };
             let right_width = ratatui::text::Line::raw(right.as_str())
                 .width()
-                .min(((area.width - 12) / 2) as usize) as u16;
+                .min(if sessions {
+                    area.width.saturating_sub(8) as usize
+                } else {
+                    ((area.width - 12) / 2) as usize
+                }) as u16;
+            let title = if sessions && option.title.chars().count() > 61 {
+                format!("{}…", option.title.chars().take(60).collect::<String>())
+            } else {
+                option.title.clone()
+            };
             line(
                 frame,
                 area.x + 4,
                 y,
                 area.width.saturating_sub(9 + right_width),
-                &option.title,
+                &title,
                 if active {
                     style.add_modifier(Modifier::BOLD)
                 } else {
@@ -546,14 +596,49 @@ impl SelectList {
             );
         }
         if let Some(footer) = footer {
-            line(
-                frame,
-                area.x + 4,
-                area.y + 6 + height as u16,
-                area.width - 8,
-                footer,
-                Style::default().fg(muted),
-            );
+            if sessions {
+                let y = area.y + 6 + height as u16;
+                let label_style = Style::default().fg(text);
+                line(frame, area.x + 4, y, 6, "delete", label_style);
+                line(
+                    frame,
+                    area.x + 11,
+                    y,
+                    6,
+                    "ctrl+d",
+                    Style::default().fg(muted),
+                );
+                line(frame, area.x + 19, y, 6, "rename", label_style);
+                line(
+                    frame,
+                    area.x + 26,
+                    y,
+                    6,
+                    "ctrl+r",
+                    Style::default().fg(muted),
+                );
+                let width = ratatui::text::Line::raw(footer).width() as u16;
+                let x = area.right().saturating_sub(2 + width).max(area.x + 4);
+                let label = footer.strip_suffix(" ctrl+a").unwrap_or(footer);
+                line(frame, x, y, width, label, label_style);
+                line(
+                    frame,
+                    x + width.saturating_sub(6),
+                    y,
+                    6,
+                    "ctrl+a",
+                    Style::default().fg(muted),
+                );
+            } else {
+                line(
+                    frame,
+                    area.x + 4,
+                    area.y + 6 + height as u16,
+                    area.width - 8,
+                    footer,
+                    Style::default().fg(muted),
+                );
+            }
         }
         let cursor = ratatui::text::Line::raw(self.query.as_str())
             .width()
@@ -578,7 +663,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         TuiPanel::Model => "Select model",
         TuiPanel::Variant => "Select variant",
         TuiPanel::Agents => "Select agent",
-        TuiPanel::Sessions => "Switch session",
+        TuiPanel::Sessions => "Sessions",
         TuiPanel::Rename => unreachable!("rendered above"),
         TuiPanel::Skills => "Skills",
         TuiPanel::Cards => "Tool cards",
@@ -586,9 +671,23 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         TuiPanel::Dcp => "DCP context",
     };
     let size = size_for(state.panel());
-    state
-        .select
-        .render(frame, title, size, &state.modal_options(), None);
+    let sessions_title = state.sessions_title();
+    let title = if state.panel() == &TuiPanel::Sessions {
+        &sessions_title
+    } else {
+        title
+    };
+    state.select.render(
+        frame,
+        title,
+        size,
+        &state.modal_options(),
+        (state.panel() == &TuiPanel::Sessions).then_some(if state.sessions_all_projects() {
+            "current directory ctrl+a"
+        } else {
+            "all projects ctrl+a"
+        }),
+    );
 }
 
 /// The pinned DialogPrompt uses a medium 60-cell surface and a focused,
@@ -739,7 +838,7 @@ fn render_card_detail(frame: &mut Frame<'_>, state: &TuiState) {
 pub fn size_for(panel: &TuiPanel) -> DialogSize {
     match panel {
         TuiPanel::Cards => DialogSize::Xlarge,
-        TuiPanel::Dcp | TuiPanel::Help(_) => DialogSize::Large,
+        TuiPanel::Sessions | TuiPanel::Dcp | TuiPanel::Help(_) => DialogSize::Large,
         _ => DialogSize::Medium,
     }
 }
@@ -747,6 +846,100 @@ pub fn size_for(panel: &TuiPanel) -> DialogSize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn sessions_large_width_preserves_filtered_date_group_and_title_limit() {
+        use ratatui::{Terminal, backend::TestBackend};
+        assert!(matches!(size_for(&TuiPanel::Sessions), DialogSize::Large));
+        let list = SelectList {
+            query: "query".into(),
+            ..SelectList::default()
+        };
+        let options = vec![SelectOption {
+            value: "root".into(),
+            title: "x".repeat(70),
+            category: "Tue Nov 14 2023".into(),
+            footer: "worktree".into(),
+            current: false,
+            running: false,
+            destructive: false,
+        }];
+        for width in [36, 120] {
+            let mut terminal = Terminal::new(TestBackend::new(width, 40)).unwrap();
+            terminal
+                .draw(|frame| list.render(frame, "Sessions", DialogSize::Large, &options, None))
+                .unwrap();
+            let buffer = terminal.backend().buffer();
+            let rows: Vec<String> = (0..40)
+                .map(|y| {
+                    (0..width)
+                        .map(|x| buffer[(x, y)].symbol())
+                        .collect::<String>()
+                })
+                .collect();
+            assert!(
+                rows.iter().any(|row| row.contains("Tue Nov 14 2023")),
+                "footer cannot be constrained to half the viewport"
+            );
+            assert!(
+                rows.iter().any(|row| row.contains("worktree")),
+                "Sessions preserves groups and worktree footer while searching"
+            );
+            if width == 120 {
+                assert!(
+                    rows.iter()
+                        .any(|row| row.contains(&format!("{}…", "x".repeat(60))))
+                );
+            }
+        }
+    }
+    #[test]
+    fn sessions_delete_confirmation_has_contrast_and_plain_footer_labels() {
+        use ratatui::{Terminal, backend::TestBackend};
+        let list = SelectList::default();
+        let options = vec![SelectOption {
+            value: "root".into(),
+            title: "Press ctrl+d again to confirm".into(),
+            category: "Today".into(),
+            footer: "fixture".into(),
+            current: false,
+            running: false,
+            destructive: true,
+        }];
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal
+            .draw(|frame| {
+                list.render(
+                    frame,
+                    "Sessions",
+                    DialogSize::Large,
+                    &options,
+                    Some("all projects ctrl+a"),
+                )
+            })
+            .unwrap();
+        let geometry = list.geometry(Rect::new(0, 0, 120, 40), DialogSize::Large, &options, true);
+        let row = geometry
+            .rows
+            .iter()
+            .position(|item| *item == Some(0))
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        let cell = &buffer[(geometry.rect.x + 4, geometry.list_y + row as u16)];
+        assert_eq!(cell.symbol(), "P");
+        assert_eq!(cell.fg, slot(Theme::dark(), "text.action.destructive.base"));
+        assert_eq!(
+            cell.bg,
+            slot(Theme::dark(), "background.action.destructive.base")
+        );
+        assert_ne!(cell.fg, cell.bg);
+        let footer = &buffer[(
+            geometry.rect.x + 4,
+            geometry.rect.y + 6 + geometry.list_height as u16,
+        )];
+        assert_eq!(footer.symbol(), "d");
+        assert!(!footer.modifier.contains(Modifier::BOLD));
+    }
+
     #[tokio::test]
     async fn rename_medium_dialog_clips_wide_graphemes_on_one_focused_row() {
         use crate::events::KeyAction;
@@ -856,6 +1049,8 @@ mod tests {
         let options = Rc::new(
             (0..10_000)
                 .map(|i| SelectOption {
+                    running: false,
+                    destructive: false,
                     value: format!("model-{i:05}"),
                     title: format!("{} abcdefghijklmnopqrstuvwxyz {i:05}", "a".repeat(790)),
                     category: String::new(),
@@ -927,6 +1122,8 @@ mod tests {
             let options = Rc::new(
                 (0..10_000)
                     .map(|i| SelectOption {
+                        running: false,
+                        destructive: false,
                         value: i.to_string(),
                         title: format!("{body}{i:05}"),
                         category: String::new(),
@@ -968,6 +1165,8 @@ mod tests {
                     "Select variant",
                     DialogSize::Medium,
                     &[SelectOption {
+                        running: false,
+                        destructive: false,
                         value: String::new(),
                         title: "Default".into(),
                         category: String::new(),

@@ -204,7 +204,7 @@ pub const REGISTRY: &[CommandSpec] = &[
         title: "Switch session",
         group: "Session",
         shortcuts: &["ctrl+x l"],
-        aliases: &["sessions", "session", "resume", "continue"],
+        aliases: &["sessions", "resume", "continue"],
         action: CommandAction::OpenSessions,
     },
     CommandSpec {
@@ -443,7 +443,17 @@ mod tests {
 
     #[test]
     fn completes_prefix() {
-        assert_eq!(complete("/s"), ["session", "sessions", "sidebar", "skills"]);
+        assert_eq!(
+            super::dispatch("/session"),
+            Some(super::CommandAction::Help(None))
+        );
+        for alias in ["/sessions", "/resume", "/continue"] {
+            assert_eq!(
+                super::dispatch(alias),
+                Some(super::CommandAction::OpenSessions)
+            );
+        }
+        assert_eq!(complete("/s"), ["sessions", "sidebar", "skills"]);
         assert_eq!(complete("/a"), ["agent", "agents"]);
         assert_eq!(complete("/d"), ["dcp-compress"]);
         for command in super::REGISTRY {

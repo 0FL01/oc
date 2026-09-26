@@ -94,6 +94,8 @@ impl ModelPicker {
                     number(&p["input"]) == Some(0.0) && number(&p["output"]) == Some(0.0)
                 });
                 crate::dialog::SelectOption {
+                    running: false,
+                    destructive: false,
                     value: id.clone(),
                     title,
                     category,
@@ -150,6 +152,8 @@ impl ModelPicker {
         names
             .into_iter()
             .map(|name| crate::dialog::SelectOption {
+                running: false,
+                destructive: false,
                 title: if name == "default" {
                     "Default".into()
                 } else {

@@ -9,11 +9,24 @@ import readline from 'node:readline';
 import {fileURLToPath} from 'node:url';
 import {probeMessageActions} from './message_actions.mjs';
 import {probeBounded} from './bounded.mjs';
+import {probeSessions} from './sessions.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
 const args = Object.fromEntries(process.argv.slice(2).map((v, i, a) => v.startsWith('--') ? [v.slice(2), a[i+1]] : null).filter(Boolean));
 const boundedMode = args['bounded-mode'];
+const sessionsInteraction = args['sessions-interaction'] === 'true';
+if(args['sessions-campaign'] && (!sessionsInteraction || !/^[a-z0-9-]{1,80}$/.test(args['sessions-campaign'])))
+  throw Error('--sessions-campaign requires Sessions and a bounded campaign identifier');
+if(args['sessions-origin'] && (!sessionsInteraction || !['oc','upstream'].includes(args['sessions-origin'])))
+  throw Error('--sessions-origin oc|upstream is only for bounded Sessions continuation');
+if(args['sessions-interaction'] !== undefined && !['true','false'].includes(args['sessions-interaction']))
+  throw Error('--sessions-interaction must be true or false');
+if(sessionsInteraction && (args.geometry!=='true' || args.sidebar!=='hide' || args.sample!=='short' ||
+    Number(args.columns)!==120 || Number(args.rows)!==40 || !args.reference || !args.oc ||
+    args['seed-root'] || args.session || boundedMode || args.tabs==='vertical' ||
+    Object.entries(args).some(([k,v])=>v==='true' && !['sessions-interaction','geometry','build-oc'].includes(k))))
+  throw Error('--sessions-interaction requires exclusive paired short 120x40 geometry sidebar hide');
 if(boundedMode && (!['variants','shell'].includes(boundedMode) || args.geometry!=='true' || args.sidebar!=='hide' ||
     Number(args.columns)!==120 || Number(args.rows)!==40 || !args.reference || !args.oc || args.sample!=='short' ||
     Object.entries(args).some(([k,v])=>v==='true' && !['geometry','build-oc'].includes(k))))
@@ -246,6 +259,7 @@ const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
     ...(boundedMode ? {bounded_mode:boundedMode,bounded_probe_sha256:sha(fs.readFileSync(path.join(here,'bounded.mjs')))} : {}),
+    ...(sessionsInteraction ? {sessions_interaction:true,sessions_probe_sha256:sha(fs.readFileSync(path.join(here,'sessions.mjs')))} : {}),
    models_interaction:modelsInteraction, ...(messageActions ? {message_actions:true,...(messageForkRevert?{message_fork_revert:true}:{})} : {}), protocol: sha(fs.readFileSync(path.join(here,'bridge.py')))}));
 const commands = [];
 commands.push({argv:[process.execPath,...process.argv.slice(1)],role:'capture runner invocation',exit_code:null});
@@ -269,7 +283,7 @@ const sourceManifest = Object.fromEntries([...new Set(sourcePaths.stdout.split('
   .map(name => [name,sha(fs.readFileSync(path.join(repo,name)))]));
 json('source-manifest.json', sourceManifest);
 const lock = {schema_version: 1, started: new Date().toISOString(), runner_version: 1,
-   runner_hashes: Object.fromEntries(['capture.mjs','frontend.js','bridge.py',...(messageActions?['message_actions.mjs']:[])].map(n => [n, sha(fs.readFileSync(path.join(here,n)))])),
+    runner_hashes: Object.fromEntries(['capture.mjs','frontend.js','bridge.py',...(messageActions?['message_actions.mjs']:[]),...(sessionsInteraction?['sessions.mjs']:[])].map(n => [n, sha(fs.readFileSync(path.join(here,n)))])),
   fixture_sha256: fixtureSha, fixture_files: fixtureFiles, oc: {commit, tree, dirty_diff_sha256: sha(diff),
     source_manifest_sha256: sha(canonical(sourceManifest))},
   sources: {upstream_commit: '2670273ff17da96f85c5826ced57aa1b368754fa'}, attempts: [], captures: []};
@@ -279,7 +293,9 @@ if(args['build-oc'] === 'true') {
   lock.oc.build_command = ['cargo','build','--locked'];
 } else lock.oc.build_provenance = 'Existing binary; build/source association not attested by this run';
 fs.copyFileSync(path.join(tools, 'package-lock.json'), path.join(output, 'tooling.package-lock.json'));
-const isolated = path.join(tools, 'runs', path.basename(output));
+if(args['sessions-root'] && (!sessionsInteraction || !path.resolve(args['sessions-root']).startsWith(path.join(tools,'runs')+path.sep)))
+  throw Error('--sessions-root requires Sessions and an owned tooling runs root');
+const isolated = args['sessions-root'] ? path.resolve(args['sessions-root']) : path.join(tools, 'runs', path.basename(output));
 const cleanEnv = {PATH: '/usr/bin:/bin', HOME: path.join(isolated, 'browser-home'),
   LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8', TZ: 'UTC', PLAYWRIGHT_BROWSERS_PATH: path.join(tools, 'browsers')};
 fs.mkdirSync(cleanEnv.HOME, {recursive: true});
@@ -333,6 +349,7 @@ try {
        ...(scanner ? {scanner_cancel:scannerCancel} : {}),
        ...(modelsInteraction ? {models_interaction:true,catalog_extension:'fixture-scroll-00..11'} : {})}};
   for (const origin of ['upstream','oc']) {
+    if(sessionsInteraction && args['sessions-origin'] && origin!==args['sessions-origin'])continue;
     profile.columns = Number(args.columns || 160); profile.rows = Number(args.rows || 48);
     const binary = args[origin === 'upstream' ? 'reference' : 'oc'];
     if (!binary) { lock.attempts.push({origin, status: 'SKIPPED', reason: 'No explicit binary supplied'}); continue; }
@@ -344,7 +361,10 @@ try {
     const spec = {binary, origin, columns: profile.columns, rows: profile.rows, isolated_root: isolated, fixture,
       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,
       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
-       agent_profile: args['agent-profile'] === 'true', bounded_mode:boundedMode,
+        agent_profile: args['agent-profile'] === 'true', bounded_mode:boundedMode, sessions_interaction:sessionsInteraction,
+        sessions_resume:!!args['sessions-root'],
+        sessions_campaign:args['sessions-campaign'] || 'legacy',
+        sessions_prior_evidence:args['sessions-evidence'] ? path.resolve(args['sessions-evidence'],origin,'sessions-checks.json') : null,
        seed_root: args['seed-root'], session: args.session, tab_restart: tabRestart || renameSession,
           regenerate_title: regenerateTitle, two_turn:twoTurn || (messageActions && origin==='oc'), models_interaction:modelsInteraction,
         ...(scanner ? {scanner:true, animations:scannerAnimation} : {})};
@@ -464,7 +484,18 @@ try {
         lock.attempts.push({origin,status:origin==='oc'?'EXECUTED_NATIVE_ROUTE':'EXECUTED_ORIGINAL_CHILD_ROUTE'});
         continue;
       }
-      const initial = await waitFor(f => /Build|Untitled session|MiMo-V2.6-Flash Free/.test(f.text), 'initial prompt');
+       const initial = await waitFor(f => /Build|Untitled session|MiMo-V2.6-Flash Free/.test(f.text) ||
+         (sessionsInteraction && f.text.includes('Ask anything')), 'initial prompt');
+       if(sessionsInteraction) {
+         const checks=await probeSessions({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,priorEvidence:spec.sessions_prior_evidence,
+           selectedScope:args['sessions-selected'] || 'all',
+           control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
+           relaunch:async()=>{generation=1;await page.evaluate(()=>{term.reset();term.clear();});
+             child.stdin.write(JSON.stringify({kind:'relaunch'})+'\n');}});
+         lock.sessions_interaction ??= {};lock.sessions_interaction[origin]=checks;
+         if(checks.status!=='PASS')result=1;
+         json('capture.lock.json',lock);continue;
+       }
       if(spec.agent_profile && !initial.text.includes('Reader · MiMo-V2.6-Flash Free'))
         throw Error('Explicit paired profile is not selected in the initial prompt');
       if(args.geometry === 'true') await capture('home', initial, 'CAPTURED');
