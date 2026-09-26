@@ -44,6 +44,18 @@ Default product profile: read/search в trusted project allow; apply_patch/bash/
 
 Project config/AGENTS, agent body, command template и skill body могут влиять на instruction/user/tool-result data, но не расширять trusted host boundary или central permissions. Agent restrictions только сужают policy, а admission всё равно повторяется при tool execution. Tool/MCP descriptions и fetched pages — untrusted input. Native extension — trusted code с правами процесса, не sandbox.
 
+### Approved T44 approval contract (VIS36; implementation pending)
+
+Application owns cancellable pending query/events and typed replies tied to actual
+operation/session/pinned generation. Once is invocation-local; Always commits donor
+project-scoped owner-generated save patterns before acknowledgement and reevaluates
+pending requests. Ask is user-approvable; effective Deny and structural ceilings remain
+authoritative. Plain rejection interrupts execution; feedback uses corrected continuation.
+Waiting is pre-execution, not started/unknown effect; cancel/stale replies/restart never
+authorize replay. Autoaccept answers once without grants with real Settings/config/CLI
+controls; headless without a consumer fails, explicit supported --auto has a once-consumer.
+This is a future implementation contract, not evidence that the channel exists today.
+
 ## Prompt assembly
 
 Один runtime assembler строит provider input из typed lanes: compiled runtime/tool/security contract → selected primary-agent body → ordered AGENTS fragments → DCP fixed/nudge fragments → history projection → current user input. Каждая fixed lane имеет provenance/digest/byte accounting и stable delimiter. Expanded command остаётся user input; loaded skill остаётся ordinary tool result, никогда system text. DCP не сжимает fixed config lanes и не добавляет их повторную копию на каждом turn.

@@ -726,7 +726,7 @@
     {
       "id": "T44",
       "phase": "M9",
-      "title": "TUI pixel parity с opencode v2.0.12",
+      "title": "TUI pixel parity с opencode v2.0.12, включая полный Approve permission lifecycle/UI (VIS36)",
       "depends_on": [],
       "tests": [
         "A02"

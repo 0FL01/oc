@@ -268,9 +268,76 @@ Pinned источники VIS34: U15–U17 в `SOURCES.json`.
 
 Pinned источники: U18–U20 в `SOURCES.json`. VIS35 — спецификация, не executed PASS.
 
+## Audited Approve permission parity — VIS36
+
+Утверждённый контракт будущей реализации, не claim существующего approval backend.
+Все необходимые dependencies поддерживаемых действий обязательны; отсутствие backend
+не заменяется Unsupported waiver или инертным UI. Pinned sources: U20–U23.
+
+1. **Contract/mappings.** Зафиксировать native tool → permission action → presentation,
+   actual resources и отдельные owner-generated save patterns. apply_patch использует
+   donor edit preview. Реализовать donor project identity для grants: Git root/origin,
+   subdirectories/worktrees/clones/non-Git; не подменять session/Location directory.
+2. **Owner lifecycle.** Existing application façade владеет authoritative pending
+   query, asked/resolved events и typed once/always/reject reply с optional feedback.
+   Request связан с session/turn/call/operation, pinned Location/config generation и
+   agent context. Event loss/attach восстанавливается query. Wait cancellable; inbox
+   принимает reply/cancel; DB transaction не держать через wait. Stale/duplicate/wrong
+   replies не выпускают другую операцию и не создают grants. Cancel/shutdown/drop
+   очищают waiters. Restart не авторизует replay старого ожидания.
+3. **Leaf admission/durability.** Policy evaluation чистая; один подготовленный leaf
+   request и invocation-local Once покрывают exact resources и rechecks, не весь lane.
+   Интегрировать все supported tools, включая patch move targets, shell cwd/command/save,
+   read/search/webfetch/skill/MCP/subagent/compress. После wait revalidate prerequisites.
+   Порядок: prepare/validate → approval → revalidate → durable execution intent → effect
+   → durable outcome. Если нужен durable waiting-state, он pre-execution, не started
+   с ложным unknown effect. Plain Reject прерывает runner, отклоняет остальные pending
+   той же session и не исполняет remaining batch; feedback rejection имеет corrected
+   continuation. Typed outcomes сохраняют call/result graph, не превращаются в error string.
+4. **Always.** Existing SQLite, deduplicated project/action/save-pattern rows, commit
+   до persistent acknowledgement, save failure не success. Сначала effective configured
+   Deny, затем saved allowances для Ask; grants не restrictive authority layer. Ask
+   approvable, Deny/structural ceilings нет. Переоценить eligible pending с их agent
+   context. Once/autoaccept не создают permanent grants. Проверить restart/isolation.
+5. **Original UI/previews.** Один request-keyed lower surface/fullscreen state machine,
+   не Select modal/per-tool dialogs. Root own/descendant queue в donor order, reply
+   адресован request session, direct child route соблюдает original composer flow.
+   Request change reset selection/fullscreen/reject stage. Geometry/theme, inline
+   maxHeight 15, terminal breakpoint <80, Once/Always iff save/Reject, Always patterns,
+   keyboard wraparound/mouse/Enter, configurable fullscreen default Ctrl+F, app.exit
+   bindings и Esc minimize-before-reject. Child feedback separate editor с confirm,
+   cancel и Ctrl+C clear-before-cancel. Полный draft/chips/mentions/cursor сохранён;
+   reply error не удаляет pending UI. Matching tool warning/denied и family tab attention.
+   Real owner previews до effect: command/path/pattern/URL/edit diff, metadata precedence,
+   first files diff/raw-patch/no-diff fallback, permission word-wrap и auto split >120.
+   Completed patch metadata — confirmed effects, не preview. Не добавлять LSP/JS hooks
+   или обход trusted roots ради presenter branches.
+6. **Mode controls.** Default prompt, admitted cli.json/jsonc session.permissions,
+   working Settings → Permissions, /settings/Open settings/filtered palette entry,
+   persistence/error/reload и CLI --auto precedence с donor compatibility aliases.
+   Autoaccept once-consumer для already-pending/new root/child asks, не Deny/Always;
+   truthful capability/auto marker. Headless без consumer ApprovalRequired/nonzero;
+   donor run --auto entry требует real explicit once-consumer, не unsupported stub.
+7. **Shared qualification.** Owner lifecycle/grants/recovery integration + real paired
+   PTY full styled-cell/PNG + independently verified effects. Once/reask, Always/project
+   identity/restart/isolation, Deny/mixed resources, no-save, root reject/child feedback,
+   family queue/reply errors/cancel/shutdown/stale replies/storage failure/headless modes,
+   Settings/config/CLI precedence, representative supported preview branches,
+   narrow/fullscreen и 79/80,120/121. Reuse VIS35 patch matrix и A09 live evidence,
+   без cross-product каждого tool/viewport/state. Behavior PASS отдельно от visual;
+   native-only goldens/crop/mask не закрывают parity.
+
+Sequence: contract → owner → leaf metadata/grants → UI/modes → qualification.
+Текущий VIS31/32 slice удобно завершить для ownership, но это не hard dependency.
+UI scaffold после DTO, patch preview qualification после real preflight. VIS36 нужен
+для accept/reject VIS35, не independent executor/completed cards; VIS34 независим.
+Не добавлять T44 depends_on completion T43/T45. KISS: existing owner/channels/storage/
+editor/theme/diff, один pending map/state machine; без нового task/framework/DB/policy
+engine/grant dashboard. VIS36 NOT_RUN до actual qualification, не full T44 closure.
+
 ## Обязательные результаты нового прохода
 
-V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS35 из ACCEPTANCE.json:
+V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS36 из ACCEPTANCE.json:
 1. Изолированный upstream reference + identical fixture/state для трёх пользовательских экранов.
 2. Исправленные UI event loop/keymap и диагностируемый MCP error без потери draft.
 3. Shell/sidebar/tabs/prompt/footer из реальных данных с геометрией эталона.

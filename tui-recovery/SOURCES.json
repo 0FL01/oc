@@ -327,6 +327,33 @@
       "locator": "22–110 EditBody; PermissionPrompt",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/permission.tsx#L22-L110",
       "purpose": "File-mutation permission preview and diff presentation"
+    },
+    {
+      "id": "U21",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/permission.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "103–335 pending/assert/reply/cleanup; permission/saved.ts:63–81 SQLite grants; project.ts:244–249,329–360 project identity",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/permission.ts#L103-L335",
+      "purpose": "Real approval lifecycle, decline/feedback, configured denial, project Always and pending reevaluation"
+    },
+    {
+      "id": "U22",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/permission.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "113–622 PermissionPrompt/RejectPrompt/SessionQuestion; util/permission.ts:23–167 presentation; routes/session/index.tsx:185–219,1351–1418 family/placement",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/permission.tsx#L113-L622",
+      "purpose": "Lower prompt/fullscreen, options, focused input, child feedback, previews and request routing"
+    },
+    {
+      "id": "U23",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/context/permission.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "5–15 mode; routes/session/index.tsx:243–259 once autoaccept; component/dialog-config.tsx:114–122 Settings; config/keybind.ts:275 fullscreen; cli/src/commands/commands.ts:26–35 flags; cli/src/run/noninteractive.ts:135–149 headless consumer",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/permission.tsx#L5-L15",
+      "purpose": "Real prompt/autoaccept mode controls and nonpersistent once consumers, distinct from Always grants"
     }
   ],
   "external_primary_sources": [

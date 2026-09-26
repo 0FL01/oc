@@ -1,6 +1,6 @@
 # Test plan — общая методика
 
-Канонические scenario IDs и expected behavior хранятся только в `planning/acceptance.json`; authoritative task owner — только в `planning/tasks.json`. Task-specific executable tests и reports используют те же IDs. Повторный regression run допустим, но не создаёт второго owner.
+Канонические общепродуктовые scenario IDs и expected behavior хранятся в `planning/acceptance.json`; T44 task-local VIS specifications — в `tui-recovery/ACCEPTANCE.json`, без дублирования в общем registry. Authoritative task owner — только `planning/tasks.json`. Executable tests/reports используют соответствующие IDs; повторный regression run не создаёт второго owner.
 
 `A01`–`A13` — отдельный namespace high-level gates из точных headings `GOAL.md`.
 Task `tests` может ссылаться на такой общий gate (как T44/T45), но это не detailed

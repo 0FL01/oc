@@ -308,6 +308,15 @@ Subagent card связан с реальным parent/child session и status; T
 незавершённые обязательства. Не представлять background/notice/reap как готовые только
 потому, что появилась карточка с таким названием.
 
+## Permission slice — VIS36 (V05/V06 prerequisites)
+
+Следовать audited sequence в T44_CONTRACT_AMENDMENT.md: real owner approval lifecycle
+→ leaf preflight metadata/grants → lower prompt/focus/fullscreen/previews/mode controls
+→ shared VIS36/VIS35 qualification. Не обычный Select modal V04. До qualification
+VIS35 accept/reject нужны real wait/reply, typed rejection, project Always и effects.
+Ask approvable, effective Deny/trust ceilings нет. VIS31/32 не hard prerequisite;
+VIS34 и independent patch-card work не блокируются. Не дублировать patch/live matrix.
+
 ## V07. Интеграционные и негативные проверки до визуального finish
 
 Выполнить SAFETY_REGRESSIONS.md. Особое внимание:

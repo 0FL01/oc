@@ -50,6 +50,17 @@ D15 (2026-09-22): permission resource maps сохраняют порядок п�
 
 D18 (2026-09-23, решение владельца): поддержка OpenCode Zen полностью удалена из продукта. Удалены `zen_catalog.rs`, `zen_chat.rs`, actual-binary suite `zen_free.rs`, вся wiring в config/composition/runtime/application/provider/lib, scope-документ `docs/goals/2026-09-23-zen-free-chat.md`, регистрация T48 и acceptance ZEN01–ZEN03; `GOAL.md`, `docs/TEST_PLAN.md` и planning-реестры возвращены к состоянию до Zen. Основания: free tier провайдера закрыт для любого не-OpenCode клиента (`403 FreeTierError`, подтверждено ограниченными пробами), а единственный известный обход — подмена идентичности — запрещён. Ранее оформленные под этот scope решения (D16/D17) сняты вместе с ним; общий принцип сохраняется: `oc` не мимикрирует под другие клиенты и не обходит access-контроль провайдеров, в том числе через shell или subagent. Реальные live-прогоны остаются на OpenProxy; платный Zen key, OpenCode Go или локальный OpenAI-compatible сервер возможны только как новый отдельно утверждённый scope. История: `evidence/T48/report.md`, `evidence/T48/free-tier-gate.md`, `evidence/T48/removed.md`.
 
+### Owner-approved T44 permission follow-up (2026-09-26)
+
+VIS36 в T44 amendment закрывает открытый interactive approval gap D15 обязательной
+реализацией owner request/reply, typed rejection, project Always, original UI и
+autoaccept/config/Settings/CLI dependencies. Это утверждение плана, не executed PASS.
+Ask user-approvable; effective Deny и structural central/agent/child/trust ceilings
+сохраняются. Saved grants не переписывают restrictive policy. No-channel headless
+ApprovalRequired остаётся; explicit supported --auto требует реального once-consumer.
+Новые policy/UI различия не скрывать под claim identical donor algebra. Не добавлять
+новый task/framework или dependency на completion всего T43/T45.
+
 ## Остаточные prerequisites, не новые Q
 
 Secrets/connectivity/наличие нужной live модели проверяются just-in-time в T16/T27, не в T00. Missing → конкретный external blocker, не угадывание credentials. Docker проверяется только перед первым использованием и иначе `NOT_USED`. Exact versions Cargo dependencies/rmcp protocol/TLS проверяются compile spike. Реальная browser-служба требуется только для opt-in smoke. Monetary hard limit внешнего authoring-agent не задан; документация его не исполняет. Semantic DCP качества проверяются fixtures/live task, а не декларацией.

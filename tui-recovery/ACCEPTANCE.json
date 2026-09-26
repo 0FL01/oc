@@ -484,6 +484,21 @@
       "mandatory": true,
       "execution_status": "NOT_RUN",
       "evidence": []
+    },
+    {
+      "id": "VIS36",
+      "step": "V05",
+      "title": "Full supported-action Approve permission lifecycle and OC2 UI parity",
+      "expected": "Implement real application-owned pending query/events/replies and cancellable pre-effect waiting, scoped to operation/session/pinned generation. Leaf-prepared requests carry actual resources, explicit save patterns and previews; invocation-local Once covers rechecks without widening authority. Effective Deny and structural ceilings cannot be bypassed. Typed plain Reject interrupts execution and rejects remaining same-session pending requests; child feedback follows corrected continuation. Waiting is not started/unknown effect; cancel/shutdown/drop/stale replies/restart never authorize replay. Always commits deduplicated donor-project-identity grants before acknowledgement, survives restart, isolates unrelated projects and reevaluates eligible pending requests; Once/autoaccept write no grants. Reproduce original lower prompt/fullscreen geometry/theme, root/descendant routing, request-keyed reset, supported previews including edit diff metadata precedence/word wrap, conditional Always/pattern explanation, mouse/keyboard/effective shortcuts/app.exit/Esc, child feedback, complete draft restoration, reply errors, tool warning/denied and tab attention. Implement Settings/palette/config/CLI prompt-autoaccept controls and explicit once-consumers, including supported headless auto; no-channel headless fails. Qualify actual effects with owner integration and paired full styled-cell/PNG evidence, covering persistence/project identity, denial, lifecycle, mode precedence and 79/80,120/121 boundaries. Share patch accept/reject evidence with VIS35 without circular completion dependency or duplicated tool/viewport/state cross-product; no new framework/dashboard or Unsupported waiver. Behavior and visual results remain separate; existing native policy differences are disclosed, not relaxed or claimed identical.",
+      "sources": [
+        "U20",
+        "U21",
+        "U22",
+        "U23"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
     }
   ]
 }

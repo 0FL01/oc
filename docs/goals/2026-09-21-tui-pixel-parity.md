@@ -15,7 +15,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 The owner's reviewed [T44 amendment](../../tui-recovery/T44_CONTRACT_AMENDMENT.md)
 supersedes the weaker self-authored interpretation below. Execute V00–V09 from
 [IMPLEMENTATION_GUIDE](../../tui-recovery/IMPLEMENTATION_GUIDE.md), all mandatory
-VIS01–VIS35 in [ACCEPTANCE.json](../../tui-recovery/ACCEPTANCE.json), and
+VIS01–VIS36 in [ACCEPTANCE.json](../../tui-recovery/ACCEPTANCE.json), and
 [SAFETY_REGRESSIONS](../../tui-recovery/SAFETY_REGRESSIONS.md). These are specifications,
 not executed results or a second task engine. `progress.py` remains the task-state owner.
 
@@ -89,6 +89,18 @@ This documents approval, not implementation or permission to resume parked code.
   - Primary evidence: git log/status + gate output.
   - Status: pending
   - Evidence:
+
+### Permission parity — VIS36 (R5)
+
+Full supported-action Approve parity is mandatory: real request/reply lifecycle,
+Once/Always/Reject and feedback, project-persisted grants, original lower prompt,
+fullscreen/focus/previews, root/child routing, tool/tab attention, Settings/palette,
+config/CLI controls and autoaccept. Follow the audited amendment sequence; verify
+actual effects and full paired styled-cell/PNG frames, not inert UI or Unsupported
+waivers. Effective Deny and structural trust boundaries remain authoritative;
+disclose policy differences without claiming identical donor policy algebra.
+VIS36 supplies VIS35's approval prerequisite, not a completion dependency on
+VIS35 or all of T43/T45. Existing independent compaction/card work is not blocked.
 
 ### Constraints
 

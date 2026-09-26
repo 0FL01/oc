@@ -1,4 +1,4 @@
-# T44 — TUI pixel parity с opencode v2.0.12
+# T44 — TUI pixel parity с opencode v2.0.12, включая полный Approve permission lifecycle/UI (VIS36)
 
 Status: active
 Spec: ../../../docs/goals/2026-09-21-tui-pixel-parity.md
