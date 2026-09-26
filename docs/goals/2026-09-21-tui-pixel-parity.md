@@ -2,7 +2,7 @@
 
 Status: active
 Source: user instructions 2026-09-21 and reviewed recovery amendment 2026-09-22, reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`).
-Last updated: 2026-09-26
+Last updated: 2026-09-27
 
 ## Objective
 
@@ -28,6 +28,15 @@ This documents approval, not implementation or permission to resume parked code.
 ## Frozen Contract
 
 ### Required Outcomes
+
+Owner-approved compaction configuration/runtime parity (2026-09-27) is mandatory
+under T44/VIS34. Follow the [compaction configuration amendment](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#compaction-configurationruntime-parity--дополнение-к-vis34):
+reproduce pinned OC2 TS normalization, diagnostics, auto/manual semantics and
+automatic trigger behavior. The shared config
+`{"compaction":{"auto":true,"prune":true}}` must load without requiring user edits.
+OC2 omits legacy `prune` with an unsupported diagnostic; it does not enable a
+separate pruning algorithm. Approval records the contract, not implemented parity
+or qualification; VIS34 remains open until its backend and paired UI gates pass.
 
 - R1: Reconnaissance artifacts exist and are authoritative.
   - Source: user instruction (recon by part of @general).

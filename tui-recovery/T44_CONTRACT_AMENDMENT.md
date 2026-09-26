@@ -228,6 +228,75 @@ R6: pending до full rerun на финальном code SHA; сохранить
 
 Pinned источники VIS34: U15–U17 в `SOURCES.json`.
 
+### Compaction configuration/runtime parity — дополнение к VIS34
+
+Утверждено владельцем 2026-09-27 после RECON. Эталон: OC2 v2.0.12, commit
+`2670273ff17da96f85c5826ced57aa1b368754fa`.
+Владелец: T44; это дополнение VIS34, не отдельный task tracker.
+Утверждение не является claim реализации или PASS qualification.
+
+1. Config normalization.
+   - `auto` принимает boolean; default `true`.
+   - `prune` и `tail_turns` пропускаются с диагностикой `unsupported`,
+     без отказа запуска и без изменения runtime policy.
+   - Некорректные recognized values пропускаются с диагностикой `invalid`;
+     корректные соседние поля и предыдущие config layers сохраняются.
+   - Неизвестные compaction keys обрабатываются как в TS normalizer.
+   - `keep.tokens` имеет приоритет над `preserve_recent_tokens`;
+     `buffer` имеет приоритет над `reserved`. Различающиеся корректные
+     native/legacy значения сопровождаются диагностикой `conflict`.
+   - Сохраняются pinned defaults, порядок layers и provenance.
+   - Diagnostics содержат source, field path, kind и action;
+     не включают raw config, credentials или значения секретов.
+   - Это узкая нормализация compaction, не blanket-ignore ошибок config:
+     остальные validation, permissions и trust boundaries не ослабляются.
+
+2. `auto` runtime parity.
+   - `auto=true` включает threshold-triggered compaction и допускает
+     установленный OC2 overflow recovery.
+   - `auto=false` отключает оба автоматических пути, сохраняя ручной
+     `/compact` и palette action.
+   - Сверить `estimateTokens`, input/context/output limits и threshold
+     boundary с TS; provider usage и новые tool results учитываются
+     согласно эталону.
+   - Воспроизвести guards после completed checkpoint, включая restart:
+     не запускать повторную автоматическую compaction до появления
+     требуемой primary-response usage anchor.
+   - Сверить failure/cancel и ограничение overflow rebuild с владельцем
+     TS runner; не продолжать ошибочный путь как успешную compaction.
+
+3. Реализация по срезам.
+   - Переиспользовать текущий незакоммиченный compaction runtime,
+     предварительно сверив Git status/diff; не стирать чужую работу.
+   - Сначала исправить normalization и diagnostic delivery.
+   - Затем закрыть подтверждённые runtime расхождения.
+   - После этого выполнить существующие VIS34 UI/replay gates.
+   - Не смешивать session compaction с DCP compression/purge и не
+     добавлять отдельный legacy pruning-алгоритм, отсутствующий в OC2.
+
+4. Qualification.
+   - Differential fixtures из pinned TS normalizer: normalized config
+     и ordered diagnostics сравниваются с Rust.
+   - Покрыть `prune=true/false/отсутствует`, `auto=true/false/default`,
+     invalid leaves, aliases/conflicts и layered configuration.
+   - Проверить настоящие TUI/headless entry points с
+     `{"compaction":{"auto":true,"prune":true}}` на fake provider.
+   - Проверить threshold below/at boundary, usage anchor, tool results,
+     `auto=false/manual`, overflow, failure/cancel и checkpoint/restart.
+   - Сохранить raw-history, causal tool pairs, DCP и conversation-only
+     Revert/Redo invariants.
+   - Пересобрать и проверить `target/release/oc`, а не только debug binary.
+   - VIS34 остаётся открытым до прохождения backend и paired UI gates;
+     existing evidence/status не заменять утверждением этого плана.
+
+Источники дополнения в pinned donor `opencode/`:
+`packages/core/src/config/normalize.ts:318–374,765–777`;
+`packages/core/src/config.ts:104–133`;
+`packages/core/src/config/plugin/compaction.ts:15–22`;
+`packages/core/test/config/normalization.test.ts:369–387`;
+`packages/core/src/session/compaction.ts:174–207,742–791`;
+`packages/core/src/session/runner/llm.ts:220–225,265–270`.
+
 ## File-mutation parity — VIS35
 
 1. Сохранить единый `apply_patch(patchText)` для всех моделей; write/edit не
