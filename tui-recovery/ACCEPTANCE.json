@@ -383,6 +383,19 @@
       "mandatory": true,
       "execution_status": "NOT_RUN",
       "evidence": []
+    },
+    {
+      "id": "VIS29",
+      "step": "V05",
+      "title": "Ctrl+T cycles active model variants",
+      "expected": "In a real PTY, Ctrl+T cycles the active model from default through only its dynamically declared named variants in pinned upstream order and back to default. The selection is visible and persists according to upstream behavior, without changing model or sending a request on the shortcut; the next accepted prompt uses the selected variant in the provider request, including reasoning.effort when that model variant declares it. No named variants means Ctrl+T is a no-op. Paired original/native styled-cell frames and request/persistence evidence are required; no hard-coded variant names or levels.",
+      "sources": [
+        "U02",
+        "U05"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
     }
   ]
 }
