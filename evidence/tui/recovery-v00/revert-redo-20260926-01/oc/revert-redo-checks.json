@@ -1,0 +1,19 @@
+{
+  "status": "FAILED",
+  "checks": [
+    {
+      "stage": "failure",
+      "counts": {
+        "requests": 0,
+        "completed": 0,
+        "transcript": 0,
+        "titles": 0,
+        "tools": 0,
+        "invalid": 0
+      },
+      "reason": "Timed out waiting for home"
+    }
+  ],
+  "origin": "oc",
+  "reason": "Timed out waiting for home"
+}

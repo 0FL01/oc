@@ -222,6 +222,15 @@ class Provider(BaseHTTPRequestHandler):
                     text = 'BOUNDED-SHELL: both real printf tools completed.'
                 record['bounded_request_index'] = index
             record['valid'] = valid
+        if spec.get('revert_redo'):
+            expected_prompt = f'VIS33 user turn {turn_number + 1}. No tools.'
+            valid = self.path == '/v1/responses' and body.get('stream') is True and body.get('model') == 'fixture-model-1'
+            valid = valid and not tool_results and (title_round <= 1 if is_title else
+                    0 <= turn_number < 3 and expected_prompt in serialized)
+            text = 'VIS33 saved tail fixture' if is_title else f'VIS33-ANSWER-{turn_number + 1}: completed.'
+            record.update(valid=valid, prompt_present=is_title or expected_prompt in serialized,
+                          fixture_prompt=None if is_title else expected_prompt,
+                          fixture_response=text, request_input=body.get('input'), instructions=body.get('instructions'))
         emit(record)
         if not valid:
             self.send_error(400, 'fixture contract rejected')
@@ -350,6 +359,8 @@ for path in [home, project, *[home / x for x in ('config/opencode', 'cache', 'da
     path.mkdir(parents=True, exist_ok=True)
 if spec.get('sample') == 'tools':
     (project / 'fixture-note.txt').write_text('fixture-content\n')
+if spec.get('revert_redo'):
+    (project / 'vis33-owner-approved.txt').write_text('VIS33 conversation-only fixture: preserve these bytes.\n')
 settings = {'baseURL': f'http://127.0.0.1:{server.server_port}/v1', 'apiKey': 'fixture-not-a-secret'}
 models = {m['id']: {k: v for k, v in m.items() if k not in ('id', 'variants')} for m in catalog['models']}
 if spec.get('sessions_interaction'):
@@ -408,6 +419,11 @@ else:
         'tabs': {'layout': spec.get('tabs', 'horizontal')}}
 if spec.get('devtools') is not None:
     cli_config['debug'] = {'devtools': spec['devtools']}
+if spec.get('revert_redo'):
+    config['snapshots'] = False
+    cli_config['keybinds'] = {'session.redo':'<leader>r'}
+    emit({'kind':'revert_redo_fixture_config','snapshots':False,'cli_keybinds':cli_config['keybinds'],
+          'files':['config/opencode/opencode.json','config/opencode/cli.json']})
 (home / 'config/opencode/cli.json').write_text(json.dumps(cli_config))
 (home / 'config/opencode/opencode.json').write_text(json.dumps(config))
 if spec.get('startup_error'):
@@ -487,7 +503,39 @@ try:
                     while b'\n' in pending:
                         line, pending = pending.split(b'\n', 1)
                         command = json.loads(line)
-                        if command['kind'] == 'sessions_snapshot' and spec.get('sessions_interaction'):
+                        if command['kind'] == 'revert_snapshot' and spec.get('revert_redo'):
+                            observations = []
+                            for database in (home / 'data').rglob('*'):
+                                if database.suffix not in ('.db', '.sqlite', '.sqlite3'): continue
+                                with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as connection:
+                                    connection.row_factory = sqlite3.Row
+                                    tables = {r[0] for r in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+                                    if 'conversation_state' in tables:
+                                        rows = [dict(r) for r in connection.execute("SELECT s.id,s.upper_seq,(SELECT COUNT(*) FROM messages m WHERE m.session_id=s.id AND m.role='user') AS archived_users,(SELECT COUNT(*) FROM conversation_messages m WHERE m.session_id=s.id AND m.role='user') AS visible_users,(SELECT COUNT(*) FROM messages m WHERE m.session_id=s.id AND m.role='user' AND m.seq>s.upper_seq) AS reverted_users,(SELECT tip_seq FROM conversation_redo r WHERE r.session_id=s.id) AS redo_tip FROM (SELECT a.id,b.upper_seq FROM sessions a LEFT JOIN conversation_state b ON b.session_id=a.id) s")]
+                                    else:
+                                        rows = []
+                                        for table in ('session','session_v2'):
+                                            if table not in tables: continue
+                                            columns = {r[1] for r in connection.execute(f'PRAGMA table_info({table})')}
+                                            wanted = [c for c in ('id','title','revert') if c in columns]
+                                            rows += [dict(r) for r in connection.execute(f"SELECT {','.join(wanted)} FROM {table}")]
+                                        message_table = 'session_message' if 'session_message' in tables else 'message' if 'message' in tables else None
+                                        if message_table:
+                                            messages = [dict(r) for r in connection.execute(f'SELECT * FROM {message_table}')]
+                                            for row in rows:
+                                                users = [m for m in messages if m.get('session_id') == row['id'] and (m.get('type') == 'user' or json.loads(m.get('data','{}')).get('role') == 'user')]
+                                                revert = json.loads(row['revert']) if row.get('revert') else None
+                                                boundary = revert.get('messageID') if revert else None
+                                                row.update(archived_users=len(users),reverted_users=sum(m['id'] >= boundary for m in users) if boundary else 0)
+                                                row['visible_users'] = len(users)-row['reverted_users']
+                                    observations.append({'database':str(database),'rows':rows,'tables':sorted(tables)})
+                            fixture_files = {str(p.relative_to(project)):hashlib.sha256(p.read_bytes()).hexdigest()
+                                             for p in project.rglob('*') if p.is_file()}
+                            config_files = {name:hashlib.sha256((home / 'config/opencode' / name).read_bytes()).hexdigest()
+                                            for name in ('cli.json','opencode.json')}
+                            emit({'kind':'revert_snapshot','request_id':command['request_id'],'observations':observations,
+                                  'project_files':fixture_files,'config_files':config_files})
+                        elif command['kind'] == 'sessions_snapshot' and spec.get('sessions_interaction'):
                             observations = []
                             for database in (home / 'data').rglob('*'):
                                 if database.suffix not in ('.db', '.sqlite', '.sqlite3'): continue
@@ -589,7 +637,7 @@ try:
             os.close(master)
             emit({'kind': 'exit', 'generation': generation, 'code': child.returncode,
                   'termination': 'forced_stop' if forced else 'natural'})
-        if forced or not (spec.get('tab_restart') or spec.get('sessions_interaction')):
+        if forced or not (spec.get('tab_restart') or spec.get('sessions_interaction') or spec.get('revert_redo')):
             break
         # The same bridge/server/config/project and XDG roots survive the first exit.
         command = json.loads(sys.stdin.readline())

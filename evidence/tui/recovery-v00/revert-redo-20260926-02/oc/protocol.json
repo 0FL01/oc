@@ -1,0 +1,419 @@
+[
+  {
+    "kind": "revert_redo_fixture_config",
+    "snapshots": false,
+    "cli_keybinds": {
+      "session.redo": "<leader>r"
+    },
+    "files": [
+      "config/opencode/opencode.json",
+      "config/opencode/cli.json"
+    ]
+  },
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-02/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-02/oc/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-02/oc/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-02/oc/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-02/oc/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-02/oc/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-02/oc/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"provider\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"npm\": \"@ai-sdk/openai\", \"options\": {\"baseURL\": \"http://127.0.0.1:40067/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}, \"permissions\": {\"read\": \"allow\"}, \"snapshots\": false}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "oc 0.1.0",
+    "version_exit": 0
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": false,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "6046fb4ba2c9cd47b1b11addead84f0539eb2229732b425d82f9315ecfd5b784",
+    "registered_tools": [
+      "read",
+      "glob",
+      "grep",
+      "apply_patch",
+      "bash",
+      "webfetch",
+      "skill"
+    ],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "fixture_prompt": "VIS33 user turn 1. No tools.",
+    "fixture_response": "VIS33-ANSWER-1: completed.",
+    "request_input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS33 user turn 1. No tools."
+          }
+        ]
+      }
+    ],
+    "instructions": null
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "161d4cd52801757075d3c7c673bf4207bd71c501140089ac7ce50d2396590c20"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": false,
+    "operation": "title",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "71981a7baa0da44dc271c8a57c456011157a431060c83d532c472743e7bbc280",
+    "registered_tools": [],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "fixture_prompt": null,
+    "fixture_response": "VIS33 saved tail fixture",
+    "request_input": [
+      {
+        "type": "message",
+        "role": "developer",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "Generate a short session title from the user's request. Output only the title, in at most 100 characters."
+          }
+        ]
+      },
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS33 user turn 1. No tools."
+          }
+        ]
+      }
+    ],
+    "instructions": null
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title",
+    "response_text_sha256": "887d9d98652d8996daf1d52cafc7625f02dca47e96dce0b68a50605651be97fb"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": false,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 1,
+    "round_number": 0,
+    "request_sha256": "2345fc773f72eb9dfef3c8d85b229d5161d5da573e8a7a4189bb1579e221b67e",
+    "registered_tools": [
+      "read",
+      "glob",
+      "grep",
+      "apply_patch",
+      "bash",
+      "webfetch",
+      "skill"
+    ],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "fixture_prompt": "VIS33 user turn 2. No tools.",
+    "fixture_response": "VIS33-ANSWER-2: completed.",
+    "request_input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS33 user turn 1. No tools."
+          }
+        ]
+      },
+      {
+        "id": "msg_fixture",
+        "type": "message",
+        "role": "assistant",
+        "status": "completed",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "VIS33-ANSWER-1: completed.",
+            "annotations": []
+          }
+        ]
+      },
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS33 user turn 2. No tools."
+          }
+        ]
+      }
+    ],
+    "instructions": null
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "b66b3d8371d8f42ba7b7bed8074b859354563149d3cf9f95f35f071cf9fc5c85"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": false,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 2,
+    "round_number": 0,
+    "request_sha256": "740bed71d99b7fba7465abd1529ec18a674cbd61fb9ab602e40786e0ae71c8de",
+    "registered_tools": [
+      "read",
+      "glob",
+      "grep",
+      "apply_patch",
+      "bash",
+      "webfetch",
+      "skill"
+    ],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ],
+    "fixture_prompt": "VIS33 user turn 3. No tools.",
+    "fixture_response": "VIS33-ANSWER-3: completed.",
+    "request_input": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS33 user turn 1. No tools."
+          }
+        ]
+      },
+      {
+        "id": "msg_fixture",
+        "type": "message",
+        "role": "assistant",
+        "status": "completed",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "VIS33-ANSWER-1: completed.",
+            "annotations": []
+          }
+        ]
+      },
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS33 user turn 2. No tools."
+          }
+        ]
+      },
+      {
+        "id": "msg_fixture",
+        "type": "message",
+        "role": "assistant",
+        "status": "completed",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "VIS33-ANSWER-2: completed.",
+            "annotations": []
+          }
+        ]
+      },
+      {
+        "type": "message",
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "VIS33 user turn 3. No tools."
+          }
+        ]
+      }
+    ],
+    "instructions": null
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "5f475ff1a1dae3f2e4203dc407870842b7bd3254a91c57686152dbebfb3b1372"
+  },
+  {
+    "kind": "revert_snapshot",
+    "request_id": "completed-db",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-02/oc/home/data/oc/oc.sqlite",
+        "rows": [
+          {
+            "id": "s-tui-18d8ebe1443871fd-3a1a0f-0",
+            "upper_seq": null,
+            "archived_users": 3,
+            "visible_users": 3,
+            "reverted_users": 0,
+            "redo_tip": null
+          }
+        ],
+        "tables": [
+          "blobs",
+          "compression_blocks",
+          "compression_identity",
+          "compression_members",
+          "conversation_contexts",
+          "conversation_exclusions",
+          "conversation_objects",
+          "conversation_points",
+          "conversation_redo",
+          "conversation_revision",
+          "conversation_state",
+          "conversation_tracked",
+          "conversation_versions",
+          "dcp_tool_projection",
+          "dcp_tool_projection_v2",
+          "events",
+          "messages",
+          "prefs",
+          "prune_marks",
+          "schema_migrations",
+          "sessions",
+          "sqlite_sequence",
+          "tool_operations",
+          "turn_acceptances",
+          "turns"
+        ]
+      }
+    ]
+  },
+  {
+    "kind": "revert_snapshot",
+    "request_id": "card-db",
+    "observations": [
+      {
+        "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-02/oc/home/data/oc/oc.sqlite",
+        "rows": [
+          {
+            "id": "s-tui-18d8ebe1443871fd-3a1a0f-0",
+            "upper_seq": 2,
+            "archived_users": 3,
+            "visible_users": 1,
+            "reverted_users": 2,
+            "redo_tip": 6
+          }
+        ],
+        "tables": [
+          "blobs",
+          "compression_blocks",
+          "compression_identity",
+          "compression_members",
+          "conversation_contexts",
+          "conversation_exclusions",
+          "conversation_objects",
+          "conversation_points",
+          "conversation_redo",
+          "conversation_revision",
+          "conversation_state",
+          "conversation_tracked",
+          "conversation_versions",
+          "dcp_tool_projection",
+          "dcp_tool_projection_v2",
+          "events",
+          "messages",
+          "prefs",
+          "prune_marks",
+          "schema_migrations",
+          "sessions",
+          "sqlite_sequence",
+          "tool_operations",
+          "turn_acceptances",
+          "turns"
+        ]
+      }
+    ]
+  }
+]

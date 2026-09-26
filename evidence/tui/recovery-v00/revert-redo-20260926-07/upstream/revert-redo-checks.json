@@ -1,0 +1,1310 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "stage": "home",
+      "counts": {
+        "requests": 0,
+        "completed": 0,
+        "transcript": 0,
+        "titles": 0,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "turn-1",
+      "counts": {
+        "requests": 2,
+        "completed": 2,
+        "transcript": 1,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "turn-2",
+      "counts": {
+        "requests": 3,
+        "completed": 3,
+        "transcript": 2,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "turn-3",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "completed-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "completed-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-07/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21620d9dffe0rm03yJqF8B3Wg",
+                "title": "VIS33 saved tail fixture",
+                "revert": null,
+                "archived_users": 3,
+                "reverted_users": 0,
+                "visible_users": 3
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ],
+        "project_files": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config_files": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+        }
+      }
+    },
+    {
+      "stage": "card-popup",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "card-normal",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "card-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "card-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-07/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21620d9dffe0rm03yJqF8B3Wg",
+                "title": "VIS33 saved tail fixture",
+                "revert": "{\"messageID\":\"msg_0de9dfd94001qCGjaEnz4pNpAv\",\"files\":[]}",
+                "archived_users": 3,
+                "reverted_users": 2,
+                "visible_users": 1
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ],
+        "project_files": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config_files": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+        }
+      }
+    },
+    {
+      "stage": "card-hover",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "selection-guard",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "selection-guard-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "selection-guard-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-07/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21620d9dffe0rm03yJqF8B3Wg",
+                "title": "VIS33 saved tail fixture",
+                "revert": "{\"messageID\":\"msg_0de9dfd94001qCGjaEnz4pNpAv\",\"files\":[]}",
+                "archived_users": 3,
+                "reverted_users": 2,
+                "visible_users": 1
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ],
+        "project_files": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config_files": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+        }
+      }
+    },
+    {
+      "stage": "card-restored",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "card-restored-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "card-restored-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-07/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21620d9dffe0rm03yJqF8B3Wg",
+                "title": "VIS33 saved tail fixture",
+                "revert": null,
+                "archived_users": 3,
+                "reverted_users": 0,
+                "visible_users": 3
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ],
+        "project_files": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config_files": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+        }
+      }
+    },
+    {
+      "stage": "shortcut-popup",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "shortcut-normal",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "shortcut-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "shortcut-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-07/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21620d9dffe0rm03yJqF8B3Wg",
+                "title": "VIS33 saved tail fixture",
+                "revert": "{\"messageID\":\"msg_0de9dfd94001qCGjaEnz4pNpAv\",\"files\":[]}",
+                "archived_users": 3,
+                "reverted_users": 2,
+                "visible_users": 1
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ],
+        "project_files": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config_files": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+        }
+      }
+    },
+    {
+      "stage": "shortcut-restored",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "shortcut-restored-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "shortcut-restored-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-07/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21620d9dffe0rm03yJqF8B3Wg",
+                "title": "VIS33 saved tail fixture",
+                "revert": null,
+                "archived_users": 3,
+                "reverted_users": 0,
+                "visible_users": 3
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ],
+        "project_files": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config_files": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+        }
+      }
+    },
+    {
+      "stage": "slash-popup",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "slash-normal",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "slash-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "slash-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-07/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21620d9dffe0rm03yJqF8B3Wg",
+                "title": "VIS33 saved tail fixture",
+                "revert": "{\"messageID\":\"msg_0de9dfd94001qCGjaEnz4pNpAv\",\"files\":[]}",
+                "archived_users": 3,
+                "reverted_users": 2,
+                "visible_users": 1
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ],
+        "project_files": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config_files": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+        }
+      }
+    },
+    {
+      "stage": "slash-restored",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "slash-restored-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "slash-restored-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-07/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21620d9dffe0rm03yJqF8B3Wg",
+                "title": "VIS33 saved tail fixture",
+                "revert": null,
+                "archived_users": 3,
+                "reverted_users": 0,
+                "visible_users": 3
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ],
+        "project_files": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config_files": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+        }
+      }
+    },
+    {
+      "stage": "palette-popup",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "palette-normal",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "palette-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "palette-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-07/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21620d9dffe0rm03yJqF8B3Wg",
+                "title": "VIS33 saved tail fixture",
+                "revert": "{\"messageID\":\"msg_0de9dfd94001qCGjaEnz4pNpAv\",\"files\":[]}",
+                "archived_users": 3,
+                "reverted_users": 2,
+                "visible_users": 1
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ],
+        "project_files": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config_files": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+        }
+      }
+    },
+    {
+      "stage": "palette-open",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "palette-restored",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "palette-restored-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "palette-restored-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-07/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21620d9dffe0rm03yJqF8B3Wg",
+                "title": "VIS33 saved tail fixture",
+                "revert": null,
+                "archived_users": 3,
+                "reverted_users": 0,
+                "visible_users": 3
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ],
+        "project_files": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config_files": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+        }
+      }
+    },
+    {
+      "stage": "durable-popup",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "durable-normal",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "durable-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "durable-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-07/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21620d9dffe0rm03yJqF8B3Wg",
+                "title": "VIS33 saved tail fixture",
+                "revert": "{\"messageID\":\"msg_0de9dfd94001qCGjaEnz4pNpAv\",\"files\":[]}",
+                "archived_users": 3,
+                "reverted_users": 2,
+                "visible_users": 1
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ],
+        "project_files": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config_files": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+        }
+      }
+    },
+    {
+      "stage": "switched-home",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "reopened-sessions",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "reopened",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "reopened-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "reopened-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-07/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21620d9dffe0rm03yJqF8B3Wg",
+                "title": "VIS33 saved tail fixture",
+                "revert": "{\"messageID\":\"msg_0de9dfd94001qCGjaEnz4pNpAv\",\"files\":[]}",
+                "archived_users": 3,
+                "reverted_users": 2,
+                "visible_users": 1
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ],
+        "project_files": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config_files": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+        }
+      }
+    },
+    {
+      "stage": "restarted-sessions",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "restarted",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "restarted-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "restarted-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-07/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21620d9dffe0rm03yJqF8B3Wg",
+                "title": "VIS33 saved tail fixture",
+                "revert": "{\"messageID\":\"msg_0de9dfd94001qCGjaEnz4pNpAv\",\"files\":[]}",
+                "archived_users": 3,
+                "reverted_users": 2,
+                "visible_users": 1
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ],
+        "project_files": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config_files": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+        }
+      }
+    },
+    {
+      "stage": "pager-up",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "pager-down",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "pager-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "pager-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-07/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21620d9dffe0rm03yJqF8B3Wg",
+                "title": "VIS33 saved tail fixture",
+                "revert": "{\"messageID\":\"msg_0de9dfd94001qCGjaEnz4pNpAv\",\"files\":[]}",
+                "archived_users": 3,
+                "reverted_users": 2,
+                "visible_users": 1
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ],
+        "project_files": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config_files": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+        }
+      }
+    },
+    {
+      "stage": "restart-card-restored",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "final-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "final-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-07/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21620d9dffe0rm03yJqF8B3Wg",
+                "title": "VIS33 saved tail fixture",
+                "revert": null,
+                "archived_users": 3,
+                "reverted_users": 0,
+                "visible_users": 3
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ],
+        "project_files": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config_files": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+        }
+      }
+    },
+    {
+      "stage": "clean-exits",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "exits": [
+        {
+          "kind": "exit",
+          "generation": 0,
+          "code": 0,
+          "termination": "natural"
+        },
+        {
+          "kind": "exit",
+          "generation": 1,
+          "code": 0,
+          "termination": "natural"
+        }
+      ]
+    }
+  ],
+  "origin": "upstream",
+  "baseline": {
+    "requests": 4,
+    "completed": 4,
+    "transcript": 3,
+    "titles": 1,
+    "tools": 0,
+    "invalid": 0
+  },
+  "immutable_files": {
+    "project": {
+      "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+    },
+    "config": {
+      "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+      "opencode.json": "cc43c74dfe2807871402c2699fb0c42f6de60ea2a0a61a737b3541685bd99c21"
+    }
+  }
+}

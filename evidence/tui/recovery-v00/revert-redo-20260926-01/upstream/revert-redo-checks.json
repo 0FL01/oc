@@ -1,0 +1,128 @@
+{
+  "status": "FAILED",
+  "checks": [
+    {
+      "stage": "home",
+      "counts": {
+        "requests": 0,
+        "completed": 0,
+        "transcript": 0,
+        "titles": 0,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "turn-1",
+      "counts": {
+        "requests": 2,
+        "completed": 2,
+        "transcript": 1,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "turn-2",
+      "counts": {
+        "requests": 3,
+        "completed": 3,
+        "transcript": 2,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "turn-3",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "capture_status": "CAPTURED",
+      "zero_extra_calls": true
+    },
+    {
+      "stage": "completed-db",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "observation": {
+        "kind": "revert_snapshot",
+        "request_id": "completed-db",
+        "observations": [
+          {
+            "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-01/upstream/home/data/opencode/opencode.db",
+            "rows": [
+              {
+                "id": "ses_f21751c4fffeQiNfqd0nAVkvFz",
+                "title": "VIS33 saved tail fixture",
+                "revert": null
+              }
+            ],
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "failure",
+      "counts": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "reason": "Durable boundary/count mismatch completed-db: [{\"id\":\"ses_f21751c4fffeQiNfqd0nAVkvFz\",\"title\":\"VIS33 saved tail fixture\",\"revert\":null}]"
+    }
+  ],
+  "origin": "upstream",
+  "baseline": {
+    "requests": 4,
+    "completed": 4,
+    "transcript": 3,
+    "titles": 1,
+    "tools": 0,
+    "invalid": 0
+  },
+  "reason": "Durable boundary/count mismatch completed-db: [{\"id\":\"ses_f21751c4fffeQiNfqd0nAVkvFz\",\"title\":\"VIS33 saved tail fixture\",\"revert\":null}]"
+}

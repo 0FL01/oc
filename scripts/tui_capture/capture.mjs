@@ -10,12 +10,19 @@ import {fileURLToPath} from 'node:url';
 import {probeMessageActions} from './message_actions.mjs';
 import {probeBounded} from './bounded.mjs';
 import {probeSessions} from './sessions.mjs';
+import {probeRevertRedo} from './revert_redo.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
 const args = Object.fromEntries(process.argv.slice(2).map((v, i, a) => v.startsWith('--') ? [v.slice(2), a[i+1]] : null).filter(Boolean));
 const boundedMode = args['bounded-mode'];
 const sessionsInteraction = args['sessions-interaction'] === 'true';
+const revertRedo = args['revert-redo'] === 'true';
+if(args['revert-redo'] !== undefined && !['true','false'].includes(args['revert-redo']))throw Error('--revert-redo must be true or false');
+if(revertRedo && (args.geometry!=='true' || args.sidebar!=='hide' || args.sample!=='short' ||
+    Number(args.columns)!==120 || Number(args.rows)!==40 || !args.reference || !args.oc || args.session || args['seed-root'] ||
+    Object.entries(args).some(([k,v])=>v==='true'&&!['revert-redo','geometry','build-oc'].includes(k))))
+  throw Error('--revert-redo requires exclusive paired short 120x40 geometry sidebar hide');
 if(args['sessions-campaign'] && (!sessionsInteraction || !/^[a-z0-9-]{1,80}$/.test(args['sessions-campaign'])))
   throw Error('--sessions-campaign requires Sessions and a bounded campaign identifier');
 if(args['sessions-origin'] && (!sessionsInteraction || !['oc','upstream'].includes(args['sessions-origin'])))
@@ -258,6 +265,7 @@ const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.str
 const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
+    ...(revertRedo ? {revert_redo:true,probe_sha256:sha(fs.readFileSync(path.join(here,'revert_redo.mjs')))} : {}),
     ...(boundedMode ? {bounded_mode:boundedMode,bounded_probe_sha256:sha(fs.readFileSync(path.join(here,'bounded.mjs')))} : {}),
     ...(sessionsInteraction ? {sessions_interaction:true,sessions_probe_sha256:sha(fs.readFileSync(path.join(here,'sessions.mjs')))} : {}),
    models_interaction:modelsInteraction, ...(messageActions ? {message_actions:true,...(messageForkRevert?{message_fork_revert:true}:{})} : {}), protocol: sha(fs.readFileSync(path.join(here,'bridge.py')))}));
@@ -283,7 +291,7 @@ const sourceManifest = Object.fromEntries([...new Set(sourcePaths.stdout.split('
   .map(name => [name,sha(fs.readFileSync(path.join(repo,name)))]));
 json('source-manifest.json', sourceManifest);
 const lock = {schema_version: 1, started: new Date().toISOString(), runner_version: 1,
-    runner_hashes: Object.fromEntries(['capture.mjs','frontend.js','bridge.py',...(messageActions?['message_actions.mjs']:[]),...(sessionsInteraction?['sessions.mjs']:[])].map(n => [n, sha(fs.readFileSync(path.join(here,n)))])),
+    runner_hashes: Object.fromEntries(['capture.mjs','frontend.js','bridge.py',...(revertRedo?['revert_redo.mjs']:[]),...(messageActions?['message_actions.mjs']:[]),...(sessionsInteraction?['sessions.mjs']:[])].map(n => [n, sha(fs.readFileSync(path.join(here,n)))])),
   fixture_sha256: fixtureSha, fixture_files: fixtureFiles, oc: {commit, tree, dirty_diff_sha256: sha(diff),
     source_manifest_sha256: sha(canonical(sourceManifest))},
   sources: {upstream_commit: '2670273ff17da96f85c5826ced57aa1b368754fa'}, attempts: [], captures: []};
@@ -361,7 +369,8 @@ try {
     const spec = {binary, origin, columns: profile.columns, rows: profile.rows, isolated_root: isolated, fixture,
       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,
       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
-        agent_profile: args['agent-profile'] === 'true', bounded_mode:boundedMode, sessions_interaction:sessionsInteraction,
+         agent_profile: args['agent-profile'] === 'true', bounded_mode:boundedMode, sessions_interaction:sessionsInteraction,
+         revert_redo:revertRedo,
         sessions_resume:!!args['sessions-root'],
         sessions_campaign:args['sessions-campaign'] || 'legacy',
         sessions_prior_evidence:args['sessions-evidence'] ? path.resolve(args['sessions-evidence'],origin,'sessions-checks.json') : null,
@@ -493,6 +502,15 @@ try {
            relaunch:async()=>{generation=1;await page.evaluate(()=>{term.reset();term.clear();});
              child.stdin.write(JSON.stringify({kind:'relaunch'})+'\n');}});
          lock.sessions_interaction ??= {};lock.sessions_interaction[origin]=checks;
+         if(checks.status!=='PASS')result=1;
+          json('capture.lock.json',lock);continue;
+        }
+       if(revertRedo) {
+         const checks=await probeRevertRedo({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
+           control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
+           relaunch:async()=>{generation=1;chunks[1]=[];await page.evaluate(()=>{term.reset();term.clear();});
+             child.stdin.write(JSON.stringify({kind:'relaunch'})+'\n');}});
+         lock.revert_redo ??= {};lock.revert_redo[origin]=checks;
          if(checks.status!=='PASS')result=1;
          json('capture.lock.json',lock);continue;
        }

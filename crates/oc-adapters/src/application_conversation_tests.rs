@@ -574,6 +574,94 @@ fn git(project: &std::path::Path, args: &[&str]) -> Vec<u8> {
 }
 
 #[tokio::test]
+async fn conversation_reverted_count_survives_reopen_independent_of_fifty_row_page() {
+    let tmp = tempfile::tempdir().unwrap();
+    let project = tmp.path().join("project");
+    let data = tmp.path().join("data");
+    std::fs::create_dir_all(&project).unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let config = serde_json::json!({"model":"fixture/m","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}});
+    std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
+    let first;
+    {
+        let db = Db::open(&data).unwrap();
+        db.create_bound_session("s", &project.to_string_lossy())
+            .unwrap();
+        db.rename_root_session("s", "count fixture").unwrap();
+        first = seed(&db, "first", "first");
+        for i in 1..60 {
+            seed(&db, &format!("turn-{i}"), &format!("prompt-{i}"));
+        }
+    }
+    let env = BTreeMap::from([
+        ("HOME".into(), data.to_string_lossy().into_owned()),
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+    ]);
+    let session = SessionId("s".into());
+    let (app, guard, _) = spawn_with_env(&project, &data, env.clone()).await.unwrap();
+    assert_eq!(
+        app.history_page(session.clone(), None, None, 50)
+            .await
+            .unwrap()
+            .rows
+            .len(),
+        50
+    );
+    app.change_conversation(session.clone(), ConversationAction::Undo)
+        .await
+        .unwrap();
+    let undo = app
+        .change_conversation(session.clone(), ConversationAction::Undo)
+        .await
+        .unwrap();
+    assert_eq!(undo.reverted.unwrap().user_messages, 2);
+    let redo = app
+        .change_conversation(session.clone(), ConversationAction::Redo)
+        .await
+        .unwrap();
+    assert!(redo.reverted.is_none());
+    assert_eq!(
+        app.history_page(session.clone(), None, None, 50)
+            .await
+            .unwrap()
+            .total,
+        120
+    );
+    let revert = app
+        .change_conversation(
+            session.clone(),
+            ConversationAction::Revert {
+                message: oc_core::session::MessageId(first),
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(revert.reverted.as_ref().unwrap().user_messages, 60);
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    let (app, guard, _) = spawn_with_env(&project, &data, env).await.unwrap();
+    let page = app
+        .history_page(session.clone(), None, None, 50)
+        .await
+        .unwrap();
+    assert!(page.rows.is_empty());
+    assert_eq!(page.reverted, revert.reverted);
+    app.change_conversation(session.clone(), ConversationAction::Redo)
+        .await
+        .unwrap();
+    let page = app.history_page(session, None, None, 50).await.unwrap();
+    assert!(page.reverted.is_none());
+    assert_eq!(page.total, 120);
+    assert!(
+        timeout(Duration::from_millis(50), listener.accept())
+            .await
+            .is_err()
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
 async fn conversation_owner_restores_actual_wire_context_redo_is_request_free_and_git_untouched() {
     let tmp = tempfile::tempdir().unwrap();
     let project = tmp.path().join("project");

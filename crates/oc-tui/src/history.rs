@@ -687,6 +687,7 @@ mod tests {
         HistoryPage {
             parent_id: None,
             title: None,
+            reverted: None,
             rows,
             total,
             has_older: older,

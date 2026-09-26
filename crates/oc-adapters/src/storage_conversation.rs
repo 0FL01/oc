@@ -1,6 +1,6 @@
 //! Conversation points reference shared immutable DCP metadata, never transcripts.
 use super::*;
-use oc_core::queries::{ConversationAction, ConversationSnapshot};
+use oc_core::queries::{ConversationAction, ConversationSnapshot, RevertedConversation};
 use oc_core::{domain::SessionId, session::CoreError};
 
 const TABLES: &[(&str, &str, &str)] = &[
@@ -59,6 +59,10 @@ impl Db {
             session_id TEXT NOT NULL REFERENCES sessions(id), lower_seq INTEGER NOT NULL, upper_seq INTEGER NOT NULL);
           CREATE INDEX IF NOT EXISTS conversation_exclusion_session ON conversation_exclusions(session_id,lower_seq,upper_seq);
           CREATE TABLE IF NOT EXISTS conversation_contexts(digest TEXT PRIMARY KEY, metadata TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS conversation_redo(
+            session_id TEXT PRIMARY KEY REFERENCES sessions(id), tip_seq INTEGER NOT NULL,
+            context TEXT NOT NULL REFERENCES conversation_contexts(digest),
+            pending_context TEXT NOT NULL REFERENCES conversation_contexts(digest));
           CREATE TABLE IF NOT EXISTS conversation_points(
             turn_id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id),
             pre_seq INTEGER NOT NULL, pre_context TEXT NOT NULL REFERENCES conversation_contexts(digest),
@@ -209,6 +213,14 @@ impl Db {
         session: &str,
         digest: &str,
     ) -> Result<(), StorageError> {
+        let saved: bool = conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM conversation_contexts WHERE digest=?1)",
+            [digest],
+            |r| r.get(0),
+        )?;
+        if !saved {
+            return Err(unavailable("no saved historical context"));
+        }
         conn.execute_batch(
             "CREATE TEMP TABLE IF NOT EXISTS conversation_restore(kind INTEGER,object_id INTEGER,row_key TEXT);
           CREATE INDEX IF NOT EXISTS conversation_restore_key ON conversation_restore(kind,row_key);
@@ -324,6 +336,10 @@ impl Db {
             .optional()?
             .flatten();
         if let Some(upper) = upper {
+            conn.execute(
+                "DELETE FROM conversation_redo WHERE session_id=?1",
+                [session],
+            )?;
             conn.execute("INSERT INTO conversation_exclusions(session_id,lower_seq,upper_seq) SELECT ?1,?2,COALESCE(MAX(seq),?2) FROM messages WHERE session_id=?1", params![session,upper])?;
             conn.execute(
                 "UPDATE conversation_points SET active=0 WHERE session_id=?1 AND pre_seq>=?2",
@@ -380,8 +396,8 @@ impl Db {
             Self::require_session(&tx, session)?;
             let upper: i64 = tx.query_row("SELECT COALESCE((SELECT upper_seq FROM conversation_state WHERE session_id=?1),(SELECT COALESCE(MAX(seq),0) FROM messages WHERE session_id=?1))",[session],|r|r.get(0))?;
             let (turn, seq, context): (String,i64,String) = match action {
-                ConversationAction::Undo => tx.query_row("SELECT p.turn_id,p.pre_seq,p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=(SELECT id FROM conversation_messages WHERE session_id=?1 AND role='user' AND seq<=?2 ORDER BY seq DESC LIMIT 1)",params![session,upper],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation undo boundary unavailable: no saved historical context"))?,
-                ConversationAction::Redo => tx.query_row("SELECT p.turn_id,p.post_seq,p.post_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND p.post_context IS NOT NULL AND a.user_message=(SELECT m.id FROM messages m WHERE m.session_id=?1 AND m.role='user' AND m.seq>?2 AND NOT EXISTS(SELECT 1 FROM conversation_exclusions e WHERE e.session_id=?1 AND m.seq>e.lower_seq AND m.seq<=e.upper_seq) ORDER BY m.seq LIMIT 1)",params![session,upper],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation redo boundary unavailable"))?,
+                ConversationAction::Undo => tx.query_row("SELECT p.turn_id,p.pre_seq,p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=(SELECT id FROM conversation_messages WHERE session_id=?1 AND role='user' AND length(text)>0 AND seq<=?2 ORDER BY seq DESC LIMIT 1)",params![session,upper],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation undo boundary unavailable: no saved historical context"))?,
+                ConversationAction::Redo => tx.query_row("SELECT '',tip_seq,context FROM conversation_redo WHERE session_id=?1",[session],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation redo boundary unavailable"))?,
                 ConversationAction::Revert { ref message } => tx.query_row("SELECT p.turn_id,p.pre_seq,p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id JOIN messages m ON m.id=a.user_message WHERE p.session_id=?1 AND p.active=1 AND a.user_message=?2 AND m.role='user'",params![session,message.0],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation revert boundary unavailable: no saved historical context"))?,
             };
             let draft = if matches!(action, ConversationAction::Redo) {
@@ -389,10 +405,48 @@ impl Db {
             } else {
                 Some(tx.query_row("SELECT m.text FROM turn_acceptances a JOIN messages m ON m.id=a.user_message WHERE a.turn_id=?1",[turn],|r|r.get(0))?)
             };
-            Self::restore_context(&tx, session, &context)?;
+            if matches!(action, ConversationAction::Redo) {
+                let pending: String = tx.query_row(
+                    "SELECT pending_context FROM conversation_redo WHERE session_id=?1",
+                    [session],
+                    |r| r.get(0),
+                )?;
+                Self::load_context_restore(&tx, session, &pending)?;
+                tx.execute_batch("CREATE TEMP TABLE IF NOT EXISTS conversation_pending(kind INTEGER,object_id INTEGER,row_key TEXT); DELETE FROM conversation_pending; INSERT INTO conversation_pending SELECT * FROM conversation_restore WHERE kind=5;")?;
+                Self::load_context_restore(&tx, session, &context)?;
+                tx.execute_batch("DELETE FROM conversation_restore WHERE kind=5; INSERT INTO conversation_restore SELECT * FROM conversation_pending; DELETE FROM conversation_pending;")?;
+                Self::apply_context_restore(&tx, session)?;
+                tx.execute(
+                    "DELETE FROM conversation_redo WHERE session_id=?1",
+                    [session],
+                )?;
+            } else {
+                let staged: bool = tx.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM conversation_state WHERE session_id=?1 AND upper_seq IS NOT NULL)",
+                    [session],
+                    |r| r.get(0),
+                )?;
+                if !staged {
+                    // Preserve the last genuinely saved post revision at the original
+                    // branch tip, plus DCP nudge state persisted after completion.
+                    let tip: Option<(i64, String)> = tx.query_row("SELECT (SELECT MAX(seq) FROM conversation_messages WHERE session_id=?1),p.post_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=(SELECT id FROM conversation_messages WHERE session_id=?1 AND role='user' ORDER BY seq DESC LIMIT 1) AND p.post_context IS NOT NULL", [session], |r| Ok((r.get(0)?,r.get(1)?))).optional()?;
+                    if let Some((tip_seq, tip_context)) = tip {
+                        let pending = Self::save_context(&tx, session)?;
+                        tx.execute(
+                            "INSERT INTO conversation_redo VALUES (?1,?2,?3,?4)",
+                            params![session, tip_seq, tip_context, pending],
+                        )?;
+                    }
+                }
+                Self::restore_context(&tx, session, &context)?;
+            }
             tx.execute("INSERT INTO conversation_state(session_id,upper_seq) VALUES (?1,?2) ON CONFLICT(session_id) DO UPDATE SET upper_seq=excluded.upper_seq",params![session,seq])?;
-            let can_undo: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=(SELECT id FROM conversation_messages WHERE session_id=?1 AND role='user' AND seq<=?2 ORDER BY seq DESC LIMIT 1))",params![session,seq],|r|r.get(0))?;
-            let can_redo: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND p.post_context IS NOT NULL AND a.user_message=(SELECT m.id FROM messages m WHERE m.session_id=?1 AND m.role='user' AND m.seq>?2 AND NOT EXISTS(SELECT 1 FROM conversation_exclusions e WHERE e.session_id=?1 AND m.seq>e.lower_seq AND m.seq<=e.upper_seq) ORDER BY m.seq LIMIT 1))",params![session,seq],|r|r.get(0))?;
+            let can_undo: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=(SELECT id FROM conversation_messages WHERE session_id=?1 AND role='user' AND length(text)>0 AND seq<=?2 ORDER BY seq DESC LIMIT 1))",params![session,seq],|r|r.get(0))?;
+            let can_redo: bool = tx.query_row(
+                "SELECT EXISTS(SELECT 1 FROM conversation_redo WHERE session_id=?1)",
+                [session],
+                |r| r.get(0),
+            )?;
             // Head must admit future rows (manual DCP or the next accepted turn).
             if !can_redo && matches!(action, ConversationAction::Redo) {
                 tx.execute(
@@ -406,15 +460,46 @@ impl Db {
                 "INSERT INTO events(session_id,kind,payload) VALUES(?1,'conversation_changed',?2)",
                 params![session, seq.to_string()],
             )?;
+            let reverted = Self::reverted_projection(&tx, session)?;
             tx.commit()?;
             Ok(ConversationSnapshot {
                 session: SessionId(session.into()),
                 draft,
                 can_undo,
                 can_redo,
+                reverted,
             })
         };
         run().map_err(|e| CoreError::Application(e.to_string()))
+    }
+
+    fn reverted_projection(
+        conn: &Connection,
+        session: &str,
+    ) -> Result<Option<RevertedConversation>, StorageError> {
+        let boundary: Option<i64> = conn
+            .query_row(
+                "SELECT upper_seq FROM conversation_state WHERE session_id=?1",
+                [session],
+                |r| r.get(0),
+            )
+            .optional()?
+            .flatten();
+        let Some(boundary) = boundary else {
+            return Ok(None);
+        };
+        let (message, count): (Option<String>, i64) = conn.query_row("SELECT (SELECT m.id FROM messages m WHERE m.session_id=?1 AND m.role='user' AND m.seq>?2 AND NOT EXISTS(SELECT 1 FROM conversation_exclusions e WHERE e.session_id=?1 AND m.seq>e.lower_seq AND m.seq<=e.upper_seq) ORDER BY m.seq LIMIT 1), COUNT(*) FROM messages m WHERE m.session_id=?1 AND m.role='user' AND m.seq>?2 AND NOT EXISTS(SELECT 1 FROM conversation_exclusions e WHERE e.session_id=?1 AND m.seq>e.lower_seq AND m.seq<=e.upper_seq)", params![session,boundary], |r| Ok((r.get(0)?,r.get(1)?)))?;
+        Ok(message.map(|message| RevertedConversation {
+            message: oc_core::session::MessageId(message),
+            user_messages: count as u64,
+        }))
+    }
+
+    pub(crate) fn reverted_conversation(
+        &self,
+        session: &str,
+    ) -> Result<Option<RevertedConversation>, StorageError> {
+        Self::reverted_projection(&self.conn.lock().expect("db mutex"), session)
     }
 
     pub(crate) fn conversation_nudges(

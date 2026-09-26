@@ -22,6 +22,8 @@ pub enum KeyAction {
     CycleVariant,
     /// Open the focused session-title editor.
     Rename,
+    UndoConversation,
+    RedoConversation,
     /// Modal page navigation.
     PageUp,
     /// Modal page navigation.

@@ -940,6 +940,7 @@ impl Db {
         for table in [
             "compression_members",
             "conversation_points",
+            "conversation_redo",
             "conversation_exclusions",
             "conversation_state",
             "turn_acceptances",

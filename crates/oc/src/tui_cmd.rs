@@ -1217,7 +1217,10 @@ async fn handle_event(
     loop_state: &mut LoopState,
     cev: CEvent,
 ) -> Result<(), String> {
-    let event = map_event(cev);
+    let event = match cev {
+        crossterm::event::Event::Key(key) => state.terminal_key(key).map(UiEvent::Key),
+        other => map_event(other),
+    };
     if loop_state.reload_job.is_some() || loop_state.conversation_job.is_some() {
         match event {
             Some(UiEvent::Key(KeyAction::Interrupt | KeyAction::Quit)) => {
@@ -3486,6 +3489,7 @@ mod tests {
                         draft: Some("owner restored".into()),
                         can_undo: false,
                         can_redo: true,
+                        reverted: None,
                     }))
                     .unwrap();
                     let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
@@ -3665,6 +3669,208 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn five_turn_reverted_tail_all_redo_entry_points_use_real_owner_without_generation() {
+        use crossterm::event::{
+            KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
+        };
+        use oc_core::queries::ConversationAction;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir(&project).unwrap();
+        let listener =
+            std::sync::Arc::new(tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap());
+        std::fs::write(project.join("opencode.json"), serde_json::json!({"model":"fixture/m","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"fixture"},"models":{"m":{}}}}}).to_string()).unwrap();
+        let session = SessionId::new("five-turn-redo").unwrap();
+        let server_listener = listener.clone();
+        let server = tokio::spawn(async move {
+            for index in 0..5 {
+                let (mut socket, _) = server_listener.accept().await.unwrap();
+                let mut bytes = Vec::new();
+                let mut buf = [0; 4096];
+                loop {
+                    let n = socket.read(&mut buf).await.unwrap();
+                    assert!(n > 0);
+                    bytes.extend_from_slice(&buf[..n]);
+                    if let Some(end) = bytes.windows(4).position(|part| part == b"\r\n\r\n") {
+                        let length: usize = String::from_utf8_lossy(&bytes[..end])
+                            .lines()
+                            .find_map(|line| {
+                                let (name, value) = line.split_once(':')?;
+                                name.eq_ignore_ascii_case("content-length")
+                                    .then(|| value.trim().parse().unwrap())
+                            })
+                            .unwrap();
+                        if bytes.len() >= end + 4 + length {
+                            break;
+                        }
+                    }
+                }
+                let item = serde_json::json!({"type":"message","role":"assistant","id":format!("answer-{index}"),"status":"completed","content":[{"type":"output_text","text":format!("answer {index}")}]});
+                let sse = format!(
+                    "data: {}\n\ndata: {}\n\n",
+                    serde_json::json!({"type":"response.output_item.done","item":item}),
+                    serde_json::json!({"type":"response.completed","response":{"status":"completed","output":[item]}})
+                );
+                socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{sse}",sse.len()).as_bytes()).await.unwrap();
+            }
+        });
+        let env = std::collections::BTreeMap::from([
+            ("HOME".into(), root.path().to_string_lossy().into_owned()),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]);
+        let (app, guard, _) = oc_adapters::application::spawn_with_env(&project, &data, env)
+            .await
+            .unwrap();
+        app.create_session(session.clone()).await.unwrap();
+        app.rename_session(session.clone(), "Already titled".into())
+            .await
+            .unwrap();
+        let mut events = app.subscribe();
+        for index in 0..5 {
+            app.submit(session.clone(), format!("prompt {index}"))
+                .await
+                .unwrap();
+            loop {
+                match tokio::time::timeout(Duration::from_secs(5), events.recv())
+                    .await
+                    .unwrap()
+                    .unwrap()
+                {
+                    CoreEvent::TurnFinished { .. } => break,
+                    CoreEvent::TurnFailed { error, .. } => panic!("{error}"),
+                    _ => {}
+                }
+            }
+        }
+        server.await.unwrap();
+        let first = app
+            .history_page(session.clone(), None, None, 100)
+            .await
+            .unwrap()
+            .rows[0]
+            .id
+            .clone();
+        let mut state = TuiState::new(app.clone(), session.clone());
+        let mut deck = LoopState::default();
+        for entry in 0..4 {
+            apply_intent(
+                &app,
+                &mut state,
+                &mut deck,
+                PanelIntent::ChangeConversation {
+                    action: ConversationAction::Revert {
+                        message: first.clone(),
+                    },
+                },
+            )
+            .await
+            .unwrap();
+            settle_conversation(&app, &mut state, &mut deck).await;
+            assert_eq!(state.input(), "prompt 0");
+            let page = app
+                .history_page(session.clone(), None, None, 1)
+                .await
+                .unwrap();
+            assert_eq!(page.reverted.as_ref().unwrap().user_messages, 5);
+            assert!(
+                state
+                    .transcript_lines(80, 80)
+                    .iter()
+                    .any(|line| line.plain_text().contains("5 messages reverted"))
+            );
+            let intent = match entry {
+                0 => {
+                    let rows = oc_tui::views::render_test(&state, 120, 40);
+                    let y = rows
+                        .iter()
+                        .position(|row| row.contains("5 messages reverted"))
+                        .unwrap() as u16;
+                    let x = rows[y as usize].find("5 messages").unwrap() as u16;
+                    let area = ratatui::layout::Rect::new(0, 0, 120, 40);
+                    state.handle_mouse(
+                        MouseEvent {
+                            kind: MouseEventKind::Down(MouseButton::Left),
+                            column: x,
+                            row: y,
+                            modifiers: KeyModifiers::NONE,
+                        },
+                        area,
+                    );
+                    state
+                        .handle_mouse(
+                            MouseEvent {
+                                kind: MouseEventKind::Up(MouseButton::Left),
+                                column: x,
+                                row: y,
+                                modifiers: KeyModifiers::NONE,
+                            },
+                            area,
+                        )
+                        .intent
+                        .unwrap()
+                }
+                1 => {
+                    let leader = state
+                        .terminal_key(KeyEvent::new(KeyCode::Char('x'), KeyModifiers::CONTROL))
+                        .unwrap();
+                    state.handle_key(leader).await;
+                    let redo = state
+                        .terminal_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::NONE))
+                        .unwrap();
+                    state.handle_key(redo).await.intent.unwrap()
+                }
+                2 => {
+                    state.restore_prompt("/redo".into());
+                    state.handle_key(KeyAction::Enter).await.intent.unwrap()
+                }
+                _ => {
+                    state.handle_key(KeyAction::Commands).await;
+                    state.handle_paste("Redo");
+                    state.handle_key(KeyAction::Enter).await.intent.unwrap()
+                }
+            };
+            assert_eq!(
+                intent,
+                PanelIntent::ChangeConversation {
+                    action: ConversationAction::Redo
+                }
+            );
+            apply_intent(&app, &mut state, &mut deck, intent)
+                .await
+                .unwrap();
+            settle_conversation(&app, &mut state, &mut deck).await;
+            let page = app
+                .history_page(session.clone(), None, None, 100)
+                .await
+                .unwrap();
+            assert!(page.reverted.is_none());
+            assert_eq!(
+                page.rows
+                    .iter()
+                    .filter(|message| message.role == oc_core::session::Role::User)
+                    .count(),
+                5
+            );
+            assert!(
+                !state
+                    .transcript_lines(80, 80)
+                    .iter()
+                    .any(|line| line.plain_text().contains("messages reverted"))
+            );
+            assert!(
+                tokio::time::timeout(Duration::from_millis(20), listener.accept())
+                    .await
+                    .is_err(),
+                "redo never calls provider"
+            );
+        }
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[tokio::test]
     async fn conversation_commands_wait_for_owner_then_refresh_without_submission() {
         use oc_core::queries::{ConversationAction, ConversationSnapshot, HistoryPage};
         let (app, mut inbox, _) = CoreApp::channel(8);
@@ -3692,6 +3898,10 @@ mod tests {
             draft: Some("original prompt".into()),
             can_undo: false,
             can_redo: true,
+            reverted: Some(oc_core::queries::RevertedConversation {
+                message: oc_core::session::MessageId("hidden-user".into()),
+                user_messages: 3,
+            }),
         }))
         .unwrap();
         let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
@@ -3699,6 +3909,10 @@ mod tests {
         };
         ack.send(Ok(HistoryPage {
             title: Some("Retained title".into()),
+            reverted: Some(oc_core::queries::RevertedConversation {
+                message: oc_core::session::MessageId("hidden-user".into()),
+                user_messages: 3,
+            }),
             ..Default::default()
         }))
         .unwrap();
@@ -3711,6 +3925,12 @@ mod tests {
         }
         finish_conversation(&app, &mut state, &mut deck).await;
         assert_eq!(state.input(), "original prompt");
+        assert!(
+            state
+                .transcript_lines(80, 80)
+                .iter()
+                .any(|line| line.plain_text().contains("3 messages reverted"))
+        );
         assert_eq!(state.session_title.as_deref(), Some("Retained title"));
         assert_eq!(
             state.command_unavailable(&CommandAction::UndoConversation),
@@ -3749,6 +3969,13 @@ mod tests {
         assert!(
             inbox.try_recv().is_err(),
             "no provider/submission or extra queries"
+        );
+        assert!(
+            state
+                .transcript_lines(80, 80)
+                .iter()
+                .any(|line| line.plain_text().contains("3 messages reverted")),
+            "owner failure retains committed card"
         );
     }
 

@@ -170,6 +170,89 @@ fn default_true() -> bool {
     true
 }
 
+/// Keep leader references unresolved until every admitted config layer is merged.
+pub(crate) struct ConversationKeybinds {
+    leader: String,
+    undo: String,
+    redo: String,
+}
+
+impl Default for ConversationKeybinds {
+    fn default() -> Self {
+        Self {
+            leader: "ctrl+x".into(),
+            undo: "<leader>u".into(),
+            redo: "<leader>r".into(),
+        }
+    }
+}
+
+impl ConversationKeybinds {
+    pub(crate) fn merge(&mut self, value: &serde_json::Value) -> Result<(), ConfigError> {
+        let Some(bindings) = value.get("keybinds") else {
+            return Ok(());
+        };
+        let bindings = bindings.as_object().ok_or_else(|| ConfigError::Invalid {
+            field: "keybinds".into(),
+            reason: "must be an object".into(),
+        })?;
+        for (names, target) in [
+            (&["leader"][..], &mut self.leader),
+            (&["session_undo", "session.undo"][..], &mut self.undo),
+            (&["session_redo", "session.redo"][..], &mut self.redo),
+        ] {
+            for name in names {
+                if let Some(value) = bindings.get(*name) {
+                    *target = value
+                        .as_str()
+                        .or_else(|| (value.as_bool() == Some(false)).then_some("none"))
+                        .ok_or_else(|| ConfigError::Invalid {
+                            field: format!("keybinds.{name}"),
+                            reason: "must be a string or false".into(),
+                        })?
+                        .to_string();
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub(crate) fn resolve(self) -> oc_core::queries::ConversationShortcuts {
+        let leaders: Vec<_> = self
+            .leader
+            .split(',')
+            .map(str::trim)
+            .filter(|key| !key.is_empty() && *key != "none")
+            .collect();
+        let resolve = |binding: &str| {
+            binding
+                .split(',')
+                .map(str::trim)
+                .filter(|key| !key.is_empty() && *key != "none")
+                .flat_map(|key| {
+                    let key = key
+                        .strip_prefix("leader+")
+                        .map_or_else(|| key.to_string(), |suffix| format!("<leader>{suffix}"));
+                    if key.contains("<leader>") {
+                        leaders
+                            .iter()
+                            .map(|leader| key.replace("<leader>", &format!("{leader} ")))
+                            .collect::<Vec<_>>()
+                    } else {
+                        vec![key]
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(",")
+        };
+        oc_core::queries::ConversationShortcuts {
+            leader: leaders.join(","),
+            undo: resolve(&self.undo),
+            redo: resolve(&self.redo),
+        }
+    }
+}
+
 /// Effective immutable generation (T07 subset).
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Generation {
@@ -1240,6 +1323,47 @@ pub fn parse_native_profile(text: &str) -> Result<NativeProfile, ConfigError> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn conversation_shortcuts_resolve_final_leader_and_disabled_alternatives() {
+        use oc_core::queries::ConversationShortcuts;
+        assert_eq!(
+            super::ConversationKeybinds::default().resolve(),
+            ConversationShortcuts::default()
+        );
+        let mut bindings = super::ConversationKeybinds::default();
+        bindings
+            .merge(&serde_json::json!({"keybinds": {
+                "leader": "ctrl+a", "session_undo": "leader+z,alt+u",
+                "session_redo": "<leader>y,none"
+            }}))
+            .unwrap();
+        bindings
+            .merge(&serde_json::json!({"keybinds": {
+                "leader": "ctrl+b,ctrl+g", "session.redo": false
+            }}))
+            .unwrap();
+        assert_eq!(
+            bindings.resolve(),
+            ConversationShortcuts {
+                leader: "ctrl+b,ctrl+g".into(),
+                undo: "ctrl+b z,ctrl+g z,alt+u".into(),
+                redo: String::new(),
+            }
+        );
+        for invalid in [
+            serde_json::json!(true),
+            serde_json::json!(null),
+            serde_json::json!(17),
+        ] {
+            let mut bindings = super::ConversationKeybinds::default();
+            assert!(
+                bindings
+                    .merge(&serde_json::json!({"keybinds": {"session.undo": invalid}}))
+                    .is_err()
+            );
+        }
+    }
+
     #[test]
     fn animations_are_strictly_validated_per_source_with_winning_provenance() {
         let source = |path: &str, text: &str| super::Source {

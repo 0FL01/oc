@@ -1,0 +1,2626 @@
+{
+  "schema_version": 1,
+  "started": "2026-09-26T16:44:27.804Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "e46ef1bd317b6adf41067e00ee5eeaa9d0fabebf7bd051fb2e72fac125166ff7",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "ca610e79372e4ae98ae884240152da53109b9c9ca9d38ef4be82686088615da3",
+    "revert_redo.mjs": "a052666d35fbf5622309baa879dca07a4414cbd71ba64260f284b606a122e8af"
+  },
+  "fixture_sha256": "9276e159dfd4d579263e67fff1e9b385dd7ad77716ab7340ab7712681630c797",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "566c1a243ab91c6b144332803840ef652613bf27",
+    "tree": "50b8144766b4c9535b95a32acbce03fb0407c335",
+    "dirty_diff_sha256": "078359050c207fd47cc9cae113d5adf6ad84368796fe0cae35e5299b3c624d04",
+    "source_manifest_sha256": "4271941e854759d3853b8b993563d14eeef19859238bc85afa2a12df98a9013d",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "ed9b90dcdddf1700ebc7b2b9b9514535b0e632382398f40245e7521e3bad3265",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "revert-redo-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-turn-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-turn-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-turn-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-turn-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-turn-3",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-turn-3",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-card-popup",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-card-popup",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-card-normal",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-card-normal",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-card-hover",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-card-hover",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-selection-guard",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-selection-guard",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-card-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-card-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "revert-redo-failure",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-failure",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-shortcut-popup",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-shortcut-popup",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-shortcut-normal",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-shortcut-normal",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-shortcut-restored",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-shortcut-restored",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-slash-popup",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-slash-popup",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-slash-normal",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-slash-normal",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-slash-restored",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-slash-restored",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-palette-popup",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-palette-popup",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-palette-normal",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-palette-normal",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-palette-open",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-palette-open",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-palette-restored",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-palette-restored",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-durable-popup",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-durable-popup",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-durable-normal",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-durable-normal",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-switched-home",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-switched-home",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-reopened-sessions",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-reopened-sessions",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-reopened",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-reopened",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-restarted-sessions",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-restarted-sessions",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-restarted",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-restarted",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-pager-up",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-pager-up",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-pager-down",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-pager-down",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-restart-card-restored",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "revert-redo-restart-card-restored",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "revert-redo-home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "aee02323fa5e211deff94046dfd7c0654c8b3860e651eec115f73df734f4d0e3",
+      "png_sha256": "f5972c55fa88cefa171bc59a1a48178a37e60db6c8ecdcec65c7a4b5271f97d4",
+      "render_sha256": "f1215ba684ab2a23c54731ed2d70e60ee5fc10f674753c61db2b10d711bb121c",
+      "path": "upstream/revert-redo-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "revert-redo-turn-1",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d12f0cebb20b120933037497ee9fdbae9d19c8f0a651238ca21b40b711d29e82",
+      "png_sha256": "2da75696cfbb93226f1be295d864e7e73e1152d32d005894bc1e3deaa9139c34",
+      "render_sha256": "756ed5af18443f7762998f6660e71f87ce5b270b3623073d1f47c23655fff6c8",
+      "path": "upstream/revert-redo-turn-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "revert-redo-turn-2",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "1e5d8acd0065a56bdd5195a65853b8f9b1b1cfc726324917e318c553ef0bf4cf",
+      "png_sha256": "881d11eff89e30d671b15af4669d7bab106d858a454f3a97ebfa9668ae8cb7a8",
+      "render_sha256": "2c89ac9c8630c68cc022340a14119e0f3d0092945980b0136e6aa0910c82784e",
+      "path": "upstream/revert-redo-turn-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "revert-redo-turn-3",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "38bbe095a5995bba3a7a1f0b180fc6e4bd2494c11d445b8556362dc45773e2da",
+      "png_sha256": "1cf494271140d6a2faa6d0c12d85a2c01549b85abc0caf69ac8a47a67f9ef5a7",
+      "render_sha256": "3eba9d8e52e159ca0c770da62f28f765290876cc205bbe810c3d2e4001b42203",
+      "path": "upstream/revert-redo-turn-3"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "revert-redo-card-popup",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "11aaa12455806645c38d6482b459114b34d4bf25985b2cc1e3e3b5518c4fae22",
+      "png_sha256": "b64fff5e2dc1847ac4b84d43428fb64dd639fb89ebd26033337e81c0131addec",
+      "render_sha256": "be55e60bc978f7abfd6fceae3e01a202820a9446ca0992149da1a707376f13ba",
+      "path": "upstream/revert-redo-card-popup"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "revert-redo-card-normal",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "01d7c8f29d3eb6b6c2fc477b20a7877f53ad2966b200a3b2c828ff4c5ce70f03",
+      "png_sha256": "b0c4592cc51c6a7088273978b06ae63b016de8ef1a4ae1d739e36223e68bcced",
+      "render_sha256": "f07c1ab2e60a237a9f2e901ef07106737741c4fdfc3c0e334ed1eb0ba50764cf",
+      "path": "upstream/revert-redo-card-normal"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "revert-redo-card-hover",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "36d96fca21fde67c7c78547495dcae5fd3ef7bf0f1c15957792a1a7cecc17b8d",
+      "png_sha256": "3207cd3e78b21fcd4fcc0a7bfab3640ee1de1aefaceb09c5f342a92cb8f16cd7",
+      "render_sha256": "0f96c3d7fc88223483c688675bdca6afaa6fcc835b8b88984e820ff90bd24521",
+      "path": "upstream/revert-redo-card-hover"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "revert-redo-selection-guard",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "dc965e8c6d400d21662d42371aba7363bad011ebf69cdbb64048a716e363885c",
+      "png_sha256": "fcf00ec8ebfc4c6546cb75857d0e56c0aa85b0c95578e7a4c5cb0ed73b03e165",
+      "render_sha256": "82841ae2e16314d29ee537cf9fc76f982f23e7837b144a7483d540a2939a9320",
+      "path": "upstream/revert-redo-selection-guard"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "revert-redo-card-restored",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "5c35d1d91f81f27bd1cdf773bd5cbe8137809c0f9702d585bbd8722e3699d8e6",
+      "png_sha256": "584ad01bcf0f41b148db478f268c856bf10837fe21f791da8c92ecdb97d43e30",
+      "render_sha256": "06ec7df2740e4296e9c1922b1c8bc1b906038194ec25aab61a013406226444d0",
+      "path": "upstream/revert-redo-card-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "revert-redo-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "507d041f962587d2856cc303fbf15cfba1064c1d2bb99da825a4246d52149520",
+      "png_sha256": "3c660ac3de2f02c7dc650efd69ea3c4067f7eb6a322fe494133a5ab9b6a46802",
+      "render_sha256": "58620a4a999583404db4cab167963c205f77dcb081489ffc94671190df3701f9",
+      "path": "upstream/revert-redo-failure"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "6af3fdd288fc7131f379c97fbb8ba5af4aac4425c72cc75eff6c1297b970192c",
+      "png_sha256": "363aac4de880bfed850eaa5daafdb6827170877262f2850c76444b11baaf6692",
+      "render_sha256": "e698d7813bbb4060a63817d59a65d40dd2f781922ab87dc06f560d8c14864929",
+      "path": "oc/revert-redo-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-turn-1",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "6694b1e8b86663644e43ee396ff0ff68b8350748598d7ba80ca4c2d61ddfb006",
+      "png_sha256": "0da338bb366feac66f4617b9ae00e6c29ef8466707a06df912f64e9335d27885",
+      "render_sha256": "b572e77934e78a17be519b3fa5cdee0608457d423af9c515daa32cfbbe3712c6",
+      "path": "oc/revert-redo-turn-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-turn-2",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "6e910d7122057cf0e1fc8d43fb1cbc80287798ffc249ffe5ea47435c50e59c80",
+      "png_sha256": "0530d049ef91b3a32192c1780c2fb6b22696492fd5f3283d513a191fa81d9942",
+      "render_sha256": "49e6bd104c87a1afeb0a64c59b25b2b32cc07b1ce111782f984b5726c88af569",
+      "path": "oc/revert-redo-turn-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-turn-3",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "b233953481347c85d51926e2d2e734c0e78f6859cf5b586e7a82bd9b911da87c",
+      "png_sha256": "7803e16adfce5fc4c695cce319f73db3e5f079bd11b8aa51a0dc3f7c1478b7a1",
+      "render_sha256": "cdaf61ffd684104e7f82b3fc73a6ad96e1864c6f1b25fc114b002750c2837683",
+      "path": "oc/revert-redo-turn-3"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-card-popup",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "413df5ec57d642c4a443f335857a400a75b53ad683f9211a5e5860d6b5e40ba6",
+      "png_sha256": "94b47f6a2f194a785580207cf00cd52cd638b0ff97c8343c51bd7547db869ceb",
+      "render_sha256": "846966cf14b1d65bf1097bda8bcbb6c3988cd55cbd0ddb88bf7a5c2544e9a66b",
+      "path": "oc/revert-redo-card-popup"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-card-normal",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3e34706067067f3f47bfd1c8c8bc7fc5798f819200607439b857532f7f85baf5",
+      "png_sha256": "093cdf2f21d7eb8011ebbcba739ba7a704c897cf322a984c04bb6e3c0368ee0c",
+      "render_sha256": "eea4e029194669c5fd26d3cd7655522feb7a28ab44cf307d05725271f113393f",
+      "path": "oc/revert-redo-card-normal"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-card-hover",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "4e155d0d889ea3a00df4a2ed937d113f0f001a542e5ec3ef0fa7b042ff2b3692",
+      "png_sha256": "ad44a84c932ff6a3f0a0c013c992b1f614623cca1b37e4c59376c4994530e846",
+      "render_sha256": "530406900898823577a36feda9dd94f6b432082fd5166d40b3e386ab883b106b",
+      "path": "oc/revert-redo-card-hover"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-selection-guard",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ea601426966be9cda003ed2a6e21dbd1f2f546e0e996230655cea75dc18dc3e0",
+      "png_sha256": "e4e292e317f8d24a1b64cf435ddd9006d513e99850c068b060cf724e151cd78c",
+      "render_sha256": "c792dde619cf549841d4bc5d6c7725af790d0fc899d984aff249d14f80162cf2",
+      "path": "oc/revert-redo-selection-guard"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-card-restored",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ee3ccda666e4f024e57c70f9a7c235305a53fd34a46d382464d11a423c0cfa1f",
+      "png_sha256": "c1a8b98b927a708f1b223ed25d84f6ff471185abd0a021a141dbbd160c226036",
+      "render_sha256": "bde23c7c14eedcc4e812416ed4dff938d549c123da6608834454244f0258dc07",
+      "path": "oc/revert-redo-card-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-shortcut-popup",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "639354d905615a5b13dffa0cf606031ec70f6002080906e6d85f906098676ec5",
+      "png_sha256": "94b47f6a2f194a785580207cf00cd52cd638b0ff97c8343c51bd7547db869ceb",
+      "render_sha256": "779a28ef2dbb169692c702b1c140365623729779ea9beea7c2433bae1dd1dc93",
+      "path": "oc/revert-redo-shortcut-popup"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-shortcut-normal",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "0aab2345bebecd7f8a8eaa5216818795985bb0d6469c221b28a1226de1e9ba5f",
+      "png_sha256": "093cdf2f21d7eb8011ebbcba739ba7a704c897cf322a984c04bb6e3c0368ee0c",
+      "render_sha256": "9e2064c7d86038bd4e5b83e34733f39d53ffc3195e8d3ff3cc39865d672649ff",
+      "path": "oc/revert-redo-shortcut-normal"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-shortcut-restored",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "59bd1b4dca290adb3ffca6b251aa28234ee0ad498241ac97e3678ae011260c58",
+      "png_sha256": "c1a8b98b927a708f1b223ed25d84f6ff471185abd0a021a141dbbd160c226036",
+      "render_sha256": "c7f40d75e68278d1871ea3f74fefb3369fc30daa012552de95797c7f353093af",
+      "path": "oc/revert-redo-shortcut-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-slash-popup",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "fad1f12e190b220cc4e6a253ea16afdc7ed2c530a3332a359a19a225c13e018e",
+      "png_sha256": "94b47f6a2f194a785580207cf00cd52cd638b0ff97c8343c51bd7547db869ceb",
+      "render_sha256": "7cdd2a34dd6ce33f3f287b7a5d1df152cc16ac03e6cfe4b69a840d410b443650",
+      "path": "oc/revert-redo-slash-popup"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-slash-normal",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "4e7f5c70bea6658e1a7370c05629d603dfab5269cd04c7df404a8a030d65e387",
+      "png_sha256": "093cdf2f21d7eb8011ebbcba739ba7a704c897cf322a984c04bb6e3c0368ee0c",
+      "render_sha256": "1509e7a8364d4b441913c316b87c7f7a218fe7b7f2529ed948e24b57852e0dec",
+      "path": "oc/revert-redo-slash-normal"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-slash-restored",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d3075dc756fd3ed8b4b2f70b4766bf8a850182b5caa2108416315495873632e0",
+      "png_sha256": "7803e16adfce5fc4c695cce319f73db3e5f079bd11b8aa51a0dc3f7c1478b7a1",
+      "render_sha256": "7b353f2f73e5aa955f9343900bc1aefa2396fe6c11b048d05b752968edf44fad",
+      "path": "oc/revert-redo-slash-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-palette-popup",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "571c1ab3d4f3370f7563978e5dd8b441def7ec83c2bcfe15d6376fbac4501b0c",
+      "png_sha256": "94b47f6a2f194a785580207cf00cd52cd638b0ff97c8343c51bd7547db869ceb",
+      "render_sha256": "0066363575b975dc368bf08196cd4c17863acda35304d117b9e576feee492041",
+      "path": "oc/revert-redo-palette-popup"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-palette-normal",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "946d9e1b4691dd2725d4b13cca7167eb1951e2662389d48e699fd52d1fef0e67",
+      "png_sha256": "093cdf2f21d7eb8011ebbcba739ba7a704c897cf322a984c04bb6e3c0368ee0c",
+      "render_sha256": "b5b62cd7f8c1588d933142c40aae04db2989a254977b8a2de15f0c9999a06163",
+      "path": "oc/revert-redo-palette-normal"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-palette-open",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "97935f62d9a3a6d44691892d0ee15e54e07c6518c4ef2364eebd9d2cd40d5b61",
+      "png_sha256": "b0f36527315c2379389781d97335463e4c36a32125013c8fab68581b85e415fd",
+      "render_sha256": "3d1972f11a1f8681cb661dcfb0ebdf1a77405ecb7c9f0f548196b3948482205e",
+      "path": "oc/revert-redo-palette-open"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-palette-restored",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "abe1b8b6fb1243bb3f4673e8ea01494570d3112ae8ee5cd05b3814d4ed3d8ce4",
+      "png_sha256": "7803e16adfce5fc4c695cce319f73db3e5f079bd11b8aa51a0dc3f7c1478b7a1",
+      "render_sha256": "78554230ec37ea646bedeb8d73d26a092536fe25213d1a18f15ac91c4306db66",
+      "path": "oc/revert-redo-palette-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-durable-popup",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "bf63f6064716583ba4928100037ac7730eb57b30df4770d9f9900741443b1089",
+      "png_sha256": "94b47f6a2f194a785580207cf00cd52cd638b0ff97c8343c51bd7547db869ceb",
+      "render_sha256": "d953743d75924f9342a2a7fc53aa4873f564adae21f392358cc06a5f20a60575",
+      "path": "oc/revert-redo-durable-popup"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-durable-normal",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "72218467beb39e78e0548093fbf4722c71f811cd1e208dbe01627b2df9df1946",
+      "png_sha256": "093cdf2f21d7eb8011ebbcba739ba7a704c897cf322a984c04bb6e3c0368ee0c",
+      "render_sha256": "38326e3b6f9d13a6069750c25a9da813fa12df5693e3987ddd445f5a507e1e52",
+      "path": "oc/revert-redo-durable-normal"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-switched-home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f37fb8e5b0f3524a94bc6a4e8321799860bb716fa8dd542ff17fbdb92ddf39c4",
+      "png_sha256": "3cca9da3496ae8329256752e13c25a3126c42ca42cfa29a23f6d2770eb849aa1",
+      "render_sha256": "cc27e0ddccb833352439d932131ecc2702ae63f2b940492ebc36e23d64232226",
+      "path": "oc/revert-redo-switched-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-reopened-sessions",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "9edc13116fc89b0d0a475f8cbecdaefa01c5fc932176f66bd7fd64129efe232a",
+      "png_sha256": "3e8e7dcb19fed57d26468651f322e3e0129f9f2bf37976c01212e333d130789b",
+      "render_sha256": "7d75fa8f4ef9d2ef350a7a377da8e222899fb5f6437b7186095617904011b94f",
+      "path": "oc/revert-redo-reopened-sessions"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-reopened",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "bbde6c156c466c0e49679672f4e8d610380dbc6f29fb2da64718ed70d95527c7",
+      "png_sha256": "80c85872824cd59636b0506397f81a688a2f48f1d1233cacfc35d33ed3afda46",
+      "render_sha256": "860beefbe6e33cdb7cbc6abcb63db9c95fd41007be9c5feebc5c61e056f61cda",
+      "path": "oc/revert-redo-reopened"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-restarted-sessions",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "324e4f87df9c6e7e894c6f22c1618446e60f8498c858e8a4685f4c246d335bf4",
+      "png_sha256": "3e8e7dcb19fed57d26468651f322e3e0129f9f2bf37976c01212e333d130789b",
+      "render_sha256": "84053e372894b21ada38145358141adf18c36de74022e087ff08a22c651cb426",
+      "path": "oc/revert-redo-restarted-sessions"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-restarted",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "192bc7048d20ac2666e69cc8e198f83b7953058d378638e5a8a5ddb00288c604",
+      "png_sha256": "80c85872824cd59636b0506397f81a688a2f48f1d1233cacfc35d33ed3afda46",
+      "render_sha256": "27009058cc1c6400cb5f3c4b01d1828a096599f59a1389c3d0883200036e0d86",
+      "path": "oc/revert-redo-restarted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-pager-up",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2a0107edd56ddf700dc82437850b1997dfee8c1dbd20143492b539e743d14dfa",
+      "png_sha256": "80c85872824cd59636b0506397f81a688a2f48f1d1233cacfc35d33ed3afda46",
+      "render_sha256": "8dcccedc162d50e7c999f184772ef96a011312eb727080b840c639eaad415125",
+      "path": "oc/revert-redo-pager-up"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-pager-down",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d8f6ee0b7aaa959502ae2c2d749e46850fa6b597845ba503ed52d49f4d7b5a9d",
+      "png_sha256": "80c85872824cd59636b0506397f81a688a2f48f1d1233cacfc35d33ed3afda46",
+      "render_sha256": "f9ef686f2c8a4adf4b99b8abf0277dc8f9dffefb9d2084017985c1d25c2a63cf",
+      "path": "oc/revert-redo-pager-down"
+    },
+    {
+      "origin": "oc",
+      "scenario": "revert-redo-restart-card-restored",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2b0e7b395af873e966f54398713e1468aacf4b4995cfc77ed2dfd3fef4341313",
+      "png_sha256": "7803e16adfce5fc4c695cce319f73db3e5f079bd11b8aa51a0dc3f7c1478b7a1",
+      "render_sha256": "4cbd066ffd3c32fdbdb672e642f5052b1d9eb7c101ba7905348929887e400a77",
+      "path": "oc/revert-redo-restart-card-restored"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "revert_redo": {
+    "upstream": {
+      "status": "FAILED",
+      "checks": [
+        {
+          "stage": "home",
+          "counts": {
+            "requests": 0,
+            "completed": 0,
+            "transcript": 0,
+            "titles": 0,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "turn-1",
+          "counts": {
+            "requests": 2,
+            "completed": 2,
+            "transcript": 1,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "turn-2",
+          "counts": {
+            "requests": 3,
+            "completed": 3,
+            "transcript": 2,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "turn-3",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "completed-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "completed-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/upstream/home/data/opencode/opencode.db",
+                "rows": [
+                  {
+                    "id": "ses_f21654cc8ffeyaN3x3BreSedzS",
+                    "title": "VIS33 saved tail fixture",
+                    "revert": null,
+                    "archived_users": 3,
+                    "reverted_users": 0,
+                    "visible_users": 3
+                  }
+                ],
+                "tables": [
+                  "account",
+                  "account_state",
+                  "control_account",
+                  "credential",
+                  "event",
+                  "event_sequence",
+                  "instruction_blob",
+                  "instruction_entry",
+                  "instruction_state",
+                  "kv",
+                  "migration",
+                  "permission",
+                  "project",
+                  "project_directory",
+                  "session_inbox",
+                  "session_message",
+                  "session_pending",
+                  "session_v2",
+                  "workspace",
+                  "worktree"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+              "opencode.json": "4f6468436f3334ea73ad2d03aa4dc38df2fcc1cc871c45b73b7761d7e11fa0f5"
+            }
+          }
+        },
+        {
+          "stage": "card-popup",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "card-normal",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "card-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "card-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/upstream/home/data/opencode/opencode.db",
+                "rows": [
+                  {
+                    "id": "ses_f21654cc8ffeyaN3x3BreSedzS",
+                    "title": "VIS33 saved tail fixture",
+                    "revert": "{\"messageID\":\"msg_0de9abf4a001DguzFKJfgWw2LN\",\"files\":[]}",
+                    "archived_users": 3,
+                    "reverted_users": 2,
+                    "visible_users": 1
+                  }
+                ],
+                "tables": [
+                  "account",
+                  "account_state",
+                  "control_account",
+                  "credential",
+                  "event",
+                  "event_sequence",
+                  "instruction_blob",
+                  "instruction_entry",
+                  "instruction_state",
+                  "kv",
+                  "migration",
+                  "permission",
+                  "project",
+                  "project_directory",
+                  "session_inbox",
+                  "session_message",
+                  "session_pending",
+                  "session_v2",
+                  "workspace",
+                  "worktree"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+              "opencode.json": "4f6468436f3334ea73ad2d03aa4dc38df2fcc1cc871c45b73b7761d7e11fa0f5"
+            }
+          }
+        },
+        {
+          "stage": "card-hover",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "selection-guard",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "selection-guard-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "selection-guard-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/upstream/home/data/opencode/opencode.db",
+                "rows": [
+                  {
+                    "id": "ses_f21654cc8ffeyaN3x3BreSedzS",
+                    "title": "VIS33 saved tail fixture",
+                    "revert": "{\"messageID\":\"msg_0de9abf4a001DguzFKJfgWw2LN\",\"files\":[]}",
+                    "archived_users": 3,
+                    "reverted_users": 2,
+                    "visible_users": 1
+                  }
+                ],
+                "tables": [
+                  "account",
+                  "account_state",
+                  "control_account",
+                  "credential",
+                  "event",
+                  "event_sequence",
+                  "instruction_blob",
+                  "instruction_entry",
+                  "instruction_state",
+                  "kv",
+                  "migration",
+                  "permission",
+                  "project",
+                  "project_directory",
+                  "session_inbox",
+                  "session_message",
+                  "session_pending",
+                  "session_v2",
+                  "workspace",
+                  "worktree"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+              "opencode.json": "4f6468436f3334ea73ad2d03aa4dc38df2fcc1cc871c45b73b7761d7e11fa0f5"
+            }
+          }
+        },
+        {
+          "stage": "card-restored",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "card-restored-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "card-restored-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/upstream/home/data/opencode/opencode.db",
+                "rows": [
+                  {
+                    "id": "ses_f21654cc8ffeyaN3x3BreSedzS",
+                    "title": "VIS33 saved tail fixture",
+                    "revert": null,
+                    "archived_users": 3,
+                    "reverted_users": 0,
+                    "visible_users": 3
+                  }
+                ],
+                "tables": [
+                  "account",
+                  "account_state",
+                  "control_account",
+                  "credential",
+                  "event",
+                  "event_sequence",
+                  "instruction_blob",
+                  "instruction_entry",
+                  "instruction_state",
+                  "kv",
+                  "migration",
+                  "permission",
+                  "project",
+                  "project_directory",
+                  "session_inbox",
+                  "session_message",
+                  "session_pending",
+                  "session_v2",
+                  "workspace",
+                  "worktree"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+              "opencode.json": "4f6468436f3334ea73ad2d03aa4dc38df2fcc1cc871c45b73b7761d7e11fa0f5"
+            }
+          }
+        },
+        {
+          "stage": "failure",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "reason": "Nonunique VIS33 user turn 2. No tools.: [{\"x\":5,\"y\":11},{\"x\":5,\"y\":34}]"
+        }
+      ],
+      "origin": "upstream",
+      "baseline": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "immutable_files": {
+        "project": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config": {
+          "cli.json": "d3db63e7e26de2227c19f32d145af21209d9d57d918f6e2366605628ae0c3c2b",
+          "opencode.json": "4f6468436f3334ea73ad2d03aa4dc38df2fcc1cc871c45b73b7761d7e11fa0f5"
+        }
+      },
+      "reason": "Nonunique VIS33 user turn 2. No tools.: [{\"x\":5,\"y\":11},{\"x\":5,\"y\":34}]"
+    },
+    "oc": {
+      "status": "PASS",
+      "checks": [
+        {
+          "stage": "home",
+          "counts": {
+            "requests": 0,
+            "completed": 0,
+            "transcript": 0,
+            "titles": 0,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "turn-1",
+          "counts": {
+            "requests": 2,
+            "completed": 2,
+            "transcript": 1,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "turn-2",
+          "counts": {
+            "requests": 3,
+            "completed": 3,
+            "transcript": 2,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "turn-3",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "completed-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "completed-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/oc/home/data/oc/oc.sqlite",
+                "rows": [
+                  {
+                    "id": "s-tui-18d8ecb5566075de-3a5e17-0",
+                    "upper_seq": null,
+                    "archived_users": 3,
+                    "visible_users": 3,
+                    "reverted_users": 0,
+                    "redo_tip": null
+                  }
+                ],
+                "tables": [
+                  "blobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "sessions",
+                  "sqlite_sequence",
+                  "tool_operations",
+                  "turn_acceptances",
+                  "turns"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+              "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+            }
+          }
+        },
+        {
+          "stage": "card-popup",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "card-normal",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "card-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "card-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/oc/home/data/oc/oc.sqlite",
+                "rows": [
+                  {
+                    "id": "s-tui-18d8ecb5566075de-3a5e17-0",
+                    "upper_seq": 2,
+                    "archived_users": 3,
+                    "visible_users": 1,
+                    "reverted_users": 2,
+                    "redo_tip": 6
+                  }
+                ],
+                "tables": [
+                  "blobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "sessions",
+                  "sqlite_sequence",
+                  "tool_operations",
+                  "turn_acceptances",
+                  "turns"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+              "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+            }
+          }
+        },
+        {
+          "stage": "card-hover",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "selection-guard",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "selection-guard-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "selection-guard-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/oc/home/data/oc/oc.sqlite",
+                "rows": [
+                  {
+                    "id": "s-tui-18d8ecb5566075de-3a5e17-0",
+                    "upper_seq": 2,
+                    "archived_users": 3,
+                    "visible_users": 1,
+                    "reverted_users": 2,
+                    "redo_tip": 6
+                  }
+                ],
+                "tables": [
+                  "blobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "sessions",
+                  "sqlite_sequence",
+                  "tool_operations",
+                  "turn_acceptances",
+                  "turns"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+              "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+            }
+          }
+        },
+        {
+          "stage": "card-restored",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "card-restored-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "card-restored-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/oc/home/data/oc/oc.sqlite",
+                "rows": [
+                  {
+                    "id": "s-tui-18d8ecb5566075de-3a5e17-0",
+                    "upper_seq": null,
+                    "archived_users": 3,
+                    "visible_users": 3,
+                    "reverted_users": 0,
+                    "redo_tip": null
+                  }
+                ],
+                "tables": [
+                  "blobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "sessions",
+                  "sqlite_sequence",
+                  "tool_operations",
+                  "turn_acceptances",
+                  "turns"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+              "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+            }
+          }
+        },
+        {
+          "stage": "shortcut-popup",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "shortcut-normal",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "shortcut-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "shortcut-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/oc/home/data/oc/oc.sqlite",
+                "rows": [
+                  {
+                    "id": "s-tui-18d8ecb5566075de-3a5e17-0",
+                    "upper_seq": 2,
+                    "archived_users": 3,
+                    "visible_users": 1,
+                    "reverted_users": 2,
+                    "redo_tip": 6
+                  }
+                ],
+                "tables": [
+                  "blobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "sessions",
+                  "sqlite_sequence",
+                  "tool_operations",
+                  "turn_acceptances",
+                  "turns"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+              "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+            }
+          }
+        },
+        {
+          "stage": "shortcut-restored",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "shortcut-restored-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "shortcut-restored-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/oc/home/data/oc/oc.sqlite",
+                "rows": [
+                  {
+                    "id": "s-tui-18d8ecb5566075de-3a5e17-0",
+                    "upper_seq": null,
+                    "archived_users": 3,
+                    "visible_users": 3,
+                    "reverted_users": 0,
+                    "redo_tip": null
+                  }
+                ],
+                "tables": [
+                  "blobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "sessions",
+                  "sqlite_sequence",
+                  "tool_operations",
+                  "turn_acceptances",
+                  "turns"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+              "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+            }
+          }
+        },
+        {
+          "stage": "slash-popup",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "slash-normal",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "slash-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "slash-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/oc/home/data/oc/oc.sqlite",
+                "rows": [
+                  {
+                    "id": "s-tui-18d8ecb5566075de-3a5e17-0",
+                    "upper_seq": 2,
+                    "archived_users": 3,
+                    "visible_users": 1,
+                    "reverted_users": 2,
+                    "redo_tip": 6
+                  }
+                ],
+                "tables": [
+                  "blobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "sessions",
+                  "sqlite_sequence",
+                  "tool_operations",
+                  "turn_acceptances",
+                  "turns"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+              "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+            }
+          }
+        },
+        {
+          "stage": "slash-restored",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "slash-restored-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "slash-restored-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/oc/home/data/oc/oc.sqlite",
+                "rows": [
+                  {
+                    "id": "s-tui-18d8ecb5566075de-3a5e17-0",
+                    "upper_seq": null,
+                    "archived_users": 3,
+                    "visible_users": 3,
+                    "reverted_users": 0,
+                    "redo_tip": null
+                  }
+                ],
+                "tables": [
+                  "blobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "sessions",
+                  "sqlite_sequence",
+                  "tool_operations",
+                  "turn_acceptances",
+                  "turns"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+              "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+            }
+          }
+        },
+        {
+          "stage": "palette-popup",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "palette-normal",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "palette-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "palette-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/oc/home/data/oc/oc.sqlite",
+                "rows": [
+                  {
+                    "id": "s-tui-18d8ecb5566075de-3a5e17-0",
+                    "upper_seq": 2,
+                    "archived_users": 3,
+                    "visible_users": 1,
+                    "reverted_users": 2,
+                    "redo_tip": 6
+                  }
+                ],
+                "tables": [
+                  "blobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "sessions",
+                  "sqlite_sequence",
+                  "tool_operations",
+                  "turn_acceptances",
+                  "turns"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+              "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+            }
+          }
+        },
+        {
+          "stage": "palette-open",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "palette-restored",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "palette-restored-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "palette-restored-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/oc/home/data/oc/oc.sqlite",
+                "rows": [
+                  {
+                    "id": "s-tui-18d8ecb5566075de-3a5e17-0",
+                    "upper_seq": null,
+                    "archived_users": 3,
+                    "visible_users": 3,
+                    "reverted_users": 0,
+                    "redo_tip": null
+                  }
+                ],
+                "tables": [
+                  "blobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "sessions",
+                  "sqlite_sequence",
+                  "tool_operations",
+                  "turn_acceptances",
+                  "turns"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+              "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+            }
+          }
+        },
+        {
+          "stage": "durable-popup",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "durable-normal",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "durable-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "durable-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/oc/home/data/oc/oc.sqlite",
+                "rows": [
+                  {
+                    "id": "s-tui-18d8ecb5566075de-3a5e17-0",
+                    "upper_seq": 2,
+                    "archived_users": 3,
+                    "visible_users": 1,
+                    "reverted_users": 2,
+                    "redo_tip": 6
+                  }
+                ],
+                "tables": [
+                  "blobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "sessions",
+                  "sqlite_sequence",
+                  "tool_operations",
+                  "turn_acceptances",
+                  "turns"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+              "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+            }
+          }
+        },
+        {
+          "stage": "switched-home",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "reopened-sessions",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "reopened",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "reopened-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "reopened-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/oc/home/data/oc/oc.sqlite",
+                "rows": [
+                  {
+                    "id": "s-tui-18d8ecb5566075de-3a5e17-0",
+                    "upper_seq": 2,
+                    "archived_users": 3,
+                    "visible_users": 1,
+                    "reverted_users": 2,
+                    "redo_tip": 6
+                  }
+                ],
+                "tables": [
+                  "blobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "sessions",
+                  "sqlite_sequence",
+                  "tool_operations",
+                  "turn_acceptances",
+                  "turns"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+              "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+            }
+          }
+        },
+        {
+          "stage": "restarted-sessions",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "restarted",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "restarted-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "restarted-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/oc/home/data/oc/oc.sqlite",
+                "rows": [
+                  {
+                    "id": "s-tui-18d8ecb5566075de-3a5e17-0",
+                    "upper_seq": 2,
+                    "archived_users": 3,
+                    "visible_users": 1,
+                    "reverted_users": 2,
+                    "redo_tip": 6
+                  }
+                ],
+                "tables": [
+                  "blobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "sessions",
+                  "sqlite_sequence",
+                  "tool_operations",
+                  "turn_acceptances",
+                  "turns"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+              "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+            }
+          }
+        },
+        {
+          "stage": "pager-up",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "pager-down",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "pager-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "pager-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/oc/home/data/oc/oc.sqlite",
+                "rows": [
+                  {
+                    "id": "s-tui-18d8ecb5566075de-3a5e17-0",
+                    "upper_seq": 2,
+                    "archived_users": 3,
+                    "visible_users": 1,
+                    "reverted_users": 2,
+                    "redo_tip": 6
+                  }
+                ],
+                "tables": [
+                  "blobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "sessions",
+                  "sqlite_sequence",
+                  "tool_operations",
+                  "turn_acceptances",
+                  "turns"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+              "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+            }
+          }
+        },
+        {
+          "stage": "restart-card-restored",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "capture_status": "CAPTURED",
+          "zero_extra_calls": true
+        },
+        {
+          "stage": "final-db",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "observation": {
+            "kind": "revert_snapshot",
+            "request_id": "final-db",
+            "observations": [
+              {
+                "database": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/revert-redo-20260926-06/oc/home/data/oc/oc.sqlite",
+                "rows": [
+                  {
+                    "id": "s-tui-18d8ecb5566075de-3a5e17-0",
+                    "upper_seq": null,
+                    "archived_users": 3,
+                    "visible_users": 3,
+                    "reverted_users": 0,
+                    "redo_tip": null
+                  }
+                ],
+                "tables": [
+                  "blobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "sessions",
+                  "sqlite_sequence",
+                  "tool_operations",
+                  "turn_acceptances",
+                  "turns"
+                ]
+              }
+            ],
+            "project_files": {
+              "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+            },
+            "config_files": {
+              "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+              "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+            }
+          }
+        },
+        {
+          "stage": "clean-exits",
+          "counts": {
+            "requests": 4,
+            "completed": 4,
+            "transcript": 3,
+            "titles": 1,
+            "tools": 0,
+            "invalid": 0
+          },
+          "exits": [
+            {
+              "kind": "exit",
+              "generation": 0,
+              "code": 0,
+              "termination": "natural"
+            },
+            {
+              "kind": "exit",
+              "generation": 1,
+              "code": 0,
+              "termination": "natural"
+            }
+          ]
+        }
+      ],
+      "origin": "oc",
+      "baseline": {
+        "requests": 4,
+        "completed": 4,
+        "transcript": 3,
+        "titles": 1,
+        "tools": 0,
+        "invalid": 0
+      },
+      "immutable_files": {
+        "project": {
+          "vis33-owner-approved.txt": "1ff02636165dd9175bceb8adb34f2e919bc0105f05985743af3a3fcf06a3f1c6"
+        },
+        "config": {
+          "cli.json": "2f8bc51a08f2a71ada7ddd3d4e111c0ae7dfbf018b0e25f54a2b4dbcc0551e69",
+          "opencode.json": "f1bbccde852a64c287add5dffe169aaa01b8dfc9df1bb52327c56aa669c0b385"
+        }
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-09-26T16:47:34.728Z",
+  "exit_code": 1
+}

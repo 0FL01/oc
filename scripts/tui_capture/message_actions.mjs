@@ -45,7 +45,7 @@ export async function probeMessageActions({origin,dir,send,waitFor,frame,capture
     result.status=Object.values(predicates).every(Boolean)?'PASS':'FAILED_COPY_EFFECT';
   } catch(e) {result.status='FAILED';record('failed',{reason:e.message});await capture('message-actions-failure',await frame(),'FAILED_STATE');}
   // The approved native contract is evaluated independently, including after a
-  // real failed Copy. No original stepwise-redo expectation is introduced.
+  // real failed Copy. Redo restores the whole tail under the c452180 amendment.
   if(origin==='oc') {
     try {
       if((await frame()).text.includes('Message Actions')){send('\x1b','message_actions_dismiss');await waitFor(f=>!f.text.includes('Message Actions'),'dismiss popup',6000);}
@@ -63,7 +63,7 @@ export async function probeMessageActions({origin,dir,send,waitFor,frame,capture
         send('\r','native_execute_'+name.slice(1));
       };
       const stages=[['undo-one','/undo','',true,false,second],['undo-two','/undo',second,false,false,prompt],
-        ['redo-one','/redo',prompt,true,false,''],['redo-two','/redo','',true,true,'']];
+        ['redo-all','/redo',prompt,true,true,'']];
       for(const [stage,name,draft,first,secondVisible,restored] of stages) {
         await command(name,draft);
         const f=await waitFor(f=>f.text.includes('GEOMETRY-SHORT')===first && f.text.includes('GEOMETRY-TURN-TWO')===secondVisible &&

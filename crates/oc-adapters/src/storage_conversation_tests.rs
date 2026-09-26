@@ -84,6 +84,8 @@ fn conversation_points_restore_dcp_branch_restart_and_admission_rollback() {
         .unwrap();
     // Repeated completion cannot rewrite an already-saved point's DCP version.
     db.finish_turn("two", "completed", None).unwrap();
+    db.set_pref(nudge_key, "{\"turns_since_compress\":3}")
+        .unwrap();
     let undone = db
         .change_conversation("s", ConversationAction::Undo)
         .unwrap();
@@ -135,6 +137,11 @@ fn conversation_points_restore_dcp_branch_restart_and_admission_rollback() {
         .change_conversation("s", ConversationAction::Redo)
         .unwrap();
     assert!(!redone.can_redo);
+    assert!(redone.reverted.is_none());
+    assert_eq!(
+        db.get_pref(nudge_key).unwrap().as_deref(),
+        Some("{\"turns_since_compress\":3}")
+    );
     assert_eq!(
         db.load_compression_blocks("s").unwrap()[0].summary,
         "new summary"
@@ -180,8 +187,6 @@ fn conversation_points_restore_dcp_branch_restart_and_admission_rollback() {
         db.change_conversation("s", ConversationAction::Undo)
             .unwrap();
         assert_eq!(db.history_len("s").unwrap(), 0);
-        db.change_conversation("s", ConversationAction::Redo)
-            .unwrap();
         db.change_conversation("s", ConversationAction::Redo)
             .unwrap();
         assert_eq!(db.history_len("s").unwrap(), 4);
@@ -331,8 +336,6 @@ fn conversation_revisions_share_large_metadata_and_growing_memberships() {
     db.change_conversation("s", ConversationAction::Undo)
         .unwrap();
     db.change_conversation("s", ConversationAction::Undo)
-        .unwrap();
-    db.change_conversation("s", ConversationAction::Redo)
         .unwrap();
     db.change_conversation("s", ConversationAction::Redo)
         .unwrap();
@@ -504,4 +507,100 @@ fn conversation_legacy_boundary_is_explicitly_unavailable() {
         assert!(error.to_string().contains("no saved historical context"));
         assert_eq!(db.conversation_history_full("s").unwrap(), raw);
     }
+}
+
+#[test]
+fn conversation_whole_tail_skips_empty_user_and_preserves_original_tip() {
+    let root = tempfile::tempdir().unwrap();
+    let db = Db::open(root.path()).unwrap();
+    db.create_session("s").unwrap();
+    let first = turn(&db, "one", "one", "m");
+    let second = turn(&db, "two", "two", "m");
+    turn(&db, "three", "three", "m");
+    turn(&db, "special", "", "m");
+    let raw = db.read_history_full("s").unwrap();
+    let undo = db
+        .change_conversation("s", ConversationAction::Undo)
+        .unwrap();
+    assert_eq!(undo.draft.as_deref(), Some("three"));
+    assert_eq!(undo.reverted.unwrap().user_messages, 2);
+    let undo = db
+        .change_conversation("s", ConversationAction::Undo)
+        .unwrap();
+    assert_eq!(
+        undo.reverted,
+        Some(RevertedConversation {
+            message: oc_core::session::MessageId(second.clone()),
+            user_messages: 3
+        })
+    );
+    drop(db);
+    let db = Db::open(root.path()).unwrap();
+    let redo = db
+        .change_conversation("s", ConversationAction::Redo)
+        .unwrap();
+    assert!(!redo.can_redo);
+    assert!(redo.reverted.is_none());
+    assert_eq!(db.conversation_history_full("s").unwrap(), raw);
+    let revert = db
+        .change_conversation(
+            "s",
+            ConversationAction::Revert {
+                message: oc_core::session::MessageId(first),
+            },
+        )
+        .unwrap();
+    assert_eq!(revert.reverted.unwrap().user_messages, 4);
+    db.change_conversation("s", ConversationAction::Redo)
+        .unwrap();
+    assert_eq!(db.conversation_history_full("s").unwrap(), raw);
+    db.change_conversation(
+        "s",
+        ConversationAction::Revert {
+            message: oc_core::session::MessageId(second),
+        },
+    )
+    .unwrap();
+    turn(&db, "branch", "branch", "m");
+    assert!(db.reverted_conversation("s").unwrap().is_none());
+    assert!(
+        db.change_conversation("s", ConversationAction::Redo)
+            .is_err()
+    );
+    assert_eq!(db.read_history_full("s").unwrap().len(), raw.len() + 2);
+}
+
+#[test]
+fn conversation_missing_tip_cannot_be_replaced_by_an_earlier_redo_point() {
+    let root = tempfile::tempdir().unwrap();
+    let db = Db::open(root.path()).unwrap();
+    db.create_session("s").unwrap();
+    turn(&db, "one", "one", "m");
+    let second = turn(&db, "two", "two", "m");
+    turn(&db, "three", "three", "m");
+    db.conn
+        .lock()
+        .unwrap()
+        .execute("DELETE FROM conversation_points WHERE turn_id='three'", [])
+        .unwrap();
+    let reverted = db
+        .change_conversation(
+            "s",
+            ConversationAction::Revert {
+                message: oc_core::session::MessageId(second),
+            },
+        )
+        .unwrap();
+    assert!(!reverted.can_redo);
+    let undone = db
+        .change_conversation("s", ConversationAction::Undo)
+        .unwrap();
+    assert!(!undone.can_redo);
+    assert_eq!(undone.reverted.unwrap().user_messages, 3);
+    assert!(
+        db.change_conversation("s", ConversationAction::Redo)
+            .is_err()
+    );
+    assert_eq!(db.history_len("s").unwrap(), 0);
+    assert_eq!(db.read_history_full("s").unwrap().len(), 6);
 }

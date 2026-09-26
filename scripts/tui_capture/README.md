@@ -42,6 +42,41 @@ exit `2` denotes a runner blocker. Neither is parity success.
 
 ## What is captured
 
+### Conversation-only Revert / whole-tail Redo (VIS33)
+
+`--revert-redo true` is an exclusive opt-in mode with paired explicit binaries,
+`--geometry true --sample short --sidebar hide --columns 120 --rows 40`.
+`revert_redo.mjs` admits three actual user submissions through each real PTY.
+The bounded local Responses server answers identical prompts with identical text
+and separately handles the application's asynchronous title request. No title
+or history is inserted into a database. Fixture `opencode.json` sets
+`snapshots:false`; admitted `cli.json` sets
+`keybinds: {"session.redo":"<leader>r"}` on both sides (default ctrl+x r).
+
+The probe clicks turn two → Message Actions → Revert, observes two hidden user
+messages and its restored draft, captures normal/hover/selection-drag guard,
+then restores the whole tail with one card click. Fresh Revert boundaries precede
+shortcut, slash `/redo` and filtered palette Redo. It switches to a new Home,
+reopens through `/sessions`, exits cleanly, restarts the same isolated data root,
+reopens, sends PageUp/PageDown and restores via the durable card. Three-turn
+paging is bounded viewport coverage, not a large-history page-load qualification.
+
+Every DB observation uses SQLite `mode=ro`; native archive/visible user counts,
+upper_seq and redo_tip are retained, as are original persisted revert JSON and
+archive-derived counts. Fixture `vis33-owner-approved.txt` and both config files
+are hashed before actions and at every boundary observation. No real credentials
+are needed. All inputs, request text, styled cells/cursor, PNG, render geometry,
+VT streams, source manifest and build result are retained. Existing attempt
+directories are refused. Audit a completed attempt with:
+
+```sh
+node scripts/tui_capture/check_revert_redo_evidence.mjs evidence/tui/recovery-v00/revert-redo-20260926-07
+```
+
+Behavior PASS does not imply comparator equality: the completed run has 29 paired
+full frames, all 58 unmasked grid/cursor and PNG comparisons DIFFERENT.
+See `evidence/tui/recovery-v00/revert-redo-report.md` for the attempt ledger.
+
 ### Bounded variant and Shell modes
 
 `--bounded-mode variants|shell` requires paired explicit binaries, `--geometry

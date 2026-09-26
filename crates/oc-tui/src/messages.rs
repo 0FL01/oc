@@ -869,6 +869,7 @@ fn render_row(
     cache: Option<&RefCell<MarkdownCache>>,
 ) -> Vec<Line> {
     let lines = match row.role.as_str() {
+        "reverted" => reverted_block(&row.text, row.agent.as_deref().unwrap_or(""), theme, width),
         "user" => {
             let mut lines = Vec::new();
             if index > 0 {
@@ -937,6 +938,12 @@ fn visit_row_blocks(
 ) {
     let (index, live) = identity;
     let (width, terminal_width) = widths;
+    if row.role == "reverted" {
+        let mut lines = reverted_block(&row.text, row.agent.as_deref().unwrap_or(""), theme, width);
+        emit(vec![lines.remove(0)]);
+        emit(lines);
+        return;
+    }
     if row.role == "user" && width > 0 {
         if index > 0 {
             // Keep the indexed seek height and materialized row in sync.
@@ -1819,12 +1826,52 @@ pub(crate) struct UserMessageTarget {
     pub message_id: Option<std::sync::Arc<oc_core::session::MessageId>>,
     pub seq: i64,
     pub ordinal: usize,
+    pub reverted: bool,
+}
+
+/// Conversation-only RevertMessage, snapshots disabled (index.tsx:2172–2250).
+fn reverted_block(count: &str, shortcut: &str, theme: &Theme, width: u16) -> Vec<Line> {
+    let bg = theme.background_raised();
+    let border = Style::default().fg(bg).bg(bg);
+    let muted = Style::default().fg(theme.text_muted()).bg(bg);
+    let mut lines = vec![Line::plain("")];
+    let inner = (width as usize).saturating_sub(3).max(1);
+    let body = [
+        Line::plain(""),
+        Line::styled(
+            format!(
+                "{count} message{} reverted",
+                if count == "1" { "" } else { "s" }
+            ),
+            muted,
+        ),
+        Line::new(vec![
+            Span::styled(shortcut, Style::default().fg(theme.text()).bg(bg)),
+            Span::styled(" or /redo to restore", muted),
+        ]),
+        Line::plain(""),
+    ];
+    for line in body {
+        for wrapped in styled::wrap_line_limited(&line, inner, MAX_MARKDOWN_ROWS) {
+            let mut spans = vec![Span::styled("┃", border), Span::styled("  ", muted)];
+            spans.extend(wrapped.spans().iter().cloned());
+            lines.push(user_row(&spans, bg, width as usize));
+        }
+    }
+    lines
 }
 
 /// Only the inner box receives the hover fill; the agent-colored left border
 /// and chip-specific surfaces remain as painted by upstream.
 pub(crate) fn hover_user_content(line: &Line, theme: &Theme) -> Line {
-    let base = theme.user_message_background();
+    hover_message_content(line, theme, theme.user_message_background())
+}
+
+pub(crate) fn hover_reverted_content(line: &Line, theme: &Theme) -> Line {
+    hover_message_content(line, theme, theme.background_raised())
+}
+
+fn hover_message_content(line: &Line, theme: &Theme, base: Color) -> Line {
     let hover = theme.decrease(base);
     let spans = line
         .spans()
@@ -2135,7 +2182,7 @@ fn visible_transcript_indexed(
                 },
             );
         } else {
-            let mut margin = row.role == "user" && index > 0;
+            let mut margin = (row.role == "user" && index > 0) || row.role == "reverted";
             visit_row_blocks(
                 row,
                 (index, false),
@@ -2152,12 +2199,13 @@ fn visible_transcript_indexed(
                         &mut position,
                         &mut visible,
                     );
-                    if row.role == "user" && !margin {
+                    if (row.role == "user" || row.role == "reverted") && !margin {
                         for slot in user_targets.iter_mut().take(visible.len()).skip(first) {
                             *slot = Some(UserMessageTarget {
                                 message_id: row.message_id.clone(),
                                 seq: row.seq,
                                 ordinal: index,
+                                reverted: row.role == "reverted",
                             });
                         }
                     }

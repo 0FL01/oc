@@ -1,5 +1,15 @@
 # T44 — parity qualification remains open (2026-09-26)
 
+The c452180 whole-tail Redo/reverted-card amendment is implemented and verified by
+the serial workspace gate `tool_0deab074e001sKzMIryMp9yIZ2` and
+[`revert-redo-20260926-07`](../tui/recovery-v00/revert-redo-20260926-07/capture.lock.json).
+Both executables pass real Revert/count/hover/selection guard and whole-tail Redo
+through click, shortcut, slash, palette and restart; three transcript plus one
+title requests each, no extra calls during actions. All 58 full grid/PNG comparisons
+remain DIFFERENT. Configured shortcuts and five-turn zero-request restoration are
+also covered by owner/binary tests. Earlier stepwise Redo evidence is superseded,
+not rewritten. See [`revert-redo-report.md`](../tui/recovery-v00/revert-redo-report.md).
+
 Sessions source slice passes the final serialized workspace gate
 `tool_0de60cc67001Tsl2vZu7GUCjgE`. Final source-built
 [`sessions-live-11`](../tui/recovery-v00/sessions-live-11/capture.lock.json) verifies

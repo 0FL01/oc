@@ -719,15 +719,17 @@ mod tests {
             },
         )
         .unwrap();
-        let restored = db
-            .change_conversation(&mixed.session.0, oc_core::queries::ConversationAction::Redo)
-            .unwrap();
-        assert!(!restored.can_redo);
+        // Whole-tail Redo cannot substitute an earlier supported post point
+        // for this tip's missing historical revision.
+        assert!(
+            db.change_conversation(&mixed.session.0, oc_core::queries::ConversationAction::Redo)
+                .is_err()
+        );
         assert_eq!(
             db.conversation_history_full(&mixed.session.0)
                 .unwrap()
                 .len(),
-            2
+            0
         );
         assert!(
             db.change_conversation(&mixed.session.0, oc_core::queries::ConversationAction::Redo)

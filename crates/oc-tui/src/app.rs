@@ -488,6 +488,10 @@ pub struct TuiState {
     clipboard_mode: ClipboardMode,
     /// Owner availability, when known. Fresh/reopened views let the owner decide.
     conversation_available: Option<(bool, bool)>,
+    reverted: Option<oc_core::queries::RevertedConversation>,
+    reverted_down: Option<(oc_core::queries::RevertedConversation, u64, Rect)>,
+    conversation_bindings: [Option<String>; 2],
+    leader_key: String,
     /// Last successful owner projection, independent of manual/test overrides.
     owner_clipboard_mode: Option<oc_core::queries::TerminalCopyMode>,
     pending_copy: Option<String>,
@@ -655,6 +659,10 @@ impl TuiState {
             message_down: None,
             clipboard_mode: ClipboardMode::default(),
             conversation_available: None,
+            reverted: None,
+            reverted_down: None,
+            conversation_bindings: [None, None],
+            leader_key: "ctrl+x".into(),
             owner_clipboard_mode: None,
             pending_copy: None,
             selection: None,
@@ -1003,6 +1011,7 @@ impl TuiState {
 
     pub fn set_session(&mut self, session: SessionId) {
         self.conversation_available = None;
+        self.reverted = None;
         self.close_panel();
         self.slash_selected = 0;
         self.slash_dismissed = None;
@@ -1341,7 +1350,130 @@ impl TuiState {
     fn command_footer(&self, command: &crate::commands::CommandSpec) -> String {
         self.command_unavailable(&command.action)
             .map(str::to_string)
-            .unwrap_or_else(|| command.shortcuts.join(" "))
+            .unwrap_or_else(|| match command.action {
+                CommandAction::UndoConversation => self.conversation_shortcut(true),
+                CommandAction::RedoConversation => self.conversation_shortcut(false),
+                _ => command.shortcuts.join(" "),
+            })
+    }
+
+    /// Effective owner-configured shortcuts; Some("") disables a binding.
+    pub fn set_conversation_shortcuts(&mut self, undo: Option<String>, redo: Option<String>) {
+        let previous = [
+            self.conversation_shortcut(true),
+            self.conversation_shortcut(false),
+        ];
+        self.conversation_bindings = [undo, redo];
+        if previous
+            != [
+                self.conversation_shortcut(true),
+                self.conversation_shortcut(false),
+            ]
+        {
+            self.leader = None;
+            self.clear_transcript_selection();
+        }
+    }
+
+    fn conversation_shortcut(&self, undo: bool) -> String {
+        self.conversation_bindings[usize::from(!undo)]
+            .clone()
+            .unwrap_or_else(|| {
+                crate::commands::spec(&if undo {
+                    CommandAction::UndoConversation
+                } else {
+                    CommandAction::RedoConversation
+                })
+                .shortcuts
+                .join(" ")
+            })
+    }
+
+    /// Resolve configured direct keys before the generic editor mapping.
+    /// Modal focus keeps ownership; leader sequences are resolved in handle_key.
+    pub fn conversation_key(&mut self, event: crossterm::event::KeyEvent) -> Option<KeyAction> {
+        use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
+        if self.panel != TuiPanel::None || event.kind != KeyEventKind::Press {
+            return None;
+        }
+        let key = match event.code {
+            KeyCode::Char(key) => key.to_ascii_lowercase().to_string(),
+            KeyCode::Enter => "enter".into(),
+            KeyCode::Esc => "esc".into(),
+            KeyCode::Tab | KeyCode::BackTab => "tab".into(),
+            KeyCode::Backspace => "backspace".into(),
+            KeyCode::Delete => "delete".into(),
+            KeyCode::Insert => "insert".into(),
+            KeyCode::Home => "home".into(),
+            KeyCode::End => "end".into(),
+            KeyCode::PageUp => "pageup".into(),
+            KeyCode::PageDown => "pagedown".into(),
+            KeyCode::Left => "left".into(),
+            KeyCode::Right => "right".into(),
+            KeyCode::Up => "up".into(),
+            KeyCode::Down => "down".into(),
+            KeyCode::F(number) => format!("f{number}"),
+            _ => return None,
+        };
+        let mut binding = String::new();
+        for (flag, prefix) in [
+            (KeyModifiers::CONTROL, "ctrl+"),
+            (KeyModifiers::ALT, "alt+"),
+            (KeyModifiers::SHIFT, "shift+"),
+        ] {
+            if event.modifiers.contains(flag) {
+                binding.push_str(prefix);
+            }
+        }
+        binding.push_str(&key);
+        let chord = self
+            .leader
+            .filter(|started| started.elapsed() < Duration::from_secs(2))
+            .map(|_| format!("{} {binding}", self.leader_key));
+        let action = [true, false]
+            .into_iter()
+            .find(|undo| {
+                self.conversation_shortcut(*undo).split(',').any(|value| {
+                    value
+                        .trim()
+                        .eq_ignore_ascii_case(chord.as_deref().unwrap_or(&binding))
+                })
+            })
+            .map(|undo| {
+                if undo {
+                    KeyAction::UndoConversation
+                } else {
+                    KeyAction::RedoConversation
+                }
+            });
+        if action.is_some() {
+            self.leader = None;
+            return action;
+        }
+        if self
+            .chrome
+            .conversation_shortcuts
+            .leader
+            .split(',')
+            .any(|value| value.trim().eq_ignore_ascii_case(&binding))
+            || [true, false].into_iter().any(|undo| {
+                self.conversation_shortcut(undo).split(',').any(|value| {
+                    value
+                        .trim()
+                        .split_once(' ')
+                        .is_some_and(|(prefix, _)| prefix.eq_ignore_ascii_case(&binding))
+                })
+            })
+        {
+            self.leader_key = binding;
+            return Some(KeyAction::Leader);
+        }
+        None
+    }
+
+    pub fn terminal_key(&mut self, event: crossterm::event::KeyEvent) -> Option<KeyAction> {
+        self.conversation_key(event)
+            .or_else(|| crate::events::map_key(event).filter(|action| *action != KeyAction::Leader))
     }
 
     /// Called only after a successful application selection. The original applies
@@ -1705,6 +1837,7 @@ impl TuiState {
 
     /// Newest page becomes the whole window; scroll pins to the newest row.
     pub fn attach_page(&mut self, page: &HistoryPage) {
+        self.reverted = page.reverted.clone();
         self.clear_transcript_selection();
         self.exploration_down = None;
         self.exploration_expanded.clear();
@@ -1719,6 +1852,7 @@ impl TuiState {
 
     /// Add an older page at the front of the window.
     pub fn prepend_page(&mut self, page: &HistoryPage) {
+        self.reverted = page.reverted.clone();
         self.clear_transcript_selection();
         self.viewport.set(None);
         self.window.prepend_older(page);
@@ -1727,6 +1861,7 @@ impl TuiState {
 
     /// Add a newer page at the back of the window.
     pub fn append_page(&mut self, page: &HistoryPage) {
+        self.reverted = page.reverted.clone();
         self.clear_transcript_selection();
         self.viewport.set(None);
         self.window.append_newer(page);
@@ -1863,6 +1998,7 @@ impl TuiState {
             // A drag started on a header belongs to text selection; it must
             // never activate the header on release, even if it returns there.
             if matches!(event.kind, MouseEventKind::Drag(_)) {
+                self.reverted_down = None;
                 self.message_down = None;
                 self.exploration_down = None;
                 self.reasoning_down = None;
@@ -1879,6 +2015,11 @@ impl TuiState {
                     self.reasoning_down = None;
                 }
                 MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
+                    self.reverted_down = self
+                        .painted_user_message_target_at(area, event.column, event.row)
+                        .filter(|target| target.reverted)
+                        .and_then(|_| self.reverted.clone())
+                        .map(|boundary| (boundary, self.paint_generation.get(), area));
                     self.message_down = self
                         .painted_user_message_target_at(area, event.column, event.row)
                         .and_then(|target| target.message_id)
@@ -1907,6 +2048,7 @@ impl TuiState {
                         });
                 }
                 MouseEventKind::Up(MouseButton::Left) => {
+                    let reverted_pressed = self.reverted_down.take();
                     let message_pressed = self.message_down.take();
                     let pressed_tab = self.tab_down.take();
                     let pressed = self.exploration_down.take();
@@ -1915,8 +2057,20 @@ impl TuiState {
                     // Resolve a user click only against the last painted,
                     // still-current block. A selection/drag owns its release.
                     if event.modifiers.is_empty()
+                        && self
+                            .user_message_target_at(area, event.column, event.row)
+                            .is_some_and(|target| target.reverted)
+                        && self.reverted.as_ref().is_some_and(|boundary| {
+                            reverted_pressed.as_ref()
+                                == Some(&(boundary.clone(), self.paint_generation.get(), area))
+                        })
+                    {
+                        return self.run_command(CommandAction::RedoConversation);
+                    }
+                    if event.modifiers.is_empty()
                         && let Some(target) =
                             self.user_message_target_at(area, event.column, event.row)
+                        && !target.reverted
                         && let Some(message) = target.message_id
                         && message_pressed
                             == Some(((*message).clone(), self.paint_generation.get(), area))
@@ -2298,7 +2452,11 @@ impl TuiState {
                 let line = if hovered_user.is_some()
                     && user_targets.get(row).cloned().flatten() == hovered_user
                 {
-                    hovered = crate::messages::hover_user_content(line, theme);
+                    hovered = if hovered_user.as_ref().is_some_and(|target| target.reverted) {
+                        crate::messages::hover_reverted_content(line, theme)
+                    } else {
+                        crate::messages::hover_user_content(line, theme)
+                    };
                     &hovered
                 } else if hover_row == Some(row) {
                     hovered = crate::messages::hover_collapsed_thought(line, theme);
@@ -2368,6 +2526,11 @@ impl TuiState {
     /// A parked route may carry an older catalog. Route activation adopts the
     /// current view's last successful owner projection, not the parked value.
     pub fn sync_clipboard_mode_from(&mut self, current: &Self) {
+        self.set_conversation_shortcuts(
+            Some(current.conversation_shortcut(true)),
+            Some(current.conversation_shortcut(false)),
+        );
+        self.chrome.conversation_shortcuts = current.chrome.conversation_shortcuts.clone();
         if current.clipboard_mode == ClipboardMode::Disabled {
             self.disable_clipboard_until_catalog();
         } else {
@@ -2442,6 +2605,7 @@ impl TuiState {
         self.attach_page(page);
         self.restore_prompt(draft);
         self.conversation_available = Some((snapshot.can_undo, snapshot.can_redo));
+        self.reverted = snapshot.reverted.clone();
         self.dcp = DcpPanelState::default();
     }
 
@@ -2459,6 +2623,7 @@ impl TuiState {
     }
 
     fn clear_transcript_selection(&mut self) {
+        self.reverted_down = None;
         self.message_down = None;
         self.paint_generation
             .set(self.paint_generation.get().wrapping_add(1));
@@ -2839,7 +3004,10 @@ impl TuiState {
         }
         let rows = self.transcript_rows();
         let live_row = (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| {
-            rows.len() - 1 - usize::from(self.active_turn.is_some() && self.live_preview_truncated)
+            rows.len()
+                - 1
+                - usize::from(rows.last().is_some_and(|row| row.role == "reverted"))
+                - usize::from(self.active_turn.is_some() && self.live_preview_truncated)
         });
         crate::messages::exploration_header_at(
             &rows,
@@ -3085,6 +3253,22 @@ impl TuiState {
                 reasoning.toggleable = !self.thinking_expanded;
             }
         }
+        if let Some(reverted) = &self.reverted
+            && !self.window.has_newer()
+        {
+            rows.push(HistoryRow {
+                message_id: Some(std::sync::Arc::new(reverted.message.clone())),
+                seq: i64::MAX,
+                role: "reverted".into(),
+                text: reverted.user_messages.to_string(),
+                agent: Some(self.conversation_shortcut(false)),
+                agent_color_index: None,
+                chips: Vec::new(),
+                reasoning: None,
+                meta: None,
+                tool: None,
+            });
+        }
         rows
     }
 
@@ -3218,6 +3402,15 @@ impl TuiState {
 
     /// Apply a catalog snapshot: picker, agents and the effective selection.
     pub fn apply_catalog(&mut self, snapshot: CatalogSnapshot) {
+        if self.chrome.conversation_shortcuts.leader
+            != snapshot.chrome.conversation_shortcuts.leader
+        {
+            self.leader = None;
+        }
+        self.set_conversation_shortcuts(
+            Some(snapshot.chrome.conversation_shortcuts.undo.clone()),
+            Some(snapshot.chrome.conversation_shortcuts.redo.clone()),
+        );
         if self.chrome.location != snapshot.chrome.location {
             self.generation += 1;
             self.clear_mentions();
@@ -3953,16 +4146,37 @@ impl TuiState {
                 | KeyAction::Agents
                 | KeyAction::CycleVariant
                 | KeyAction::Rename
+                | KeyAction::UndoConversation
+                | KeyAction::RedoConversation
         ) {
             self.leader = None;
         } else if let Some(start) = self.leader.take()
             && start.elapsed() < std::time::Duration::from_secs(2)
         {
             let command = if let KeyAction::Char(key) = action {
-                crate::commands::REGISTRY
-                    .iter()
-                    .find(|c| c.shortcuts.contains(&format!("ctrl+x {key}").as_str()))
-                    .map(|c| c.action.clone())
+                let binding = format!("{} {key}", self.leader_key);
+                [
+                    CommandAction::UndoConversation,
+                    CommandAction::RedoConversation,
+                ]
+                .into_iter()
+                .find(|action| {
+                    self.conversation_shortcut(*action == CommandAction::UndoConversation)
+                        .split(',')
+                        .any(|value| value.trim() == binding)
+                })
+                .or_else(|| {
+                    crate::commands::REGISTRY
+                        .iter()
+                        .filter(|c| {
+                            !matches!(
+                                c.action,
+                                CommandAction::UndoConversation | CommandAction::RedoConversation
+                            )
+                        })
+                        .find(|c| c.shortcuts.contains(&binding.as_str()))
+                        .map(|c| c.action.clone())
+                })
             } else {
                 None
             };
@@ -3970,6 +4184,8 @@ impl TuiState {
         }
         match action {
             KeyAction::Commands => self.run_command(CommandAction::OpenCommands),
+            KeyAction::UndoConversation => self.run_command(CommandAction::UndoConversation),
+            KeyAction::RedoConversation => self.run_command(CommandAction::RedoConversation),
             KeyAction::Agents => self.run_command(CommandAction::OpenAgents),
             KeyAction::CycleVariant if self.is_busy() => KeyOutcome {
                 note: Some("turn active; action unavailable".into()),
@@ -5931,6 +6147,7 @@ mod tests {
         HistoryPage {
             parent_id: None,
             title: None,
+            reverted: None,
             rows,
             total,
             has_older: older,
@@ -6631,6 +6848,182 @@ mod tests {
         home.handle_key(KeyAction::Commands).await;
         home.handle_paste("sidebar");
         assert_eq!(title(&home), "Show sidebar");
+    }
+
+    #[tokio::test]
+    async fn reverted_card_owner_count_render_click_selection_and_reopen() {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        let mut state = fresh_state("reverted-card").await;
+        let boundary = oc_core::queries::RevertedConversation {
+            message: oc_core::session::MessageId("first-hidden".into()),
+            user_messages: 3,
+        };
+        let owner_page = HistoryPage {
+            reverted: Some(boundary.clone()),
+            ..Default::default()
+        };
+        state.attach_page(&owner_page);
+        state.restore_prompt("original prompt".into());
+        let frame = Rect::new(0, 0, 120, 40);
+        let area = crate::shell::transcript_area(&state, frame);
+        let (rows, total, scroll, targets) =
+            state.visible_transcript_at_viewport_with_targets(area.width, frame.width, area.height);
+        let full = state.rendered_transcript(area.width, frame.width);
+        assert_eq!(rows.len(), full.len());
+        for (indexed, full) in rows.iter().zip(&full) {
+            assert_eq!(indexed.spans(), full.spans());
+        }
+        assert!(
+            rows.iter()
+                .any(|row| row.plain_text().contains("3 messages reverted"))
+        );
+        assert!(
+            rows.iter()
+                .any(|row| row.plain_text().contains("ctrl+x r or /redo to restore"))
+        );
+        state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &targets);
+        let row = targets
+            .iter()
+            .position(|target| target.as_ref().is_some_and(|target| target.reverted))
+            .unwrap();
+        let x = area.x + 4;
+        let y = area.y + row as u16 + 1;
+        state.handle_mouse(selection_mouse(MouseEventKind::Moved, x, y), frame);
+        let hovered = state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &targets);
+        assert_ne!(hovered[row + 1], rows[row + 1]);
+        assert_eq!(
+            hovered[row + 1].spans()[0].style(),
+            rows[row + 1].spans()[0].style(),
+            "hover retains raised-color border"
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        let clicked = state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+            frame,
+        );
+        assert_eq!(
+            clicked.intent,
+            Some(PanelIntent::ChangeConversation {
+                action: oc_core::queries::ConversationAction::Redo
+            })
+        );
+        assert_eq!(state.input(), "original prompt");
+        state.click = None;
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        let mut changed = owner_page.clone();
+        changed.reverted.as_mut().unwrap().message =
+            oc_core::session::MessageId("different-boundary".into());
+        state.attach_page(&changed);
+        let (changed_rows, changed_total, changed_scroll, changed_targets) =
+            state.visible_transcript_at_viewport_with_targets(area.width, frame.width, area.height);
+        state.paint_transcript_at(
+            area,
+            &changed_rows,
+            changed_total,
+            changed_scroll,
+            Some(frame),
+            &changed_targets,
+        );
+        assert!(
+            state
+                .handle_mouse(
+                    selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+                    frame
+                )
+                .intent
+                .is_none(),
+            "same-count replacement cannot inherit a press"
+        );
+        state.attach_page(&owner_page);
+        state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &targets);
+        state.click = None;
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), x + 3, y),
+            frame,
+        );
+        assert!(
+            state
+                .handle_mouse(
+                    selection_mouse(MouseEventKind::Up(MouseButton::Left), x + 3, y),
+                    frame
+                )
+                .intent
+                .is_none()
+        );
+        state.attach_page(&owner_page);
+        assert_eq!(state.reverted, Some(boundary));
+        state.set_conversation_shortcuts(Some("ctrl+x z".into()), Some("ctrl+x y".into()));
+        state.handle_key(KeyAction::Leader).await;
+        assert!(
+            state
+                .handle_key(KeyAction::Char('r'))
+                .await
+                .intent
+                .is_none(),
+            "configured binding replaces default"
+        );
+        state.handle_key(KeyAction::Leader).await;
+        assert_eq!(
+            state.handle_key(KeyAction::Char('y')).await.intent,
+            Some(PanelIntent::ChangeConversation {
+                action: oc_core::queries::ConversationAction::Redo
+            })
+        );
+        state.attach_page(&HistoryPage::default());
+        assert!(state.reverted.is_none());
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+        let key = |value, modifiers| KeyEvent::new(KeyCode::Char(value), modifiers);
+        let mut catalog = snapshot();
+        catalog.chrome.conversation_shortcuts = oc_core::queries::ConversationShortcuts {
+            leader: "ctrl+b,alt+x".into(),
+            undo: "ctrl+b u,alt+x u".into(),
+            redo: "ctrl+b r,alt+x r,ctrl+z".into(),
+        };
+        state.apply_catalog(catalog.clone());
+        assert_eq!(state.terminal_key(key('x', KeyModifiers::CONTROL)), None);
+        assert_eq!(
+            state.terminal_key(key('z', KeyModifiers::CONTROL)),
+            Some(KeyAction::RedoConversation)
+        );
+        let leader = state.terminal_key(key('b', KeyModifiers::CONTROL)).unwrap();
+        state.handle_key(leader).await;
+        assert_eq!(
+            state.terminal_key(key('r', KeyModifiers::NONE)),
+            Some(KeyAction::RedoConversation)
+        );
+        let leader = state.terminal_key(key('x', KeyModifiers::ALT)).unwrap();
+        state.handle_key(leader).await;
+        assert_eq!(
+            state.terminal_key(key('u', KeyModifiers::NONE)),
+            Some(KeyAction::UndoConversation)
+        );
+        catalog.chrome.location = Some("/new-location".into());
+        catalog.chrome.conversation_shortcuts = oc_core::queries::ConversationShortcuts {
+            leader: String::new(),
+            undo: String::new(),
+            redo: String::new(),
+        };
+        state.apply_catalog(catalog);
+        assert_eq!(state.terminal_key(key('x', KeyModifiers::CONTROL)), None);
+        assert_ne!(
+            state.terminal_key(key('z', KeyModifiers::CONTROL)),
+            Some(KeyAction::RedoConversation)
+        );
+        assert_eq!(
+            state.terminal_key(key('-', KeyModifiers::CONTROL)),
+            Some(KeyAction::Undo),
+            "editor undo remains distinct"
+        );
     }
 
     #[tokio::test]

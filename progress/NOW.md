@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-09-26T15:49:35+00:00
+State updated: 2026-09-26T17:05:22+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,36 +14,37 @@ Evidence target: evidence/T44/report.md
 
 ## Result
 
-Implemented bounded owner metadata for Sessions while preserving ID-only legacy
-query. Canonical /sessions with /resume and /continue, no extra /session. Truthful
-titles, real update order and Today/date categories, current/running/worktree
-metadata, scope/search and selected rename/two-key confirmed delete have real
-owner effects. Listed foreign root Open validates owning Location/config/deck
-before publication; ordinary foreign history/rename protections remain. Delete
-is root-family atomic, preserves independent forks/shared metadata, and drains
-title work; stale tab scope cannot overwrite the owner preference.
+Delivered c452180 behavior: Undo chooses preceding nonempty user text; Redo restores
+the whole saved staged tail without generation/tool replay/filesystem mutation.
+Durable owner-projected reverted count and boundary render a real card with hover,
+selection-protected click and configured shortcut hint. Click, slash, palette and
+shortcut use the same owner operation; errors retain card/boundary/draft. Admitted
+config sources project effective conversation shortcuts and reload/Location scope;
+editor Ctrl-minus remains editor undo. Branch invalidation/archive/DCP remain intact.
 
 ## Checks
 
-Final serial workspace fmt/locked tests/strict all-target Clippy/locked build,
-capture syntax/frontend/docs/progress/diff PASS: tool_0de60cc67001Tsl2vZu7GUCjgE.
-Source-built paired sessions-live-11 verifies full current-day workflow, six real
-provider requests each and none during actions. All 62 unmasked comparisons remain
-DIFFERENT. Contrast regression fixes dark-on-red delete confirmation/plain labels.
-See evidence/tui/recovery-v00/sessions-correction-report.md.
+Full serial fmt/locked workspace tests/strict all-target Clippy/locked build,
+capture syntax/frontend/docs/progress/diff PASS: tool_0deab074e001sKzMIryMp9yIZ2.
+Real-owner five-turn test exercises all four Redo entry paths with zero extra
+provider calls. Paired source-built revert-redo-20260926-07 verifies three turns,
+Revert count2, selection guard, whole-tail click/shortcut/slash/palette/restart on
+both executables: four actual requests each, no extra action requests. All 58
+unmasked comparisons DIFFERENT. Evidence: recovery-v00/revert-redo-report.md.
 
 ## Risks
 
-Multi-day paired qualification remains unavailable in this current-day capture;
-legacy unknown update times are honestly unknown. No dates derived from IDs or
-relabelled creation time. No VIS30/V09 PASS. Earlier failing captures retained;
-inherited .opencode/ untouched. Owner c452180 amendment changes Redo to whole-tail.
+Three-turn pager capture does not qualify large-history loading. Optional custom
+shortcut paired capture not run (owner/binary tests cover config). Current profile,
+tps, palette differences persist; no VIS33/V09 exact PASS. Older step-Redo claims
+are historical and superseded. Owner 4bee144 adds compaction parity, preserved.
+Inherited .opencode/ untouched.
 
 ## Next
 
-Deliver verified Sessions slice, then implement c452180 original-compatible Undo,
-whole-tail Redo and clickable reverted card (VIS33), retaining conversation-only
-workspace immutability. High-refresh scheduling/wheel qualification remains open.
+Deliver verified whole-tail/card slice, then implement high-refresh event-driven
+redraw and wheel qualification VIS31/VIS32; subsequently address 4bee144 session
+compaction requirements without removing existing DCP semantics.
 
 
 Ready (до 5): T45, T46, T47

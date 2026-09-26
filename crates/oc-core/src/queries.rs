@@ -70,6 +70,16 @@ pub struct ConversationSnapshot {
     pub draft: Option<String>,
     pub can_undo: bool,
     pub can_redo: bool,
+    pub reverted: Option<RevertedConversation>,
+}
+
+/// Durable staged boundary, independent of the requested history window.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RevertedConversation {
+    /// First hidden user message at the actual owner boundary.
+    pub message: crate::session::MessageId,
+    /// All hidden user messages in the saved active tail, including text-empty turns.
+    pub user_messages: u64,
 }
 
 /// Durable independent root plus the selected user text, still unsent.
@@ -254,6 +264,7 @@ pub enum TranscriptPart {
 /// One contiguous, bounded history page (oldest-first for rendering).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct HistoryPage {
+    pub reverted: Option<RevertedConversation>,
     /// Durable hierarchy; child sessions suppress the automatic sidebar.
     pub parent_id: Option<String>,
     /// Existing session metadata; None honestly denotes an untitled session.
@@ -403,6 +414,29 @@ pub struct TuiChrome {
     pub terminal_copy: Option<TerminalCopyMode>,
     /// Explicit config.animations; absence enables interface animations.
     pub animations: Option<bool>,
+    /// Effective conversation bindings from the admitted Location configuration.
+    pub conversation_shortcuts: ConversationShortcuts,
+}
+
+/// Presentation-only key strings, ready for the UI's existing key parser.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConversationShortcuts {
+    /// Effective leader; an empty string disables it.
+    pub leader: String,
+    /// Resolved undo binding; comma-separated alternatives, empty means disabled.
+    pub undo: String,
+    /// Resolved redo binding; comma-separated alternatives, empty means disabled.
+    pub redo: String,
+}
+
+impl Default for ConversationShortcuts {
+    fn default() -> Self {
+        Self {
+            leader: "ctrl+x".into(),
+            undo: "ctrl+x u".into(),
+            redo: "ctrl+x r".into(),
+        }
+    }
 }
 
 /// Mouse text selection/copy behavior from the effective Location config.

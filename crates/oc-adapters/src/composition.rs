@@ -349,6 +349,7 @@ async fn load_stages(
     let mut disabled = Vec::new();
     let mut native_modules = BTreeSet::new();
     let mut plugin_diagnostics = Vec::new();
+    let mut conversation_keybinds = config::ConversationKeybinds::default();
     for source in &sources {
         let value = match config::parse_jsonc(&source.text, &source.path) {
             Ok(value) => value,
@@ -360,6 +361,9 @@ async fn load_stages(
                 return Err(error.to_string().into());
             }
         };
+        conversation_keybinds
+            .merge(&value)
+            .map_err(|error| error.to_string())?;
         if let Some(model) = value.get("model") {
             let model = model.as_str().ok_or_else(|| {
                 format!("{}: model must be a provider/model-id string", source.path)
@@ -912,6 +916,9 @@ async fn load_stages(
             };
             let value = config::parse_jsonc(&text, &root.join(name).to_string_lossy())
                 .map_err(|e| e.to_string())?;
+            conversation_keybinds
+                .merge(&value)
+                .map_err(|error| error.to_string())?;
             if let Some(v) = value.pointer("/debug/devtools") {
                 tui_chrome.devtools = Some(v.as_bool().ok_or("debug.devtools must be boolean")?);
             }
@@ -945,6 +952,7 @@ async fn load_stages(
             }
         }
     }
+    tui_chrome.conversation_shortcuts = conversation_keybinds.resolve();
     Ok(Composition {
         tui_chrome,
         generation,

@@ -1909,6 +1909,7 @@ fn query(
                     )
                     .collect::<Result<Vec<_>, CoreError>>()?;
                 Ok(HistoryPage {
+                    reverted: db.reverted_conversation(&session.0).map_err(app_error)?,
                     parent_id: db.session_meta(&session.0).map_err(app_error)?.parent_id,
                     title: db.session_meta(&session.0).map_err(app_error)?.title,
                     rows,
@@ -3052,6 +3053,117 @@ mod review_tests {
     use super::*;
     use oc_core::queries::TerminalCopyMode;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    #[tokio::test]
+    async fn conversation_shortcuts_follow_admitted_config_location_and_reload() {
+        use oc_core::queries::ConversationShortcuts;
+        let root = tempfile::tempdir().unwrap();
+        let global = root.path().join("global");
+        let a = root.path().join("a");
+        let b = root.path().join("b");
+        let data = root.path().join("data");
+        for path in [&global, &a, &b, &data] {
+            std::fs::create_dir_all(path).unwrap();
+        }
+        std::fs::write(
+            global.join("opencode.json"),
+            serde_json::json!({
+                "model": "fixture/m", "provider": {"fixture": {
+                    "options": {"baseURL": "https://example.invalid/v1", "apiKey": "dummy"},
+                    "models": {"m": {}}
+                }},
+                "keybinds": {"leader": "ctrl+a", "session_undo": "<leader>z"}
+            })
+            .to_string(),
+        )
+        .unwrap();
+        std::fs::write(
+            global.join("opencode.jsonc"),
+            r#"{"keybinds":{"leader":"ctrl+g","session_redo":"alt+r"}}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            b.join("cli.jsonc"),
+            r#"{"keybinds":{"leader":"ctrl+b","session.undo":"<leader>u,alt+z","session.redo":"none"}}"#,
+        ).unwrap();
+        let env = BTreeMap::from([(
+            "OPENCODE_CONFIG_DIR".into(),
+            global.to_string_lossy().into_owned(),
+        )]);
+        let (app, guard, _) = spawn_with_env(&a, &data, env).await.unwrap();
+        let initial = app.catalog().await.unwrap();
+        let global_shortcuts = ConversationShortcuts {
+            leader: "ctrl+g".into(),
+            undo: "ctrl+g z".into(),
+            redo: "alt+r".into(),
+        };
+        assert_eq!(initial.chrome.conversation_shortcuts, global_shortcuts);
+        let switched = app
+            .switch_location_home(b.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        assert_eq!(
+            switched.catalog.chrome.conversation_shortcuts,
+            ConversationShortcuts {
+                leader: "ctrl+b".into(),
+                undo: "ctrl+b u,alt+z".into(),
+                redo: String::new(),
+            }
+        );
+        assert_eq!(switched.catalog.model_id, initial.model_id);
+        assert_eq!(switched.catalog.provider, initial.provider);
+        assert_eq!(switched.catalog.variant, initial.variant);
+        assert_eq!(switched.catalog.agent_id, initial.agent_id);
+        assert_eq!(app.catalog().await.unwrap(), switched.catalog);
+        // Invalid reload retains the complete previous immutable owner snapshot.
+        std::fs::write(b.join("cli.jsonc"), r#"{"keybinds":{"session.redo":12}}"#).unwrap();
+        assert!(app.reload_location().await.is_err());
+        assert_eq!(app.catalog().await.unwrap(), switched.catalog);
+        std::fs::write(
+            b.join("cli.jsonc"),
+            r#"{"keybinds":{"leader":"none","session.redo":"<leader>r,alt+y"}}"#,
+        )
+        .unwrap();
+        let reloaded = app.reload_location().await.unwrap();
+        assert!(reloaded.generation > switched.generation);
+        assert_eq!(
+            reloaded.catalog.chrome.conversation_shortcuts,
+            ConversationShortcuts {
+                leader: String::new(),
+                undo: String::new(),
+                redo: "alt+y".into(),
+            }
+        );
+        assert_eq!(reloaded.catalog.model_id, initial.model_id);
+        assert_eq!(reloaded.catalog.variant, initial.variant);
+        assert_eq!(reloaded.catalog.agent_id, initial.agent_id);
+        // Returning to A drops B's overrides; editing B did not mutate its old DTO.
+        let returned = app
+            .switch_location_home(a.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        assert_eq!(
+            returned.catalog.chrome.conversation_shortcuts,
+            global_shortcuts
+        );
+        assert_eq!(
+            switched.catalog.chrome.conversation_shortcuts.leader,
+            "ctrl+b"
+        );
+        std::fs::write(global.join("opencode.jsonc"), "{}").unwrap();
+        let mut config: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(global.join("opencode.json")).unwrap())
+                .unwrap();
+        config.as_object_mut().unwrap().remove("keybinds");
+        std::fs::write(global.join("opencode.json"), config.to_string()).unwrap();
+        let defaults = app.reload_location().await.unwrap();
+        assert_eq!(
+            defaults.catalog.chrome.conversation_shortcuts,
+            ConversationShortcuts::default()
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
 
     #[tokio::test]
     async fn terminal_copy_and_animations_follow_global_location_switch_and_reload() {
