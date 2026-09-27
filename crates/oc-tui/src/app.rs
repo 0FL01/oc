@@ -339,6 +339,8 @@ struct TranscriptClick {
 /// card is rebuilt and the input dropped (bounded live state).
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum LivePart {
+    /// Removed transient slot; keeps subsequent live reasoning identities stable.
+    Vacant,
     /// Frozen assistant text segment.
     Text(String),
     /// Frozen reasoning segment with its measured window.
@@ -362,6 +364,7 @@ impl LivePart {
     /// excluded: it is dropped as soon as the outcome arrives).
     fn retained_bytes(&self) -> usize {
         match self {
+            LivePart::Vacant => 0,
             LivePart::Text(text) | LivePart::Reasoning { text, .. } => text.len(),
             LivePart::Tool { card, input } => card.retained_bytes() + input.len(),
         }
@@ -374,6 +377,7 @@ impl LivePart {
         identity: Option<crate::messages::ReasoningIdentity>,
     ) -> HistoryRow {
         match self {
+            LivePart::Vacant => unreachable!("vacant parts are never projected"),
             LivePart::Text(text) => HistoryRow {
                 message_id: None,
                 seq: i64::MAX,
@@ -586,6 +590,8 @@ pub struct TuiState {
     /// Frozen live parts (text/reasoning segments and tool cards) of the
     /// active turn, in arrival order.
     live_parts: Vec<LivePart>,
+    pending_tool_seen: Vec<String>,
+    pending_tool_round: u32,
     /// Explicit durable live identities; replaced at each application checkpoint.
     pub live_part_states: Vec<oc_core::queries::PartState>,
     live_agent_color_index: Option<usize>,
@@ -744,6 +750,8 @@ impl TuiState {
             live_reasoning: String::new(),
             thinking_expanded: false,
             live_parts: Vec::new(),
+            pending_tool_seen: Vec::new(),
+            pending_tool_round: 0,
             live_part_states: Vec::new(),
             live_agent_color_index: None,
             live_terminal_status: None,
@@ -1081,6 +1089,8 @@ impl TuiState {
         self.live_text.clear();
         self.live_reasoning.clear();
         self.live_parts.clear();
+        self.pending_tool_seen.clear();
+        self.pending_tool_round = 0;
         self.live_part_offset = 0;
         self.reasoning_down = None;
         self.reasoning_started = None;
@@ -2851,6 +2861,7 @@ impl TuiState {
     /// current view's last successful owner projection, not the parked value.
     pub fn sync_clipboard_mode_from(&mut self, current: &Self) {
         self.chrome.session_tps = current.chrome.session_tps;
+        self.chrome.diffs = current.chrome.diffs;
         self.set_conversation_shortcuts(
             Some(current.conversation_shortcut(true)),
             Some(current.conversation_shortcut(false)),
@@ -3453,6 +3464,11 @@ impl TuiState {
             + self.live_text.len()
             + self.live_reasoning.len()
             + self
+                .pending_tool_seen
+                .iter()
+                .map(String::len)
+                .sum::<usize>()
+            + self
                 .live_parts
                 .iter()
                 .map(LivePart::retained_bytes)
@@ -3489,7 +3505,7 @@ impl TuiState {
             match part {
                 LivePart::Text(text) => result.text_bytes += text.len(),
                 LivePart::Reasoning { text, .. } => result.reasoning_bytes += text.len(),
-                LivePart::Tool { .. } => {}
+                LivePart::Tool { .. } | LivePart::Vacant => {}
             }
         }
         result
@@ -3519,6 +3535,9 @@ impl TuiState {
     pub fn transcript_rows(&self) -> Vec<HistoryRow> {
         let mut rows = self.window.rows().to_vec();
         for (ordinal, part) in self.live_parts.iter().enumerate() {
+            if matches!(part, LivePart::Vacant) {
+                continue;
+            }
             rows.push(part.to_row(
                 self.active_agent.clone(),
                 Some(crate::messages::ReasoningIdentity::Live(
@@ -3600,6 +3619,9 @@ impl TuiState {
         // the history/live state. Indexed footers are generated outside the
         // Markdown body cache, so config changes cannot reuse a stale footer.
         for row in &mut rows {
+            if let Some(card) = &mut row.tool {
+                card.diff_settings = self.chrome.diffs;
+            }
             if let Some(meta) = &mut row.meta {
                 meta.session_tps = self.chrome.session_tps;
             }
@@ -5181,6 +5203,8 @@ impl TuiState {
                 self.live_text.clear();
                 self.live_reasoning.clear();
                 self.live_parts.clear();
+                self.pending_tool_seen.clear();
+                self.pending_tool_round = 0;
                 self.live_part_offset = 0;
                 self.reasoning_down = None;
                 self.reasoning_started = None;
@@ -6097,6 +6121,9 @@ impl TuiState {
     /// Freeze the open live segments and return the whole part list in
     /// arrival order, including reasoning after an earlier tool round.
     fn commit_live_parts(&mut self, reasoning: Option<ReasoningBlock>) -> Vec<LivePart> {
+        self.discard_pending_tools();
+        self.pending_tool_seen.clear();
+        self.pending_tool_round = 0;
         if let Some(reasoning) = reasoning {
             self.live_parts.push(LivePart::Reasoning {
                 text: reasoning.text,
@@ -6115,6 +6142,9 @@ impl TuiState {
     /// Push committed part rows into the window (bounded like any row).
     fn push_committed_parts(&mut self, parts: Vec<LivePart>) {
         for (ordinal, part) in parts.into_iter().enumerate() {
+            if matches!(part, LivePart::Vacant) {
+                continue;
+            }
             self.window.push_row(part.to_row(
                 self.active_agent.clone(),
                 Some(crate::messages::ReasoningIdentity::Live(
@@ -6175,12 +6205,159 @@ impl TuiState {
             output: None,
             output_bytes: 0,
             output_truncated: false,
+            patch_effects: None,
         });
+        if let Some(part) = self
+            .live_parts
+            .iter_mut()
+            .find(|part| matches!(part, LivePart::Tool { card, .. } if card.op == op))
+        {
+            *part = LivePart::Tool {
+                card: Box::new(card),
+                input: input.to_string(),
+            };
+            self.enforce_parts();
+            return;
+        }
         self.live_parts.push(LivePart::Tool {
             card: Box::new(card),
             input: input.to_string(),
         });
         self.enforce_parts();
+    }
+
+    /// Apply disposable provider snapshots. Raw fragments never enter the
+    /// argument parser, diff renderer, durable projection or tool executor.
+    pub fn apply_tool_argument_stream(
+        &mut self,
+        turn: &WorkerTurnId,
+        event: &oc_core::tool_stream::ToolStreamEvent,
+    ) {
+        use oc_core::tool_stream::{PENDING_TOOL_MAX, ToolStreamEvent};
+        if Some(turn) != self.active_turn.as_ref() {
+            return;
+        }
+        let key = |id: &oc_core::tool_stream::ToolStreamIdentity| {
+            format!(
+                "pending:{}:{}",
+                id.round,
+                serde_json::json!([id.item_id, id.call_id])
+            )
+        };
+        match event {
+            ToolStreamEvent::Pending {
+                identity,
+                name,
+                preview,
+                ..
+            } => {
+                if identity.item_id.is_empty()
+                    || identity.call_id.is_empty()
+                    || identity.item_id.len() > 512
+                    || identity.call_id.len() > 512
+                    || name.is_empty()
+                    || name.len() > 512
+                {
+                    return;
+                }
+                if identity.round < self.pending_tool_round {
+                    return;
+                }
+                if identity.round > self.pending_tool_round {
+                    self.discard_pending_tools();
+                    self.pending_tool_seen.clear();
+                    self.pending_tool_round = identity.round;
+                }
+                let op = key(identity);
+                let found = self.live_parts.iter().position(|part| matches!(part, LivePart::Tool { card, .. } if card.op == op && card.state == "argument_stream"));
+                if found.is_none()
+                    && (self.pending_tool_seen.contains(&op)
+                        || self.pending_tool_seen.len() >= PENDING_TOOL_MAX)
+                {
+                    return;
+                }
+                let mut card = card_from_row(&ToolOpView {
+                    rowid: 0,
+                    op: op.clone(),
+                    name: name.clone(),
+                    state: "argument_stream".into(),
+                    input: None,
+                    output: None,
+                    output_bytes: 0,
+                    output_truncated: false,
+                    patch_effects: None,
+                });
+                card.render =
+                    crate::tools::ToolRender::Inline(crate::tools::InlineRender::Generic {
+                        args: Vec::new(),
+                    });
+                // Bounded raw prefix is presentation text only, not input JSON.
+                let mut end = preview
+                    .len()
+                    .min(oc_core::tool_stream::ARGUMENT_PREVIEW_MAX);
+                while !preview.is_char_boundary(end) {
+                    end -= 1;
+                }
+                card.input_preview = preview[..end].to_string();
+                let part = LivePart::Tool {
+                    card: Box::new(card),
+                    input: String::new(),
+                };
+                if let Some(index) = found {
+                    self.live_parts[index] = part;
+                } else {
+                    self.freeze_reasoning();
+                    self.freeze_text();
+                    self.pending_tool_seen.push(op);
+                    self.live_parts.push(part);
+                }
+                self.enforce_parts();
+            }
+            ToolStreamEvent::Linked { identity, op } => {
+                let key = key(identity);
+                let prefix = format!("pending:{}:", identity.round);
+                for part in &mut self.live_parts {
+                    let LivePart::Tool { card, .. } = part else {
+                        continue;
+                    };
+                    if card.state != "argument_stream" {
+                        continue;
+                    }
+                    if card.op == key {
+                        card.op.clone_from(op);
+                        card.state = "started".into();
+                        card.input_preview.clear();
+                    } else if card
+                        .op
+                        .strip_prefix(&prefix)
+                        .and_then(|json| serde_json::from_str::<[String; 2]>(json).ok())
+                        .is_some_and(|ids| ids[1] == identity.call_id)
+                    {
+                        // A canonical call supersedes conflicting announcements;
+                        // never link the wrong provider item or show both cards.
+                        *part = LivePart::Vacant;
+                    }
+                }
+            }
+            ToolStreamEvent::Clear { round } => {
+                let prefix = format!("pending:{round}:");
+                for part in &mut self.live_parts {
+                    if matches!(part, LivePart::Tool { card, .. } if card.state == "argument_stream" && card.op.starts_with(&prefix))
+                    {
+                        *part = LivePart::Vacant;
+                    }
+                }
+                self.prune_reasoning();
+            }
+        }
+    }
+
+    fn discard_pending_tools(&mut self) {
+        for part in &mut self.live_parts {
+            if matches!(part, LivePart::Tool { card, .. } if card.state == "argument_stream") {
+                *part = LivePart::Vacant;
+            }
+        }
     }
 
     /// Apply a recorded tool-call outcome: rebuild the matching card from the
@@ -6196,6 +6373,31 @@ impl TuiState {
         output_bytes: i64,
         output_truncated: bool,
     ) {
+        self.apply_tool_finished_with_effects(
+            turn,
+            op,
+            name,
+            state,
+            output,
+            output_bytes,
+            output_truncated,
+            None,
+        );
+    }
+
+    /// Apply the owner's bounded result-derived mutation projection.
+    #[allow(clippy::too_many_arguments)]
+    pub fn apply_tool_finished_with_effects(
+        &mut self,
+        turn: &WorkerTurnId,
+        op: &str,
+        name: &str,
+        state: &str,
+        output: &str,
+        output_bytes: i64,
+        output_truncated: bool,
+        patch_effects: Option<oc_core::patch::PatchEffects>,
+    ) {
         if Some(turn) != self.active_turn.as_ref() {
             return;
         }
@@ -6208,6 +6410,7 @@ impl TuiState {
             output: Some(output.to_string()),
             output_bytes,
             output_truncated,
+            patch_effects,
         };
         if let Some(LivePart::Tool { card, input }) = self
             .live_parts
@@ -6419,48 +6622,81 @@ fn card_row(card: &ToolCard) -> HistoryRow {
     // `apply_patch` shows a bounded diff (touched files with +/- counts and
     // hunk counts) instead of the raw patch bytes; other tools keep the
     // parsed path list. Never a second copy of a large payload.
-    let files = match &card.diff {
-        Some(diff) => {
-            let listed = diff
-                .files
-                .iter()
-                .take(crate::history::CARD_FILES)
-                .map(|file| {
-                    let marker = match file.change {
-                        "Add" => "+",
-                        "Delete" => "-",
-                        _ => "~",
-                    };
-                    let mut text = format!(
-                        "{marker}{} +{} -{}",
-                        file.path, file.additions, file.removals
-                    );
-                    if file.hunks > 0 {
-                        text.push_str(&format!(" ({}h)", file.hunks));
-                    }
-                    if let Some(target) = &file.move_to {
-                        text.push_str(&format!(" -> {target}"));
-                    }
-                    text
-                })
-                .collect::<Vec<_>>()
-                .join(", ");
-            let suffix = if diff.truncated || diff.files.len() > crate::history::CARD_FILES {
-                ", …"
-            } else {
-                ""
-            };
-            format!(
-                " [{listed}{suffix}] diff {}f +{} -{}",
-                diff.files.len(),
-                diff.additions,
-                diff.removals
-            )
-        }
-        None if card.files.is_empty() => String::new(),
-        None => {
-            let suffix = if card.files_truncated { ", …" } else { "" };
-            format!(" [{}{suffix}]", card.files.join(", "))
+    let files = if let Some(effects) = &card.patch_effects {
+        let listed = effects
+            .files
+            .iter()
+            .take(crate::history::CARD_FILES)
+            .map(|file| {
+                let mut text = format!(
+                    "{} +{} -{}",
+                    file.destination.as_ref().unwrap_or(&file.path),
+                    file.additions,
+                    file.deletions
+                );
+                if !file.hunks.is_empty() {
+                    text.push_str(&format!(
+                        " ({}{}h{})",
+                        if file.truncated { "≥" } else { "" },
+                        file.hunks.len(),
+                        if file.truncated { " preview" } else { "" }
+                    ));
+                }
+                text
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!(
+            " [{listed}{}] confirmed {}f +{} -{}",
+            if effects.truncated { ", …" } else { "" },
+            effects.total_files,
+            effects.additions,
+            effects.deletions
+        )
+    } else {
+        match &card.diff {
+            Some(diff) => {
+                let listed = diff
+                    .files
+                    .iter()
+                    .take(crate::history::CARD_FILES)
+                    .map(|file| {
+                        let marker = match file.change {
+                            "Add" => "+",
+                            "Delete" => "-",
+                            _ => "~",
+                        };
+                        let mut text = format!(
+                            "{marker}{} +{} -{}",
+                            file.path, file.additions, file.removals
+                        );
+                        if file.hunks > 0 {
+                            text.push_str(&format!(" ({}h)", file.hunks));
+                        }
+                        if let Some(target) = &file.move_to {
+                            text.push_str(&format!(" -> {target}"));
+                        }
+                        text
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let suffix = if diff.truncated || diff.files.len() > crate::history::CARD_FILES {
+                    ", …"
+                } else {
+                    ""
+                };
+                format!(
+                    " [{listed}{suffix}] request preview (not confirmed) {}f +{} -{}",
+                    diff.files.len(),
+                    diff.additions,
+                    diff.removals
+                )
+            }
+            None if card.files.is_empty() => String::new(),
+            None => {
+                let suffix = if card.files_truncated { ", …" } else { "" };
+                format!(" [{}{suffix}]", card.files.join(", "))
+            }
         }
     };
     let output = if card.output_preview.is_empty() {
@@ -6615,6 +6851,9 @@ impl ScriptDriver {
                 Ok(Ok(CoreEvent::ReasoningItemEnded { turn, .. })) => {
                     state.apply_reasoning_item_ended(&turn);
                 }
+                Ok(Ok(CoreEvent::ToolArgumentStream { turn, event, .. })) => {
+                    state.apply_tool_argument_stream(&turn, &event);
+                }
                 Ok(Ok(CoreEvent::ToolCallStarted {
                     turn,
                     op,
@@ -6632,9 +6871,10 @@ impl ScriptDriver {
                     output,
                     output_bytes,
                     output_truncated,
+                    patch_effects,
                     ..
                 })) => {
-                    state.apply_tool_finished(
+                    state.apply_tool_finished_with_effects(
                         &turn,
                         &op,
                         &name,
@@ -6642,6 +6882,7 @@ impl ScriptDriver {
                         &output,
                         output_bytes,
                         output_truncated,
+                        patch_effects,
                     );
                 }
                 Ok(Ok(CoreEvent::TurnUsage {
@@ -9010,6 +9251,8 @@ mod tests {
             files: Vec::new(),
             files_truncated: false,
             diff: None,
+            patch_effects: None,
+            diff_settings: Default::default(),
             render: crate::tools::ToolRender::Inline(crate::tools::InlineRender::Read {
                 path: "a-only".into(),
             }),
@@ -10357,6 +10600,7 @@ mod tests {
                 output: Some("fixture result".into()),
                 output_bytes: 14,
                 output_truncated: false,
+                patch_effects: None,
             });
             state.window.push_row(crate::history::HistoryRow {
                 message_id: None,
@@ -11576,6 +11820,7 @@ mod tests {
             output_bytes: result.len() as i64,
             output: Some(result),
             output_truncated: false,
+            patch_effects: None,
         });
         state.window.push_row(crate::history::HistoryRow {
             message_id: None,
@@ -11679,6 +11924,7 @@ mod tests {
             output_bytes: 1000,
             output: Some("private file body".into()),
             output_truncated: true,
+            patch_effects: None,
         });
         state.window.push_row(crate::history::HistoryRow {
             message_id: None,
@@ -11734,6 +11980,7 @@ mod tests {
                 output_bytes: result.len() as i64,
                 output: Some(result),
                 output_truncated: false,
+                patch_effects: None,
             });
             state.window.push_row(crate::history::HistoryRow {
                 message_id: None,
@@ -12182,6 +12429,7 @@ mod tests {
                     output: Some((0..60).map(|i| format!("SHELL-{i:03}\n")).collect()),
                     output_bytes: 600,
                     output_truncated: false,
+                    patch_effects: None,
                 }),
                 TranscriptPart::Text((0..60).map(|i| format!("TAIL-{i:03}\n")).collect()),
             ],
@@ -12512,13 +12760,13 @@ mod tests {
         assert_eq!(rows[1].tool.as_ref().expect("card").state, "started");
         let lines = state.transcript_lines(0, 80);
         assert!(
-            lines
-                .iter()
-                .any(|line| line.plain_text().contains("← Patched a.txt")),
+            lines.iter().any(|line| line
+                .plain_text()
+                .contains("Request preview (not confirmed): a.txt")),
             "the diff card is visible while running"
         );
 
-        state.apply_tool_finished(
+        state.apply_tool_finished_with_effects(
             &WorkerTurnId("t-ui-tools".to_string()),
             "op-1",
             "apply_patch",
@@ -12526,6 +12774,7 @@ mod tests {
             "Update a.txt (hash_before=x, hash_after=y)",
             42,
             false,
+            Some(crate::patch_view::tests::effects()),
         );
         state.apply_delta(&WorkerTurnId("t-ui-tools".to_string()), "after tool");
         let rows = state.transcript_rows();
@@ -12545,6 +12794,10 @@ mod tests {
         assert_eq!(window[0].text, "working");
         assert_eq!(window[1].role, "tool");
         assert_eq!(window[1].tool.as_ref().expect("card").state, "completed");
+        assert_eq!(
+            window[1].tool.as_ref().unwrap().patch_effects,
+            Some(crate::patch_view::tests::effects())
+        );
         assert_eq!(window[2].text, "after tool");
         assert_eq!(window[3].role, "assistant");
         assert!(window[3].text.is_empty(), "footer row carries no text");
@@ -12553,7 +12806,7 @@ mod tests {
             Some(2500)
         );
         // Footer renders after every part (`routes/session/index.tsx:1934-1985`).
-        let lines = state.transcript_lines(0, 80);
+        let lines = state.transcript_lines(80, 80);
         let texts: Vec<String> = lines.iter().map(|line| line.plain_text()).collect();
         let footer = texts
             .iter()
@@ -12564,6 +12817,111 @@ mod tests {
             .position(|text| text.contains("← Patched"))
             .expect("diff");
         assert!(footer > diff, "footer follows the parts: {texts:?}");
+    }
+
+    /// Owner effects survive every frontend adoption boundary.
+    #[tokio::test]
+    async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() {
+        use oc_core::queries::{DiffView, DiffWrap, HistoryTurn, ToolOpView, TranscriptPart};
+        let mut state = fresh_state("patch-lifecycle").await;
+        let turn = WorkerTurnId("patch-turn".into());
+        state.active_turn = Some(turn.clone());
+        state.status = TuiStatus::Streaming;
+        let effects = crate::patch_view::tests::effects();
+        let operation = ToolOpView {
+            rowid: 1,
+            op: "patch-op".into(),
+            name: "apply_patch".into(),
+            state: "completed".into(),
+            input: None,
+            output: Some("stored result".into()),
+            output_bytes: 13,
+            output_truncated: false,
+            patch_effects: Some(effects.clone()),
+        };
+        // A missed intent event still gets the actual result metadata.
+        state.apply_tool_finished_with_effects(
+            &turn,
+            "patch-op",
+            "apply_patch",
+            "completed",
+            "stored result",
+            13,
+            false,
+            Some(effects.clone()),
+        );
+        assert_eq!(
+            state.transcript_rows()[0]
+                .tool
+                .as_ref()
+                .unwrap()
+                .patch_effects,
+            Some(effects.clone())
+        );
+        let mut projection = HistoryTurn {
+            id: turn.0.clone(),
+            status: "completed".into(),
+            parts: vec![TranscriptPart::Tool(operation)],
+            ..Default::default()
+        };
+        state.apply_presentation(&turn, &projection);
+        assert_eq!(
+            state.transcript_rows()[0]
+                .tool
+                .as_ref()
+                .unwrap()
+                .patch_effects,
+            Some(effects.clone())
+        );
+        let mut message = msg(1, Role::Assistant, "");
+        message.turn = Some(projection.clone());
+        let page = HistoryPage {
+            rows: vec![message.clone()],
+            total: 1,
+            ..Default::default()
+        };
+        state.apply_finished(&turn, "", 0);
+        state.attach_page(&page);
+        let original = state.transcript_lines(80, 120);
+        assert!(
+            original
+                .iter()
+                .any(|l| l.plain_text().contains("← Patched a.txt"))
+        );
+        state.set_session(sid("other-patch-session"));
+        assert!(!state.transcript_rows().iter().any(|r| r.tool.is_some()));
+        state.set_session(sid("patch-lifecycle"));
+        state.attach_page(&page);
+        assert_eq!(state.transcript_lines(80, 120), original);
+        // A fork changes durable identities, not the recorded filesystem projection.
+        projection.id = "fork-turn".into();
+        message.turn = Some(projection);
+        let mut reopened = fresh_state("fork-patch-session").await;
+        reopened.attach_page(&HistoryPage {
+            rows: vec![message],
+            total: 1,
+            ..Default::default()
+        });
+        assert_eq!(reopened.transcript_lines(80, 120), original);
+        reopened.chrome.diffs.view = DiffView::Split;
+        reopened.chrome.diffs.wrap = DiffWrap::None;
+        assert_eq!(
+            reopened.transcript_rows()[0]
+                .tool
+                .as_ref()
+                .unwrap()
+                .diff_settings,
+            reopened.chrome.diffs
+        );
+        assert_ne!(reopened.transcript_lines(80, 120), original);
+        assert_eq!(
+            reopened.history().rows()[0]
+                .tool
+                .as_ref()
+                .unwrap()
+                .patch_effects,
+            Some(effects)
+        );
     }
 
     /// Live parts stay bounded when a hostile stream floods tool events.
@@ -12598,6 +12956,224 @@ mod tests {
         );
         assert!(state.retained_bytes() <= 2 * WINDOW_BYTES + MAX_INPUT_BYTES);
         assert!(state.viewport().len() <= VIEWPORT_LINES);
+    }
+
+    /// A stale turn can never grow cards into the transcript.
+    #[tokio::test]
+    async fn argument_stream_exact_identity_caps_reconcile_and_terminal_cleanup() {
+        use oc_core::tool_stream::{
+            PENDING_TOOL_MAX, ToolStreamEvent as Event, ToolStreamIdentity as Identity,
+        };
+        let mut state = fresh_state("s-arguments").await;
+        let turn = WorkerTurnId("t-arguments".into());
+        state.active_turn = Some(turn.clone());
+        state.status = TuiStatus::Streaming;
+        let identity = Identity {
+            round: 1,
+            item_id: "item".into(),
+            call_id: "call".into(),
+        };
+        let pending = |identity: Identity, name: &str, preview: &str| Event::Pending {
+            identity,
+            name: name.into(),
+            preview: preview.into(),
+            truncated: false,
+        };
+        state.apply_tool_argument_stream(
+            &turn,
+            &pending(
+                identity.clone(),
+                "apply_patch",
+                "{\"patchText\":\"*** Add File: fake",
+            ),
+        );
+        let shown = state.viewport().join("\n");
+        assert!(
+            shown.contains("Patch · arguments streaming · no effects yet"),
+            "{shown}"
+        );
+        assert!(!shown.contains("Created") && !shown.contains("fake"));
+        let card = state
+            .transcript_rows()
+            .into_iter()
+            .find_map(|row| row.tool)
+            .unwrap();
+        assert!(card.patch_effects.is_none() && card.diff.is_none() && card.files.is_empty());
+        assert_eq!(card.output_bytes, 0);
+        state.apply_tool_argument_stream(
+            &turn,
+            &Event::Linked {
+                identity: Identity {
+                    round: 2,
+                    ..identity.clone()
+                },
+                op: "wrong-round".into(),
+            },
+        );
+        state.apply_tool_argument_stream(
+            &turn,
+            &Event::Linked {
+                identity: Identity {
+                    call_id: "wrong".into(),
+                    ..identity.clone()
+                },
+                op: "wrong-call".into(),
+            },
+        );
+        assert!(
+            matches!(&state.live_parts[0], super::LivePart::Tool { card, .. } if card.state == "argument_stream")
+        );
+        state.apply_tool_argument_stream(
+            &turn,
+            &Event::Linked {
+                identity: identity.clone(),
+                op: "durable-op".into(),
+            },
+        );
+        state.apply_tool_started(&turn, "durable-op", "apply_patch", &serde_json::json!({"patchText":"*** Begin Patch\n*** Add File: real\n+x\n*** End Patch"}).to_string());
+        assert_eq!(
+            state
+                .transcript_rows()
+                .iter()
+                .filter(|row| row.tool.is_some())
+                .count(),
+            1
+        );
+        state.apply_tool_argument_stream(&turn, &pending(identity, "apply_patch", "late snapshot"));
+        assert_eq!(
+            state
+                .transcript_rows()
+                .iter()
+                .filter(|row| row.tool.is_some())
+                .count(),
+            1,
+            "linked identity cannot reappear"
+        );
+        for i in 0..100 {
+            state.apply_tool_argument_stream(
+                &turn,
+                &pending(
+                    Identity {
+                        round: 2,
+                        item_id: format!("i{i}"),
+                        call_id: "call".into(),
+                    },
+                    "unknown-tool",
+                    &"界".repeat(4096),
+                ),
+            );
+        }
+        assert_eq!(state.pending_tool_seen.len(), PENDING_TOOL_MAX);
+        assert!(state.live_parts.len() <= super::LIVE_PARTS_MAX);
+        assert!(
+            state
+                .viewport()
+                .join("\n")
+                .contains("unknown-tool · arguments streaming · no effects yet")
+        );
+        // Evicted identity snapshots cannot resurrect a second live card.
+        for i in 0..super::LIVE_PARTS_MAX {
+            state
+                .live_parts
+                .push(super::LivePart::Text(format!("tail-{i}")));
+        }
+        state.enforce_parts();
+        let count = state.live_parts.len();
+        state.apply_tool_argument_stream(
+            &turn,
+            &pending(
+                Identity {
+                    round: 2,
+                    item_id: "i0".into(),
+                    call_id: "call".into(),
+                },
+                "unknown-tool",
+                "late",
+            ),
+        );
+        assert_eq!(state.live_parts.len(), count);
+        assert!(!state.transcript_rows().iter().any(|row| {
+            row.tool
+                .as_ref()
+                .is_some_and(|card| card.state == "argument_stream")
+        }));
+        let offset = state.live_part_offset;
+        state.apply_tool_argument_stream(&turn, &Event::Clear { round: 2 });
+        assert_eq!(
+            state.live_part_offset, offset,
+            "clearing slots does not renumber retained reasoning"
+        );
+        assert_eq!(
+            state
+                .transcript_rows()
+                .iter()
+                .filter(|row| row.tool.is_some())
+                .count(),
+            0
+        );
+        state.apply_tool_argument_stream(
+            &turn,
+            &pending(
+                Identity {
+                    round: 3,
+                    item_id: "cancel".into(),
+                    call_id: "call".into(),
+                },
+                "apply_patch",
+                "{}",
+            ),
+        );
+        let slots = state.live_parts.len();
+        let offset = state.live_part_offset;
+        state.apply_tool_argument_stream(&turn, &Event::Clear { round: 3 });
+        assert_eq!(
+            (state.live_parts.len(), state.live_part_offset),
+            (slots, offset)
+        );
+        assert!(matches!(
+            state.live_parts.last(),
+            Some(super::LivePart::Vacant)
+        ));
+        state.apply_tool_argument_stream(
+            &turn,
+            &pending(
+                Identity {
+                    round: 4,
+                    item_id: "cancel".into(),
+                    call_id: "call".into(),
+                },
+                "apply_patch",
+                "{}",
+            ),
+        );
+        state.apply_interrupted(&turn, "", 1);
+        assert!(!state.transcript_rows().iter().any(|row| {
+            row.tool
+                .as_ref()
+                .is_some_and(|card| card.state == "argument_stream")
+        }));
+        state.active_turn = Some(turn.clone());
+        state.apply_tool_argument_stream(
+            &turn,
+            &pending(
+                Identity {
+                    round: 1,
+                    item_id: "failure".into(),
+                    call_id: "call".into(),
+                },
+                "apply_patch",
+                "{}",
+            ),
+        );
+        state.apply_failed(
+            &turn,
+            &oc_core::session::CoreError::Application("intent refused".into()),
+        );
+        assert!(!state.transcript_rows().iter().any(|row| {
+            row.tool
+                .as_ref()
+                .is_some_and(|card| card.state == "argument_stream")
+        }));
     }
 
     /// A stale turn can never grow cards into the transcript.

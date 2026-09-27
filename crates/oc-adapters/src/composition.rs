@@ -984,6 +984,21 @@ async fn load_stages(
             if let Some(v) = value.pointer("/session/tps") {
                 tui_chrome.session_tps = Some(v.as_bool().ok_or("session.tps must be boolean")?);
             }
+            if let Some(v) = value.pointer("/diffs/view") {
+                tui_chrome.diffs.view = match v.as_str() {
+                    Some("auto") => oc_core::queries::DiffView::Auto,
+                    Some("unified") => oc_core::queries::DiffView::Unified,
+                    Some("split") => oc_core::queries::DiffView::Split,
+                    _ => return Err("diffs.view must be auto, unified or split".into()),
+                };
+            }
+            if let Some(v) = value.pointer("/diffs/wrap") {
+                tui_chrome.diffs.wrap = match v.as_str() {
+                    Some("word") => oc_core::queries::DiffWrap::Word,
+                    Some("none") => oc_core::queries::DiffWrap::None,
+                    _ => return Err("diffs.wrap must be word or none".into()),
+                };
+            }
             if let Some(v) = value.pointer("/tabs/layout") {
                 tui_chrome.vertical_tabs_width = match v.as_str() {
                     Some("horizontal") => 0,
@@ -1485,6 +1500,64 @@ mod tests {
                 .unwrap()
                 .contains("default_agent must be a nonempty string")
         );
+    }
+
+    #[tokio::test]
+    async fn vis35_admitted_diff_settings_defaults_override_and_validation() {
+        use oc_core::queries::{DiffSettings, DiffView, DiffWrap};
+        let dir = tempfile::tempdir().unwrap();
+        let global = dir.path().join("config/opencode");
+        let project = dir.path().join("project");
+        std::fs::create_dir_all(&global).unwrap();
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::write(project.join("opencode.json"), r#"{"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}}}"#).unwrap();
+        let env = BTreeMap::from([(
+            "XDG_CONFIG_HOME".into(),
+            dir.path().join("config").to_string_lossy().into_owned(),
+        )]);
+        let load = || load_with_env(&project, env.clone());
+        assert_eq!(
+            load().await.unwrap().tui_chrome.diffs,
+            DiffSettings::default()
+        );
+        std::fs::write(
+            global.join("cli.json"),
+            r#"{"diffs":{"view":"split","wrap":"none"}}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            load().await.unwrap().tui_chrome.diffs,
+            DiffSettings {
+                view: DiffView::Split,
+                wrap: DiffWrap::None
+            }
+        );
+        std::fs::write(
+            project.join("cli.jsonc"),
+            "{ // project\n \"diffs\":{\"view\":\"unified\",\"wrap\":\"word\"}}",
+        )
+        .unwrap();
+        assert_eq!(
+            load().await.unwrap().tui_chrome.diffs,
+            DiffSettings {
+                view: DiffView::Unified,
+                wrap: DiffWrap::Word
+            }
+        );
+        for field in ["view", "wrap"] {
+            std::fs::write(
+                project.join("cli.jsonc"),
+                format!("{{\"diffs\":{{\"{field}\":\"invalid\"}}}}"),
+            )
+            .unwrap();
+            assert!(
+                load()
+                    .await
+                    .err()
+                    .unwrap()
+                    .contains(&format!("diffs.{field} must be"))
+            );
+        }
     }
 
     #[tokio::test]

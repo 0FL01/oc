@@ -1,0 +1,40 @@
+   VIS35 patch fixture           +                                                                                                                              
+     VIS35-DONE-multihunk                                                                                                                                       
+                                                                                                                                                                
+     Build · MiMo-V2.6-Flash Free · 3.1s                                                                                                                        
+                                                                                                                                                                
+  ┃                                                                                                                                                             
+  ┃  VIS35 delete: execute the supplied ordinary function patch once.                                                                                           
+  ┃                                                                                                                                                             
+                                                                                                                                                                
+  ┃                                                                                                                                                             
+  ┃  # Deleted delete.txt                                                                                                                                       
+  ┃                                                                                                                                                             
+  ┃  -2 lines                                                                                                                                                   
+  ┃                                                                                                                                                             
+                                                                                                                                                                
+     VIS35-DONE-delete                                                                                                                                          
+                                                                                                                                                                
+     Build · MiMo-V2.6-Flash Free · 3.1s                                                                                                                        
+                                                                                                                                                                
+  ┃                                                                                                                                                             
+  ┃  VIS35 move: execute the supplied ordinary function patch once.                                                                                             
+  ┃                                                                                                                                                             
+                                                                                                                                                                
+  ┃                                                                                                                                                             
+  ┃  ← Patched moved.txt                                                                                                                                        
+  ┃                                                                                                                                                             
+  ┃    1 - old move                                                                1 + new move                                                                 
+  ┃                                                                                                                                                             
+                                                                                                                                                                
+     VIS35-DONE-move                                                                                                                                            
+                                                                                                                                                                
+     Build · MiMo-V2.6-Flash Free · 3.1s                                                                                                                        
+                                                                                                                                                                
+  ┃                                                                                                                                                             
+  ┃                                                                                                                                                             
+  ┃                                                                                                                                                             
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                                                                                                  
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/apply-patch20260927-14/project                                     1.3K (1%)  ctrl+p commands  
+                                                                                                                                                                

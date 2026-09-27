@@ -81,6 +81,8 @@ early-title-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 early-title-*/*/*.vt binary
 message-hover-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 message-hover-*/*/*.vt binary
+recovery-v00/apply-patch*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+recovery-v00/apply-patch*/*/*.vt binary
 message-actions-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
 message-actions-*/*/*.vt binary
 recovery-v00/bounded-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof

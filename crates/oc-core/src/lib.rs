@@ -9,10 +9,12 @@ pub mod application;
 pub mod context_plan;
 pub mod core_app;
 pub mod domain;
+pub mod patch;
 pub mod ports;
 pub mod queries;
 pub mod runtime;
 pub mod session;
+pub mod tool_stream;
 
 /// Crate identity used by smoke tests and diagnostics.
 pub const CORE_NAME: &str = "oc-core";

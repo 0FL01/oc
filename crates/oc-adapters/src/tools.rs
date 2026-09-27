@@ -831,6 +831,26 @@ fn pagination(offset: usize, limit: usize, returned: usize, truncated: bool) -> 
 }
 
 fn tool_patch(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
+    tool_patch_impl(ctx, call).0
+}
+
+pub(crate) fn tool_patch_typed(
+    ctx: &ToolContext<'_>,
+    call: &ToolCall,
+) -> (String, Option<oc_core::patch::PatchEffects>) {
+    if ctx.cancel.load(std::sync::atomic::Ordering::Relaxed) {
+        return ("error: cancelled".into(), None);
+    }
+    if let Err(e) = ctx.policy.check_call(call) {
+        return (format!("error: {e}"), None);
+    }
+    tool_patch_impl(ctx, call)
+}
+
+fn tool_patch_impl(
+    ctx: &ToolContext<'_>,
+    call: &ToolCall,
+) -> (String, Option<oc_core::patch::PatchEffects>) {
     let patch = call
         .arguments
         .as_object()
@@ -839,19 +859,19 @@ fn tool_patch(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
         .and_then(|v| v.as_str())
         .unwrap_or("");
     if patch.is_empty() {
-        return "error: invalid arguments for apply_patch: expected only nonempty patchText"
-            .to_string();
+        return (
+            "error: invalid arguments for apply_patch: expected only nonempty patchText"
+                .to_string(),
+            None,
+        );
     }
     let Some(roots) = ctx.roots.as_ref() else {
-        return "error: tool apply_patch failed: no roots".to_string();
+        return ("error: tool apply_patch failed: no roots".to_string(), None);
     };
     let bridge = PolicyBridge(ctx.policy);
-    patch_outcome(crate::patch::apply_patch(
-        &roots.project,
-        &roots.data,
-        patch,
-        &bridge,
-    ))
+    let (result, effects) =
+        crate::patch::apply_patch_with_effects(&roots.project, &roots.data, patch, &bridge);
+    (patch_outcome(result), Some(effects))
 }
 
 pub(crate) fn patch_outcome(result: Result<Vec<FileResult>, ApplyFailure>) -> String {

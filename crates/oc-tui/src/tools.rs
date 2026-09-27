@@ -96,15 +96,13 @@ pub struct ShellRender {
     pub output_ends_with_newline: bool,
 }
 
-/// `apply_patch` card: bounded per-file hunks.
+/// Legacy `apply_patch` request preview. Confirmed effects live on `ToolCard`.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PatchRender {
-    /// Files in patch order (bounded by the adapter caps).
+    /// Requested files in patch order (bounded by the adapter caps).
     pub files: Vec<DiffFileRender>,
     /// True when the recorded outcome is an error.
     pub failed: bool,
-    /// The durable result confirms only these earlier operations applied.
-    pub partial: bool,
 }
 
 /// `subagent` card fields parsed from the recorded request and result.
@@ -394,47 +392,12 @@ fn patch_render(
         .and_then(|value| value.as_str())
         .unwrap_or_default();
     let failed = is_error_state(state) || output.is_some_and(|out| out.starts_with("error: "));
-    let partial = failed && output.is_some_and(|out| out.starts_with("error: partial op "));
-    let mut files = oc_adapters::patch::diff_render(patch);
-    if failed {
-        // A request is not evidence that it applied. The runner records each
-        // committed prefix operation as `done <FileResult>` after the error.
-        // Unknown/denied outcomes contain no confirmed diff.
-        let mut index = 0;
-        files.retain(|file| {
-            let current = index;
-            index += 1;
-            partial
-                && output.is_some_and(|out| {
-                    let failed_op = out
-                        .split_once('(')
-                        .and_then(|(prefix, _)| prefix.strip_prefix("error: partial op "))
-                        .and_then(|number| number.trim().parse::<usize>().ok());
-                    if failed_op.is_none_or(|failed_op| current >= failed_op) {
-                        return false;
-                    }
-                    let verb = match file.change {
-                        "Add" => "add",
-                        "Delete" => "delete",
-                        _ => "update",
-                    };
-                    let prefix = format!("done {verb} {}", file.path);
-                    out.lines().skip(1).any(|line| {
-                        line.strip_prefix(&prefix).is_some_and(|rest| {
-                            rest.starts_with(" (hash_before=")
-                                || file.move_to.as_ref().is_some_and(|target| {
-                                    rest.starts_with(&format!(" -> {target} (hash_before="))
-                                })
-                        })
-                    })
-                })
-        });
-    }
-    PatchRender {
-        files,
-        failed,
-        partial,
-    }
+    let files = if failed {
+        Vec::new()
+    } else {
+        oc_adapters::patch::diff_render(patch)
+    };
+    PatchRender { files, failed }
 }
 
 fn subagent_render(value: Option<&serde_json::Value>, output: Option<&str>) -> SubagentRender {
@@ -508,9 +471,35 @@ pub fn is_error_state(state: &str) -> bool {
 /// Render one tool card as transcript rows. `width == 0` is the unbounded
 /// text projection (no background padding).
 pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
+    if card.state == "argument_stream" {
+        let frame = BlockFrame::new(theme, width);
+        let name = if card.name == "apply_patch" {
+            "Patch".to_string()
+        } else {
+            card.name
+                .chars()
+                .filter(|c| !c.is_control())
+                .take(80)
+                .collect()
+        };
+        return vec![
+            frame.row(&[]),
+            frame.row(&[Span::styled(
+                format!("{SPINNER} {name} · arguments streaming · no effects yet"),
+                frame.body_style(),
+            )]),
+            frame.row(&[]),
+        ];
+    }
     match &card.render {
         ToolRender::Shell(shell) => shell_block(shell, card, theme, width),
-        ToolRender::Patch(patch) => patch_block(patch, card, theme, width),
+        ToolRender::Patch(patch) => {
+            if let Some(effects) = &card.patch_effects {
+                crate::patch_view::render(effects, card, theme, width)
+            } else {
+                patch_block(patch, card, theme, width)
+            }
+        }
         ToolRender::Subagent(subagent) => subagent_block(subagent, card, theme, width),
         ToolRender::Inline(inline) => inline_rows(inline, card, theme),
     }
@@ -822,15 +811,12 @@ fn patch_block(patch: &PatchRender, card: &ToolCard, theme: &Theme, width: u16) 
             PATCH_FAILED
         };
         out.push(frame.row(&[Span::styled(label, error)]));
-        if patch.partial && !patch.files.is_empty() {
-            out.push(frame.row(&[Span::styled("Applied before failure (recorded):", muted)]));
-        }
     }
     if !patch.failed && is_running(&card.state) {
         // Upstream running label (`index.tsx:3496`, §6).
         out.push(
             frame.row(&[Span::styled(
-                "Patching",
+                "⋯ Patching",
                 ratatui::style::Style::default()
                     .fg(theme.text())
                     .bg(frame.bg),
@@ -838,11 +824,7 @@ fn patch_block(patch: &PatchRender, card: &ToolCard, theme: &Theme, width: u16) 
         );
     }
     for file in &patch.files {
-        let (label, color) = match file.change {
-            "Add" => ("# Created", theme.diff_added()),
-            "Delete" => ("# Deleted", theme.diff_removed()),
-            _ => ("← Patched", theme.diff_context()),
-        };
+        let (label, color) = ("Request preview (not confirmed):", theme.text_muted());
         let mut header = vec![
             Span::styled(
                 label,
@@ -1200,6 +1182,7 @@ mod tests {
             output: output.map(str::to_string),
             output_bytes: output.map(str::len).unwrap_or(0) as i64,
             output_truncated: false,
+            patch_effects: None,
         })
     }
 
@@ -1344,8 +1327,7 @@ mod tests {
         }
     }
 
-    /// apply_patch update card: `← Patched <path>` with hunk header and
-    /// added/removed/context tokens (`index.tsx:3341-3384,3388-3503`).
+    /// Legacy request previews are never labeled as confirmed mutations.
     #[test]
     fn golden_edit_diff_card_colors() {
         let theme = Theme::dark();
@@ -1362,7 +1344,7 @@ mod tests {
             vec![
                 String::new(),
                 "┃".to_string(),
-                "┃  ← Patched src/main.rs +1 -1".to_string(),
+                "┃  Request preview (not confirmed): src/main.rs +1 -1".to_string(),
                 "┃  @@ fn main".to_string(),
                 "┃   ctx line".to_string(),
                 "┃  -removed".to_string(),
@@ -1385,8 +1367,7 @@ mod tests {
         assert_eq!(buffer[(3, 6)].symbol(), "+");
         assert_eq!(buffer[(3, 6)].fg, theme.diff_added());
         assert_eq!(buffer[(3, 6)].bg, theme.diff_added_background());
-        // The `← Patched` label uses the context token.
-        assert_eq!(buffer[(4, 2)].fg, theme.diff_context());
+        assert_eq!(buffer[(4, 2)].fg, theme.text_muted());
 
         // Running: the upstream `Patching` label plus the already-known hunks.
         let running = make_card(
@@ -1396,12 +1377,14 @@ mod tests {
             None,
         );
         let (rows, _) = render(&running, 60, 8);
-        assert_eq!(rows[2], "┃  Patching");
-        assert_eq!(rows[3], "┃  ← Patched src/main.rs +1 -1");
+        assert_eq!(rows[2], "┃  ⋯ Patching");
+        assert_eq!(
+            rows[3],
+            "┃  Request preview (not confirmed): src/main.rs +1 -1"
+        );
     }
 
-    /// apply_patch variants: `# Created` / `← Patched` / `# Deleted` per file
-    /// with exact added-file line numbers (`index.tsx:3415-3503`).
+    /// Legacy multi-file requests retain preview coordinates without success labels.
     #[test]
     fn golden_apply_patch_created_patched_deleted() {
         let theme = Theme::dark();
@@ -1431,28 +1414,27 @@ mod tests {
             vec![
                 String::new(),
                 "┃".to_string(),
-                "┃  # Created a.txt +2".to_string(),
+                "┃  Request preview (not confirmed): a.txt +2".to_string(),
                 "┃  1 +first".to_string(),
                 "┃  2 +second".to_string(),
-                "┃  ← Patched b.txt +1 -1".to_string(),
+                "┃  Request preview (not confirmed): b.txt +1 -1".to_string(),
                 "┃  @@".to_string(),
                 "┃  -old".to_string(),
                 "┃  +new".to_string(),
-                "┃  # Deleted c.txt".to_string(),
+                "┃  Request preview (not confirmed): c.txt".to_string(),
                 "┃".to_string(),
                 String::new(),
             ]
         );
-        // `# Created` uses the added token; line numbers use
-        // `diff.lineNumber.text`.
-        assert_eq!(buffer[(3, 2)].symbol(), "#");
-        assert_eq!(buffer[(3, 2)].fg, theme.diff_added());
+        // Unconfirmed headers are muted; preview line numbers retain their role.
+        assert_eq!(buffer[(3, 2)].symbol(), "R");
+        assert_eq!(buffer[(3, 2)].fg, theme.text_muted());
         assert_eq!(buffer[(3, 3)].symbol(), "1");
         assert_eq!(buffer[(3, 3)].fg, theme.diff_line_number());
         assert_eq!(buffer[(3, 3)].bg, theme.diff_added_background());
-        // `# Deleted` uses the removed token.
-        assert_eq!(buffer[(3, 9)].symbol(), "#");
-        assert_eq!(buffer[(3, 9)].fg, theme.diff_removed());
+        // A requested delete is not presented as a confirmed deletion.
+        assert_eq!(buffer[(3, 9)].symbol(), "R");
+        assert_eq!(buffer[(3, 9)].fg, theme.text_muted());
 
         // A failed patch shows the upstream `# Patch failed` header plus the
         // recorded error text, never a fabricated diff.
@@ -1491,7 +1473,7 @@ mod tests {
         let text = rows.join("\n");
         assert!(text.contains("# Patch failed"), "{text}");
         assert!(
-            text.contains("done.txt") && text.contains("+real"),
+            text.contains("done.txt") && !text.contains("+real") && !text.contains("# Created"),
             "{text}"
         );
         assert!(

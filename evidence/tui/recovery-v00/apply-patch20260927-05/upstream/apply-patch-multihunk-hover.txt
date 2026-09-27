@@ -1,0 +1,40 @@
+   VIS35 patch fixture           +                                                                                      
+  ┃                                                                                                                     
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  ← Patched update.txt                                                                                               
+  ┃                                                                                                                     
+  ┃     4   line-04                                                                                                     
+  ┃     5   line-05                                                                                                     
+  ┃     6   line-06                                                                                                     
+  ┃     7   line-07                                                                                                     
+  ┃     8 - line-08                                                                                                     
+  ┃     8 + LINE-EIGHT                                                                                                  
+  ┃     9   line-09                                                                                                     
+  ┃    10   line-10                                                                                                     
+  ┃    11   line-11                                                                                                     
+  ┃    12   line-12                                                                                                     
+  ┃    @@ -16,9 +16,9 @@                                                                                                
+  ┃    16   line-16                                                                                                     
+  ┃    17   line-17                                                                                                     
+  ┃    18   line-18                                                                                                     
+  ┃    19   line-19                                                                                                     
+  ┃    20 - line-20                                                                                                     
+  ┃    20 + LINE-TWENTY                                                                                                 
+  ┃    21   line-21                                                                                                     
+  ┃    22   line-22                                                                                                     
+  ┃    23   line-23                                                                                                     
+  ┃    24   line-24                                                                                                     
+  ┃                                                                                                                     
+                                                                                                                        
+     VIS35-DONE-multihunk                                                                                               
+                                                                                                                        
+     Build · MiMo-V2.6-Flash Free · 3.1s                                                                                
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                                                          
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/openc…/.cache/opencode-tmp/opencode/t44-reference/runs/apply-patch20260927-05/project  1.3K (1%)  ctrl+p commands  
+                                                                                                                        

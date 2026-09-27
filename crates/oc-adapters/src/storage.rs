@@ -334,6 +334,8 @@ pub(crate) enum BoundedPref {
 /// One tool operation row for TUI tool cards (T22).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolOpRow {
+    /// Bounded confirmed effects, independently of the legacy text preview.
+    pub patch_effects: Option<oc_core::patch::PatchEffects>,
     /// Operation id.
     pub op: String,
     /// Owning turn, if any.
@@ -1198,7 +1200,8 @@ impl Db {
             "SELECT id, turn_id, name, state, input,
                     CASE WHEN length(CAST(output AS BLOB)) > ?4
                          THEN substr(output, 1, ?4) ELSE output END,
-                    length(CAST(output AS BLOB)), archive_rowid
+                    length(CAST(output AS BLOB)), archive_rowid,
+                    (SELECT metadata FROM patch_effects WHERE op_id=conversation_tools.id)
                FROM conversation_tools
               WHERE session_id = ?1 AND (?2 IS NULL OR archive_rowid < ?2)
               ORDER BY archive_rowid DESC LIMIT ?3",
@@ -1210,6 +1213,7 @@ impl Db {
                 let bytes: i64 = row.get::<_, Option<i64>>(6)?.unwrap_or(0);
                 let (output, truncated) = bound_preview(raw, bytes);
                 Ok(ToolOpRow {
+                    patch_effects: decode_patch_effects(row.get(8)?),
                     op: row.get(0)?,
                     turn: row.get(1)?,
                     name: row.get(2)?,
@@ -1374,7 +1378,8 @@ impl Db {
             "SELECT id, turn_id, name, state, input,
                     CASE WHEN length(CAST(output AS BLOB)) > ?3
                          THEN substr(output, 1, ?3) ELSE output END,
-                    length(CAST(output AS BLOB)), rowid
+                    length(CAST(output AS BLOB)), rowid,
+                    (SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id)
                FROM tool_operations
               WHERE session_id = ?1 ORDER BY rowid ASC LIMIT ?2",
         )?;
@@ -1385,6 +1390,7 @@ impl Db {
                 let bytes: i64 = row.get::<_, Option<i64>>(6)?.unwrap_or(0);
                 let (output, truncated) = bound_preview(raw, bytes);
                 Ok(ToolOpRow {
+                    patch_effects: decode_patch_effects(row.get(8)?),
                     op: row.get(0)?,
                     turn: row.get(1)?,
                     name: row.get(2)?,
@@ -2037,6 +2043,19 @@ impl Db {
         turn: &str,
         log: &str,
     ) -> Result<(), StorageError> {
+        self.tool_outcome_with_log_and_effects(op, state, output, turn, log, None)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn tool_outcome_with_log_and_effects(
+        &self,
+        op: &str,
+        state: &str,
+        output: &str,
+        turn: &str,
+        log: &str,
+        effects: Option<&oc_core::patch::PatchEffects>,
+    ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         let started: bool = tx.query_row(
@@ -2053,6 +2072,13 @@ impl Db {
         )?;
         if affected != 1 {
             return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
+        }
+        if let Some(effects) = effects {
+            let json = serde_json::to_string(effects).expect("serializable effects");
+            tx.execute(
+                "INSERT INTO patch_effects(op_id,metadata) VALUES(?1,?2)",
+                params![op, json],
+            )?;
         }
         tx.execute(
             "UPDATE turns SET result = ?1 WHERE id = ?2 AND status='started'",
@@ -2289,12 +2315,13 @@ impl Db {
         // Per-turn part and byte serving budgets, independent of archive size.
         let mut stmt=conn.prepare_cached("SELECT p.value FROM turns t, json_each(t.result,'$.display_parts') p WHERE t.id=?1 ORDER BY CAST(p.key AS INTEGER) LIMIT 240")?;
         let refs = stmt.query_map([&id], |r| r.get::<_, String>(0))?;
-        let mut budget = 64 * 1024usize;
+        // Reserve settled metadata before admitting any text or tool input.
+        // Each effect is indivisible: replay uses the canonical producer DTO.
+        let reserved: i64 = conn.query_row("SELECT COALESCE(SUM(length(CAST(e.metadata AS BLOB))),0) FROM turns t,json_each(t.result,'$.display_parts') p JOIN patch_effects e ON e.op_id=p.value ->> '$.tool' WHERE t.id=?1 AND CAST(p.key AS INTEGER)<240", [&id], |r| r.get(0))?;
+        let mut effects_budget = oc_core::patch::EFFECT_PREVIEW_BYTES_CAP;
+        let mut budget = effects_budget.saturating_sub(reserved as usize);
         for (sequence, part) in refs.enumerate() {
             let part: serde_json::Value = serde_json::from_str(&part?).unwrap_or_default();
-            if budget == 0 {
-                break;
-            }
             let mut state = PartState {
                 sequence,
                 status: turn.status.clone(),
@@ -2331,12 +2358,30 @@ impl Db {
                 // Input is structured JSON: cutting it at the output-preview
                 // boundary destroys patch/path metadata. Serve complete admitted
                 // input within the turn budget, otherwise honestly omit it.
-                let view=conn.query_row("SELECT rowid,name,state,CASE WHEN length(CAST(input AS BLOB))<=?4 THEN input ELSE NULL END,substr(output,1,?3),length(CAST(output AS BLOB)) FROM tool_operations WHERE id=?1 AND turn_id=?2",params![op,id,TOOL_OP_PREVIEW_BYTES as i64,budget.saturating_sub(TOOL_OP_PREVIEW_BYTES) as i64],|r| {
+                let view=conn.query_row("SELECT rowid,name,state,CASE WHEN length(CAST(input AS BLOB))<=?4 THEN input ELSE NULL END,substr(output,1,?3),length(CAST(output AS BLOB)),(SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id) FROM tool_operations WHERE id=?1 AND turn_id=?2",params![op,id,TOOL_OP_PREVIEW_BYTES as i64,budget.saturating_sub(TOOL_OP_PREVIEW_BYTES) as i64],|r| {
                     let bytes=r.get::<_,Option<i64>>(5)?.unwrap_or(0);
                     let (output,output_truncated)=bound_preview(r.get(4)?,bytes);
-                    Ok(ToolOpView{op:op.to_string(),rowid:r.get(0)?,name:r.get(1)?,state:r.get(2)?,input:r.get(3)?,output,output_bytes:bytes,output_truncated})
+                    Ok(ToolOpView{patch_effects:decode_patch_effects(r.get(6)?),op:op.to_string(),rowid:r.get(0)?,name:r.get(1)?,state:r.get(2)?,input:r.get(3)?,output,output_bytes:bytes,output_truncated})
                 }).optional()?;
-                if let Some(view) = view {
+                if let Some(mut view) = view {
+                    if let Some(effects) = &view.patch_effects {
+                        let bytes = serde_json::to_vec(effects).expect("effects").len();
+                        if bytes > effects_budget {
+                            continue;
+                        }
+                        effects_budget -= bytes;
+                        state.truncated |= effects.truncated;
+                    }
+                    // Output is admitted after metadata and structured input;
+                    // never let the independent SQL preview exceed the turn cap.
+                    let remaining =
+                        budget.saturating_sub(view.input.as_ref().map_or(0, String::len));
+                    if let Some(output) = &mut view.output
+                        && output.len() > remaining
+                    {
+                        output.truncate(output.floor_char_boundary(remaining));
+                        view.output_truncated = true;
+                    }
                     state.status = view.state.clone();
                     state.input_omitted = view.input.is_none();
                     state.truncated |= state.input_omitted || view.output_truncated;
@@ -3247,6 +3292,9 @@ fn apply_schema(conn: &Connection) -> Result<(), StorageError> {
           CREATE TABLE IF NOT EXISTS events(
             seq INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
             kind TEXT NOT NULL, payload TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS patch_effects(
+            op_id TEXT PRIMARY KEY REFERENCES tool_operations(id) ON DELETE CASCADE,
+            metadata TEXT NOT NULL);
           CREATE INDEX IF NOT EXISTS events_accepted_model ON events(session_id, seq) WHERE kind='accepted_model';
          CREATE TABLE IF NOT EXISTS blobs(digest TEXT PRIMARY KEY, size INTEGER NOT NULL, path TEXT NOT NULL);
          CREATE TABLE IF NOT EXISTS prefs(key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL);
@@ -3257,6 +3305,9 @@ fn apply_schema(conn: &Connection) -> Result<(), StorageError> {
 }
 
 const TURN_ACCEPTANCE_SCHEMA_VERSION: i64 = 4;
+fn decode_patch_effects(json: Option<String>) -> Option<oc_core::patch::PatchEffects> {
+    json.and_then(|json| serde_json::from_str(&json).ok())
+}
 const MAX_ACCEPTANCE_MIGRATION_FIELD_BYTES: i64 = 65536;
 
 /// Recover admissions, including turns with no checkpoint, in one ordered

@@ -42,6 +42,60 @@ exit `2` denotes a runner blocker. Neither is parity success.
 
 ## What is captured
 
+### Ordinary apply_patch / original patch (VIS35), opt-in
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --apply-patch true --geometry true --sidebar hide --sample short \
+  --columns 121 --rows 40 --patch-view auto --patch-wrap none \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --output evidence/tui/recovery-v00/apply-patch20260927-23
+```
+
+Use a new immutable output name. Supported sizes are 80/120/121/124/125/160×40.
+Omit `--patch-view` for defaults; explicit values are `auto|unified|split`,
+with `--patch-wrap word|none`. The original uses content width for its auto
+breakpoint (U18 `context.width`), so terminal 121 columns alone does not prove
+that its diff switches to split.
+
+`apply_patch_fixture.py` emits ten actual ordinary-function calls, with matching
+`patchText` for original `patch` and native `apply_patch`: add, empty create,
+two separated update hunks, delete, move, full replacement, multi-file add,
+multi-file stale preflight, stale single file and configured denial. No fake
+tool results, renderer injection or transport adapter is installed.
+The fixture-only original plugin admits the existing bundled U19 executor
+through the standard context hook and records real execute.before/after events.
+It does not replace the executor. Its input admission schema mirrors U19 Input;
+the provider records and checks the actually advertised function definitions.
+The pinned donor and inherited repository `.opencode/` are never modified.
+
+Fixture setup checks the owned isolated root and seeds only a fixed path list.
+Both binaries deny all other actions/resources and authorize only those exact
+fixture mutation paths; `denied.txt` remains denied. Independent snapshots
+record hex bytes, SHA-256, modes and presence, read-only SQLite, and original
+executor metadata. Snapshots off; `/new`, reopen, `/undo`, `/redo` and actual
+process restart must preserve files and tool/provider counts. Captures08 onward
+also include the native `patch_effects` owner table, checked byte-for-byte
+through Redo/restart. Reopen checks do not establish an OS-level read syscall
+audit. Fresh attempts11 onward wait for native `Patch · arguments streaming ·
+no effects yet` rather than a completed effect card. Real provider deltas are
+logged, and independent pending snapshots must retain prior file bytes/modes,
+durable operations and effects. The bounded SSE hold is eight seconds from
+attempt15 onward; only an owned child is paused for a stable unmasked capture.
+Completion must remove the pending label. Durable rows/display links are unique,
+and restart must retain them with zero tool/provider re-execution. This does not
+qualify an executor-held state or every transient render between samples.
+
+Run `node scripts/tui_capture/analyze_apply_patch.mjs BASE NEW_REPORT 22` to
+validate and aggregate attempts01–22. Reports also refuse overwrite. Full
+styled-cell/PNG comparators include cursor and retain all failures. VIS36
+accept/reject, real-model A09 authorship, and PTY postcommit partial/cancelled/
+unknown outcomes remain separate gates. A stale second operation can fail in
+preflight with no success prefix; the fixture does not claim otherwise.
+Attempt10 aligns `session.tps=false` on both binaries. Attempts03–09 retain
+the historical native default TPS display, visible in their unmasked frames.
+
 ### Session compaction (VIS34), opt-in bounded campaign
 
 ```sh

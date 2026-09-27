@@ -13,6 +13,7 @@ import {probeWheel} from './wheel.mjs';
 import {probeSessions} from './sessions.mjs';
 import {probeRevertRedo} from './revert_redo.mjs';
 import {probeCompaction} from './compaction.mjs';
+import {probeApplyPatch} from './apply_patch.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
@@ -21,6 +22,11 @@ const boundedMode = args['bounded-mode'];
 const sessionsInteraction = args['sessions-interaction'] === 'true';
 const revertRedo = args['revert-redo'] === 'true';
 const compaction = args.compaction === 'true';
+const applyPatch = args['apply-patch'] === 'true';
+if(args['apply-patch']!==undefined&&!['true','false'].includes(args['apply-patch']))throw Error('--apply-patch must be true|false');
+if(applyPatch&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||![80,120,121,124,125,160].includes(Number(args.columns))||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['apply-patch','geometry','build-oc'].includes(k))))throw Error('--apply-patch requires exclusive paired short 80/120/121/124/125/160x40 geometry sidebar hide');
+if(args['patch-view']&&(!applyPatch||!['auto','unified','split'].includes(args['patch-view'])))throw Error('--patch-view requires apply-patch and auto|unified|split');
+if(args['patch-wrap']&&(!args['patch-view']||!['word','none'].includes(args['patch-wrap'])))throw Error('--patch-wrap requires patch-view and word|none');
 const compactionTrigger = args['compaction-trigger'] || 'manual';
 const compactionAnimation = args['compaction-animation'] === 'true';
 const compactionTps = args['compaction-tps'] === undefined ? null : args['compaction-tps'] === 'true';
@@ -279,6 +285,7 @@ const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.str
 const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
+    ...(applyPatch ? {apply_patch:true,view:args['patch-view'],wrap:args['patch-wrap'],probe:sha(fs.readFileSync(path.join(here,'apply_patch.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'apply_patch_fixture.py'))),admission:sha(fs.readFileSync(path.join(here,'apply_patch_admission.mjs')))} : {}),
     ...(compaction ? {compaction:true,compaction_trigger:compactionTrigger,compaction_animation:compactionAnimation,compaction_tps:compactionTps,probe_sha256:sha(fs.readFileSync(path.join(here,'compaction.mjs'))),fixture_protocol_sha256:sha(fs.readFileSync(path.join(here,'compaction_fixture.py')))} : {}),
     ...(revertRedo ? {revert_redo:true,probe_sha256:sha(fs.readFileSync(path.join(here,'revert_redo.mjs')))} : {}),
     ...(boundedMode ? {bounded_mode:boundedMode,bounded_probe_sha256:sha(fs.readFileSync(path.join(here,boundedMode==='wheel'?'wheel.mjs':'bounded.mjs')))} : {}),
@@ -306,10 +313,11 @@ const sourceManifest = Object.fromEntries([...new Set(sourcePaths.stdout.split('
   .map(name => [name,sha(fs.readFileSync(path.join(repo,name)))]));
 json('source-manifest.json', sourceManifest);
 const lock = {schema_version: 1, started: new Date().toISOString(), runner_version: 1,
-    runner_hashes: Object.fromEntries(['capture.mjs','frontend.js','bridge.py',...(compaction?['compaction.mjs','compaction_fixture.py']:[]),...(boundedMode==='wheel'?['wheel.mjs']:[]),...(revertRedo?['revert_redo.mjs']:[]),...(messageActions?['message_actions.mjs']:[]),...(sessionsInteraction?['sessions.mjs']:[])].map(n => [n, sha(fs.readFileSync(path.join(here,n)))])),
+    runner_hashes: Object.fromEntries(['capture.mjs','frontend.js','bridge.py',...(applyPatch?['apply_patch.mjs','apply_patch_fixture.py','apply_patch_admission.mjs']:[]),...(compaction?['compaction.mjs','compaction_fixture.py']:[]),...(boundedMode==='wheel'?['wheel.mjs']:[]),...(revertRedo?['revert_redo.mjs']:[]),...(messageActions?['message_actions.mjs']:[]),...(sessionsInteraction?['sessions.mjs']:[])].map(n => [n, sha(fs.readFileSync(path.join(here,n)))])),
   fixture_sha256: fixtureSha, fixture_files: fixtureFiles, oc: {commit, tree, dirty_diff_sha256: sha(diff),
     source_manifest_sha256: sha(canonical(sourceManifest))},
   sources: {upstream_commit: '2670273ff17da96f85c5826ced57aa1b368754fa'}, attempts: [], captures: []};
+if(applyPatch)lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Fixture context hook admits existing bundled U19; executor is not replaced'};
 if(args['build-oc'] === 'true') {
   const build = execute(['cargo', 'build', '--locked']);
   if(build.status !== 0) throw Error('Rust build failed (see commands.json)');
@@ -366,7 +374,8 @@ try {
     font_size: 14, device_scale_factor: 1, dpi: 96, padding: 0, opacity: 1, ligatures: false,
     columns: Number(args.columns || 160), rows: Number(args.rows || 48), TERM: 'xterm-256color', COLORTERM: 'truecolor', locale: 'C.UTF-8',
     unicode_width_policy: '@xterm/addon-unicode11 0.9.0 (Unicode 11)',
-    settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',
+     settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',
+          ...(applyPatch?{diffs:{view:args['patch-view']||'default',wrap:args['patch-wrap']||'default'},session_tps_override:false}:{}),
       clock_policy: 'real application wall clock; fixed provider created_at; no masking or clock claim',
           animations: compaction ? compactionAnimation : scanner ? scannerAnimation : 'original supported animations=false; completed states only; terminal cursorBlink=false',
           ...(compaction ? {compaction_tps:compactionTps} : {}),
@@ -386,7 +395,8 @@ try {
       sample: args.sample || 'table', sidebar: profile.settings.sidebar, devtools: profile.settings.devtools,
       tabs: profile.settings.tabs, variants: args.variants === 'true', startup_error: args['startup-error'] === 'true',
           agent_profile: args['agent-profile'] === 'true', bounded_mode:boundedMode==='wheel'?'shell':boundedMode, wheel_probe:boundedMode==='wheel', metrics_path:path.join(dir,'scheduler.json'), sessions_interaction:sessionsInteraction,
-           revert_redo:revertRedo, compaction, compaction_trigger:compactionTrigger,
+            revert_redo:revertRedo, compaction, compaction_trigger:compactionTrigger,
+            apply_patch:applyPatch,patch_view:args['patch-view'],patch_wrap:args['patch-wrap'],
            ...(compaction ? {compaction_animation:compactionAnimation,compaction_tps:compactionTps,animations:compactionAnimation} : {}),
         sessions_resume:!!args['sessions-root'],
         sessions_campaign:args['sessions-campaign'] || 'legacy',
@@ -429,7 +439,14 @@ try {
         if(n===generation) writeQueue = writeQueue.then(() => page.evaluate(d => writeTerminal(d), event.data));
       } else { logs.push(event); fs.writeFileSync(path.join(dir,'protocol.json'),JSON.stringify(logs,null,2)+'\n'); }
     });
-    const frame = async () => {await writeQueue; return page.evaluate(() => readTerminal());};
+    const frame = async () => {
+      if(applyPatch) {
+        let timer;
+        try {await Promise.race([writeQueue,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('VIS35 xterm write callback stalled')),5000);})]);}
+        finally {clearTimeout(timer);}
+      } else await writeQueue;
+      return page.evaluate(() => readTerminal());
+    };
     const waitFor = async (predicate, label, timeout=45000) => {
       const deadline = Date.now()+timeout;
       let previous, stable=0;
@@ -513,6 +530,14 @@ try {
       }
        const initial = await waitFor(f => /Build|Untitled session|MiMo-V2.6-Flash Free/.test(f.text) ||
          (sessionsInteraction && f.text.includes('Ask anything')), 'initial prompt');
+       if(applyPatch) {
+          const checks=await probeApplyPatch({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
+            control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
+            relaunch:async()=>{await writeQueue;generation=1;chunks[1]=[];await page.evaluate(()=>{term.reset();term.clear();});child.stdin.write(JSON.stringify({kind:'relaunch'})+'\n');}});
+          lock.apply_patch ??= {};lock.apply_patch[origin]=checks;
+          if(checks.status!=='PASS')result=1;
+          json('capture.lock.json',lock);continue;
+        }
        if(sessionsInteraction) {
          const checks=await probeSessions({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,priorEvidence:spec.sessions_prior_evidence,
            selectedScope:args['sessions-selected'] || 'all',
@@ -2824,7 +2849,7 @@ try {
       same:canonical(upstream)===canonical(native)};
   }
   lock.profile=profile;
-  lock.qualification = compaction ? {
+   lock.qualification = applyPatch ? {status:'DIAGNOSTIC_APPLY_PATCH_ONLY',actual_requests:'Ordinary function patchText calls; original bundled U19 executor admitted by fixture-only context hook; native registry unchanged',filesystem:'Independent hex bytes, modes and presence; read-only SQLite; real execute.after metadata from original hook',unresolved:['VIS36 accept/reject not implemented','A09 real-model authorship not run','Running argument-stream observation is not executor hold','No transport-adaptation count equivalence claim']} : compaction ? {
     status:'DIAGNOSTIC_COMPACTION_ONLY',
     trigger:compactionTrigger,
     actual_requests:'Actual PTY main, title and differentiated summarizer Responses requests; full fake-provider wire recorded',

@@ -473,13 +473,15 @@ pub struct ToolCard {
     pub output_bytes: i64,
     /// True when the durable result is longer than the preview.
     pub output_truncated: bool,
-    /// Affected paths for `apply_patch` (parsed, never invented).
+    /// Confirmed paths when typed effects exist; otherwise requested paths only.
     pub files: Vec<String>,
     /// True when more files exist than listed.
     pub files_truncated: bool,
-    /// Bounded diff representation for `apply_patch` (counts and paths only,
-    /// never a second copy of the patch bytes); `None` for other tools.
+    /// Legacy request-only diff summary, never confirmation of applied effects.
     pub diff: Option<oc_adapters::patch::DiffSummary>,
+    /// Owner-confirmed effects, independent of request previews and workspace state.
+    pub patch_effects: Option<oc_core::patch::PatchEffects>,
+    pub diff_settings: oc_core::queries::DiffSettings,
     /// Presentation data parsed once from the recorded input/output
     /// (bounded); the transcript renders the card from it.
     pub render: ToolRender,
@@ -495,6 +497,21 @@ impl ToolCard {
             + self.output_preview.len()
             + self.files.iter().map(String::len).sum::<usize>()
             + self.render.retained_bytes()
+            + self.patch_effects.as_ref().map_or(0, |effects| {
+                effects
+                    .files
+                    .iter()
+                    .map(|f| {
+                        f.path.len()
+                            + f.destination.as_ref().map_or(0, String::len)
+                            + f.hunks
+                                .iter()
+                                .flat_map(|h| &h.lines)
+                                .map(|l| l.text.len())
+                                .sum::<usize>()
+                    })
+                    .sum::<usize>()
+            })
             + self.diff.as_ref().map_or(0, |d| {
                 d.files
                     .iter()
@@ -506,15 +523,36 @@ impl ToolCard {
 
 /// Build one bounded card from a recorded tool operation.
 pub fn card_from_row(row: &ToolOpView) -> ToolCard {
-    let files = patch_files(&row.name, row.input.as_deref());
-    let files_truncated = files.len() > CARD_FILES;
-    let diff = patch_diff(&row.name, row.input.as_deref());
-    let render = ToolRender::parse(
-        &row.name,
-        row.input.as_deref(),
-        row.output.as_deref(),
-        &row.state,
+    let files = row.patch_effects.as_ref().map_or_else(
+        || patch_files(&row.name, row.input.as_deref()),
+        |effects| {
+            effects
+                .files
+                .iter()
+                .map(|f| f.destination.as_ref().unwrap_or(&f.path).clone())
+                .collect()
+        },
     );
+    let files_truncated = files.len() > CARD_FILES
+        || row
+            .patch_effects
+            .as_ref()
+            .is_some_and(|effects| effects.total_files > files.len());
+    let diff = if row.patch_effects.is_some() {
+        None
+    } else {
+        patch_diff(&row.name, row.input.as_deref())
+    };
+    let render = if row.name == "apply_patch" && row.patch_effects.is_some() {
+        ToolRender::Patch(Default::default())
+    } else {
+        ToolRender::parse(
+            &row.name,
+            row.input.as_deref(),
+            row.output.as_deref(),
+            &row.state,
+        )
+    };
     ToolCard {
         op: row.op.clone(),
         name: row.name.clone(),
@@ -526,6 +564,8 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
         files: files.into_iter().take(CARD_FILES).collect(),
         files_truncated,
         diff,
+        patch_effects: row.patch_effects.clone(),
+        diff_settings: Default::default(),
         render,
     }
 }
@@ -1061,6 +1101,7 @@ mod tests {
                     output: None,
                     output_bytes: 0,
                     output_truncated: false,
+                    patch_effects: None,
                 }),
                 reason("**Three**\n\nbody 3"),
                 TranscriptPart::Text("separator".into()),
@@ -1298,6 +1339,7 @@ mod tests {
             output: Some("ok".to_string()),
             output_bytes: 0,
             output_truncated: false,
+            patch_effects: None,
         });
         assert_eq!(card.op, "op1");
         assert_eq!(card.state, "completed");
@@ -1316,6 +1358,7 @@ mod tests {
                 output: None,
                 output_bytes: 0,
                 output_truncated: false,
+                patch_effects: None,
             });
             assert!(card.files.is_empty(), "alias {alias} must be ignored");
         }
@@ -1328,6 +1371,7 @@ mod tests {
             output: None,
             output_bytes: 0,
             output_truncated: false,
+            patch_effects: None,
         });
         assert!(card.files.is_empty());
         assert!(card.output_preview.is_empty());
@@ -1343,6 +1387,7 @@ mod tests {
             output: Some(long),
             output_bytes: 0,
             output_truncated: false,
+            patch_effects: None,
         });
         assert!(card.files.is_empty());
         assert!(card.input_preview.len() <= CARD_PREVIEW + 16);
@@ -1363,6 +1408,7 @@ mod tests {
             output: None,
             output_bytes: 0,
             output_truncated: false,
+            patch_effects: None,
         });
         assert_eq!(card.files.len(), CARD_FILES);
         assert!(card.files_truncated);
@@ -1380,6 +1426,7 @@ mod tests {
                 output: None,
                 output_bytes: 0,
                 output_truncated: false,
+                patch_effects: None,
             },
             ToolOpView {
                 rowid: 0,
@@ -1390,6 +1437,7 @@ mod tests {
                 output: Some("boom".to_string()),
                 output_bytes: 0,
                 output_truncated: false,
+                patch_effects: None,
             },
         ];
         let cards = cards_from_rows(&rows);

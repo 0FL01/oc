@@ -1,0 +1,30 @@
+{
+  "kind": "grid",
+  "status": "FAIL",
+  "scope": "frame equality only; capture provenance is not attested",
+  "scenario": "apply-patch-multihunk-hover",
+  "fixture_sha256": "0df31e076a30208c995b4db3430a76077fd85b05ca18034fedff5fe1e81721f5",
+  "environment_id": "2bb0c6b24db0d79366f2a5bf579849462be90ec61cfddbb2b0c560ad71093f04",
+  "reference_sha256": "0bda9fc6bb06fde35a0a377a223ce3be028b6119217f8071fcff6cb844130cc1",
+  "actual_sha256": "0174d661c831919a04573b5c592cc64522688a5a428941c306e123397084e64d",
+  "reference_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "actual_commit": "318025abd1d535f8229c9da53b40e375f5610cbf",
+  "cells_checked": 6400,
+  "different_cells": 1,
+  "cursor_differs": false,
+  "difference_bbox_inclusive": [
+    38,
+    31,
+    38,
+    31
+  ],
+  "samples": [
+    {
+      "x": 38,
+      "y": 31,
+      "different_fields": [
+        "symbol"
+      ]
+    }
+  ]
+}

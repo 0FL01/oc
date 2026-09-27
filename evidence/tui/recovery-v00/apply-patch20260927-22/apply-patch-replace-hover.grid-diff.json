@@ -1,0 +1,37 @@
+{
+  "kind": "grid",
+  "status": "FAIL",
+  "scope": "frame equality only; capture provenance is not attested",
+  "scenario": "apply-patch-replace-hover",
+  "fixture_sha256": "0df31e076a30208c995b4db3430a76077fd85b05ca18034fedff5fe1e81721f5",
+  "environment_id": "2bb0c6b24db0d79366f2a5bf579849462be90ec61cfddbb2b0c560ad71093f04",
+  "reference_sha256": "0c63c4405256df36d9ecd57e8630b692a41da745a2be2c5ff3e2f1a4823f12da",
+  "actual_sha256": "64d76e18feecb5d7b1340b17e95950dc115154dd7f983098f59dde3621889b99",
+  "reference_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "actual_commit": "318025abd1d535f8229c9da53b40e375f5610cbf",
+  "cells_checked": 6400,
+  "different_cells": 2,
+  "cursor_differs": false,
+  "difference_bbox_inclusive": [
+    38,
+    2,
+    38,
+    16
+  ],
+  "samples": [
+    {
+      "x": 38,
+      "y": 2,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 38,
+      "y": 16,
+      "different_fields": [
+        "symbol"
+      ]
+    }
+  ]
+}

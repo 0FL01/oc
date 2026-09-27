@@ -2685,6 +2685,7 @@ async fn handle_worker_event(
         | CoreEvent::ReasoningDelta { session, .. }
         | CoreEvent::ReasoningItemEnded { session, .. }
         | CoreEvent::ToolCallStarted { session, .. }
+        | CoreEvent::ToolArgumentStream { session, .. }
         | CoreEvent::ToolCallFinished { session, .. }
         | CoreEvent::TurnUsage { session, .. }
         | CoreEvent::TurnFinished { session, .. }
@@ -2715,6 +2716,9 @@ async fn handle_worker_event(
         CoreEvent::ReasoningItemEnded { turn, .. } => {
             state.apply_reasoning_item_ended(&turn);
         }
+        CoreEvent::ToolArgumentStream { turn, event, .. } => {
+            state.apply_tool_argument_stream(&turn, &event)
+        }
         CoreEvent::ToolCallStarted {
             turn,
             op,
@@ -2730,8 +2734,9 @@ async fn handle_worker_event(
             output,
             output_bytes,
             output_truncated,
+            patch_effects,
             ..
-        } => state.apply_tool_finished(
+        } => state.apply_tool_finished_with_effects(
             &turn,
             &op,
             &name,
@@ -2739,6 +2744,7 @@ async fn handle_worker_event(
             &output,
             output_bytes,
             output_truncated,
+            patch_effects,
         ),
         CoreEvent::TurnUsage {
             turn,
@@ -7242,6 +7248,7 @@ mod tests {
                             output: None,
                             output_bytes: 0,
                             output_truncated: false,
+                            patch_effects: None,
                         })
                         .collect(),
                     total: 3,

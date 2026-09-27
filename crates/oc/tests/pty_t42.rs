@@ -3359,7 +3359,7 @@ fn aud38_apply_patch_card_shows_bounded_diff() {
         screen
             .rows()
             .iter()
-            .any(|row| row.contains("diff 1f +1 -1")),
+            .any(|row| row.contains("confirmed 1f +1 -1")),
         "bounded diff totals rendered: {:?}",
         screen.rows()
     );

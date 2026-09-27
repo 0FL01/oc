@@ -1,0 +1,40 @@
+   VIS35 patch fixture           +                                                                                       
+  ┃                                                                                                                      
+  ┃  # Created multi-b.txt                                                                                               
+  ┃                                                                                                                      
+  ┃    1 + beta                                                                                                          
+  ┃                                                                                                                      
+                                                                                                                         
+     VIS35-DONE-multifile                                                                                                
+                                                                                                                         
+     Build · MiMo-V2.6-Flash Free · 3.2s                                                                                 
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  VIS35 partial: execute the supplied ordinary function patch once.                                                   
+  ┃                                                                                                                      
+                                                                                                                         
+  ┃  # Patch failed                                                                                                      
+  ┃  error: partial op 1 (stale.txt): conflict at stale.txt: stale-preimage                                              
+                                                                                                                         
+     VIS35-DONE-partial                                                                                                  
+                                                                                                                         
+     Build · MiMo-V2.6-Flash Free · 3.2s                                                                                 
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃  VIS35 stale: execute the supplied ordinary function patch once.                                                     
+  ┃                                                                                                                      
+                                                                                                                         
+  ┃  # Patch failed                                                                                                      
+  ┃  error: partial op 0 (stale.txt): conflict at stale.txt: stale-preimage                                              
+                                                                                                                         
+     VIS35-DONE-stale                                                                                                    
+                                                                                                                         
+     Build · MiMo-V2.6-Flash Free · 3.2s                                                                                 
+                                                                                                                         
+  ┃                                                                                                                      
+  ┃                                                                                                                      
+  ┃                                                                                                                      
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                                                           
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/openco…/.cache/opencode-tmp/opencode/t44-reference/runs/apply-patch20260927-13/project  1.3K (1%)  ctrl+p commands  
+                                                                                                                         

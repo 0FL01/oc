@@ -1,0 +1,58 @@
+{
+  "kind": "grid",
+  "status": "FAIL",
+  "scope": "frame equality only; capture provenance is not attested",
+  "scenario": "apply-patch-multifile-hover",
+  "fixture_sha256": "25c075b40eeac4438c2fcfde477ff1667b58f9d98730fc7acd7e073a8caae8d6",
+  "environment_id": "e23470ab070d0a98d944bc03b2e9c8b625c2c8a5fb2e002146d97f34964e61f5",
+  "reference_sha256": "0ad35cc3680473068153955448feb44d64e5cebf425b384983fa408639885367",
+  "actual_sha256": "f8e9a64c0099aa857200d6450e4989608c5e9199f76fe39f9da94899bbdcb183",
+  "reference_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "actual_commit": "318025abd1d535f8229c9da53b40e375f5610cbf",
+  "cells_checked": 4840,
+  "different_cells": 5,
+  "cursor_differs": false,
+  "difference_bbox_inclusive": [
+    14,
+    2,
+    38,
+    31
+  ],
+  "samples": [
+    {
+      "x": 14,
+      "y": 2,
+      "different_fields": [
+        "fg"
+      ]
+    },
+    {
+      "x": 38,
+      "y": 11,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 14,
+      "y": 18,
+      "different_fields": [
+        "fg"
+      ]
+    },
+    {
+      "x": 14,
+      "y": 24,
+      "different_fields": [
+        "fg"
+      ]
+    },
+    {
+      "x": 38,
+      "y": 31,
+      "different_fields": [
+        "symbol"
+      ]
+    }
+  ]
+}

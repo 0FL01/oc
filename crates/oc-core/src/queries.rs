@@ -418,8 +418,29 @@ pub struct TuiChrome {
     pub animations: Option<bool>,
     /// Explicit admitted CLI session.tps; absence uses the pinned default true.
     pub session_tps: Option<bool>,
+    /// Effective CLI diff layout and wrapping, presentation only.
+    pub diffs: DiffSettings,
     /// Effective conversation bindings from the admitted Location configuration.
     pub conversation_shortcuts: ConversationShortcuts,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct DiffSettings {
+    pub view: DiffView,
+    pub wrap: DiffWrap,
+}
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum DiffView {
+    #[default]
+    Auto,
+    Unified,
+    Split,
+}
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum DiffWrap {
+    #[default]
+    Word,
+    None,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -667,6 +688,8 @@ pub struct DcpSnapshot {
 /// One tool operation as recorded durably.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolOpView {
+    /// Confirmed mutation metadata; absent for legacy records and other tools.
+    pub patch_effects: Option<crate::patch::PatchEffects>,
     /// Operation id.
     pub op: String,
     /// Insertion-order cursor for newest-first paging.

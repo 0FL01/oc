@@ -20,6 +20,7 @@ use thiserror::Error;
 
 use crate::files::{Files, glob_match};
 
+mod effects;
 mod fs;
 
 /// Single model-visible tool name; `write`/`edit` must never appear.
@@ -775,6 +776,32 @@ pub fn apply_patch(
     patch_text: &str,
     policy: &dyn WritePolicy,
 ) -> Result<Vec<FileResult>, ApplyFailure> {
+    apply_patch_with_effects(project_root, data_root, patch_text, policy).0
+}
+
+/// Legacy outcome plus bounded confirmed metadata; no additional file reads.
+pub fn apply_patch_with_effects(
+    project_root: &std::path::Path,
+    data_root: &std::path::Path,
+    patch_text: &str,
+    policy: &dyn WritePolicy,
+) -> (
+    Result<Vec<FileResult>, ApplyFailure>,
+    oc_core::patch::PatchEffects,
+) {
+    let mut effects = oc_core::patch::PatchEffects::default();
+    let result = apply_patch_inner(project_root, data_root, patch_text, policy, &mut effects);
+    effects::bound_serialized(&mut effects);
+    (result, effects)
+}
+
+fn apply_patch_inner(
+    project_root: &std::path::Path,
+    data_root: &std::path::Path,
+    patch_text: &str,
+    policy: &dyn WritePolicy,
+    effects: &mut oc_core::patch::PatchEffects,
+) -> Result<Vec<FileResult>, ApplyFailure> {
     let ops = parse_plan(patch_text)?;
     let files = Files::new(project_root, data_root).map_err(|_| ApplyFailure {
         done: Vec::new(),
@@ -1070,7 +1097,7 @@ pub fn apply_patch(
     // Execution: per-file commits, stop at first runtime failure.
     let mut done: Vec<FileResult> = Vec::new();
     for (idx, (op, prepared)) in ops.iter().zip(&prepared).enumerate() {
-        match execute_op(&root, op, prepared, policy, &mut done) {
+        match execute_op(&root, op, prepared, policy, &mut done, effects) {
             Ok(()) => {}
             Err(error) => {
                 return Err(ApplyFailure {
@@ -1107,6 +1134,7 @@ fn execute_op(
     prepared: &Prepared,
     policy: &dyn WritePolicy,
     done: &mut Vec<FileResult>,
+    effects: &mut oc_core::patch::PatchEffects,
 ) -> Result<(), PatchError> {
     let rel = op.path();
     policy.check(rel)?;
@@ -1150,6 +1178,15 @@ fn execute_op(
             .map(|before| sha_hex(&before.bytes)),
         hash_after: prepared.after.as_ref().map(|after| sha_hex(after)),
     });
+    effects::push(
+        effects,
+        effects::file_effect(
+            rel,
+            done.last().expect("committed").op,
+            prepared.before.as_ref().map_or(&[], |s| s.bytes.as_slice()),
+            prepared.after.as_deref().unwrap_or(&[]),
+        ),
+    );
     entry.sync().map_err(io)?;
     if let Some(target) = &prepared.target {
         let updated = entry.snapshot().map_err(io)?;
@@ -1163,6 +1200,17 @@ fn execute_op(
         }
         entry.move_to(&target).map_err(io)?;
         done.last_mut().expect("committed update").new_path = op.move_to().map(str::to_string);
+        if effects.total_files <= oc_core::patch::EFFECT_FILES_CAP {
+            let file = effects.files.last_mut().expect("committed effect");
+            file.destination = op.move_to().map(str::to_string);
+            file.operation = oc_core::patch::PatchOperation::Move;
+        }
+        #[cfg(test)]
+        if FAIL_AFTER_MOVE.with(|fail| fail.replace(false)) {
+            return Err(io(std::io::Error::other(
+                "injected post-rename sync failure",
+            )));
+        }
         target.sync().map_err(io)?;
         entry.sync().map_err(io)?;
     }
@@ -1188,6 +1236,11 @@ fn map_resolve(files: &Files, rel: &str) -> Result<PathBuf, PatchError> {
             path: rel.to_string(),
         },
     })
+}
+
+#[cfg(test)]
+thread_local! {
+    static FAIL_AFTER_MOVE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 fn apply_hunks(lines: &mut Vec<String>, hunks: &[Hunk], rel: &str) -> Result<(), PatchError> {
@@ -1348,6 +1401,38 @@ mod tests {
                 && output.contains("\ndone add applied.txt "),
             "{output}"
         );
+    }
+
+    #[test]
+    fn vis35_after_rename_sync_failure_retains_actual_destination() {
+        let (_tmp, project, data) = setup();
+        fs::write(project.join("src"), b"old\n").unwrap();
+        fs::set_permissions(project.join("src"), fs::Permissions::from_mode(0o751)).unwrap();
+        super::FAIL_AFTER_MOVE.with(|fail| fail.set(true));
+        let (result, effects) = super::apply_patch_with_effects(
+            &project,
+            &data,
+            "*** Begin Patch\n*** Update File: src\n*** Move to: dst\n@@\n-old\n+new\n*** Add File: tail\n+never\n*** End Patch",
+            &AllowAll,
+        );
+        let failure = result.unwrap_err();
+        assert_eq!(failure.done[0].new_path.as_deref(), Some("dst"));
+        assert_eq!(effects.files[0].destination.as_deref(), Some("dst"));
+        assert_eq!(
+            effects.files[0].operation,
+            oc_core::patch::PatchOperation::Move
+        );
+        assert_eq!(fs::read(project.join("dst")).unwrap(), b"new\n");
+        assert_eq!(
+            fs::metadata(project.join("dst"))
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o751
+        );
+        assert!(!project.join("src").exists());
+        assert!(!project.join("tail").exists());
     }
 
     #[test]

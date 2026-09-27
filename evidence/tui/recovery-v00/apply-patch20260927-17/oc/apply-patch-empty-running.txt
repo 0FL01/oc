@@ -1,0 +1,40 @@
+ ⠋ VIS35 patch fixture                                                                                                      
+                                                                                                                            
+  ┃                                                                                                                         
+  ┃  VIS35 create: execute the supplied ordinary function patch once.                                                       
+  ┃                                                                                                                         
+                                                                                                                            
+  ┃                                                                                                                         
+  ┃  # Created created.ts                                                                                                   
+  ┃                                                                                                                         
+  ┃    1 + const answer = 42;                                                                                               
+  ┃    2 + const longValue = "fixture word fixture word fixture word fixture word fixture word fixture word fixture word    
+  ┃        fixture word fixture word fixture word fixture word fixture word fixture word fixture word ";                    
+  ┃                                                                                                                         
+                                                                                                                            
+     VIS35-DONE-create                                                                                                      
+                                                                                                                            
+     Build · MiMo-V2.6-Flash Free · 8.2s                                                                                    
+                                                                                                                            
+  ┃                                                                                                                         
+  ┃  VIS35 empty: execute the supplied ordinary function patch once.                                                        
+  ┃                                                                                                                         
+                                                                                                                            
+  ┃                                                                                                                         
+  ┃  ⋯ Patch · arguments streaming · no effects yet                                                                         
+  ┃                                                                                                                         
+                                                                                                                            
+                                                                                                                            
+                                                                                                                            
+                                                                                                                            
+                                                                                                                            
+                                                                                                                            
+                                                                                                                            
+                                                                                                                            
+  ┃                                                                                                                         
+  ┃                                                                                                                         
+  ┃                                                                                                                         
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                                                              
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+   [⋯] esc interrupt                                                                            1.3K (1%)  ctrl+p commands  
+                                                                                                                            

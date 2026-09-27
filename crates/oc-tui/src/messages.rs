@@ -3485,6 +3485,14 @@ fn code_lines(lang: Option<&str>, body: &[String], theme: &Theme) -> Vec<Line> {
         .collect()
 }
 
+pub(crate) fn highlight_patch(line: &str, path: &str, theme: &Theme, base: Style) -> Vec<Span> {
+    let extension = path.rsplit('.').next();
+    highlight(line, Language::from_info(extension), theme, base)
+        .into_iter()
+        .map(|span| Span::styled(span.content(), base.patch(span.style())))
+        .collect()
+}
+
 /// Tokenize one code line: comments, strings, numbers, keywords, function
 /// calls and type-like identifiers. Everything else keeps the code-block
 /// color; unknown languages produce one base-styled span.
@@ -4591,6 +4599,7 @@ mod tests {
             output: Some("fixture result".to_string()),
             output_bytes: 14,
             output_truncated: truncated,
+            patch_effects: None,
         });
         HistoryRow {
             message_id: None,
@@ -5110,6 +5119,7 @@ mod tests {
             output: Some("+ Thought".into()),
             output_bytes: 9,
             output_truncated: false,
+            patch_effects: None,
         }));
         let tool_lines = transcript(&[tool], theme, 60, 60, |_| theme.text());
         assert!(
@@ -6114,6 +6124,7 @@ mod tests {
             output: Some("\u{1b}[2Jtool output\u{7}".into()),
             output_bytes: 20,
             output_truncated: false,
+            patch_effects: None,
         };
         let mut row = assistant("");
         row.role = "tool".into();

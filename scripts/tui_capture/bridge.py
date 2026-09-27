@@ -20,6 +20,7 @@ import sqlite3
 import time
 import urllib.request
 import compaction_fixture
+import apply_patch_fixture
 
 scanner_release = threading.Event()
 wheel_release = threading.Event()
@@ -106,6 +107,9 @@ class Provider(BaseHTTPRequestHandler):
     def do_POST(self):
         global transcript_round, title_round, bounded_requests, live_requests
         body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+        if spec.get('apply_patch'):
+            apply_patch_fixture.respond(self, body, spec, emit)
+            return
         if spec.get('compaction'):
             compaction_fixture.respond(self, body, spec, emit)
             return
@@ -455,6 +459,8 @@ else:
         'tabs': {'layout': spec.get('tabs', 'horizontal')}}
 if spec.get('devtools') is not None:
     cli_config['debug'] = {'devtools': spec['devtools']}
+if spec.get('apply_patch'):
+    apply_patch_fixture.configure(spec, home, project, config, cli_config)
 if spec.get('compaction'):
     automatic = spec.get('compaction_trigger','manual') != 'manual'
     config['compaction'] = {'auto':automatic,'keep':{'tokens':0},'buffer':20000}
@@ -554,7 +560,9 @@ try:
                     while b'\n' in pending:
                         line, pending = pending.split(b'\n', 1)
                         command = json.loads(line)
-                        if command['kind'] == 'compaction_snapshot' and spec.get('compaction'):
+                        if command['kind'] == 'patch_snapshot' and spec.get('apply_patch'):
+                            emit({'kind':'patch_snapshot','request_id':command['request_id'], **apply_patch_fixture.snapshot(home, project)})
+                        elif command['kind'] == 'compaction_snapshot' and spec.get('compaction'):
                             emit({'kind':'compaction_snapshot','request_id':command['request_id'], **compaction_fixture.snapshot(home, project)})
                         elif command['kind'] == 'compaction_control' and spec.get('compaction'):
                             compaction_fixture.behavior = command.get('behavior','complete')
@@ -649,7 +657,7 @@ try:
                         elif command['kind'] == 'release_scanner' and spec.get('scanner'):
                             scanner_release.set()
                             emit({'kind': 'scanner_release_requested'})
-                        elif command['kind'] in ('pause_scanner', 'resume_scanner') and (spec.get('scanner') or spec.get('compaction_animation')):
+                        elif command['kind'] in ('pause_scanner', 'resume_scanner') and (spec.get('scanner') or spec.get('compaction_animation') or spec.get('apply_patch')):
                             pause = command['kind'] == 'pause_scanner'
                             try:
                                 if pause and child.poll() is None and not scanner_paused:
@@ -719,7 +727,7 @@ try:
             os.close(master)
             emit({'kind': 'exit', 'generation': generation, 'code': child.returncode,
                   'termination': 'forced_stop' if forced else 'natural'})
-        if forced or not (spec.get('tab_restart') or spec.get('sessions_interaction') or spec.get('revert_redo') or spec.get('compaction')):
+        if forced or not (spec.get('tab_restart') or spec.get('sessions_interaction') or spec.get('revert_redo') or spec.get('compaction') or spec.get('apply_patch')):
             break
         # The same bridge/server/config/project and XDG roots survive the first exit.
         command = json.loads(sys.stdin.readline())

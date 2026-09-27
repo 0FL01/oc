@@ -94,6 +94,7 @@ impl Db {
               UNION ALL SELECT count(*),coalesce(sum(length(CAST(id AS BLOB))+length(CAST(status AS BLOB))+length(CAST(prompt AS BLOB))+coalesce(length(CAST(result AS BLOB)),0)),0) FROM turns WHERE session_id=?1
               UNION ALL SELECT count(*),coalesce(sum(length(CAST(id AS BLOB))+coalesce(length(CAST(turn_id AS BLOB)),0)+length(CAST(state AS BLOB))+length(CAST(name AS BLOB))+coalesce(length(CAST(input AS BLOB)),0)+coalesce(length(CAST(output AS BLOB)),0)),0) FROM tool_operations WHERE session_id=?1
               UNION ALL SELECT count(*),coalesce(sum(length(CAST(turn_id AS BLOB))+length(CAST(user_message AS BLOB))+length(CAST(model_ref AS BLOB))),0) FROM turn_acceptances WHERE session_id=?1
+              UNION ALL SELECT count(*),coalesce(sum(length(CAST(metadata AS BLOB))),0) FROM patch_effects WHERE op_id IN (SELECT id FROM tool_operations WHERE session_id=?1)
               UNION ALL SELECT 0,coalesce(length(CAST(title AS BLOB)),0) FROM sessions WHERE id=?1)",
             params![source,cutoff], |r| Ok((r.get(0)?,r.get(1)?)))?;
         if rows > MAX_ROWS || bytes > MAX_BYTES || choice.len() as i64 > MAX_BYTES {
@@ -351,6 +352,7 @@ impl Db {
                 }
                 let new_op = format!("{new}:op:{}", op_ids.len());
                 tx.execute("INSERT INTO tool_operations(id,session_id,turn_id,name,state,input,output) VALUES (?1,?2,?3,?4,?5,?6,?7)",params![new_op,root,new,name,state,input,output])?;
+                tx.execute("INSERT INTO patch_effects(op_id,metadata) SELECT ?1,metadata FROM patch_effects WHERE op_id=?2",params![new_op,op])?;
                 op_ids.insert(op, new_op);
             }
             if let Some(parts) = log["display_parts"].as_array_mut() {
@@ -1190,6 +1192,20 @@ mod tests {
         {
             let db = Db::open(tmp.path()).unwrap();
             let (user, boundary) = seed(&db);
+            let effects = oc_core::patch::PatchEffects {
+                total_files: 1,
+                additions: 2,
+                truncated: true,
+                ..Default::default()
+            };
+            db.conn
+                .lock()
+                .unwrap()
+                .execute(
+                    "INSERT INTO patch_effects(op_id,metadata) VALUES('original-op',?1)",
+                    [serde_json::to_string(&effects).unwrap()],
+                )
+                .unwrap();
             db.apply_dcp_schema().unwrap();
             db.save_prune_mark("source", &user).unwrap();
             before = db.read_history_full("source").unwrap();
@@ -1218,6 +1234,7 @@ mod tests {
             let ops = db.list_tool_ops(&root).unwrap();
             assert_eq!(ops.len(), 1);
             assert_ne!(ops[0].op, "original-op");
+            assert_eq!(ops[0].patch_effects.as_ref(), Some(&effects));
             assert_eq!(value["display_parts"][0]["tool"], ops[0].op);
             assert_eq!(
                 serde_json::to_value(&log.input).unwrap()[1]["call_id"],
@@ -1253,6 +1270,9 @@ mod tests {
         assert_eq!(db.read_history_full("source").unwrap(), before);
         assert_eq!(db.read_history_full(&root).unwrap().len(), 2);
         assert_eq!(db.wire_logs_for_window(&root, 0, 100).unwrap().len(), 1);
+        let copied = db.list_tool_ops(&root).unwrap();
+        assert_eq!(copied[0].patch_effects.as_ref().unwrap().additions, 2);
+        assert_ne!(copied[0].op, "original-op");
         assert!(db.tab_adoptions("/project").unwrap().is_empty());
     }
 

@@ -197,10 +197,17 @@ pub enum CoreEvent {
         /// (upstream `time.streamed - time.created` per assistant step).
         streamed_ms: u64,
     },
-    /// One tool call intent was recorded durably (before the side effect);
-    /// the transcript renders a running card. The input is the recorded
-    /// arguments JSON, bounded by the tool argument caps (the view bounds
-    /// its own previews).
+    /// Disposable provider announcement/argument prefix; never durable intent.
+    ToolArgumentStream {
+        /// Owning session.
+        session: SessionId,
+        /// Owning turn.
+        turn: WorkerTurnId,
+        /// Disposable presentation only.
+        event: crate::tool_stream::ToolStreamEvent,
+    },
+    /// Durable intent notification, emitted before dispatch. Input is complete
+    /// recorded arguments JSON, bounded by tool argument caps.
     ToolCallStarted {
         /// Session that owns the turn.
         session: SessionId,
@@ -216,6 +223,8 @@ pub enum CoreEvent {
     /// One tool call reached a terminal state (durable outcome recorded);
     /// the transcript updates the card in place.
     ToolCallFinished {
+        /// Bounded confirmed mutation metadata, shared with history replay.
+        patch_effects: Option<crate::patch::PatchEffects>,
         /// Session that owns the turn.
         session: SessionId,
         /// Active turn id.
@@ -1707,6 +1716,7 @@ mod tests {
                 | CoreEvent::ReasoningItemEnded { .. }
                 | CoreEvent::TurnUsage { .. }
                 | CoreEvent::ToolCallStarted { .. }
+                | CoreEvent::ToolArgumentStream { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
                 CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
@@ -2004,6 +2014,7 @@ mod tests {
                 | CoreEvent::ReasoningItemEnded { .. }
                 | CoreEvent::TurnUsage { .. }
                 | CoreEvent::ToolCallStarted { .. }
+                | CoreEvent::ToolArgumentStream { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
                 CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),

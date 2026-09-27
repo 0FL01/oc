@@ -180,6 +180,7 @@ fn page(older: usize) -> HistoryPage {
                         output: Some(tool_preview.clone()),
                         output_bytes: 128 * 1024,
                         output_truncated: true,
+                        patch_effects: None,
                     }),
                 ],
                 ..HistoryTurn::default()

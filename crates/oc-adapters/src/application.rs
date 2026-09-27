@@ -1942,6 +1942,7 @@ fn query(
                 let rows = page
                     .into_iter()
                     .map(|row| ToolOpView {
+                        patch_effects: row.patch_effects,
                         op: row.op,
                         rowid: row.rowid,
                         name: row.name,
@@ -2887,6 +2888,13 @@ async fn worker(
                         let on_tool = |id: &str, event: &ToolCallEvent| {
                             let turn = WorkerTurnId(id.to_string());
                             let _ = events.send(match event {
+                                ToolCallEvent::ArgumentStream(event) => {
+                                    CoreEvent::ToolArgumentStream {
+                                        session: session.clone(),
+                                        turn,
+                                        event: event.clone(),
+                                    }
+                                }
                                 ToolCallEvent::Started { op, name, input } => {
                                     CoreEvent::ToolCallStarted {
                                         session: session.clone(),
@@ -2897,6 +2905,7 @@ async fn worker(
                                     }
                                 }
                                 ToolCallEvent::Finished {
+                                    patch_effects,
                                     op,
                                     name,
                                     state,
@@ -2904,6 +2913,7 @@ async fn worker(
                                     output_bytes,
                                     output_truncated,
                                 } => CoreEvent::ToolCallFinished {
+                                    patch_effects: patch_effects.clone(),
                                     session: session.clone(),
                                     turn,
                                     op: op.clone(),
@@ -2914,7 +2924,9 @@ async fn worker(
                                     output_truncated: *output_truncated,
                                 },
                             });
-                            if let Ok(Some(projection)) = db.turn_presentation(&session.0, id) {
+                            if !matches!(event, ToolCallEvent::ArgumentStream(_))
+                                && let Ok(Some(projection)) = db.turn_presentation(&session.0, id)
+                            {
                                 let _ = events.send(CoreEvent::TurnPresentation {
                                     session: session.clone(),
                                     turn: WorkerTurnId(id.to_string()),

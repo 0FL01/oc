@@ -491,9 +491,13 @@ async fn fresh_turn_commits_root_binding_selection_before_ack_and_streams_normal
             |turn, text| deltas.push((turn.to_string(), text.to_string())),
             |_, _| {},
             |_, event| {
+                if matches!(event, ToolCallEvent::ArgumentStream(_)) {
+                    return;
+                }
                 tool_order.lock().unwrap().push(match event {
                     ToolCallEvent::Started { .. } => "started",
                     ToolCallEvent::Finished { .. } => "finished",
+                    ToolCallEvent::ArgumentStream(_) => "argument_stream",
                 });
             },
         )
@@ -1985,14 +1989,15 @@ async fn aud06_intent_failure_prevents_patch() {
         &serde_json::json!({"patchText": "*** Begin Patch\n*** Add File: sentinel\n+must not exist\n*** End Patch"}),
     );
     let (base, _) = Fake::start(vec![tool + &sse_completed()], Duration::ZERO);
+    let mut events = Vec::new();
     let result = runtime
-        .run_turn(params(
-            "s",
-            "patch",
-            &harness,
-            provider_of(&base),
-            &NO_CANCEL,
-        ))
+        .run_turn_with_tool_events(
+            params("s", "patch", &harness, provider_of(&base), &NO_CANCEL),
+            |_| {},
+            |_, _| {},
+            |_, _| {},
+            |_, event| events.push(event.clone()),
+        )
         .await;
     assert_eq!(
         result.unwrap_err(),
@@ -2002,6 +2007,21 @@ async fn aud06_intent_failure_prevents_patch() {
         !harness._project.path().join("sentinel").exists(),
         "mutation ran before durable intent"
     );
+    assert!(events.iter().any(|event| matches!(
+        event,
+        ToolCallEvent::ArgumentStream(oc_core::tool_stream::ToolStreamEvent::Pending { .. })
+    )));
+    assert!(!events.iter().any(|event| matches!(
+        event,
+        ToolCallEvent::Started { .. }
+            | ToolCallEvent::ArgumentStream(oc_core::tool_stream::ToolStreamEvent::Linked { .. })
+    )));
+    assert!(matches!(
+        events.last(),
+        Some(ToolCallEvent::ArgumentStream(
+            oc_core::tool_stream::ToolStreamEvent::Clear { round: 1 }
+        ))
+    ));
 }
 
 #[tokio::test]
@@ -2054,7 +2074,13 @@ async fn s08_bash_intent_store_fault_prevents_effect_and_recovers_unknown_turn()
         "turn was rejected before the injected fault"
     );
     assert!(
-        tool_events.is_empty(),
+        tool_events.iter().all(|event| matches!(
+            event,
+            ToolCallEvent::ArgumentStream(
+                oc_core::tool_stream::ToolStreamEvent::Pending { .. }
+                    | oc_core::tool_stream::ToolStreamEvent::Clear { .. }
+            )
+        )),
         "undurable tool was shown as started"
     );
     assert!(!marker.exists(), "bash ran despite rejected durable intent");
@@ -5140,6 +5166,129 @@ async fn unidentifiable_calls_append_only_at_intent_and_duplicate_call_ids_fail_
 }
 
 #[tokio::test]
+async fn argument_stream_split_json_multiround_exact_links_and_duplicate_refusal() {
+    use oc_core::tool_stream::ToolStreamEvent;
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("stream-identities").unwrap();
+    std::fs::write(harness._project.path().join("fixture.txt"), "present").unwrap();
+    let added = serde_json::json!({"type":"response.output_item.added","item":{
+        "type":"function_call","id":"fc_reused","call_id":"reused","name":"read","arguments":"","status":"in_progress"
+    }});
+    let mut body = format!("data: {added}\n\n");
+    for delta in ["{\"pa", "th\":\"fixture", ".txt\"}"] {
+        let event = serde_json::json!({"type":"response.function_call_arguments.delta","item_id":"fc_reused","delta":delta});
+        body.push_str(&format!("data: {event}\n\n"));
+    }
+    body.push_str(&sse_completed_output(vec![serde_json::json!({"type":"function_call","id":"fc_reused","call_id":"reused","name":"read","arguments":"{\"path\":\"fixture.txt\"}"})]));
+    let (base, _) = Fake::start(
+        vec![
+            body.clone(),
+            body.clone(),
+            sse_delta("done") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let mut events = Vec::new();
+    let report = runtime
+        .run_turn_with_tool_events(
+            params(
+                "stream-identities",
+                "read twice",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ),
+            |_| {},
+            |_, _| {},
+            |_, _| {},
+            |_, event| events.push(event.clone()),
+        )
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    let links = events
+        .iter()
+        .filter_map(|event| match event {
+            ToolCallEvent::ArgumentStream(ToolStreamEvent::Linked { identity, op }) => {
+                Some((identity, op))
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(links.len(), 2);
+    assert_eq!((links[0].0.round, links[1].0.round), (1, 2));
+    assert_eq!(links[0].0.item_id, "fc_reused");
+    assert_eq!(links[0].0.call_id, links[1].0.call_id);
+    assert_ne!(links[0].1, links[1].1);
+    let previews = events
+        .iter()
+        .filter_map(|event| match event {
+            ToolCallEvent::ArgumentStream(ToolStreamEvent::Pending { preview, .. })
+                if !preview.is_empty() =>
+            {
+                Some(preview)
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        previews,
+        [
+            &"{\"path\":\"fixture.txt\"}".to_string(),
+            &"{\"path\":\"fixture.txt\"}".to_string()
+        ]
+    );
+    assert_eq!(
+        harness.db.list_tool_ops("stream-identities").unwrap().len(),
+        2
+    );
+    runtime.create_session("stream-duplicates").unwrap();
+    let duplicate = sse_tool_call("reused", "read", &serde_json::json!({"path":"fixture.txt"}))
+        .replace("fc_reused", "fc_other");
+    let first = serde_json::json!({"type":"function_call","id":"fc_reused","call_id":"reused","name":"read","arguments":"{\"path\":\"fixture.txt\"}"});
+    let (base, _) = Fake::start(
+        vec![
+            body.replace("response.completed", "fixture.ignored")
+                + &sse_message_done_by_id(&first)
+                + &duplicate
+                + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    events.clear();
+    let report = runtime
+        .run_turn_with_tool_events(
+            params(
+                "stream-duplicates",
+                "duplicate",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ),
+            |_| {},
+            |_, _| {},
+            |_, _| {},
+            |_, event| events.push(event.clone()),
+        )
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Failed);
+    assert!(!events.iter().any(|event| matches!(
+        event,
+        ToolCallEvent::Started { .. }
+            | ToolCallEvent::ArgumentStream(ToolStreamEvent::Linked { .. })
+    )));
+    assert!(
+        harness
+            .db
+            .list_tool_ops("stream-duplicates")
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[tokio::test]
 async fn provider_context_usage_survives_missing_round_usage_and_restart() {
     let (harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation, Vec::new());
@@ -6097,6 +6246,7 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             | CoreEvent::ReasoningItemEnded { .. }
             | CoreEvent::TextDelta { .. }
             | CoreEvent::ToolCallStarted { .. }
+            | CoreEvent::ToolArgumentStream { .. }
             | CoreEvent::ToolCallFinished { .. }
             | CoreEvent::TurnInterrupted { .. }
             | CoreEvent::Compaction(_) => {}
@@ -6258,7 +6408,11 @@ async fn dto_tool_events_surface_started_and_finished_with_a_patch() {
     let (harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation, Vec::new());
     runtime.create_session("s-tools").unwrap();
-    std::fs::write(harness._project.path().join("old.txt"), "old\n").unwrap();
+    std::fs::write(
+        harness._project.path().join("old.txt"),
+        "prefix\nold\nsuffix",
+    )
+    .unwrap();
     let patch = "*** Begin Patch\n*** Add File: added.txt\n+hello\n*** Update File: old.txt\n@@\n-old\n+new\n*** End Patch";
     let (base, _) = Fake::start(
         vec![
@@ -6291,9 +6445,24 @@ async fn dto_tool_events_surface_started_and_finished_with_a_patch() {
         .expect("turn");
     assert_eq!(report.status, TurnStatus::Completed);
     assert_eq!(text, "patched");
+    assert!(events.iter().any(|event| matches!(event, ToolCallEvent::ArgumentStream(oc_core::tool_stream::ToolStreamEvent::Pending { name, .. }) if name == "apply_patch")));
+    let linked = events
+        .iter()
+        .find_map(|event| match event {
+            ToolCallEvent::ArgumentStream(oc_core::tool_stream::ToolStreamEvent::Linked {
+                identity,
+                op,
+            }) => Some((identity.clone(), op.clone())),
+            _ => None,
+        })
+        .expect("exact durable link");
+    assert_eq!(linked.0.call_id, "call-patch");
+    assert_eq!(linked.0.round, 1);
+    events.retain(|event| !matches!(event, ToolCallEvent::ArgumentStream(_)));
     assert_eq!(events.len(), 2, "one intent and one outcome: {events:?}");
     match &events[0] {
         ToolCallEvent::Started { op, name, input } => {
+            assert_eq!(op, &linked.1);
             assert_eq!(name, "apply_patch");
             assert!(!op.is_empty());
             assert!(
@@ -6311,7 +6480,20 @@ async fn dto_tool_events_surface_started_and_finished_with_a_patch() {
             output,
             output_bytes,
             output_truncated,
+            patch_effects,
         } => {
+            let effects = patch_effects.as_ref().expect("confirmed effects");
+            assert_eq!(effects.total_files, 2);
+            assert_eq!(effects.files[0].additions, 1);
+            assert_eq!(effects.files[1].deletions, 1);
+            let lines = &effects.files[1].hunks[0].lines;
+            assert_eq!(lines[0].text, "prefix");
+            assert_eq!(lines[0].kind, oc_core::patch::PatchLineKind::Context);
+            assert_eq!((lines[0].old_line, lines[0].new_line), (Some(1), Some(1)));
+            let last = lines.last().unwrap();
+            assert_eq!(last.text, "suffix");
+            assert_eq!((last.old_line, last.new_line), (Some(3), Some(3)));
+            assert_eq!(last.ending, oc_core::patch::LineEnding::None);
             assert_eq!(name, "apply_patch");
             assert_eq!(state, "completed");
             assert!(!op.is_empty());
@@ -6328,12 +6510,20 @@ async fn dto_tool_events_surface_started_and_finished_with_a_patch() {
     );
     assert_eq!(
         std::fs::read_to_string(harness._project.path().join("old.txt")).unwrap(),
-        "new\n"
+        "prefix\nnew\nsuffix"
     );
     let ops = harness.db.list_tool_ops("s-tools").unwrap();
     assert_eq!(ops.len(), 1);
     assert_eq!(ops[0].name, "apply_patch");
     assert_eq!(ops[0].state, "completed");
+    let ToolCallEvent::Finished { patch_effects, .. } = &events[1] else {
+        unreachable!()
+    };
+    assert_eq!(&ops[0].patch_effects, patch_effects);
+    // Remove the entire mutation workspace: replay must use storage alone.
+    std::fs::remove_dir_all(harness._project.path()).unwrap();
+    let replay = harness.db.list_tool_ops_page("s-tools", 10, None).unwrap();
+    assert_eq!(&replay[0].patch_effects, patch_effects);
     assert!(
         ops[0]
             .input
@@ -6341,6 +6531,12 @@ async fn dto_tool_events_surface_started_and_finished_with_a_patch() {
             .is_some_and(|input| input.contains("*** Add File: added.txt")),
         "the durable intent keeps the patch text the card renders"
     );
+    drop(runtime);
+    let Harness { db, _data, .. } = harness;
+    drop(db);
+    let reopened = Db::open(_data.path()).unwrap();
+    let replay = reopened.list_tool_ops_page("s-tools", 10, None).unwrap();
+    assert_eq!(&replay[0].patch_effects, patch_effects);
 }
 
 /// End to end through the real application worker: `application::spawn_with_env`
@@ -6348,6 +6544,17 @@ async fn dto_tool_events_surface_started_and_finished_with_a_patch() {
 /// transcript can render a patch card from live state.
 #[tokio::test]
 async fn dto_application_events_surface_tool_calls() {
+    check_application_patch_replay("hello", 1).await;
+}
+
+#[tokio::test]
+async fn vis35_serialized_cap_finish_checkpoint_attach_restart_match() {
+    // This used to fit the text-only producer cap while serializing to 78 KiB;
+    // the 66 KiB input also used to be admitted before reserving the effects.
+    check_application_patch_replay(&"x".repeat(546), 120).await;
+}
+
+async fn check_application_patch_replay(line: &str, count: usize) {
     use oc_adapters::application;
     use oc_core::core_app::CoreEvent;
     use oc_core::domain::SessionId;
@@ -6355,7 +6562,10 @@ async fn dto_application_events_surface_tool_calls() {
     let project = tempfile::tempdir().expect("project");
     let data = tempfile::tempdir().expect("data");
     let home = tempfile::tempdir().expect("home");
-    let patch = "*** Begin Patch\n*** Add File: added.txt\n+hello\n*** End Patch";
+    let patch = format!(
+        "*** Begin Patch\n*** Add File: added.txt\n{}*** End Patch",
+        format!("+{line}\n").repeat(count)
+    );
     let (base, _) = Fake::start(
         vec![
             sse_tool_call(
@@ -6387,9 +6597,10 @@ async fn dto_application_events_surface_tool_calls() {
     .into_iter()
     .map(|(key, value)| (key.to_string(), value))
     .collect();
-    let (app, guard, _diagnostics) = application::spawn_with_env(project.path(), data.path(), env)
-        .await
-        .expect("application");
+    let (app, guard, _diagnostics) =
+        application::spawn_with_env(project.path(), data.path(), env.clone())
+            .await
+            .expect("application");
     let session = SessionId::new("s-app-tools").expect("session id");
     app.create_session(session.clone()).await.expect("create");
     app.rename_session(session.clone(), "Tool event fixture".into())
@@ -6403,6 +6614,7 @@ async fn dto_application_events_surface_tool_calls() {
     let mut started = None;
     let mut finished = None;
     let mut checkpoints = Vec::new();
+    let mut argument_events = Vec::new();
     loop {
         let event = tokio::time::timeout(Duration::from_secs(10), rx.recv())
             .await
@@ -6417,8 +6629,24 @@ async fn dto_application_events_surface_tool_calls() {
                 name,
                 state,
                 output,
+                patch_effects,
                 ..
-            } => finished = Some((op, name, state, output)),
+            } => {
+                let effects = patch_effects.expect("public confirmed effects");
+                assert_eq!(effects.files[0].path, "added.txt");
+                assert_eq!(effects.files[0].hunks[0].lines[0].new_line, Some(1));
+                assert!(
+                    serde_json::to_vec(&effects).unwrap().len()
+                        <= oc_core::patch::EFFECT_PREVIEW_BYTES_CAP
+                );
+                if count == 120 {
+                    assert!(effects.truncated);
+                    assert!(!effects.files[0].hunks.is_empty());
+                    assert_eq!(effects.files[0].hunks[0].lines.len(), 120);
+                    assert_eq!(effects.files[0].hunks[0].new.count, 120);
+                }
+                finished = Some((op, name, state, output, effects));
+            }
             CoreEvent::TurnFinished { text, .. } => {
                 assert_eq!(text, "done");
                 break;
@@ -6433,9 +6661,14 @@ async fn dto_application_events_surface_tool_calls() {
             | CoreEvent::TurnUsage { .. }
             | CoreEvent::TurnInterrupted { .. }
             | CoreEvent::Compaction(_) => {}
+            CoreEvent::ToolArgumentStream { event, .. } => argument_events.push(event),
         }
     }
     let (started_op, started_name, started_input) = started.expect("tool call started event");
+    assert!(
+        matches!(argument_events.first(), Some(oc_core::tool_stream::ToolStreamEvent::Pending { identity, name, preview, .. }) if identity.round == 1 && identity.call_id == "call-patch" && name == "apply_patch" && preview.is_empty())
+    );
+    assert!(argument_events.iter().any(|event| matches!(event, oc_core::tool_stream::ToolStreamEvent::Linked { identity, op } if identity.call_id == "call-patch" && op == &started_op)));
     assert!(
         checkpoints
             .iter()
@@ -6446,13 +6679,59 @@ async fn dto_application_events_surface_tool_calls() {
         .await
         .unwrap();
     let replay = page.rows.iter().find_map(|r| r.turn.as_ref()).unwrap();
+    let effects = replay
+        .parts
+        .iter()
+        .find_map(|part| match part {
+            oc_core::queries::TranscriptPart::Tool(tool) => tool.patch_effects.as_ref(),
+            _ => None,
+        })
+        .expect("history confirmed effects");
+    assert_eq!(effects.files[0].additions, count);
+    assert!(line.starts_with(&effects.files[0].hunks[0].lines[0].text));
     assert_eq!(
         checkpoints.last(),
         Some(replay),
         "live checkpoint and replay share exact identities, order, statuses and content"
     );
-    let (finished_op, finished_name, finished_state, finished_output) =
+    let (finished_op, finished_name, finished_state, finished_output, finished_effects) =
         finished.expect("tool call finished event");
+    assert_eq!(effects, &finished_effects);
+    if count == 120 {
+        let tool = replay
+            .parts
+            .iter()
+            .find_map(|p| match p {
+                oc_core::queries::TranscriptPart::Tool(tool) => Some(tool),
+                _ => None,
+            })
+            .unwrap();
+        assert!(
+            tool.input.is_none(),
+            "large structured input is omitted after reserving canonical effects"
+        );
+        assert!(replay.part_states.iter().any(|state| state.input_omitted));
+    }
+    let served: usize = replay
+        .parts
+        .iter()
+        .map(|part| match part {
+            oc_core::queries::TranscriptPart::Tool(tool) => {
+                tool.input.as_ref().map_or(0, String::len)
+                    + tool.output.as_ref().map_or(0, String::len)
+                    + tool
+                        .patch_effects
+                        .as_ref()
+                        .map_or(0, |e| serde_json::to_vec(e).unwrap().len())
+            }
+            oc_core::queries::TranscriptPart::Text(text)
+            | oc_core::queries::TranscriptPart::Reasoning { text, .. } => text.len(),
+        })
+        .sum();
+    assert!(
+        served <= oc_core::patch::EFFECT_PREVIEW_BYTES_CAP,
+        "joint serving bytes {served}"
+    );
     assert_eq!(started_name, "apply_patch");
     assert_eq!(finished_name, "apply_patch");
     assert_eq!(
@@ -6467,10 +6746,22 @@ async fn dto_application_events_surface_tool_calls() {
     assert!(finished_output.contains("added.txt"), "{finished_output}");
     assert_eq!(
         std::fs::read_to_string(project.path().join("added.txt")).unwrap(),
-        "hello\n"
+        format!("{line}\n").repeat(count)
     );
     app.shutdown().await.expect("shutdown");
     guard.join().await.expect("join");
+    std::fs::remove_file(project.path().join("added.txt")).unwrap();
+    let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env)
+        .await
+        .unwrap();
+    let page = app.history_page(session, None, None, 100).await.unwrap();
+    let reopened = page.rows.iter().find_map(|r| r.turn.as_ref()).unwrap();
+    assert_eq!(
+        reopened, replay,
+        "restart reads identical persisted DTO without file bytes"
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
 }
 
 #[tokio::test]

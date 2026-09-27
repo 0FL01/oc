@@ -524,6 +524,7 @@ mod tests {
                                 output: None,
                                 output_bytes: 0,
                                 output_truncated: false,
+                                patch_effects: None,
                             }),
                             TranscriptPart::Text("final".into()),
                         ],

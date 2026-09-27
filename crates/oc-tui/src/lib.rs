@@ -17,6 +17,7 @@ mod fuzzy;
 pub mod history;
 pub mod layout;
 pub mod messages;
+mod patch_view;
 pub mod picker;
 mod scanner;
 pub mod shell;

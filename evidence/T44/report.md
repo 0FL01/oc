@@ -1,5 +1,30 @@
 # T44 — parity qualification remains open (2026-09-27)
 
+VIS35 now carries bounded, **committed-result-derived** patch effects through the
+executor, atomic tool settlement, live events, checkpoints, history and fork.
+Actual old/new positions, four lines of context, minimal small/medium diffs,
+create/delete/update/move counts and explicit large-input/truncation states replace
+request-derived success guesses. Legacy request previews remain labelled unconfirmed.
+The TUI uses effective owner diff view/wrap settings, syntax/gutter roles, destination
+headers and hover; auto split uses actual content width. Real provider argument
+stream announcements are bounded transient cards, linked to the durable operation
+only after intent commits; they neither claim effects nor survive replay as tools.
+Partial postcommit failures and unchanged source/mode/security guarantees have tests.
+
+Final serialized fmt/locked workspace tests/strict all-target Clippy/debug+release
+build/capture syntax/frontend/docs/progress/diff gate **PASS**:
+`tool_0e1997ece001NKZRyIv1yVq87s`. Fresh source-built
+[`apply-patch-report20260927-03.md`](../tui/recovery-v00/apply-patch-report20260927-03.md)
+preserves attempts01–22, including earlier layout/pending/harness failures. Latest
+four pairs verify real call/result/effect/file-byte/mode/pending/reopen/restart and
+zero playback requests. All132 compared cursor states match. Six full styled-grid
+and six PNG frames are EQUAL across attempts19/21/22; other full frames remain
+DIFFERENT and denial hover has no counterpart (BLOCKED). Independent elapsed digits
+are not masked. Native retains source move mode0751 while donor changes it to0664;
+mode preservation was not weakened for parity. PTY postcommit partial/cancel/unknown,
+new real-model A09, and interactive approval qualification remain open.
+**No VIS35/V09/TUI_PARITY_VERIFIED claim.**
+
 Session compaction is implemented as a real owner operation distinct from DCP:
 manual slash/palette admission coalesces, delivers at a safe tool/LLM boundary,
 streams an actual summary and usage, installs a durable context checkpoint only

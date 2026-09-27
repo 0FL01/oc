@@ -1,0 +1,40 @@
+   VIS35 patch fixture           +                                                                                          
+                                                                                                                            
+     VIS35-DONE-multifile                                                                                                   
+                                                                                                                            
+     Build · MiMo-V2.6-Flash Free · 8.2s                                                                                    
+                                                                                                                            
+  ┃                                                                                                                         
+  ┃  VIS35 partial: execute the supplied ordinary function patch once.                                                      
+  ┃                                                                                                                         
+                                                                                                                            
+  ┃  # Patch failed                                                                                                         
+  ┃  error: partial op 1 (stale.txt): conflict at stale.txt: stale-preimage                                                 
+                                                                                                                            
+     VIS35-DONE-partial                                                                                                     
+                                                                                                                            
+     Build · MiMo-V2.6-Flash Free · 8.2s                                                                                    
+                                                                                                                            
+  ┃                                                                                                                         
+  ┃  VIS35 stale: execute the supplied ordinary function patch once.                                                        
+  ┃                                                                                                                         
+                                                                                                                            
+  ┃  # Patch failed                                                                                                         
+  ┃  error: partial op 0 (stale.txt): conflict at stale.txt: stale-preimage                                                 
+                                                                                                                            
+     VIS35-DONE-stale                                                                                                       
+                                                                                                                            
+     Build · MiMo-V2.6-Flash Free · 8.1s                                                                                    
+                                                                                                                            
+  ┃                                                                                                                         
+  ┃  1 message reverted                                                                                                     
+  ┃  ctrl+x r or /redo to restore                                                                                           
+  ┃                                                                                                                         
+                                                                                                                            
+  ┃                                                                                                                         
+  ┃  VIS35 denied: execute the supplied ordinary function patch once.                                                       
+  ┃                                                                                                                         
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                                                              
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/apply-patch20260927-17/project    1.3K (1%)  ctrl+p commands  
+                                                                                                                            

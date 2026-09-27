@@ -738,13 +738,15 @@ pub struct CallRecord {
 
 /// Tool-call lifecycle notification for live frontends (TUI tool cards).
 ///
-/// Emitted only after the durable record exists: `Started` after the intent
+/// Durable variants emit only after the record exists: `Started` after the intent
 /// insert (before the side effect), `Finished` after the outcome update. The
 /// payloads are bounded by the recorded caps; `output` is capped at
 /// [`REPORT_OUTPUT_CAP`] with `output_bytes`/`output_truncated` describing the
 /// full stored value, so a frontend never sees an unbounded field.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ToolCallEvent {
+    /// Live-only argument presentation, never a durable tool intent.
+    ArgumentStream(oc_core::tool_stream::ToolStreamEvent),
     /// Intent durably recorded; the call may now run.
     Started {
         /// Durable operation id.
@@ -756,6 +758,8 @@ pub enum ToolCallEvent {
     },
     /// Terminal outcome durably recorded.
     Finished {
+        /// Confirmed public mutation preview; never part of provider output.
+        patch_effects: Option<oc_core::patch::PatchEffects>,
         /// Durable operation id.
         op: String,
         /// Registry tool name.
@@ -770,6 +774,9 @@ pub enum ToolCallEvent {
         output_truncated: bool,
     },
 }
+
+mod tool_stream;
+use tool_stream::PendingToolStreams;
 
 /// Turn outcome: durable records committed, transient report returned.
 #[derive(Debug, Clone)]
@@ -1247,9 +1254,9 @@ impl<'a> Runtime<'a> {
     }
 
     /// Like [`Runtime::run_turn_with_events`] but also forwards one
-    /// [`ToolCallEvent`] per recorded tool intent/outcome, in execution order.
-    /// `tool_event` fires after the durable write, so a frontend can never
-    /// show a card for a call that was not recorded.
+    /// [`ToolCallEvent`] per recorded tool intent/outcome, in execution order,
+    /// plus bounded live-only argument snapshots. Only `Started`, `Finished`
+    /// and argument `Linked` imply a durable record; `Pending` never does.
     pub async fn run_turn_with_tool_events(
         &self,
         params: TurnParams<'_>,
@@ -2203,6 +2210,7 @@ impl<'a> Runtime<'a> {
             let mut text_slots: Vec<TextSlot> = Vec::new();
             let mut active_text: Option<usize> = None;
             let mut reasoning_anchors: Vec<(usize, String)> = Vec::new();
+            let mut pending_tools = PendingToolStreams::new(rounds + 1);
             let generation = match crate::provider::stream_input_observed(
                 &params.provider,
                 &selection.id,
@@ -2212,6 +2220,16 @@ impl<'a> Runtime<'a> {
                 budget.output,
                 params.cancel,
                 &mut |item| match item {
+                    crate::provider::StreamItem::ToolCallStarted { item_id, call_id, name } => {
+                        if let Some(event) = pending_tools.announce(item_id, call_id, name) {
+                            tool_event(&turn_id, &ToolCallEvent::ArgumentStream(event));
+                        }
+                    }
+                    crate::provider::StreamItem::ArgDelta { item_id, delta } => {
+                        if let Some(event) = pending_tools.delta(item_id, delta) {
+                            tool_event(&turn_id, &ToolCallEvent::ArgumentStream(event));
+                        }
+                    }
                     crate::provider::StreamItem::TextDelta(delta) => {
                         if !delta.is_empty() && active_text.is_none() {
                             active_text = Some(text_slots.len());
@@ -2290,6 +2308,7 @@ impl<'a> Runtime<'a> {
                     generation
                 }
                 Err(error) => {
+                    tool_event(&turn_id, &ToolCallEvent::ArgumentStream(oc_core::tool_stream::ToolStreamEvent::Clear { round: rounds + 1 }));
                     if matches!(error,crate::provider::ProviderError::ContextOverflow) && !overflow_recovered && compaction_config.auto {
                         overflow_recovered=true;
                         overflow_pending=true;
@@ -2329,6 +2348,9 @@ impl<'a> Runtime<'a> {
                 }
             };
             rounds += 1;
+            for event in pending_tools.flush() {
+                tool_event(&turn_id, &ToolCallEvent::ArgumentStream(event));
+            }
             // Pinned runner owns one overflow rebuild per logical LLM step.
             // A successfully settled response starts the next step's allowance.
             overflow_recovered = false;
@@ -2388,6 +2410,12 @@ impl<'a> Runtime<'a> {
                     turn_log
                         .display_parts
                         .retain(|part| part.get("pending_text").is_none());
+                    tool_event(
+                        &turn_id,
+                        &ToolCallEvent::ArgumentStream(
+                            oc_core::tool_stream::ToolStreamEvent::Clear { round: rounds },
+                        ),
+                    );
                     calls.push(CallRecord {
                         name: "unknown".to_string(),
                         state: "failed".to_string(),
@@ -2449,6 +2477,17 @@ impl<'a> Runtime<'a> {
                 })
                 .collect::<Vec<_>>();
             let mut messages = Vec::new();
+            let stream_identities = call_positions
+                .iter()
+                .map(|position| {
+                    let item = generation.output.get((*position)?)?;
+                    Some(oc_core::tool_stream::ToolStreamIdentity {
+                        round: rounds,
+                        item_id: item["id"].as_str()?.to_string(),
+                        call_id: item["call_id"].as_str()?.to_string(),
+                    })
+                })
+                .collect::<Vec<_>>();
             for (index, output) in generation.output.into_iter().enumerate() {
                 if output["type"] == "message" && output["role"] == "assistant" {
                     messages.push((
@@ -2570,7 +2609,7 @@ impl<'a> Runtime<'a> {
             }
             self.db
                 .checkpoint_turn(&turn_id, &turn_log.to_json().to_string())?;
-            let (round_calls, projection_changed) = self
+            let executed = self
                 .execute_units(
                     &turn_id,
                     &params.session,
@@ -2583,11 +2622,19 @@ impl<'a> Runtime<'a> {
                     &mut turn_log,
                     &mut positioned,
                     &call_positions,
+                    &stream_identities,
                     &state_key,
                     &mut tool_projection,
                     tool_event,
                 )
-                .await?;
+                .await;
+            tool_event(
+                &turn_id,
+                &ToolCallEvent::ArgumentStream(oc_core::tool_stream::ToolStreamEvent::Clear {
+                    round: rounds,
+                }),
+            );
+            let (round_calls, projection_changed) = executed?;
             calls.extend(round_calls);
             if calls.iter().any(|call| call.state == "unknown") {
                 let mut report = self.commit_turn(
@@ -2983,6 +3030,7 @@ impl<'a> Runtime<'a> {
         turn_log: &mut TurnLog,
         positioned: &mut Vec<(usize, usize)>,
         call_positions: &[Option<usize>],
+        stream_identities: &[Option<oc_core::tool_stream::ToolStreamIdentity>],
         nudge_key: &str,
         tool_projection: &mut crate::storage::DcpToolProjection,
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
@@ -3063,6 +3111,15 @@ impl<'a> Runtime<'a> {
                 &input,
                 &turn_log.to_json().to_string(),
             )?;
+            if let Some(identity) = &stream_identities[i] {
+                tool_event(
+                    turn_id,
+                    &ToolCallEvent::ArgumentStream(oc_core::tool_stream::ToolStreamEvent::Linked {
+                        identity: identity.clone(),
+                        op: op.clone(),
+                    }),
+                );
+            }
             tool_event(
                 turn_id,
                 &ToolCallEvent::Started {
@@ -3286,10 +3343,16 @@ impl<'a> Runtime<'a> {
                     }
                 }
             }
+            let mut patch_effects = None;
             let (state, output) = if let Some(rejection) = rejection {
                 rejection
             } else {
                 match unit {
+                    Assembled::Call(call) if call.name == "apply_patch" => {
+                        let (output, effects) = crate::tools::tool_patch_typed(ctx, call);
+                        patch_effects = effects;
+                        (output_state(&output), output)
+                    }
                     Assembled::Call(call) if call.name == "bash" => {
                         crate::tools::execute_bash_typed(ctx, call).await
                     }
@@ -3308,9 +3371,23 @@ impl<'a> Runtime<'a> {
                 call_id: id.clone(),
                 output: output.clone(),
             });
-            record_tool_finish(
-                self.db, tool_event, &op, name, state, &output, turn_id, turn_log,
+            self.db.tool_outcome_with_log_and_effects(
+                &op,
+                state,
+                &output,
+                turn_id,
+                &turn_log.to_json().to_string(),
+                patch_effects.as_ref(),
             )?;
+            emit_tool_finish_with_effects(
+                tool_event,
+                turn_id,
+                &op,
+                name,
+                state,
+                &output,
+                patch_effects,
+            );
             records.push(CallRecord {
                 name: name.to_string(),
                 state: state.to_string(),
@@ -4195,9 +4272,23 @@ fn emit_tool_finish(
     state: &str,
     output: &str,
 ) {
+    emit_tool_finish_with_effects(tool_event, turn_id, op, name, state, output, None);
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_tool_finish_with_effects(
+    tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
+    turn_id: &str,
+    op: &str,
+    name: &str,
+    state: &str,
+    output: &str,
+    patch_effects: Option<oc_core::patch::PatchEffects>,
+) {
     tool_event(
         turn_id,
         &ToolCallEvent::Finished {
+            patch_effects,
             op: op.to_string(),
             name: name.to_string(),
             state: state.to_string(),
