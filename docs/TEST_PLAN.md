@@ -92,7 +92,16 @@ helper-only tests, fixture table tool names and document validation are insuffic
   scope/truncation with malformed/over-budget/path/permission negatives (TOOL01).
 - TOOL15 exercises actual PTY option/multiple/free-form answers and dismissal, model
   continuation, stale replies/headless/--auto/cancel/restart. T50 behavior proves the
-  real question owner; T44 paired frontend visual qualification remains separate.
+  real question owner and ordered answers in the next provider request. Deliver this
+  minimal backend/answer-consumer slice before T44/VIS37 paired frontend/card/replay
+  qualification; no dependency on completing all T50. VIS37 reuses TOOL15 runtime
+  evidence and adds running pinned-original/native full styled-cell/PNG/cursor
+  captures for actual pending/edit/review/reply-error/dismissed/answered states,
+  single/multiple/custom and multi-question navigation, effective focus/keymap/mouse,
+  composer/form drafts and representative tab-fit/long-text at existing profiles.
+  Do not duplicate every type/viewport/state or backend negative. Native-only static
+  widgets and permission approval/VIS36 do not qualify question visual parity;
+  behavior and visual outcomes remain separate, existing protections unchanged.
 - TOOL16 captures text/directory pages and real image tool-result continuation;
   PDF/unsupported/malformed/over-budget cases fail honestly. Reuse PROV05/PRM01,
   including nested AGENTS from directory reads, without a second loader.

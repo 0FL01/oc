@@ -427,9 +427,72 @@ UI scaffold после DTO, patch preview qualification после real prefligh
 editor/theme/diff, один pending map/state machine; без нового task/framework/DB/policy
 engine/grant dashboard. VIS36 NOT_RUN до actual qualification, не full T44 closure.
 
+## Question UI parity — VIS37
+
+Owner-approved 2026-09-27: сначала настоящий backend `question`, затем visual parity
+в T44. Это обязательное дополнение R4/R5, отдельное от permission approval/VIS36.
+T50/R4/TOOL15 владеет tool schema, application pending/wait/replies/cancel и реальным
+frontend answer consumer; T44/VIS37 — pinned OC2 presentation/interactions и paired
+visual qualification. Pinned sources: U31–U33 в `SOURCES.json`.
+
+1. **Backend prerequisite, не task completion.** Доставить минимальный question slice:
+   реальный model call → application-owned pending question → typed PTY answer/cancel
+   → durable outcome; ordered answers видны в следующем provider request. Bounded
+   operation/session/generation-scoped pending/replies, stale/duplicate/foreign refusal,
+   no DB transaction через wait, explicit headless failure и restart graph — TOOL15.
+   Effective Deny и General/Explore restrictions сохраняются; --auto/autoaccept не
+   отвечает за пользователя. Не добавлять T44 depends_on all T50 или обратную связь;
+   остальные T44 slices независимы, один active task через progress owner.
+2. **Original question surface.** После готовности backend воспроизвести lower
+   FormPrompt, не Select modal и не Once/Always/Reject форму. Match raised background,
+   left split border/action role, padding/spacing, Questions title, question/header и
+   option descriptions; ordinal/hover/focus/selected markers используют donor
+   formfield roles. При нескольких вопросах — tabs/Submit либо narrow Field n of m
+   fallback по реальной tab-fit геометрии, completion counts и review когда у original.
+   Сохранять Unicode/wrapping/long descriptions и реальные размеры textarea/review.
+   Scope — формы, создаваемые question, не arbitrary Form/OAuth/external-URL framework.
+3. **Answers and interactions.** Single выбор, multiple toggles и автоматически
+   добавленный Type your own answer; несколько вопросов, сохранение/редактирование
+   ответов, review/Submit и footer hints соответствуют U32. Проверить arrows/j/k,
+   numeric shortcuts, Enter/Space, Tab/Shift+Tab и мышь в применимых состояниях.
+   Esc сначала закрывает option custom-answer edit, если так делает original, а не
+   всегда dismiss. Default Ctrl+C в непустом answer edit очищает текст; в пустом
+   non-textual custom edit закрывает editing, в пустом textual edit dismisses форму.
+   Вне editing/textual режима app.exit dismisses форму; configured bindings/focus
+   остаются authoritative. Text selection не превращается в click/submit. Reply адресован
+   исходному request/session, не текущему экрану или соседней форме.
+4. **Lifecycle and draft.** Pending → answer edit/review → submitting → answered
+   либо reply error/dismissed/cancelled основан на настоящем owner state. Ошибка reply
+   не придумывает answer/success и не теряет незавершённые ответы. Match composer/form
+   priority и request-keyed reset; pending drafts формы переживают tab remount в рамках
+   процесса, не обещая их persistence после crash. Обычный composer draft/chips/cursor
+   и focus восстанавливаются; поздний ответ не закрывает чужую форму и не выпускает
+   чужую операцию. Dismissal прерывает execution, не становится успешным tool result.
+5. **Transcript and replay.** Match Asking questions…/Asked n question(s) и completed
+   # Questions с фактическими metadata.answers в исходном порядке; question muted,
+   answer base, spacing по U33. Не заполнять пропущенные ответы догадками. Снять live
+   и reopened/restarted cards из durable результатов без reask/tool reexecution;
+   cancelled/error presentation остаётся честной, не completed-answer block.
+6. **Shared qualification.** После TOOL15 backend prerequisite снять running pinned
+   original/native при одинаковых questions/answers/theme/profile/state. Full paired
+   styled-cell/PNG pending, focused/selected, custom-answer edit, applicable review,
+   reply-error/dismissal и answered/reopen frames; cursor и routing проверяются real
+   PTY input. Использовать existing 80x24/120x40/160x48 profiles и representative
+   tab-fit/long-text cases, не каждый type×viewport×state cross-product. Независимо
+   проверить фактический answer/result и next request; переиспользовать TOOL15 evidence,
+   не повторять всю backend negative matrix ради visual gate. Behavior PASS отдельно
+   от visual PASS; native-only goldens/static widget/crop/mask parity не закрывают.
+
+Sequence: T50 question owner/schema → real answer consumer + TOOL15 → T44 FormPrompt
+and cards → VIS37 paired/replay qualification. VIS36 не prerequisite существования
+question backend; при одновременных requests соблюдать оригинальную composer priority,
+не подменять вопросы permissions и не отменять независимый approval scope. Existing
+owner/channels/editor/theme/history, без нового tracker/framework/DB или fake outcome.
+VIS37 mandatory, NOT_RUN/evidence empty до actual qualification; plan approval не PASS.
+
 ## Обязательные результаты нового прохода
 
-V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS36 из ACCEPTANCE.json:
+V00–V09 из IMPLEMENTATION_GUIDE.md и сценарии VIS01–VIS37 из ACCEPTANCE.json:
 1. Изолированный upstream reference + identical fixture/state для трёх пользовательских экранов.
 2. Исправленные UI event loop/keymap и диагностируемый MCP error без потери draft.
 3. Shell/sidebar/tabs/prompt/footer из реальных данных с геометрией эталона.

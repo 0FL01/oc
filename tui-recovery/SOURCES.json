@@ -417,6 +417,33 @@
       "locator": "42–85 new/existing session agent selection; commands/commands.ts:354–381 run --agent; run/noninteractive.ts:644–648 switch before prompt",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/session-target.ts#L42-L85",
       "purpose": "Headless run --agent and preservation of existing session selection when omitted"
+    },
+    {
+      "id": "U31",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/tool/plugin/question.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "12–29 description/input/output; 62–107 permission/form/cancel/answers; 115–127 question-to-form mapping; schema/src/question.ts:6–22 prompt/answer schema",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/question.ts#L12-L127",
+      "purpose": "Real question tool, automatic custom answer, ordered result metadata and typed dismissal, distinct from permission approval"
+    },
+    {
+      "id": "U32",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/form.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "44–87 within-process drafts; 111–140 single/tabs/tab-fit/review; 536–765 effective keymap; 767–1187 FormPrompt rendering; util/form.ts answer helpers",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/form.tsx#L767-L1187",
+      "purpose": "Actual question form geometry/theme, selection/custom answer, tabs/review/footer, mouse/focus and state-specific keyboard behavior"
+    },
+    {
+      "id": "U33",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "185–219 family/form queue; 1351–1418 composer priority/placement; 3508–3541 Question; 3662–3682 question/answer parsing",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L3508-L3541",
+      "purpose": "Real lower FormPrompt placement and pending/completed question cards from actual questions and answers metadata"
     }
   ],
   "external_primary_sources": [

@@ -512,6 +512,20 @@
       "mandatory": true,
       "execution_status": "NOT_RUN",
       "evidence": []
+    },
+    {
+      "id": "VIS37",
+      "step": "V05",
+      "title": "Question FormPrompt interactions, transcript and full OC2 visual parity",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md section Question UI parity — VIS37. First deliver the T50/R4/TOOL15 backend/real answer-consumer slice: actual model question call, application-owned pending/wait, typed PTY answer/cancel, durable outcome and ordered answers in the next provider request. This is a slice prerequisite, not completion of all T50 or a reverse task dependency; independent T44 work remains ready. Then reproduce pinned OC2 lower FormPrompt placement, geometry/theme/strings, question/option descriptions, ordinals/hover/focus/selected markers, single/multiple and automatic custom-answer editing, multi-question tabs or narrow progress fallback, applicable review/Submit and footer hints. Match effective keyboard/mouse/text-selection routing, state-specific Esc/Ctrl+C, request-keyed reset, composer priority, within-process form drafts across tab remount and ordinary composer draft/chips/cursor/focus restoration. Submitting/reply error/dismissal use real owner state; never invent answers, autoanswer with --auto, or confuse permission approval with question. Match pending Asking questions…/Asked n question(s) and result-derived # Questions with ordered actual metadata.answers; replay/reopen/restart without reasking or reexecuting tools, truthful cancelled/error states. Require running pinned-original/native full paired styled-cell/PNG and cursor evidence under identical fixtures/profile/state, representative existing 80x24/120x40/160x48 and tab-fit/long-text cases, plus independently checked actual answer/result and next request. Reuse TOOL15 backend evidence without duplicating its negative matrix or every type/viewport/state combination. Behavior and visual results stay separate; native-only goldens, static widgets, crops/masks and historical PASS do not qualify. Preserve effective Deny, General/Explore restrictions, bounded pending/replies, immutable history and stale/foreign reply protections. No arbitrary Form/OAuth/external-URL framework or new tracker.",
+      "sources": [
+        "U31",
+        "U32",
+        "U33"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
     }
   ]
 }

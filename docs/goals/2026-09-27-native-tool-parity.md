@@ -46,10 +46,11 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 - R4: question is a real application-owned user-question tool.
   - Source: approved question proposal; donor Question/Form tool, distinct from permission approval.
-  - Owner: T50 end-to-end typed tool/application/frontend behavior; coordinate rendering with T44 without changing VIS36 ownership.
+  - Owner: T50 end-to-end typed tool/application/frontend behavior; T44/VIS37 owns exact FormPrompt/card presentation and paired visual qualification, distinct from VIS36 permission approval.
   - Acceptance: nonempty questions, headers, options, multiple selection and automatically available free-form answer follow donor schema. Model execution waits for typed user answers; TUI presents the actual pending question and submits answers, with deterministic question order. Dismissal/cancel interrupts the relevant execution instead of inventing an answer or converting it to success. No DB transaction is held while waiting; bounded pending forms/replies are tied to operation/session/generation and reject stale/duplicate/foreign replies.
   - Acceptance: headless without a question consumer returns actionable non-success and preserves history; it does not hang indefinitely. Permission autoaccept/--auto never fabricates user answers. Effective question Deny and General/Explore restrictions remain; reopen/restart cannot duplicate an answered form or reinterpret an unanswered form as approval.
   - Primary evidence: TOOL15 scripted model calls and actual PTY answers/multiple/free-form/dismiss/cancel, headless/--auto and restart assertions; real application state/result and call/result graph, not a screenshot-only question widget.
+  - Delivery order (owner-approved 2026-09-27): first deliver this minimal backend/real answer-consumer slice and prove ordered answers in the next provider request (TOOL15); then execute [T44/VIS37](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#question-ui-parity--vis37) FormPrompt/transcript/replay and full paired styled-cell/PNG qualification using pinned U31–U33. Share the same fixture/runtime evidence, keep behavior and visual results separate; neither task depends on completion of the whole other task. Independent T44 work remains ready and only one journal task is active.
   - Status: pending
   - Evidence:
 

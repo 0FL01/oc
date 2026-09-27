@@ -1,7 +1,7 @@
 # Goal: TUI pixel parity with opencode v2.0.12
 
 Status: active
-Source: user instructions 2026-09-21 and reviewed recovery amendment 2026-09-22, reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`).
+Source: user instructions 2026-09-21, reviewed recovery amendment 2026-09-22 and question UI amendment 2026-09-27, reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`).
 Last updated: 2026-09-27
 
 ## Objective
@@ -15,7 +15,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 The owner's reviewed [T44 amendment](../../tui-recovery/T44_CONTRACT_AMENDMENT.md)
 supersedes the weaker self-authored interpretation below. Execute V00–V09 from
 [IMPLEMENTATION_GUIDE](../../tui-recovery/IMPLEMENTATION_GUIDE.md), all mandatory
-VIS01–VIS36 in [ACCEPTANCE.json](../../tui-recovery/ACCEPTANCE.json), and
+VIS01–VIS37 in [ACCEPTANCE.json](../../tui-recovery/ACCEPTANCE.json), and
 [SAFETY_REGRESSIONS](../../tui-recovery/SAFETY_REGRESSIONS.md). These are specifications,
 not executed results or a second task engine. `progress.py` remains the task-state owner.
 
@@ -72,11 +72,13 @@ or qualification; VIS34 remains open until its backend and paired UI gates pass.
   - Wheel-scroll acceptance (VIS32): in the existing cell-based terminal interface, preserve the full wheel displacement and upstream default speed semantics where the terminal event protocol permits; investigate the pinned `MacOSScrollAccel` implementation before claiming acceleration parity. Bound input work and coalesce compatible bursts without dropping displacement, reversing boundary semantics, starving paints/workers or replaying a stale queue as a long catch-up. While the target offset is unsettled, animate toward it with active frame deadlines only; rebase promptly on reversed input and stop scheduling when settled. Keep motion row-quantized: Crossterm's directional wheel path cannot promise pixel scrolling. Away from the bottom, keep the visible message anchor stable while streaming or paging history; at bottom, preserve sticky follow. Verify wheel routing in transcript, Shell output and list dialogs without moving editor focus; paired captures cover single ticks, fast/reversed bursts, both history edges and a live stream. Measure event-to-paint latency and settled time at 165 Hz and faster budgets, and confirm no periodic work remains at rest.
   - Acceptance: paired captures for scripted transcripts including Markdown tables and two consecutive turns at identical width/state/profile; compare the styled-cell/PNG rows for final assistant text → attribution and attribution → next user's block/text, including wrapped text and replay. Fix only the boundary shown to differ, preserving the upstream one-row row margin and user-block padding without a blanket spacing multiplier; live and durable replay restore the same semantic parts/cards/metadata. For eligible `Explored` and long-output Shell rows, compare normal → hover → expanded → recollapsed full frames and actual visible output; hover alone does not expand, and expanding does not invent truncated data. VIS31 qualifies demand-driven high-refresh scheduling and idle cost; VIS32 qualifies wheel displacement, motion, and live viewport anchoring. No raw escape noise; content wraps correctly.
   - File-mutation parity (VIS35): retain the single model-visible `apply_patch(patchText)` contract for all models, without native model-name routing or write/edit built-ins. Its visual reference is pinned OC2 `patch`/`ApplyPatch`, covering create, empty create, update, full replacement, delete and move. Require full paired styled-cell/PNG parity for applicable operation states, per-file blocks, paths, spacing, theme roles, syntax, line numbers, unified/split/auto layout and configured wrapping. Execute real tools and independently verify filesystem effects before accepting captures. Persist result-derived diff metadata for replay/reopen without reading present-day files or reexecuting tools. Preserve truthful partial/unknown outcomes and existing permissions/DCP invariants. Separately qualify model-authored patches through the existing coding E2E; deterministic backend/TUI fixtures do not prove model proficiency.
+  - Question cards (VIS37): render actual pending `Asking questions…` and result-derived `# Questions` with ordered question/answer pairs, matching pinned U33. Unanswered/cancelled/error outcomes remain truthful; replay/reopen/restart use persisted metadata without reasking or reexecuting the tool. A generic tool row or static fixture card does not qualify.
   - Primary evidence: original/Rust paired styled cells and PNG plus real protocol/operation/restart assertions.
   - Status: implemented-partial/unverified
   - Evidence: iterations 3a+3b (committed): `crates/oc-tui/src/messages.rs` renders user blocks with `┃`/raised background/chips, assistant markdown (paddingLeft 3, headings/lists/code fences with syntax colors/blockquotes), collapsed reasoning (`Thinking` → `Thought: … · duration`), and the `agent · model · dur · tok/s · interrupted` footer; additive DTOs `ReasoningDelta`/`TurnUsage`/`duration_ms` wired through the provider stream (2 adapter end-to-end tests). Tool cards: inline rows (read/glob/grep/webfetch/skill/generic with upstream labels and spinner), shell `$ cmd` with stdout/stderr/exit/truncation, apply_patch `# Created`/`← Patched`/`# Deleted` with diff hunks using `diff.text.*` roles, subagent card parsed from the real `<subagent …>` wrapper, pending/running/completed/error/cancelled states; additive `ToolCallStarted/Finished` events emitted after durable writes. Known R4 residual: committed history rows carry no tool cards after a page reload (live turns only).
 
 - R5: Interaction parity — keybindings, command palette, dialogs (session list, model, agent, help, error details), input editor behavior (multi-line, paste, history), inline `/` autocomplete and `@` mention overlays (owner amendment 2026-09-24), mouse text selection/copy, running-agent indicator in the lower-left prompt footer, and status hints match upstream.
+  - Question UI parity (owner-approved 2026-09-27, VIS37): follow the question section below and in the T44 amendment. First deliver the real T50/R4/TOOL15 backend/answer consumer slice; then qualify the original FormPrompt placement, single/multiple/free-form and multi-question review/navigation, focus/draft lifecycle and result cards with paired full styled-cell/PNG evidence. VIS36 permission approval is distinct. Depend on this backend slice, not completion of all T50; independent T44 work remains ready.
   - Primary-profile parity (owner-approved 2026-09-27): follow the primary profile section in the T44 amendment and T45 R6. Build/Plan/custom profiles use real owner-backed definitions/selection; Shift+Tab cycles while /agents opens the picker. VIS06/VIS10/VIS17 qualify eligibility, profile color, draft/focus, instructions/model/permissions, Plan enter/leave reminders and replay/reopen with pinned U25–U30 references. Backend and UI evidence are separate; approval does not mark either implemented or verified.
   - Compaction parity (VIS34): `/compact` and palette trigger real session compaction, distinct from DCP compression. Match queued/running/completed/failed/cancelled states, safe-boundary delivery and pending-compaction coalescing. Render the divider rules, streaming Markdown summary and completed usage from the compaction request; running uses the pinned Braille spinner at 80 ms, or `⋯` with animations disabled (not a text shimmer). Preserve checkpoint and next provider context through reopen without rewriting raw history or replaying tools. Cover manual command, automatic context-threshold trigger and overflow recovery. For supported provider-native compaction, use `Provider compaction` without inventing a summary body. Verify paired styled-cell/PNG states and running frames; `Instructions updated` remains a separate instruction event. Preserve DCP and conversation-only Revert invariants.
   - Agent-switch feedback recon: pinned `opencode/packages/tui/src/component/dialog-agent.tsx:25–27` selects the agent and clears the dialog; `context/local.tsx:97–112` emits no success toast, only a warning for an unknown agent. Native `crates/oc/src/tui_cmd.rs::apply_intent(SelectAgent)` calls `push_note` with `agent: …`; `oc-tui/src/app.rs::push_note_variant` clears expiry, so this extra toast persists. The transient timer already exists; do not replace this divergence with an arbitrary timeout.
@@ -112,6 +114,25 @@ waivers. Effective Deny and structural trust boundaries remain authoritative;
 disclose policy differences without claiming identical donor policy algebra.
 VIS36 supplies VIS35's approval prerequisite, not a completion dependency on
 VIS35 or all of T43/T45. Existing independent compaction/card work is not blocked.
+
+### Question UI parity — VIS37 (R4/R5)
+
+Mandatory owner-approved scope: first T50/R4 delivers typed question admission,
+application-owned pending/wait/answer/cancel and a real TUI answer consumer, with
+TOOL15 evidence that the ordered answers reach the next provider request. Then
+T44/VIS37 matches the pinned original's lower FormPrompt, geometry/theme/strings,
+single/multiple selection, automatic custom answer, multi-question tabs or narrow
+progress fallback, review/Submit when applicable, keyboard/mouse/focus and draft
+restoration. Pending, answer editing, submitting/reply error, completion and
+dismissal are real owner states; completed question cards survive reopen/restart.
+
+Follow [Question UI parity — VIS37](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#question-ui-parity--vis37)
+and pinned U31–U33. TOOL15 behavior and VIS37 full styled-cell/PNG comparison have
+separate results and may share the same fixture/runtime evidence. No inert widget,
+permission-form substitution, autoaccept-generated answer or historical PASS waiver.
+This is a slice ordering, not T44 depends_on all T50 (or the reverse); keep one
+active journal task and existing ownership. Approval does not verify implementation;
+VIS37 starts NOT_RUN with no evidence.
 
 ### Constraints
 
